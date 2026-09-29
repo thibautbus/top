@@ -40,5 +40,17 @@ function(oracles_set_warnings target)
     endif()
 endfunction()
 
+# Every executable at the top of the build directory, whichever directory declares it, as when one file declared them
+# all: beside SDL3.dll on Windows, and where build_windows.sh, the CI and the route checks take them.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# The session's sources (engine/session) and the host's backend without a window (engine/host/null_backend.c) are
+# compiled into the harness, the launcher and the tests that need them.
+set(ORACLES_HOST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/engine/host)
 
 add_subdirectory(third_party)
+add_subdirectory(engine)
+
+# ---- tests without ROM --------------------------------------------------------
+include(CTest)
+add_subdirectory(tests)
