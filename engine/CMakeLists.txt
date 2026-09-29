@@ -50,3 +50,7 @@ target_include_directories(oracles_enhanced PUBLIC enhanced)
 target_link_libraries(oracles_enhanced PUBLIC oracles_guest oracles_core oracles_ghost)
 oracles_set_warnings(oracles_enhanced)
 
+add_library(oracles_gameplay STATIC gameplay/room_transition.c gameplay/item_hotkeys.c gameplay/item_hotkeys_policy.c)
+target_include_directories(oracles_gameplay PUBLIC gameplay)
+target_link_libraries(oracles_gameplay PUBLIC oracles_guest)
+oracles_set_warnings(oracles_gameplay)

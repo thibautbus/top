@@ -41,6 +41,21 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-ghost)
     add_test(NAME oracles-ghost COMMAND oracles-test-ghost)
 
+    add_executable(oracles-test-room-transition test_room_transition.c)
+    target_link_libraries(oracles-test-room-transition PRIVATE oracles_gameplay)
+    oracles_set_warnings(oracles-test-room-transition)
+    add_test(NAME oracles-room-transition COMMAND oracles-test-room-transition)
+
+    add_executable(oracles-test-item-hotkeys test_item_hotkeys.c)
+    target_link_libraries(oracles-test-item-hotkeys PRIVATE oracles_gameplay)
+    oracles_set_warnings(oracles-test-item-hotkeys)
+    add_test(NAME oracles-item-hotkeys COMMAND oracles-test-item-hotkeys)
+
+    add_executable(oracles-test-item-hotkeys-policy test_item_hotkeys_policy.c)
+    target_link_libraries(oracles-test-item-hotkeys-policy PRIVATE oracles_gameplay)
+    oracles_set_warnings(oracles-test-item-hotkeys-policy)
+    add_test(NAME oracles-item-hotkeys-policy COMMAND oracles-test-item-hotkeys-policy)
+
     add_executable(oracles-test-hotbar test_hotbar.c ${ORACLES_ENHANCED_DIR}/hotbar.c)
     target_include_directories(oracles-test-hotbar PRIVATE ${ORACLES_ENHANCED_DIR})
     oracles_set_warnings(oracles-test-hotbar)
