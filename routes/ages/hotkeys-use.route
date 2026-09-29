@@ -1,0 +1,798 @@
+oracles-route 2
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 bab1d15f1c77a404c05860ff6fb2e67f6c0ebd9e
+options continuous-transitions
+core joypad-bouncing-off
+inputs
+0 keys 00
+1400 keys 80
+1407 keys 00
+1689 keys 80
+1698 keys 00
+1822 keys 80
+1832 keys 00
+1850 keys 80
+1861 keys 00
+2012 keys 08
+2249 keys 00
+2269 keys 02
+2358 keys 00
+2416 keys 20
+2427 keys 00
+2550 keys 02
+2583 keys 00
+2605 keys 10
+2618 keys 00
+2688 equip b=0f s1=17
+2689 use b 17
+2689 keys 20
+2698 keys 00
+2727 equip b=17 s1=0f
+2801 keys 01
+2819 equip b=0f s1=17
+2820 use b 17
+2820 keys 21
+2830 keys 01
+2906 keys 00
+2913 equip b=17 s1=0f
+2953 keys 02
+2973 equip b=0f s1=17
+2974 use b 17
+2974 keys 22
+2984 keys 02
+3065 equip b=17 s1=0f
+3082 equip b=0f s1=17
+3083 use b 17
+3083 keys 22
+3094 keys 02
+3123 equip b=17 s1=0f
+3182 keys 00
+3231 keys 01
+3244 equip b=0f s1=17
+3245 use b 17
+3245 keys 21
+3254 keys 01
+3310 use b 17
+3310 keys 21
+3320 keys 01
+3349 equip b=17 s1=0f
+3350 equip b=0f s1=17
+3351 use b 17
+3351 keys 21
+3360 keys 01
+3389 equip b=17 s1=0f
+3394 equip b=0f s1=17
+3395 use b 17
+3395 keys 21
+3402 keys 01
+3431 equip b=17 s1=0f
+3438 keys 00
+3499 equip b=0f s1=17
+3500 use b 17
+3500 keys 20
+3509 keys 00
+3538 equip b=17 s1=0f
+3617 keys 20
+3628 keys 00
+3673 keys 02
+3691 keys 00
+3699 equip b=0f s1=17
+3700 use b 17
+3700 keys 20
+3710 keys 00
+3739 equip b=17 s1=0f
+3763 keys 10
+3774 keys 00
+3815 keys 10
+3825 keys 00
+3840 keys 20
+3853 keys 00
+3885 equip b=0f s1=17
+3886 use b 17
+3886 keys 20
+3894 keys 00
+3899 keys 20
+3908 keys 00
+3920 keys 20
+3923 equip b=17 s1=0f
+3929 keys 00
+3942 keys 20
+3953 keys 00
+3960 keys 20
+3968 keys 00
+3978 keys 20
+3988 keys 00
+4009 equip b=0f s1=17
+4010 use b 17
+4010 keys 20
+4018 keys 00
+4047 equip b=17 s1=0f
+4070 keys 20
+4081 keys 00
+4108 equip b=0f s1=17
+4109 use b 17
+4109 keys 20
+4119 keys 00
+4148 equip b=17 s1=0f
+4185 equip b=0f s1=17
+4186 use b 17
+4186 keys 20
+4196 keys 00
+4225 equip b=17 s1=0f
+4258 equip b=0f s1=17
+4259 use b 17
+4259 keys 20
+4268 keys 00
+4297 equip b=17 s1=0f
+4339 equip b=0f s1=17
+4340 use b 17
+4340 keys 20
+4350 keys 00
+4379 equip b=17 s1=0f
+4407 equip b=0f s1=17
+4408 use b 17
+4408 keys 20
+4416 keys 00
+4419 keys 10
+4428 keys 00
+4445 equip b=17 s1=0f
+4505 equip b=0f s1=17
+4506 use b 17
+4506 keys 20
+4513 keys 00
+4518 use b 17
+4518 keys 20
+4524 keys 00
+4528 use b 17
+4528 keys 20
+4536 keys 00
+4565 equip b=17 s1=0f
+4573 equip b=0f s1=17
+4574 use b 17
+4574 keys 20
+4582 keys 00
+4584 keys 20
+4595 keys 00
+4611 equip b=17 s1=0f
+4632 equip b=0f s1=17
+4633 use b 17
+4633 keys 20
+4652 keys 00
+4670 equip b=17 s1=0f
+4785 equip b=0f s13=01
+4786 use b 01
+4786 keys 20
+4831 keys 00
+4860 equip b=01 s13=0f
+4903 equip b=0f s13=01
+4904 use b 01
+4904 keys 20
+4952 keys 00
+4981 equip b=01 s13=0f
+5027 equip b=0f s13=01
+5028 use b 01
+5028 keys 20
+5075 keys 00
+5104 equip b=01 s13=0f
+5161 equip b=0f s13=01
+5162 use b 01
+5162 keys 20
+5210 keys 00
+5239 equip b=01 s13=0f
+5311 equip b=0f s14=15
+5312 use b 15
+5312 keys 20
+5364 keys 00
+5387 equip b=15 s13=01
+5388 use b 01
+5388 keys 20
+5420 keys 00
+5449 equip b=01 s14=0f
+5461 equip b=0f s1=17
+5462 use b 17
+5462 keys 20
+5476 keys 00
+5487 equip b=17 s14=01
+5488 use b 01
+5488 keys 20
+5501 keys 00
+5519 equip b=01 s13=15
+5520 use b 15
+5520 keys 20
+5533 keys 00
+5542 equip a=05 s13=01
+5543 use a 01
+5543 keys 10
+5556 keys 00
+5572 equip b=15 s1=0f
+5584 equip b=0f s14=17
+5585 use b 17
+5585 keys 20
+5585 equip a=01 s13=05
+5595 keys 00
+5602 equip b=17 s13=01
+5603 use b 01
+5603 keys 20
+5614 keys 00
+5635 equip b=01 s1=15
+5636 use b 15
+5636 keys 20
+5648 keys 00
+5655 equip a=05 s1=01
+5656 use a 01
+5656 keys 10
+5666 keys 00
+5688 equip b=15 s14=0f
+5695 equip a=01 s1=05
+6368 keys 20
+6408 keys 00
+6436 keys 02
+6444 keys 12
+6473 keys 10
+6474 keys 00
+6511 equip b=0f s14=15
+6512 use b 15
+6512 keys 20
+6543 keys 00
+6572 equip b=15 s14=0f
+6591 equip b=0f s13=17
+6592 use b 17
+6592 keys 20
+6620 keys 00
+6623 equip b=17 s1=01
+6624 use b 01
+6624 keys 20
+6649 keys 21
+6764 keys 29
+6766 keys 28
+6878 keys 20
+6881 keys 22
+6923 keys 28
+7001 keys 22
+7079 keys 20
+7126 keys 22
+7137 keys 20
+7152 keys 00
+7159 use b 01
+7159 keys 20
+7164 keys 00
+7169 use b 01
+7169 keys 20
+7173 keys 00
+7177 use b 01
+7177 keys 20
+7182 keys 00
+7186 use b 01
+7186 keys 20
+7195 keys 00
+7205 equip b=01 s1=17
+7206 use b 17
+7206 keys 20
+7212 keys 00
+7217 use b 17
+7217 keys 20
+7222 keys 00
+7233 use b 17
+7233 keys 20
+7237 keys 00
+7242 use b 17
+7242 keys 20
+7247 keys 00
+7275 equip b=17 s1=01
+7276 use b 01
+7276 keys 20
+7282 keys 00
+7311 equip b=01 s13=0f
+7335 equip b=0f s14=15
+7336 use b 15
+7336 keys 20
+7345 keys 00
+7380 use b 15
+7380 keys 20
+7387 keys 00
+7390 use b 15
+7390 keys 20
+7396 keys 00
+7400 use b 15
+7400 keys 20
+7404 keys 00
+7408 use b 15
+7408 keys 20
+7414 keys 00
+7417 use b 15
+7417 keys 20
+7422 keys 00
+7426 use b 15
+7426 keys 20
+7431 keys 00
+7436 use b 15
+7436 keys 20
+7442 keys 00
+7454 keys 20
+7468 keys 00
+7486 keys 20
+7496 keys 00
+7521 keys 10
+7532 keys 00
+7538 equip b=15 s14=0f
+7573 keys 10
+7583 keys 00
+7692 equip b=0f s14=15
+7693 use b 15
+7693 keys 20
+7706 keys 00
+7745 equip b=15 s14=0f
+7755 equip b=0f s14=15
+7756 use b 15
+7756 keys 20
+7766 keys 00
+7808 equip b=15 s14=0f
+7853 equip b=0f s13=01
+7854 use b 01
+7854 keys 20
+7871 keys 00
+7890 use b 01
+7890 keys 20
+7913 keys 00
+7939 use b 01
+7939 keys 20
+7955 keys 00
+7984 equip b=01 s13=0f
+8055 equip b=0f s1=17
+8056 use b 17
+8056 keys 20
+8068 keys 00
+8097 equip b=17 s1=0f
+8099 equip b=0f s13=01
+8100 use b 01
+8100 keys 20
+8112 keys 00
+8142 use b 01
+8142 keys 20
+8164 keys 00
+8185 use b 01
+8185 keys 20
+8197 keys 00
+8226 equip b=01 s13=0f
+8267 keys 80
+8275 keys 00
+8355 keys 08
+8363 keys 00
+8426 keys 01
+8438 keys 00
+8470 keys 02
+8477 keys 00
+8653 keys 80
+8661 keys 00
+8710 equip b=0f s4=06
+8711 use b 06
+8711 keys 20
+8722 keys 00
+8751 equip b=06 s4=0f
+8811 equip b=0f s1=17
+8812 use b 17
+8812 keys 20
+8822 keys 00
+8851 equip b=17 s1=0f
+8876 equip b=0f s14=15
+8877 use b 15
+8877 keys 20
+8889 keys 00
+8902 equip b=15 s13=01
+8903 use b 01
+8903 keys 20
+8913 keys 00
+8943 use b 01
+8943 keys 20
+8954 keys 00
+8960 use b 01
+8960 keys 20
+8967 keys 00
+8987 equip b=01 s4=06
+8988 use b 06
+8988 keys 20
+8998 keys 00
+9027 equip b=06 s14=0f
+9035 keys 04
+9067 keys 00
+9080 keys 08
+9103 keys 0a
+9104 keys 02
+9118 equip b=0f s14=06
+9119 use b 06
+9119 keys 22
+9123 keys 20
+9127 keys 00
+9131 keys 08
+9142 equip b=06 s1=17
+9143 use b 17
+9143 keys 28
+9151 keys 08
+9184 keys 00
+9194 keys 04
+9212 keys 00
+9219 keys 02
+9231 equip b=17 s14=0f
+9237 equip b=0f s14=17
+9238 use b 17
+9238 keys 20
+9242 keys 00
+9271 equip b=17 s14=0f
+9274 keys 04
+9302 keys 00
+9308 keys 02
+9322 keys 00
+9339 keys 08
+9347 keys 00
+9352 keys 02
+9363 keys 00
+9376 keys 04
+9387 keys 00
+9396 keys 01
+9466 equip b=0f s14=17
+9467 use b 17
+9467 keys 21
+9473 keys 01
+9485 keys 00
+9502 equip b=17 s14=0f
+9504 keys 02
+9519 keys 00
+9534 equip b=0f s1=06
+9535 use b 06
+9535 keys 20
+9543 keys 00
+9564 keys 04
+9573 equip b=06 s1=0f
+9577 equip b=0f s14=17
+9578 use b 17
+9578 keys 24
+9585 keys 04
+9614 equip b=17 s14=0f
+9616 keys 00
+9617 keys 02
+9627 keys 0a
+9640 keys 0b
+9645 keys 09
+9651 keys 01
+9682 keys 09
+9693 keys 08
+9714 keys 00
+9964 keys 80
+9972 keys 00
+10062 keys 01
+10071 keys 00
+10078 keys 01
+10088 keys 00
+10106 keys 20
+10117 keys 00
+10174 keys 02
+10181 keys 00
+10186 keys 02
+10192 keys 00
+10197 keys 02
+10204 keys 00
+10223 keys 20
+10233 keys 00
+10387 keys 20
+10395 keys 00
+10429 keys 01
+10438 keys 00
+10440 keys 20
+10449 keys 00
+10700 keys 80
+10708 keys 00
+10756 equip b=0f s6=19
+10757 use b 19
+10757 keys 20
+10768 keys 00
+10797 equip b=19 s6=0f
+10824 keys 02
+10850 equip shooter=00
+10851 use b 0f
+10851 keys 20
+10861 keys 00
+10897 keys 80
+10905 keys 00
+11068 keys 20
+11078 keys 00
+11125 keys 20
+11135 keys 00
+11186 keys 20
+11197 keys 00
+11223 keys 20
+11232 keys 00
+11345 keys 20
+11353 keys 00
+11381 keys 01
+11392 keys 00
+11407 keys 20
+11416 keys 00
+11645 keys 20
+11654 keys 00
+11706 keys 01
+11717 keys 00
+11721 keys 20
+11732 keys 00
+11955 keys 80
+11962 keys 00
+11997 equip b=0f s6=19
+11998 use b 19
+11998 keys 20
+12008 keys 00
+12037 equip b=19 s6=0f
+12059 equip b=0f s6=19 satchel=00
+12060 use b 19
+12060 keys 20
+12068 keys 00
+12098 equip b=19 s6=0f satchel=01
+12157 keys 01
+12189 keys 00
+12200 keys 10
+12209 keys 00
+12222 keys 10
+12229 keys 00
+12405 keys 80
+12412 keys 00
+12461 keys 02
+12468 keys 00
+12472 keys 02
+12480 keys 00
+12671 keys 01
+12678 keys 00
+12683 keys 01
+12691 keys 00
+12694 keys 08
+12699 keys 00
+12704 keys 08
+12711 keys 00
+12772 keys 80
+12779 keys 00
+12819 equip b=0f s4=01
+12820 use b 01
+12820 keys 20
+12829 keys 22
+12844 keys 02
+12844 equip b=01 s14=17
+12845 use b 17
+12845 keys 22
+12854 keys 02
+12854 equip b=17 s14=01
+12855 use b 01
+12855 keys 22
+12908 keys 20
+12916 keys 21
+12923 keys 01
+12923 equip b=01 s14=17
+12924 use b 17
+12924 keys 21
+12932 keys 01
+12932 equip b=17 s14=01
+12933 use b 01
+12933 keys 21
+12949 keys 25
+12976 keys 21
+12985 keys 20
+12987 keys 28
+13000 keys 08
+13000 equip b=01 s14=17
+13001 use b 17
+13001 keys 2a
+13009 keys 0a
+13009 equip b=17 s14=01
+13010 use b 01
+13010 keys 2a
+13056 keys 28
+13061 keys 20
+13073 keys 00
+13078 keys 01
+13108 use b 01
+13108 keys 21
+13134 keys 31
+13144 keys 21
+13185 keys 01
+13185 equip b=01 s14=17
+13186 use b 17
+13186 keys 21
+13195 keys 01
+13195 equip b=17 s14=01
+13196 use b 01
+13196 keys 21
+13222 keys 23
+13226 keys 22
+13368 keys 32
+13376 keys 22
+13461 keys 02
+13461 equip b=01 s14=17
+13462 use b 17
+13462 keys 22
+13468 keys 02
+13468 equip b=17 s14=01
+13469 use b 01
+13469 keys 22
+13497 keys 32
+13508 keys 22
+13533 keys 20
+13545 keys 28
+13566 keys 20
+13600 keys 21
+13627 keys 20
+13653 keys 22
+13672 keys 02
+13721 equip b=01 s14=17
+13722 use b 17
+13722 keys 22
+13729 keys 02
+13729 equip b=17 s14=01
+13730 use b 01
+13730 keys 22
+13758 keys 20
+13787 keys 21
+13799 keys 01
+13799 equip b=01 s14=17
+13800 use b 17
+13800 keys 21
+13807 keys 01
+13807 equip b=17 s14=01
+13808 use b 01
+13808 keys 21
+13826 keys 31
+13833 keys 11
+13835 use b 01
+13835 keys 21
+13863 keys 20
+13888 keys 00
+13938 equip b=01 s4=0f
+13956 keys 01
+13972 keys 05
+13977 keys 04
+14020 keys 00
+14074 keys 01
+14106 keys 00
+14126 equip b=0f s4=01
+14127 use b 01
+14127 keys 20
+14136 keys 00
+14165 equip b=01 s4=0f
+14192 keys 80
+14200 keys 00
+14255 keys 04
+14260 keys 00
+14265 keys 04
+14270 keys 00
+14275 keys 04
+14282 keys 00
+14285 keys 02
+14295 keys 00
+14336 keys 80
+14343 keys 00
+14394 equip b=0f s1=06
+14395 use b 06
+14395 keys 20
+14404 keys 00
+14414 equip b=06 s14=17
+14415 use b 17
+14415 keys 20
+14423 keys 00
+14452 equip b=17 s1=0f
+14499 equip b=0f s14=06
+14500 use b 06
+14500 keys 20
+14510 keys 00
+14523 equip b=06 s1=17
+14524 use b 17
+14524 keys 20
+14539 keys 00
+14544 equip b=17 s4=01
+14545 use b 01
+14545 keys 20
+14609 keys 00
+14638 equip b=01 s14=0f
+14818 keys 08
+14835 keys 00
+14844 keys 02
+14866 keys 00
+14879 keys 04
+14893 keys 00
+14940 keys 20
+14977 keys 28
+15029 keys 20
+15066 keys 30
+15098 keys 20
+15103 keys 00
+15126 equip b=0f s4=17
+15127 use b 17
+15127 keys 20
+15150 keys 00
+15159 equip b=17 s14=01
+15160 use b 01
+15160 keys 20
+15190 keys 28
+15258 keys 20
+15271 keys 22
+15301 keys 20
+15343 keys 00
+15353 keys 10
+15366 keys 00
+15372 equip b=01 s4=0f
+15387 equip b=0f s4=01
+15388 use b 01
+15388 keys 20
+15403 keys 30
+15468 keys 34
+15485 keys 24
+15542 keys 20
+15609 keys 28
+15651 keys 20
+15683 keys 28
+15694 keys 20
+15790 keys 21
+15809 keys 29
+15810 keys 28
+15838 keys 20
+15842 keys 21
+15860 keys 20
+15865 keys 00
+15894 equip b=01 s4=0f
+16118 keys 20
+16129 keys 00
+16138 keys 10
+16152 keys 00
+16193 keys 04
+16209 keys 00
+16216 keys 04
+16224 keys 00
+16228 keys 04
+16236 keys 00
+16241 keys 04
+16248 keys 00
+16254 equip b=0f s4=01
+16255 use b 01
+16255 keys 20
+16264 keys 00
+16284 equip b=01 s14=17
+16285 use b 17
+16285 keys 20
+16297 keys 00
+16326 equip b=17 s4=0f
+16334 keys 04
+16338 keys 00
+16340 keys 02
+16368 equip b=0f s1=06
+16369 use b 06
+16369 keys 22
+16371 keys 20
+16378 keys 00
+16396 equip b=06 s14=01
+16397 use b 01
+16397 keys 20
+16404 keys 00
+16433 equip b=01 s1=0f
+16692 keys 80
+16700 keys 00
+16755 keys 80
+16765 keys 00
+16962 equip b=0f s4=17
+16963 use b 17
+16963 keys 20
+16969 keys 00
+16998 equip b=17 s4=0f
+17022 equip b=0f s14=06
+17023 use b 06
+17023 keys 20
+17029 keys 00
+17061 equip b=06 s14=0f
+17075 keys 01
+17085 keys 00
+17098 equip b=0f s14=06
+17099 use b 06
+17099 keys 20
+17105 keys 00
+17116 keys 80
+17124 keys 00
+17176 keys 80
+17183 keys 00
+17257 keys 80
+17265 keys 00
+17315 keys 80
+17323 keys 00

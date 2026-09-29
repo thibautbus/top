@@ -1,0 +1,5 @@
+oracles-mod-storage 1
+slot claw-game 0 2
+{}
+slot fortune-teller 0 14
+{s6:visitsi1;}

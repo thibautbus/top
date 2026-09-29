@@ -51,6 +51,7 @@ set(ORACLES_HOST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/engine/host)
 
 add_subdirectory(third_party)
 add_subdirectory(engine)
+add_subdirectory(harness)
 
 # ---- tests without ROM --------------------------------------------------------
 include(CTest)

@@ -62,6 +62,12 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-item-hotkeys-policy)
     add_test(NAME oracles-item-hotkeys-policy COMMAND oracles-test-item-hotkeys-policy)
 
+    add_executable(oracles-test-hotkey-lines test_hotkey_lines.c ${ORACLES_SESSION_DIR}/hotkey_lines.c)
+    target_include_directories(oracles-test-hotkey-lines PRIVATE ${ORACLES_SESSION_DIR})
+    target_link_libraries(oracles-test-hotkey-lines PRIVATE oracles_gameplay)
+    oracles_set_warnings(oracles-test-hotkey-lines)
+    add_test(NAME oracles-hotkey-lines COMMAND oracles-test-hotkey-lines)
+
     add_executable(oracles-test-hotbar test_hotbar.c ${ORACLES_ENHANCED_DIR}/hotbar.c)
     target_include_directories(oracles-test-hotbar PRIVATE ${ORACLES_ENHANCED_DIR})
     oracles_set_warnings(oracles-test-hotbar)
@@ -90,13 +96,30 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-cache-key)
     add_test(NAME oracles-cache-key COMMAND oracles-test-cache-key)
 
+    # The routes replayed through the harness (tools/check_routes.py):
+    # skipped unless ORACLES_ROM_DIR names a directory with the ROMs.
     find_package(Python3 COMPONENTS Interpreter)
+    # A staged copy of the sources alone (build_windows.sh from a WSL path) has no tools/: no route test there.
+    if(Python3_Interpreter_FOUND AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/check_routes.py)
+        add_test(NAME oracles-routes COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/check_routes.py --harness $<TARGET_FILE:oracles-harness>)
+        set_tests_properties(oracles-routes PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 3600)
+    endif()
     # Each fan game's table against its manifest and the guest table's fields: a field the guest gains fails here,
     # before it takes the zero of C in a checked-in table (engine/game/profiles/gen_tables.py).
     if(Python3_Interpreter_FOUND AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../engine/game/profiles/moonrise-regalia/manifest.json)
         add_test(NAME oracles-fan-game-tables COMMAND ${Python3_EXECUTABLE} -m unittest test_gen_tables
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../engine/game/profiles)
     endif()
+    add_executable(oracles-test-state-refusal test_state_refusal.c ${ORACLES_SESSION_DIR}/state_refusal.c)
+    target_include_directories(oracles-test-state-refusal PRIVATE ${ORACLES_SESSION_DIR})
+    oracles_set_warnings(oracles-test-state-refusal)
+    add_test(NAME oracles-state-refusal COMMAND oracles-test-state-refusal)
+
+    add_executable(oracles-test-route test_route.c ${ORACLES_SESSION_DIR}/route.c)
+    target_include_directories(oracles-test-route PRIVATE ${ORACLES_SESSION_DIR})
+    oracles_set_warnings(oracles-test-route)
+    add_test(NAME oracles-route COMMAND oracles-test-route ${CMAKE_CURRENT_BINARY_DIR}/test_route.tmp)
+
     add_executable(oracles-test-host test_host.c ${ORACLES_HOST_DIR}/null_backend.c)
     target_include_directories(oracles-test-host PRIVATE ${ORACLES_HOST_DIR})
     target_link_libraries(oracles-test-host PRIVATE oracles_host)

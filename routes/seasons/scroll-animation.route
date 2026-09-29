@@ -1,0 +1,71 @@
+oracles-route 2
+game seasons
+rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+sram_sha1 4b5e3ab93423f5032efeb3a6a516a97dde69f83d
+options continuous-transitions
+core joypad-bouncing-off
+inputs
+0 keys 00
+475 keys 80
+483 keys 00
+500 keys 80
+508 keys 00
+613 keys 20
+622 keys 00
+646 keys 10
+659 keys 00
+676 keys 10
+684 keys 00
+771 keys 08
+1011 keys 0a
+1018 keys 02
+1326 keys 0a
+1328 keys 08
+1361 keys 00
+1362 keys 02
+1607 keys 0a
+1614 keys 08
+1766 keys 0a
+1771 keys 02
+1856 keys 03
+1859 keys 01
+1963 keys 05
+1964 keys 04
+2283 keys 06
+2289 keys 02
+2307 keys 06
+2311 keys 02
+2352 keys 06
+2362 keys 04
+2429 keys 06
+2433 keys 02
+2723 keys 06
+2739 keys 02
+2848 keys 0a
+2851 keys 08
+2862 keys 0a
+2863 keys 02
+2906 keys 0a
+2909 keys 08
+2995 keys 0a
+2997 keys 02
+3012 keys 0a
+3015 keys 08
+3081 keys 00
+3090 keys 04
+3191 keys 00
+3209 keys 04
+3222 keys 00
+3226 keys 01
+3282 keys 05
+3293 keys 01
+3358 keys 02
+3520 keys 00
+3521 keys 08
+3675 keys 09
+3686 keys 01
+3694 keys 00
+3695 keys 08
+3912 keys 00
+3923 keys 04
+4050 keys 00
