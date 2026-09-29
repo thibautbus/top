@@ -1,0 +1,16 @@
+# The exceptions of tools/check_public_text.py: path<TAB>regex, a line of that file matching the regex is not reported.
+# The game's accented glyphs, by the character they draw.
+engine/mods/mod_draw.c	\{ "[^"]+", 0x[0-9a-f]{2} \}
+# The same glyphs, listed in the documents that say which characters the game's font draws.
+docs/MODDING.md	ÀÂÄÆÇÈÉÊËÎÏÑÖŒÙÛÜàâäæçèéêëîïñöœùûü
+docs/ROM_DATA_FORMATS.md	ÀÂÄÆÇÈÉÊËÎÏÑÖŒÙÛÜàâäæçèéêëîïñöœùûü
+# A mod's text with an accented letter, the case the glyph table serves.
+tests/test_mods.c	Ô rôdeur
+# The curve's name.
+launcher/ui/ui_anim.h	Bézier
+# A folder outside ASCII, for the test of UTF-8 paths on Windows.
+tests/CMakeLists.txt	launcher-dépôt
+# Example paths of a fictional player.
+tests/test_launcher_page.c	C:\\+Users|"/home/
+tests/test_launcher_settings.c	C:\\+Users\\+sam|/home/sam
+tests/test_launcher_mods.c	C:\\+Users\\+sam

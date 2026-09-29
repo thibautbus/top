@@ -1,0 +1,238 @@
+name: Release
+
+# A release is a tag vX.Y.Z on the commit whose config/version.json says X.Y.Z (docs/BUILDING.md, releasing): this
+# workflow builds the product for every platform and publishes a GitHub Release of that tag with
+#
+#   the-oracles-project-X.Y.Z-windows.zip          the Windows folder: the executable, its two libraries, the licences
+#   the-oracles-project-X.Y.Z-macos.zip            the macOS application, universal (Apple Silicon and Intel)
+#   the-oracles-project-X.Y.Z-linux-x86_64.tar.gz  the Linux folder, which runs without installation
+#   the-oracles-project-X.Y.Z-android.apk          the Android application, signed by the project's release key
+#   SHA256SUMS.txt                                 their checksums
+#
+# and the notes of .github/release-notes.md.  Run by hand (workflow_dispatch), it builds the same files from the
+# chosen branch and keeps them as artifacts for seven days, without any Release: a rehearsal.  The tests are the CI's,
+# which ran on the same commit: here the products are built, in Release with warnings as errors.
+#
+# The release key lives in the repository's secrets, never in the code: ORACLES_KEYSTORE_BASE64 (the keystore file,
+# base64) and ORACLES_KEYSTORE_PASSWORD; ORACLES_KEY_ALIAS and ORACLES_KEY_PASSWORD when they differ from "oracles"
+# and the keystore's password.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - name: Read config/version.json, and check a release tag against it
+        id: version
+        run: |
+          version="$(python3 -c 'import json; print(json.load(open("config/version.json"))["version"])')"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "the tag ${GITHUB_REF_NAME} does not match config/version.json (${version})" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      MSYSTEM: UCRT64
+      # A login shell of MSYS2 keeps the directory it was started from.
+      CHERE_INVOKING: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+          fetch-depth: 0   # the release tags, from which the version shown is told
+      # MSYS2's login shell does not see Git for Windows: the description is read here and passed to CMake.
+      - name: Describe the commit
+        shell: bash
+        run: echo "ORACLES_GIT_DESCRIBE=$(git describe --tags --always --long --match 'v[0-9]*')" >> "$GITHUB_ENV"
+      - name: Build with the MSYS2 UCRT64 toolchain (the pinned SDL 3 from source)
+        shell: cmd
+        run: C:\msys64\usr\bin\bash.exe -lc "./tools/build_windows.sh"
+      - name: Zip the folder, without the harness and the tests
+        shell: bash
+        run: |
+          name="the-oracles-project-${VERSION}-windows"
+          mkdir -p "dist/$name"
+          cp build-windows/the-oracles-project.exe build-windows/SDL3.dll build-windows/libwinpthread-1.dll \
+            build-windows/*-OFL.txt build-windows/SameBoy-LICENSE.txt build-windows/SDL3-LICENSE.txt \
+            build-windows/libwinpthread-COPYING.txt "dist/$name/"
+          sed -e "s/X\.Y\.Z/${VERSION}/" -e "s/PLATFORM/Windows/" .github/release-readme.txt > "dist/$name/README.txt"
+          (cd dist && python -m zipfile -c "$name.zip" "$name")
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-windows
+          path: dist/the-oracles-project-*-windows.zip
+          retention-days: 7
+
+  macos:
+    needs: version
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+          fetch-depth: 0
+      # One universal build, Apple Silicon and Intel, the SDL 3 pinned in config/sdl3.json built with it; macOS 11,
+      # the first to run on Apple Silicon, at least.
+      - name: Configure a universal build
+        run: >-
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+      - name: Build the launcher
+        run: cmake --build build --parallel 3 --target oracles
+      - name: Assemble the application and zip it
+        run: |
+          mkdir -p dist/stage
+          ./tools/make_macos_app.sh build dist/stage
+          archs="$(lipo -archs "dist/stage/The Oracles Project.app/Contents/MacOS/The Oracles Project")"
+          case " $archs " in *" arm64 "*) ;; *) echo "no arm64 in the application: $archs" >&2; exit 1 ;; esac
+          case " $archs " in *" x86_64 "*) ;; *) echo "no x86_64 in the application: $archs" >&2; exit 1 ;; esac
+          sed -e "s/X\.Y\.Z/${VERSION}/" -e "s/PLATFORM/macOS/" .github/release-readme.txt > dist/stage/README.txt
+          ditto -c -k --sequesterRsrc dist/stage "dist/the-oracles-project-${VERSION}-macos.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-macos
+          path: dist/the-oracles-project-*-macos.zip
+          retention-days: 7
+
+  linux:
+    needs: version
+    # The oldest Ubuntu of the runners: its glibc, the one the executable and SDL need at least, the widest.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+          fetch-depth: 0
+      # The development packages SDL's README-linux lists, as the CI installs them: SDL is built with the X11 and the
+      # Wayland backends both, and the sound servers; patchelf sets the executable's run path.
+      - name: Install what SDL 3 builds against
+        run: >-
+          sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev libaudio-dev
+          libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev
+          libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev libusb-1.0-0-dev
+          libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev patchelf
+      - name: Configure with the SDL 3 pinned in config/sdl3.json
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON
+      - name: Build the launcher
+        run: cmake --build build --parallel 4 --target oracles
+      - name: Make the archive
+        run: ./tools/make_linux_tarball.sh build dist
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-linux
+          path: dist/the-oracles-project-*-linux-x86_64.tar.gz
+          retention-days: 7
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+          fetch-depth: 0   # the release tags, from which the version shown is told
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Put the release key in the runner's temporary folder
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ORACLES_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "the secret ORACLES_KEYSTORE_BASE64 is missing" >&2; exit 1; fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/oracles-release.jks"
+      - name: Build the signed APK (arm64-v8a and x86_64)
+        env:
+          ORACLES_KEYSTORE_PASSWORD: ${{ secrets.ORACLES_KEYSTORE_PASSWORD }}
+          ORACLES_KEY_ALIAS: ${{ secrets.ORACLES_KEY_ALIAS }}
+          ORACLES_KEY_PASSWORD: ${{ secrets.ORACLES_KEY_PASSWORD }}
+        run: |
+          ORACLES_KEYSTORE="$RUNNER_TEMP/oracles-release.jks" ./android/build_apk.sh release
+          # An unsigned APK is no release: the build names it so when the key did not reach it.
+          test -f android/build-apk/the-oracles-project-release.apk
+          mkdir -p dist
+          mv android/build-apk/the-oracles-project-release.apk "dist/the-oracles-project-${VERSION}-android.apk"
+      - name: Remove the release key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/oracles-release.jks"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-android
+          path: dist/the-oracles-project-*-android.apk
+          retention-days: 7
+
+  release:
+    needs: [version, windows, macos, linux, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # the Release of the tag
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: the-oracles-project-*
+          path: dist
+          merge-multiple: true
+      - name: Check the assets and write their checksums
+        run: |
+          cd dist
+          for asset in "the-oracles-project-${VERSION}-windows.zip" "the-oracles-project-${VERSION}-macos.zip" \
+                       "the-oracles-project-${VERSION}-linux-x86_64.tar.gz" "the-oracles-project-${VERSION}-android.apk"; do
+            test -f "$asset" || { echo "$asset is missing" >&2; exit 1; }
+          done
+          sha256sum the-oracles-project-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Write the notes
+        run: sed -e "s/X\.Y\.Z/${VERSION}/g" .github/release-notes.md > "$RUNNER_TEMP/notes.md"
+      - name: Keep a rehearsal's assets as one artifact
+        if: github.event_name != 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-${{ needs.version.outputs.version }}-rehearsal
+          path: dist/
+          retention-days: 7
+      - name: Publish the Release with the assets
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --repo "$GITHUB_REPOSITORY" --title "The Oracles Project ${VERSION}" --notes-file "$RUNNER_TEMP/notes.md"

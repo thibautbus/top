@@ -1,0 +1,126 @@
+name: CI
+
+# A push to main runs the checks and the Linux build with its tests; a pull request, or a run started by hand
+# (Actions, CI, Run workflow: before a tag, or after a push that went straight to main), also builds and tests on
+# macOS and Windows and builds the Android application.
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+      # A repository may give the checks more lists through its variables CHECK_EXCLUDE (prefixes not checked) and
+      # CHECK_TEXT_RULES (rules and exceptions of the text check); unset, the checks run on the whole tree with their own.
+      - name: Audit the tracked files
+        run: python tools/audit_tracked_files.py --root . ${{ vars.CHECK_EXCLUDE }}
+      - name: Check the text of the published files
+        run: python tools/check_public_text.py --root . ${{ vars.CHECK_EXCLUDE }} ${{ vars.CHECK_TEXT_RULES }}
+      - name: Check the active documents
+        run: python tools/check_docs.py ${{ vars.CHECK_EXCLUDE }}
+      - name: Refuse hand-written guest addresses
+        run: python tools/check_guest_addresses.py
+
+  engine-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      # Ubuntu 24.04 has no libsdl3-dev: CMake builds the SDL 3 pinned in config/sdl3.json, with the development
+      # packages SDL's README-linux lists.
+      - name: Install what SDL 3 builds against
+        run: >-
+          sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev libaudio-dev
+          libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev
+          libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev libusb-1.0-0-dev
+          libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+      - name: Configure the engine with warnings as errors
+        run: cmake -S . -B build-engine -DORACLES_WARNINGS_AS_ERRORS=ON -DBUILD_TESTING=ON
+      - name: Build the engine
+        run: cmake --build build-engine --parallel 2
+      - name: Test the engine without a ROM
+        run: ctest --test-dir build-engine --no-tests=error --output-on-failure
+
+  engine-macos:
+    name: engine-macos (${{ matrix.arch }})
+    if: github.event_name != 'push'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: Intel
+            runner: macos-15-intel
+          - arch: Apple Silicon
+            runner: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - name: Install SDL 3
+        run: brew install sdl3
+      - name: Configure the engine with warnings as errors
+        run: cmake -S . -B build-engine -DORACLES_WARNINGS_AS_ERRORS=ON -DBUILD_TESTING=ON
+      - name: Build the engine
+        run: cmake --build build-engine --parallel 2
+      - name: Test the engine without a ROM
+        run: ctest --test-dir build-engine --no-tests=error --output-on-failure
+
+  android:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+          fetch-depth: 0   # the release tags, from which git describe tells a release build from a later commit
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: "17"
+      # The runner's Android SDK (ANDROID_HOME); the Android Gradle plugin installs the NDK and CMake the build names.
+      - name: Build the Android application (debug APK, arm64-v8a and x86_64)
+        run: ./android/build_apk.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: the-oracles-project-debug-apk
+          path: android/build-apk/the-oracles-project-debug.apk
+          retention-days: 14
+
+  engine-windows:
+    if: github.event_name != 'push'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      MSYSTEM: UCRT64
+      # A login shell of MSYS2 keeps the directory it was started from.
+      CHERE_INVOKING: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - name: Build and test the engine with the preinstalled MSYS2 UCRT64 toolchain
+        shell: cmd
+        run: C:\msys64\usr\bin\bash.exe -lc "./tools/build_windows.sh"
