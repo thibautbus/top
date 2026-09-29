@@ -35,6 +35,11 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-render)
     add_test(NAME oracles-render COMMAND oracles-test-render)
 
+    add_executable(oracles-test-ghost test_ghost.c)
+    target_link_libraries(oracles-test-ghost PRIVATE oracles_ghost)
+    oracles_set_warnings(oracles-test-ghost)
+    add_test(NAME oracles-ghost COMMAND oracles-test-ghost)
+
     find_package(Python3 COMPONENTS Interpreter)
     # Each fan game's table against its manifest and the guest table's fields: a field the guest gains fails here,
     # before it takes the zero of C in a checked-in table (engine/game/profiles/gen_tables.py).
