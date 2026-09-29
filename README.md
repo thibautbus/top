@@ -32,6 +32,44 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" --enhanced
 
 macOS, Windows (MSYS2) and Android are in [`docs/BUILDING.md`](docs/BUILDING.md); the launcher, the options, the keys and the settings in [`docs/PLAYING.md`](docs/PLAYING.md).
 
+## What this repository does not contain
+
+No ROM, no asset of the games, no data decompressed from a ROM, no code of the games. You provide your own ROM of Oracle of Ages or Oracle of Seasons (US); a fan game needs that ROM and the game's own BPS patch. The addresses and symbol names the host uses come from the [oracles-disasm](https://github.com/Stewmath/oracles-disasm) disassembly, at the commit pinned in `config/disasm.json`, through tables generated from its symbol files; the CI audits that no ROM byte enters the repository. Tests that need a ROM are skipped without one, never simulated.
+
+## Platforms
+
+- Linux and macOS (Intel and Apple Silicon), with SDL 3;
+- Windows, built with MSYS2 UCRT64;
+- Android 10 and later (`arm64-v8a`, `x86_64`), with touch controls, the same launcher and the same options.
+
+The CI builds and tests all four on every pull request.
+
+## Documentation
+
+| Document | For |
+| --- | --- |
+| [`docs/BUILDING.md`](docs/BUILDING.md) | building on each platform, the options, the tests, releasing |
+| [`docs/PLAYING.md`](docs/PLAYING.md) | the launcher, the fan games, the command line, the profiles and options, the settings |
+| [`docs/MODDING.md`](docs/MODDING.md) | writing a mod in Lua |
+| [`docs/ROUTES.md`](docs/ROUTES.md) | recorded routes, the differential harness, the route suite |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | the layers, the rules between them, the SameBoy strategy |
+| [`docs/GAME_HOOKS.md`](docs/GAME_HOOKS.md) | what the host hooks in the game and where it may write |
+| [`docs/ROM_DATA_FORMATS.md`](docs/ROM_DATA_FORMATS.md) | the formats of the ROM's data |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | the rules of the code and of a change |
+
+## AI-assisted development
+
+This repository was developed with AI assistance. Every change, whoever writes it, is held by the same checks: the tests the CI runs without a ROM, the route suite replayed on the games with its run hashes kept, the text and boundary checks, and a review before it is merged.
+
+## Credits
+
+- [oracles-disasm](https://github.com/Stewmath/oracles-disasm), the disassembly of both games by Stewmath and its contributors: the addresses and symbol names the host reads and hooks are generated from its symbol files.
+- [SameBoy](https://sameboy.github.io/) by Lior Halphon: the emulator core the game runs in, unmodified.
+- The fan games the port recognises, and their authors:
+  - Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro;
+  - Moonrise Regalia, by PontiusStone;
+  - Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro.
+
 ## Licence
 
 The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries:
