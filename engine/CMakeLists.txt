@@ -17,6 +17,12 @@ target_include_directories(oracles_guest PUBLIC game/guest game/profiles game/da
 target_link_libraries(oracles_guest PUBLIC oracles_core)
 oracles_set_warnings(oracles_guest)
 
+# Software PPU and the per-frame comparison with the core.
+add_library(oracles_render STATIC render/ppu.c render/frame_check.c)
+target_include_directories(oracles_render PUBLIC render)
+target_link_libraries(oracles_render PUBLIC oracles_guest)
+oracles_set_warnings(oracles_render)
+
 # Native readers of the ROM's data (engine/game/data): the ghost scans the overworld's layouts.
 add_library(oracles_data STATIC game/data/oracles_rom.c game/data/layout.c game/data/tileset.c game/data/oracles_tables_ages.c game/data/oracles_tables_seasons.c)
 target_include_directories(oracles_data PUBLIC game/data)
