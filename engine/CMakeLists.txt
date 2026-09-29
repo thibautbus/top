@@ -11,3 +11,15 @@ target_include_directories(oracles_host PUBLIC host)
 target_link_libraries(oracles_host PUBLIC oracles_core)
 oracles_set_warnings(oracles_host)
 
+# Guest bus, hooks and register journal; the tables are generated per game.
+add_library(oracles_guest STATIC game/guest/guest.c game/guest/guest_transaction.c game/guest/guest_call.c game/guest/guest_inventory.c game/guest/guest_item_buttons.c game/guest/guest_fingerprint.c game/guest/guest_tables_ages.c game/guest/guest_tables_seasons.c game/profiles/profile.c game/profiles/moonrise-regalia/tables.c game/profiles/temple-of-seasons/tables.c game/profiles/gifts-of-kinomi/tables.c)
+target_include_directories(oracles_guest PUBLIC game/guest game/profiles game/data)
+target_link_libraries(oracles_guest PUBLIC oracles_core)
+oracles_set_warnings(oracles_guest)
+
+# Native readers of the ROM's data (engine/game/data): the ghost scans the overworld's layouts.
+add_library(oracles_data STATIC game/data/oracles_rom.c game/data/layout.c game/data/tileset.c game/data/oracles_tables_ages.c game/data/oracles_tables_seasons.c)
+target_include_directories(oracles_data PUBLIC game/data)
+oracles_set_warnings(oracles_data)
+target_link_libraries(oracles_guest PUBLIC oracles_data)
+

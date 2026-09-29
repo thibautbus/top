@@ -1,0 +1,1012 @@
+{
+  "id": "temple-of-seasons-1.073",
+  "rom_sha1": "6a8d0371268d2251d7b1bf52b69b28c21532647c",
+  "rom_size": 4194304,
+  "guest_table": {
+    "draw_all_sprites": {
+      "bank": 0,
+      "address": "0x0c9a"
+    },
+    "update_all_objects": {
+      "bank": 0,
+      "address": "0x32f5"
+    },
+    "initialize_room": {
+      "bank": 0,
+      "address": "0x2f8a"
+    },
+    "load_tileset_and_room_layout": {
+      "bank": 0,
+      "address": "0x370f"
+    },
+    "object_create_interaction": {
+      "bank": 0,
+      "address": "0x23f2"
+    },
+    "get_free_interaction_slot": {
+      "bank": 0,
+      "address": "0x398a"
+    },
+    "get_free_enemy_slot": {
+      "bank": 0,
+      "address": "0x2d7b"
+    },
+    "get_free_enemy_slot_uncounted": {
+      "bank": 0,
+      "address": "0x2d88"
+    },
+    "get_free_part_slot": {
+      "bank": 0,
+      "address": "0x3d6b"
+    },
+    "object_data_op6": {
+      "bank": 17,
+      "address": "0x7b99"
+    },
+    "object_data_op7": {
+      "bank": 17,
+      "address": "0x7bf0"
+    },
+    "parse_given_object_data": {
+      "bank": 17,
+      "address": "0x7a96"
+    },
+    "draw_object": {
+      "bank": 0,
+      "address": "0x0d71"
+    },
+    "draw_object_terrain_effects": {
+      "bank": 0,
+      "address": "0x0e08"
+    },
+    "update_animations": {
+      "bank": 4,
+      "address": "0x6ea7"
+    },
+    "draw_raw_oam_block": {
+      "bank": 0,
+      "address": "0x0dda"
+    },
+    "enemy_standard_update": {
+      "bank": 0,
+      "address": "0x27b7"
+    },
+    "screen_transition_state2": {
+      "bank": 1,
+      "address": "0x4ebd"
+    },
+    "apply_warp_dest": {
+      "bank": 0,
+      "address": "0x3231"
+    },
+    "show_text": {
+      "bank": 0,
+      "address": "0x1781"
+    },
+    "give_treasure": {
+      "bank": 0,
+      "address": "0x1629"
+    },
+    "open_menu": {
+      "bank": 0,
+      "address": "0x19ad"
+    },
+    "save_file": {
+      "bank": 0,
+      "address": "0x08d8"
+    },
+    "poll_input": {
+      "bank": 0,
+      "address": "0x026d"
+    },
+    "main_thread_start": {
+      "bank": 0,
+      "address": "0x31bb"
+    },
+    "apply_all_tile_substitutions": {
+      "bank": 4,
+      "address": "0x5c3f"
+    },
+    "check_room_pack": {
+      "bank": 1,
+      "address": "0x63ed"
+    },
+    "load_object_gfx_header_to_slot4": {
+      "bank": 0,
+      "address": "0x1570"
+    },
+    "check_reload_status_bar_graphics": null,
+    "load_equipped_item_gfx": null,
+    "check_use_items": null,
+    "initialize_parent_item": null,
+    "remove_rupee_value": null,
+    "lose_treasure": null,
+    "play_sound": null,
+    "set_global_flag": null,
+    "unset_global_flag": null,
+    "file_management_function": null,
+    "active_group": {
+      "bank": 0,
+      "address": "0xcc49"
+    },
+    "active_room": {
+      "bank": 0,
+      "address": "0xcc4c"
+    },
+    "loading_room": {
+      "bank": 0,
+      "address": "0xcc4b"
+    },
+    "room_is_large": {
+      "bank": 0,
+      "address": "0xcc4a"
+    },
+    "room_state_modifier": {
+      "bank": 0,
+      "address": "0xcc4e"
+    },
+    "room_layout": {
+      "bank": 0,
+      "address": "0xcf00"
+    },
+    "room_collisions": {
+      "bank": 0,
+      "address": "0xce00"
+    },
+    "tileset_flags": {
+      "bank": 0,
+      "address": "0xcc50"
+    },
+    "dungeon_index": {
+      "bank": 0,
+      "address": "0xcc55"
+    },
+    "toggle_blocks_state": {
+      "bank": 0,
+      "address": "0xcc31"
+    },
+    "portal_group": null,
+    "portal_room": null,
+    "scroll_mode": {
+      "bank": 0,
+      "address": "0xcd00"
+    },
+    "screen_transition_direction": {
+      "bank": 0,
+      "address": "0xcd02"
+    },
+    "disabled_objects": {
+      "bank": 0,
+      "address": "0xcca4"
+    },
+    "screen_transition_state": {
+      "bank": 0,
+      "address": "0xcd04"
+    },
+    "screen_transition_substate": {
+      "bank": 0,
+      "address": "0xcd05"
+    },
+    "screen_transition_phase": {
+      "bank": 0,
+      "address": "0xcd06"
+    },
+    "screen_scroll_delta": {
+      "bank": 0,
+      "address": "0xcd14"
+    },
+    "screen_scroll_counter": {
+      "bank": 0,
+      "address": "0xcd13"
+    },
+    "screen_scroll_row": {
+      "bank": 0,
+      "address": "0xcd10"
+    },
+    "screen_scroll_column_right": {
+      "bank": 0,
+      "address": "0xcd12"
+    },
+    "link_grab_state": {
+      "bank": 0,
+      "address": "0xcc75"
+    },
+    "link_swimming_state": {
+      "bank": 0,
+      "address": "0xcc78"
+    },
+    "magnet_glove_state": {
+      "bank": 0,
+      "address": "0xcc79"
+    },
+    "link_immobilized": {
+      "bank": 0,
+      "address": "0xcc7c"
+    },
+    "link_pushing_direction": {
+      "bank": 0,
+      "address": "0xcc80"
+    },
+    "pegasus_seed_counter": {
+      "bank": 0,
+      "address": "0xcc86"
+    },
+    "link_playing_instrument": {
+      "bank": 0,
+      "address": "0xcca7"
+    },
+    "link_turning_disabled": {
+      "bank": 0,
+      "address": "0xcc7b"
+    },
+    "force_link_push_animation": {
+      "bank": 0,
+      "address": "0xcc81"
+    },
+    "using_shield": {
+      "bank": 0,
+      "address": "0xcc89"
+    },
+    "link_id": {
+      "bank": 1,
+      "address": "0xd001"
+    },
+    "link_state": {
+      "bank": 1,
+      "address": "0xd004"
+    },
+    "link_visible": {
+      "bank": 1,
+      "address": "0xd01a"
+    },
+    "link_anim_counter": {
+      "bank": 1,
+      "address": "0xd020"
+    },
+    "link_anim_parameter": {
+      "bank": 1,
+      "address": "0xd021"
+    },
+    "link_anim_pointer": {
+      "bank": 1,
+      "address": "0xd022"
+    },
+    "link_anim_mode": {
+      "bank": 1,
+      "address": "0xd030"
+    },
+    "link_animation_frame": {
+      "bank": 1,
+      "address": "0xd031"
+    },
+    "link_invincibility_counter": {
+      "bank": 1,
+      "address": "0xd02b"
+    },
+    "link_knockback_counter": {
+      "bank": 1,
+      "address": "0xd02d"
+    },
+    "link_stun_counter": {
+      "bank": 1,
+      "address": "0xd02e"
+    },
+    "parent_item2_enabled": {
+      "bank": 1,
+      "address": "0xd200"
+    },
+    "parent_item3_enabled": {
+      "bank": 1,
+      "address": "0xd300"
+    },
+    "parent_item4_enabled": {
+      "bank": 1,
+      "address": "0xd400"
+    },
+    "parent_item5_enabled": {
+      "bank": 1,
+      "address": "0xd500"
+    },
+    "weapon_item_enabled": {
+      "bank": 1,
+      "address": "0xd600"
+    },
+    "special_object_animation_table": {
+      "bank": 6,
+      "address": "0x448e"
+    },
+    "tile_types_table": null,
+    "screen_transition_delay": null,
+    "active_tile_index": null,
+    "screen_transition_boundary_x": {
+      "bank": 0,
+      "address": "0xcd0c"
+    },
+    "screen_transition_boundary_y": {
+      "bank": 0,
+      "address": "0xcd0d"
+    },
+    "disable_screen_transitions": {
+      "bank": 0,
+      "address": "0xccab"
+    },
+    "disable_warp_tiles": {
+      "bank": 0,
+      "address": "0xccaa"
+    },
+    "link_force_state": {
+      "bank": 0,
+      "address": "0xcc6a"
+    },
+    "link_in_air": {
+      "bank": 0,
+      "address": "0xcc77"
+    },
+    "palette_thread_mode": {
+      "bank": 0,
+      "address": "0xc4ab"
+    },
+    "palette_thread_parameter": {
+      "bank": 0,
+      "address": "0xc4ae"
+    },
+    "cutscene_trigger": {
+      "bank": 0,
+      "address": "0xcc04"
+    },
+    "room_width": {
+      "bank": 0,
+      "address": "0xcd0a"
+    },
+    "room_height": {
+      "bank": 0,
+      "address": "0xcd0b"
+    },
+    "tileset_unique_gfx": {
+      "bank": 0,
+      "address": "0xcd20"
+    },
+    "active_collisions": {
+      "bank": 0,
+      "address": "0xcc4f"
+    },
+    "dungeon_floor": {
+      "bank": 0,
+      "address": "0xcc57"
+    },
+    "dungeon_map_position": {
+      "bank": 0,
+      "address": "0xcc56"
+    },
+    "dungeon_layout": {
+      "bank": 2,
+      "address": "0xdc00"
+    },
+    "warp_transition": {
+      "bank": 0,
+      "address": "0xcc65"
+    },
+    "warp_dest_pos": {
+      "bank": 0,
+      "address": "0xcc66"
+    },
+    "link_time_warp_tile": null,
+    "warp_dest_group": {
+      "bank": 0,
+      "address": "0xcc63"
+    },
+    "warp_dest_room": {
+      "bank": 0,
+      "address": "0xcc64"
+    },
+    "warp_transition2": {
+      "bank": 0,
+      "address": "0xcc67"
+    },
+    "active_tile_pos": {
+      "bank": 0,
+      "address": "0xccb3"
+    },
+    "lost_woods_transition_counter1": {
+      "bank": 0,
+      "address": "0xcc53"
+    },
+    "lost_woods_transition_counter2": {
+      "bank": 0,
+      "address": "0xcc54"
+    },
+    "active_file_slot": null,
+    "is_linked_game": {
+      "bank": 0,
+      "address": "0xcc01"
+    },
+    "switch_state": {
+      "bank": 0,
+      "address": "0xcc32"
+    },
+    "rom_bank": {
+      "bank": 0,
+      "address": "0xff97"
+    },
+    "jabu_water_level": null,
+    "gameboy_type": {
+      "bank": 0,
+      "address": "0xff96"
+    },
+    "twinrova_tile_replacement_mode": {
+      "bank": 0,
+      "address": "0xccc4"
+    },
+    "seed_tree_refilled_bitset": {
+      "bank": 0,
+      "address": "0xcc69"
+    },
+    "ricky_state": {
+      "bank": 0,
+      "address": "0xc643"
+    },
+    "essences_obtained": {
+      "bank": 0,
+      "address": "0xc6bb"
+    },
+    "animal_companion": {
+      "bank": 0,
+      "address": "0xc610"
+    },
+    "num_placed_slates": null,
+    "changed_tile_queue_head": {
+      "bank": 0,
+      "address": "0xccf5"
+    },
+    "changed_tile_queue_tail": {
+      "bank": 0,
+      "address": "0xccf6"
+    },
+    "tileset_layout_group": {
+      "bank": 0,
+      "address": "0xcd24"
+    },
+    "gasha_spots_planted": {
+      "bank": 0,
+      "address": "0xc64a"
+    },
+    "tileset_gfx": {
+      "bank": 0,
+      "address": "0xcd21"
+    },
+    "tileset_palette": {
+      "bank": 0,
+      "address": "0xcd22"
+    },
+    "loaded_tileset_unique_gfx": {
+      "bank": 0,
+      "address": "0xcd28"
+    },
+    "loaded_tileset_palette": {
+      "bank": 0,
+      "address": "0xcd29"
+    },
+    "dirty_bg_palettes": {
+      "bank": 0,
+      "address": "0xffa4"
+    },
+    "room_pack": {
+      "bank": 0,
+      "address": "0xcc4d"
+    },
+    "loading_room_pack": {
+      "bank": 0,
+      "address": "0xcc61"
+    },
+    "room_pack_data": {
+      "bank": 6,
+      "address": "0x7a00"
+    },
+    "map_transition_group_table": {
+      "bank": 1,
+      "address": "0x48dd"
+    },
+    "season_reload": {
+      "bank": 0,
+      "address": "0xcc68"
+    },
+    "link_angle": {
+      "bank": 0,
+      "address": "0xcc47"
+    },
+    "hole_or_conveyor": {
+      "bank": 0,
+      "address": "0xccac"
+    },
+    "screen_offset_x": {
+      "bank": 0,
+      "address": "0xcd09"
+    },
+    "screen_offset_y": {
+      "bank": 0,
+      "address": "0xcd08"
+    },
+    "camera_x": {
+      "bank": 0,
+      "address": "0xffaa"
+    },
+    "camera_y": {
+      "bank": 0,
+      "address": "0xffa8"
+    },
+    "keys_pressed": {
+      "bank": 0,
+      "address": "0xc481"
+    },
+    "keys_just_pressed": {
+      "bank": 0,
+      "address": "0xc482"
+    },
+    "frame_counter": {
+      "bank": 0,
+      "address": "0xcc00"
+    },
+    "text_is_active": {
+      "bank": 0,
+      "address": "0xcba0"
+    },
+    "selected_text_option": {
+      "bank": 0,
+      "address": "0xcba5"
+    },
+    "opened_menu_type": {
+      "bank": 0,
+      "address": "0xcbcb"
+    },
+    "minimap_group": {
+      "bank": 0,
+      "address": "0xc63a"
+    },
+    "global_flags": {
+      "bank": 0,
+      "address": "0xc6ca"
+    },
+    "bought_shop_items1": {
+      "bank": 0,
+      "address": "0xc63f"
+    },
+    "group0_room_flags": {
+      "bank": 0,
+      "address": "0xc700"
+    },
+    "link_object_index": {
+      "bank": 0,
+      "address": "0xcc48"
+    },
+    "objects_to_draw": {
+      "bank": 0,
+      "address": "0xc500"
+    },
+    "oam": {
+      "bank": 0,
+      "address": "0xcb00"
+    },
+    "oam_tail": {
+      "bank": 0,
+      "address": "0xff9d"
+    },
+    "terrain_effects_used": {
+      "bank": 0,
+      "address": "0xff9e"
+    },
+    "link_raised_floor_offset": null,
+    "textbox_flags": {
+      "bank": 0,
+      "address": "0xcbae"
+    },
+    "shadow_animation": {
+      "bank": 0,
+      "address": "0x7f6c"
+    },
+    "green_grass_animation": {
+      "bank": 0,
+      "address": "0x7f71"
+    },
+    "puddle_animation_pointer": {
+      "bank": 0,
+      "address": "0xc4ba"
+    },
+    "grass_animation_modifier": {
+      "bank": 0,
+      "address": "0xcc52"
+    },
+    "enemies_killed_list": {
+      "bank": 0,
+      "address": "0xcc1f"
+    },
+    "animation_state": {
+      "bank": 0,
+      "address": "0xcd30"
+    },
+    "tileset_animation": {
+      "bank": 0,
+      "address": "0xcd25"
+    },
+    "animation_counters": {
+      "bank": 0,
+      "address": "0xcd31"
+    },
+    "animation_queue": {
+      "bank": 2,
+      "address": "0xdb90"
+    },
+    "animation_queue_head": {
+      "bank": 0,
+      "address": "0xccfa"
+    },
+    "animation_queue_tail": {
+      "bank": 0,
+      "address": "0xccfb"
+    },
+    "animation_group_table": {
+      "bank": 4,
+      "address": "0x70f9"
+    },
+    "animation_gfx_headers": {
+      "bank": 4,
+      "address": "0x7191"
+    },
+    "gfx_regs1": {
+      "bank": 0,
+      "address": "0xc485"
+    },
+    "gfx_regs2": {
+      "bank": 0,
+      "address": "0xc48b"
+    },
+    "gfx_regs3": {
+      "bank": 0,
+      "address": "0xc491"
+    },
+    "vblank_checker": {
+      "bank": 0,
+      "address": "0xc49d"
+    },
+    "lcd_interrupt_behaviour": {
+      "bank": 0,
+      "address": "0xff99"
+    },
+    "big_buffer": {
+      "bank": 0,
+      "address": "0xc300"
+    },
+    "tile_mapping_data": {
+      "bank": 3,
+      "address": "0xd000"
+    },
+    "tile_mapping_indices": {
+      "bank": 3,
+      "address": "0xdc00"
+    },
+    "tile_collisions": {
+      "bank": 3,
+      "address": "0xdb00"
+    },
+    "vram_tiles": {
+      "bank": 3,
+      "address": "0xd800"
+    },
+    "vram_attributes": {
+      "bank": 3,
+      "address": "0xdc00"
+    },
+    "bg_palettes_buffer": {
+      "bank": 2,
+      "address": "0xdf00"
+    },
+    "spr_palettes_buffer": {
+      "bank": 2,
+      "address": "0xdf40"
+    },
+    "tileset_bg_palettes": {
+      "bank": 2,
+      "address": "0xde80"
+    },
+    "status_bar_tile_map": {
+      "bank": 4,
+      "address": "0xd240"
+    },
+    "status_bar_attribute_map": null,
+    "textbox_map": {
+      "bank": 7,
+      "address": "0xd000"
+    },
+    "thread_state_buffer": {
+      "bank": 0,
+      "address": "0xc2e0"
+    },
+    "main_stack": {
+      "bank": 0,
+      "address": "0xc0b0"
+    },
+    "main_stack_top": {
+      "bank": 0,
+      "address": "0xc110"
+    },
+    "thread0_stack": {
+      "bank": 0,
+      "address": "0xc110"
+    },
+    "thread0_stack_top": {
+      "bank": 0,
+      "address": "0xc180"
+    },
+    "thread1_stack": {
+      "bank": 0,
+      "address": "0xc180"
+    },
+    "thread1_stack_top": {
+      "bank": 0,
+      "address": "0xc220"
+    },
+    "thread2_stack": {
+      "bank": 0,
+      "address": "0xc220"
+    },
+    "thread2_stack_top": {
+      "bank": 0,
+      "address": "0xc270"
+    },
+    "thread3_stack": {
+      "bank": 0,
+      "address": "0xc270"
+    },
+    "thread3_stack_top": {
+      "bank": 0,
+      "address": "0xc2c0"
+    },
+    "inventory_b": null,
+    "inventory_a": null,
+    "inventory_storage": null,
+    "satchel_selected_seeds": null,
+    "shooter_selected_seeds": null,
+    "selected_harp_song": null,
+    "obtained_treasure_flags": {
+      "bank": 0,
+      "address": "0xc692"
+    },
+    "status_bar_needs_refresh": null,
+    "dont_update_status_bar": null,
+    "menu_disabled": null,
+    "disable_link_collisions_and_menu": null,
+    "link_death_trigger": null,
+    "use_simulated_input": null,
+    "in_boxing_match": null,
+    "items_disabled": null,
+    "in_shop": null,
+    "link_in_spinner": null,
+    "link_grabbed": null,
+    "link_climbing_vine": null,
+    "menu_load_state": null,
+    "menu_active_state": null,
+    "inventory_submenu": null,
+    "inventory_submenu0_cursor_pos": null,
+    "vblank_function_queue": {
+      "bank": 0,
+      "address": "0xc400"
+    },
+    "vblank_function_queue_tail": {
+      "bank": 0,
+      "address": "0xffa3"
+    },
+    "num_rupees": null,
+    "link_health": null,
+    "link_max_health": null,
+    "num_gasha_seeds": null,
+    "seed_satchel_level": null,
+    "num_ember_seeds": null,
+    "general_purpose_hram": {
+      "bank": 0,
+      "address": "0xff8a"
+    },
+    "general_purpose_hram_end": {
+      "bank": 0,
+      "address": "0xff94"
+    },
+    "tmp_cec0": {
+      "bank": 0,
+      "address": "0xcec0"
+    },
+    "tmp_cec0_end": {
+      "bank": 0,
+      "address": "0xcf00"
+    },
+    "game_state": {
+      "bank": 0,
+      "address": "0xc2ee"
+    },
+    "cutscene_index": {
+      "bank": 0,
+      "address": "0xc2ef"
+    },
+    "font_start": null,
+    "maku_tree_tileset_room_flags": null,
+    "veran_room_flags": null,
+    "treasure_collection_behaviours": null,
+    "treasure_object_data": null,
+    "treasure_object_lists_end": null,
+    "rupee_values": null
+  },
+  "guest_table_absent": {
+    "check_reload_status_bar_graphics": "item hotkeys not qualified for this revision",
+    "load_equipped_item_gfx": "item hotkeys not qualified for this revision",
+    "check_use_items": "item hotkeys not qualified for this revision",
+    "initialize_parent_item": "item hotkeys not qualified for this revision",
+    "remove_rupee_value": "mods not qualified for this revision: they play on the original ROMs only",
+    "lose_treasure": "mods not qualified for this revision: they play on the original ROMs only",
+    "play_sound": "mods not qualified for this revision: they play on the original ROMs only",
+    "set_global_flag": "mods not qualified for this revision: they play on the original ROMs only",
+    "unset_global_flag": "mods not qualified for this revision: they play on the original ROMs only",
+    "file_management_function": "mods not qualified for this revision: they play on the original ROMs only",
+    "portal_group": "an Ages symbol: Seasons' engine has none",
+    "portal_room": "an Ages symbol: Seasons' engine has none",
+    "link_time_warp_tile": "an Ages symbol: Seasons' engine has none",
+    "active_file_slot": "mods not qualified for this revision: they play on the original ROMs only",
+    "jabu_water_level": "an Ages symbol: Seasons' engine has none",
+    "link_raised_floor_offset": "an Ages symbol: Seasons' engine has none",
+    "status_bar_attribute_map": "item hotkeys not qualified for this revision",
+    "inventory_b": "item hotkeys not qualified for this revision",
+    "inventory_a": "item hotkeys not qualified for this revision",
+    "inventory_storage": "item hotkeys not qualified for this revision",
+    "satchel_selected_seeds": "item hotkeys not qualified for this revision",
+    "shooter_selected_seeds": "item hotkeys not qualified for this revision",
+    "selected_harp_song": "item hotkeys not qualified for this revision",
+    "status_bar_needs_refresh": "item hotkeys not qualified for this revision",
+    "dont_update_status_bar": "item hotkeys not qualified for this revision",
+    "menu_disabled": "item hotkeys not qualified for this revision",
+    "disable_link_collisions_and_menu": "item hotkeys not qualified for this revision",
+    "link_death_trigger": "item hotkeys not qualified for this revision",
+    "use_simulated_input": "item hotkeys not qualified for this revision",
+    "in_boxing_match": "item hotkeys not qualified for this revision",
+    "items_disabled": "item hotkeys not qualified for this revision",
+    "in_shop": "item hotkeys not qualified for this revision",
+    "link_in_spinner": "item hotkeys not qualified for this revision",
+    "link_grabbed": "item hotkeys not qualified for this revision",
+    "link_climbing_vine": "item hotkeys not qualified for this revision",
+    "menu_load_state": "item hotkeys not qualified for this revision",
+    "menu_active_state": "item hotkeys not qualified for this revision",
+    "inventory_submenu": "item hotkeys not qualified for this revision",
+    "inventory_submenu0_cursor_pos": "item hotkeys not qualified for this revision",
+    "num_rupees": "mods not qualified for this revision: they play on the original ROMs only",
+    "link_health": "mods not qualified for this revision: they play on the original ROMs only",
+    "link_max_health": "mods not qualified for this revision: they play on the original ROMs only",
+    "num_gasha_seeds": "mods not qualified for this revision: they play on the original ROMs only",
+    "seed_satchel_level": "mods not qualified for this revision: they play on the original ROMs only",
+    "num_ember_seeds": "mods not qualified for this revision: they play on the original ROMs only",
+    "font_start": "mods not qualified for this revision: they play on the original ROMs only",
+    "maku_tree_tileset_room_flags": "an Ages symbol: Seasons' engine has none",
+    "veran_room_flags": "an Ages symbol: Seasons' engine has none",
+    "num_placed_slates": "a symbol of another fan game: this game's engine has none",
+    "tile_types_table": "continuous swim not qualified for this revision",
+    "screen_transition_delay": "continuous swim not qualified for this revision",
+    "active_tile_index": "continuous swim not qualified for this revision",
+    "treasure_collection_behaviours": "mods not qualified for this revision: they play on the original ROMs only",
+    "treasure_object_data": "mods not qualified for this revision: they play on the original ROMs only",
+    "treasure_object_lists_end": "mods not qualified for this revision: they play on the original ROMs only",
+    "rupee_values": "mods not qualified for this revision: they play on the original ROMs only"
+  },
+  "guest_table_sizes": {
+    "global_flags_size": 16,
+    "room_flags_size": 1024,
+    "obtained_treasure_flags_size": 16,
+    "gasha_spots_planted_size": 2,
+    "vblank_function_queue_size": 128
+  },
+  "guest_table_constants": {
+    "oam_data_bank": "0x12",
+    "puddle_tile_first": "0xfa",
+    "puddle_tile_last": "0xfc",
+    "grass_tile_first": "0xf8",
+    "grass_tile_last": "0xf9",
+    "grass_tile_last_other_groups": "0xf8",
+    "shutter_tile_first": "0x78",
+    "shutter_tile_last": "0x7f",
+    "num_inventory_items": "0x00",
+    "first_dynamic_interaction_index": "0xd2",
+    "roomflag_visited": "0x10",
+    "coarse_flag_finished_game": "0xff",
+    "coarse_flag_temple_lava": "0x15",
+    "coarse_flag_moblins_keep": "0x16",
+    "coarse_flag_pirate_ship": "0x17",
+    "coarse_flag_intro_done": "0x0a",
+    "coarse_flag_intro_done_room": "0xff",
+    "cutscene_pregame_intro": "0x0d",
+    "cutscene_din_imprisoned": "0x07",
+    "cutscene_temple_sinking": "0x08",
+    "cutscene_onox_taunting": "0x0e",
+    "item_biggoron_sword": "0xff",
+    "item_seed_satchel": "0xff",
+    "item_shooter": "0xff",
+    "item_slingshot": "0xff",
+    "item_harp": "0xff",
+    "treasure_ember_seeds": "0xff",
+    "treasure_tune_of_echoes": "0xff",
+    "globalflag_intro_done": "0xff",
+    "cutscene_ingame": "0xff",
+    "cutscene_loading_room": "0xff",
+    "cutscene_onox_final_form": "0xff",
+    "interac_wild_tokay_controller": "0xff",
+    "interac_golden_cave_subrosian": "0xff",
+    "tilesetflag_bit_sidescroll": "0xff",
+    "tilesetflag_bit_underwater": "0xff",
+    "menu_inventory": "0xff",
+    "specialobject_minecart": "0xff",
+    "specialobject_raft": "0xff",
+    "treasure_rupees": "0xff",
+    "treasure_heart_refill": "0xff",
+    "treasure_ring": "0xff",
+    "treasure_ring_box": "0xff",
+    "treasure_gasha_seed": "0xff",
+    "treasure_seed_satchel": "0xff",
+    "num_rings": "0xff",
+    "rupee_value_count": "0xff",
+    "treasure_collection_behaviour_count": "0x00",
+    "treasure_object_count": "0x00"
+  },
+  "guest_table_empty": {
+    "item_labels": "item hotkeys not qualified for this revision",
+    "item_names": "item hotkeys not qualified for this revision",
+    "ring_names": "mods not qualified for this revision: they play on the original ROMs only",
+    "treasure_names": "mods not qualified for this revision: they play on the original ROMs only",
+    "sound_names": "mods not qualified for this revision: they play on the original ROMs only",
+    "global_flag_names": "mods not qualified for this revision: they play on the original ROMs only"
+  },
+  "data_tables": {
+    "room_layout_group_table": {
+      "bank": 1,
+      "address": "0x7ec7"
+    },
+    "tileset_data": {
+      "bank": 4,
+      "address": "0x50cf"
+    },
+    "room_tilesets_group_table": {
+      "bank": 4,
+      "address": "0x582f"
+    },
+    "palette_header_table": {
+      "bank": 22,
+      "address": "0x6860"
+    },
+    "gfx_header_table": {
+      "bank": 22,
+      "address": "0x6f22"
+    },
+    "animation_group_table": {
+      "bank": 4,
+      "address": "0x70f9"
+    },
+    "animation_gfx_headers": {
+      "bank": 4,
+      "address": "0x7191"
+    },
+    "object_gfx_header_table": {
+      "bank": 63,
+      "address": "0x5b2a"
+    }
+  },
+  "data_tables_empty": {
+    "tileset_layout_table": "replaced by the game's expanded tilesets; no reader of the ROM data takes it for this game",
+    "tileset_layout_dictionary_table": "replaced by the game's expanded tilesets; no reader of the ROM data takes it for this game",
+    "tile_mapping_table": "replaced by the game's expanded tilesets; no reader of the ROM data takes it for this game",
+    "tile_mapping_index_data_pointer": "replaced by the game's expanded tilesets; no reader of the ROM data takes it for this game",
+    "tile_mapping_attribute_data_pointer": "replaced by the game's expanded tilesets; no reader of the ROM data takes it for this game",
+    "warp_sources_table": "mods not qualified for this revision: they play on the original ROMs only",
+    "warp_dest_table": "mods not qualified for this revision: they play on the original ROMs only",
+    "object_data_group_table": "mods not qualified for this revision: they play on the original ROMs only",
+    "music_assignment_group_table": "mods not qualified for this revision: they play on the original ROMs only",
+    "parse_object_data": "mods not qualified for this revision: they play on the original ROMs only",
+    "warp_bank_free": "mods not qualified for this revision: they play on the original ROMs only",
+    "object_bank_free": "mods not qualified for this revision: they play on the original ROMs only",
+    "unique_gfx_headers_start": "no reader of the ROM data takes it for this game",
+    "num_gfx_headers": "a count only the originals' data check reads",
+    "num_unique_gfx_headers": "a count only the originals' data check reads",
+    "num_palette_headers": "a count only the originals' data check reads",
+    "num_tileset_layouts": "a count only the originals' data check reads"
+  }
+}
