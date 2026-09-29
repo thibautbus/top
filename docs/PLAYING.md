@@ -13,7 +13,7 @@ Without `--rom`, `the-oracles-project` opens the home screen in a 16:9 window of
 
 **Cartridge** is the game's cartridge: the ROM (file, folder and status: original ROM, all profiles; unrecognised ROM, Faithful only; refused, with the loader's reason; none), **Choose ROM…**, which opens the system's file dialog (Windows', macOS'; on Linux the desktop's through its portal, or zenity's if installed; without one, a message suggests dropping the file on the window); the save, its date, and **Open folder**; **Play**. The ROM is remembered per game. A ROM also comes by dropping its file on the window: on a game's Cartridge page it counts as Choose ROM… for that game; on the home screen it is identified and filed under its game. A refused ROM shows its reason and is not remembered.
 
-**Display** sets, for every game the home screen starts: the profile, Faithful (160x144) or Enhanced; the drawn-back view (480x270) with continuous transitions and the smooth camera; the window, 2x, 3x or 4x the profile's surface, or fullscreen at the screen's largest whole scale (a scale that does not fit the screen with the title bar is reduced at launch, and Display says so); colour correction; continuous transitions, on by default, greyed in Faithful, which take Link swimming through them too; vsync. The sizes and the diagram are those of what will play for the game shown, on the screen the window is on. The choices apply at the next Play.
+**Display** sets, for every game the home screen starts: the profile, Faithful (160x144) or Enhanced; the drawn-back view (480x270) with continuous transitions and the smooth camera; the window, 2x, 3x or 4x the profile's surface, or fullscreen at the screen's largest whole scale (a scale that does not fit the screen with the title bar is reduced at launch, and Display says so); colour correction; continuous transitions, greyed in Faithful, which take Link swimming through them too; vsync. At the first opening Display is on Enhanced, fullscreen, with colour correction and continuous transitions on and vsync auto; the item hotkeys start off. The sizes and the diagram are those of what will play for the game shown, on the screen the window is on. The choices apply at the next Play.
 
 **Controls** sets the keys and buttons for every game: the eight buttons of the game on the keyboard and on a controller (A, B, Select and Start; the d-pad and the left stick always move), the four item hotkey slots and their two modifiers, and the item hotkeys line of the game shown. Enter on a cell waits for a key (or a button, in a controller column), Escape cancels; a key already bound elsewhere on the same device is taken from there and the other cell stays empty. **Reset to defaults** restores the grid and the hotkeys. Everything is written when it changes.
 
@@ -43,7 +43,7 @@ To try the examples: copy `mods/claw-game` and `mods/fortune-teller` into the mo
 
 ## The command line
 
-`--rom` starts a game without the home screen; Escape then ends the session. Options:
+`--rom` starts a game without the home screen; Escape then ends the session. Without options it plays in Faithful, in a window at scale 4, whatever Display chose; colour correction and vsync are the settings'. Options:
 
 | Option | Effect |
 | --- | --- |
@@ -94,7 +94,7 @@ F5 saves and F7 loads a state (`<save>.state`, beside the `.sav`). A state is co
 The player's settings are `settings.txt` in the user's settings directory (on Linux `~/.local/share/the-oracles-project/`, on macOS `~/Library/Application Support/the-oracles-project/`, on Windows `%APPDATA%\the-oracles-project\`; `ORACLES_SETTINGS_DIR` names another), written with all its values at the first launch so that it can be edited:
 
 ```
-colour_correction=0
+colour_correction=1
 vsync=auto
 camera=2
 rom_ages=/path/to/Oracle of Ages.gbc
@@ -106,9 +106,9 @@ item_hotkeys_ages=off
 item_hotkeys_seasons=off
 mods_ages=claw-game,fortune-teller
 mods_seasons=
-profile=faithful
+profile=enhanced
 transitions=on
-window_scale=4
+window_scale=full
 launcher_window=1280x720
 key_right=Right ... key_a=X key_b=Z key_select=Backspace key_start=Return
 pad_a=a pad_b=b pad_select=back pad_start=start

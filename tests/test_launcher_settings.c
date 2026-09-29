@@ -39,11 +39,12 @@ int main(int argc, char **argv)
 
     oracles_settings_defaults(&written);
     CHECK(written.rom[ORACLES_SETTINGS_AGES][0] == 0 && written.rom[ORACLES_SETTINGS_SEASONS][0] == 0);
-    CHECK(written.profile == ORACLES_PROFILE_FAITHFUL);
+    /* A first opening: Enhanced, the view drawn back, fullscreen, colour correction on; the transitions come with
+     * Enhanced, vsync follows the display, the item hotkeys are off. */
+    CHECK(written.profile == ORACLES_PROFILE_ENHANCED && written.window_scale == 0 && written.colour_correction == 1);
     CHECK(written.launcher_width == 1280 && written.launcher_height == 720);
-    /* The transitions come with Enhanced: on by default. */
     CHECK(written.transitions && written.item_hotkeys[0] == ORACLES_HOTKEYS_OFF && written.item_hotkeys[1] == ORACLES_HOTKEYS_OFF);
-    CHECK(written.window_scale == 4);
+    CHECK(!strcmp(written.vsync, "auto"));
 
     /* Paths as players have them: spaces, an equals sign, backslashes, and as long as the field holds. */
     snprintf(written.path, sizeof written.path, "%s", path);
@@ -131,13 +132,13 @@ int main(int argc, char **argv)
     if (f) fclose(f);
     CHECK(seen == (127 | 256 | 512 | 1024));   /* and not 128: no per-game profile or transitions */
 
-    /* A file of an earlier version, without the keys: the defaults. */
-    write_text(path, "colour_correction=1\nvsync=off\n");
+    /* A file of an earlier version, without the keys: the defaults; the keys it has hold, colour correction off. */
+    write_text(path, "colour_correction=0\nvsync=off\n");
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
-    CHECK(read_back.colour_correction == 1 && read_back.rom[0][0] == 0 && read_back.patch[ORACLES_HOME_FAN_MOONRISE][0] == 0 && read_back.patch[ORACLES_HOME_FAN_TEMPLE][0] == 0
-          && read_back.patch[ORACLES_HOME_FAN_KINOMI][0] == 0 && read_back.profile == ORACLES_PROFILE_FAITHFUL);
-    CHECK(read_back.transitions == 1);
+    CHECK(read_back.colour_correction == 0 && !strcmp(read_back.vsync, "off") && read_back.rom[0][0] == 0 && read_back.patch[ORACLES_HOME_FAN_MOONRISE][0] == 0
+          && read_back.patch[ORACLES_HOME_FAN_TEMPLE][0] == 0 && read_back.patch[ORACLES_HOME_FAN_KINOMI][0] == 0 && read_back.profile == ORACLES_PROFILE_ENHANCED);
+    CHECK(read_back.transitions == 1 && read_back.window_scale == 0);
     CHECK(read_back.launcher_width == 1280 && read_back.launcher_height == 720);
 
     /* The mods folder beside settings.txt, whichever separator its path uses; none without a settings directory. */
@@ -207,22 +208,22 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     snprintf(read_back.rom[1], sizeof read_back.rom[1], "old.gbc");
     oracles_settings_load(&read_back);
-    CHECK(read_back.profile == ORACLES_PROFILE_FAITHFUL);
+    CHECK(read_back.profile == ORACLES_PROFILE_ENHANCED);
     CHECK(read_back.launcher_width == 1280 && read_back.launcher_height == 720);
     CHECK(read_back.rom[ORACLES_SETTINGS_SEASONS][0] == 0);
     CHECK(read_back.transitions == 1 && read_back.item_hotkeys[ORACLES_SETTINGS_SEASONS] == ORACLES_HOTKEYS_OFF);
-    CHECK(read_back.window_scale == 4);
+    CHECK(read_back.window_scale == 0);
     /* zoom-out is not a profile, and the per-game keys are not the launcher's: the defaults stay, and the next store
      * writes the global keys alone. */
     write_text(path, "profile=zoom-out\nprofile_ages=enhanced\ntransitions_ages=off\nprofile_seasons=enhanced\n");
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
-    CHECK(read_back.profile == ORACLES_PROFILE_FAITHFUL && read_back.transitions == 1);
+    CHECK(read_back.profile == ORACLES_PROFILE_ENHANCED && read_back.transitions == 1);
     oracles_settings_store(&read_back);
     f = fopen(path, "r");
     seen = 0;
     while (f && fgets(line, sizeof line, f)) {
-        if (!strcmp(line, "profile=faithful\n")) seen |= 1;
+        if (!strcmp(line, "profile=enhanced\n")) seen |= 1;
         if (!strcmp(line, "transitions=on\n")) seen |= 2;
         if (strstr(line, "zoom-out") || !strncmp(line, "profile_", 8) || !strncmp(line, "transitions_", 12)) seen |= 4;
     }
@@ -235,7 +236,7 @@ int main(int argc, char **argv)
     f = fopen(temporary, "r");
     CHECK(f == NULL);
     if (f) fclose(f);
-    write_text(path, "profile=enhanced\n");
+    write_text(path, "profile=faithful\n");   /* not the default: the file kept is told from a new one */
     CHECK(mkdir(temporary, 0700) == 0);   /* a directory where the temporary file would go */
     oracles_settings_defaults(&written);
     snprintf(written.path, sizeof written.path, "%s", path);
@@ -243,7 +244,7 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     snprintf(read_back.path, sizeof read_back.path, "%s", path);
     oracles_settings_load(&read_back);
-    CHECK(read_back.profile == ORACLES_PROFILE_ENHANCED);
+    CHECK(read_back.profile == ORACLES_PROFILE_FAITHFUL);
     rmdir(temporary);
     CHECK(oracles_settings_store(&written) == 1);
 

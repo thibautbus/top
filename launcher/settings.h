@@ -28,7 +28,7 @@ typedef enum OraclesSettingsGame {
 
 typedef struct oracles_settings {
     char path[ORACLES_SETTINGS_PATH_LENGTH];   /* empty when no settings directory is available */
-    int colour_correction;
+    int colour_correction;        /* on by default */
     char vsync[8];                /* auto, on, off */
     int camera;                   /* the Enhanced camera profile: 1 or 2 */
     char key_names[ORACLES_BINDINGS][ORACLES_SETTINGS_NAME_LENGTH];
@@ -48,7 +48,7 @@ typedef struct oracles_settings {
      * once, for the Oracle and for every game made on it; empty: none. */
     char patch[ORACLES_HOME_FAN_GAMES][ORACLES_SETTINGS_PATH_LENGTH];   /* by ORACLES_HOME_FAN_*, the key oracles_home_fan_games' */
     /* Display's profile and transitions, for every game the home screen starts: profile=faithful|
-     * enhanced, transitions=off|on (on by default: they come with Enhanced). */
+     * enhanced (enhanced by default: the view drawn back), transitions=off|on (on by default: they come with Enhanced). */
     OraclesProfile profile;
     int transitions;
     OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */
@@ -56,7 +56,7 @@ typedef struct oracles_settings {
      * commas, eight at most; empty: none.  The Mods page's Play starts the game with them. */
     char mods[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_MODS_LENGTH];
     int launcher_width, launcher_height;                      /* launcher_window=WxH: the home screen's window as the player left it */
-    int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen */
+    int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen (the default) */
 } oracles_settings;
 
 void oracles_settings_defaults(oracles_settings *settings);

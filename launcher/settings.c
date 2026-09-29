@@ -105,7 +105,7 @@ const char *oracles_settings_game_name(OraclesSettingsGame game) { return game_n
 
 void oracles_settings_defaults(oracles_settings *s)
 {
-    s->colour_correction = 0;
+    s->colour_correction = 1;   /* SameBoy's rendering, close to an original screen */
     snprintf(s->vsync, sizeof s->vsync, "auto");
     s->camera = 2;
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) copy_name(s->key_names[i], oracles_controls_default_keys[i]);
@@ -120,12 +120,13 @@ void oracles_settings_defaults(oracles_settings *s)
     memset(s->rom, 0, sizeof s->rom);
     memset(s->patch, 0, sizeof s->patch);
     memset(s->mods, 0, sizeof s->mods);
-    s->profile = ORACLES_PROFILE_FAITHFUL;
-    s->transitions = 1;   /* the launcher's Enhanced carries them */
+    /* A first opening plays Enhanced, the view drawn back with the continuous transitions it carries, fullscreen. */
+    s->profile = ORACLES_PROFILE_ENHANCED;
+    s->transitions = 1;
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
-    s->window_scale = 4;   /* the scale of --rom by default */
+    s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
 }
 
 /* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
@@ -247,7 +248,8 @@ int oracles_settings_store(const oracles_settings *s)
     fprintf(f, "# Each game's active mods (its Mods page), the names of their folders in the mods folder beside this file.\n");
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) fprintf(f, "mods_%s=%s\n", game_names[g], s->mods[g]);
     fprintf(f, "# Display, for the games the home screen starts: the profile (faithful, or enhanced: the view drawn back), the\n"
-               "# continuous transitions (off|on, in enhanced only), and the window, 2, 3 or 4 times its surface or full (the screen).\n");
+               "# continuous transitions (off|on, in enhanced only), and the window, 2, 3 or 4 times its surface or full (the screen);\n"
+               "# enhanced, on and full at the first opening.\n");
     fprintf(f, "profile=%s\n", profile_names[s->profile]);
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
