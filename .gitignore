@@ -1,0 +1,28 @@
+# User-supplied proprietary ROMs, and the patches applied to them
+*.gb
+*.gbc
+*.bps
+
+# Private outputs derived from a ROM
+/generated/
+/cache/
+
+# Build outputs
+/build*/
+/engine/build*/
+/engine/game/data/build/
+/android/build-apk/
+
+# Local runtime state and UI settings
+*.sav
+*.rtc
+*.state
+imgui.ini
+
+# Python tooling caches
+__pycache__/
+*.py[cod]
+*.session.tsv
+*.mod.tsv
+# A modded game's mod.storage beside its save (a recorded route's ROUTE.store is kept)
+*.mods.store

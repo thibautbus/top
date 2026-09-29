@@ -1,0 +1,7 @@
+{
+  "version": "5.4.9",
+  "archive_url": "https://www.lua.org/ftp/lua-5.4.9.tar.gz",
+  "archive_sha256": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6",
+  "license": "MIT",
+  "src_tree_sha256": "83a978772c91368008dd419f2ff5e746fcaa5782242cc290c9ad9b32b6454d7b"
+}

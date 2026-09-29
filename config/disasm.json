@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/Stewmath/oracles-disasm.git",
+  "commit": "842c5649b63f5b6fae8ffd55f80f45f86e9c10e7",
+  "role": "The oracle of the reference documents, the generated address tables and the decoding tests. Changing this commit means regenerating engine/game/guest/guest_tables_*.c and engine/game/data/oracles_tables_*.c, never editing them."
+}

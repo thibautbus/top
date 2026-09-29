@@ -1,0 +1,9 @@
+*.patch whitespace=-blank-at-eol
+# Vendored as upstream ships them (third_party/*/VERSION.md): their whitespace is not ours.
+third_party/stb/** -whitespace
+third_party/nanosvg/** -whitespace
+third_party/fonts/** -whitespace
+third_party/lua/** -whitespace
+*.ttf binary
+# A mod's identity hashes its Lua files (engine/mods/mod.c): LF in every checkout, as the routes that name it expect.
+*.lua text eol=lf

@@ -1,0 +1,9 @@
+{
+  "version": "1.0.3",
+  "tag": "v1.0.3",
+  "commit": "208ba4afabffab9edde416f2dbb8ae459e34adb8",
+  "archive_url": "https://github.com/LIJI32/SameBoy/archive/refs/tags/v1.0.3.tar.gz",
+  "archive_sha256": "7da338458e19396cb43dfe1a4df4555882ebea92540565dc993c1c706c981dc3",
+  "license": "Expat",
+  "core_tree_sha256": "a9378cd0e18905eb6d29d066e9431f5a5440a8ea688626e71d353f0269c02fae"
+}
