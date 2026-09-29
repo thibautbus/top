@@ -44,3 +44,9 @@ target_include_directories(oracles_ghost PUBLIC ghost)
 target_link_libraries(oracles_ghost PUBLIC oracles_guest oracles_render oracles_data oracles_neighbours Threads::Threads)
 oracles_set_warnings(oracles_ghost)
 
+# Enhanced presentation: the smooth camera reducer fed from the guest bus.
+add_library(oracles_enhanced STATIC enhanced/camera.c enhanced/compositor.c enhanced/view.c enhanced/view_mode.c enhanced/view_black.c enhanced/view_cache.c enhanced/view_map.c enhanced/view_ghost.c enhanced/view_schedule.c enhanced/view_render.c enhanced/view_overlay.c enhanced/view_objects.c enhanced/view_textbox.c enhanced/view_hotbar.c enhanced/view_scroll.c enhanced/hotbar.c)
+target_include_directories(oracles_enhanced PUBLIC enhanced)
+target_link_libraries(oracles_enhanced PUBLIC oracles_guest oracles_core oracles_ghost)
+oracles_set_warnings(oracles_enhanced)
+

@@ -1,5 +1,6 @@
 # ---- tests without ROM --------------------------------------------------------
 if(BUILD_TESTING)
+    set(ORACLES_ENHANCED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../engine/enhanced)
 
     add_executable(oracles-test-rom test_rom.c)
     target_link_libraries(oracles-test-rom PRIVATE oracles_core)
@@ -39,6 +40,34 @@ if(BUILD_TESTING)
     target_link_libraries(oracles-test-ghost PRIVATE oracles_ghost)
     oracles_set_warnings(oracles-test-ghost)
     add_test(NAME oracles-ghost COMMAND oracles-test-ghost)
+
+    add_executable(oracles-test-hotbar test_hotbar.c ${ORACLES_ENHANCED_DIR}/hotbar.c)
+    target_include_directories(oracles-test-hotbar PRIVATE ${ORACLES_ENHANCED_DIR})
+    oracles_set_warnings(oracles-test-hotbar)
+    add_test(NAME oracles-hotbar COMMAND oracles-test-hotbar)
+
+    add_executable(oracles-test-camera test_camera.c)
+    target_link_libraries(oracles-test-camera PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-camera)
+    add_test(NAME oracles-camera COMMAND oracles-test-camera)
+
+    add_executable(oracles-test-zoom-out test_zoom_out.c)
+    target_link_libraries(oracles-test-zoom-out PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-zoom-out)
+    add_test(NAME oracles-zoom-out COMMAND oracles-test-zoom-out)
+    add_executable(oracles-test-scroll-animation test_scroll_animation.c)
+    target_link_libraries(oracles-test-scroll-animation PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-scroll-animation)
+    add_test(NAME oracles-scroll-animation COMMAND oracles-test-scroll-animation)
+    add_executable(oracles-test-routed-order test_routed_order.c)
+    target_link_libraries(oracles-test-routed-order PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-routed-order)
+    add_test(NAME oracles-routed-order COMMAND oracles-test-routed-order)
+    add_executable(oracles-test-cache-key test_cache_key.c)
+    target_link_libraries(oracles-test-cache-key PRIVATE oracles_enhanced)
+    target_include_directories(oracles-test-cache-key PRIVATE ${ORACLES_ENHANCED_DIR})
+    oracles_set_warnings(oracles-test-cache-key)
+    add_test(NAME oracles-cache-key COMMAND oracles-test-cache-key)
 
     find_package(Python3 COMPONENTS Interpreter)
     # Each fan game's table against its manifest and the guest table's fields: a field the guest gains fails here,
