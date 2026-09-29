@@ -1,0 +1,4 @@
+// the-oracles-project.exe's resources: its manifest (resource 1 of type RT_MANIFEST, 24) and its icon, the first icon
+// resource being the one Windows shows for the executable.
+1 24 "@ORACLES_MANIFEST@"
+IDI_ICON1 ICON "@ORACLES_ICON_ICO@"

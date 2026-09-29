@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- the-oracles-project's Info.plist, embedded in the executable (its __TEXT,__info_plist section): a program outside an app bundle
+     says there that it draws a Retina display's pixels, without which macOS gives its windows one pixel a point and
+     stretches them, text and pixels blurred.  CFBundleIconFile names the icon an app bundle made from the executable
+     carries in its Resources (docs/BUILDING.md, macOS). -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleIconFile</key>
+  <string>the-oracles-project</string>
+  <key>CFBundleIdentifier</key>
+  <string>io.github.thibautbus.theoraclesproject</string>
+  <key>CFBundleName</key>
+  <string>The Oracles Project</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>

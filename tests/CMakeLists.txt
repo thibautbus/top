@@ -1,5 +1,6 @@
 # ---- tests without ROM --------------------------------------------------------
 if(BUILD_TESTING)
+    set(ORACLES_LAUNCHER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../launcher)
     set(ORACLES_ENHANCED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../engine/enhanced)
 
     add_executable(oracles-test-rom test_rom.c)
@@ -68,6 +69,12 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-hotkey-lines)
     add_test(NAME oracles-hotkey-lines COMMAND oracles-test-hotkey-lines)
 
+    add_executable(oracles-test-touch-controls test_touch_controls.c ${ORACLES_LAUNCHER_DIR}/touch_controls.c)
+    target_include_directories(oracles-test-touch-controls PRIVATE ${ORACLES_LAUNCHER_DIR})
+    target_link_libraries(oracles-test-touch-controls PRIVATE oracles_core)
+    oracles_set_warnings(oracles-test-touch-controls)
+    add_test(NAME oracles-touch-controls COMMAND oracles-test-touch-controls)
+
     add_executable(oracles-test-hotbar test_hotbar.c ${ORACLES_ENHANCED_DIR}/hotbar.c)
     target_include_directories(oracles-test-hotbar PRIVATE ${ORACLES_ENHANCED_DIR})
     oracles_set_warnings(oracles-test-hotbar)
@@ -110,6 +117,152 @@ if(BUILD_TESTING)
         add_test(NAME oracles-fan-game-tables COMMAND ${Python3_EXECUTABLE} -m unittest test_gen_tables
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../engine/game/profiles)
     endif()
+
+    # The launcher's layout reference, the measures the layout tests compare with.
+    set(ORACLES_LAYOUT_REFERENCE ${CMAKE_CURRENT_SOURCE_DIR}/launcher_layout_reference.json)
+    add_executable(oracles-test-launcher-text test_launcher_text.c layout_reference.c)
+    target_link_libraries(oracles-test-launcher-text PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-text)
+    add_test(NAME oracles-launcher-text COMMAND oracles-test-launcher-text ${ORACLES_LAYOUT_REFERENCE})
+
+    add_executable(oracles-test-launcher-layout test_launcher_layout.c layout_reference.c)
+    target_link_libraries(oracles-test-launcher-layout PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-layout)
+    add_test(NAME oracles-launcher-layout COMMAND oracles-test-launcher-layout ${ORACLES_LAYOUT_REFERENCE})
+
+    add_executable(oracles-test-launcher-page test_launcher_page.c layout_reference.c)
+    target_link_libraries(oracles-test-launcher-page PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-page)
+    add_test(NAME oracles-launcher-page COMMAND oracles-test-launcher-page ${ORACLES_LAYOUT_REFERENCE})
+
+    add_executable(oracles-test-launcher-mods test_launcher_mods.c layout_reference.c)
+    target_link_libraries(oracles-test-launcher-mods PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-mods)
+    add_test(NAME oracles-launcher-mods COMMAND oracles-test-launcher-mods ${ORACLES_LAYOUT_REFERENCE})
+
+    add_executable(oracles-test-launcher-controls test_launcher_controls.c layout_reference.c)
+    target_link_libraries(oracles-test-launcher-controls PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-controls)
+    add_test(NAME oracles-launcher-controls COMMAND oracles-test-launcher-controls ${ORACLES_LAYOUT_REFERENCE})
+
+    add_executable(oracles-test-launcher-nav test_launcher_nav.c)
+    target_link_libraries(oracles-test-launcher-nav PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-nav)
+    add_test(NAME oracles-launcher-nav COMMAND oracles-test-launcher-nav)
+
+    add_executable(oracles-test-launcher-icon test_launcher_icon.c)
+    target_link_libraries(oracles-test-launcher-icon PRIVATE oracles_ui)
+    oracles_set_warnings(oracles-test-launcher-icon)
+    add_test(NAME oracles-launcher-icon COMMAND oracles-test-launcher-icon)
+
+    # The launcher's own tests need its SDL backend (the settings' key names) or its binary.
+    if(TARGET oracles)
+        add_executable(oracles-test-launcher-settings test_launcher_settings.c ${ORACLES_LAUNCHER_DIR}/settings.c ${ORACLES_LAUNCHER_DIR}/session_options.c ${ORACLES_SESSION_DIR}/hotkey_lines.c ${ORACLES_LAUNCHER_DIR}/sdl_backend.c ${ORACLES_LAUNCHER_DIR}/touch_controls.c ${ORACLES_LAUNCHER_DIR}/touch_sdl.c)
+        target_include_directories(oracles-test-launcher-settings PRIVATE ${ORACLES_LAUNCHER_DIR} ${ORACLES_SESSION_DIR})
+        target_link_libraries(oracles-test-launcher-settings PRIVATE oracles_host oracles_guest oracles_gameplay oracles_ui ${ORACLES_SDL_TARGET})
+        oracles_set_warnings(oracles-test-launcher-settings)
+        add_test(NAME oracles-launcher-settings COMMAND oracles-test-launcher-settings ${CMAKE_CURRENT_BINARY_DIR}/test_launcher_settings.tmp)
+
+        # The launcher's window lent to a session whose start fails (no audio driver by that name) comes back intact; what
+        # is dropped on it is left to SDL; a controller unplugged and plugged in during a session is taken back; the file
+        # dialog answers on the queue, and one that cannot open is no dialog.
+        add_executable(oracles-test-launcher-sdl-backend test_launcher_sdl_backend.c ${ORACLES_LAUNCHER_DIR}/sdl_backend.c ${ORACLES_SESSION_DIR}/hotkey_lines.c ${ORACLES_LAUNCHER_DIR}/home_input.c ${ORACLES_LAUNCHER_DIR}/file_dialog.c ${ORACLES_LAUNCHER_DIR}/touch_controls.c ${ORACLES_LAUNCHER_DIR}/touch_sdl.c)
+        target_include_directories(oracles-test-launcher-sdl-backend PRIVATE ${ORACLES_LAUNCHER_DIR} ${ORACLES_SESSION_DIR})
+        target_link_libraries(oracles-test-launcher-sdl-backend PRIVATE oracles_host oracles_guest oracles_gameplay oracles_ui ${ORACLES_SDL_TARGET})
+        oracles_set_warnings(oracles-test-launcher-sdl-backend)
+        add_test(NAME oracles-launcher-sdl-backend COMMAND oracles-test-launcher-sdl-backend ${CMAKE_CURRENT_BINARY_DIR}/launcher-dialog)
+
+        # Every text style the launcher's sources define fits the atlases of one drawing at one scale.  The list is
+        # read from the sources at configure: a style added later is in it.
+        file(GLOB ORACLES_UI_SOURCES ${ORACLES_LAUNCHER_DIR}/ui/*.c)
+        file(GLOB ORACLES_UI_HEADERS RELATIVE ${ORACLES_LAUNCHER_DIR}/ui ${ORACLES_LAUNCHER_DIR}/ui/*.h)
+        set(ORACLES_STYLES_HEADER "/* Generated by CMake from launcher/ui: every text style defined there. */\n")
+        foreach(header ${ORACLES_UI_HEADERS})
+            string(APPEND ORACLES_STYLES_HEADER "#include \"${header}\"\n")
+        endforeach()
+        string(APPEND ORACLES_STYLES_HEADER "#define ORACLES_LAUNCHER_STYLES")
+        foreach(source ${ORACLES_UI_SOURCES})
+            file(STRINGS ${source} definitions REGEX "^const OraclesUiTextStyle oracles_ui_[a-z_0-9]+")
+            foreach(definition ${definitions})
+                string(REGEX REPLACE "^const OraclesUiTextStyle (oracles_ui_[a-z_0-9]+).*" "\\1" style "${definition}")
+                string(APPEND ORACLES_STYLES_HEADER " &${style},")
+            endforeach()
+        endforeach()
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generated/launcher_styles.h "${ORACLES_STYLES_HEADER}\n")
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ORACLES_UI_SOURCES})
+        add_executable(oracles-test-launcher-atlases test_launcher_atlases.c)
+        target_include_directories(oracles-test-launcher-atlases PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+        target_link_libraries(oracles-test-launcher-atlases PRIVATE oracles_ui_sdl)
+        oracles_set_warnings(oracles-test-launcher-atlases)
+        add_test(NAME oracles-launcher-atlases COMMAND oracles-test-launcher-atlases)
+
+        # The options of a game --rom starts, given without it, are refused with the usage.
+        foreach(option save play frames screenshot no-window)
+            if(option STREQUAL "no-window")
+                set(arguments --no-window)
+            elseif(option STREQUAL "frames")
+                set(arguments --frames 10)
+            else()
+                set(arguments --${option} ${CMAKE_CURRENT_BINARY_DIR}/launcher_without_rom.tmp)
+            endif()
+            add_test(NAME oracles-launcher-without-rom-${option} COMMAND oracles ${arguments})
+            set_tests_properties(oracles-launcher-without-rom-${option} PROPERTIES PASS_REGULAR_EXPRESSION "usage: the-oracles-project" TIMEOUT 20
+                ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home;SDL_VIDEO_DRIVER=dummy")
+        endforeach()
+
+        # --launcher-screenshot draws offscreen with SDL's software renderer: a test
+        # without a display or a ROM, at 1080p, at the smallest window, and letterboxed.
+        # The settings directory is an empty one of the build (ORACLES_SETTINGS_DIR), the player's never read.
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home)
+        add_executable(oracles-test-launcher-screenshot test_launcher_screenshot.c layout_reference.c)
+        target_link_libraries(oracles-test-launcher-screenshot PRIVATE oracles_ui)
+        oracles_set_warnings(oracles-test-launcher-screenshot)
+        foreach(size 1920x1080 960x540 1000x700)
+            string(REPLACE "x" ";" dimensions ${size})
+            list(GET dimensions 0 width)
+            list(GET dimensions 1 height)
+            add_test(NAME oracles-launcher-screenshot-${size}-draw
+                COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm --launcher-size ${size})
+            set_tests_properties(oracles-launcher-screenshot-${size}-draw PROPERTIES FIXTURES_SETUP launcher_${size}
+                ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
+            add_test(NAME oracles-launcher-screenshot-${size}
+                COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm ${width} ${height} ${ORACLES_LAYOUT_REFERENCE})
+            set_tests_properties(oracles-launcher-screenshot-${size} PROPERTIES FIXTURES_REQUIRED launcher_${size})
+        endforeach()
+        # Mods at the smallest window: a settings directory of the build whose mods folder holds the two example mods,
+        # both active, and a third refused for its missing main.lua (the layout reference's frame 8c).
+        # A copy of the sources without mods/ skips it.
+        set(example_mods ${CMAKE_CURRENT_SOURCE_DIR}/../mods)
+        if(EXISTS ${example_mods}/claw-game/main.lua AND EXISTS ${example_mods}/fortune-teller/main.lua)
+            set(mods_home ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-mods)
+            file(REMOVE_RECURSE ${mods_home})
+            file(COPY ${example_mods}/claw-game ${example_mods}/fortune-teller DESTINATION ${mods_home}/mods)
+            file(WRITE ${mods_home}/mods/night-market/helper.lua "return 1\n")
+            file(WRITE ${mods_home}/settings.txt "mods_ages=claw-game,fortune-teller\n")
+            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${example_mods}/claw-game/main.lua ${example_mods}/fortune-teller/main.lua)
+            add_test(NAME oracles-launcher-screenshot-mods-draw
+                COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_mods.ppm --launcher-size 960x540 --launcher-input down,down,down,down,ok)
+            set_tests_properties(oracles-launcher-screenshot-mods-draw PROPERTIES FIXTURES_SETUP launcher_mods ENVIRONMENT "ORACLES_SETTINGS_DIR=${mods_home}")
+            add_test(NAME oracles-launcher-screenshot-mods
+                COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_mods.ppm 960 540 ${ORACLES_LAYOUT_REFERENCE} 8c "claw name")
+            set_tests_properties(oracles-launcher-screenshot-mods PROPERTIES FIXTURES_REQUIRED launcher_mods)
+        else()
+            message(STATUS "No example mods in ${example_mods}: the Mods page's screenshot test is left out")
+        endif()
+        if(WIN32)
+            # Under the UTF-8 code page, a path outside ASCII opens as it is: the capture written into an accented
+            # folder, then read by CMake, which takes UTF-8 paths on every system.
+            set(accented ${CMAKE_CURRENT_BINARY_DIR}/launcher-dépôt)
+            file(MAKE_DIRECTORY ${accented})
+            add_test(NAME oracles-launcher-utf8-path-draw
+                COMMAND oracles --launcher-screenshot ${accented}/launcher.ppm --launcher-size 960x540)
+            set_tests_properties(oracles-launcher-utf8-path-draw PROPERTIES FIXTURES_SETUP launcher_utf8
+                ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
+            add_test(NAME oracles-launcher-utf8-path COMMAND ${CMAKE_COMMAND} -E sha256sum ${accented}/launcher.ppm)
+            set_tests_properties(oracles-launcher-utf8-path PROPERTIES FIXTURES_REQUIRED launcher_utf8)
+        endif()
+    endif()
+
     add_executable(oracles-test-state-refusal test_state_refusal.c ${ORACLES_SESSION_DIR}/state_refusal.c)
     target_include_directories(oracles-test-state-refusal PRIVATE ${ORACLES_SESSION_DIR})
     oracles_set_warnings(oracles-test-state-refusal)
