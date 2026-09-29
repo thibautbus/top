@@ -53,6 +53,26 @@ From an MSYS2 UCRT64 terminal:
 
 The script installs the toolchain packages it misses, builds the pinned SDL 3 from source (MSYS2's own `SDL3.dll` would need `libiconv-2.dll` beside it), runs the tests, and leaves in `build-windows/` the executable with the two libraries it loads (`SDL3.dll`, `libwinpthread-1.dll`) and the licences to ship with them (`*-OFL.txt`, `SameBoy-LICENSE.txt`, `SDL3-LICENSE.txt`, `libwinpthread-COPYING.txt`). A repository opened from WSL (a `//wsl.localhost/...` path) is copied to a local temporary directory for the build; that copy has no `.git`, so pass `ORACLES_GIT_DESCRIBE=$(git describe --tags --always --long --match "v[0-9]*")` to the script to keep the commit shown beside the version. The executable carries a manifest (`launcher/windows/oracles.manifest`) that sets its code page to UTF-8, so paths outside ASCII open as they are.
 
+## Android
+
+```bash
+./android/build_apk.sh             # android/build-apk/the-oracles-project-debug.apk
+./android/build_apk.sh release     # the release APK, signed when the release key is given
+```
+
+The Gradle project in `android/` builds, through the NDK, `libmain.so` (the launcher, whose `main` SDL calls) and `libSDL3.so` from the root `CMakeLists.txt`, and SDL 3's own Java activity loads them. The activity and the engine come from the same SDL release, `config/sdl3.json`'s: the Gradle task `fetchSdl3` downloads its archive once, checks its SHA-256, and gives its Java sources to the application and its C sources to CMake. No SDL source is in the repository. Android 10 (API 29) at least, target API 36; ABIs `arm64-v8a` (phones and handhelds) and `x86_64` (a PC's emulator). The Android Gradle plugin installs the NDK and CMake the build names when the SDK lacks them.
+
+On Linux or macOS the script runs Gradle with an Android SDK (`ANDROID_HOME`) and a JDK 17 or later. Under WSL without `ANDROID_HOME`, it builds on the Windows side with Android Studio (its JDK, its SDK, Windows' network) from a copy of the sources kept up to date under `%LOCALAPPDATA%\oracles-android`, and brings the APK back. The project also opens in Android Studio (the `android` folder).
+
+The debug APK is signed with the repository's debug key (`android/debug.keystore`, Android's public debug credentials): debug APKs from the CI and from any machine install over one another. Install and start one with:
+
+```bash
+adb install -r android/build-apk/the-oracles-project-debug.apk
+adb shell am start -n io.github.thibautbus.theoraclesproject/.OraclesActivity
+```
+
+The launcher's standard error, the session report included, goes to Android's log: `adb logcat -s the-oracles-project`.
+
 ## Tests
 
 `ctest` runs the tests without a ROM: the core, the ROM loader and BPS patches, the guest bus and its transactions, the renderer, the ghost's key, the camera, the item hotkeys, the mods' sandbox, the routes' format, the launcher's layout and settings, and the fan games' tables against their manifests. Tests that need a ROM are skipped without one, never simulated; the route suite is one of them (`oracles-routes`, see [`ROUTES.md`](ROUTES.md)).

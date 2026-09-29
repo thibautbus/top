@@ -1,0 +1,153 @@
+// The launcher as an Android application: the engine's CMakeLists.txt builds libmain.so and SDL 3's libSDL3.so, and
+// SDL 3's own Java activity (from the same release, config/sdl3.json) loads them and calls main (docs/BUILDING.md, Android).
+plugins {
+    id "com.android.application"
+}
+
+def repository = rootProject.file("..")
+def sdl = new groovy.json.JsonSlurper().parse(new File(repository, "config/sdl3.json"))
+def sdlFolder = layout.buildDirectory.dir("sdl3").get().asFile
+def sdlSource = new File(sdlFolder, "SDL3-${sdl.version}")
+
+// The release pinned in config/sdl3.json, fetched once and checked against its SHA-256: its Java sources go into the
+// application, its C sources to CMake (FETCHCONTENT_SOURCE_DIR_SDL3), so that both halves are the same SDL.
+def fetchSdl3 = tasks.register("fetchSdl3") {
+    inputs.property("sha256", sdl.archive_sha256)
+    outputs.dir(sdlSource)
+    doLast {
+        sdlFolder.mkdirs()
+        def archive = new File(sdlFolder, "SDL3-${sdl.version}.tar.gz")
+        if (!archive.exists()) {
+            new URL(sdl.archive_url).withInputStream { input -> archive.withOutputStream { it << input } }
+        }
+        def digest = java.security.MessageDigest.getInstance("SHA-256").digest(archive.bytes).encodeHex().toString()
+        if (digest != sdl.archive_sha256) {
+            archive.delete()
+            throw new GradleException("${sdl.archive_url}: SHA-256 ${digest}, ${sdl.archive_sha256} expected")
+        }
+        project.copy {
+            from tarTree(resources.gzip(archive))
+            into sdlFolder
+        }
+    }
+}
+
+// The commit the launcher shows beside the version (CMakeLists.txt): `git describe` of the repository, or
+// -PoraclesGitDescribe=... from a copy without git.
+def describe = project.findProperty("oraclesGitDescribe")
+if (!describe) {
+    try {
+        describe = ["git", "-C", repository.path, "describe", "--tags", "--always", "--long", "--match", "v[0-9]*"].execute().text.trim()
+    } catch (Exception ignored) {
+        describe = ""
+    }
+}
+
+// The product's version, config/version.json's, the same on every platform and raised at each release; the version code
+// Android compares to update an installed application follows it, MAJOR * 10000 + MINOR * 100 + PATCH (1.0.0 is 10000),
+// so that a release installs over the one before and builds between two releases over one another.
+def productVersion = new groovy.json.JsonSlurper().parse(new File(repository, "config/version.json")).version
+def versionParts = productVersion.tokenize(".").collect { it.toInteger() }
+if (versionParts.size() != 3 || versionParts[1] > 99 || versionParts[2] > 99) {
+    throw new GradleException("config/version.json: ${productVersion} is not MAJOR.MINOR.PATCH with MINOR and PATCH below 100")
+}
+def productVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+
+// The licences that go with the application, as beside the desktop's executable: the embedded fonts' (OFL), SameBoy's,
+// and SDL's; in the APK's assets, under licences/.
+def licenceFolder = layout.buildDirectory.dir("generated/licences").get().asFile
+def copyLicences = tasks.register("copyLicences", Copy) {
+    dependsOn fetchSdl3
+    from(new File(repository, "third_party/fonts/marcellus/OFL.txt")) { rename { "Marcellus-OFL.txt" } }
+    from(new File(repository, "third_party/fonts/alegreya-sans/OFL.txt")) { rename { "AlegreyaSans-OFL.txt" } }
+    from(new File(repository, "third_party/fonts/jetbrains-mono/OFL.txt")) { rename { "JetBrainsMono-OFL.txt" } }
+    from(new File(repository, "third_party/sameboy/LICENSE")) { rename { "SameBoy-LICENSE.txt" } }
+    from(new File(sdlSource, "LICENSE.txt")) { rename { "SDL3-LICENSE.txt" } }
+    into new File(licenceFolder, "licences")
+}
+
+// The release's key, never in the repository: a keystore named by ORACLES_KEYSTORE, its password in
+// ORACLES_KEYSTORE_PASSWORD, the key's alias in ORACLES_KEY_ALIAS ("oracles" when unset) and its password in
+// ORACLES_KEY_PASSWORD (the keystore's when unset).  Without them the release APK is built unsigned.
+def keystore = System.getenv("ORACLES_KEYSTORE")
+
+android {
+    namespace "io.github.thibautbus.theoraclesproject"
+    compileSdk 36
+    ndkVersion "29.0.14206865"
+
+    defaultConfig {
+        applicationId "io.github.thibautbus.theoraclesproject"
+        minSdk 29
+        targetSdk 36
+        versionCode productVersionCode
+        versionName productVersion
+        ndk {
+            abiFilters "arm64-v8a", "x86_64"   // the handhelds and phones; the emulator of a PC
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdlSource}", "-DBUILD_TESTING=OFF",
+                          "-DORACLES_GIT_DESCRIBE=${describe}"
+                // The engine optimised in every variant, as CMake's Release builds it on a desktop: the debug variant, whose
+                // CMAKE_BUILD_TYPE the plugin sets to Debug whatever it is given, would build it at -O0, several times
+                // slower, which no measure of a frame's cost may be taken on.
+                cFlags "-O3", "-DNDEBUG"
+                // The release variant's RelWithDebInfo, whose -O2 the NDK puts after those flags: -O3 there too.
+                arguments "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
+                targets "oracles", "SDL3-shared"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "../../CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += new File(sdlSource, "android-project/app/src/main/java")
+            assets.srcDirs += licenceFolder
+        }
+    }
+
+    signingConfigs {
+        // The debug key is the repository's (android/debug.keystore, Android's public debug credentials): debug
+        // APKs built by the CI and on any machine carry the same signature, and install over one another.
+        debug {
+            storeFile rootProject.file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+        if (keystore) {
+            release {
+                storeFile file(keystore)
+                storePassword System.getenv("ORACLES_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ORACLES_KEY_ALIAS") ?: "oracles"
+                keyPassword System.getenv("ORACLES_KEY_PASSWORD") ?: System.getenv("ORACLES_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystore) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// SDL's sources before anything reads them: the Java compilation and CMake's configuration alike.
+tasks.named("preBuild") { dependsOn fetchSdl3, copyLicences }
+tasks.configureEach { task ->
+    if (task.name.startsWith("configureCMake") || task.name.startsWith("buildCMake")) task.dependsOn fetchSdl3
+}
