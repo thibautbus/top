@@ -16,6 +16,12 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-compat)
     add_test(NAME oracles-compat COMMAND oracles-test-compat)
 
+    add_executable(oracles-test-mods test_mods.c ${ORACLES_SESSION_DIR}/mod_folder.c)
+    target_include_directories(oracles-test-mods PRIVATE ${ORACLES_SESSION_DIR})
+    target_link_libraries(oracles-test-mods PRIVATE oracles_mods)
+    oracles_set_warnings(oracles-test-mods)
+    add_test(NAME oracles-mods COMMAND oracles-test-mods ${CMAKE_CURRENT_BINARY_DIR}/test_mods.tmp)
+
     add_executable(oracles-test-state test_state.c)
     target_link_libraries(oracles-test-state PRIVATE oracles_core)
     oracles_set_warnings(oracles-test-state)
