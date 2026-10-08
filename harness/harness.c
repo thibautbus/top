@@ -69,6 +69,7 @@ typedef struct run {
     FILE *frame_times;        /* --frame-times */
     uint32_t keys_polls;      /* the game's input polls counted by the guest at the last frame's end */
     uint32_t corrupt_at;      /* 0: never */
+    uint32_t colour_toggle_at; /* --colour-toggle-at, F2 in the launcher; 0: never */
     unsigned events;
     size_t journal_writes;
 } run;
@@ -99,6 +100,7 @@ static void on_frame_begin(void *opaque, uint32_t frame)
     run *r = opaque;
     if (r->hotkeys_live && r->enhanced) oracles_hotkeys_live_hotbar(r->hotkeys_live, oracles_enhanced_check_view(r->enhanced));
     if (r->guest) oracles_guest_set_frame(r->guest, frame);
+    if (r->colour_toggle_at && frame == r->colour_toggle_at) oracles_core_set_colour_correction(r->core, !oracles_core_colour_correction(r->core));
     if (r->check) oracles_frame_check_frame_begin(r->check, frame);
 }
 
@@ -590,6 +592,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     if (o->ghost_dir && !r->ghost) { fprintf(stderr, "harness: --ghost-check needs the hooks on\n"); return 1; }
     if (o->enhanced_dir && !r->enhanced) { fprintf(stderr, "harness: --enhanced-check needs the hooks on\n"); return 1; }
     r->corrupt_at = o->corrupt_at;
+    r->colour_toggle_at = o->colour_toggle_at;
     r->dumps = o->dumps; memcpy(r->dump_at, o->dump_at, sizeof r->dump_at); memcpy(r->dump_path, o->dump_path, sizeof r->dump_path);
     if (o->out_path) { r->out = fopen(o->out_path, "wb"); if (!r->out) { fprintf(stderr, "harness: cannot write %s\n", o->out_path); return 1; } }
     if (o->positions_path) { r->positions = fopen(o->positions_path, "wb"); if (!r->positions) { fprintf(stderr, "harness: cannot write %s\n", o->positions_path); return 1; } }

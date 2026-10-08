@@ -25,7 +25,7 @@ typedef struct harness_options {
     const char *surface_path[16];
     unsigned surfaces;
     unsigned objects_lead, enhanced_budget, enhanced_camera, ghost_lead;
-    uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz;
+    uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
     unsigned enhanced_ghosts;                 /* --enhanced-ghosts: ghosts working at once, threaded (1 by default) */
     int objects_capture, enhanced_objects, enhanced_threaded, enhanced_paced, enhanced_zoom_out, continuous_transitions, continuous_swim;
     int enhanced_level, enhanced_aspect;      /* --view (near unless --zoom-out) and --aspect: an OraclesEnhancedLevel and OraclesEnhancedAspect */

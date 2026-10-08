@@ -203,7 +203,9 @@ void ev_refresh_colours(OraclesEnhancedView *v)
     if (pipeline == v->colours_pipeline) return;
     v->colours_pipeline = pipeline;
     for (unsigned i = 0; i < ORACLES_PPU_COLOURS; i++) v->colours[i] = oracles_core_convert_rgb555(v->core, (uint16_t)i);
-    ev_invalidate_all(v);   /* the cached renders are in the old pipeline */
+    /* The renders are in the old pipeline, the rooms the ghosts delivered are not: each is drawn again whole, and
+     * the band keeps its neighbours and the room it follows (dropping them fell back to the framed core). */
+    for (unsigned i = 0; i < v->slot_count; i++) v->slots[i].live_valid = 0;
 }
 
 /* An entry holding a room of the grid.  A routed entry holds the room the

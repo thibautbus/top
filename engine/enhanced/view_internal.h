@@ -93,6 +93,7 @@ typedef struct entry {
     uint32_t last_use;
     /* what the ghost delivered */
     uint32_t game_area[ORACLES_GHOST_AREA_WIDTH * ORACLES_GHOST_AREA_HEIGHT];   /* rendered once by the ghost, frozen */
+    int game_area_pipeline;          /* the colour pipeline it was rendered in (ev_refresh_colours) */
     uint8_t layout[ORACLES_GHOST_LAYOUT_BYTES];
     uint8_t bg_map[ORACLES_GHOST_MAP_BYTES];
     uint8_t regs3[6];
@@ -257,6 +258,7 @@ struct OraclesEnhancedView {
     unsigned pending_slot;
     uint8_t pending_group, pending_room;
     unsigned pending_generation;
+    int pending_pipeline;            /* the colour pipeline the run renders in */
     int pending_chained;             /* from a parent's settled state */
     int pending_beside;              /* from a room beside it, a cutscene holding the game (view_schedule.c, run_from_beside) */
     uint8_t pending_killed_list[16]; /* the live wEnemiesKilledList the pending run stands for */
@@ -284,6 +286,7 @@ struct OraclesEnhancedView {
         unsigned pending_slot;
         uint8_t pending_group, pending_room;
         unsigned pending_generation;
+        int pending_pipeline;
         int pending_chained, pending_beside;
         uint8_t pending_killed_list[16];
         unsigned pending_parent;

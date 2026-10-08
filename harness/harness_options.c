@@ -8,7 +8,7 @@
 
 int harness_usage(void)
 {
-    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
+    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--colour-toggle-at FRAME] [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
                     "                       [--frame-times FILE]   (each frame's phases in microseconds: core with its hooks, source, presentation, end with the Enhanced check)\n"
                     "                       [--sram-out FILE]   (the cartridge RAM at the end of the replay, raw, as a .sav: a save the game made on one core read on the other)\n"
                     "                       [--positions FILE]   (group, room and Link's position after every frame: tools/compare_positions.py compares the rooms of two of them, from two cores, to find where they part)\n"
@@ -64,6 +64,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             else if (!strcmp(name, "mgba")) o->core_kind = ORACLES_CORE_MGBA;
             else return harness_usage();
         }
+        else if (!strcmp(argv[i], "--colour-toggle-at") && i + 1 < argc) o->colour_toggle_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--corrupt-thread1-at") && i + 1 < argc) o->corrupt_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--compare") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; }
         else if (!strcmp(argv[i], "--compare-session") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; o->compare_session = 1; }

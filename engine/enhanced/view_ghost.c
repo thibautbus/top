@@ -119,6 +119,7 @@ static void record_entry_reads(OraclesEnhancedView *v, entry *e, const OraclesGh
 static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostResult *r)
 {
     memcpy(e->game_area, r->game_area, sizeof e->game_area);
+    e->game_area_pipeline = v->pending_pipeline;
     memcpy(e->layout, r->layout, sizeof e->layout);
     memcpy(e->collisions, r->collisions, sizeof e->collisions);
     memcpy(e->tiles, r->tiles, sizeof e->tiles);
@@ -331,7 +332,7 @@ static void finish_routed_job(OraclesEnhancedView *v, entry *e, const OraclesGho
 
 /* The lane whose run the job fields are: its fields copied in, the lane
  * served before stored back. */
-#define LANE_FIELDS(X) X(ghost) X(job) X(pending) X(pending_slot) X(pending_group) X(pending_room) X(pending_generation) \
+#define LANE_FIELDS(X) X(ghost) X(job) X(pending) X(pending_slot) X(pending_group) X(pending_room) X(pending_generation) X(pending_pipeline) \
     X(pending_chained) X(pending_beside) X(pending_parent) X(pending_parent_room) X(pending_parent_accepted) X(pending_serial) X(pending_blind) \
     X(pending_routed) X(pending_routed_from) X(pending_dir)
 void ev_lane_serve(OraclesEnhancedView *v, unsigned lane)
@@ -460,6 +461,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     v->pending_group = e->group;
     v->pending_room = e->room;
     v->pending_generation = v->generation;
+    v->pending_pipeline = v->colours_pipeline;
     v->pending_chained = chained;
     v->pending_beside = 0;
     v->pending_parent = chained ? (unsigned)(parent - v->slots) : 0;
@@ -516,6 +518,7 @@ void ev_blind_prerun(OraclesEnhancedView *v)
         v->pending_chained = 0;
         v->pending_beside = 0;
         v->pending_generation = v->generation;
+        v->pending_pipeline = v->colours_pipeline;
         return;
     }
 }

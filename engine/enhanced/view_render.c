@@ -688,8 +688,8 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
         /* Blocks that differ from the ghost's render although their tile is
          * not one the live VRAM animates: none if the live render is right.
          * The ghost's render has no objects, so a neighbour drawing its own
-         * is not compared. */
-        if (in_step && !e->large && !use_live && !draw_objects) {
+         * is not compared, nor one the ghost drew before the colour pipeline changed. */
+        if (in_step && !e->large && !use_live && !draw_objects && e->game_area_pipeline == v->colours_pipeline) {
             unsigned blocks = 0;
             const unsigned scy = e->regs3[1], scx = e->regs3[2], unsigned_tiles = (e->regs3[0] & 0x10u) != 0;
             for (unsigned by = 0; by < ORACLES_GHOST_AREA_HEIGHT / 8u; by++)
