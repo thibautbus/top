@@ -30,7 +30,7 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
     if (rom && rom_size) {
         v->rom = malloc(rom_size);
         if (v->rom) { memcpy(v->rom, rom, rom_size); v->rom_size = rom_size; }
-        v->ghost = oracles_ghost_create(rom, rom_size, profile);
+        v->ghost = oracles_ghost_create(rom, rom_size, profile, oracles_core_kind(core));
         v->state_size = oracles_core_state_size(core);
         v->snapshot = malloc(v->state_size);
         if (!v->ghost || !v->snapshot || v->state_size != oracles_ghost_state_size(v->ghost)) {

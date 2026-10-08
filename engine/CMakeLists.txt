@@ -1,9 +1,16 @@
 # ---- engine ----------------------------------------------------------------
+# The core behind its interface (core/core.h): each emulator is private to its implementation, and no other code sees
+# its headers.
 add_library(oracles_core STATIC
-    core/core.c core/state.c core/cgb_boot_rom.c rom/rom.c rom/sha1.c rom/bps.c)
+    core/core.c core/core_sameboy.c core/core_mgba.c core/colour.c core/state.c core/cgb_boot_rom.c core/cgb_boot_rom_mgba.c
+    rom/rom.c rom/sha1.c rom/bps.c)
 target_include_directories(oracles_core PUBLIC core rom)
-target_compile_definitions(oracles_core PRIVATE ORACLES_SAMEBOY_VERSION="${ORACLES_SAMEBOY_VERSION}")
-target_link_libraries(oracles_core PUBLIC sameboy)
+string(SUBSTRING ${ORACLES_MGBA_COMMIT} 0 8 ORACLES_MGBA_VERSION)
+target_compile_definitions(oracles_core PRIVATE ORACLES_SAMEBOY_VERSION="${ORACLES_SAMEBOY_VERSION}" ORACLES_MGBA_VERSION="${ORACLES_MGBA_VERSION}")
+target_link_libraries(oracles_core PRIVATE sameboy mgba)
+if(NOT WIN32)
+    target_link_libraries(oracles_core PRIVATE m)   # colour.c
+endif()
 oracles_set_warnings(oracles_core)
 
 add_library(oracles_host STATIC host/host.c)

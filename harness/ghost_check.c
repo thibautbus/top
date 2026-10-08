@@ -85,7 +85,7 @@ OraclesGhostCheck *oracles_ghost_check_start(const uint8_t *rom, size_t rom_size
     c->lead = lead;
     c->threaded = threaded;
     c->trace = trace;
-    c->ghost = oracles_ghost_create(rom, rom_size, profile);
+    c->ghost = oracles_ghost_create(rom, rom_size, profile, oracles_core_kind(live));
     if (!c->ghost) { free(c); return NULL; }
     if (trace) {
         oracles_ghost_set_trace(c->ghost, 1);

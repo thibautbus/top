@@ -37,7 +37,8 @@ cp "$build/the-oracles-project" "$dir/"
 cp -L "$sdl" "$dir/libSDL3.so.0"
 # The library beside the executable, and no path of the build machine.
 patchelf --set-rpath '$ORIGIN' "$dir/the-oracles-project"
-cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/SDL3-LICENSE.txt" "$dir/"
+cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
+    "$build/SDL3-LICENSE.txt" "$dir/"
 cp "$root/launcher/icon/the-oracles-project-512.png" "$dir/"
 sed -e "s/X\.Y\.Z/${version}/" -e "s/PLATFORM/Linux/" "$root/.github/release-readme.txt" > "$dir/README.txt"
 cat > "$dir/the-oracles-project.desktop" <<'DESKTOP'

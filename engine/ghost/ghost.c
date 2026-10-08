@@ -75,11 +75,11 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
 
 /* ---- create / destroy ---------------------------------------------------------- */
 
-OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile)
+OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind)
 {
     OraclesGhost *g = calloc(1, sizeof *g);
     if (!g) return NULL;
-    const OraclesCoreOptions options = { 0, 0 };   /* no audio, raw colours: the ghost is never shown */
+    const OraclesCoreOptions options = { 0, 0, kind };   /* no audio, raw colours: the ghost is never shown */
     g->core = oracles_core_create(rom, rom_size, &options);
     if (!g->core) { free(g); return NULL; }
     g->guest = oracles_guest_attach(g->core, profile);

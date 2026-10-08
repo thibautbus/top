@@ -14,6 +14,9 @@ endif()
 # vendored core and every composite savestate.
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/config/sameboy.json ORACLES_SAMEBOY_JSON)
 string(JSON ORACLES_SAMEBOY_VERSION GET ${ORACLES_SAMEBOY_JSON} version)
+# mGBA's pinned commit has one source too, config/mgba.json.
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/config/mgba.json ORACLES_MGBA_JSON)
+string(JSON ORACLES_MGBA_COMMIT GET ${ORACLES_MGBA_JSON} commit)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -25,6 +28,12 @@ set(CMAKE_C_EXTENSIONS ON)
 
 option(ORACLES_WARNINGS_AS_ERRORS "Treat warnings in the engine's own code as errors" OFF)
 option(ORACLES_BUILD_LAUNCHER "Build the SDL 3 launcher" ON)
+# The core the launcher's games run on, until Display lets the player choose it: sameboy (accurate) or mgba (lighter).
+set(ORACLES_DEFAULT_CORE sameboy CACHE STRING "The core the launcher's games run on: sameboy or mgba")
+set_property(CACHE ORACLES_DEFAULT_CORE PROPERTY STRINGS sameboy mgba)
+if(NOT ORACLES_DEFAULT_CORE MATCHES "^(sameboy|mgba)$")
+    message(FATAL_ERROR "ORACLES_DEFAULT_CORE is sameboy or mgba, not ${ORACLES_DEFAULT_CORE}")
+endif()
 
 function(oracles_set_warnings target)
     if(MSVC)

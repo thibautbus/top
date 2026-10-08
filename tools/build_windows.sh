@@ -69,7 +69,9 @@ if [ "$copied" = 1 ]; then
     # No mkdir -p here: on a //wsl.localhost path it fails on the share root.
     [ -d "$here/build-windows" ] || mkdir "$here/build-windows"
     cp "$work_dir"/the-oracles-project.exe "$work_dir"/oracles-harness.exe "$work_dir"/SDL3.dll "$work_dir"/libwinpthread-1.dll \
-        "$work_dir"/SDL3-LICENSE.txt "$work_dir"/libwinpthread-COPYING.txt "$work_dir"/*-OFL.txt "$work_dir"/SameBoy-LICENSE.txt "$here/build-windows/"
+        "$work_dir"/SDL3-LICENSE.txt "$work_dir"/libwinpthread-COPYING.txt "$work_dir"/*-OFL.txt "$work_dir"/SameBoy-LICENSE.txt \
+        "$work_dir"/mGBA-LICENSE.txt "$work_dir"/mGBA-NOTICE.txt "$work_dir"/mGBA-boot-rom.patch "$work_dir"/inih-LICENSE.txt \
+        "$here/build-windows/"
 fi
-echo "the-oracles-project.exe, SDL3.dll, libwinpthread-1.dll and the licences (*-OFL.txt, SameBoy-LICENSE.txt, SDL3-LICENSE.txt, libwinpthread-COPYING.txt) are in $here/build-windows/"
+echo "the-oracles-project.exe, SDL3.dll, libwinpthread-1.dll and the licences (*-OFL.txt, SameBoy-LICENSE.txt, mGBA-LICENSE.txt, mGBA-NOTICE.txt, mGBA-boot-rom.patch, inih-LICENSE.txt, SDL3-LICENSE.txt, libwinpthread-COPYING.txt) are in $here/build-windows/"
 echo "(built in $work_dir)"

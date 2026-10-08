@@ -238,7 +238,7 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
         && t->dirty_bg_palettes.addr >= 0xff80u && t->dirty_bg_palettes.addr <= 0xfffeu) {
         size_t size = 0;
         uint16_t bank = 0;
-        uint8_t *hram = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_HRAM, &size, &bank);
+        uint8_t *hram = oracles_core_memory(guest->core, ORACLES_CORE_HRAM, &size, &bank);
         if (hram && size > (size_t)(t->dirty_bg_palettes.addr - 0xff80u)) { hram[t->dirty_bg_palettes.addr - 0xff80u] |= (uint8_t)(m->refresh_bg_palettes & 0xfcu); wrote = 1; }
     }
     /* The transition a swim's momentum takes Link to (--continuous-swim): wScreenTransitionDirection's bit 7, which
@@ -278,7 +278,7 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
             if (at_vblank) {
                 size_t size = 0;
                 uint16_t bank = 0;
-                uint8_t *oam = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_OAM, &size, &bank);
+                uint8_t *oam = oracles_core_memory(guest->core, ORACLES_CORE_OAM, &size, &bank);
                 if (oam && size >= 160u) shift_link_sprites(oam, s, dx, dy, lower);
             }
         }

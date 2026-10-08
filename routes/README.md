@@ -9,17 +9,20 @@ The format, the harness and the suite are described in [`docs/ROUTES.md`](../doc
 Put your ROMs in one directory and name it in `ORACLES_ROM_DIR`; the routes find their ROM by its SHA-1. A fan game's route names the SHA-1 of the patched image: put the game's BPS patch beside the base ROM it applies to, and the suite applies it, or put the patched image (a `.gbc`) there. Then, from a build of the repository:
 
 ```
-ORACLES_ROM_DIR=/path/to/roms ctest --test-dir build -R oracles-routes
+ORACLES_ROM_DIR=/path/to/roms ctest --test-dir build -R '^oracles-routes$'
 ORACLES_ROM_DIR=/path/to/roms python3 tools/check_routes.py --harness build/oracles-harness
 ```
 
-Without `ORACLES_ROM_DIR` the test is skipped. `tools/check_routes.py` reads every `checks.tsv` under `routes/`; `--only TEXT` replays the rows whose route or label contains the text (`ages/intro`, `seasons-dungeon-enhanced-zoom`).
+Without `ORACLES_ROM_DIR` the test is skipped. `tools/check_routes.py` reads every `checks.tsv` under `routes/`, and replays on SameBoy unless given `--core mgba` (`oracles-routes-mgba` in `ctest`), each row saying the core it holds on; `--only TEXT` replays the rows whose route or label contains the text (`ages/intro`, `seasons-dungeon-enhanced-zoom`).
 
 ## The routes
+
+The routes recorded before SameBoy's joypad bouncing was cut (`ages/advanced`, `ages/dungeon-sideview`, `ages/overworld`, `ages/underwater`, `seasons/continuous-transitions`, `seasons/hotkeys-equip`, `seasons/lost-woods`, `seasons/neighbour-objects`, `seasons/overworld`) were rewritten by `tools/debounce_route.py`: in the frames the game read the keys, their keys are those it read on SameBoy, bouncing included; in the others, those recorded. Each replays the same game without the bouncing, and keeps its recording as `#recorded` comments. `ages/overworld-continuous.route` is the same session's keys as the game read them with `--continuous-transitions`.
 
 | Route | Covers | Modes |
 | --- | --- | --- |
 | `ages/overworld.route` | the native renderer on Ages: Lynna, interiors, warps | faithful, faithful-cc, enhanced, enhanced-threaded, enhanced-zoom, enhanced-zoom-threaded |
+| `ages/overworld-continuous.route` | the same session as the game plays it with `--continuous-transitions` (its keys as the game read them then: `tools/debounce_route.py`) | enhanced |
 | `ages/advanced.route` | the past, the sea and the rooms under water, a dungeon of the past | faithful, faithful-cc, enhanced, enhanced-threaded |
 | `ages/dungeon-sideview.route` | a dungeon of the present and its side-view section | faithful, faithful-cc, enhanced, enhanced-threaded |
 | `ages/underwater.route` | under water | faithful, faithful-cc, enhanced, enhanced-threaded, enhanced-zoom, enhanced-zoom-threaded |

@@ -258,9 +258,10 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
         s->mod = oracles_mod_session_start(o->mods_dirs, o->mods_count, s->info.game, s->rom, s->rom_size, error, sizeof error);
         if (!s->mod || oracles_mod_session_compose(s->mod, oracles_rom_is_original(&s->info), &s->rom, &s->rom_size, error, sizeof error) != 0) return failed(result, "%s", error);
     }
-    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied };
+    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied, ORACLES_DEFAULT_CORE_KIND };
     s->core = oracles_core_create(s->rom, s->rom_size, &core_options);
     if (!s->core) return failed(result, "the core could not start");
+    fprintf(stderr, "oracles: core %s\n", oracles_core_version(s->core));
     oracles_session_save_path(o, s->save.path, sizeof s->save.path);
     /* A modded game's own save starts as a copy of the vanilla one: the vanilla save never holds what a mod did (its
      * houses, its items), and a game played without the mods finds it as it was. */
@@ -322,8 +323,11 @@ static int replay_route(session *s, const OraclesSessionOptions *o, OraclesSessi
      * with --continuous-transitions diverges without it, and the other way round. */
     /* A route recorded before the core's joypad bouncing was cut (the header's core line) ran with it and only replays with it. */
     if (oracles_route_joypad_bouncing(&s->play.header)) {
-        oracles_core_set_joypad_bouncing(s->core, 1);
-        fprintf(stderr, "oracles: the route was recorded with joypad bouncing: it is on for the replay, which may still differ from the session it was\n");
+        if (oracles_core_set_joypad_bouncing(s->core, 1) == 0)
+            fprintf(stderr, "oracles: the route was recorded with joypad bouncing: it is on for the replay, which may still differ from the session it was\n");
+        else
+            fprintf(stderr, "oracles: the route was recorded with SameBoy's joypad bouncing, which %s does not emulate: replayed without it\n",
+                    oracles_core_version(s->core));
     }
     const int route_continuous = oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS);
     if (route_continuous && s->profile && !oracles_compat_continuous_transitions(s->profile))
@@ -549,7 +553,7 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
 
 static void report_frames(const session *s, const oracles_host_run_report *report)
 {
-    fprintf(stderr, "oracles: version %s, build %s\n", ORACLES_VERSION, ORACLES_BUILD);
+    fprintf(stderr, "oracles: version %s, build %s, core %s\n", ORACLES_VERSION, ORACLES_BUILD, oracles_core_version(s->core));
     fprintf(stderr, "oracles: %u frames, %u late, %u resyncs, %u saves written to %s\n",
             report->frames_presented, report->frames_late, report->pacing_resyncs, report->saves_written, s->save.path);
     /* The pause holds the loop between frames: its time is in no frame's; none of its glyphs should be rasterised here. */

@@ -34,6 +34,12 @@ def fetchSdl3 = tasks.register("fetchSdl3") {
 
 // The commit the launcher shows beside the version (CMakeLists.txt): `git describe` of the repository, or
 // -PoraclesGitDescribe=... from a copy without git.
+// The core the games run on (CMakeLists.txt, ORACLES_DEFAULT_CORE): -PoraclesDefaultCore=mgba builds the lighter one.
+// Its version code is one more, so that it installs over the same commit's application built with SameBoy.
+def defaultCore = project.findProperty("oraclesDefaultCore") ?: "sameboy"
+if (!(defaultCore in ["sameboy", "mgba"])) {
+    throw new GradleException("oraclesDefaultCore is sameboy or mgba, not ${defaultCore}")
+}
 def describe = project.findProperty("oraclesGitDescribe")
 if (!describe) {
     try {
@@ -54,7 +60,7 @@ if (versionParts.size() != 3 || versionParts[1] > 99 || versionParts[2] > 99) {
 def productVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
 
 // The licences that go with the application, as beside the desktop's executable: the embedded fonts' (OFL), SameBoy's,
-// and SDL's; in the APK's assets, under licences/.
+// mGBA's with its notice and inih's, and SDL's; in the APK's assets, under licences/.
 def licenceFolder = layout.buildDirectory.dir("generated/licences").get().asFile
 def copyLicences = tasks.register("copyLicences", Copy) {
     dependsOn fetchSdl3
@@ -62,6 +68,10 @@ def copyLicences = tasks.register("copyLicences", Copy) {
     from(new File(repository, "third_party/fonts/alegreya-sans/OFL.txt")) { rename { "AlegreyaSans-OFL.txt" } }
     from(new File(repository, "third_party/fonts/jetbrains-mono/OFL.txt")) { rename { "JetBrainsMono-OFL.txt" } }
     from(new File(repository, "third_party/sameboy/LICENSE")) { rename { "SameBoy-LICENSE.txt" } }
+    from(new File(repository, "third_party/mgba/LICENSE")) { rename { "mGBA-LICENSE.txt" } }
+    from(new File(repository, "third_party/mgba/NOTICE.txt")) { rename { "mGBA-NOTICE.txt" } }
+    from(new File(repository, "third_party/mgba/boot-rom.patch")) { rename { "mGBA-boot-rom.patch" } }
+    from(new File(repository, "third_party/mgba/core/src/third-party/inih/LICENSE.txt")) { rename { "inih-LICENSE.txt" } }
     from(new File(sdlSource, "LICENSE.txt")) { rename { "SDL3-LICENSE.txt" } }
     into new File(licenceFolder, "licences")
 }
@@ -80,7 +90,7 @@ android {
         applicationId "io.github.thibautbus.theoraclesproject"
         minSdk 29
         targetSdk 36
-        versionCode productVersionCode
+        versionCode productVersionCode + (defaultCore == "mgba" ? 1 : 0)
         versionName productVersion
         ndk {
             abiFilters "arm64-v8a", "x86_64"   // the handhelds and phones; the emulator of a PC
@@ -88,14 +98,16 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdlSource}", "-DBUILD_TESTING=OFF",
-                          "-DORACLES_GIT_DESCRIBE=${describe}"
+                          "-DORACLES_GIT_DESCRIBE=${describe}", "-DORACLES_DEFAULT_CORE=${defaultCore}"
                 // The engine optimised in every variant, as CMake's Release builds it on a desktop: the debug variant, whose
                 // CMAKE_BUILD_TYPE the plugin sets to Debug whatever it is given, would build it at -O0, several times
                 // slower, which no measure of a frame's cost may be taken on.
                 cFlags "-O3", "-DNDEBUG"
                 // The release variant's RelWithDebInfo, whose -O2 the NDK puts after those flags: -O3 there too.
                 arguments "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
-                targets "oracles", "SDL3-shared"
+                // mgba: mGBA's Game Boy core, built for both ABIs, so that this build checks it compiles before the engine
+                // links it.
+                targets "oracles", "SDL3-shared", "mgba"
             }
         }
     }

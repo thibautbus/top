@@ -27,6 +27,7 @@
 #include "ghost_check.h"
 #include "guest.h"
 #include "guest_fingerprint.h"
+#include "guest_struct_offsets.h"
 #include "mod_session.h"
 #include "bps.h"
 #include "rom.h"
@@ -60,6 +61,9 @@ typedef struct run {
     OraclesGame game;
     OraclesRoute route;
     FILE *out;
+    FILE *positions;          /* --positions */
+    FILE *keys_read;          /* --keys-read */
+    uint32_t keys_polls;      /* the game's input polls counted by the guest at the last frame's end */
     uint32_t corrupt_at;      /* 0: never */
     unsigned events;
     size_t journal_writes;
@@ -113,6 +117,23 @@ static void on_frame_end(void *opaque, uint32_t frame)
         if (byte) *byte ^= 0x01;
     }
     if (r->out) oracles_guest_write_fingerprint(bus, r->core, frame, r->out);
+    if (r->positions) {
+        /* What the game is at, whatever the core: the fingerprints, hashes of the memory, differ from one core to the other. */
+        const OraclesGuestTables *t = oracles_guest_tables(bus);
+        const uint8_t *link = oracles_guest_object(bus, 0, 0);
+        fprintf(r->positions, "%u\t%u\t%u\t%u\t%u\n", frame, oracles_guest_read8(bus, t->active_group), oracles_guest_read8(bus, t->active_room),
+                link ? link[ORACLES_OBJ_Y + 1] : 0u, link ? link[ORACLES_OBJ_X + 1] : 0u);
+    }
+    if (r->keys_read) {
+        /* What the game's input poll (pollInput, the one writer of wKeysPressed) read in this frame, or in the last one it
+         * ran (buttons in the low nibble and directions in the high one there, the other way round in a route), and
+         * whether it ran in this frame: the guest counts its writes, which a run without hooks does not see ("-"). */
+        const uint8_t pressed = oracles_guest_read8(bus, oracles_guest_tables(bus)->keys_pressed);
+        const uint32_t polls = oracles_guest_keys_polls(r->guest);
+        fprintf(r->keys_read, "%u\t%02x\t%s\n", frame, (unsigned)(((pressed & 0x0fu) << 4) | (pressed >> 4)),
+                !r->guest ? "-" : polls != r->keys_polls ? "1" : "0");
+        r->keys_polls = polls;
+    }
     for (unsigned d = 0; d < r->dumps; d++) if (frame == r->dump_at[d]) {   /* the live state at the end of a frame (oracles_guest_live_dump): to name the bytes two replays differ by */
         FILE *dump = fopen(r->dump_path[d], "wb");
         uint8_t live[ORACLES_GUEST_LIVE_DUMP_BYTES];
@@ -231,6 +252,8 @@ static int replay_route(run *r, const harness_options *o, oracles_host_backend *
             report->frames_presented, o->hooks ? "on" : "off", seconds, seconds * 1000.0 / (report->frames_presented ? report->frames_presented : 1),
             r->events, r->journal_writes);
     if (r->out) fclose(r->out);
+    if (r->positions) fclose(r->positions);
+    if (r->keys_read) fclose(r->keys_read);
     return result;
 }
 
@@ -290,6 +313,7 @@ static int report_renderer(run *r, const harness_options *o, FILE *summary)
             for (unsigned k = 0; k < ORACLES_FRAME_CLASSES; k++)
                 fprintf(summary, "render.%s.frames=%u\nrender.%s.mismatches=%u\n", oracles_frame_class_name((OraclesFrameClass)k), stats->frames[k], oracles_frame_class_name((OraclesFrameClass)k), stats->mismatches[k]);
             fprintf(summary, "render.late_scroll_lines=%u\n", stats->late_scroll_lines);
+            fprintf(summary, "render.first_tile_lines=%u\n", stats->first_tile_lines);
         }
         oracles_frame_check_stop(r->check);
     }
@@ -427,7 +451,7 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
             if (oracles_mod_session_storage_open(r->mod, store, 0, error, sizeof error) != 0) { fprintf(stderr, "harness: %s: %s\n", store, error); free(rom); return 1; }
         }
     }
-    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
+    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction, (OraclesCoreKind)o->core_kind };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
     r->core = oracles_core_create(rom, rom_size, &options);
     r->profile = oracles_compat_find(&info);
     r->game = info.game;
@@ -441,7 +465,9 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
     if (oracles_route_read(o->route_path, &r->route, error, sizeof error) != 0) { fprintf(stderr, "harness: %s\n", error); return 1; }
     if (strcmp(r->route.header.rom_sha1, info.sha1) != 0) { fprintf(stderr, "harness: the route was recorded with another ROM\n"); return 1; }
     /* A route recorded before the core's joypad bouncing was cut (the header's core line) ran with it and only replays with it. */
-    if (oracles_route_joypad_bouncing(&r->route.header)) oracles_core_set_joypad_bouncing(r->core, 1);
+    if (oracles_route_joypad_bouncing(&r->route.header) && oracles_core_set_joypad_bouncing(r->core, 1) != 0)
+        fprintf(stderr, "harness: the route was recorded with SameBoy's joypad bouncing, which %s does not emulate: replayed without it\n",
+                oracles_core_version(r->core));
     /* The route's gameplay options are part of the replay (docs/ROUTES.md). */
     const int route_continuous = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS);
     if ((o->continuous_transitions || route_continuous) && r->profile
@@ -524,6 +550,8 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     r->corrupt_at = o->corrupt_at;
     r->dumps = o->dumps; memcpy(r->dump_at, o->dump_at, sizeof r->dump_at); memcpy(r->dump_path, o->dump_path, sizeof r->dump_path);
     if (o->out_path) { r->out = fopen(o->out_path, "wb"); if (!r->out) { fprintf(stderr, "harness: cannot write %s\n", o->out_path); return 1; } }
+    if (o->positions_path) { r->positions = fopen(o->positions_path, "wb"); if (!r->positions) { fprintf(stderr, "harness: cannot write %s\n", o->positions_path); return 1; } }
+    if (o->keys_read_path) { r->keys_read = fopen(o->keys_read_path, "wb"); if (!r->keys_read) { fprintf(stderr, "harness: cannot write %s\n", o->keys_read_path); return 1; } }
     if (o->frames == 0) o->frames = r->route.count ? oracles_route_last_frame(&r->route) + 1 : 1;
     return 0;
 }

@@ -460,7 +460,7 @@ int main(void)
         rom[0x143] = 0xc0; rom[0x147] = 0x1b; rom[0x148] = 0x05; rom[0x149] = 0x02;
         rom[0x100] = 0x00; rom[0x101] = 0xc3; rom[0x102] = 0x50; rom[0x103] = 0x01;
         rom[0x150] = 0x18; rom[0x151] = 0xfe;   /* jr -2 */
-        const OraclesCoreOptions options = { 0, 0 };
+        const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
         OraclesCore *core = oracles_core_create(rom, size, &options);
         OraclesGuest *guest = core ? oracles_guest_attach(core, fixture_profile()) : NULL;
         OraclesEnhancedView *view = guest ? oracles_enhanced_view_start(core, guest, NULL, 0) : NULL;

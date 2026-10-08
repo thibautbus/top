@@ -8,7 +8,7 @@ const uint8_t *oracles_guest_wram(OraclesGuest *guest, unsigned bank)
 {
     size_t size = 0;
     uint16_t current = 0;
-    const uint8_t *ram = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_RAM, &size, &current);
+    const uint8_t *ram = oracles_core_memory(guest->core, ORACLES_CORE_WRAM, &size, &current);
     if (!ram || bank > 7 || size < 0x8000u) return NULL;
     return ram + bank * 0x1000u;
 }
@@ -17,7 +17,7 @@ const uint8_t *oracles_guest_vram(OraclesGuest *guest, unsigned bank)
 {
     size_t size = 0;
     uint16_t current = 0;
-    const uint8_t *vram = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_VRAM, &size, &current);
+    const uint8_t *vram = oracles_core_memory(guest->core, ORACLES_CORE_VRAM, &size, &current);
     if (!vram || bank > 1 || size < 0x4000u) return NULL;
     return vram + bank * 0x2000u;
 }
@@ -27,21 +27,21 @@ const uint8_t *oracles_guest_oam(OraclesGuest *guest)
     if (guest->oam_scanned_valid) return guest->oam_scanned;
     size_t size = 0;
     uint16_t bank = 0;
-    return GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_OAM, &size, &bank);
+    return oracles_core_memory(guest->core, ORACLES_CORE_OAM, &size, &bank);
 }
 
 const uint8_t *oracles_guest_hram(OraclesGuest *guest)
 {
     size_t size = 0;
     uint16_t bank = 0;
-    return GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_HRAM, &size, &bank);
+    return oracles_core_memory(guest->core, ORACLES_CORE_HRAM, &size, &bank);
 }
 
 const uint8_t *oracles_guest_io(OraclesGuest *guest)
 {
     size_t size = 0;
     uint16_t bank = 0;
-    return GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_IO, &size, &bank);
+    return oracles_core_memory(guest->core, ORACLES_CORE_IO, &size, &bank);
 }
 
 const uint8_t *oracles_guest_ptr(OraclesGuest *guest, OraclesGuestSym sym, size_t length)
@@ -90,8 +90,8 @@ const uint8_t *oracles_guest_object(OraclesGuest *guest, unsigned index, unsigne
     return wram ? wram + (ORACLES_OBJECTS_BASE - 0xd000u) + index * 0x100u + kind * ORACLES_OBJECT_SIZE : NULL;
 }
 
-uint16_t oracles_guest_sp(OraclesGuest *guest) { return GB_get_registers(guest->gb)->sp; }
-uint16_t oracles_guest_pc(OraclesGuest *guest) { return GB_get_registers(guest->gb)->pc; }
+uint16_t oracles_guest_sp(OraclesGuest *guest) { return oracles_core_registers(guest->core).sp; }
+uint16_t oracles_guest_pc(OraclesGuest *guest) { return oracles_core_registers(guest->core).pc; }
 
 uint16_t oracles_guest_thread_sp(OraclesGuest *guest, unsigned thread)
 {
@@ -108,20 +108,20 @@ static void emit(OraclesGuest *guest, OraclesGuestEventType type, uint16_t pc, u
     if (type == ORACLES_EVENT_FRAME_DRAWN) { oracles_guest_apply_transition_policy(guest, 0); guest->drawn_this_frame = 1; }
     /* checkReloadStatusBarGraphics is also reached by tail jumps whose return lies elsewhere: only its call from mainThreadStart is the write point. */
     if (type == ORACLES_EVENT_STATUS_BAR_CHECKED) { if (pc != guest->inventory_write_pc) return; oracles_guest_apply_inventory_policy(guest); }
-    if (type == ORACLES_EVENT_STATUS_BAR_CHECK) oracles_guest_call_point(guest, GB_get_registers(guest->gb)->sp);
+    if (type == ORACLES_EVENT_STATUS_BAR_CHECK) oracles_guest_call_point(guest, oracles_core_registers(guest->core).sp);
     if (!guest->sink && !guest->listener_count) return;
-    const GB_registers_t *r = GB_get_registers(guest->gb);
+    const OraclesCoreRegisters r = oracles_core_registers(guest->core);
     OraclesGuestEvent event;
     event.type = type;
     event.frame = guest->frame;
     event.pc = pc;
     event.address = address;
     event.value = value;
-    event.a = (uint8_t)(r->af >> 8);
-    event.b = (uint8_t)(r->bc >> 8); event.c = (uint8_t)r->bc;
-    event.d = (uint8_t)(r->de >> 8); event.e = (uint8_t)r->de;
-    event.h = (uint8_t)(r->hl >> 8); event.l = (uint8_t)r->hl;
-    event.f = (uint8_t)r->af;
+    event.a = (uint8_t)(r.af >> 8);
+    event.b = (uint8_t)(r.bc >> 8); event.c = (uint8_t)r.bc;
+    event.d = (uint8_t)(r.de >> 8); event.e = (uint8_t)r.de;
+    event.h = (uint8_t)(r.hl >> 8); event.l = (uint8_t)r.hl;
+    event.f = (uint8_t)r.af;
     if (guest->sink) guest->sink(guest->sink_opaque, &event);
     for (unsigned i = 0; i < guest->listener_count; i++) guest->listeners[i](guest->listener_opaque[i], &event);
 }
@@ -152,9 +152,8 @@ void oracles_guest_remove_event_listener(OraclesGuest *guest, OraclesGuestEventF
 
 static unsigned current_rom_bank(OraclesGuest *guest)
 {
-    size_t size = 0;
     uint16_t bank = 0;
-    GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_ROM, &size, &bank);
+    oracles_core_memory(guest->core, ORACLES_CORE_ROM, NULL, &bank);
     return bank;
 }
 
@@ -184,10 +183,9 @@ static int same_stack(const OraclesGuest *guest, uint16_t a, uint16_t b)
     return 1;
 }
 
-static void on_execute(GB_gameboy_t *gb, uint16_t pc, uint8_t opcode)
+static void on_execute(void *opaque, uint16_t pc, uint8_t opcode, uint16_t sp)
 {
-    OraclesGuest *guest = oracles_core_extension(GB_get_user_data(gb));
-    const uint16_t sp = GB_get_registers(gb)->sp;
+    OraclesGuest *guest = opaque;
 
     /* Interrupt depth for the read trace: the handlers of the game end with reti (bank0.s). */
     if (pc == 0x40u || pc == 0x48u || pc == 0x50u || pc == 0x58u || pc == 0x60u) guest->interrupt_depth++;
@@ -224,7 +222,7 @@ static void on_execute(GB_gameboy_t *gb, uint16_t pc, uint8_t opcode)
          * answer Z when a slot was found (bank0.s): the events say "created", so
          * they fire on success only, and a refusal is counted. */
         if (p.type == ORACLES_EVENT_INTERACTION_CREATED || p.type == ORACLES_EVENT_ENEMY_CREATED || p.type == ORACLES_EVENT_PART_CREATED) {
-            if (!(GB_get_registers(gb)->af & 0x80u)) {
+            if (!(oracles_core_registers(guest->core).af & 0x80u)) {
                 guest->slot_failures[p.type == ORACLES_EVENT_INTERACTION_CREATED ? 0 : p.type == ORACLES_EVENT_ENEMY_CREATED ? 1 : 2]++;
                 continue;
             }
@@ -250,9 +248,9 @@ static void on_execute(GB_gameboy_t *gb, uint16_t pc, uint8_t opcode)
     }
 }
 
-static bool on_write(GB_gameboy_t *gb, uint16_t address, uint8_t value)
+static void on_write(void *opaque, uint16_t address, uint8_t value)
 {
-    OraclesGuest *guest = oracles_core_extension(GB_get_user_data(gb));
+    OraclesGuest *guest = opaque;
     if (address >= 0xff40u && address <= 0xff6bu) {
         const int journaled = (address <= 0xff4bu) || address == 0xff46u
                            || (address >= 0xff51u && address <= 0xff55u)
@@ -267,16 +265,17 @@ static bool on_write(GB_gameboy_t *gb, uint16_t address, uint8_t value)
                 w->value = value;
             } else guest->journal_dropped++;
         }
-        return true;
+        return;
     }
-    if (!guest->boot_finished) return true;
+    if (!guest->boot_finished) return;
+    if (address == guest->keys_pressed) { guest->keys_polls++; return; }
     if (address == guest->transition_direction) {
         /* @startTransition (bank1.s) writes state 3, scroll mode 4, then the direction: the decision. */
         const OraclesGuestSym state = { 0, guest->transition_state };
         const OraclesGuestTables *t = guest->tables;
         if (oracles_guest_read8(guest, state) == 3u && oracles_guest_read8(guest, t->scroll_mode) == 4u)
-            emit(guest, ORACLES_EVENT_TRANSITION, GB_get_registers(gb)->pc, address, value);
-        return true;
+            emit(guest, ORACLES_EVENT_TRANSITION, oracles_core_registers(guest->core).pc, address, value);
+        return;
     }
     if (address >= guest->objects_start && address < guest->objects_end && value == 0
         && (address & 0xffu) == (ORACLES_OBJECTS_PER_SLOT - 2u) * ORACLES_OBJECT_SIZE + ORACLES_OBJ_HEALTH) {
@@ -285,36 +284,43 @@ static bool on_write(GB_gameboy_t *gb, uint16_t address, uint8_t value)
         const unsigned svbk = io ? (io[0x70] & 7u) : 1u;
         const uint8_t *wram = oracles_guest_wram(guest, ORACLES_OBJECTS_BANK);
         if ((svbk == ORACLES_OBJECTS_BANK || svbk == 0u) && wram && wram[address - 0xd000u] != 0)
-            emit(guest, ORACLES_EVENT_ENEMY_KILLED, GB_get_registers(gb)->pc, address, value);
-        return true;
+            emit(guest, ORACLES_EVENT_ENEMY_KILLED, oracles_core_registers(guest->core).pc, address, value);
+        return;
     }
     if (address >= guest->global_flags_start && address < guest->global_flags_end)
-        emit(guest, ORACLES_EVENT_FLAG_WRITE, GB_get_registers(gb)->pc, address, value);
+        emit(guest, ORACLES_EVENT_FLAG_WRITE, oracles_core_registers(guest->core).pc, address, value);
     else if (address >= guest->room_flags_start && address < guest->room_flags_end)
-        emit(guest, ORACLES_EVENT_FLAG_WRITE, GB_get_registers(gb)->pc, address, value);
+        emit(guest, ORACLES_EVENT_FLAG_WRITE, oracles_core_registers(guest->core).pc, address, value);
     else if (address == guest->selected_text_option)
-        emit(guest, ORACLES_EVENT_TEXT_CHOICE, GB_get_registers(gb)->pc, address, value);
-    return true;
+        emit(guest, ORACLES_EVENT_TEXT_CHOICE, oracles_core_registers(guest->core).pc, address, value);
 }
 
-static uint8_t on_read(GB_gameboy_t *gb, uint16_t address, uint8_t data)
+static void on_read(void *opaque, uint16_t address, uint16_t sp)
 {
-    OraclesGuest *guest = oracles_core_extension(GB_get_user_data(gb));
+    OraclesGuest *guest = opaque;
     /* The interrupt vectors ($40-$60) are read only as the first opcode fetch
      * of a handler, which precedes the execution callback that raises the
      * depth; gameplay never reads them as data.  Excluding them removes that
      * one-fetch leak, and the depth excludes the rest of the handler. */
     const int in_vector = address >= 0x40u && address <= 0x60u && (address & 7u) == 0u;
     if (guest->read_enabled && guest->interrupt_depth == 0 && !in_vector && guest->read_fn)
-        guest->read_fn(guest->read_opaque, address);
-    return data;
+        guest->read_fn(guest->read_opaque, address, sp);
+}
+
+static void on_vblank(void *opaque, OraclesVblankType type);
+
+/* The core's hooks: the read hook only while a read trace is set. */
+static void set_core_hooks(OraclesGuest *guest)
+{
+    const OraclesCoreHooks hooks = { on_execute, guest->read_fn ? on_read : NULL, on_write, on_vblank };
+    oracles_core_set_hooks(guest->core, &hooks, guest);
 }
 
 void oracles_guest_set_read_trace(OraclesGuest *guest, OraclesGuestReadFn fn, void *opaque)
 {
     guest->read_fn = fn;
     guest->read_opaque = opaque;
-    GB_set_read_memory_callback(guest->gb, fn ? on_read : NULL);
+    set_core_hooks(guest);
 }
 
 void oracles_guest_enable_read_trace(OraclesGuest *guest, int enabled) { guest->read_enabled = enabled != 0; }
@@ -335,6 +341,7 @@ void oracles_guest_reset_execution_state(OraclesGuest *guest)
 uint32_t oracles_guest_frame(const OraclesGuest *guest) { return guest ? guest->frame : 0; }
 
 size_t oracles_guest_journal_dropped(const OraclesGuest *guest) { return guest->journal_dropped; }
+uint32_t oracles_guest_keys_polls(const OraclesGuest *guest) { return guest ? guest->keys_polls : 0; }
 
 void oracles_guest_slot_failures(const OraclesGuest *guest, unsigned out[3])
 {
@@ -351,24 +358,24 @@ uint8_t *oracles_guest_wram_writable(OraclesGuest *guest, unsigned bank)
 {
     size_t size = 0;
     uint16_t current = 0;
-    uint8_t *ram = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_RAM, &size, &current);
+    uint8_t *ram = oracles_core_memory(guest->core, ORACLES_CORE_WRAM, &size, &current);
     if (!ram || bank > 7 || size < 0x8000u) return NULL;
     return ram + bank * 0x1000u;
 }
 
-static void on_vblank(GB_gameboy_t *gb, GB_vblank_type_t type)
+static void on_vblank(void *opaque, OraclesVblankType type)
 {
-    OraclesGuest *guest = oracles_core_extension(GB_get_user_data(gb));
+    OraclesGuest *guest = opaque;
     /* The OAM as the scan that just ended read it, kept for the hosts that
      * compose this frame: the transaction below may move Link's entries for
      * the next scan, and the game's vblank handler copies wOam right after. */
     {
         size_t size = 0;
         uint16_t bank = 0;
-        const uint8_t *oam = GB_get_direct_access(gb, GB_DIRECT_ACCESS_OAM, &size, &bank);
+        const uint8_t *oam = oracles_core_memory(guest->core, ORACLES_CORE_OAM, &size, &bank);
         if (oam && size >= sizeof guest->oam_scanned) { memcpy(guest->oam_scanned, oam, sizeof guest->oam_scanned); guest->oam_scanned_valid = 1; }
     }
-    if (guest->vblank_hook) guest->vblank_hook(guest->vblank_opaque, (unsigned)type);
+    if (guest->vblank_hook) guest->vblank_hook(guest->vblank_opaque, type);
     /* A frame the game's logic did not finish (a room load spans a few): the
      * transaction runs at the vblank instead, so that Link walks through the
      * load as well; it writes only while the transition loads the room
@@ -389,14 +396,14 @@ const uint8_t *oracles_guest_bg_palettes(OraclesGuest *guest)
 {
     size_t size = 0;
     uint16_t bank = 0;
-    return GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_BGP, &size, &bank);
+    return oracles_core_memory(guest->core, ORACLES_CORE_BG_PALETTES, &size, &bank);
 }
 
 const uint8_t *oracles_guest_obj_palettes(OraclesGuest *guest)
 {
     size_t size = 0;
     uint16_t bank = 0;
-    return GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_OBP, &size, &bank);
+    return oracles_core_memory(guest->core, ORACLES_CORE_OBJ_PALETTES, &size, &bank);
 }
 
 /* ---- attach --------------------------------------------------------------------- */
@@ -429,7 +436,6 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     OraclesGuest *guest = calloc(1, sizeof *guest);
     if (!guest) return NULL;
     guest->core = core;
-    guest->gb = oracles_core_gb(core);
     guest->profile = profile;
     guest->tables = tables;
     const OraclesGuestTables *t = tables;
@@ -457,6 +463,7 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     guest->selected_text_option = t->selected_text_option.addr;
     guest->transition_state = t->screen_transition_state.addr;
     guest->transition_direction = t->screen_transition_direction.addr;
+    guest->keys_pressed = t->keys_pressed.addr;
     guest->objects_start = ORACLES_OBJECTS_BASE;
     guest->objects_end = (uint16_t)(ORACLES_OBJECTS_BASE + ORACLES_OBJECT_SLOTS * 0x100u);
     /* Attached after the boot ROM has run (tests, late attaches): the low
@@ -464,26 +471,19 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     {
         size_t rom_size = 0;
         uint16_t bank = 0;
-        const uint8_t *rom = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_ROM, &rom_size, &bank);
+        const uint8_t *rom = oracles_core_memory(core, ORACLES_CORE_ROM, &rom_size, &bank);
         int same = rom && rom_size >= 16u;
-        for (unsigned i = 0; same && i < 16u; i++) if (GB_safe_read_memory(guest->gb, (uint16_t)i) != rom[i]) same = 0;
+        for (unsigned i = 0; same && i < 16u; i++) if (oracles_core_peek(core, (uint16_t)i) != rom[i]) same = 0;
         guest->boot_finished = same;
     }
-    oracles_core_set_extension(core, guest);
-    GB_set_execution_callback(guest->gb, on_execute);
-    GB_set_write_memory_callback(guest->gb, on_write);
-    GB_set_vblank_callback(guest->gb, on_vblank);
+    set_core_hooks(guest);
     return guest;
 }
 
 void oracles_guest_detach(OraclesGuest *guest)
 {
     if (!guest) return;
-    GB_set_execution_callback(guest->gb, NULL);
-    GB_set_write_memory_callback(guest->gb, NULL);
-    GB_set_read_memory_callback(guest->gb, NULL);
-    GB_set_vblank_callback(guest->gb, NULL);
-    oracles_core_set_extension(guest->core, NULL);
+    oracles_core_set_hooks(guest->core, NULL, NULL);
     free(guest);
 }
 

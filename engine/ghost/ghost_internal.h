@@ -97,7 +97,7 @@ struct OraclesGhost {
 };
 
 /* ghost_key.c */
-void oracles_ghost_on_read(void *opaque, uint16_t address);
+void oracles_ghost_on_read(void *opaque, uint16_t address, uint16_t sp);
 void oracles_ghost_trace_stack_of_entry(OraclesGhost *g);
 
 /* ghost_data.c */

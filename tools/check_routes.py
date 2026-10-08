@@ -2,9 +2,9 @@
 """Replay the routes through the harness and hold their figures.
 
 Every checks.tsv under routes/, found recursively, holds the rows of the
-routes of its own directory; each row names a route, a mode and what must hold:
+routes of its own directory; each row names a route, a mode, what must hold and the core it holds on:
 
-    route	mode	options	expect	run_hash
+    route	mode	options	expect	run_hash	core
 
 route: a file of the manifest's directory (no `/`, no `..`); the identity of
 a route is its path relative to routes/ (ages/intro.route), from which its
@@ -25,8 +25,21 @@ options: extra harness flags, `-` for none (a route recorded with
 turns it on by itself); a --mods directory is relative to the repository.  expect: `;`-separated `key=value` or `key<=value`
 over the harness summary (--summary), on top of the rules every row must
 satisfy (below).  run_hash: the Enhanced run hash the row last produced, `-`
-when the mode has none; a change is a failure until --update rewrites it, so
+when the mode has none; each core has its own (the game and its timing differ
+from one to the other), so that a row of both cores in a hashed mode holds
+`sameboy:HASH,mgba:HASH`; a change is a failure until --update rewrites it, so
 that a change of behaviour is named in the commit that carries it.
+core: the core the row replays on, `sameboy` or `mgba`, or `-` for both.  The
+suite runs on one core (--core, SameBoy by default) and takes the rows of that
+core and those of both; the harness gets the core.  A route that parts on mGBA
+from the game it recorded on SameBoy (joypad bouncing, which mGBA does not
+have, or a frame the game's logic ends on the other side of a vblank) keeps
+its rows for SameBoy and gets its own for mGBA, with the figures of mGBA's
+replay of it, the parting named in a comment above them.  Off SameBoy, a
+faithful row is replayed on SameBoy too and the rooms both replays go through
+are compared (compare_positions.py, cores.rooms_same and cores.parted): a row
+of both cores must not part, a core's own row holds a floor on the rooms in
+common.
 A ceiling on the black a synchronous row shows (enhanced.black_pixels_mean,
 counted from the band's first full frame) is the value last measured: the
 replay is deterministic, so it is a ratchet, lowered by the commit whose change
@@ -43,9 +56,9 @@ from the two as the launcher plays it (--patch); without the directory the
 script exits 77 (ctest: skipped).  The routes' starting SRAM
 sits beside them; no ROM data is read from the repository.
 
-usage: check_routes.py [--harness PATH] [--routes DIR] [--manifest FILE]
-                       [--rom-dir DIR] [--work DIR] [--jobs N] [--only TEXT]
-                       [--update]
+usage: check_routes.py [--harness PATH] [--core sameboy|mgba] [--routes DIR]
+                       [--manifest FILE] [--rom-dir DIR] [--work DIR] [--jobs N]
+                       [--only TEXT] [--update]
 """
 import argparse
 import concurrent.futures
@@ -58,6 +71,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bps import patch_report  # noqa: E402  (the offline tools' BPS applier, CRCs checked)
+from compare_positions import rooms_in_common  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
@@ -99,6 +113,26 @@ MODE_FLAGS["enhanced-zoom"] = lambda w: MODE_FLAGS["enhanced"](w) + ["--zoom-out
 MODE_FLAGS["enhanced-zoom-threaded"] = lambda w: MODE_FLAGS["enhanced-threaded"](w) + ["--zoom-out"]
 SESSION_CORE = "joypad-bouncing-off"   # the header's `core` line of a route recorded since the core's joypad bouncing was cut
 HASHED_MODES = ("enhanced", "enhanced-zoom")   # the threaded ghost is not reproducible frame for frame
+CORES = ("sameboy", "mgba")
+
+
+def core_hashes(run_hash: str, row_core: str) -> dict:
+    """The run hash of each core a row holds: `sameboy:HASH,mgba:HASH`, or one hash, that of the row's core (SameBoy's
+    for a row of both written before the cores had their own)."""
+    if run_hash == "-":
+        return {}
+    if ":" not in run_hash:
+        return {row_core if row_core != "-" else "sameboy": run_hash}
+    return dict(part.split(":", 1) for part in run_hash.split(","))
+
+
+def with_core_hash(run_hash: str, row_core: str, core: str, new: str) -> str:
+    """The run_hash column with the hash of `core` replaced."""
+    if row_core != "-":
+        return new
+    hashes = core_hashes(run_hash, row_core)
+    hashes[core] = new
+    return ",".join(f"{c}:{hashes[c]}" for c in CORES if hashes.get(c, "-") != "-") or "-"
 
 
 def route_header(path: Path) -> dict:
@@ -155,17 +189,19 @@ def read_manifest(path: Path, routes: Path) -> list:
             if not line.strip() or line.startswith("#"):
                 continue
             cols = line.rstrip("\n").split("\t")
-            if len(cols) != 5:
-                sys.exit(f"{path}:{n}: five tab-separated columns expected, {len(cols)} found")
-            route, mode, options, expect, run_hash = cols
+            if len(cols) != 6:
+                sys.exit(f"{path}:{n}: six tab-separated columns expected, {len(cols)} found")
+            route, mode, options, expect, run_hash, core = cols
             if mode not in MODE_FLAGS:
                 sys.exit(f"{path}:{n}: unknown mode {mode}")
+            if core != "-" and core not in CORES:
+                sys.exit(f"{path}:{n}: unknown core {core}")
             if "/" in route or "\\" in route or route in (".", "..") or not route:
                 sys.exit(f"{path}:{n}: {route} is not a route of the manifest's own directory")
             route_id = (directory / route).as_posix()
             rows.append({"manifest": path, "line": n, "route": route_id, "label": route_id.removesuffix(".route").replace("/", "-"),
                          "mode": mode, "options": [] if options == "-" else options.split(),
-                         "expect": [] if expect == "-" else expect.split(";"), "run_hash": run_hash})
+                         "expect": [] if expect == "-" else expect.split(";"), "run_hash": run_hash, "core": core})
     return rows
 
 
@@ -236,8 +272,9 @@ def check(rule: str, values: dict) -> str:
     return ""
 
 
-def run_row(row: dict, harness: Path, routes: Path, roms: dict, work: Path) -> dict:
-    name = f"{row['label']}-{row['mode']}" + (f"-{row['line']}" if row["options"] else "")
+def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work: Path) -> dict:
+    # A route's rows for one core and its rows for both may share a mode: the line tells them apart.
+    name = f"{row['label']}-{row['mode']}" + (f"-{row['line']}" if row["options"] or row["core"] != "-" else "") + ("" if core == "sameboy" else f"-{core}")
     w = work / name
     w.mkdir(parents=True, exist_ok=True)
     for sub in ("render", "ghost", "enhanced"):
@@ -249,11 +286,14 @@ def run_row(row: dict, harness: Path, routes: Path, roms: dict, work: Path) -> d
         game = Path(row["route"]).parent.name
         return {"row": row, "name": name, "error": f"no ROM of {game} with SHA-1 {header.get('rom_sha1', '?')} in the ROM directory"
                 " (a fan game replays from its base ROM and its BPS patch placed there, or from its patched image)"}
-    options = harness_options(row["options"])
+    options = harness_options(row["options"]) + ["--core", core]
     summary = w / "summary.txt"
     if summary.exists():
         summary.unlink()
-    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + ["--summary", str(summary)]
+    # Off SameBoy, a faithful row is also compared with SameBoy's replay of the route: the rooms both go through.
+    compare_cores = core != "sameboy" and row["mode"] == "faithful"
+    positions = [] if not compare_cores else ["--positions", str(w / "positions.tsv")]
+    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + positions + ["--summary", str(summary)]
     with open(w / "harness.log", "w") as log:
         proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
     retried = ""
@@ -268,6 +308,19 @@ def run_row(row: dict, harness: Path, routes: Path, roms: dict, work: Path) -> d
         retried = f" (retried once after signal {signal}; the first log is harness.crashed.log)"
     values = parse_summary(summary)
     violations = []
+    if compare_cores and values:
+        reference = w / "positions-sameboy.tsv"
+        with open(w / "harness-sameboy.log", "w") as log:
+            subprocess.run([str(harness)] + rom + ["--route", str(route_path), "--positions", str(reference)] + harness_options(row["options"])
+                           + ["--core", "sameboy"], stdout=log, stderr=subprocess.STDOUT)
+        if (w / "positions.tsv").exists() and reference.exists():
+            same, parted = rooms_in_common(str(reference), str(w / "positions.tsv"))
+            values["cores.rooms_same"], values["cores.parted"] = str(same), str(int(parted))
+            # A row of both cores goes through the game as on SameBoy; a core's own row names where it parts (its expect).
+            if row["core"] == "-" and parted:
+                violations.append(f"parts from SameBoy's replay after {same} rooms (tools/compare_positions.py)")
+        else:
+            violations.append("no positions to compare with SameBoy's replay")
     if not values:
         violations.append(f"no summary written (harness exit {proc.returncode}{retried}; see {w / 'harness.log'})")
     for rule in ALWAYS[row["mode"]] + row["expect"]:
@@ -317,10 +370,11 @@ def compare_fingerprints(results: list, harness: Path) -> list:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--harness", type=Path, default=REPO / "build" / "oracles-harness")
+    ap.add_argument("--core", choices=CORES, default="sameboy", help="the core the suite replays on: its rows and those of both")
     ap.add_argument("--routes", type=Path, default=REPO / "routes")
     ap.add_argument("--manifest", type=Path, default=None, help="one checks.tsv under the routes directory instead of all of them")
     ap.add_argument("--rom-dir", type=Path, default=None, help="defaults to $ORACLES_ROM_DIR; without it the check is skipped (exit 77)")
-    ap.add_argument("--work", type=Path, default=REPO / "build" / "routes-check")
+    ap.add_argument("--work", type=Path, default=None, help="defaults to build/routes-check, build/routes-check-mgba on mGBA")
     ap.add_argument("--jobs", type=int, default=DEFAULT_JOBS)
     ap.add_argument("--only", default=None, help="run the rows whose route, label or mode contains this text")
     ap.add_argument("--update", action="store_true", help="rewrite the run hashes that changed in their manifests")
@@ -337,7 +391,9 @@ def main() -> int:
     if not roms:
         print(f"check_routes: no ROM in {rom_dir}: skipped")
         return 77
-    rows = read_manifests(manifests, args.routes)
+    rows = [r for r in read_manifests(manifests, args.routes) if r["core"] in ("-", args.core)]
+    if args.work is None:
+        args.work = REPO / "build" / ("routes-check" if args.core == "sameboy" else f"routes-check-{args.core}")
     if args.only:
         rows = [r for r in rows if args.only in r["route"] or args.only in f"{r['label']}-{r['mode']}" or args.only in r["mode"]]
     if not rows:
@@ -345,7 +401,7 @@ def main() -> int:
         return 2
     args.work.mkdir(parents=True, exist_ok=True)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        results = list(pool.map(lambda r: run_row(r, args.harness, args.routes, roms, args.work), rows))
+        results = list(pool.map(lambda r: run_row(r, args.harness, args.core, args.routes, roms, args.work), rows))
     failed = 0
     changed = {}
     for res in results:
@@ -355,18 +411,20 @@ def main() -> int:
             failed += 1
             continue
         hash_note = ""
-        if row["run_hash"] != "-" or res["hash"] != "-":
-            if row["run_hash"] == res["hash"]:
+        held = core_hashes(row["run_hash"], row["core"]).get(args.core, "-")
+        if held != "-" or res["hash"] != "-":
+            if held == res["hash"]:
                 hash_note = f" hash {res['hash']}"
             elif args.update:
-                hash_note = f" hash {row['run_hash']} -> {res['hash']} (updated)"
-                changed[(row["manifest"], row["line"])] = res["hash"]
+                hash_note = f" hash {held} -> {res['hash']} (updated)"
+                changed[(row["manifest"], row["line"])] = with_core_hash(row["run_hash"], row["core"], args.core, res["hash"])
             else:
-                res["violations"].append(f"run hash {res['hash']}, {row['run_hash']} in the manifest (--update if the change is meant)")
+                res["violations"].append(f"run hash {res['hash']}, {held} in the manifest for {args.core} (--update if the change is meant)")
         v = res["values"]
         figures = " ".join(f"{k.split('.', 1)[1]}={v[k]}" for k in (
             "render.verdict", "ghost.equal", "ghost.different", "ghost.reads_outside_key", "enhanced.camera_jumps", "enhanced.camera_jumps_y", "enhanced.link_jumps",
-            "enhanced.transitions", "enhanced.transitions_black", "enhanced.ghost_failed", "enhanced.uncovered_frames", "transitions.taken") if k in v)
+            "enhanced.transitions", "enhanced.transitions_black", "enhanced.ghost_failed", "enhanced.uncovered_frames", "transitions.taken",
+            "cores.rooms_same", "cores.parted") if k in v)
         if res["violations"]:
             failed += 1
             print(f"FAIL   {res['name']}: " + "; ".join(res["violations"]) + f" [{figures}]{hash_note} (log: {res['log']})")
@@ -391,7 +449,7 @@ def main() -> int:
         manifest.write_text("\n".join(lines), encoding="utf-8")
         print(f"check_routes: {sum(1 for m, _ in changed if m == manifest)} run hash(es) rewritten in {manifest}")
     total = len(results) + len(verdicts)
-    print(f"check_routes: {total - failed} of {total} checks hold")
+    print(f"check_routes: {total - failed} of {total} checks hold on {args.core}")
     return 1 if failed else 0
 
 

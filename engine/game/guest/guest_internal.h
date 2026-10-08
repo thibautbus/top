@@ -7,8 +7,6 @@
 #include "guest.h"
 #include "guest_struct_offsets.h"
 
-#include "gb.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -36,7 +34,6 @@ typedef struct pending_return {
 
 struct OraclesGuest {
     OraclesCore *core;
-    GB_gameboy_t *gb;
     const OraclesCompatProfile *profile;
     const OraclesGuestTables *tables;
     OraclesGuestEventFn sink;
@@ -79,6 +76,8 @@ struct OraclesGuest {
     unsigned returns_overflow, returns_purged;
     unsigned slot_failures[3];                       /* interactions, enemies, parts refused for want of a slot */
     uint16_t transition_state, transition_direction;
+    uint16_t keys_pressed;                           /* wKeysPressed, which the game's input poll alone writes */
+    uint32_t keys_polls;                             /* its writes since the attachment: the polls, two writes each */
     uint16_t objects_start, objects_end;             /* the object slots, WRAM bank 1 */
     int calls_armed;                                 /* the call transaction (guest_call.c) */
     OraclesGuestCall calls[ORACLES_GUEST_CALLS];

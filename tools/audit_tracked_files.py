@@ -13,7 +13,7 @@ refuses:
 - a file larger than 4 MiB, except the vendored SameBoy sources;
 - a top-level entry outside the repository's roots, among the files not left
   out by --exclude FILE (prefixes, one per line; none without the option);
-- a vendored tree (SameBoy's Core, Lua's src) whose hash is not the one pinned in config/.
+- a vendored tree (SameBoy's Core, Lua's src, mGBA's core) whose hash is not the one pinned in config/.
 
 usage: audit_tracked_files.py [--root DIR] [--exclude FILE] [--json]     exit status 1 on any violation
 """
@@ -85,9 +85,10 @@ def violations_for(root: Path, relative: str, exclude: Path | None = None) -> li
 
 
 def core_tree_hash(core: Path) -> str:
-    """SHA-256 over the sorted relative paths and contents of the vendored Core tree."""
+    """SHA-256 over the sorted relative paths and contents of the vendored Core tree.  Sorted by their components, as
+    strings: the same order on every platform (a Windows path compares without case)."""
     h = hashlib.sha256()
-    for path in sorted(p for p in core.rglob("*") if p.is_file()):
+    for path in sorted((p for p in core.rglob("*") if p.is_file()), key=lambda p: p.relative_to(core).parts):
         relative = path.relative_to(core).as_posix().encode()
         h.update(len(relative).to_bytes(4, "little"))
         h.update(relative)
@@ -98,9 +99,11 @@ def core_tree_hash(core: Path) -> str:
 
 
 # The vendored trees and the files that pin them: each tree is the unmodified
-# upstream one (third_party/sameboy/VERSION.md, third_party/lua/VERSION.md).
+# upstream one (third_party/sameboy/VERSION.md, third_party/lua/VERSION.md), or, for mGBA's, the upstream one with
+# its one patch applied (third_party/mgba/VERSION.md).
 PINNED_TREES = [("config/sameboy.json", "third_party/sameboy/Core", "core_tree_sha256"),
-                ("config/lua.json", "third_party/lua/src", "src_tree_sha256")]
+                ("config/lua.json", "third_party/lua/src", "src_tree_sha256"),
+                ("config/mgba.json", "third_party/mgba/core", "core_tree_sha256")]
 
 
 def pinned_core_violations(root: Path) -> list[dict[str, str]]:

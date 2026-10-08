@@ -6,7 +6,7 @@
  *
  * Layout, all integers little-endian:
  *   "ORACLESST" (9 bytes)  format version u32
- *   core version: u32 length, bytes           oracles_core_version()
+ *   core version: u32 length, bytes           oracles_core_version(core)
  *   game: u32 length, bytes                    "ages" / "seasons"
  *   rom_sha1: u32 length, bytes
  *   mods: u32 length, bytes                    comma-separated ids of the mods and of the gameplay options that change the guest state (continuous-transitions), empty for none

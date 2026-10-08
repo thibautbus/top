@@ -1,6 +1,7 @@
-/* Composite savestates: round trip, determinism after a load, refusal of a
- * state made for another ROM, another set of mods or another core version.
- * No ROM: a synthetic image. */
+/* Composite savestates, on each core: round trip, determinism after a load,
+ * the cartridge RAM restored, refusal of a state made for another ROM, another
+ * set of mods, another core version or the other core.  No ROM: a synthetic
+ * image. */
 #include "core.h"
 #include "state.h"
 
@@ -19,7 +20,7 @@ static uint64_t hash_pixels(const uint32_t *pixels)
     return h;
 }
 
-static OraclesCore *make_core(void)
+static OraclesCore *make_core(OraclesCoreKind kind)
 {
     const size_t size = 1024u * 1024u;
     uint8_t *rom = calloc(size, 1);
@@ -28,18 +29,22 @@ static OraclesCore *make_core(void)
     /* $0100: nop ; jp $0150.  $0150: ld hl,$c000 ; inc (hl) ; jr -3 : the state changes every frame. */
     rom[0x100] = 0x00; rom[0x101] = 0xc3; rom[0x102] = 0x50; rom[0x103] = 0x01;
     rom[0x150] = 0x21; rom[0x151] = 0x00; rom[0x152] = 0xc0; rom[0x153] = 0x34; rom[0x154] = 0x18; rom[0x155] = 0xfd;
-    const OraclesCoreOptions options = { 0, 0 };
+    const OraclesCoreOptions options = { 0, 0, kind };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     free(rom);
     return core;
 }
 
-int main(void)
+static void check_core(OraclesCoreKind kind)
 {
-    OraclesCore *core = make_core();
+    OraclesCore *core = make_core(kind);
     CHECK(core != NULL);
-    if (!core) return 1;
+    if (!core) return;
     for (unsigned i = 0; i < 200; i++) oracles_core_run_frame(core);
+    size_t sram_size = 0;
+    uint8_t *sram = oracles_core_memory(core, ORACLES_CORE_CART_RAM, &sram_size, NULL);
+    CHECK(sram != NULL && sram_size == oracles_core_sram_size(core) && sram_size >= 0x2000u);
+    if (sram) sram[0x123] = 0x5a;
 
     const OraclesStateInfo info = { "ages", "0123456789abcdef0123456789abcdef01234567", "", NULL, 0, NULL, 0 };
     char error[256];
@@ -52,6 +57,7 @@ int main(void)
     uint64_t after_save[10];
     for (unsigned i = 0; i < 10; i++) { oracles_core_run_frame(core); after_save[i] = hash_pixels(oracles_core_pixels(core)); }
     for (unsigned i = 0; i < 300; i++) oracles_core_run_frame(core);
+    if (sram) sram[0x123] = 0xa5;   /* the cartridge RAM written since: the state brings the saved byte back */
     uint8_t *host = NULL;
     size_t host_size = 0;
     CHECK(oracles_state_deserialize(core, &info, state, state_size, &host, &host_size, error, sizeof error) == 0);
@@ -59,6 +65,18 @@ int main(void)
     int same = 1;
     for (unsigned i = 0; i < 10; i++) { oracles_core_run_frame(core); if (hash_pixels(oracles_core_pixels(core)) != after_save[i]) same = 0; }
     CHECK(same);
+    CHECK(sram && sram[0x123] == 0x5a);
+
+    /* The other core refuses the state, by its version. */
+    {
+        OraclesCore *other = make_core(kind == ORACLES_CORE_SAMEBOY ? ORACLES_CORE_MGBA : ORACLES_CORE_SAMEBOY);
+        CHECK(other != NULL);
+        if (other) {
+            CHECK(oracles_state_deserialize(other, &info, state, state_size, &host, &host_size, error, sizeof error) == -1);
+            CHECK(strstr(error, "core version") != NULL);
+            oracles_core_destroy(other);
+        }
+    }
 
     /* Another ROM, another set of mods: refused with a message that says so. */
     const OraclesStateInfo other_rom = { "ages", "ffffffffffffffffffffffffffffffffffffffff", "", NULL, 0, NULL, 0 };
@@ -87,7 +105,7 @@ int main(void)
         uint8_t *tampered = malloc(state_size);
         memcpy(tampered, state, state_size);
         const size_t version_length = (size_t)tampered[13] | ((size_t)tampered[14] << 8);
-        CHECK(version_length == strlen(oracles_core_version()));
+        CHECK(version_length == strlen(oracles_core_version(core)));
         tampered[17 + version_length - 1] ^= 0x01; /* last character of the version */
         CHECK(oracles_state_deserialize(core, &info, tampered, state_size, &host, &host_size, error, sizeof error) == -1);
         CHECK(strstr(error, "core version") != NULL);
@@ -126,6 +144,12 @@ int main(void)
     free(state);
 
     oracles_core_destroy(core);
+}
+
+int main(void)
+{
+    check_core(ORACLES_CORE_SAMEBOY);
+    check_core(ORACLES_CORE_MGBA);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_state: ok\n");
     return 0;

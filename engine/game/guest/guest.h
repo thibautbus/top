@@ -59,7 +59,7 @@ typedef enum OraclesGuestEventType {
     ORACLES_EVENT_SAVE,                  /* entry of saveFile */
     ORACLES_EVENT_INPUT,                 /* return of pollInput */
     ORACLES_EVENT_ENEMY_KILLED,          /* write of 0 into the health of a living enemy; h = its slot */
-    ORACLES_EVENT_VBLANK,                /* the core's vblank callback; value = GB_vblank_type_t */
+    ORACLES_EVENT_VBLANK,                /* the core's vblank hook; value = its OraclesVblankType */
     ORACLES_EVENT_TILE_SUBSTITUTIONS,      /* entry of applyAllTileSubstitutions (ghost instance) */
     ORACLES_EVENT_TILE_SUBSTITUTIONS_DONE, /* its return */
     ORACLES_EVENT_FRAME_DRAWN,             /* return of drawAllSprites: the frame's logic is over, the transition transaction runs here */
@@ -369,9 +369,9 @@ uint16_t oracles_guest_sp(OraclesGuest *guest);
 uint16_t oracles_guest_pc(OraclesGuest *guest);
 
 /* Called from the core's vblank callback, before the guest's vblank handler
- * runs, with the GB_vblank_type_t: the moment the display state that the
+ * runs, with the OraclesVblankType: the moment the display state that the
  * finished scan used is readable (the native renderer). */
-typedef void (*OraclesGuestVblankFn)(void *opaque, unsigned type);
+typedef void (*OraclesGuestVblankFn)(void *opaque, OraclesVblankType type);
 void oracles_guest_set_vblank_hook(OraclesGuest *guest, OraclesGuestVblankFn hook, void *opaque);
 
 /* ---- register journal -------------------------------------------------------- */
@@ -379,6 +379,9 @@ const OraclesGuestRegWrite *oracles_guest_journal(OraclesGuest *guest, size_t *c
 void oracles_guest_journal_clear(OraclesGuest *guest);
 /* Writes the journal could not hold since the last clear (capacity 4096). */
 size_t oracles_guest_journal_dropped(const OraclesGuest *guest);
+/* The writes of wKeysPressed since the attachment, which only the game's input poll (pollInput) makes, twice a poll:
+ * a frame in which it changes is one in which the game read the keys. */
+uint32_t oracles_guest_keys_polls(const OraclesGuest *guest);
 /* Return hooks lost: `overflow` when more than sixteen were pending at a
  * capture, `purged` when the stack frame of a pending return was gone (a
  * thread switch or an early exit) before it fired. */
@@ -419,8 +422,9 @@ void oracles_guest_reset_execution_state(OraclesGuest *guest);
 /* ---- ghost instance ---------------------------------------------------------- */
 /* Read trace: `fn` receives every CPU read outside the interrupt handlers
  * while the trace is enabled (an interrupt is entered at its vector and left
- * by reti).  The core's read callback is installed only while `fn` is set. */
-typedef void (*OraclesGuestReadFn)(void *opaque, uint16_t address);
+ * by reti), with SP, which tells the thread.  The core's read hook is armed
+ * only while `fn` is set. */
+typedef void (*OraclesGuestReadFn)(void *opaque, uint16_t address, uint16_t sp);
 void oracles_guest_set_read_trace(OraclesGuest *guest, OraclesGuestReadFn fn, void *opaque);
 void oracles_guest_enable_read_trace(OraclesGuest *guest, int enabled);
 /* WRAM of a ghost instance, writable.  The live instance is never written

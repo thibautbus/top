@@ -4,6 +4,8 @@ third_party/stb/** -whitespace
 third_party/nanosvg/** -whitespace
 third_party/fonts/** -whitespace
 third_party/lua/** -whitespace
+# Byte for byte in every checkout, autocrlf or not: the audit hashes the tree (config/mgba.json).
+third_party/mgba/** -whitespace -text
 *.ttf binary
 # A mod's identity hashes its Lua files (engine/mods/mod.c): LF in every checkout, as the routes that name it expect.
 *.lua text eol=lf

@@ -18,6 +18,7 @@ from pathlib import Path
 SCANNED_DIRS = ["engine", "launcher", "harness"]
 GENERATED = {"engine/game/guest/guest_tables_ages.c", "engine/game/guest/guest_tables_seasons.c",
              "engine/game/guest/guest_struct_offsets.h", "engine/core/cgb_boot_rom.c",
+             "engine/core/cgb_boot_rom_mgba.c",
              "engine/game/data/oracles_tables_ages.c", "engine/game/data/oracles_tables_seasons.c",
              "engine/game/profiles/moonrise-regalia/tables.c", "engine/game/profiles/moonrise-regalia/identity.h",
              "engine/game/profiles/temple-of-seasons/tables.c", "engine/game/profiles/temple-of-seasons/identity.h",

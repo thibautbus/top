@@ -148,7 +148,7 @@ OraclesGuestRom oracles_guest_rom(OraclesGuest *guest)
 {
     OraclesGuestRom rom = { NULL, 0 };
     uint16_t bank = 0;
-    if (guest && guest->gb) rom.data = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_ROM, &rom.size, &bank);
+    if (guest && guest->core) rom.data = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &rom.size, &bank);
     return rom;
 }
 
@@ -171,7 +171,7 @@ static uint16_t find_call_point(OraclesGuest *guest)
     const OraclesGuestTables *t = guest->tables;
     size_t size = 0;
     uint16_t bank = 0;
-    const uint8_t *rom = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_ROM, &size, &bank);
+    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
     const uint16_t start = t->main_thread_start.addr, target = t->check_reload_status_bar_graphics.addr;
     if (!rom || t->main_thread_start.bank != 0 || t->check_reload_status_bar_graphics.bank != 0 || (size_t)start + 0x80u > size || start + 0x80u > 0x4000u) return 0;
     uint16_t found = 0;
@@ -224,9 +224,9 @@ void oracles_guest_call_point(OraclesGuest *guest, uint16_t sp)
 
 void oracles_guest_call_step(OraclesGuest *guest, uint16_t sp, uint8_t opcode)
 {
-    GB_registers_t *r = GB_get_registers(guest->gb);
     if (sp > guest->call_watch_sp) { guest->call_watch_sp = 0; return; }   /* returned some other way: try again next frame */
-    if (sp != guest->call_watch_sp || !returns_now(opcode, (uint8_t)r->af)) return;
+    OraclesCoreRegisters r = oracles_core_registers(guest->core);
+    if (sp != guest->call_watch_sp || !returns_now(opcode, (uint8_t)r.af)) return;
     const OraclesGuestSym at_sp = { 0, sp };
     const uint8_t *word = oracles_guest_ptr(guest, at_sp, 2);
     guest->call_watch_sp = 0;
@@ -238,9 +238,10 @@ void oracles_guest_call_step(OraclesGuest *guest, uint16_t sp, uint8_t opcode)
     if (!wram || below < 0xc000u || below > 0xcffeu) return;
     wram[below - 0xc000u] = (uint8_t)routine.addr;
     wram[below - 0xc000u + 1u] = (uint8_t)(routine.addr >> 8);
-    r->sp = below;
-    r->af = (uint16_t)((call.a << 8) | (r->af & 0xffu));
-    r->bc = (uint16_t)((r->bc & 0xff00u) | call.c);
+    r.sp = below;
+    r.af = (uint16_t)((call.a << 8) | (r.af & 0xffu));
+    r.bc = (uint16_t)((r.bc & 0xff00u) | call.c);
+    oracles_core_set_registers(guest->core, &r);
     memmove(&guest->calls[0], &guest->calls[1], (guest->call_count - 1u) * sizeof guest->calls[0]);
     guest->call_count--;
     guest->calls_done++;

@@ -1,0 +1,12 @@
+diff --git a/src/gb/gb.c b/src/gb/gb.c
+index 3e8457c..6b23cd6 100644
+--- a/src/gb/gb.c
++++ b/src/gb/gb.c
+@@ -619,6 +619,7 @@ bool GBIsCompatibleBIOS(struct VFile* vf, enum GBModel model) {
+ 	case CGBE_BIOS_CHECKSUM:
+ 	case AGB_BIOS_CHECKSUM:
+ 	case AGB0_BIOS_CHECKSUM:
++	case 0xF078299A: // The Oracles Project: SameBoy's free CGB boot ROM, its logo reading MGBA
+ 	// Bootleg consoles
+ 	case KONGFENG_GBBC_BIOS_CHECKSUM:
+ 		return model >= GB_MODEL_CGB;

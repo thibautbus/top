@@ -2,7 +2,7 @@
  * and the read trace that measured the key. */
 #include "ghost_internal.h"
 
-void oracles_ghost_on_read(void *opaque, uint16_t address)
+void oracles_ghost_on_read(void *opaque, uint16_t address, uint16_t sp)
 {
     OraclesGhost *g = opaque;
     /* The load's reads outside the substitutions, any thread, counted apart: the trace below stays the substitutions'. */
@@ -11,7 +11,6 @@ void oracles_ghost_on_read(void *opaque, uint16_t address)
      * graphics of Subrosia load over several frames) and the other threads
      * run meanwhile, on their own stacks: their reads are not the
      * substitutions'.  The thread is told by the stack pointer. */
-    const uint16_t sp = oracles_guest_sp(g->guest);
     if (g->trace_stack_top && (sp < g->trace_stack_start || sp > g->trace_stack_top)) { if (g->result) g->result->reads_other_thread++; return; }
     if (g->read_counts) g->read_counts[address]++;
     g->reads_this_run++;

@@ -59,6 +59,11 @@ if(ORACLES_BUILD_LAUNCHER)
         set_target_properties(oracles PROPERTIES OUTPUT_NAME the-oracles-project)
     endif()
     target_include_directories(oracles PRIVATE ${ORACLES_SESSION_DIR})
+    if(ORACLES_DEFAULT_CORE STREQUAL "mgba")
+        target_compile_definitions(oracles PRIVATE ORACLES_DEFAULT_CORE_KIND=ORACLES_CORE_MGBA)
+    else()
+        target_compile_definitions(oracles PRIVATE ORACLES_DEFAULT_CORE_KIND=ORACLES_CORE_SAMEBOY)
+    endif()
     target_link_libraries(oracles PRIVATE oracles_host oracles_guest oracles_render oracles_enhanced oracles_gameplay oracles_mods oracles_ui_sdl ${ORACLES_SDL_TARGET})
     oracles_set_warnings(oracles)
     if(WIN32)
@@ -77,12 +82,18 @@ if(ORACLES_BUILD_LAUNCHER)
         set_property(TARGET oracles APPEND PROPERTY LINK_DEPENDS ${ORACLES_INFO_PLIST})
     endif()
     # The fonts are embedded, and their licence goes with them: each OFL.txt beside the executable;
-    # so does SameBoy's, the core compiled in, whose Expat licence asks that its notice go with copies.
+    # so does SameBoy's, the core compiled in, whose Expat licence asks that its notice go with copies; so do mGBA's and
+    # inih's, with the notice that says where their source is and the one change made to mGBA, in source form (the
+    # Mozilla Public License asks both of a binary).
     set(ORACLES_LICENCES
         ${ORACLES_THIRD_PARTY_DIR}/fonts/marcellus/OFL.txt Marcellus-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/fonts/alegreya-sans/OFL.txt AlegreyaSans-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/fonts/jetbrains-mono/OFL.txt JetBrainsMono-OFL.txt
-        ${ORACLES_THIRD_PARTY_DIR}/sameboy/LICENSE SameBoy-LICENSE.txt)
+        ${ORACLES_THIRD_PARTY_DIR}/sameboy/LICENSE SameBoy-LICENSE.txt
+        ${ORACLES_THIRD_PARTY_DIR}/mgba/LICENSE mGBA-LICENSE.txt
+        ${ORACLES_THIRD_PARTY_DIR}/mgba/NOTICE.txt mGBA-NOTICE.txt
+        ${ORACLES_THIRD_PARTY_DIR}/mgba/boot-rom.patch mGBA-boot-rom.patch
+        ${ORACLES_THIRD_PARTY_DIR}/mgba/core/src/third-party/inih/LICENSE.txt inih-LICENSE.txt)
     if(ORACLES_SDL3_BUILT)
         list(APPEND ORACLES_LICENCES ${sdl3_SOURCE_DIR}/LICENSE.txt SDL3-LICENSE.txt)   # the library built here goes with it
     endif()

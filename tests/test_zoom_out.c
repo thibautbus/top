@@ -163,7 +163,7 @@ static int rig_start_game(rig *r, OraclesGame game)
     r->rom[0x143] = 0xc0; r->rom[0x147] = 0x1b; r->rom[0x148] = 0x05; r->rom[0x149] = 0x02;
     r->rom[0x100] = 0x00; r->rom[0x101] = 0xc3; r->rom[0x102] = 0x50; r->rom[0x103] = 0x01;
     r->rom[0x150] = 0x18; r->rom[0x151] = 0xfe;
-    const OraclesCoreOptions options = { 0, 0 };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
     r->core = oracles_core_create(r->rom, size, &options);
     r->guest = r->core ? oracles_guest_attach(r->core, original_profile(game)) : NULL;
     return r->guest != NULL;

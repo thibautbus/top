@@ -35,6 +35,8 @@ typedef struct OraclesFrameStats {
     uint64_t mid_scan_pixels;                           /* differing pixels over the mid-scan frames, which are not compared */
     uint32_t late_scroll_lines;                         /* lines of the compared frames whose SCX or SCY was written late, while
                                                            they were drawn (frame_check.c): not compared, the rest of the frame is */
+    uint32_t first_tile_lines;                          /* lines whose SCX or SCY changed at the start of their drawing: their first
+                                                           tile is the core's fetch timing, not compared (frame_check.c) */
     uint32_t compared_lines;                            /* lines of the compared frames, those above included */
 } OraclesFrameStats;
 

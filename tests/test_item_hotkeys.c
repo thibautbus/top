@@ -174,7 +174,7 @@ static void test_transaction(void)
     const uint8_t loop[] = { 0xcd, (uint8_t)check, (uint8_t)(check >> 8), 0x18, 0xfb };                 /* mainThreadStart: call check ; jr mainThreadStart */
     memcpy(rom + main_start, loop, sizeof loop);
     rom[check] = 0xc9;                                                                                  /* checkReloadStatusBarGraphics: ret */
-    const OraclesCoreOptions options = { 0, 0 };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     CHECK(core != NULL);
     if (!core) { free(rom); return; }

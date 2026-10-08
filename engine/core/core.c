@@ -1,182 +1,125 @@
-#include "core.h"
-#include "cgb_boot_rom.h"
-
-#include "gb.h"
+/* The public API of the core (core.h), dispatched to the core the instance
+ * runs (core_internal.h); the audio ring and the hooks are the same for every
+ * core. */
+#include "core_internal.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-/* About a quarter of a second of audio at 48 kHz; the host drains it every frame. */
-#define AUDIO_RING_FRAMES 16384u
-
-struct OraclesCore {
-    GB_gameboy_t *gb;
-    void *extension;
-    int colour_correction;
-    uint32_t pixels[ORACLES_SCREEN_PIXELS];
-    int16_t audio[AUDIO_RING_FRAMES * 2];
-    size_t audio_head;
-    size_t audio_count;
-};
-
-static uint32_t encode_rgb(GB_gameboy_t *gb, uint8_t r, uint8_t g, uint8_t b)
-{
-    (void)gb;
-    return 0xff000000u | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-}
-
-static void on_sample(GB_gameboy_t *gb, GB_sample_t *sample)
-{
-    OraclesCore *core = GB_get_user_data(gb);
-    if (core->audio_count >= AUDIO_RING_FRAMES) return; /* the host fell behind: drop */
-    const size_t index = (core->audio_head + core->audio_count) % AUDIO_RING_FRAMES;
-    core->audio[index * 2] = sample->left;
-    core->audio[index * 2 + 1] = sample->right;
-    core->audio_count++;
-}
-
 OraclesCore *oracles_core_create(const uint8_t *rom, size_t rom_size, const OraclesCoreOptions *options)
 {
     if (!rom || rom_size < 0x8000u) return NULL;
+    const OraclesCoreKind kind = options ? options->kind : ORACLES_CORE_SAMEBOY;
+    if (kind != ORACLES_CORE_SAMEBOY && kind != ORACLES_CORE_MGBA) return NULL;
     OraclesCore *core = calloc(1, sizeof *core);
     if (!core) return NULL;
-    /* Deterministic power-on state: the harness relies on it, players do not notice. */
-    GB_random_set_enabled(false);
-    core->gb = GB_init(GB_alloc(), GB_MODEL_CGB_E);
-    if (!core->gb) { free(core); return NULL; }
-    GB_set_user_data(core->gb, core);
-    GB_load_boot_rom_from_buffer(core->gb, oracles_cgb_boot_rom, oracles_cgb_boot_rom_size);
-    GB_load_rom_from_buffer(core->gb, rom, rom_size);
-    GB_set_rgb_encode_callback(core->gb, encode_rgb);
-    oracles_core_set_colour_correction(core, options && options->colour_correction);
-    GB_set_pixels_output(core->gb, core->pixels);
-    if (options && options->sample_rate_hz) {
-        GB_set_sample_rate(core->gb, options->sample_rate_hz);
-        /* The hardware's own high-pass: no DC offset, so discontinuities do not pop. */
-        GB_set_highpass_filter_mode(core->gb, GB_HIGHPASS_ACCURATE);
-        GB_apu_set_sample_callback(core->gb, on_sample);
-    }
-    /* SameBoy makes a key bounce for a few thousand cycles after each change, and draws the bounce from the APU's cycle
-     * counter, which the audio sample rate empties sooner or later: with it the emulated state depends on the host's
-     * audio, and a windowed session is not the game its replay is.  Off, unless a route recorded with it asks. */
-    GB_set_emulate_joypad_bouncing(core->gb, false);
-    GB_set_key_mask(core->gb, 0);
+    core->kind = kind;
+    core->ops = kind == ORACLES_CORE_MGBA ? &oracles_core_mgba_ops : &oracles_core_sameboy_ops;
+    const int failed = kind == ORACLES_CORE_MGBA ? oracles_core_mgba_init(core, rom, rom_size, options)
+                                                 : oracles_core_sameboy_init(core, rom, rom_size, options);
+    if (failed) { free(core); return NULL; }
     return core;
 }
 
 void oracles_core_destroy(OraclesCore *core)
 {
     if (!core) return;
-    GB_free(core->gb);
-    free(core->gb);
+    core->ops->destroy(core);
     free(core);
 }
 
-void oracles_core_set_joypad_bouncing(OraclesCore *core, int enabled)
+OraclesCoreKind oracles_core_kind(const OraclesCore *core) { return core->kind; }
+
+int oracles_core_set_joypad_bouncing(OraclesCore *core, int enabled)
 {
-    GB_set_emulate_joypad_bouncing(core->gb, enabled != 0);
+    return core->ops->set_joypad_bouncing(core, enabled);
 }
 
-void oracles_core_set_keys(OraclesCore *core, unsigned key_mask)
-{
-    GB_set_key_mask(core->gb, (GB_key_mask_t)(key_mask & 0xffu));
-}
+void oracles_core_set_keys(OraclesCore *core, unsigned key_mask) { core->ops->set_keys(core, key_mask & 0xffu); }
 
 void oracles_core_set_colour_correction(OraclesCore *core, int enabled)
 {
     core->colour_correction = enabled != 0;
-    GB_set_color_correction_mode(core->gb, enabled ? GB_COLOR_CORRECTION_MODERN_BALANCED : GB_COLOR_CORRECTION_DISABLED);
+    core->ops->set_colour_correction(core, core->colour_correction);
 }
 
-int oracles_core_colour_correction(const OraclesCore *core)
-{
-    return core->colour_correction;
-}
+int oracles_core_colour_correction(const OraclesCore *core) { return core->colour_correction; }
 
 uint32_t oracles_core_convert_rgb555(const OraclesCore *core, uint16_t colour)
 {
-    /* SameBoy takes a mutable handle, and reads it only. */
-    return GB_convert_rgb15((GB_gameboy_t *)core->gb, colour, false);
+    return core->ops->convert_rgb555(core, colour);
 }
 
 void oracles_core_set_sample_rate(OraclesCore *core, unsigned sample_rate_hz)
 {
-    if (sample_rate_hz) GB_set_sample_rate(core->gb, sample_rate_hz);
+    if (sample_rate_hz) core->ops->set_sample_rate(core, sample_rate_hz);
 }
 
-void oracles_core_run_frame(OraclesCore *core)
-{
-    GB_run_frame(core->gb);
-}
+void oracles_core_run_frame(OraclesCore *core) { core->ops->run_frame(core); }
 
-const uint32_t *oracles_core_pixels(const OraclesCore *core)
-{
-    return core->pixels;
-}
+const uint32_t *oracles_core_pixels(const OraclesCore *core) { return core->pixels; }
 
 size_t oracles_core_take_audio(OraclesCore *core, int16_t *out, size_t max_samples)
 {
     size_t frames = max_samples / 2;
     if (frames > core->audio_count) frames = core->audio_count;
     for (size_t i = 0; i < frames; i++) {
-        const size_t index = (core->audio_head + i) % AUDIO_RING_FRAMES;
+        const size_t index = (core->audio_head + i) % ORACLES_CORE_AUDIO_FRAMES;
         out[i * 2] = core->audio[index * 2];
         out[i * 2 + 1] = core->audio[index * 2 + 1];
     }
-    core->audio_head = (core->audio_head + frames) % AUDIO_RING_FRAMES;
+    core->audio_head = (core->audio_head + frames) % ORACLES_CORE_AUDIO_FRAMES;
     core->audio_count -= frames;
     return frames * 2;
 }
 
-size_t oracles_core_sram_size(OraclesCore *core)
-{
-    const int size = GB_save_battery_size(core->gb);
-    return size > 0 ? (size_t)size : 0;
-}
+size_t oracles_core_sram_size(OraclesCore *core) { return core->ops->sram_size(core); }
 
 int oracles_core_load_sram(OraclesCore *core, const uint8_t *buffer, size_t size)
 {
     if (size != oracles_core_sram_size(core)) return -1;
-    GB_load_battery_from_buffer(core->gb, buffer, size);
-    return 0;
+    return core->ops->load_sram(core, buffer, size);
 }
 
 int oracles_core_save_sram(OraclesCore *core, uint8_t *buffer, size_t size)
 {
     if (size != oracles_core_sram_size(core)) return -1;
-    return GB_save_battery_to_buffer(core->gb, buffer, size) == 0 ? 0 : -1;
+    return core->ops->save_sram(core, buffer, size);
 }
 
-size_t oracles_core_state_size(OraclesCore *core)
-{
-    return GB_get_save_state_size(core->gb);
-}
+size_t oracles_core_state_size(OraclesCore *core) { return core->ops->state_size(core); }
 
 int oracles_core_save_state(OraclesCore *core, uint8_t *buffer, size_t size)
 {
-    if (size != GB_get_save_state_size(core->gb)) return -1;
-    GB_save_state_to_buffer(core->gb, buffer);
-    return 0;
+    if (size != oracles_core_state_size(core)) return -1;
+    return core->ops->save_state(core, buffer, size);
 }
 
 int oracles_core_load_state(OraclesCore *core, const uint8_t *buffer, size_t size)
 {
-    return GB_load_state_from_buffer(core->gb, buffer, size) == 0 ? 0 : -1;
+    return core->ops->load_state(core, buffer, size);
 }
 
-#ifndef ORACLES_SAMEBOY_VERSION
-#error "ORACLES_SAMEBOY_VERSION is defined by the build from config/sameboy.json"
-#endif
+const char *oracles_core_version(const OraclesCore *core) { return core->ops->version; }
 
-const char *oracles_core_version(void)
+uint8_t *oracles_core_memory(OraclesCore *core, OraclesCoreRegion region, size_t *size, uint16_t *bank)
 {
-    return "sameboy-" ORACLES_SAMEBOY_VERSION;
+    return core->ops->memory(core, region, size, bank);
 }
 
-struct GB_gameboy_s *oracles_core_gb(OraclesCore *core)
+uint8_t oracles_core_peek(OraclesCore *core, uint16_t address) { return core->ops->peek(core, address); }
+
+OraclesCoreRegisters oracles_core_registers(const OraclesCore *core) { return core->ops->registers(core); }
+
+void oracles_core_set_registers(OraclesCore *core, const OraclesCoreRegisters *registers)
 {
-    return core->gb;
+    core->ops->set_registers(core, registers);
 }
 
-void oracles_core_set_extension(OraclesCore *core, void *extension) { core->extension = extension; }
-void *oracles_core_extension(OraclesCore *core) { return core->extension; }
+void oracles_core_set_hooks(OraclesCore *core, const OraclesCoreHooks *hooks, void *opaque)
+{
+    if (hooks) core->hooks = *hooks;
+    else memset(&core->hooks, 0, sizeof core->hooks);
+    core->hooks_opaque = hooks ? opaque : NULL;
+    core->ops->hooks_changed(core);
+}

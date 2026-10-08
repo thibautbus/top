@@ -85,7 +85,8 @@ buddy=/usr/libexec/PlistBuddy
 plutil -lint "$plist" >/dev/null
 
 cp "$root/launcher/icon/the-oracles-project.icns" "$contents/Resources/"
-cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$contents/Resources/"
+cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
+    "$contents/Resources/"
 if [ -f "$build/SDL3-LICENSE.txt" ]; then
     cp "$build/SDL3-LICENSE.txt" "$contents/Resources/"
 else

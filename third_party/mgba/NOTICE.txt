@@ -1,0 +1,9 @@
+The Oracles Project includes the Game Boy core of mGBA, by Jeffrey Pfau and the mGBA contributors, under the
+Mozilla Public License 2.0 (mGBA-LICENSE.txt), and inih, by Ben Hoyt, under the BSD 3-Clause licence
+(inih-LICENSE.txt), which mGBA uses.
+
+Their source code, as this application is built from it, is mGBA's commit c3c8e5e813f245028de118a56734e1dc0f35ce2a
+(https://github.com/mgba-emu/mgba/tree/c3c8e5e813f245028de118a56734e1dc0f35ce2a) with one change, given beside this
+notice in source form (mGBA-boot-rom.patch): one line of src/gb/gb.c that adds the CRC32 of the free CGB boot ROM the
+application embeds for mGBA to the boot ROMs mGBA accepts. The part of that source the application builds is also in the folder
+third_party/mgba of The Oracles Project's source repository, https://github.com/thibautbus/top.

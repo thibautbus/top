@@ -203,9 +203,10 @@ static void check_coarse_global_flags(OraclesCore *core, OraclesGame game, uint8
     oracles_guest_detach(guest);
 }
 
-static void on_read(void *opaque, uint16_t address)
+static void on_read(void *opaque, uint16_t address, uint16_t sp)
 {
     (void)opaque;
+    (void)sp;
     reads[address]++;
 }
 
@@ -238,14 +239,14 @@ int main(void)
         memcpy(rom + 0x150, program, sizeof program);
     }
 
-    const OraclesCoreOptions options = { 0, 0 };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     CHECK(core != NULL);
     if (!core) return 1;
     /* Past the free boot ROM's logo animation, so the program at $0150 runs. */
     for (unsigned frame = 0; frame < 600; frame++) oracles_core_run_frame(core);
 
-    OraclesGhost *ghost = oracles_ghost_create(rom, size, fixture_profile());
+    OraclesGhost *ghost = oracles_ghost_create(rom, size, fixture_profile(), oracles_core_kind(core));
     CHECK(ghost != NULL);
     if (!ghost) return 1;
     CHECK(oracles_ghost_state_size(ghost) == oracles_core_state_size(core));

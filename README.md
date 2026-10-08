@@ -75,6 +75,7 @@ This repository was developed with AI assistance. Every change, whoever writes i
 The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries:
 
 - [SameBoy](third_party/sameboy/) (Expat/MIT), the emulator core;
+- [mGBA](third_party/mgba/)'s Game Boy core (Mozilla Public License 2.0), with one patch, and the [inih](third_party/mgba/core/src/third-party/inih/) it uses (BSD 3-Clause), a lighter emulator core, not used yet;
 - [Lua](third_party/lua/) (MIT), the mods' runtime;
 - [SDL 3](https://libsdl.org/) (zlib), built from the release pinned in `config/sdl3.json`;
 - [stb_truetype](third_party/stb/) (MIT or public domain) and [NanoSVG](third_party/nanosvg/) (zlib), the launcher's text and motifs;

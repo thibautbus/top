@@ -61,7 +61,7 @@ int oracles_state_serialize(OraclesCore *core, const OraclesStateInfo *info,
         return -1;
     }
     writer w = { NULL, 0, 0, 0 };
-    const char *version = oracles_core_version();
+    const char *version = oracles_core_version(core);
     put(&w, MAGIC, MAGIC_LENGTH);
     put_u32(&w, ORACLES_STATE_FORMAT);
     put_field(&w, version, strlen(version));
@@ -180,7 +180,7 @@ int oracles_state_deserialize(OraclesCore *core, const OraclesStateInfo *info,
     r.position = MAGIC_LENGTH;
     if (!get_u32(&r, &format)) { set_error(error, error_capacity, "the savestate is truncated"); return -1; }
     if (format != ORACLES_STATE_FORMAT) { set_error(error, error_capacity, "the savestate has another format version"); return -1; }
-    if (!check_field(&r, oracles_core_version(), "core version", error, error_capacity)
+    if (!check_field(&r, oracles_core_version(core), "core version", error, error_capacity)
         || !check_field(&r, info->game, "game", error, error_capacity)
         || !check_field(&r, info->rom_sha1, "ROM", error, error_capacity)
         || !check_field(&r, info->mods, "set of mods and gameplay options", error, error_capacity)) return -1;

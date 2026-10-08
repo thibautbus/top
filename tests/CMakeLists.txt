@@ -7,6 +7,16 @@ if(BUILD_TESTING)
     target_link_libraries(oracles-test-rom PRIVATE oracles_core)
     oracles_set_warnings(oracles-test-rom)
     add_test(NAME oracles-rom COMMAND oracles-test-rom)
+    # mGBA's core boots the engine's CGB boot ROM (third_party/mgba/VERSION.md); linked with the engine's core, so
+    # that SameBoy and mGBA are seen to link together.
+    add_executable(oracles-test-mgba-boot test_mgba_boot.c)
+    target_link_libraries(oracles-test-mgba-boot PRIVATE oracles_core mgba)
+    oracles_set_warnings(oracles-test-mgba-boot)
+    add_test(NAME oracles-mgba-boot COMMAND oracles-test-mgba-boot)
+    add_executable(oracles-test-colour test_colour.c)
+    target_link_libraries(oracles-test-colour PRIVATE oracles_core)
+    oracles_set_warnings(oracles-test-colour)
+    add_test(NAME oracles-colour COMMAND oracles-test-colour)
     add_executable(oracles-test-bps test_bps.c)
     target_link_libraries(oracles-test-bps PRIVATE oracles_core)
     oracles_set_warnings(oracles-test-bps)
@@ -110,6 +120,9 @@ if(BUILD_TESTING)
     if(Python3_Interpreter_FOUND AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/check_routes.py)
         add_test(NAME oracles-routes COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/check_routes.py --harness $<TARGET_FILE:oracles-harness>)
         set_tests_properties(oracles-routes PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 3600)
+        # The same routes on mGBA: the rows of both cores and its own.
+        add_test(NAME oracles-routes-mgba COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/check_routes.py --harness $<TARGET_FILE:oracles-harness> --core mgba)
+        set_tests_properties(oracles-routes-mgba PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 3600)
     endif()
     # Each fan game's table against its manifest and the guest table's fields: a field the guest gains fails here,
     # before it takes the zero of C in a checked-in table (engine/game/profiles/gen_tables.py).

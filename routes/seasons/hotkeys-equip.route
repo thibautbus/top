@@ -3,33 +3,35 @@ game seasons
 rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
 sram_sha1 ad06a39053f0627a0456f1f9dc270e909c8ba40d
 options continuous-transitions
+core joypad-bouncing-off
+# Keys as the game read them on SameBoy, its joypad bouncing included, in the frames it read them, and as recorded in the others (tools/debounce_route.py): the same game without the bouncing.
 inputs
 0 keys 00
-548 keys 80
+549 keys 80
 555 keys 00
-574 keys 80
+575 keys 80
 584 keys 00
 632 keys 80
-640 keys 00
-645 keys 80
-655 keys 00
+641 keys 00
+646 keys 80
+656 keys 00
 728 keys 08
 1012 keys 00
-1014 keys 02
+1015 keys 02
 1078 keys 00
 1080 keys 08
 1100 keys 00
-1230 keys 80
-1236 keys 00
+1231 keys 80
+1237 keys 00
 1345 keys 01
 1355 keys 00
 1359 keys 01
 1368 keys 00
 1507 keys 20
-1518 keys 00
-1615 keys 10
+1519 keys 00
+1616 keys 10
 1627 keys 00
-1680 keys 10
+1681 keys 10
 1692 keys 00
 2264 keys 02
 2273 keys 00
@@ -37,58 +39,58 @@ inputs
 2309 keys 00
 2324 keys 08
 2329 keys 00
-2335 keys 08
+2336 keys 08
 2343 keys 00
-2351 keys 08
+2352 keys 08
 2359 keys 00
-2477 keys 80
+2478 keys 80
 2486 keys 00
 2552 equip a=05 s12=01
 2706 keys 10
 2736 keys 00
 2748 keys 10
 2773 keys 00
-2795 keys 80
+2796 keys 80
 2806 keys 00
 2968 keys 01
 2979 keys 00
 3069 keys 80
-3078 keys 00
+3079 keys 00
 3141 equip b=06 s13=15
 3339 keys 20
-3354 keys 00
-3368 keys 10
+3355 keys 00
+3369 keys 10
 3379 keys 00
 3389 keys 10
 3401 keys 00
 3406 keys 10
 3415 keys 00
-3422 keys 80
-3431 keys 00
+3423 keys 80
+3432 keys 00
 3498 keys 04
-3506 keys 00
+3507 keys 00
 3519 keys 04
 3526 keys 00
-3550 keys 01
-3557 keys 00
+3551 keys 01
+3558 keys 00
 3571 keys 04
-3580 keys 00
+3581 keys 00
 3588 keys 20
 3597 keys 00
-3610 keys 80
+3611 keys 80
 3618 keys 00
 3658 keys 20
-3668 keys 00
+3669 keys 00
 3699 keys 20
-3710 keys 00
-3717 keys 20
-3726 keys 00
+3711 keys 00
+3718 keys 20
+3727 keys 00
 3731 keys 20
 3741 keys 00
 3750 keys 20
 3761 keys 00
 3788 keys 20
-3800 keys 00
+3801 keys 00
 3807 equip a=01 s12=05
 3859 keys 20
 3869 keys 00
@@ -105,15 +107,15 @@ inputs
 4019 equip b=07 s2=15
 4031 equip b=15 s2=07
 4077 equip b=07 s2=15
-4096 keys 20
+4097 keys 20
 4106 keys 00
 4113 keys 20
 4122 keys 00
 4268 equip a=05 s12=01
-4301 keys 80
+4302 keys 80
 4308 keys 00
 4383 keys 08
-4388 keys 00
+4389 keys 00
 4393 keys 02
 4403 keys 00
 4406 keys 02
@@ -122,7 +124,7 @@ inputs
 4427 keys 00
 4430 keys 20
 4437 keys 00
-4492 keys 02
+4493 keys 02
 4504 keys 00
 4523 keys 20
 4530 keys 00
@@ -131,16 +133,16 @@ inputs
 4773 keys 20
 4781 keys 00
 4822 keys 02
-4830 keys 00
+4831 keys 00
 4833 keys 02
 4840 keys 00
-4844 keys 02
+4845 keys 02
 4850 keys 00
 4859 keys 02
-4864 keys 00
+4865 keys 00
 4877 keys 01
 4884 keys 00
-4890 keys 20
+4891 keys 20
 4900 keys 00
 5121 keys 01
 5130 keys 00
@@ -150,12 +152,12 @@ inputs
 5395 keys 00
 5405 keys 01
 5414 keys 00
-5434 keys 01
+5435 keys 01
 5442 keys 00
 5449 keys 20
 5456 keys 00
-5489 keys 80
-5496 keys 00
+5490 keys 80
+5497 keys 00
 5569 keys 20
 5578 keys 00
 5620 keys 04
@@ -169,30 +171,30 @@ inputs
 6003 equip b=15 s5=13
 6019 equip b=13 s5=15
 6041 equip b=15 s5=13
-6092 keys 80
+6093 keys 80
 6102 keys 00
 6192 keys 20
 6201 keys 00
 6227 keys 02
-6237 keys 00
+6238 keys 00
 6247 keys 20
 6256 keys 00
 6290 keys 02
 6296 keys 00
 6306 keys 20
 6315 keys 00
-6555 keys 80
+6556 keys 80
 6568 keys 00
 6682 keys 20
 6691 keys 00
-6748 keys 80
+6749 keys 80
 6756 keys 00
-6847 keys 80
+6848 keys 80
 6858 keys 00
 6929 equip b=19 s5=13
 6974 equip b=13 s5=19
 7013 keys 80
-7024 keys 00
+7025 keys 00
 7176 keys 20
 7186 keys 00
 7262 keys 20
@@ -203,26 +205,27 @@ inputs
 7373 keys 00
 7505 keys 20
 7512 keys 00
-7635 keys 80
+7636 keys 80
 7644 keys 00
 7688 equip b=15 s5=13
 7725 equip b=13 s4=19
 7764 equip b=19 s4=13
 7795 equip b=13 s4=19
 7817 equip b=19 s4=13
-7850 keys 80
+7851 keys 80
 7859 keys 00
-7955 keys 01
-7966 keys 20
+7956 keys 01
+7966 keys 00
+7967 keys 20
 7974 keys 00
 8002 keys 02
 8012 keys 22
 8013 keys 20
 8021 keys 00
-8066 keys 02
-8075 keys 00
+8067 keys 02
+8076 keys 00
 8083 keys 20
-8091 keys 00
+8092 keys 00
 8174 keys 20
 8182 keys 00
 8391 keys 20
@@ -239,22 +242,282 @@ inputs
 8641 keys 00
 8668 keys 20
 8678 keys 00
-8695 keys 80
+8696 keys 80
 8704 keys 00
 8816 equip b=08 s4=19 satchel=00
 8858 equip satchel=01
 8895 equip satchel=00
-8917 keys 20
-8926 keys 00
+8918 keys 20
+8927 keys 00
 8980 equip satchel=01
-9005 keys 20
+9006 keys 20
 9013 keys 00
 9045 equip satchel=00
 9071 keys 20
-9081 keys 00
+9082 keys 00
 9112 keys 02
 9129 keys 06
-9139 keys 04
+9140 keys 04
 9189 keys 06
 9193 keys 02
 9277 keys 00
+# The route as recorded, with SameBoy's joypad bouncing: its header and its input lines.
+#recorded-header oracles-route 2
+#recorded-header game seasons
+#recorded-header rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+#recorded-header sram_sha1 ad06a39053f0627a0456f1f9dc270e909c8ba40d
+#recorded-header options continuous-transitions
+#recorded 0 keys 00
+#recorded 548 keys 80
+#recorded 555 keys 00
+#recorded 574 keys 80
+#recorded 584 keys 00
+#recorded 632 keys 80
+#recorded 640 keys 00
+#recorded 645 keys 80
+#recorded 655 keys 00
+#recorded 728 keys 08
+#recorded 1012 keys 00
+#recorded 1014 keys 02
+#recorded 1078 keys 00
+#recorded 1080 keys 08
+#recorded 1100 keys 00
+#recorded 1230 keys 80
+#recorded 1236 keys 00
+#recorded 1345 keys 01
+#recorded 1355 keys 00
+#recorded 1359 keys 01
+#recorded 1368 keys 00
+#recorded 1507 keys 20
+#recorded 1518 keys 00
+#recorded 1615 keys 10
+#recorded 1627 keys 00
+#recorded 1680 keys 10
+#recorded 1692 keys 00
+#recorded 2264 keys 02
+#recorded 2273 keys 00
+#recorded 2297 keys 02
+#recorded 2309 keys 00
+#recorded 2324 keys 08
+#recorded 2329 keys 00
+#recorded 2335 keys 08
+#recorded 2343 keys 00
+#recorded 2351 keys 08
+#recorded 2359 keys 00
+#recorded 2477 keys 80
+#recorded 2486 keys 00
+#recorded 2552 equip a=05 s12=01
+#recorded 2706 keys 10
+#recorded 2736 keys 00
+#recorded 2748 keys 10
+#recorded 2773 keys 00
+#recorded 2795 keys 80
+#recorded 2806 keys 00
+#recorded 2968 keys 01
+#recorded 2979 keys 00
+#recorded 3069 keys 80
+#recorded 3078 keys 00
+#recorded 3141 equip b=06 s13=15
+#recorded 3339 keys 20
+#recorded 3354 keys 00
+#recorded 3368 keys 10
+#recorded 3379 keys 00
+#recorded 3389 keys 10
+#recorded 3401 keys 00
+#recorded 3406 keys 10
+#recorded 3415 keys 00
+#recorded 3422 keys 80
+#recorded 3431 keys 00
+#recorded 3498 keys 04
+#recorded 3506 keys 00
+#recorded 3519 keys 04
+#recorded 3526 keys 00
+#recorded 3550 keys 01
+#recorded 3557 keys 00
+#recorded 3571 keys 04
+#recorded 3580 keys 00
+#recorded 3588 keys 20
+#recorded 3597 keys 00
+#recorded 3610 keys 80
+#recorded 3618 keys 00
+#recorded 3658 keys 20
+#recorded 3668 keys 00
+#recorded 3699 keys 20
+#recorded 3710 keys 00
+#recorded 3717 keys 20
+#recorded 3726 keys 00
+#recorded 3731 keys 20
+#recorded 3741 keys 00
+#recorded 3750 keys 20
+#recorded 3761 keys 00
+#recorded 3788 keys 20
+#recorded 3800 keys 00
+#recorded 3807 equip a=01 s12=05
+#recorded 3859 keys 20
+#recorded 3869 keys 00
+#recorded 3876 keys 20
+#recorded 3884 keys 00
+#recorded 3891 keys 20
+#recorded 3899 keys 00
+#recorded 3907 equip a=05 s12=01
+#recorded 3941 equip a=01 s12=05
+#recorded 3960 equip a=05 s12=01
+#recorded 3975 equip a=01 s12=05
+#recorded 3991 equip b=07 s2=15
+#recorded 4006 equip b=15 s2=07
+#recorded 4019 equip b=07 s2=15
+#recorded 4031 equip b=15 s2=07
+#recorded 4077 equip b=07 s2=15
+#recorded 4096 keys 20
+#recorded 4106 keys 00
+#recorded 4113 keys 20
+#recorded 4122 keys 00
+#recorded 4268 equip a=05 s12=01
+#recorded 4301 keys 80
+#recorded 4308 keys 00
+#recorded 4383 keys 08
+#recorded 4388 keys 00
+#recorded 4393 keys 02
+#recorded 4403 keys 00
+#recorded 4406 keys 02
+#recorded 4410 keys 00
+#recorded 4419 keys 01
+#recorded 4427 keys 00
+#recorded 4430 keys 20
+#recorded 4437 keys 00
+#recorded 4492 keys 02
+#recorded 4504 keys 00
+#recorded 4523 keys 20
+#recorded 4530 keys 00
+#recorded 4709 keys 02
+#recorded 4720 keys 00
+#recorded 4773 keys 20
+#recorded 4781 keys 00
+#recorded 4822 keys 02
+#recorded 4830 keys 00
+#recorded 4833 keys 02
+#recorded 4840 keys 00
+#recorded 4844 keys 02
+#recorded 4850 keys 00
+#recorded 4859 keys 02
+#recorded 4864 keys 00
+#recorded 4877 keys 01
+#recorded 4884 keys 00
+#recorded 4890 keys 20
+#recorded 4900 keys 00
+#recorded 5121 keys 01
+#recorded 5130 keys 00
+#recorded 5143 keys 20
+#recorded 5150 keys 00
+#recorded 5387 keys 20
+#recorded 5395 keys 00
+#recorded 5405 keys 01
+#recorded 5414 keys 00
+#recorded 5434 keys 01
+#recorded 5442 keys 00
+#recorded 5449 keys 20
+#recorded 5456 keys 00
+#recorded 5489 keys 80
+#recorded 5496 keys 00
+#recorded 5569 keys 20
+#recorded 5578 keys 00
+#recorded 5620 keys 04
+#recorded 5632 keys 00
+#recorded 5803 equip b=19 s4=13
+#recorded 5849 equip b=13 s4=19
+#recorded 5883 equip b=19 s4=13
+#recorded 5911 equip b=13 s4=19
+#recorded 5937 equip b=19 s4=13
+#recorded 5987 equip b=13 s5=15
+#recorded 6003 equip b=15 s5=13
+#recorded 6019 equip b=13 s5=15
+#recorded 6041 equip b=15 s5=13
+#recorded 6092 keys 80
+#recorded 6102 keys 00
+#recorded 6192 keys 20
+#recorded 6201 keys 00
+#recorded 6227 keys 02
+#recorded 6237 keys 00
+#recorded 6247 keys 20
+#recorded 6256 keys 00
+#recorded 6290 keys 02
+#recorded 6296 keys 00
+#recorded 6306 keys 20
+#recorded 6315 keys 00
+#recorded 6555 keys 80
+#recorded 6568 keys 00
+#recorded 6682 keys 20
+#recorded 6691 keys 00
+#recorded 6748 keys 80
+#recorded 6756 keys 00
+#recorded 6847 keys 80
+#recorded 6858 keys 00
+#recorded 6929 equip b=19 s5=13
+#recorded 6974 equip b=13 s5=19
+#recorded 7013 keys 80
+#recorded 7024 keys 00
+#recorded 7176 keys 20
+#recorded 7186 keys 00
+#recorded 7262 keys 20
+#recorded 7271 keys 00
+#recorded 7337 keys 01
+#recorded 7348 keys 00
+#recorded 7363 keys 20
+#recorded 7373 keys 00
+#recorded 7505 keys 20
+#recorded 7512 keys 00
+#recorded 7635 keys 80
+#recorded 7644 keys 00
+#recorded 7688 equip b=15 s5=13
+#recorded 7725 equip b=13 s4=19
+#recorded 7764 equip b=19 s4=13
+#recorded 7795 equip b=13 s4=19
+#recorded 7817 equip b=19 s4=13
+#recorded 7850 keys 80
+#recorded 7859 keys 00
+#recorded 7955 keys 01
+#recorded 7966 keys 20
+#recorded 7974 keys 00
+#recorded 8002 keys 02
+#recorded 8012 keys 22
+#recorded 8013 keys 20
+#recorded 8021 keys 00
+#recorded 8066 keys 02
+#recorded 8075 keys 00
+#recorded 8083 keys 20
+#recorded 8091 keys 00
+#recorded 8174 keys 20
+#recorded 8182 keys 00
+#recorded 8391 keys 20
+#recorded 8399 keys 00
+#recorded 8428 keys 01
+#recorded 8437 keys 00
+#recorded 8449 keys 20
+#recorded 8458 keys 00
+#recorded 8488 keys 20
+#recorded 8497 keys 00
+#recorded 8615 keys 01
+#recorded 8622 keys 00
+#recorded 8631 keys 04
+#recorded 8641 keys 00
+#recorded 8668 keys 20
+#recorded 8678 keys 00
+#recorded 8695 keys 80
+#recorded 8704 keys 00
+#recorded 8816 equip b=08 s4=19 satchel=00
+#recorded 8858 equip satchel=01
+#recorded 8895 equip satchel=00
+#recorded 8917 keys 20
+#recorded 8926 keys 00
+#recorded 8980 equip satchel=01
+#recorded 9005 keys 20
+#recorded 9013 keys 00
+#recorded 9045 equip satchel=00
+#recorded 9071 keys 20
+#recorded 9081 keys 00
+#recorded 9112 keys 02
+#recorded 9129 keys 06
+#recorded 9139 keys 04
+#recorded 9189 keys 06
+#recorded 9193 keys 02
+#recorded 9277 keys 00

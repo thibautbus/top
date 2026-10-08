@@ -76,7 +76,8 @@ jobs:
           name="the-oracles-project-${VERSION}-windows"
           mkdir -p "dist/$name"
           cp build-windows/the-oracles-project.exe build-windows/SDL3.dll build-windows/libwinpthread-1.dll \
-            build-windows/*-OFL.txt build-windows/SameBoy-LICENSE.txt build-windows/SDL3-LICENSE.txt \
+            build-windows/*-OFL.txt build-windows/SameBoy-LICENSE.txt build-windows/mGBA-LICENSE.txt \
+            build-windows/mGBA-NOTICE.txt build-windows/mGBA-boot-rom.patch build-windows/inih-LICENSE.txt build-windows/SDL3-LICENSE.txt \
             build-windows/libwinpthread-COPYING.txt "dist/$name/"
           sed -e "s/X\.Y\.Z/${VERSION}/" -e "s/PLATFORM/Windows/" .github/release-readme.txt > "dist/$name/README.txt"
           (cd dist && python -m zipfile -c "$name.zip" "$name")

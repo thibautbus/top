@@ -51,7 +51,7 @@ From an MSYS2 UCRT64 terminal:
 ./tools/build_windows.sh
 ```
 
-The script installs the toolchain packages it misses, builds the pinned SDL 3 from source (MSYS2's own `SDL3.dll` would need `libiconv-2.dll` beside it), runs the tests, and leaves in `build-windows/` the executable with the two libraries it loads (`SDL3.dll`, `libwinpthread-1.dll`) and the licences to ship with them (`*-OFL.txt`, `SameBoy-LICENSE.txt`, `SDL3-LICENSE.txt`, `libwinpthread-COPYING.txt`). A repository opened from WSL (a `//wsl.localhost/...` path) is copied to a local temporary directory for the build; that copy has no `.git`, so pass `ORACLES_GIT_DESCRIBE=$(git describe --tags --always --long --match "v[0-9]*")` to the script to keep the commit shown beside the version. The executable carries a manifest (`launcher/windows/oracles.manifest`) that sets its code page to UTF-8, so paths outside ASCII open as they are.
+The script installs the toolchain packages it misses, builds the pinned SDL 3 from source (MSYS2's own `SDL3.dll` would need `libiconv-2.dll` beside it), runs the tests, and leaves in `build-windows/` the executable with the two libraries it loads (`SDL3.dll`, `libwinpthread-1.dll`) and the licences to ship with them (`*-OFL.txt`, `SameBoy-LICENSE.txt`, `mGBA-LICENSE.txt`, `mGBA-NOTICE.txt`, `mGBA-boot-rom.patch`, `inih-LICENSE.txt`, `SDL3-LICENSE.txt`, `libwinpthread-COPYING.txt`). A repository opened from WSL (a `//wsl.localhost/...` path) is copied to a local temporary directory for the build; that copy has no `.git`, so pass `ORACLES_GIT_DESCRIBE=$(git describe --tags --always --long --match "v[0-9]*")` to the script to keep the commit shown beside the version. The executable carries a manifest (`launcher/windows/oracles.manifest`) that sets its code page to UTF-8, so paths outside ASCII open as they are.
 
 ## Android
 
@@ -130,4 +130,4 @@ writes `android/build-apk/the-oracles-project-release.apk`; without `ORACLES_KEY
 keytool -genkeypair -keystore release.jks -alias oracles -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-The licences of the embedded fonts, of SameBoy and of SDL 3 are in the APK under `assets/licences/`, and beside the desktop executable.
+The licences of the embedded fonts, of SameBoy, of mGBA (with the notice that says where its source is, and its one change as a patch) and inih, and of SDL 3 are in the APK under `assets/licences/`, and beside the desktop executable.

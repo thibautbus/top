@@ -1,40 +1,42 @@
-oracles-route 1
+oracles-route 2
 game ages
 rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
 sram_sha1 bab1d15f1c77a404c05860ff6fb2e67f6c0ebd9e
+core joypad-bouncing-off
+# Keys as the game read them on SameBoy, its joypad bouncing included, in the frames it read them, and as recorded in the others (tools/debounce_route.py): the same game without the bouncing.
 inputs
 0 keys 00
 537 keys 80
 545 keys 00
-572 keys 80
-580 keys 00
-1326 keys 80
+573 keys 80
+581 keys 00
+1327 keys 80
 1334 keys 00
-1349 keys 80
-1357 keys 00
-1462 keys 08
-1761 keys 00
+1350 keys 80
+1358 keys 00
+1463 keys 08
+1762 keys 00
 1782 keys 02
 1808 keys 0a
-1814 keys 08
-1842 keys 00
+1815 keys 08
+1843 keys 00
 3432 keys 08
 3472 keys 0a
-3508 keys 08
+3509 keys 08
 3551 keys 0a
 3576 keys 02
-3589 keys 00
-3651 keys 80
+3590 keys 00
+3652 keys 80
 3662 keys 00
-3700 keys 80
-3710 keys 00
-3750 keys c0
+3701 keys 80
+3711 keys 00
+3751 keys c0
 3764 keys 00
 3812 keys c0
-3827 keys 00
-3885 keys 40
+3828 keys 00
+3886 keys 40
 3893 keys 00
-3991 keys 40
+3992 keys 40
 3998 keys 00
 4035 keys 08
 4072 keys 0a
@@ -50,20 +52,20 @@ inputs
 4470 keys 00
 4473 keys 08
 4479 keys 00
-4483 keys 08
-4488 keys 00
+4484 keys 08
+4489 keys 00
 4492 keys 08
 4499 keys 00
 4539 keys 08
 4544 keys 00
-4550 keys 08
+4551 keys 08
 4552 keys 09
-4557 keys 01
+4558 keys 01
 4573 keys 00
 4578 keys 01
-4585 keys 00
+4586 keys 00
 4589 keys 01
-4594 keys 00
+4595 keys 00
 4600 keys 09
 4602 keys 08
 4607 keys 00
@@ -82,7 +84,7 @@ inputs
 4672 keys 08
 4679 keys 00
 4684 keys 08
-4691 keys 00
+4692 keys 00
 4720 keys 08
 4726 keys 00
 4731 keys 08
@@ -91,7 +93,7 @@ inputs
 4746 keys 00
 4752 keys 08
 4756 keys 00
-4761 keys 08
+4762 keys 08
 4766 keys 00
 4772 keys 08
 4778 keys 00
@@ -100,7 +102,7 @@ inputs
 4794 keys 08
 4801 keys 00
 4806 keys 08
-4812 keys 00
+4813 keys 00
 4817 keys 08
 4822 keys 00
 4827 keys 08
@@ -108,15 +110,15 @@ inputs
 4839 keys 08
 4847 keys 00
 4887 keys 02
-4895 keys 00
+4896 keys 00
 4899 keys 02
 4903 keys 00
-4909 keys 02
+4910 keys 02
 4913 keys 00
-4918 keys 02
-4923 keys 00
+4919 keys 02
+4924 keys 00
 4927 keys 02
-4932 keys 00
+4933 keys 00
 4937 keys 02
 4942 keys 00
 4947 keys 02
@@ -126,11 +128,11 @@ inputs
 4967 keys 02
 4973 keys 00
 4978 keys 02
-4983 keys 00
+4984 keys 00
 4989 keys 02
 4993 keys 00
-4999 keys 02
-5004 keys 00
+5000 keys 02
+5005 keys 00
 5010 keys 02
 5014 keys 00
 5020 keys 02
@@ -139,30 +141,30 @@ inputs
 5037 keys 00
 5045 keys 02
 5048 keys 00
-5055 keys 02
+5056 keys 02
 5059 keys 00
 5066 keys 02
 5069 keys 00
-5076 keys 02
+5077 keys 02
 5079 keys 00
 5086 keys 02
 5089 keys 00
-5096 keys 02
+5097 keys 02
 5099 keys 00
 5105 keys 02
 5110 keys 00
 5114 keys 02
 5121 keys 00
 5125 keys 02
-5131 keys 00
+5132 keys 00
 5135 keys 02
 5142 keys 00
 5143 keys 08
 5148 keys 00
-5152 keys 08
+5153 keys 08
 5157 keys 00
 5161 keys 08
-5166 keys 00
+5167 keys 00
 5170 keys 08
 5176 keys 00
 5179 keys 08
@@ -174,11 +176,11 @@ inputs
 5209 keys 08
 5216 keys 00
 5221 keys 08
-5226 keys 00
+5227 keys 00
 5230 keys 08
 5237 keys 00
 5241 keys 08
-5247 keys 00
+5248 keys 00
 5253 keys 08
 5259 keys 00
 5273 keys 08
@@ -187,22 +189,23 @@ inputs
 5288 keys 00
 5293 keys 08
 5296 keys 0a
-5300 keys 00
+5300 keys 08
+5301 keys 00
 5303 keys 02
 5311 keys 00
 5315 keys 02
-5321 keys 00
+5322 keys 00
 5326 keys 08
-5328 keys 0a
+5329 keys 0a
 5330 keys 08
 5332 keys 00
 5336 keys 02
-5337 keys 0a
+5338 keys 0a
 5341 keys 00
 5346 keys 02
-5351 keys 00
+5352 keys 00
 5356 keys 02
-5358 keys 0a
+5359 keys 0a
 5361 keys 00
 5367 keys 02
 5372 keys 00
@@ -211,93 +214,95 @@ inputs
 5390 keys 02
 5397 keys 00
 5427 keys 02
-5430 keys 0a
+5431 keys 0a
 5435 keys 00
-5441 keys 0a
+5442 keys 0a
 5445 keys 00
 5451 keys 08
 5452 keys 0a
 5455 keys 00
-5464 keys 0a
-5467 keys 00
+5464 keys 08
+5465 keys 0a
+5468 keys 00
 5482 keys 08
 5484 keys 0a
 5489 keys 08
-5490 keys 00
+5491 keys 00
 5493 keys 02
 5498 keys 00
 5502 keys 02
 5509 keys 00
 5514 keys 02
-5518 keys 00
+5519 keys 00
 5524 keys 08
 5532 keys 00
 5536 keys 02
 5552 keys 00
 5556 keys 02
-5564 keys 00
+5565 keys 00
 5567 keys 02
 5577 keys 00
-5578 keys 04
+5579 keys 04
 5590 keys 00
 5597 keys 04
 5604 keys 00
-5608 keys 04
+5609 keys 04
 5610 keys 05
 5614 keys 01
 5617 keys 00
 5621 keys 01
 5627 keys 00
 5629 keys 04
-5636 keys 00
+5637 keys 00
 5639 keys 04
-5645 keys 00
-5650 keys 04
-5656 keys 00
+5646 keys 00
+5651 keys 04
+5657 keys 00
 5662 keys 04
-5666 keys 00
-5668 keys 02
+5667 keys 00
+5669 keys 02
 5685 keys 06
-5726 keys 02
+5727 keys 02
 5793 keys 00
 5797 keys 02
 5803 keys 00
-5807 keys 02
+5808 keys 02
 5815 keys 00
 5820 keys 02
-5830 keys 00
+5831 keys 00
 5864 keys 01
 5871 keys 00
 5887 keys 01
-5893 keys 00
+5894 keys 00
 5898 keys 01
 5904 keys 00
-5911 keys 01
+5912 keys 01
 5916 keys 00
 5926 keys 01
 5932 keys 00
 5938 keys 01
-5943 keys 00
+5944 keys 00
 5948 keys 01
 5953 keys 00
 5957 keys 01
 5968 keys 09
 6005 keys 08
 6042 keys 00
-6043 keys 01
-6048 keys 00
+6044 keys 01
+6049 keys 00
 6052 keys 01
 6056 keys 00
 6060 keys 01
 6076 keys 00
 6079 keys 01
-6087 keys 05
+6088 keys 05
 6089 keys 04
 6093 keys 00
 6097 keys 05
 6102 keys 01
 6103 keys 00
-6105 keys 05
+6105 keys 01
+6106 keys 05
 6111 keys 01
 6112 keys 00
 6115 keys 01
@@ -305,9 +310,9 @@ inputs
 6120 keys 01
 6121 keys 00
 6125 keys 01
-6131 keys 00
+6132 keys 00
 6134 keys 01
-6142 keys 00
+6143 keys 00
 6144 keys 01
 6152 keys 00
 6156 keys 01
@@ -316,7 +321,6 @@ inputs
 6185 keys 09
 6191 keys 01
 6192 keys 00
-6196 keys 08
 6197 keys 09
 6202 keys 00
 6206 keys 09
@@ -326,19 +330,19 @@ inputs
 6227 keys 08
 6232 keys 00
 6236 keys 08
-6242 keys 00
+6243 keys 00
 6246 keys 08
 6251 keys 00
 6256 keys 08
 6262 keys 00
-6270 keys 08
+6271 keys 08
 6273 keys 00
 6299 keys 08
 6305 keys 00
-6309 keys 08
+6310 keys 08
 6315 keys 00
 6319 keys 08
-6325 keys 00
+6326 keys 00
 6329 keys 08
 6333 keys 00
 6338 keys 08
@@ -349,17 +353,17 @@ inputs
 6363 keys 00
 6366 keys 02
 6373 keys 00
-6376 keys 02
+6377 keys 02
 6383 keys 00
-6490 keys 08
+6491 keys 08
 6495 keys 00
 6499 keys 08
 6504 keys 00
 6507 keys 08
-6515 keys 00
-6517 keys 40
-6525 keys 00
-6697 keys 40
+6516 keys 00
+6518 keys 40
+6526 keys 00
+6698 keys 40
 6703 keys 00
 6714 keys 02
 6719 keys 00
@@ -368,24 +372,24 @@ inputs
 6735 keys 02
 6741 keys 00
 6745 keys 02
-6751 keys 00
+6752 keys 00
 6755 keys 02
 6761 keys 00
 6765 keys 02
 6772 keys 00
 6775 keys 02
-6781 keys 00
+6782 keys 00
 6785 keys 02
 6791 keys 00
-6795 keys 02
+6796 keys 02
 6802 keys 00
-6804 keys 02
+6805 keys 02
 6812 keys 00
 6814 keys 02
 6821 keys 00
-6825 keys 02
+6826 keys 02
 6830 keys 00
-6834 keys 02
+6835 keys 02
 6840 keys 00
 6844 keys 02
 6849 keys 00
@@ -394,33 +398,33 @@ inputs
 6865 keys 02
 6873 keys 00
 6913 keys 02
-6919 keys 00
+6920 keys 00
 6924 keys 02
-6929 keys 00
+6930 keys 00
 6933 keys 02
 6940 keys 00
 6943 keys 02
-6950 keys 00
+6951 keys 00
 6954 keys 02
 6960 keys 00
 6964 keys 02
 6972 keys 00
-6975 keys 02
+6976 keys 02
 6981 keys 00
 6985 keys 02
-6991 keys 00
+6992 keys 00
 6995 keys 02
 7002 keys 00
 7006 keys 02
 7013 keys 00
-7017 keys 02
-7024 keys 00
+7018 keys 02
+7025 keys 00
 7029 keys 02
 7036 keys 00
-7040 keys 02
-7047 keys 00
+7041 keys 02
+7048 keys 00
 7092 keys 02
-7100 keys 00
+7101 keys 00
 7103 keys 04
 7104 keys 06
 7110 keys 00
@@ -430,17 +434,17 @@ inputs
 7125 keys 04
 7127 keys 06
 7129 keys 04
-7130 keys 00
+7131 keys 00
 7135 keys 04
 7140 keys 00
 7146 keys 06
 7150 keys 02
-7151 keys 00
-7156 keys 04
+7152 keys 00
 7157 keys 06
-7162 keys 00
-7167 keys 06
-7172 keys 00
+7162 keys 04
+7163 keys 00
+7168 keys 06
+7173 keys 00
 7177 keys 04
 7182 keys 00
 7187 keys 04
@@ -449,15 +453,15 @@ inputs
 7201 keys 00
 7207 keys 04
 7213 keys 00
-7260 keys 04
+7261 keys 04
 7267 keys 00
 7272 keys 04
-7276 keys 00
+7277 keys 00
 7280 keys 01
 7286 keys 00
-7290 keys 01
+7291 keys 01
 7295 keys 00
-7299 keys 05
+7300 keys 05
 7303 keys 04
 7304 keys 00
 7308 keys 04
@@ -469,7 +473,7 @@ inputs
 7335 keys 04
 7341 keys 00
 7346 keys 04
-7350 keys 00
+7351 keys 00
 7355 keys 04
 7360 keys 00
 7366 keys 04
@@ -477,62 +481,59 @@ inputs
 7376 keys 04
 7383 keys 00
 7423 keys 04
-7429 keys 00
+7430 keys 00
 7433 keys 04
 7439 keys 00
 7444 keys 04
-7449 keys 00
-7454 keys 04
-7459 keys 00
+7450 keys 00
+7455 keys 04
+7460 keys 00
 7464 keys 04
 7470 keys 00
 7473 keys 04
-7475 keys 06
+7476 keys 06
 7479 keys 02
 7481 keys 00
 7486 keys 04
 7487 keys 06
-7489 keys 02
 7490 keys 00
 7495 keys 04
 7500 keys 00
 7504 keys 04
-7505 keys 06
+7506 keys 06
 7511 keys 02
-7512 keys 00
+7513 keys 00
 7515 keys 04
-7521 keys 00
+7522 keys 00
 7525 keys 04
-7526 keys 06
+7527 keys 06
 7532 keys 04
 7533 keys 00
 7536 keys 04
 7537 keys 06
 7544 keys 04
 7545 keys 00
-7579 keys 04
 7580 keys 06
-7586 keys 02
 7587 keys 00
 7625 keys 01
-7630 keys 00
-7639 keys 01
+7631 keys 00
+7640 keys 01
 7641 keys 05
 7643 keys 01
-7644 keys 00
-7658 keys 04
+7645 keys 00
+7659 keys 04
 7663 keys 02
 7665 keys 00
-7669 keys 02
+7670 keys 02
 7676 keys 00
 7678 keys 02
 7685 keys 00
-7688 keys 02
+7689 keys 02
 7694 keys 00
 7699 keys 02
-7704 keys 00
-7709 keys 02
-7711 keys 06
+7705 keys 00
+7710 keys 02
+7712 keys 06
 7715 keys 00
 7720 keys 02
 7721 keys 06
@@ -543,12 +544,11 @@ inputs
 7736 keys 04
 7737 keys 00
 7742 keys 06
-7748 keys 04
 7749 keys 00
 7754 keys 06
 7761 keys 02
 7762 keys 00
-7766 keys 06
+7767 keys 06
 7774 keys 04
 7776 keys 00
 7805 keys 04
@@ -559,38 +559,34 @@ inputs
 7823 keys 02
 7824 keys 00
 7829 keys 06
-7834 keys 02
 7835 keys 00
 7841 keys 06
 7845 keys 02
 7846 keys 00
 7851 keys 04
-7852 keys 06
+7853 keys 06
 7856 keys 04
-7857 keys 00
+7858 keys 00
 7862 keys 06
 7867 keys 00
 7872 keys 04
-7873 keys 06
-7877 keys 04
-7878 keys 00
+7874 keys 06
+7878 keys 04
+7879 keys 00
 7883 keys 06
 7888 keys 04
 7890 keys 00
-7894 keys 04
-7896 keys 06
-7897 keys 04
+7895 keys 04
 7899 keys 00
 7905 keys 06
-7910 keys 04
 7911 keys 00
 7915 keys 04
-7924 keys 00
+7925 keys 00
 7978 keys 08
-7984 keys 00
+7985 keys 00
 7988 keys 08
 7994 keys 00
-7998 keys 08
+7999 keys 08
 8005 keys 00
 8011 keys 08
 8017 keys 00
@@ -602,79 +598,78 @@ inputs
 8044 keys 0a
 8050 keys 00
 8055 keys 02
-8056 keys 0a
+8057 keys 0a
 8060 keys 08
 8061 keys 00
-8065 keys 0a
+8066 keys 0a
 8070 keys 08
 8071 keys 00
 8075 keys 0a
 8082 keys 00
-8086 keys 0a
+8087 keys 0a
 8091 keys 02
 8092 keys 00
 8096 keys 08
 8097 keys 0a
-8102 keys 00
+8103 keys 00
 8108 keys 0a
 8112 keys 08
 8114 keys 00
 8117 keys 08
 8124 keys 00
-8137 keys 08
+8138 keys 08
 8145 keys 00
 8149 keys 02
 8157 keys 00
-8160 keys 02
+8161 keys 02
 8165 keys 00
 8170 keys 02
 8177 keys 00
 8180 keys 02
-8190 keys 00
+8191 keys 00
 8245 keys 02
 8252 keys 00
-8255 keys 02
-8262 keys 00
-8266 keys 02
+8256 keys 02
+8263 keys 00
+8267 keys 02
 8272 keys 00
 8276 keys 02
 8281 keys 00
 8286 keys 02
 8288 keys 06
-8294 keys 04
 8295 keys 00
 8300 keys 04
 8310 keys 00
 8319 keys 02
-8352 keys 06
+8353 keys 06
 8383 keys 02
 8485 keys 06
 8547 keys 02
 8563 keys 06
 8590 keys 04
 8603 keys 00
-8647 keys 04
-8702 keys 06
+8648 keys 04
+8703 keys 06
 8714 keys 02
 8727 keys 06
 8746 keys 04
 8796 keys 05
-8799 keys 01
+8800 keys 01
 8875 keys 09
 8879 keys 08
 8946 keys 0a
-9003 keys 08
+9004 keys 08
 9059 keys 09
-9097 keys 08
-9113 keys 09
+9098 keys 08
+9114 keys 09
 9125 keys 01
 9140 keys 09
-9147 keys 08
+9148 keys 08
 9217 keys 00
 9222 keys 08
 9228 keys 00
 9231 keys 08
-9238 keys 00
+9239 keys 00
 9241 keys 08
 9248 keys 00
 9251 keys 08
@@ -691,33 +686,33 @@ inputs
 9329 keys 00
 9337 keys 01
 9345 keys 00
-9351 keys 01
+9352 keys 01
 9357 keys 00
 9360 keys 01
 9366 keys 00
-9372 keys 01
+9373 keys 01
 9376 keys 00
-9386 keys 40
-9393 keys 00
+9387 keys 40
+9394 keys 00
 10778 keys 40
-10785 keys 00
+10786 keys 00
 10826 keys 01
 10833 keys 00
 10837 keys 01
 10842 keys 00
 10846 keys 01
-10853 keys 00
+10854 keys 00
 10856 keys 01
-10862 keys 00
+10863 keys 00
 10865 keys 01
 10871 keys 00
-10876 keys 01
+10877 keys 01
 10881 keys 00
 10886 keys 01
 10891 keys 00
 10897 keys 01
 10902 keys 00
-10906 keys 01
+10907 keys 01
 10913 keys 00
 10918 keys 01
 10922 keys 00
@@ -728,16 +723,16 @@ inputs
 10946 keys 08
 10951 keys 00
 10956 keys 08
-10959 keys 00
-10964 keys 08
+10960 keys 00
+10965 keys 08
 10969 keys 00
-10973 keys 08
-10978 keys 00
+10974 keys 08
+10979 keys 00
 10983 keys 08
 10988 keys 00
-10994 keys 08
+10995 keys 08
 11000 keys 00
-11038 keys 08
+11039 keys 08
 11041 keys 00
 11051 keys 08
 11057 keys 00
@@ -747,48 +742,44 @@ inputs
 11076 keys 00
 11080 keys 08
 11086 keys 00
-11091 keys 08
 11092 keys 09
-11098 keys 01
 11099 keys 00
 11103 keys 09
 11109 keys 01
 11110 keys 00
 11114 keys 09
-11119 keys 00
+11120 keys 00
 11123 keys 08
 11124 keys 09
-11128 keys 00
-11135 keys 08
-11136 keys 00
+11129 keys 00
 11141 keys 08
-11142 keys 09
-11147 keys 00
-11151 keys 08
-11156 keys 00
+11143 keys 09
+11148 keys 00
+11152 keys 08
+11157 keys 00
 11160 keys 08
-11165 keys 00
-11170 keys 08
+11166 keys 00
+11171 keys 08
 11178 keys 00
 11220 keys 08
-11225 keys 00
+11226 keys 00
 11229 keys 08
 11236 keys 00
-11239 keys 08
+11240 keys 08
 11252 keys 0a
-11255 keys 02
-11260 keys 00
-11262 keys 02
+11256 keys 02
+11261 keys 00
+11263 keys 02
 11268 keys 00
 11270 keys 02
-11408 keys 00
-11419 keys 80
+11409 keys 00
+11420 keys 80
 11428 keys 00
 11468 keys 08
 11475 keys 00
 11478 keys 08
 11484 keys 00
-11488 keys 08
+11489 keys 08
 11496 keys 00
 11505 keys 01
 11512 keys 00
@@ -798,32 +789,32 @@ inputs
 11552 keys 00
 11558 keys 04
 11565 keys 00
-11569 keys 04
+11570 keys 04
 11573 keys 00
-11578 keys 04
-11582 keys 00
+11579 keys 04
+11583 keys 00
 11623 keys 10
 11630 keys 00
 11655 keys 10
 11663 keys 00
-11673 keys 80
-11680 keys 00
+11674 keys 80
+11681 keys 00
 11726 keys 10
 11734 keys 00
 12390 keys 01
-12401 keys 05
+12402 keys 05
 12425 keys 04
 12430 keys 00
-12438 keys 04
+12439 keys 04
 12444 keys 00
 12448 keys 04
 12455 keys 00
 12458 keys 04
 12463 keys 00
 12467 keys 04
-12473 keys 00
+12474 keys 00
 12477 keys 04
-12487 keys 00
+12488 keys 00
 12518 keys 04
 12525 keys 00
 12529 keys 04
@@ -832,25 +823,25 @@ inputs
 12548 keys 00
 12553 keys 01
 12558 keys 00
-12563 keys 01
+12564 keys 01
 12571 keys 00
-12614 keys 01
+12615 keys 01
 12620 keys 00
-12626 keys 01
+12627 keys 01
 12630 keys 00
 12634 keys 04
 12641 keys 00
 12645 keys 04
-12651 keys 00
+12652 keys 00
 12655 keys 04
 12661 keys 00
 12665 keys 04
 12670 keys 00
 12675 keys 04
-12679 keys 00
+12680 keys 00
 12684 keys 04
 12690 keys 00
-12695 keys 04
+12696 keys 04
 12700 keys 00
 12706 keys 04
 12711 keys 00
@@ -858,13 +849,12 @@ inputs
 12756 keys 00
 12760 keys 04
 12766 keys 00
-12771 keys 04
+12772 keys 04
 12777 keys 00
 12782 keys 04
 12788 keys 00
 12793 keys 01
 12800 keys 00
-12804 keys 01
 12805 keys 05
 12808 keys 01
 12809 keys 00
@@ -880,46 +870,45 @@ inputs
 12856 keys 04
 12862 keys 00
 12866 keys 04
-12873 keys 00
-12878 keys 04
+12874 keys 00
+12879 keys 04
 12885 keys 00
 12911 keys 01
 12919 keys 00
-12924 keys 01
+12925 keys 01
 12928 keys 00
 12945 keys 04
 12951 keys 00
 12955 keys 04
-12961 keys 00
-12966 keys 04
+12962 keys 00
+12967 keys 04
 12970 keys 00
-12975 keys 04
+12976 keys 04
 12980 keys 00
 12987 keys 04
 12990 keys 00
 13014 keys 01
-13019 keys 00
+13020 keys 00
 13027 keys 01
 13036 keys 00
 13038 keys 08
 13045 keys 00
-13049 keys 08
+13050 keys 08
 13053 keys 00
 13058 keys 08
 13060 keys 09
-13063 keys 08
 13064 keys 00
 13068 keys 08
 13069 keys 09
 13072 keys 00
-13077 keys 01
 13078 keys 09
 13082 keys 00
 13087 keys 09
-13091 keys 00
+13091 keys 01
+13092 keys 00
 13096 keys 01
-13098 keys 09
-13100 keys 01
+13099 keys 09
+13101 keys 01
 13108 keys 00
 13113 keys 01
 13120 keys 00
@@ -927,63 +916,63 @@ inputs
 13187 keys 00
 13191 keys 02
 13198 keys 00
-13202 keys 02
+13203 keys 02
 13208 keys 00
 13213 keys 02
 13220 keys 00
-13225 keys 02
+13226 keys 02
 13231 keys 00
 13238 keys 02
-13241 keys 06
-13248 keys 00
+13242 keys 06
+13249 keys 00
 13254 keys 04
 13255 keys 06
 13259 keys 04
-13260 keys 00
+13261 keys 00
 13264 keys 04
 13271 keys 00
-13276 keys 04
+13277 keys 04
 13281 keys 00
 13285 keys 02
 13287 keys 06
-13292 keys 02
+13293 keys 02
 13294 keys 00
 13298 keys 04
 13299 keys 06
 13303 keys 02
 13304 keys 00
 13309 keys 02
-13315 keys 00
+13316 keys 00
 13320 keys 02
 13326 keys 00
 13330 keys 02
-13336 keys 00
+13337 keys 00
 13340 keys 02
 13344 keys 06
 13349 keys 04
 13358 keys 06
 13367 keys 02
 13487 keys 00
-13521 keys 04
+13522 keys 04
 13548 keys 00
 13561 keys 01
 13570 keys 00
-13586 keys 01
+13587 keys 01
 13591 keys 00
 13596 keys 01
 13601 keys 00
 13606 keys 01
 13611 keys 00
-13616 keys 01
-13623 keys 00
-13637 keys 80
+13617 keys 01
+13624 keys 00
+13638 keys 80
 13646 keys 00
 13695 keys 08
 13703 keys 00
 13708 keys 08
 13715 keys 00
 13720 keys 08
-13728 keys 00
+13729 keys 00
 13745 keys 02
 13753 keys 00
 13771 keys 02
@@ -993,28 +982,28 @@ inputs
 14741 keys 04
 14747 keys 00
 14756 keys 04
-14760 keys 00
+14761 keys 00
 14815 keys 01
 14823 keys 00
 14835 keys 01
-14841 keys 00
-14869 keys 08
-14876 keys 00
+14842 keys 00
+14870 keys 08
+14877 keys 00
 14883 keys 08
 14888 keys 00
 14895 keys 08
 14902 keys 00
-14982 keys 02
+14983 keys 02
 14988 keys 00
 14997 keys 02
-15001 keys 00
-15119 keys 04
-15125 keys 00
+15002 keys 00
+15120 keys 04
+15126 keys 00
 15180 keys 04
 15187 keys 00
 15194 keys 04
-15202 keys 00
-15513 keys 80
+15203 keys 00
+15514 keys 80
 15523 keys 00
 15575 keys 20
 15584 keys 00
@@ -1022,40 +1011,38 @@ inputs
 15629 keys 00
 15633 keys 01
 15638 keys 00
-15643 keys 01
+15644 keys 01
 15647 keys 00
 15651 keys 01
-15657 keys 00
-15662 keys 01
+15658 keys 00
+15663 keys 01
 15666 keys 00
 15670 keys 01
 15675 keys 00
-15680 keys 01
+15681 keys 01
 15688 keys 00
-15692 keys 01
+15693 keys 01
 15698 keys 00
 15703 keys 08
 15712 keys 00
 15715 keys 08
 15721 keys 00
 15725 keys 08
-15731 keys 00
-15732 keys 08
 15746 keys 09
 15753 keys 00
 15759 keys 01
 15763 keys 00
-15768 keys 01
+15769 keys 01
 15774 keys 00
 15778 keys 08
 15792 keys 09
 15797 keys 01
 15799 keys 00
 15801 keys 01
-15810 keys 00
+15811 keys 00
 15815 keys 01
 15822 keys 00
-15826 keys 01
+15827 keys 01
 15834 keys 00
 15869 keys 20
 15877 keys 00
@@ -1065,42 +1052,40 @@ inputs
 15982 keys 05
 15998 keys 04
 15999 keys 00
-16001 keys 04
+16002 keys 04
 16003 keys 05
 16008 keys 01
 16009 keys 00
 16014 keys 05
 16018 keys 01
-16020 keys 00
+16021 keys 00
 16023 keys 01
 16024 keys 05
-16029 keys 01
 16030 keys 00
 16033 keys 01
 16035 keys 05
 16039 keys 01
 16041 keys 00
-16045 keys 05
-16050 keys 01
+16046 keys 05
 16051 keys 00
 16055 keys 01
 16057 keys 05
 16061 keys 01
 16062 keys 00
-16066 keys 01
+16067 keys 01
 16074 keys 00
 16077 keys 01
 16083 keys 00
-16087 keys 01
+16088 keys 01
 16093 keys 00
 16097 keys 01
 16104 keys 00
 16108 keys 01
 16114 keys 00
 16118 keys 01
-16124 keys 00
+16125 keys 00
 16129 keys 01
-16138 keys 00
+16139 keys 00
 16178 keys 01
 16186 keys 09
 16188 keys 08
@@ -1118,12 +1103,12 @@ inputs
 16232 keys 00
 16236 keys 08
 16237 keys 09
-16242 keys 01
 16243 keys 00
-16247 keys 09
+16247 keys 08
+16248 keys 09
 16252 keys 00
-16258 keys 01
-16270 keys 00
+16259 keys 01
+16271 keys 00
 16274 keys 01
 16280 keys 00
 16284 keys 01
@@ -1137,24 +1122,24 @@ inputs
 16326 keys 01
 16331 keys 00
 16337 keys 01
-16344 keys 00
+16345 keys 00
 16389 keys 01
 16397 keys 00
 16400 keys 01
 16419 keys 00
 16422 keys 04
-16427 keys 00
+16428 keys 00
 16432 keys 04
-16438 keys 00
-16441 keys 04
+16439 keys 00
+16442 keys 04
 16446 keys 00
 16450 keys 04
 16455 keys 00
 16459 keys 04
 16464 keys 00
 16468 keys 04
-16473 keys 00
-16478 keys 04
+16474 keys 00
+16479 keys 04
 16483 keys 00
 16489 keys 04
 16493 keys 00
@@ -1163,45 +1148,45 @@ inputs
 16510 keys 04
 16514 keys 00
 16521 keys 04
-16526 keys 00
+16527 keys 00
 16585 keys 02
 16592 keys 00
 16595 keys 02
 16600 keys 00
 16604 keys 02
-16610 keys 00
+16611 keys 00
 16614 keys 02
 16620 keys 00
-16624 keys 02
+16625 keys 02
 16631 keys 00
-16635 keys 02
-16642 keys 00
+16636 keys 02
+16643 keys 00
 16646 keys 02
-16656 keys 00
+16657 keys 00
 16682 keys 02
-16689 keys 00
-16693 keys 02
-16700 keys 00
+16690 keys 00
+16694 keys 02
+16701 keys 00
 16704 keys 02
 16710 keys 00
-16716 keys 02
-16721 keys 00
+16717 keys 02
+16722 keys 00
 16726 keys 02
-16730 keys 00
+16731 keys 00
 16734 keys 02
 16739 keys 00
 16743 keys 02
-16749 keys 00
+16750 keys 00
 16754 keys 02
 16760 keys 00
 16764 keys 02
 16770 keys 00
-16774 keys 02
+16775 keys 02
 16781 keys 00
 16785 keys 02
 16791 keys 00
 16796 keys 02
-16802 keys 00
+16803 keys 00
 16807 keys 02
 16812 keys 00
 16817 keys 02
@@ -1219,16 +1204,16 @@ inputs
 16907 keys 08
 16911 keys 00
 16915 keys 08
-16920 keys 00
+16921 keys 00
 16924 keys 08
 16929 keys 00
-16934 keys 08
+16935 keys 08
 16942 keys 00
 16972 keys 08
-16980 keys 00
+16981 keys 00
 16985 keys 08
 16991 keys 00
-16992 keys 08
+16993 keys 08
 16995 keys 0a
 17002 keys 00
 17019 keys 20
@@ -1251,14 +1236,14 @@ inputs
 17220 keys 00
 17225 keys 01
 17230 keys 00
-17235 keys 01
-17242 keys 00
+17236 keys 01
+17243 keys 00
 17246 keys 01
 17251 keys 00
 17257 keys 01
 17261 keys 00
 17266 keys 01
-17272 keys 00
+17273 keys 00
 17277 keys 01
 17284 keys 00
 17319 keys 01
@@ -1272,11 +1257,12 @@ inputs
 17356 keys 01
 17357 keys 00
 17361 keys 04
-17362 keys 05
-17367 keys 00
+17363 keys 05
+17367 keys 01
+17368 keys 00
 17372 keys 01
 17377 keys 00
-17381 keys 01
+17382 keys 01
 17387 keys 00
 17391 keys 01
 17396 keys 00
@@ -1288,25 +1274,25 @@ inputs
 17426 keys 00
 17431 keys 01
 17436 keys 00
-17441 keys 01
+17442 keys 01
 17446 keys 00
 17451 keys 01
 17458 keys 00
 17463 keys 01
 17470 keys 00
-17508 keys 01
+17509 keys 01
 17514 keys 00
 17519 keys 01
 17526 keys 00
-17545 keys 08
-17550 keys 00
+17546 keys 08
+17551 keys 00
 17555 keys 08
 17560 keys 00
-17564 keys 08
+17565 keys 08
 17569 keys 00
 17574 keys 08
-17580 keys 00
-17638 keys 01
+17581 keys 00
+17639 keys 01
 17646 keys 00
 17651 keys 09
 17658 keys 01
@@ -1315,8 +1301,8 @@ inputs
 17668 keys 00
 17669 keys 20
 17677 keys 00
-17751 keys 08
-17758 keys 00
+17752 keys 08
+17759 keys 00
 17762 keys 08
 17767 keys 00
 17771 keys 08
@@ -1324,10 +1310,10 @@ inputs
 17780 keys 08
 17786 keys 00
 17791 keys 08
-17795 keys 00
+17796 keys 00
 17800 keys 08
 17805 keys 00
-17809 keys 08
+17810 keys 08
 17812 keys 09
 17816 keys 01
 17817 keys 00
@@ -1344,13 +1330,13 @@ inputs
 17868 keys 01
 17874 keys 00
 17879 keys 01
-17885 keys 00
+17886 keys 00
 17890 keys 01
 17896 keys 00
 17901 keys 01
 17908 keys 00
 17914 keys 01
-17922 keys 00
+17923 keys 00
 17960 keys 01
 17965 keys 00
 17970 keys 01
@@ -1359,45 +1345,41 @@ inputs
 17986 keys 00
 17991 keys 01
 17996 keys 00
-18001 keys 01
+18002 keys 01
 18007 keys 00
 18012 keys 01
 18017 keys 00
 18021 keys 01
-18029 keys 00
+18030 keys 00
 18034 keys 01
 18039 keys 00
-18045 keys 01
+18046 keys 01
 18049 keys 00
 18055 keys 01
 18063 keys 05
 18070 keys 00
-18075 keys 01
 18076 keys 05
 18081 keys 01
-18082 keys 00
+18083 keys 00
 18086 keys 01
 18091 keys 00
 18096 keys 01
-18103 keys 00
+18104 keys 00
 18107 keys 01
 18117 keys 00
 18158 keys 05
-18165 keys 04
 18166 keys 00
 18169 keys 04
-18170 keys 05
+18171 keys 05
 18175 keys 00
-18179 keys 04
 18180 keys 05
 18184 keys 00
 18190 keys 04
-18191 keys 05
-18193 keys 00
+18192 keys 05
+18194 keys 00
 18199 keys 05
 18204 keys 00
 18209 keys 05
-18214 keys 01
 18215 keys 00
 18220 keys 01
 18221 keys 05
@@ -1406,7 +1388,7 @@ inputs
 18236 keys 00
 18240 keys 04
 18247 keys 00
-18251 keys 04
+18252 keys 04
 18257 keys 00
 18298 keys 01
 18305 keys 00
@@ -1416,14 +1398,14 @@ inputs
 18326 keys 00
 18330 keys 08
 18337 keys 00
-18341 keys 08
+18342 keys 08
 18347 keys 00
 18354 keys 08
 18360 keys 00
 18365 keys 08
 18371 keys 00
 18377 keys 08
-18383 keys 00
+18384 keys 00
 18387 keys 08
 18393 keys 00
 18398 keys 08
@@ -1437,7 +1419,7 @@ inputs
 18437 keys 09
 18442 keys 00
 18446 keys 08
-18448 keys 09
+18449 keys 09
 18451 keys 00
 18455 keys 08
 18456 keys 09
@@ -1463,32 +1445,32 @@ inputs
 18679 keys 04
 18695 keys 00
 18700 keys 04
-18705 keys 00
+18706 keys 00
 18709 keys 04
 18717 keys 00
 18720 keys 04
 18763 keys 00
-18781 keys 10
+18782 keys 10
 18791 keys 00
 19444 keys 04
 19609 keys 06
-19626 keys 04
+19627 keys 04
 19725 keys 00
 19736 keys 04
-19742 keys 00
+19743 keys 00
 19748 keys 04
-19753 keys 00
+19754 keys 00
 19757 keys 04
 19763 keys 00
-19767 keys 04
+19768 keys 04
 19773 keys 00
 19777 keys 04
-19783 keys 00
+19784 keys 00
 19788 keys 04
 19793 keys 00
-19797 keys 04
-19804 keys 00
-19809 keys 04
+19798 keys 04
+19805 keys 00
+19810 keys 04
 19830 keys 05
 19846 keys 01
 19854 keys 05
@@ -1499,22 +1481,23 @@ inputs
 20076 keys 04
 20133 keys 05
 20151 keys 04
-20181 keys 00
+20182 keys 00
 21877 keys 01
 21941 keys 00
-21978 keys 80
-21986 keys 00
+21979 keys 80
+21987 keys 00
 22029 keys 08
 22037 keys 00
 22061 keys 04
-22073 keys 10
-22080 keys 00
-22101 keys 80
-22108 keys 00
+22073 keys 00
+22074 keys 10
+22081 keys 00
+22102 keys 80
+22109 keys 00
 22132 keys 04
 22159 keys 14
 22168 keys 04
-22262 keys 05
+22263 keys 05
 22285 keys 04
 22314 keys 00
 23555 keys 02
@@ -1535,36 +1518,37 @@ inputs
 24263 keys 0a
 24271 keys 02
 24306 keys 0a
-24320 keys 02
-24456 keys 12
+24321 keys 02
+24457 keys 12
 24464 keys 02
 24515 keys 06
 24536 keys 02
-24625 keys 0a
+24626 keys 0a
 24636 keys 08
 24716 keys 0a
 24722 keys 08
 24745 keys 09
 24772 keys 08
-24809 keys 0a
-24834 keys 08
-24901 keys 0a
+24810 keys 0a
+24835 keys 08
+24902 keys 0a
 24904 keys 02
 24926 keys 0a
 24928 keys 08
 24956 keys 18
-24964 keys 08
-25007 keys 28
+24965 keys 08
+25008 keys 28
 25018 keys 08
 25023 keys 00
 25069 keys 02
-25112 keys 80
-25121 keys 00
+25112 keys 00
+25113 keys 80
+25122 keys 00
 25279 keys 20
 25287 keys 00
 25323 keys 20
 25329 keys 00
-25349 keys 80
+25350 keys 80
 25358 keys 00
 25392 keys 20
 25401 keys 00
@@ -1574,24 +1558,23 @@ inputs
 26112 keys 09
 26119 keys 01
 26143 keys 05
-26145 keys 04
+26146 keys 04
 26192 keys 00
 26210 keys 04
-26233 keys 06
-26270 keys 04
-26295 keys 00
-26302 keys 10
-26309 keys 00
+26234 keys 06
+26271 keys 04
+26296 keys 00
+26303 keys 10
 26310 keys 02
 26322 keys 06
 26377 keys 04
 26415 keys 05
-26420 keys 01
-26436 keys 05
+26421 keys 01
+26437 keys 05
 26449 keys 04
 26478 keys 05
 26493 keys 04
-26573 keys 06
+26574 keys 06
 26577 keys 02
 26668 keys 00
 26686 keys 01
@@ -1599,20 +1582,20 @@ inputs
 26712 keys 01
 26715 keys 05
 26745 keys 01
-26758 keys 05
+26759 keys 05
 26772 keys 04
 26799 keys 05
 26803 keys 01
 26847 keys 09
 26864 keys 08
-26885 keys 09
+26886 keys 09
 26925 keys 08
 26932 keys 09
 26963 keys 01
 26976 keys 11
-26987 keys 01
+26988 keys 01
 27130 keys 05
-27135 keys 04
+27136 keys 04
 27167 keys 14
 27179 keys 04
 27247 keys 00
@@ -1630,8 +1613,8 @@ inputs
 27442 keys 00
 27520 keys 08
 27521 keys 09
-27550 keys 01
-27665 keys 09
+27551 keys 01
+27666 keys 09
 27669 keys 08
 27705 keys 00
 27731 keys 08
@@ -1646,13 +1629,12 @@ inputs
 27972 keys 11
 27980 keys 01
 28001 keys 08
-28005 keys 00
 28006 keys 02
 28028 keys 00
-28042 keys 01
+28043 keys 01
 28063 keys 11
 28075 keys 01
-28123 keys 00
+28124 keys 00
 28132 keys 02
 28265 keys 06
 28280 keys 04
@@ -1660,40 +1642,39 @@ inputs
 28359 keys 04
 28388 keys 06
 28402 keys 04
-28438 keys 05
-28466 keys 01
+28439 keys 05
 28467 keys 02
 28486 keys 06
 28502 keys 04
-28529 keys 06
+28530 keys 06
 28548 keys 04
 28582 keys 06
 28633 keys 04
-28641 keys 06
+28642 keys 06
 28681 keys 04
 28696 keys 00
-28714 keys 80
+28715 keys 80
 28722 keys 00
-28797 keys 02
+28798 keys 02
 28807 keys 00
 28812 keys 20
 28823 keys 00
 28882 keys 08
 28889 keys 00
-28894 keys 08
-28901 keys 00
+28895 keys 08
+28902 keys 00
 28911 keys 08
 28917 keys 00
 28925 keys 01
 28933 keys 00
-28938 keys 01
-28945 keys 00
+28939 keys 01
+28946 keys 00
 28950 keys 01
 28956 keys 00
 28962 keys 04
 28969 keys 00
 28974 keys 04
-28978 keys 00
+28979 keys 00
 28983 keys 04
 28991 keys 00
 28995 keys 20
@@ -1712,16 +1693,16 @@ inputs
 29176 keys 04
 29254 keys 05
 29291 keys 01
-29304 keys 11
+29305 keys 11
 29313 keys 01
 29329 keys 02
 29343 keys 00
-29346 keys 01
+29347 keys 01
 29351 keys 00
 29374 keys 01
 29382 keys 11
 29391 keys 01
-29401 keys 11
+29402 keys 11
 29403 keys 10
 29407 keys 00
 29412 keys 20
@@ -1731,13 +1712,12 @@ inputs
 29463 keys 01
 29469 keys 11
 29479 keys 01
-29488 keys 03
 29489 keys 02
 29539 keys 12
-29547 keys 02
+29548 keys 02
 29603 keys 12
 29627 keys 04
-29654 keys 05
+29655 keys 05
 29665 keys 04
 29667 keys 24
 29677 keys 04
@@ -1780,8 +1760,8 @@ inputs
 30277 keys 05
 30309 keys 01
 30317 keys 11
-30328 keys 01
-30365 keys 00
+30329 keys 01
+30366 keys 00
 30371 keys 10
 30378 keys 00
 30389 keys 20
@@ -1792,10 +1772,10 @@ inputs
 30460 keys 00
 30466 keys 02
 30476 keys 00
-30489 keys 01
+30490 keys 01
 30498 keys 11
 30509 keys 01
-30709 keys 00
+30710 keys 00
 30729 keys 01
 30740 keys 00
 30774 keys 01
@@ -1804,27 +1784,27 @@ inputs
 30812 keys 02
 30831 keys 00
 30843 keys 01
-30866 keys 11
+30867 keys 11
 30879 keys 01
 30888 keys 21
 30899 keys 01
 30920 keys 00
-31038 keys 01
+31039 keys 01
 31051 keys 11
 31063 keys 01
 31091 keys 11
 31102 keys 01
-31119 keys 00
+31120 keys 00
 31220 keys 10
 31224 keys 14
 31231 keys 04
 31257 keys 14
-31265 keys 04
+31266 keys 04
 31412 keys 00
 31432 keys 01
 31486 keys 00
 31515 keys 01
-31522 keys 05
+31523 keys 05
 31536 keys 01
 31541 keys 00
 31547 keys 02
@@ -1850,14 +1830,13 @@ inputs
 31671 keys 08
 31672 keys 00
 31687 keys 01
-31692 keys 21
+31693 keys 21
 31701 keys 01
 31703 keys 00
 31718 keys 02
 31724 keys 0a
 31756 keys 02
-31761 keys 23
-31762 keys 21
+31761 keys 21
 31769 keys 00
 31799 keys 20
 31803 keys 28
@@ -1865,5 +1844,1874 @@ inputs
 31848 keys 09
 31855 keys 01
 31874 keys 05
-31895 keys 01
+31896 keys 01
 31915 keys 00
+# The route as recorded, with SameBoy's joypad bouncing: its header and its input lines.
+#recorded-header oracles-route 1
+#recorded-header game ages
+#recorded-header rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+#recorded-header sram_sha1 bab1d15f1c77a404c05860ff6fb2e67f6c0ebd9e
+#recorded 0 keys 00
+#recorded 537 keys 80
+#recorded 545 keys 00
+#recorded 572 keys 80
+#recorded 580 keys 00
+#recorded 1326 keys 80
+#recorded 1334 keys 00
+#recorded 1349 keys 80
+#recorded 1357 keys 00
+#recorded 1462 keys 08
+#recorded 1761 keys 00
+#recorded 1782 keys 02
+#recorded 1808 keys 0a
+#recorded 1814 keys 08
+#recorded 1842 keys 00
+#recorded 3432 keys 08
+#recorded 3472 keys 0a
+#recorded 3508 keys 08
+#recorded 3551 keys 0a
+#recorded 3576 keys 02
+#recorded 3589 keys 00
+#recorded 3651 keys 80
+#recorded 3662 keys 00
+#recorded 3700 keys 80
+#recorded 3710 keys 00
+#recorded 3750 keys c0
+#recorded 3764 keys 00
+#recorded 3812 keys c0
+#recorded 3827 keys 00
+#recorded 3885 keys 40
+#recorded 3893 keys 00
+#recorded 3991 keys 40
+#recorded 3998 keys 00
+#recorded 4035 keys 08
+#recorded 4072 keys 0a
+#recorded 4114 keys 08
+#recorded 4199 keys 0a
+#recorded 4246 keys 08
+#recorded 4408 keys 0a
+#recorded 4432 keys 08
+#recorded 4450 keys 00
+#recorded 4455 keys 08
+#recorded 4462 keys 00
+#recorded 4465 keys 08
+#recorded 4470 keys 00
+#recorded 4473 keys 08
+#recorded 4479 keys 00
+#recorded 4483 keys 08
+#recorded 4488 keys 00
+#recorded 4492 keys 08
+#recorded 4499 keys 00
+#recorded 4539 keys 08
+#recorded 4544 keys 00
+#recorded 4550 keys 08
+#recorded 4552 keys 09
+#recorded 4557 keys 01
+#recorded 4573 keys 00
+#recorded 4578 keys 01
+#recorded 4585 keys 00
+#recorded 4589 keys 01
+#recorded 4594 keys 00
+#recorded 4600 keys 09
+#recorded 4602 keys 08
+#recorded 4607 keys 00
+#recorded 4611 keys 08
+#recorded 4615 keys 00
+#recorded 4620 keys 08
+#recorded 4625 keys 00
+#recorded 4630 keys 08
+#recorded 4636 keys 00
+#recorded 4640 keys 08
+#recorded 4646 keys 00
+#recorded 4650 keys 08
+#recorded 4657 keys 00
+#recorded 4661 keys 08
+#recorded 4667 keys 00
+#recorded 4672 keys 08
+#recorded 4679 keys 00
+#recorded 4684 keys 08
+#recorded 4691 keys 00
+#recorded 4720 keys 08
+#recorded 4726 keys 00
+#recorded 4731 keys 08
+#recorded 4736 keys 00
+#recorded 4741 keys 08
+#recorded 4746 keys 00
+#recorded 4752 keys 08
+#recorded 4756 keys 00
+#recorded 4761 keys 08
+#recorded 4766 keys 00
+#recorded 4772 keys 08
+#recorded 4778 keys 00
+#recorded 4783 keys 08
+#recorded 4790 keys 00
+#recorded 4794 keys 08
+#recorded 4801 keys 00
+#recorded 4806 keys 08
+#recorded 4812 keys 00
+#recorded 4817 keys 08
+#recorded 4822 keys 00
+#recorded 4827 keys 08
+#recorded 4834 keys 00
+#recorded 4839 keys 08
+#recorded 4847 keys 00
+#recorded 4887 keys 02
+#recorded 4895 keys 00
+#recorded 4899 keys 02
+#recorded 4903 keys 00
+#recorded 4909 keys 02
+#recorded 4913 keys 00
+#recorded 4918 keys 02
+#recorded 4923 keys 00
+#recorded 4927 keys 02
+#recorded 4932 keys 00
+#recorded 4937 keys 02
+#recorded 4942 keys 00
+#recorded 4947 keys 02
+#recorded 4952 keys 00
+#recorded 4957 keys 02
+#recorded 4963 keys 00
+#recorded 4967 keys 02
+#recorded 4973 keys 00
+#recorded 4978 keys 02
+#recorded 4983 keys 00
+#recorded 4989 keys 02
+#recorded 4993 keys 00
+#recorded 4999 keys 02
+#recorded 5004 keys 00
+#recorded 5010 keys 02
+#recorded 5014 keys 00
+#recorded 5020 keys 02
+#recorded 5026 keys 00
+#recorded 5033 keys 02
+#recorded 5037 keys 00
+#recorded 5045 keys 02
+#recorded 5048 keys 00
+#recorded 5055 keys 02
+#recorded 5059 keys 00
+#recorded 5066 keys 02
+#recorded 5069 keys 00
+#recorded 5076 keys 02
+#recorded 5079 keys 00
+#recorded 5086 keys 02
+#recorded 5089 keys 00
+#recorded 5096 keys 02
+#recorded 5099 keys 00
+#recorded 5105 keys 02
+#recorded 5110 keys 00
+#recorded 5114 keys 02
+#recorded 5121 keys 00
+#recorded 5125 keys 02
+#recorded 5131 keys 00
+#recorded 5135 keys 02
+#recorded 5142 keys 00
+#recorded 5143 keys 08
+#recorded 5148 keys 00
+#recorded 5152 keys 08
+#recorded 5157 keys 00
+#recorded 5161 keys 08
+#recorded 5166 keys 00
+#recorded 5170 keys 08
+#recorded 5176 keys 00
+#recorded 5179 keys 08
+#recorded 5186 keys 00
+#recorded 5191 keys 08
+#recorded 5195 keys 00
+#recorded 5200 keys 08
+#recorded 5206 keys 00
+#recorded 5209 keys 08
+#recorded 5216 keys 00
+#recorded 5221 keys 08
+#recorded 5226 keys 00
+#recorded 5230 keys 08
+#recorded 5237 keys 00
+#recorded 5241 keys 08
+#recorded 5247 keys 00
+#recorded 5253 keys 08
+#recorded 5259 keys 00
+#recorded 5273 keys 08
+#recorded 5278 keys 00
+#recorded 5285 keys 08
+#recorded 5288 keys 00
+#recorded 5293 keys 08
+#recorded 5296 keys 0a
+#recorded 5300 keys 00
+#recorded 5303 keys 02
+#recorded 5311 keys 00
+#recorded 5315 keys 02
+#recorded 5321 keys 00
+#recorded 5326 keys 08
+#recorded 5328 keys 0a
+#recorded 5330 keys 08
+#recorded 5332 keys 00
+#recorded 5336 keys 02
+#recorded 5337 keys 0a
+#recorded 5341 keys 00
+#recorded 5346 keys 02
+#recorded 5351 keys 00
+#recorded 5356 keys 02
+#recorded 5358 keys 0a
+#recorded 5361 keys 00
+#recorded 5367 keys 02
+#recorded 5372 keys 00
+#recorded 5377 keys 02
+#recorded 5384 keys 00
+#recorded 5390 keys 02
+#recorded 5397 keys 00
+#recorded 5427 keys 02
+#recorded 5430 keys 0a
+#recorded 5435 keys 00
+#recorded 5441 keys 0a
+#recorded 5445 keys 00
+#recorded 5451 keys 08
+#recorded 5452 keys 0a
+#recorded 5455 keys 00
+#recorded 5464 keys 0a
+#recorded 5467 keys 00
+#recorded 5482 keys 08
+#recorded 5484 keys 0a
+#recorded 5489 keys 08
+#recorded 5490 keys 00
+#recorded 5493 keys 02
+#recorded 5498 keys 00
+#recorded 5502 keys 02
+#recorded 5509 keys 00
+#recorded 5514 keys 02
+#recorded 5518 keys 00
+#recorded 5524 keys 08
+#recorded 5532 keys 00
+#recorded 5536 keys 02
+#recorded 5552 keys 00
+#recorded 5556 keys 02
+#recorded 5564 keys 00
+#recorded 5567 keys 02
+#recorded 5577 keys 00
+#recorded 5578 keys 04
+#recorded 5590 keys 00
+#recorded 5597 keys 04
+#recorded 5604 keys 00
+#recorded 5608 keys 04
+#recorded 5610 keys 05
+#recorded 5614 keys 01
+#recorded 5617 keys 00
+#recorded 5621 keys 01
+#recorded 5627 keys 00
+#recorded 5629 keys 04
+#recorded 5636 keys 00
+#recorded 5639 keys 04
+#recorded 5645 keys 00
+#recorded 5650 keys 04
+#recorded 5656 keys 00
+#recorded 5662 keys 04
+#recorded 5666 keys 00
+#recorded 5668 keys 02
+#recorded 5685 keys 06
+#recorded 5726 keys 02
+#recorded 5793 keys 00
+#recorded 5797 keys 02
+#recorded 5803 keys 00
+#recorded 5807 keys 02
+#recorded 5815 keys 00
+#recorded 5820 keys 02
+#recorded 5830 keys 00
+#recorded 5864 keys 01
+#recorded 5871 keys 00
+#recorded 5887 keys 01
+#recorded 5893 keys 00
+#recorded 5898 keys 01
+#recorded 5904 keys 00
+#recorded 5911 keys 01
+#recorded 5916 keys 00
+#recorded 5926 keys 01
+#recorded 5932 keys 00
+#recorded 5938 keys 01
+#recorded 5943 keys 00
+#recorded 5948 keys 01
+#recorded 5953 keys 00
+#recorded 5957 keys 01
+#recorded 5968 keys 09
+#recorded 6005 keys 08
+#recorded 6042 keys 00
+#recorded 6043 keys 01
+#recorded 6048 keys 00
+#recorded 6052 keys 01
+#recorded 6056 keys 00
+#recorded 6060 keys 01
+#recorded 6076 keys 00
+#recorded 6079 keys 01
+#recorded 6087 keys 05
+#recorded 6089 keys 04
+#recorded 6093 keys 00
+#recorded 6097 keys 05
+#recorded 6102 keys 01
+#recorded 6103 keys 00
+#recorded 6105 keys 05
+#recorded 6111 keys 01
+#recorded 6112 keys 00
+#recorded 6115 keys 01
+#recorded 6116 keys 05
+#recorded 6120 keys 01
+#recorded 6121 keys 00
+#recorded 6125 keys 01
+#recorded 6131 keys 00
+#recorded 6134 keys 01
+#recorded 6142 keys 00
+#recorded 6144 keys 01
+#recorded 6152 keys 00
+#recorded 6156 keys 01
+#recorded 6165 keys 00
+#recorded 6183 keys 08
+#recorded 6185 keys 09
+#recorded 6191 keys 01
+#recorded 6192 keys 00
+#recorded 6196 keys 08
+#recorded 6197 keys 09
+#recorded 6202 keys 00
+#recorded 6206 keys 09
+#recorded 6211 keys 00
+#recorded 6216 keys 09
+#recorded 6222 keys 00
+#recorded 6227 keys 08
+#recorded 6232 keys 00
+#recorded 6236 keys 08
+#recorded 6242 keys 00
+#recorded 6246 keys 08
+#recorded 6251 keys 00
+#recorded 6256 keys 08
+#recorded 6262 keys 00
+#recorded 6270 keys 08
+#recorded 6273 keys 00
+#recorded 6299 keys 08
+#recorded 6305 keys 00
+#recorded 6309 keys 08
+#recorded 6315 keys 00
+#recorded 6319 keys 08
+#recorded 6325 keys 00
+#recorded 6329 keys 08
+#recorded 6333 keys 00
+#recorded 6338 keys 08
+#recorded 6347 keys 0a
+#recorded 6351 keys 02
+#recorded 6354 keys 00
+#recorded 6357 keys 02
+#recorded 6363 keys 00
+#recorded 6366 keys 02
+#recorded 6373 keys 00
+#recorded 6376 keys 02
+#recorded 6383 keys 00
+#recorded 6490 keys 08
+#recorded 6495 keys 00
+#recorded 6499 keys 08
+#recorded 6504 keys 00
+#recorded 6507 keys 08
+#recorded 6515 keys 00
+#recorded 6517 keys 40
+#recorded 6525 keys 00
+#recorded 6697 keys 40
+#recorded 6703 keys 00
+#recorded 6714 keys 02
+#recorded 6719 keys 00
+#recorded 6725 keys 02
+#recorded 6731 keys 00
+#recorded 6735 keys 02
+#recorded 6741 keys 00
+#recorded 6745 keys 02
+#recorded 6751 keys 00
+#recorded 6755 keys 02
+#recorded 6761 keys 00
+#recorded 6765 keys 02
+#recorded 6772 keys 00
+#recorded 6775 keys 02
+#recorded 6781 keys 00
+#recorded 6785 keys 02
+#recorded 6791 keys 00
+#recorded 6795 keys 02
+#recorded 6802 keys 00
+#recorded 6804 keys 02
+#recorded 6812 keys 00
+#recorded 6814 keys 02
+#recorded 6821 keys 00
+#recorded 6825 keys 02
+#recorded 6830 keys 00
+#recorded 6834 keys 02
+#recorded 6840 keys 00
+#recorded 6844 keys 02
+#recorded 6849 keys 00
+#recorded 6854 keys 02
+#recorded 6861 keys 00
+#recorded 6865 keys 02
+#recorded 6873 keys 00
+#recorded 6913 keys 02
+#recorded 6919 keys 00
+#recorded 6924 keys 02
+#recorded 6929 keys 00
+#recorded 6933 keys 02
+#recorded 6940 keys 00
+#recorded 6943 keys 02
+#recorded 6950 keys 00
+#recorded 6954 keys 02
+#recorded 6960 keys 00
+#recorded 6964 keys 02
+#recorded 6972 keys 00
+#recorded 6975 keys 02
+#recorded 6981 keys 00
+#recorded 6985 keys 02
+#recorded 6991 keys 00
+#recorded 6995 keys 02
+#recorded 7002 keys 00
+#recorded 7006 keys 02
+#recorded 7013 keys 00
+#recorded 7017 keys 02
+#recorded 7024 keys 00
+#recorded 7029 keys 02
+#recorded 7036 keys 00
+#recorded 7040 keys 02
+#recorded 7047 keys 00
+#recorded 7092 keys 02
+#recorded 7100 keys 00
+#recorded 7103 keys 04
+#recorded 7104 keys 06
+#recorded 7110 keys 00
+#recorded 7115 keys 04
+#recorded 7116 keys 06
+#recorded 7119 keys 00
+#recorded 7125 keys 04
+#recorded 7127 keys 06
+#recorded 7129 keys 04
+#recorded 7130 keys 00
+#recorded 7135 keys 04
+#recorded 7140 keys 00
+#recorded 7146 keys 06
+#recorded 7150 keys 02
+#recorded 7151 keys 00
+#recorded 7156 keys 04
+#recorded 7157 keys 06
+#recorded 7162 keys 00
+#recorded 7167 keys 06
+#recorded 7172 keys 00
+#recorded 7177 keys 04
+#recorded 7182 keys 00
+#recorded 7187 keys 04
+#recorded 7191 keys 00
+#recorded 7196 keys 04
+#recorded 7201 keys 00
+#recorded 7207 keys 04
+#recorded 7213 keys 00
+#recorded 7260 keys 04
+#recorded 7267 keys 00
+#recorded 7272 keys 04
+#recorded 7276 keys 00
+#recorded 7280 keys 01
+#recorded 7286 keys 00
+#recorded 7290 keys 01
+#recorded 7295 keys 00
+#recorded 7299 keys 05
+#recorded 7303 keys 04
+#recorded 7304 keys 00
+#recorded 7308 keys 04
+#recorded 7314 keys 00
+#recorded 7317 keys 04
+#recorded 7323 keys 00
+#recorded 7325 keys 04
+#recorded 7331 keys 00
+#recorded 7335 keys 04
+#recorded 7341 keys 00
+#recorded 7346 keys 04
+#recorded 7350 keys 00
+#recorded 7355 keys 04
+#recorded 7360 keys 00
+#recorded 7366 keys 04
+#recorded 7371 keys 00
+#recorded 7376 keys 04
+#recorded 7383 keys 00
+#recorded 7423 keys 04
+#recorded 7429 keys 00
+#recorded 7433 keys 04
+#recorded 7439 keys 00
+#recorded 7444 keys 04
+#recorded 7449 keys 00
+#recorded 7454 keys 04
+#recorded 7459 keys 00
+#recorded 7464 keys 04
+#recorded 7470 keys 00
+#recorded 7473 keys 04
+#recorded 7475 keys 06
+#recorded 7479 keys 02
+#recorded 7481 keys 00
+#recorded 7486 keys 04
+#recorded 7487 keys 06
+#recorded 7489 keys 02
+#recorded 7490 keys 00
+#recorded 7495 keys 04
+#recorded 7500 keys 00
+#recorded 7504 keys 04
+#recorded 7505 keys 06
+#recorded 7511 keys 02
+#recorded 7512 keys 00
+#recorded 7515 keys 04
+#recorded 7521 keys 00
+#recorded 7525 keys 04
+#recorded 7526 keys 06
+#recorded 7532 keys 04
+#recorded 7533 keys 00
+#recorded 7536 keys 04
+#recorded 7537 keys 06
+#recorded 7544 keys 04
+#recorded 7545 keys 00
+#recorded 7579 keys 04
+#recorded 7580 keys 06
+#recorded 7586 keys 02
+#recorded 7587 keys 00
+#recorded 7625 keys 01
+#recorded 7630 keys 00
+#recorded 7639 keys 01
+#recorded 7641 keys 05
+#recorded 7643 keys 01
+#recorded 7644 keys 00
+#recorded 7658 keys 04
+#recorded 7663 keys 02
+#recorded 7665 keys 00
+#recorded 7669 keys 02
+#recorded 7676 keys 00
+#recorded 7678 keys 02
+#recorded 7685 keys 00
+#recorded 7688 keys 02
+#recorded 7694 keys 00
+#recorded 7699 keys 02
+#recorded 7704 keys 00
+#recorded 7709 keys 02
+#recorded 7711 keys 06
+#recorded 7715 keys 00
+#recorded 7720 keys 02
+#recorded 7721 keys 06
+#recorded 7725 keys 04
+#recorded 7726 keys 00
+#recorded 7731 keys 02
+#recorded 7732 keys 06
+#recorded 7736 keys 04
+#recorded 7737 keys 00
+#recorded 7742 keys 06
+#recorded 7748 keys 04
+#recorded 7749 keys 00
+#recorded 7754 keys 06
+#recorded 7761 keys 02
+#recorded 7762 keys 00
+#recorded 7766 keys 06
+#recorded 7774 keys 04
+#recorded 7776 keys 00
+#recorded 7805 keys 04
+#recorded 7806 keys 06
+#recorded 7812 keys 00
+#recorded 7817 keys 02
+#recorded 7818 keys 06
+#recorded 7823 keys 02
+#recorded 7824 keys 00
+#recorded 7829 keys 06
+#recorded 7834 keys 02
+#recorded 7835 keys 00
+#recorded 7841 keys 06
+#recorded 7845 keys 02
+#recorded 7846 keys 00
+#recorded 7851 keys 04
+#recorded 7852 keys 06
+#recorded 7856 keys 04
+#recorded 7857 keys 00
+#recorded 7862 keys 06
+#recorded 7867 keys 00
+#recorded 7872 keys 04
+#recorded 7873 keys 06
+#recorded 7877 keys 04
+#recorded 7878 keys 00
+#recorded 7883 keys 06
+#recorded 7888 keys 04
+#recorded 7890 keys 00
+#recorded 7894 keys 04
+#recorded 7896 keys 06
+#recorded 7897 keys 04
+#recorded 7899 keys 00
+#recorded 7905 keys 06
+#recorded 7910 keys 04
+#recorded 7911 keys 00
+#recorded 7915 keys 04
+#recorded 7924 keys 00
+#recorded 7978 keys 08
+#recorded 7984 keys 00
+#recorded 7988 keys 08
+#recorded 7994 keys 00
+#recorded 7998 keys 08
+#recorded 8005 keys 00
+#recorded 8011 keys 08
+#recorded 8017 keys 00
+#recorded 8021 keys 08
+#recorded 8023 keys 0a
+#recorded 8027 keys 00
+#recorded 8034 keys 0a
+#recorded 8039 keys 00
+#recorded 8044 keys 0a
+#recorded 8050 keys 00
+#recorded 8055 keys 02
+#recorded 8056 keys 0a
+#recorded 8060 keys 08
+#recorded 8061 keys 00
+#recorded 8065 keys 0a
+#recorded 8070 keys 08
+#recorded 8071 keys 00
+#recorded 8075 keys 0a
+#recorded 8082 keys 00
+#recorded 8086 keys 0a
+#recorded 8091 keys 02
+#recorded 8092 keys 00
+#recorded 8096 keys 08
+#recorded 8097 keys 0a
+#recorded 8102 keys 00
+#recorded 8108 keys 0a
+#recorded 8112 keys 08
+#recorded 8114 keys 00
+#recorded 8117 keys 08
+#recorded 8124 keys 00
+#recorded 8137 keys 08
+#recorded 8145 keys 00
+#recorded 8149 keys 02
+#recorded 8157 keys 00
+#recorded 8160 keys 02
+#recorded 8165 keys 00
+#recorded 8170 keys 02
+#recorded 8177 keys 00
+#recorded 8180 keys 02
+#recorded 8190 keys 00
+#recorded 8245 keys 02
+#recorded 8252 keys 00
+#recorded 8255 keys 02
+#recorded 8262 keys 00
+#recorded 8266 keys 02
+#recorded 8272 keys 00
+#recorded 8276 keys 02
+#recorded 8281 keys 00
+#recorded 8286 keys 02
+#recorded 8288 keys 06
+#recorded 8294 keys 04
+#recorded 8295 keys 00
+#recorded 8300 keys 04
+#recorded 8310 keys 00
+#recorded 8319 keys 02
+#recorded 8352 keys 06
+#recorded 8383 keys 02
+#recorded 8485 keys 06
+#recorded 8547 keys 02
+#recorded 8563 keys 06
+#recorded 8590 keys 04
+#recorded 8603 keys 00
+#recorded 8647 keys 04
+#recorded 8702 keys 06
+#recorded 8714 keys 02
+#recorded 8727 keys 06
+#recorded 8746 keys 04
+#recorded 8796 keys 05
+#recorded 8799 keys 01
+#recorded 8875 keys 09
+#recorded 8879 keys 08
+#recorded 8946 keys 0a
+#recorded 9003 keys 08
+#recorded 9059 keys 09
+#recorded 9097 keys 08
+#recorded 9113 keys 09
+#recorded 9125 keys 01
+#recorded 9140 keys 09
+#recorded 9147 keys 08
+#recorded 9217 keys 00
+#recorded 9222 keys 08
+#recorded 9228 keys 00
+#recorded 9231 keys 08
+#recorded 9238 keys 00
+#recorded 9241 keys 08
+#recorded 9248 keys 00
+#recorded 9251 keys 08
+#recorded 9260 keys 00
+#recorded 9281 keys 08
+#recorded 9288 keys 00
+#recorded 9293 keys 08
+#recorded 9299 keys 00
+#recorded 9303 keys 08
+#recorded 9310 keys 00
+#recorded 9313 keys 08
+#recorded 9318 keys 00
+#recorded 9323 keys 08
+#recorded 9329 keys 00
+#recorded 9337 keys 01
+#recorded 9345 keys 00
+#recorded 9351 keys 01
+#recorded 9357 keys 00
+#recorded 9360 keys 01
+#recorded 9366 keys 00
+#recorded 9372 keys 01
+#recorded 9376 keys 00
+#recorded 9386 keys 40
+#recorded 9393 keys 00
+#recorded 10778 keys 40
+#recorded 10785 keys 00
+#recorded 10826 keys 01
+#recorded 10833 keys 00
+#recorded 10837 keys 01
+#recorded 10842 keys 00
+#recorded 10846 keys 01
+#recorded 10853 keys 00
+#recorded 10856 keys 01
+#recorded 10862 keys 00
+#recorded 10865 keys 01
+#recorded 10871 keys 00
+#recorded 10876 keys 01
+#recorded 10881 keys 00
+#recorded 10886 keys 01
+#recorded 10891 keys 00
+#recorded 10897 keys 01
+#recorded 10902 keys 00
+#recorded 10906 keys 01
+#recorded 10913 keys 00
+#recorded 10918 keys 01
+#recorded 10922 keys 00
+#recorded 10925 keys 08
+#recorded 10933 keys 00
+#recorded 10937 keys 08
+#recorded 10942 keys 00
+#recorded 10946 keys 08
+#recorded 10951 keys 00
+#recorded 10956 keys 08
+#recorded 10959 keys 00
+#recorded 10964 keys 08
+#recorded 10969 keys 00
+#recorded 10973 keys 08
+#recorded 10978 keys 00
+#recorded 10983 keys 08
+#recorded 10988 keys 00
+#recorded 10994 keys 08
+#recorded 11000 keys 00
+#recorded 11038 keys 08
+#recorded 11041 keys 00
+#recorded 11051 keys 08
+#recorded 11057 keys 00
+#recorded 11060 keys 08
+#recorded 11067 keys 00
+#recorded 11069 keys 08
+#recorded 11076 keys 00
+#recorded 11080 keys 08
+#recorded 11086 keys 00
+#recorded 11091 keys 08
+#recorded 11092 keys 09
+#recorded 11098 keys 01
+#recorded 11099 keys 00
+#recorded 11103 keys 09
+#recorded 11109 keys 01
+#recorded 11110 keys 00
+#recorded 11114 keys 09
+#recorded 11119 keys 00
+#recorded 11123 keys 08
+#recorded 11124 keys 09
+#recorded 11128 keys 00
+#recorded 11135 keys 08
+#recorded 11136 keys 00
+#recorded 11141 keys 08
+#recorded 11142 keys 09
+#recorded 11147 keys 00
+#recorded 11151 keys 08
+#recorded 11156 keys 00
+#recorded 11160 keys 08
+#recorded 11165 keys 00
+#recorded 11170 keys 08
+#recorded 11178 keys 00
+#recorded 11220 keys 08
+#recorded 11225 keys 00
+#recorded 11229 keys 08
+#recorded 11236 keys 00
+#recorded 11239 keys 08
+#recorded 11252 keys 0a
+#recorded 11255 keys 02
+#recorded 11260 keys 00
+#recorded 11262 keys 02
+#recorded 11268 keys 00
+#recorded 11270 keys 02
+#recorded 11408 keys 00
+#recorded 11419 keys 80
+#recorded 11428 keys 00
+#recorded 11468 keys 08
+#recorded 11475 keys 00
+#recorded 11478 keys 08
+#recorded 11484 keys 00
+#recorded 11488 keys 08
+#recorded 11496 keys 00
+#recorded 11505 keys 01
+#recorded 11512 keys 00
+#recorded 11517 keys 01
+#recorded 11523 keys 00
+#recorded 11544 keys 01
+#recorded 11552 keys 00
+#recorded 11558 keys 04
+#recorded 11565 keys 00
+#recorded 11569 keys 04
+#recorded 11573 keys 00
+#recorded 11578 keys 04
+#recorded 11582 keys 00
+#recorded 11623 keys 10
+#recorded 11630 keys 00
+#recorded 11655 keys 10
+#recorded 11663 keys 00
+#recorded 11673 keys 80
+#recorded 11680 keys 00
+#recorded 11726 keys 10
+#recorded 11734 keys 00
+#recorded 12390 keys 01
+#recorded 12401 keys 05
+#recorded 12425 keys 04
+#recorded 12430 keys 00
+#recorded 12438 keys 04
+#recorded 12444 keys 00
+#recorded 12448 keys 04
+#recorded 12455 keys 00
+#recorded 12458 keys 04
+#recorded 12463 keys 00
+#recorded 12467 keys 04
+#recorded 12473 keys 00
+#recorded 12477 keys 04
+#recorded 12487 keys 00
+#recorded 12518 keys 04
+#recorded 12525 keys 00
+#recorded 12529 keys 04
+#recorded 12531 keys 05
+#recorded 12536 keys 01
+#recorded 12548 keys 00
+#recorded 12553 keys 01
+#recorded 12558 keys 00
+#recorded 12563 keys 01
+#recorded 12571 keys 00
+#recorded 12614 keys 01
+#recorded 12620 keys 00
+#recorded 12626 keys 01
+#recorded 12630 keys 00
+#recorded 12634 keys 04
+#recorded 12641 keys 00
+#recorded 12645 keys 04
+#recorded 12651 keys 00
+#recorded 12655 keys 04
+#recorded 12661 keys 00
+#recorded 12665 keys 04
+#recorded 12670 keys 00
+#recorded 12675 keys 04
+#recorded 12679 keys 00
+#recorded 12684 keys 04
+#recorded 12690 keys 00
+#recorded 12695 keys 04
+#recorded 12700 keys 00
+#recorded 12706 keys 04
+#recorded 12711 keys 00
+#recorded 12749 keys 04
+#recorded 12756 keys 00
+#recorded 12760 keys 04
+#recorded 12766 keys 00
+#recorded 12771 keys 04
+#recorded 12777 keys 00
+#recorded 12782 keys 04
+#recorded 12788 keys 00
+#recorded 12793 keys 01
+#recorded 12800 keys 00
+#recorded 12804 keys 01
+#recorded 12805 keys 05
+#recorded 12808 keys 01
+#recorded 12809 keys 00
+#recorded 12815 keys 04
+#recorded 12816 keys 05
+#recorded 12819 keys 00
+#recorded 12825 keys 04
+#recorded 12830 keys 00
+#recorded 12835 keys 04
+#recorded 12841 keys 00
+#recorded 12846 keys 04
+#recorded 12851 keys 00
+#recorded 12856 keys 04
+#recorded 12862 keys 00
+#recorded 12866 keys 04
+#recorded 12873 keys 00
+#recorded 12878 keys 04
+#recorded 12885 keys 00
+#recorded 12911 keys 01
+#recorded 12919 keys 00
+#recorded 12924 keys 01
+#recorded 12928 keys 00
+#recorded 12945 keys 04
+#recorded 12951 keys 00
+#recorded 12955 keys 04
+#recorded 12961 keys 00
+#recorded 12966 keys 04
+#recorded 12970 keys 00
+#recorded 12975 keys 04
+#recorded 12980 keys 00
+#recorded 12987 keys 04
+#recorded 12990 keys 00
+#recorded 13014 keys 01
+#recorded 13019 keys 00
+#recorded 13027 keys 01
+#recorded 13036 keys 00
+#recorded 13038 keys 08
+#recorded 13045 keys 00
+#recorded 13049 keys 08
+#recorded 13053 keys 00
+#recorded 13058 keys 08
+#recorded 13060 keys 09
+#recorded 13063 keys 08
+#recorded 13064 keys 00
+#recorded 13068 keys 08
+#recorded 13069 keys 09
+#recorded 13072 keys 00
+#recorded 13077 keys 01
+#recorded 13078 keys 09
+#recorded 13082 keys 00
+#recorded 13087 keys 09
+#recorded 13091 keys 00
+#recorded 13096 keys 01
+#recorded 13098 keys 09
+#recorded 13100 keys 01
+#recorded 13108 keys 00
+#recorded 13113 keys 01
+#recorded 13120 keys 00
+#recorded 13182 keys 02
+#recorded 13187 keys 00
+#recorded 13191 keys 02
+#recorded 13198 keys 00
+#recorded 13202 keys 02
+#recorded 13208 keys 00
+#recorded 13213 keys 02
+#recorded 13220 keys 00
+#recorded 13225 keys 02
+#recorded 13231 keys 00
+#recorded 13238 keys 02
+#recorded 13241 keys 06
+#recorded 13248 keys 00
+#recorded 13254 keys 04
+#recorded 13255 keys 06
+#recorded 13259 keys 04
+#recorded 13260 keys 00
+#recorded 13264 keys 04
+#recorded 13271 keys 00
+#recorded 13276 keys 04
+#recorded 13281 keys 00
+#recorded 13285 keys 02
+#recorded 13287 keys 06
+#recorded 13292 keys 02
+#recorded 13294 keys 00
+#recorded 13298 keys 04
+#recorded 13299 keys 06
+#recorded 13303 keys 02
+#recorded 13304 keys 00
+#recorded 13309 keys 02
+#recorded 13315 keys 00
+#recorded 13320 keys 02
+#recorded 13326 keys 00
+#recorded 13330 keys 02
+#recorded 13336 keys 00
+#recorded 13340 keys 02
+#recorded 13344 keys 06
+#recorded 13349 keys 04
+#recorded 13358 keys 06
+#recorded 13367 keys 02
+#recorded 13487 keys 00
+#recorded 13521 keys 04
+#recorded 13548 keys 00
+#recorded 13561 keys 01
+#recorded 13570 keys 00
+#recorded 13586 keys 01
+#recorded 13591 keys 00
+#recorded 13596 keys 01
+#recorded 13601 keys 00
+#recorded 13606 keys 01
+#recorded 13611 keys 00
+#recorded 13616 keys 01
+#recorded 13623 keys 00
+#recorded 13637 keys 80
+#recorded 13646 keys 00
+#recorded 13695 keys 08
+#recorded 13703 keys 00
+#recorded 13708 keys 08
+#recorded 13715 keys 00
+#recorded 13720 keys 08
+#recorded 13728 keys 00
+#recorded 13745 keys 02
+#recorded 13753 keys 00
+#recorded 13771 keys 02
+#recorded 13777 keys 00
+#recorded 14729 keys 04
+#recorded 14736 keys 00
+#recorded 14741 keys 04
+#recorded 14747 keys 00
+#recorded 14756 keys 04
+#recorded 14760 keys 00
+#recorded 14815 keys 01
+#recorded 14823 keys 00
+#recorded 14835 keys 01
+#recorded 14841 keys 00
+#recorded 14869 keys 08
+#recorded 14876 keys 00
+#recorded 14883 keys 08
+#recorded 14888 keys 00
+#recorded 14895 keys 08
+#recorded 14902 keys 00
+#recorded 14982 keys 02
+#recorded 14988 keys 00
+#recorded 14997 keys 02
+#recorded 15001 keys 00
+#recorded 15119 keys 04
+#recorded 15125 keys 00
+#recorded 15180 keys 04
+#recorded 15187 keys 00
+#recorded 15194 keys 04
+#recorded 15202 keys 00
+#recorded 15513 keys 80
+#recorded 15523 keys 00
+#recorded 15575 keys 20
+#recorded 15584 keys 00
+#recorded 15622 keys 01
+#recorded 15629 keys 00
+#recorded 15633 keys 01
+#recorded 15638 keys 00
+#recorded 15643 keys 01
+#recorded 15647 keys 00
+#recorded 15651 keys 01
+#recorded 15657 keys 00
+#recorded 15662 keys 01
+#recorded 15666 keys 00
+#recorded 15670 keys 01
+#recorded 15675 keys 00
+#recorded 15680 keys 01
+#recorded 15688 keys 00
+#recorded 15692 keys 01
+#recorded 15698 keys 00
+#recorded 15703 keys 08
+#recorded 15712 keys 00
+#recorded 15715 keys 08
+#recorded 15721 keys 00
+#recorded 15725 keys 08
+#recorded 15731 keys 00
+#recorded 15732 keys 08
+#recorded 15746 keys 09
+#recorded 15753 keys 00
+#recorded 15759 keys 01
+#recorded 15763 keys 00
+#recorded 15768 keys 01
+#recorded 15774 keys 00
+#recorded 15778 keys 08
+#recorded 15792 keys 09
+#recorded 15797 keys 01
+#recorded 15799 keys 00
+#recorded 15801 keys 01
+#recorded 15810 keys 00
+#recorded 15815 keys 01
+#recorded 15822 keys 00
+#recorded 15826 keys 01
+#recorded 15834 keys 00
+#recorded 15869 keys 20
+#recorded 15877 keys 00
+#recorded 15959 keys 01
+#recorded 15967 keys 00
+#recorded 15970 keys 01
+#recorded 15982 keys 05
+#recorded 15998 keys 04
+#recorded 15999 keys 00
+#recorded 16001 keys 04
+#recorded 16003 keys 05
+#recorded 16008 keys 01
+#recorded 16009 keys 00
+#recorded 16014 keys 05
+#recorded 16018 keys 01
+#recorded 16020 keys 00
+#recorded 16023 keys 01
+#recorded 16024 keys 05
+#recorded 16029 keys 01
+#recorded 16030 keys 00
+#recorded 16033 keys 01
+#recorded 16035 keys 05
+#recorded 16039 keys 01
+#recorded 16041 keys 00
+#recorded 16045 keys 05
+#recorded 16050 keys 01
+#recorded 16051 keys 00
+#recorded 16055 keys 01
+#recorded 16057 keys 05
+#recorded 16061 keys 01
+#recorded 16062 keys 00
+#recorded 16066 keys 01
+#recorded 16074 keys 00
+#recorded 16077 keys 01
+#recorded 16083 keys 00
+#recorded 16087 keys 01
+#recorded 16093 keys 00
+#recorded 16097 keys 01
+#recorded 16104 keys 00
+#recorded 16108 keys 01
+#recorded 16114 keys 00
+#recorded 16118 keys 01
+#recorded 16124 keys 00
+#recorded 16129 keys 01
+#recorded 16138 keys 00
+#recorded 16178 keys 01
+#recorded 16186 keys 09
+#recorded 16188 keys 08
+#recorded 16192 keys 00
+#recorded 16196 keys 08
+#recorded 16203 keys 00
+#recorded 16206 keys 08
+#recorded 16209 keys 09
+#recorded 16213 keys 00
+#recorded 16217 keys 08
+#recorded 16218 keys 09
+#recorded 16223 keys 00
+#recorded 16227 keys 09
+#recorded 16231 keys 01
+#recorded 16232 keys 00
+#recorded 16236 keys 08
+#recorded 16237 keys 09
+#recorded 16242 keys 01
+#recorded 16243 keys 00
+#recorded 16247 keys 09
+#recorded 16252 keys 00
+#recorded 16258 keys 01
+#recorded 16270 keys 00
+#recorded 16274 keys 01
+#recorded 16280 keys 00
+#recorded 16284 keys 01
+#recorded 16291 keys 00
+#recorded 16295 keys 01
+#recorded 16301 keys 00
+#recorded 16305 keys 01
+#recorded 16310 keys 00
+#recorded 16314 keys 01
+#recorded 16320 keys 00
+#recorded 16326 keys 01
+#recorded 16331 keys 00
+#recorded 16337 keys 01
+#recorded 16344 keys 00
+#recorded 16389 keys 01
+#recorded 16397 keys 00
+#recorded 16400 keys 01
+#recorded 16419 keys 00
+#recorded 16422 keys 04
+#recorded 16427 keys 00
+#recorded 16432 keys 04
+#recorded 16438 keys 00
+#recorded 16441 keys 04
+#recorded 16446 keys 00
+#recorded 16450 keys 04
+#recorded 16455 keys 00
+#recorded 16459 keys 04
+#recorded 16464 keys 00
+#recorded 16468 keys 04
+#recorded 16473 keys 00
+#recorded 16478 keys 04
+#recorded 16483 keys 00
+#recorded 16489 keys 04
+#recorded 16493 keys 00
+#recorded 16500 keys 04
+#recorded 16504 keys 00
+#recorded 16510 keys 04
+#recorded 16514 keys 00
+#recorded 16521 keys 04
+#recorded 16526 keys 00
+#recorded 16585 keys 02
+#recorded 16592 keys 00
+#recorded 16595 keys 02
+#recorded 16600 keys 00
+#recorded 16604 keys 02
+#recorded 16610 keys 00
+#recorded 16614 keys 02
+#recorded 16620 keys 00
+#recorded 16624 keys 02
+#recorded 16631 keys 00
+#recorded 16635 keys 02
+#recorded 16642 keys 00
+#recorded 16646 keys 02
+#recorded 16656 keys 00
+#recorded 16682 keys 02
+#recorded 16689 keys 00
+#recorded 16693 keys 02
+#recorded 16700 keys 00
+#recorded 16704 keys 02
+#recorded 16710 keys 00
+#recorded 16716 keys 02
+#recorded 16721 keys 00
+#recorded 16726 keys 02
+#recorded 16730 keys 00
+#recorded 16734 keys 02
+#recorded 16739 keys 00
+#recorded 16743 keys 02
+#recorded 16749 keys 00
+#recorded 16754 keys 02
+#recorded 16760 keys 00
+#recorded 16764 keys 02
+#recorded 16770 keys 00
+#recorded 16774 keys 02
+#recorded 16781 keys 00
+#recorded 16785 keys 02
+#recorded 16791 keys 00
+#recorded 16796 keys 02
+#recorded 16802 keys 00
+#recorded 16807 keys 02
+#recorded 16812 keys 00
+#recorded 16817 keys 02
+#recorded 16824 keys 00
+#recorded 16828 keys 02
+#recorded 16838 keys 00
+#recorded 16864 keys 02
+#recorded 16872 keys 00
+#recorded 16876 keys 02
+#recorded 16882 keys 00
+#recorded 16887 keys 02
+#recorded 16891 keys 00
+#recorded 16896 keys 02
+#recorded 16903 keys 0a
+#recorded 16907 keys 08
+#recorded 16911 keys 00
+#recorded 16915 keys 08
+#recorded 16920 keys 00
+#recorded 16924 keys 08
+#recorded 16929 keys 00
+#recorded 16934 keys 08
+#recorded 16942 keys 00
+#recorded 16972 keys 08
+#recorded 16980 keys 00
+#recorded 16985 keys 08
+#recorded 16991 keys 00
+#recorded 16992 keys 08
+#recorded 16995 keys 0a
+#recorded 17002 keys 00
+#recorded 17019 keys 20
+#recorded 17027 keys 00
+#recorded 17109 keys 04
+#recorded 17114 keys 00
+#recorded 17120 keys 04
+#recorded 17126 keys 00
+#recorded 17130 keys 04
+#recorded 17136 keys 00
+#recorded 17139 keys 04
+#recorded 17146 keys 00
+#recorded 17150 keys 04
+#recorded 17155 keys 00
+#recorded 17160 keys 04
+#recorded 17167 keys 00
+#recorded 17206 keys 01
+#recorded 17211 keys 00
+#recorded 17216 keys 01
+#recorded 17220 keys 00
+#recorded 17225 keys 01
+#recorded 17230 keys 00
+#recorded 17235 keys 01
+#recorded 17242 keys 00
+#recorded 17246 keys 01
+#recorded 17251 keys 00
+#recorded 17257 keys 01
+#recorded 17261 keys 00
+#recorded 17266 keys 01
+#recorded 17272 keys 00
+#recorded 17277 keys 01
+#recorded 17284 keys 00
+#recorded 17319 keys 01
+#recorded 17324 keys 00
+#recorded 17329 keys 01
+#recorded 17335 keys 00
+#recorded 17340 keys 01
+#recorded 17345 keys 00
+#recorded 17349 keys 04
+#recorded 17350 keys 05
+#recorded 17356 keys 01
+#recorded 17357 keys 00
+#recorded 17361 keys 04
+#recorded 17362 keys 05
+#recorded 17367 keys 00
+#recorded 17372 keys 01
+#recorded 17377 keys 00
+#recorded 17381 keys 01
+#recorded 17387 keys 00
+#recorded 17391 keys 01
+#recorded 17396 keys 00
+#recorded 17401 keys 01
+#recorded 17406 keys 00
+#recorded 17410 keys 01
+#recorded 17416 keys 00
+#recorded 17420 keys 01
+#recorded 17426 keys 00
+#recorded 17431 keys 01
+#recorded 17436 keys 00
+#recorded 17441 keys 01
+#recorded 17446 keys 00
+#recorded 17451 keys 01
+#recorded 17458 keys 00
+#recorded 17463 keys 01
+#recorded 17470 keys 00
+#recorded 17508 keys 01
+#recorded 17514 keys 00
+#recorded 17519 keys 01
+#recorded 17526 keys 00
+#recorded 17545 keys 08
+#recorded 17550 keys 00
+#recorded 17555 keys 08
+#recorded 17560 keys 00
+#recorded 17564 keys 08
+#recorded 17569 keys 00
+#recorded 17574 keys 08
+#recorded 17580 keys 00
+#recorded 17638 keys 01
+#recorded 17646 keys 00
+#recorded 17651 keys 09
+#recorded 17658 keys 01
+#recorded 17659 keys 00
+#recorded 17666 keys 01
+#recorded 17668 keys 00
+#recorded 17669 keys 20
+#recorded 17677 keys 00
+#recorded 17751 keys 08
+#recorded 17758 keys 00
+#recorded 17762 keys 08
+#recorded 17767 keys 00
+#recorded 17771 keys 08
+#recorded 17776 keys 00
+#recorded 17780 keys 08
+#recorded 17786 keys 00
+#recorded 17791 keys 08
+#recorded 17795 keys 00
+#recorded 17800 keys 08
+#recorded 17805 keys 00
+#recorded 17809 keys 08
+#recorded 17812 keys 09
+#recorded 17816 keys 01
+#recorded 17817 keys 00
+#recorded 17822 keys 01
+#recorded 17826 keys 00
+#recorded 17830 keys 01
+#recorded 17836 keys 00
+#recorded 17841 keys 01
+#recorded 17845 keys 00
+#recorded 17850 keys 01
+#recorded 17854 keys 00
+#recorded 17858 keys 01
+#recorded 17864 keys 00
+#recorded 17868 keys 01
+#recorded 17874 keys 00
+#recorded 17879 keys 01
+#recorded 17885 keys 00
+#recorded 17890 keys 01
+#recorded 17896 keys 00
+#recorded 17901 keys 01
+#recorded 17908 keys 00
+#recorded 17914 keys 01
+#recorded 17922 keys 00
+#recorded 17960 keys 01
+#recorded 17965 keys 00
+#recorded 17970 keys 01
+#recorded 17976 keys 00
+#recorded 17981 keys 01
+#recorded 17986 keys 00
+#recorded 17991 keys 01
+#recorded 17996 keys 00
+#recorded 18001 keys 01
+#recorded 18007 keys 00
+#recorded 18012 keys 01
+#recorded 18017 keys 00
+#recorded 18021 keys 01
+#recorded 18029 keys 00
+#recorded 18034 keys 01
+#recorded 18039 keys 00
+#recorded 18045 keys 01
+#recorded 18049 keys 00
+#recorded 18055 keys 01
+#recorded 18063 keys 05
+#recorded 18070 keys 00
+#recorded 18075 keys 01
+#recorded 18076 keys 05
+#recorded 18081 keys 01
+#recorded 18082 keys 00
+#recorded 18086 keys 01
+#recorded 18091 keys 00
+#recorded 18096 keys 01
+#recorded 18103 keys 00
+#recorded 18107 keys 01
+#recorded 18117 keys 00
+#recorded 18158 keys 05
+#recorded 18165 keys 04
+#recorded 18166 keys 00
+#recorded 18169 keys 04
+#recorded 18170 keys 05
+#recorded 18175 keys 00
+#recorded 18179 keys 04
+#recorded 18180 keys 05
+#recorded 18184 keys 00
+#recorded 18190 keys 04
+#recorded 18191 keys 05
+#recorded 18193 keys 00
+#recorded 18199 keys 05
+#recorded 18204 keys 00
+#recorded 18209 keys 05
+#recorded 18214 keys 01
+#recorded 18215 keys 00
+#recorded 18220 keys 01
+#recorded 18221 keys 05
+#recorded 18225 keys 00
+#recorded 18231 keys 04
+#recorded 18236 keys 00
+#recorded 18240 keys 04
+#recorded 18247 keys 00
+#recorded 18251 keys 04
+#recorded 18257 keys 00
+#recorded 18298 keys 01
+#recorded 18305 keys 00
+#recorded 18309 keys 01
+#recorded 18315 keys 00
+#recorded 18321 keys 08
+#recorded 18326 keys 00
+#recorded 18330 keys 08
+#recorded 18337 keys 00
+#recorded 18341 keys 08
+#recorded 18347 keys 00
+#recorded 18354 keys 08
+#recorded 18360 keys 00
+#recorded 18365 keys 08
+#recorded 18371 keys 00
+#recorded 18377 keys 08
+#recorded 18383 keys 00
+#recorded 18387 keys 08
+#recorded 18393 keys 00
+#recorded 18398 keys 08
+#recorded 18403 keys 00
+#recorded 18407 keys 08
+#recorded 18417 keys 09
+#recorded 18422 keys 00
+#recorded 18425 keys 09
+#recorded 18431 keys 00
+#recorded 18435 keys 08
+#recorded 18437 keys 09
+#recorded 18442 keys 00
+#recorded 18446 keys 08
+#recorded 18448 keys 09
+#recorded 18451 keys 00
+#recorded 18455 keys 08
+#recorded 18456 keys 09
+#recorded 18461 keys 01
+#recorded 18462 keys 00
+#recorded 18467 keys 09
+#recorded 18471 keys 01
+#recorded 18472 keys 00
+#recorded 18477 keys 01
+#recorded 18483 keys 00
+#recorded 18486 keys 01
+#recorded 18494 keys 00
+#recorded 18498 keys 01
+#recorded 18507 keys 00
+#recorded 18536 keys 01
+#recorded 18542 keys 00
+#recorded 18546 keys 01
+#recorded 18553 keys 00
+#recorded 18557 keys 01
+#recorded 18562 keys 00
+#recorded 18579 keys 20
+#recorded 18586 keys 00
+#recorded 18679 keys 04
+#recorded 18695 keys 00
+#recorded 18700 keys 04
+#recorded 18705 keys 00
+#recorded 18709 keys 04
+#recorded 18717 keys 00
+#recorded 18720 keys 04
+#recorded 18763 keys 00
+#recorded 18781 keys 10
+#recorded 18791 keys 00
+#recorded 19444 keys 04
+#recorded 19609 keys 06
+#recorded 19626 keys 04
+#recorded 19725 keys 00
+#recorded 19736 keys 04
+#recorded 19742 keys 00
+#recorded 19748 keys 04
+#recorded 19753 keys 00
+#recorded 19757 keys 04
+#recorded 19763 keys 00
+#recorded 19767 keys 04
+#recorded 19773 keys 00
+#recorded 19777 keys 04
+#recorded 19783 keys 00
+#recorded 19788 keys 04
+#recorded 19793 keys 00
+#recorded 19797 keys 04
+#recorded 19804 keys 00
+#recorded 19809 keys 04
+#recorded 19830 keys 05
+#recorded 19846 keys 01
+#recorded 19854 keys 05
+#recorded 19891 keys 04
+#recorded 19989 keys 05
+#recorded 20046 keys 04
+#recorded 20067 keys 05
+#recorded 20076 keys 04
+#recorded 20133 keys 05
+#recorded 20151 keys 04
+#recorded 20181 keys 00
+#recorded 21877 keys 01
+#recorded 21941 keys 00
+#recorded 21978 keys 80
+#recorded 21986 keys 00
+#recorded 22029 keys 08
+#recorded 22037 keys 00
+#recorded 22061 keys 04
+#recorded 22073 keys 10
+#recorded 22080 keys 00
+#recorded 22101 keys 80
+#recorded 22108 keys 00
+#recorded 22132 keys 04
+#recorded 22159 keys 14
+#recorded 22168 keys 04
+#recorded 22262 keys 05
+#recorded 22285 keys 04
+#recorded 22314 keys 00
+#recorded 23555 keys 02
+#recorded 23613 keys 00
+#recorded 23632 keys 02
+#recorded 23682 keys 06
+#recorded 23690 keys 02
+#recorded 23727 keys 0a
+#recorded 23755 keys 02
+#recorded 23874 keys 0a
+#recorded 23893 keys 02
+#recorded 23923 keys 06
+#recorded 23934 keys 02
+#recorded 23988 keys 0a
+#recorded 24094 keys 02
+#recorded 24183 keys 0a
+#recorded 24217 keys 08
+#recorded 24263 keys 0a
+#recorded 24271 keys 02
+#recorded 24306 keys 0a
+#recorded 24320 keys 02
+#recorded 24456 keys 12
+#recorded 24464 keys 02
+#recorded 24515 keys 06
+#recorded 24536 keys 02
+#recorded 24625 keys 0a
+#recorded 24636 keys 08
+#recorded 24716 keys 0a
+#recorded 24722 keys 08
+#recorded 24745 keys 09
+#recorded 24772 keys 08
+#recorded 24809 keys 0a
+#recorded 24834 keys 08
+#recorded 24901 keys 0a
+#recorded 24904 keys 02
+#recorded 24926 keys 0a
+#recorded 24928 keys 08
+#recorded 24956 keys 18
+#recorded 24964 keys 08
+#recorded 25007 keys 28
+#recorded 25018 keys 08
+#recorded 25023 keys 00
+#recorded 25069 keys 02
+#recorded 25112 keys 80
+#recorded 25121 keys 00
+#recorded 25279 keys 20
+#recorded 25287 keys 00
+#recorded 25323 keys 20
+#recorded 25329 keys 00
+#recorded 25349 keys 80
+#recorded 25358 keys 00
+#recorded 25392 keys 20
+#recorded 25401 keys 00
+#recorded 25417 keys 20
+#recorded 25426 keys 00
+#recorded 26088 keys 08
+#recorded 26112 keys 09
+#recorded 26119 keys 01
+#recorded 26143 keys 05
+#recorded 26145 keys 04
+#recorded 26192 keys 00
+#recorded 26210 keys 04
+#recorded 26233 keys 06
+#recorded 26270 keys 04
+#recorded 26295 keys 00
+#recorded 26302 keys 10
+#recorded 26309 keys 00
+#recorded 26310 keys 02
+#recorded 26322 keys 06
+#recorded 26377 keys 04
+#recorded 26415 keys 05
+#recorded 26420 keys 01
+#recorded 26436 keys 05
+#recorded 26449 keys 04
+#recorded 26478 keys 05
+#recorded 26493 keys 04
+#recorded 26573 keys 06
+#recorded 26577 keys 02
+#recorded 26668 keys 00
+#recorded 26686 keys 01
+#recorded 26694 keys 00
+#recorded 26712 keys 01
+#recorded 26715 keys 05
+#recorded 26745 keys 01
+#recorded 26758 keys 05
+#recorded 26772 keys 04
+#recorded 26799 keys 05
+#recorded 26803 keys 01
+#recorded 26847 keys 09
+#recorded 26864 keys 08
+#recorded 26885 keys 09
+#recorded 26925 keys 08
+#recorded 26932 keys 09
+#recorded 26963 keys 01
+#recorded 26976 keys 11
+#recorded 26987 keys 01
+#recorded 27130 keys 05
+#recorded 27135 keys 04
+#recorded 27167 keys 14
+#recorded 27179 keys 04
+#recorded 27247 keys 00
+#recorded 27249 keys 08
+#recorded 27264 keys 09
+#recorded 27266 keys 01
+#recorded 27294 keys 09
+#recorded 27299 keys 08
+#recorded 27321 keys 09
+#recorded 27324 keys 01
+#recorded 27381 keys 11
+#recorded 27391 keys 01
+#recorded 27401 keys 11
+#recorded 27412 keys 01
+#recorded 27442 keys 00
+#recorded 27520 keys 08
+#recorded 27521 keys 09
+#recorded 27550 keys 01
+#recorded 27665 keys 09
+#recorded 27669 keys 08
+#recorded 27705 keys 00
+#recorded 27731 keys 08
+#recorded 27773 keys 0a
+#recorded 27789 keys 08
+#recorded 27812 keys 0a
+#recorded 27823 keys 02
+#recorded 27824 keys 00
+#recorded 27917 keys 08
+#recorded 27932 keys 09
+#recorded 27938 keys 01
+#recorded 27972 keys 11
+#recorded 27980 keys 01
+#recorded 28001 keys 08
+#recorded 28005 keys 00
+#recorded 28006 keys 02
+#recorded 28028 keys 00
+#recorded 28042 keys 01
+#recorded 28063 keys 11
+#recorded 28075 keys 01
+#recorded 28123 keys 00
+#recorded 28132 keys 02
+#recorded 28265 keys 06
+#recorded 28280 keys 04
+#recorded 28342 keys 06
+#recorded 28359 keys 04
+#recorded 28388 keys 06
+#recorded 28402 keys 04
+#recorded 28438 keys 05
+#recorded 28466 keys 01
+#recorded 28467 keys 02
+#recorded 28486 keys 06
+#recorded 28502 keys 04
+#recorded 28529 keys 06
+#recorded 28548 keys 04
+#recorded 28582 keys 06
+#recorded 28633 keys 04
+#recorded 28641 keys 06
+#recorded 28681 keys 04
+#recorded 28696 keys 00
+#recorded 28714 keys 80
+#recorded 28722 keys 00
+#recorded 28797 keys 02
+#recorded 28807 keys 00
+#recorded 28812 keys 20
+#recorded 28823 keys 00
+#recorded 28882 keys 08
+#recorded 28889 keys 00
+#recorded 28894 keys 08
+#recorded 28901 keys 00
+#recorded 28911 keys 08
+#recorded 28917 keys 00
+#recorded 28925 keys 01
+#recorded 28933 keys 00
+#recorded 28938 keys 01
+#recorded 28945 keys 00
+#recorded 28950 keys 01
+#recorded 28956 keys 00
+#recorded 28962 keys 04
+#recorded 28969 keys 00
+#recorded 28974 keys 04
+#recorded 28978 keys 00
+#recorded 28983 keys 04
+#recorded 28991 keys 00
+#recorded 28995 keys 20
+#recorded 29005 keys 00
+#recorded 29014 keys 08
+#recorded 29022 keys 00
+#recorded 29032 keys 10
+#recorded 29039 keys 00
+#recorded 29047 keys 80
+#recorded 29054 keys 00
+#recorded 29094 keys 22
+#recorded 29100 keys 20
+#recorded 29102 keys 00
+#recorded 29125 keys 02
+#recorded 29158 keys 06
+#recorded 29176 keys 04
+#recorded 29254 keys 05
+#recorded 29291 keys 01
+#recorded 29304 keys 11
+#recorded 29313 keys 01
+#recorded 29329 keys 02
+#recorded 29343 keys 00
+#recorded 29346 keys 01
+#recorded 29351 keys 00
+#recorded 29374 keys 01
+#recorded 29382 keys 11
+#recorded 29391 keys 01
+#recorded 29401 keys 11
+#recorded 29403 keys 10
+#recorded 29407 keys 00
+#recorded 29412 keys 20
+#recorded 29421 keys 00
+#recorded 29438 keys 01
+#recorded 29453 keys 21
+#recorded 29463 keys 01
+#recorded 29469 keys 11
+#recorded 29479 keys 01
+#recorded 29488 keys 03
+#recorded 29489 keys 02
+#recorded 29539 keys 12
+#recorded 29547 keys 02
+#recorded 29603 keys 12
+#recorded 29627 keys 04
+#recorded 29654 keys 05
+#recorded 29665 keys 04
+#recorded 29667 keys 24
+#recorded 29677 keys 04
+#recorded 29681 keys 06
+#recorded 29694 keys 02
+#recorded 29701 keys 12
+#recorded 29711 keys 02
+#recorded 29716 keys 06
+#recorded 29721 keys 04
+#recorded 29746 keys 24
+#recorded 29755 keys 04
+#recorded 29804 keys 05
+#recorded 29811 keys 01
+#recorded 29815 keys 21
+#recorded 29824 keys 01
+#recorded 29842 keys 05
+#recorded 29863 keys 01
+#recorded 29868 keys 21
+#recorded 29877 keys 01
+#recorded 29907 keys 00
+#recorded 29923 keys 08
+#recorded 29932 keys 00
+#recorded 29952 keys 01
+#recorded 29960 keys 11
+#recorded 29972 keys 01
+#recorded 30008 keys 00
+#recorded 30019 keys 02
+#recorded 30091 keys 22
+#recorded 30096 keys 26
+#recorded 30102 keys 06
+#recorded 30110 keys 26
+#recorded 30115 keys 06
+#recorded 30125 keys 26
+#recorded 30133 keys 06
+#recorded 30138 keys 02
+#recorded 30183 keys 12
+#recorded 30195 keys 02
+#recorded 30206 keys 06
+#recorded 30212 keys 04
+#recorded 30277 keys 05
+#recorded 30309 keys 01
+#recorded 30317 keys 11
+#recorded 30328 keys 01
+#recorded 30365 keys 00
+#recorded 30371 keys 10
+#recorded 30378 keys 00
+#recorded 30389 keys 20
+#recorded 30397 keys 00
+#recorded 30426 keys 01
+#recorded 30446 keys 11
+#recorded 30454 keys 01
+#recorded 30460 keys 00
+#recorded 30466 keys 02
+#recorded 30476 keys 00
+#recorded 30489 keys 01
+#recorded 30498 keys 11
+#recorded 30509 keys 01
+#recorded 30709 keys 00
+#recorded 30729 keys 01
+#recorded 30740 keys 00
+#recorded 30774 keys 01
+#recorded 30781 keys 11
+#recorded 30793 keys 01
+#recorded 30812 keys 02
+#recorded 30831 keys 00
+#recorded 30843 keys 01
+#recorded 30866 keys 11
+#recorded 30879 keys 01
+#recorded 30888 keys 21
+#recorded 30899 keys 01
+#recorded 30920 keys 00
+#recorded 31038 keys 01
+#recorded 31051 keys 11
+#recorded 31063 keys 01
+#recorded 31091 keys 11
+#recorded 31102 keys 01
+#recorded 31119 keys 00
+#recorded 31220 keys 10
+#recorded 31224 keys 14
+#recorded 31231 keys 04
+#recorded 31257 keys 14
+#recorded 31265 keys 04
+#recorded 31412 keys 00
+#recorded 31432 keys 01
+#recorded 31486 keys 00
+#recorded 31515 keys 01
+#recorded 31522 keys 05
+#recorded 31536 keys 01
+#recorded 31541 keys 00
+#recorded 31547 keys 02
+#recorded 31549 keys 12
+#recorded 31557 keys 02
+#recorded 31572 keys 00
+#recorded 31585 keys 20
+#recorded 31587 keys 21
+#recorded 31592 keys 01
+#recorded 31598 keys 21
+#recorded 31601 keys 20
+#recorded 31607 keys 00
+#recorded 31610 keys 01
+#recorded 31616 keys 21
+#recorded 31626 keys 01
+#recorded 31630 keys 00
+#recorded 31632 keys 02
+#recorded 31642 keys 0a
+#recorded 31647 keys 2a
+#recorded 31654 keys 28
+#recorded 31658 keys 08
+#recorded 31663 keys 28
+#recorded 31671 keys 08
+#recorded 31672 keys 00
+#recorded 31687 keys 01
+#recorded 31692 keys 21
+#recorded 31701 keys 01
+#recorded 31703 keys 00
+#recorded 31718 keys 02
+#recorded 31724 keys 0a
+#recorded 31756 keys 02
+#recorded 31761 keys 23
+#recorded 31762 keys 21
+#recorded 31769 keys 00
+#recorded 31799 keys 20
+#recorded 31803 keys 28
+#recorded 31804 keys 08
+#recorded 31848 keys 09
+#recorded 31855 keys 01
+#recorded 31874 keys 05
+#recorded 31895 keys 01
+#recorded 31915 keys 00

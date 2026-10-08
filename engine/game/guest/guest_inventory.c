@@ -228,7 +228,7 @@ static uint16_t find_write_point(OraclesGuest *guest)
     const OraclesGuestTables *t = guest->tables;
     size_t size = 0;
     uint16_t bank = 0;
-    const uint8_t *rom = GB_get_direct_access(guest->gb, GB_DIRECT_ACCESS_ROM, &size, &bank);
+    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
     const uint16_t start = t->main_thread_start.addr, target = t->check_reload_status_bar_graphics.addr;
     if (!rom || t->main_thread_start.bank != 0 || t->check_reload_status_bar_graphics.bank != 0 || (size_t)start + 0x80u > size || start + 0x80u > 0x4000u) return 0;
     uint16_t found = 0;

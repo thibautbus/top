@@ -3,8 +3,6 @@
 #include "backends.h"
 #include "core.h"
 
-#include "gb.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +48,7 @@ static int poking_poll_event(void *opaque, oracles_host_event *event, int *has_e
     if (++polls == 50) {
         size_t size = 0;
         uint16_t bank = 0;
-        uint8_t *sram = GB_get_direct_access(oracles_core_gb(poked_core), GB_DIRECT_ACCESS_CART_RAM, &size, &bank);
+        uint8_t *sram = oracles_core_memory(poked_core, ORACLES_CORE_CART_RAM, &size, &bank);
         if (sram && size > 123) sram[123] = 0x5a;
     }
     return original_poll(opaque, event, has_event);
@@ -182,7 +180,7 @@ static int suspending_poll_event(void *opaque, oracles_host_event *event, int *h
     if (suspend_polls == 5) {
         size_t size = 0;
         uint16_t bank = 0;
-        uint8_t *sram = GB_get_direct_access(oracles_core_gb(poked_core), GB_DIRECT_ACCESS_CART_RAM, &size, &bank);
+        uint8_t *sram = oracles_core_memory(poked_core, ORACLES_CORE_CART_RAM, &size, &bank);
         if (sram && size > 124) sram[124] ^= 1;
     }
     if (suspend_polls == 10) {
@@ -207,7 +205,7 @@ int main(void)
     rom[0x100] = 0x00; rom[0x101] = 0xc3; rom[0x102] = 0x50; rom[0x103] = 0x01; /* nop ; jp $0150 */
     rom[0x150] = 0x18; rom[0x151] = 0xfe;                                       /* jr -2 */
 
-    const OraclesCoreOptions options = { 48000, 0 };
+    const OraclesCoreOptions options = { 48000, 0, ORACLES_CORE_SAMEBOY };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     free(rom);
     CHECK(core != NULL);

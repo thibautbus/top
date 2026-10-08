@@ -12,8 +12,6 @@
 #define IO_HDMA5 0x55u
 #define IO_BGPD 0x69u
 #define IO_OBPD 0x6bu
-#define VBLANK_NORMAL 0u
-#define VBLANK_LCD_OFF 1u
 #define PER_LINE_WRITES 16u   /* SCX/SCY writes during the scan that prove a per-line handler ran */
 
 struct OraclesFrameCheck {
@@ -92,8 +90,18 @@ static void write_samples(OraclesFrameCheck *c, OraclesFrameClass cls, int misma
  * callback before it catches its PPU up), so such a line, a scroll write in
  * mode 3 after a write in the previous line's hblank that changes the value,
  * is marked in `late` and left out of the comparison.  Ages' underwater waves do it on line 16,
- * whose handler (lcdInterrupt, behaviour 0) follows the status bar's. */
-static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[ORACLES_PPU_HEIGHT], int *mid_scan, unsigned *scan_scroll_writes, int *lcd_switched_on)
+ * whose handler (lcdInterrupt, behaviour 0) follows the status bar's.
+ *
+ * "Before the fetcher has read anything" is SameBoy's timing.  mGBA starts
+ * drawing a line sooner (its first pixel five dots into mode 3, plus the fine
+ * scroll, video.c's _endMode2), and a per-line handler's write that SameBoy
+ * takes on its first dot may reach mGBA after its first pixel or two.  The
+ * other cores' pipelines decide which of the line's first pixels take such a
+ * write, and the journal cannot tell: a line whose SCX or SCY changes at the
+ * start of its drawing, otherwise compared, is marked in `first_tile` and
+ * compared from its second tile on (from pixel 8). */
+static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[ORACLES_PPU_HEIGHT], uint8_t first_tile[ORACLES_PPU_HEIGHT],
+                        int *mid_scan, unsigned *scan_scroll_writes, int *lcd_switched_on)
 {
     OraclesPpuRegs regs = c->at_last_vblank;
     size_t count = 0;
@@ -102,6 +110,7 @@ static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[
     *scan_scroll_writes = 0;
     *lcd_switched_on = 0;
     memset(late, 0, ORACLES_PPU_HEIGHT);
+    memset(first_tile, 0, ORACLES_PPU_HEIGHT);
     uint8_t hblank_write[ORACLES_PPU_HEIGHT] = { 0 };
     for (size_t i = 0; i < count; i++) if (journal[i].ly < ORACLES_PPU_HEIGHT && journal[i].stat_mode == 0) hblank_write[journal[i].ly] = 1;
     /* A rising edge of LCDC bit 7 anywhere in the period: the core paints the first frame after it white. */
@@ -133,8 +142,11 @@ static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[
             if (w->ly >= ORACLES_PPU_HEIGHT) continue;
             const unsigned effective = w->stat_mode == 0 ? (unsigned)w->ly + 1u : w->ly;
             if (effective != ly) continue;
-            if (w->stat_mode == 3 && ly > 0 && hblank_write[ly - 1]
-                && ((w->reg == IO_SCX && w->value != regs.scx) || (w->reg == IO_SCY && w->value != regs.scy))) late[ly] = 1;
+            const int scroll_changes = (w->reg == IO_SCX && w->value != regs.scx) || (w->reg == IO_SCY && w->value != regs.scy);
+            if (w->stat_mode == 3 && scroll_changes) {
+                if (ly > 0 && hblank_write[ly - 1]) late[ly] = 1;
+                else first_tile[ly] = 1;
+            }
             switch (w->reg) {
                 case IO_LCDC: regs.lcdc = w->value; break;
                 case IO_SCY: regs.scy = w->value; (*scan_scroll_writes)++; break;
@@ -149,7 +161,7 @@ static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[
     }
 }
 
-static void on_vblank(void *opaque, unsigned type)
+static void on_vblank(void *opaque, OraclesVblankType type)
 {
     OraclesFrameCheck *c = opaque;
     const uint8_t *io = oracles_guest_io(c->guest);
@@ -161,7 +173,7 @@ static void on_vblank(void *opaque, unsigned type)
     OraclesPpuInput in;
     int mid_scan = 0, lcd_switched_on = 0;
     unsigned scan_scroll_writes = 0;
-    uint8_t late[ORACLES_PPU_HEIGHT];
+    uint8_t late[ORACLES_PPU_HEIGHT], first_tile[ORACLES_PPU_HEIGHT];
     /* Snapshot what the finished scan used. */
     memcpy(c->vram, oracles_guest_vram(c->guest, 0), 0x4000);
     memcpy(c->oam, oracles_guest_oam(c->guest), 160);
@@ -175,11 +187,11 @@ static void on_vblank(void *opaque, unsigned type)
     }
     in.vram = c->vram; in.oam = c->oam; in.bg_palettes = c->bg_palettes; in.obj_palettes = c->obj_palettes;
     in.colours = c->colours;
-    build_lines(c, &in, late, &mid_scan, &scan_scroll_writes, &lcd_switched_on);
+    build_lines(c, &in, late, first_tile, &mid_scan, &scan_scroll_writes, &lcd_switched_on);
 
     const uint8_t behaviour = oracles_guest_read8(c->guest, oracles_guest_tables(c->guest)->lcd_interrupt_behaviour);
-    if (type != VBLANK_NORMAL && type != VBLANK_LCD_OFF) { cls = ORACLES_FRAME_NO_SCAN; compare = 0; }
-    else if (type == VBLANK_LCD_OFF || !lcd_on_now) cls = ORACLES_FRAME_LCD_OFF;
+    if (type != ORACLES_VBLANK_NORMAL && type != ORACLES_VBLANK_LCD_OFF) { cls = ORACLES_FRAME_NO_SCAN; compare = 0; }
+    else if (type == ORACLES_VBLANK_LCD_OFF || !lcd_on_now) cls = ORACLES_FRAME_LCD_OFF;
     else if (c->lcd_was_off || lcd_switched_on || !c->have_last) cls = ORACLES_FRAME_LCD_ON_FIRST;
     /* lcdInterrupt (bank0.s): behaviours 0 and 1 write SCX or SCY on every
      * line from wBigBuffer; 2, 3 and 4 are the status-bar switch of normal
@@ -218,8 +230,9 @@ static void on_vblank(void *opaque, unsigned type)
         for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) {
             c->stats.compared_lines++;
             if (late[ly]) { c->stats.late_scroll_lines++; continue; }
-            const size_t row = (size_t)ly * ORACLES_PPU_WIDTH;
-            if (memcmp(c->native + row, c->core_pixels + row, ORACLES_PPU_WIDTH * sizeof c->native[0])) mismatch = 1;
+            const size_t from = first_tile[ly] ? 8u : 0u, row = (size_t)ly * ORACLES_PPU_WIDTH + from;
+            if (first_tile[ly]) c->stats.first_tile_lines++;
+            if (memcmp(c->native + row, c->core_pixels + row, (ORACLES_PPU_WIDTH - from) * sizeof c->native[0])) mismatch = 1;
         }
         if (mismatch) {
             if (c->stats.mismatches[cls] == 0) c->stats.first_mismatch[cls] = c->frame;
@@ -328,4 +341,5 @@ void oracles_frame_check_report(const OraclesFrameCheck *c, FILE *out)
             total ? 100.0 * unsupported / total : 0.0, total ? 100.0 * (unsupported + s->frames[ORACLES_FRAME_NO_SCAN]) / total : 0.0);
     fprintf(out, "  lines with a late scroll write, not compared: %u, %.3f%% of the compared frames' lines (ceiling 1%%)\n",
             s->late_scroll_lines, s->compared_lines ? 100.0 * s->late_scroll_lines / s->compared_lines : 0.0);
+    fprintf(out, "  lines whose scroll changed at the start of their drawing, compared from pixel 8: %u\n", s->first_tile_lines);
 }

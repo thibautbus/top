@@ -27,7 +27,7 @@ The header, before the `inputs` line, is a list of `name value` pairs:
 | `rom_sha1` | the SHA-1 of the ROM image played, in lower-case hexadecimal; a fan game's is its patched image's |
 | `sram_sha1` | the SHA-1 of the starting SRAM, or `none`; that SRAM is the file `ROUTE.sram` beside the route |
 | `options` | optional: the session's gameplay options, comma-separated; today `continuous-transitions`, and `continuous-swim`, which always follows it (the continuous transitions through a swim too). The launcher and the harness replay the route with them, else it would diverge; absent, none |
-| `core` | optional: how the core ran; one value today, `joypad-bouncing-off`, which the launcher writes in every route it records; any other stops the reader, like an unknown verb. Absent, the route was recorded with SameBoy's emulation of joypad bouncing, which the launcher and the harness turn back on to replay it; that emulation makes the state depend on the audio sample rate, so such a route's replay may differ from its session |
+| `core` | optional: how the core ran; one value today, `joypad-bouncing-off`, which the launcher writes in every route it records; any other stops the reader, like an unknown verb. Absent, the route was recorded with SameBoy's emulation of joypad bouncing, which the launcher and the harness turn back on to replay it; that emulation makes the state depend on the audio sample rate, so such a route's replay may differ from its session. The repository's routes recorded so were rewritten without it by `tools/debounce_route.py`: in the frames the game read the keys (the guest counts its input poll's writes, `--keys-read`), their keys are those it read on SameBoy, bouncing included, and in the others those recorded; each replays the same game without the bouncing, its live-state fingerprints compared frame for frame for every set of options its rows run with and with the Enhanced view, and keeps its recording as `#recorded` comments, which readers skip. A route whose rows ran two games (with and without `--continuous-transitions`) became two routes, the second named `-continuous` |
 | `mods` | optional: the session's mods, `NAME@SHA1,NAME@SHA1…` in the order of their names; the route replays only with those mods (`--mods`, in any order). Their starting `mod.storage` is the file `ROUTE.store` beside the route; absent, empty. Absent, no mod; a route recorded without mods does not replay with one |
 | `store_sha1` | optional, with `mods`: the SHA-1 of `ROUTE.store`, or `none` without a file; the launcher and the harness refuse the replay when the file does not match |
 
@@ -86,22 +86,26 @@ A run with `--out` and one without `--enhanced-check` give the same fingerprints
 
 ## The suite
 
-`tools/check_routes.py` replays the repository's routes through the harness and holds their figures; `ctest` runs it as `oracles-routes`:
+`tools/check_routes.py` replays the repository's routes through the harness and holds their figures, on SameBoy unless `--core mgba` is given; `ctest` runs it on each core, as `oracles-routes` and `oracles-routes-mgba`:
 
 ```bash
-ORACLES_ROM_DIR=/path/to/roms ctest --test-dir build -R oracles-routes --output-on-failure
+ORACLES_ROM_DIR=/path/to/roms ctest --test-dir build -R '^oracles-routes$' --output-on-failure      # SameBoy; oracles-routes-mgba for mGBA
 ORACLES_ROM_DIR=/path/to/roms python3 tools/check_routes.py --harness build/oracles-harness
 python3 tools/check_routes.py --rom-dir /path/to/roms --only seasons/lost-woods     # the rows of one route
 python3 tools/check_routes.py --rom-dir /path/to/roms --update                      # after a change of behaviour that is meant
+python3 tools/check_routes.py --rom-dir /path/to/roms --core mgba                   # the rows of mGBA and of both cores
 ```
 
-Every `checks.tsv` under `routes/` holds the rows of the routes of its own directory, one directory per game (`ages/`, `seasons/`, and one per fan game). A row is `route mode options expect run_hash`, tab-separated:
+Every `checks.tsv` under `routes/` holds the rows of the routes of its own directory, one directory per game (`ages/`, `seasons/`, and one per fan game). A row is `route mode options expect run_hash core`, tab-separated:
 
 - **route**, a file of the manifest's directory; the identity of a route is its path relative to `routes/` (`ages/intro.route`), from which its labels (`ages-intro-faithful`) and working directories derive;
 - **mode**: `faithful` (the native renderer against the core with colour correction off, and the ghost against every transition with its reads traced against the cache key), `faithful-cc` (the renderer under colour correction), `enhanced` (the Enhanced surface of every frame, camera profile 2, the ghost synchronous: reproducible and hashed), `enhanced-threaded` (the same with the ghost in its thread, as played: the figures that do not depend on timing), `enhanced-zoom` and `enhanced-zoom-threaded` (the same two in the drawn-back view);
 - **options**: extra harness flags, `-` for none; a `--mods` directory is resolved against the repository;
 - **expect**: `;`-separated `key=value` or `key<=value` over the harness's summary, on top of the rules every row of its mode must hold (no renderer mismatch, no wrong terrain, no wrong room, no ghost read outside the key and its exemptions, no horizontal camera jump, no misplaced window...);
-- **run_hash**: the Enhanced run hash the row last produced, `-` when the mode has none.
+- **run_hash**: the Enhanced run hash the row last produced, `-` when the mode has none; each core has its own, so that a row of both cores in a hashed mode holds `sameboy:HASH,mgba:HASH`, and `--update` rewrites the hash of the core replayed;
+- **core**: the core the row replays on, `sameboy` or `mgba`, `-` for both.
+
+The routes are recorded on SameBoy. Replayed on mGBA, a few part from the game they recorded: where the game's logic of a frame ends on one side of a vblank on one core and on the other side on the other, a key is read, or a game frame runs, a frame apart, and the game goes elsewhere. Such a route keeps its rows for SameBoy and gets its own for mGBA, with floors from mGBA's replay of it; a comment above them names where it parts and why. On mGBA every `faithful` row is also replayed on SameBoy and the rooms both replays go through are compared (`tools/compare_positions.py`): a row of both cores must go through the same rooms to the end, and a row of mGBA's holds a floor on the rooms in common before it parts (`cores.rooms_same`), so that a parting that comes sooner fails. A line whose SCX or SCY changes while it is drawn is compared from its second tile on: mGBA starts drawing a line sooner than SameBoy, and which of the first pixels take the write is each core's fetch timing (`render.first_tile_lines`).
 
 For each route the live-state fingerprints of its `faithful` row and of each Enhanced row are compared: the presentation writes nothing into the live instance, on every route and in the mode that is played. A route recorded since joypad bouncing was cut has its faithful row replayed again at 48 kHz, and the state must be the same.
 

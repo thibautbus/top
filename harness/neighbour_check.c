@@ -57,7 +57,7 @@ OraclesNeighbourCheck *oracles_neighbour_check_start(const uint8_t *rom, size_t 
     c->guest = live_guest;
     c->lead = lead < RING - 1u ? lead : RING - 2u;
     c->capture = capture != 0;
-    c->ghost = oracles_ghost_create(rom, rom_size, profile);
+    c->ghost = oracles_ghost_create(rom, rom_size, profile, oracles_core_kind(live));
     c->live_objects = oracles_objects_create(live_guest);
     c->live_sprites = oracles_sprites_create(live_guest);
     c->state_size = oracles_core_state_size(live);

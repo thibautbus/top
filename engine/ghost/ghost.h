@@ -158,8 +158,9 @@ void oracles_ghost_set_capture(OraclesGhost *ghost, int enabled);
 void oracles_ghost_sprite_stats(const OraclesGhost *ghost, unsigned *frames, unsigned *frames_uncovered, unsigned *worst_gap, unsigned *tags_dropped);
 unsigned oracles_ghost_frames_oam_full(const OraclesGhost *ghost);
 
-/* Loads the ROM once (copied by the core) and attaches its own guest. */
-OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile);
+/* Loads the ROM once (copied by the core) and attaches its own guest.  The ghost runs on the game's core (`kind`, from
+ * oracles_core_kind): it loads that core's savestates. */
+OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind);
 void oracles_ghost_destroy(OraclesGhost *ghost);
 size_t oracles_ghost_state_size(OraclesGhost *ghost);
 

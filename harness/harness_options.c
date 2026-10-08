@@ -1,12 +1,16 @@
 #include "harness_options.h"
 
+#include "core.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int harness_usage(void)
 {
-    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)]\n"
+    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
+                    "                       [--positions FILE]   (group, room and Link's position after every frame: --compare two of them, from two cores, to find where they part)\n"
+                    "                       [--keys-read FILE]   (the keys the game read in every frame, in a route's order, and whether it read them in that frame: tools/debounce_route.py)\n"
                     "                       [--render-check SAMPLES_DIR] [--render-expect CLASSES]   (native renderer against the core, samples written there; exit 1 on a mismatch, an empty expected class or a ceiling)\n"
                     "                       [--ghost-check DIR] [--ghost-lead FRAMES] [--ghost-threaded] [--ghost-trace] [--ghost-trace-load]   (ghost instance against every scrolling transition; the second trace counts the whole load's reads)\n"
                     "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2] [--enhanced-neighbours off|static (static)]   (the Enhanced surface of every frame composed and hashed)\n"
@@ -46,6 +50,14 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--colour-correction") && i + 1 < argc) o->colour_correction = strcmp(argv[++i], "on") == 0;
         else if (!strcmp(argv[i], "--out") && i + 1 < argc) o->out_path = argv[++i];
         else if (!strcmp(argv[i], "--sample-rate") && i + 1 < argc) o->sample_rate_hz = (uint32_t)strtoul(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--positions") && i + 1 < argc) o->positions_path = argv[++i];
+        else if (!strcmp(argv[i], "--keys-read") && i + 1 < argc) o->keys_read_path = argv[++i];
+        else if (!strcmp(argv[i], "--core") && i + 1 < argc) {
+            const char *name = argv[++i];
+            if (!strcmp(name, "sameboy")) o->core_kind = ORACLES_CORE_SAMEBOY;
+            else if (!strcmp(name, "mgba")) o->core_kind = ORACLES_CORE_MGBA;
+            else return harness_usage();
+        }
         else if (!strcmp(argv[i], "--corrupt-thread1-at") && i + 1 < argc) o->corrupt_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--compare") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; }
         else if (!strcmp(argv[i], "--compare-session") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; o->compare_session = 1; }

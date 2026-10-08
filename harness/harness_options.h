@@ -12,6 +12,8 @@
 typedef struct harness_options {
     const char *rom_path, *patch_path, *route_path, *out_path, *compare_a, *compare_b, *samples_dir;
     const char *ghost_dir, *enhanced_dir, *summary_path, *objects_dir, *render_expect, *hotkeys_dir;
+    const char *positions_path;               /* --positions: group, room and Link's position after every frame */
+    const char *keys_read_path;               /* --keys-read: the keys the game read in every frame */
     const char *mods_dirs[8], *mod_trace_path;   /* the mods replayed with the route (--mods, repeated), and their state frame by frame */
     unsigned mods_count;
     uint32_t dump_at[HARNESS_MAX_DUMPS];
@@ -24,6 +26,7 @@ typedef struct harness_options {
     uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz;
     int objects_capture, enhanced_objects, enhanced_threaded, enhanced_paced, enhanced_zoom_out, continuous_transitions, continuous_swim;
     int hooks, colour_correction, ghost_threaded, ghost_trace, ghost_trace_load, compare_session;
+    int core_kind;                            /* --core: an OraclesCoreKind, SameBoy unless asked */
     OraclesHotkeysLiveOptions hotkeys_live;   /* the live policy of the item hotkeys with scripted keys */
 } harness_options;
 
