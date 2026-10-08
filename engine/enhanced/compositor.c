@@ -43,7 +43,7 @@ static uint32_t gutter_pixel(const OraclesEnhancedCompose *in, uint32_t border)
  * with the room, and the window, drawn with that scroll, stays in place.
  * `row` holds the band's columns x0 to x1. */
 static unsigned compose_row(const OraclesEnhancedCompose *in, const uint32_t *core, uint32_t *row, unsigned x0, unsigned x1,
-                            int32_t world_y, int32_t shift_x, int32_t shift_y)
+                            int32_t world_y, int32_t shift_x, int32_t shift_y, uint32_t black)
 {
     uint8_t painted[ORACLES_ENHANCED_MAX_WIDTH];
     memset(painted + x0, 0, x1 - x0);
@@ -59,7 +59,10 @@ static unsigned compose_row(const OraclesEnhancedCompose *in, const uint32_t *co
         if (to > (int32_t)x1) to = (int32_t)x1;
         const uint32_t *src = nb->game_area + (size_t)ny * width;
         const int32_t offset = left - nb->world_left;   /* the source column of band column x is x + offset, in the span */
-        for (int32_t x = from; x < to; x++) { row[x] = nb->faded ? src[x + offset] : faded(in, src[x + offset], in->fade); painted[x] = 1; }
+        if (from >= to) continue;
+        if (nb->faded) memcpy(row + from, src + from + offset, (size_t)(to - from) * sizeof *row);
+        else for (int32_t x = from; x < to; x++) row[x] = faded(in, src[x + offset], in->fade);
+        memset(painted + from, 1, (size_t)(to - from));
     }
     /* The window: the game area starts after the status bar; the scroll moves it with the world. */
     const int32_t line = world_y - in->window_world_top;
@@ -69,13 +72,16 @@ static unsigned compose_row(const OraclesEnhancedCompose *in, const uint32_t *co
         const int32_t offset = in->world_left - in->window_world_left;
         if (from < (int32_t)x0) from = (int32_t)x0;
         if (to > (int32_t)x1) to = (int32_t)x1;
-        for (int32_t x = from; x < to; x++) { row[x] = src[x + offset]; painted[x] = 1; }
+        if (from < to) {
+            memcpy(row + from, src + from + offset, (size_t)(to - from) * sizeof *row);
+            memset(painted + from, 1, (size_t)(to - from));
+        }
     }
     unsigned uncovered = 0;
     const int counted_row = !in->counted_width || (wy >= in->counted_top && wy < in->counted_top + (int32_t)in->counted_height);
     for (unsigned x = x0; x < x1; x++) {
         if (painted[x]) continue;
-        row[x] = gutter_pixel(in, 0xff000000u);
+        row[x] = black;
         const int32_t wx = left + (int32_t)x;
         if (counted_row && (!in->counted_width || (wx >= in->counted_left && wx < in->counted_left + (int32_t)in->counted_width))) uncovered++;
     }
@@ -114,15 +120,16 @@ static unsigned compose_world(const uint32_t *core, const OraclesEnhancedCompose
      * not counted. */
     const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
     const unsigned x0 = (W - shown_w) / 2u, y0 = (band_h - shown_h) / 2u;
+    const uint32_t black = gutter_pixel(in, 0xff000000u);
     for (unsigned y = 0; y < band_h; y++) {
         uint32_t *row = out + (HUD + y) * W;
-        if (y < y0 || y >= y0 + shown_h) { for (unsigned x = 0; x < W; x++) row[x] = gutter_pixel(in, 0xff000000u); continue; }
+        if (y < y0 || y >= y0 + shown_h) { for (unsigned x = 0; x < W; x++) row[x] = black; continue; }
         const int32_t world_y = in->world_top + (int32_t)y;
         const int32_t line = (int32_t)((uint32_t)(world_y - in->window_world_top) % AREA_H);   /* AREA_H a power of two: a floor modulo */
         const int32_t shift_x = in->line_shift ? in->line_shift[line] : 0, shift_y = in->line_shift_y ? in->line_shift_y[line] : 0;
-        for (unsigned x = 0; x < x0; x++) row[x] = gutter_pixel(in, 0xff000000u);
-        for (unsigned x = x0 + shown_w; x < W; x++) row[x] = gutter_pixel(in, 0xff000000u);
-        uncovered += compose_row(in, core, row, x0, x0 + shown_w, world_y, shift_x, shift_y);
+        for (unsigned x = 0; x < x0; x++) row[x] = black;
+        for (unsigned x = x0 + shown_w; x < W; x++) row[x] = black;
+        uncovered += compose_row(in, core, row, x0, x0 + shown_w, world_y, shift_x, shift_y, black);
     }
     return uncovered;
 }

@@ -42,6 +42,9 @@ void oracles_ppu_render(const OraclesPpuInput *input, uint32_t *out);
  * background and window only past the 160th: for the terrain of a large room
  * beyond the LCD window (`out` has `width` pixels per line, 144 lines). */
 void oracles_ppu_render_wide(const OraclesPpuInput *input, uint32_t *out, unsigned width);
+/* The same, lines `first` to `end` (excluded) only: the others are left as they are in `out`, the lines before
+ * `first` still counted for the window as the LCD counts them. */
+void oracles_ppu_render_wide_lines(const OraclesPpuInput *input, uint32_t *out, unsigned width, unsigned first, unsigned end);
 
 /* The core's raw conversion of an RGB555 colour (colour correction disabled). */
 uint32_t oracles_ppu_rgb555(uint16_t colour);

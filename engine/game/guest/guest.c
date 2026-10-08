@@ -230,6 +230,7 @@ static void on_execute(void *opaque, uint16_t pc, uint8_t opcode, uint16_t sp)
         emit(guest, p.type, pc, 0, 0);
     }
 
+    if (!(guest->hooked_pc[pc >> 3] & (1u << (pc & 7u)))) return;
     for (unsigned i = 0; i < guest->hook_count; i++) {
         const hook *h = &guest->hooks[i];
         if (pc != h->entry.addr) continue;
@@ -420,6 +421,7 @@ int oracles_guest_add_hook(OraclesGuest *guest, OraclesGuestSym entry, OraclesGu
     h->entry = entry;
     h->on_entry = on_entry;
     h->on_return = on_return;
+    guest->hooked_pc[entry.addr >> 3] |= (uint8_t)(1u << (entry.addr & 7u));
     return 0;
 }
 
@@ -427,6 +429,7 @@ void oracles_guest_clear_hooks(OraclesGuest *guest)
 {
     guest->hook_count = 0;
     guest->pending_count = 0;
+    memset(guest->hooked_pc, 0, sizeof guest->hooked_pc);
 }
 
 OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile *profile)

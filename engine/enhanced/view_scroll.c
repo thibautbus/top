@@ -324,7 +324,7 @@ void ev_scroll_keep_capture(OraclesEnhancedView *v, const OraclesPpuRegs *regs, 
  * drawn with the view's tiles during the scroll; itself otherwise. */
 const uint32_t *ev_scroll_capture(OraclesEnhancedView *v, int left)
 {
-    const uint32_t *area = left ? v->left_area : v->source_area;
+    const uint32_t *area = left ? v->left_area : ev_source_area(v);
     if (!v->shown_active || !v->scroll_wrote) return area;
     uint32_t *out = left ? v->left_shown : v->source_shown;
     unsigned *version = left ? &v->left_shown_version : &v->source_shown_version;

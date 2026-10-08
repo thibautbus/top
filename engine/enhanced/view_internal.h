@@ -418,7 +418,12 @@ struct OraclesEnhancedView {
     /* the room Link is in, rendered from the live VRAM before a scroll: what
      * the game's window leaves behind during the scroll, when the cache has
      * no entry for that room yet */
-    uint32_t source_area[ORACLES_GHOST_AREA_WIDTH * ORACLES_GHOST_AREA_HEIGHT];
+    uint32_t source_area[ORACLES_GHOST_AREA_WIDTH * ORACLES_GHOST_AREA_HEIGHT];   /* read through ev_source_area */
+    /* drawn when it is read: the capture keeps the inputs of its render (the VRAM and the BG palettes in
+     * source_vram and source_palettes) */
+    int source_area_pending;
+    OraclesPpuRegs source_render_regs;
+    uint8_t source_oam[160], source_obj_palettes[64];
     int source_valid;
     uint8_t source_group, source_room;
     int32_t source_left, source_top;
@@ -533,6 +538,8 @@ const uint8_t *ev_shown_vram(OraclesEnhancedView *v, unsigned bank);
 const uint8_t *ev_shown_animated(const OraclesEnhancedView *v);
 const uint32_t *ev_scroll_window(OraclesEnhancedView *v);
 void ev_scroll_keep_capture(OraclesEnhancedView *v, const OraclesPpuRegs *regs, const uint8_t *palettes);
+/* The last capture of the room in play, drawn from the inputs it kept the first time it is read. */
+const uint32_t *ev_source_area(OraclesEnhancedView *v);
 const uint32_t *ev_scroll_capture(OraclesEnhancedView *v, int left);
 /* The frames from a scroll's first frozen frame to the one where its counter
  * runs out, the load (states 3 and 4) taking `load` frames and the counter

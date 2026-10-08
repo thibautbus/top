@@ -58,6 +58,7 @@ struct OraclesGuest {
     uint32_t policy_not_asked;                       /* such vblanks since the policy was last asked */
     hook hooks[32];                                  /* the table of section 15 plus the hooks a consumer adds (tags, object updates) */
     unsigned hook_count;
+    uint8_t hooked_pc[0x10000u / 8u];                 /* a bit per address some hook enters at: the others skip the table */
     pending_return pending[PENDING_RETURNS];
     unsigned pending_count;
     OraclesGuestRegWrite journal[JOURNAL_CAPACITY];

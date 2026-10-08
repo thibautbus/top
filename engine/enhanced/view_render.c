@@ -91,9 +91,11 @@ void ev_capture_source_terrain(OraclesEnhancedView *v)
     in.colours = v->raw_colours;   /* RGB555: the compose fades it with the game and converts it */
     if (!regs || !in.vram || !in.oam || !in.bg_palettes || !in.obj_palettes) return;
     const OraclesPpuRegs r = { (uint8_t)(with_objects ? (regs[0] | 0x82u) : ((regs[0] | 0x80u) & ~0x02u)), regs[1], regs[2], regs[3], regs[4] };
-    for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
-    oracles_ppu_render(&in, v->hybrid_frame);
-    memcpy(v->source_area, v->hybrid_frame + (ORACLES_PPU_HEIGHT - ORACLES_GHOST_AREA_HEIGHT) * ORACLES_PPU_WIDTH, sizeof v->source_area);
+    /* Its render waits until it is read (ev_source_area), from these inputs: most captures are never read. */
+    v->source_render_regs = r;
+    memcpy(v->source_oam, in.oam, sizeof v->source_oam);
+    memcpy(v->source_obj_palettes, in.obj_palettes, sizeof v->source_obj_palettes);
+    v->source_area_pending = 1;
     ev_scroll_keep_capture(v, &r, in.bg_palettes);
     v->source_shown_version = 0;
     v->source_group = v->observer.ref_group;
@@ -103,6 +105,23 @@ void ev_capture_source_terrain(OraclesEnhancedView *v)
     v->source_epoch = ob->epoch;
     v->source_pipeline = v->colours_pipeline;
     v->source_valid = 1;
+}
+
+const uint32_t *ev_source_area(OraclesEnhancedView *v)
+{
+    if (!v->source_area_pending) return v->source_area;
+    v->source_area_pending = 0;
+    OraclesPpuInput in;
+    in.vram = v->source_vram;   /* bank 0 then bank 1, as the capture copied them */
+    in.oam = v->source_oam;
+    in.bg_palettes = v->source_palettes;
+    in.obj_palettes = v->source_obj_palettes;
+    in.colours = v->raw_colours;
+    for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = v->source_render_regs;
+    const unsigned first = ORACLES_PPU_HEIGHT - ORACLES_GHOST_AREA_HEIGHT;
+    oracles_ppu_render_wide_lines(&in, v->hybrid_frame, ORACLES_PPU_WIDTH, first, ORACLES_PPU_HEIGHT);   /* the game area only */
+    memcpy(v->source_area, v->hybrid_frame + first * ORACLES_PPU_WIDTH, sizeof v->source_area);
+    return v->source_area;
 }
 
 /* The capture stands for the room being left during its scrolling
@@ -496,8 +515,8 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
              * some to show, and never in a large room, which the view shows alone. */
             const OraclesPpuRegs r = { (uint8_t)(draw_objects ? (e->regs3[0] | 0x82u) : ((e->regs3[0] | 0x80u) & ~0x02u)), (uint8_t)(e->regs3[1] - e->camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
             for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
-            oracles_ppu_render_wide(&in, v->strip, width);
             const unsigned rows = height - pass * ORACLES_ENHANCED_AREA_HEIGHT < ORACLES_ENHANCED_AREA_HEIGHT ? height - pass * ORACLES_ENHANCED_AREA_HEIGHT : ORACLES_ENHANCED_AREA_HEIGHT;
+            oracles_ppu_render_wide_lines(&in, v->strip, width, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + rows);   /* the lines kept */
             memcpy(e->live_area + pass * ORACLES_ENHANCED_AREA_HEIGHT * width, v->strip + ORACLES_ENHANCED_HUD_HEIGHT * width, rows * width * sizeof *v->strip);
         }
         /* Blocks that differ from the ghost's render although their tile is
@@ -550,8 +569,8 @@ void ev_render_large_room(OraclesEnhancedView *v)
     for (unsigned pass = 0; pass < 2; pass++) {
         const OraclesPpuRegs r = { (uint8_t)((regs[0] | 0x80u) & ~0x02u), (uint8_t)(regs[1] - camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(regs[2] - camera_x), regs[3], regs[4] };
         for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
-        oracles_ppu_render_wide(&in, v->strip, LARGE_ROOM_W);
         const unsigned rows = pass ? LARGE_ROOM_H - ORACLES_ENHANCED_AREA_HEIGHT : ORACLES_ENHANCED_AREA_HEIGHT;
+        oracles_ppu_render_wide_lines(&in, v->strip, LARGE_ROOM_W, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + rows);   /* the lines kept */
         memcpy(v->strip_raw + pass * ORACLES_ENHANCED_AREA_HEIGHT * LARGE_ROOM_W, v->strip + ORACLES_ENHANCED_HUD_HEIGHT * LARGE_ROOM_W, rows * LARGE_ROOM_W * sizeof *v->strip);
     }
     for (unsigned i = 0; i < LARGE_ROOM_W * LARGE_ROOM_H; i++) v->strip_area[i] = v->colours[v->strip_raw[i] & (ORACLES_PPU_COLOURS - 1u)];

@@ -382,7 +382,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     /* The first frame of a transition: the last capture of the room in play,
      * its objects in it, becomes the image of the room left (design, 6.2.2). */
     if (v->neighbour_objects && v->observation.in_transition && !v->was_in_transition && v->source_valid && !v->observation.large_grid) {
-        memcpy(v->left_area, v->source_area, sizeof v->left_area);
+        memcpy(v->left_area, ev_source_area(v), sizeof v->left_area);
         v->left_group = v->source_group;
         v->left_room = v->source_room;
         v->left_left = v->source_left;
