@@ -401,7 +401,7 @@ def main() -> int:
     ap.add_argument("--rom-dir", type=Path, default=None, help="defaults to $ORACLES_ROM_DIR; without it the check is skipped (exit 77)")
     ap.add_argument("--work", type=Path, default=None, help="defaults to build/routes-check, build/routes-check-mgba on mGBA")
     ap.add_argument("--jobs", type=int, default=DEFAULT_JOBS)
-    ap.add_argument("--only", default=None, help="run the rows whose route, label or mode contains this text")
+    ap.add_argument("--only", default=None, help="run the rows whose route, label or mode contains this text, or, for a text starting with --, whose options do")
     ap.add_argument("--update", action="store_true", help="rewrite the run hashes that changed in their manifests")
     args = ap.parse_args()
     manifests = [args.manifest] if args.manifest else sorted(args.routes.rglob("checks.tsv"))
@@ -420,7 +420,8 @@ def main() -> int:
     if args.work is None:
         args.work = REPO / "build" / ("routes-check" if args.core == "sameboy" else f"routes-check-{args.core}")
     if args.only:
-        rows = [r for r in rows if args.only in r["route"] or args.only in f"{r['label']}-{r['mode']}" or args.only in r["mode"]]
+        rows = [r for r in rows if args.only in r["route"] or args.only in f"{r['label']}-{r['mode']}" or args.only in r["mode"]
+                or (args.only.startswith("--") and args.only in " ".join(r["options"]))]
     if not rows:
         print("check_routes: no row selected")
         return 2

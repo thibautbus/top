@@ -103,7 +103,7 @@ struct OraclesEnhancedCheck {
     int threaded;
     int paced;                    /* each frame held to the Game Boy's period, as played */
     double paced_start;
-    unsigned width, band_height;  /* the surface's width and its world band's height: 256 and 128, or 480 and 254 (--zoom-out) */
+    unsigned width, band_height;  /* the surface's width and its world band's height (oracles_enhanced_band_height) */
     unsigned transitions_large;   /* horizontal transitions in large rooms: the room entered is shown during the scroll, not before */
     unsigned large_scroll_black;  /* world frames of a large room's scroll with pixels no source covers beyond the room's gutters: the room entered missing */
     /* the transition in progress: what was shown for the room entered */

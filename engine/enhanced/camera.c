@@ -343,7 +343,7 @@ struct OraclesEnhancedCamera {
     unsigned profile;
     OraclesE11Config config;             /* the pinned configuration of the profile, the reducers' but outdoors */
     OraclesE11Config wide;               /* outdoors: the same, its viewport the band's width and framed at its middle */
-    unsigned band_w, band_h;             /* the surface's world band: 256x128, or 480x254 in the drawn-back view */
+    unsigned band_w, band_h;             /* the surface's world band, its width and oracles_enhanced_band_height */
     int shown_wide;                      /* the last reduction framed the band's whole width */
     int shown_height;                    /* and that many of its lines */
     int restored;                        /* states just restored (a savestate): the next reduction takes their viewport as it finds it */
@@ -362,7 +362,8 @@ struct OraclesEnhancedCamera {
  * viewport: the band's top is the reducer's position plus 64, and the bounds
  * are widened by 64 px each way so that the band, not the viewport, stops at
  * the map's edge.  Framing at 128 puts Link at the band's middle line.  (The
- * drawn-back view outdoors: a viewport of 480, a band of 254, a margin of 113.) */
+ * drawn-back view outdoors: a viewport of 480, a band of 254, a margin of 113;
+ * in its 4:3 shape, a band of 344, a margin of 68.) */
 /* The reducers frame the band's whole width where the viewport is as wide as it (outdoors, a large room drawn back,
  * and every place in a band no wider than 256), else the normal 256 centred in it (the interiors of a wider band);
  * its whole height outdoors and where a large room is drawn back, else the 128 lines of a room (an interior, a band

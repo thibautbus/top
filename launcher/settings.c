@@ -301,7 +301,7 @@ int oracles_settings_store(const oracles_settings *s)
     fprintf(f, "# The game's menus, its map and its cutscenes in Enhanced: large (at their own largest whole scale, as Faithful\n"
                "# shows them) or view (framed at the view's scale).\n");
     fprintf(f, "menus=%s\n", s->menus_large ? "large" : "view");
-    fprintf(f, "# The view's shape: auto (the screen's, nearer 4:3 or 16:9), 16:9 or 4:3, whatever the screen; far keeps its 16:9.\n");
+    fprintf(f, "# The view's shape: auto (the screen's, nearer 4:3 or 16:9), 16:9 or 4:3, whatever the screen.\n");
     fprintf(f, "aspect=%s\n", oracles_settings_aspect_names[s->aspect >= 0 && s->aspect < 3 ? s->aspect : 0]);
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");

@@ -188,9 +188,12 @@ static void view_and_savestate(void)
     CHECK(rig_start(&r));
     OraclesEnhancedView *zoom = r.guest ? oracles_enhanced_view_start(r.core, r.guest, NULL, 0) : NULL;
     OraclesEnhancedView *normal = r.guest ? oracles_enhanced_view_start(r.core, r.guest, NULL, 0) : NULL;
-    CHECK(zoom && normal);
-    if (!zoom || !normal) { rig_stop(&r); return; }
+    OraclesEnhancedView *far_4_3 = r.guest ? oracles_enhanced_view_start(r.core, r.guest, NULL, 0) : NULL;
+    CHECK(zoom && normal && far_4_3);
+    if (!zoom || !normal || !far_4_3) { oracles_enhanced_view_stop(zoom); oracles_enhanced_view_stop(normal); oracles_enhanced_view_stop(far_4_3); rig_stop(&r); return; }
     oracles_enhanced_view_set_zoom_out(zoom, 1);
+    oracles_enhanced_view_set_size(far_4_3, oracles_enhanced_view_size(ORACLES_ENHANCED_FAR, ORACLES_ENHANCED_4_3));
+    CHECK(oracles_enhanced_view_width(far_4_3) == W && oracles_enhanced_view_height(far_4_3) == 360u);
     CHECK(oracles_enhanced_view_width(zoom) == W && oracles_enhanced_view_height(zoom) == H);
     CHECK(oracles_enhanced_view_width(normal) == 256u && oracles_enhanced_view_height(normal) == 144u);
 
@@ -217,11 +220,21 @@ static void view_and_savestate(void)
     CHECK(oracles_enhanced_view_save_state(zoom, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 8u);
     CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) == 0);
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) == 0);
-    /* It names both surfaces by the view's level, as Display does, and the screen's shape where the level has two. */
+    /* It names both surfaces by the view's level, as Display does, and the screen's shape. */
     CHECK(oracles_enhanced_view_check_state(normal, wire, written, why, sizeof why) != 0);
-    CHECK(!strcmp(why, "the savestate was taken on the far view, 480x270, "
+    CHECK(!strcmp(why, "the savestate was taken on the far view, 480x270 in 16:9, "
                        "and this session shows the near view, 256x144 in 16:9: it loads only on its own surface"));
     CHECK(oracles_enhanced_view_load_state(normal, wire, written) != 0);
+    /* The far view in the other shape refuses it too, and names the setting that shows the surface it was taken on. */
+    CHECK(oracles_enhanced_view_check_state(far_4_3, wire, written, why, sizeof why) != 0);
+    CHECK(!strcmp(why, "the savestate was taken on the far view, 480x270 in 16:9, and this session shows the far view, 480x360 in 4:3: "
+                       "it loads only on its own surface; aspect=16:9 in the settings shows that surface"));
+    CHECK(oracles_enhanced_view_load_state(far_4_3, wire, written) != 0);
+    size_t written_4_3 = 0;
+    uint8_t wire_4_3[1024];
+    CHECK(oracles_enhanced_view_save_state(far_4_3, wire_4_3, sizeof wire_4_3, &written_4_3) == 0);
+    CHECK(oracles_enhanced_view_check_state(zoom, wire_4_3, written_4_3, why, sizeof why) != 0 && strstr(why, "aspect=4:3 in the settings"));
+    CHECK(oracles_enhanced_view_check_state(far_4_3, wire_4_3, written_4_3, why, sizeof why) == 0);
     CHECK(oracles_enhanced_view_save_state(normal, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u);
     CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) != 0 && strstr(why, "the near view, 256x144 in 16:9, and this session shows the far view"));
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) != 0);
@@ -254,6 +267,7 @@ static void view_and_savestate(void)
     #undef W0
     oracles_enhanced_view_stop(zoom);
     oracles_enhanced_view_stop(normal);
+    oracles_enhanced_view_stop(far_4_3);
     rig_stop(&r);
 }
 

@@ -4,8 +4,7 @@
  * camera.  The surface's size is the view's level and the screen's shape
  * (docs/PLAYING.md): near, 256x144 or 213x160 in 4:3; medium,
  * 384x216 or 320x240; far, the drawn-back view, 480x270 (`--zoom-out`: four
- * times 1920x1080, three rooms across and two down outdoors), in either
- * shape.  It is a HUD band of sixteen lines at the top, the status bar
+ * times 1920x1080, three rooms across and two down outdoors) or 480x360.  It is a HUD band of sixteen lines at the top, the status bar
  * copied from the core's top sixteen lines and centred, and a world band
  * below it (the rest of the surface), the game area placed by the camera in world
  * coordinates.  Columns the active room does not cover are neighbours,
@@ -51,15 +50,16 @@ typedef enum OraclesEnhancedAspect {
  * the HUD band leaves, the status bar is centred in the HUD band.  Each size
  * fills the usual screens of its shape at a whole scale: 1920x1080 (near,
  * seven times with a margin; medium, five; far, four) and 640x480 (near,
- * three; medium, two).  Far has no 4:3 size of its own: on a 4:3 screen it
- * is the 16:9 one, with black above and below. */
+ * three; medium, two); far in 4:3, 480x360, fills 960x720 twice and
+ * 1440x1080 three times, and shows the far view's three rooms across at the
+ * 640x480 of a small console, once, with 90 lines of world more. */
 typedef struct OraclesEnhancedSize { unsigned width, height; } OraclesEnhancedSize;
 static inline OraclesEnhancedSize oracles_enhanced_view_size(OraclesEnhancedLevel level, OraclesEnhancedAspect aspect)
 {
     static const OraclesEnhancedSize sizes[ORACLES_ENHANCED_LEVELS][ORACLES_ENHANCED_ASPECTS] = {
         { { ORACLES_ENHANCED_NARROW_WIDTH, ORACLES_ENHANCED_NARROW_HEIGHT }, { 213u, 160u } },
         { { 384u, 216u }, { 320u, 240u } },
-        { { ORACLES_ENHANCED_ZOOM_WIDTH, ORACLES_ENHANCED_ZOOM_HEIGHT }, { ORACLES_ENHANCED_ZOOM_WIDTH, ORACLES_ENHANCED_ZOOM_HEIGHT } },
+        { { ORACLES_ENHANCED_ZOOM_WIDTH, ORACLES_ENHANCED_ZOOM_HEIGHT }, { ORACLES_ENHANCED_ZOOM_WIDTH, 360u } },
     };
     return sizes[(unsigned)level < ORACLES_ENHANCED_LEVELS ? level : ORACLES_ENHANCED_NEAR][(unsigned)aspect < ORACLES_ENHANCED_ASPECTS ? aspect : ORACLES_ENHANCED_16_9];
 }
@@ -68,7 +68,7 @@ static inline OraclesEnhancedSize oracles_enhanced_size(int zoom_out)
 {
     return oracles_enhanced_view_size(zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR, ORACLES_ENHANCED_16_9);
 }
-static inline unsigned oracles_enhanced_band_height(OraclesEnhancedSize size) { return size.height - ORACLES_ENHANCED_HUD_HEIGHT; }   /* 128, 144, 200, 224 or 254 */
+static inline unsigned oracles_enhanced_band_height(OraclesEnhancedSize size) { return size.height - ORACLES_ENHANCED_HUD_HEIGHT; }   /* 128, 144, 200, 224, 254 or 344 */
 static inline unsigned oracles_enhanced_hud_x(OraclesEnhancedSize size) { return (size.width - ORACLES_ENHANCED_CORE_WIDTH) / 2u; }   /* 48, 26, 112, 80 or 160 */
 
 typedef enum OraclesEnhancedMode {

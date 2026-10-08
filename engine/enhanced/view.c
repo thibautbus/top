@@ -600,21 +600,26 @@ static void size_record(OraclesEnhancedSize size, uint8_t out[SIZE_RECORD_SIZE])
     out[6] = (uint8_t)size.height; out[7] = (uint8_t)(size.height >> 8);
 }
 
+static const char *const surface_aspects[ORACLES_ENHANCED_ASPECTS] = { "16:9", "4:3" };
+
+/* The view's level and the screen's shape that give a surface; 0 for a size of no level. */
+static int surface_of(OraclesEnhancedSize size, unsigned *level, unsigned *aspect)
+{
+    for (unsigned l = ORACLES_ENHANCED_LEVELS; l-- > 0;)
+        for (unsigned a = 0; a < ORACLES_ENHANCED_ASPECTS; a++) {
+            const OraclesEnhancedSize s = oracles_enhanced_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a);
+            if (s.width == size.width && s.height == size.height) { *level = l; *aspect = a; return 1; }
+        }
+    return 0;
+}
+
 /* A surface as the player chose it: the view's level and the screen's shape that give it. */
 static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
 {
     static const char *const levels[ORACLES_ENHANCED_LEVELS] = { "near", "medium", "far" };
-    static const char *const aspects[ORACLES_ENHANCED_ASPECTS] = { "16:9", "4:3" };
-    for (unsigned l = ORACLES_ENHANCED_LEVELS; l-- > 0;)
-        for (unsigned a = 0; a < ORACLES_ENHANCED_ASPECTS; a++) {
-            const OraclesEnhancedSize s = oracles_enhanced_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a);
-            if (s.width == size.width && s.height == size.height) {
-                if (l == ORACLES_ENHANCED_FAR) snprintf(out, capacity, "the far view, %ux%u", size.width, size.height);
-                else snprintf(out, capacity, "the %s view, %ux%u in %s", levels[l], size.width, size.height, aspects[a]);
-                return;
-            }
-        }
-    snprintf(out, capacity, "a surface of %ux%u", size.width, size.height);
+    unsigned l, a;
+    if (surface_of(size, &l, &a)) snprintf(out, capacity, "the %s view, %ux%u in %s", levels[l], size.width, size.height, surface_aspects[a]);
+    else snprintf(out, capacity, "a surface of %ux%u", size.width, size.height);
 }
 
 int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_t *data, size_t size, char *why, size_t capacity)
@@ -630,7 +635,13 @@ int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_
         char taken[96], shown[96];
         surface_words(saved, taken, sizeof taken);
         surface_words(v->size, shown, sizeof shown);
-        snprintf(why, capacity, "the savestate was taken on %s, and this session shows %s: it loads only on its own surface", taken, shown);
+        /* The same level in the other shape (a far savestate of a 4:3 screen taken before far had its 4:3 size): the
+         * setting that shows the surface it was taken on. */
+        unsigned saved_level, saved_aspect, level, aspect;
+        char hint[64] = "";
+        if (surface_of(saved, &saved_level, &saved_aspect) && surface_of(v->size, &level, &aspect) && saved_level == level)
+            snprintf(hint, sizeof hint, "; aspect=%s in the settings shows that surface", surface_aspects[saved_aspect]);
+        snprintf(why, capacity, "the savestate was taken on %s, and this session shows %s: it loads only on its own surface%s", taken, shown, hint);
     }
     return -1;
 }

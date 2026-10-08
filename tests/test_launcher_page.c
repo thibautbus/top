@@ -710,14 +710,14 @@ static void display_2a_2b(void)
     }
     layout_box("2r", "diagram window", &l.diagram_window);
     layout_text("2r", "diagram label", &l.diagram_label);
-    /* 2s: the same on a 4:3 screen, which the layout reference takes as 1440x1080: the view's 4:3 sizes, far keeping its 16:9
-     * one, the windows counted in them, the diagram's box narrower. */
+    /* 2s: the same on a 4:3 screen, which the layout reference takes as 1440x1080: the view's 4:3 sizes, the windows counted
+     * in them, the diagram's box narrower. */
     nav.display.screen_w = 1440;
     nav.display.room_w = 1440;
     nav.display.window = 3;
     display_texts(&nav, &t);
     oracles_ui_layout_display(&t, &l);
-    CHECK(oracles_display_screen_4_3(&nav) && !strcmp(t.view_sizes[0], "213\xc3\x97" "160") && !strcmp(t.view_sizes[2], "480\xc3\x97" "270"));
+    CHECK(oracles_display_screen_4_3(&nav) && !strcmp(t.view_sizes[0], "213\xc3\x97" "160") && !strcmp(t.view_sizes[2], "480\xc3\x97" "360"));
     /* The settings' aspect= names the shape whatever the screen: 16:9 on this 4:3 one, 4:3 on a 16:9 one. */
     nav.display.aspect = 1;
     CHECK(!oracles_display_screen_4_3(&nav));

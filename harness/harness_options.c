@@ -16,7 +16,7 @@ int harness_usage(void)
                     "                       [--render-check SAMPLES_DIR] [--render-expect CLASSES]   (native renderer against the core, samples written there; exit 1 on a mismatch, an empty expected class or a ceiling)\n"
                     "                       [--ghost-check DIR] [--ghost-lead FRAMES] [--ghost-threaded] [--ghost-trace] [--ghost-trace-load]   (ghost instance against every scrolling transition; the second trace counts the whole load's reads)\n"
                     "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2] [--enhanced-neighbours off|static (static)]   (the Enhanced surface of every frame composed and hashed)\n"
-                    "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, as the launcher's --zoom-out; --view far)\n"
+                    "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, 480x360 with --aspect 4:3, as the launcher's --zoom-out; --view far)\n"
                     "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/PLAYING.md)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
                     "                       (--enhanced-paced holds each frame to the Game Boy's period by a busy wait: a core a replay, as in play)\n"

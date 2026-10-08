@@ -204,8 +204,8 @@ struct OraclesEnhancedView {
     struct { uint8_t group, room; uint32_t since; } black_runs[32];   /* the places black now, and since when */
     uint32_t drawn_places[8];        /* the rooms of the reference's group the last composition drew at their place on the grid, a bit each */
     unsigned black_run_count;
-    OraclesEnhancedSize size;        /* the surface's: 256x144, or 480x270 in the drawn-back view, chosen before the first composition */
-    unsigned band_height;            /* its world band's: 128, or 254 */
+    OraclesEnhancedSize size;        /* the surface's, a level's in a shape (oracles_enhanced_view_size), chosen before the first composition */
+    unsigned band_height;            /* its world band's, oracles_enhanced_band_height of the size */
     unsigned shown_width, shown_height;   /* the part of the band the last composition showed, centred (oracles_enhanced_camera_shown) */
     int chain_routed_idle;           /* the run order's last pass, with nothing else to run: a room the game routes itself may be a parent (drawn-back view) */
     uint32_t *surface;               /* size.width by size.height, allocated for the view's size */

@@ -139,7 +139,8 @@ typedef struct run_plan {
     int have_second_diagonal[2][SIDES], have_beyond[2], have_beyond_diagonal[2][SIDES];
     /* The drawn-back band's corners, two rows and two columns away: the
      * camera's look-ahead shows a few of their lines before a vertical
-     * transition makes them the second ring. */
+     * transition makes them the second ring (the 4:3 band, taller, more of
+     * them). */
     uint8_t corner[2][SIDES];
     int have_corner[2][SIDES];
     unsigned wanted_count;
@@ -464,8 +465,8 @@ static void add_step(const OraclesEnhancedView *v, run_step *out, unsigned *n, u
 /* The steps of a pass, in the order of the normal band: left and right, the
  * rooms beyond them, the reference room back from a neighbour, above and
  * below, the diagonals, then the second ring outside the first pass.  The
- * drawn-back band outdoors shows up to five columns and three rows: its
- * second ring is in the first pass too, and the steps go by how much of
+ * drawn-back band outdoors shows up to five columns and three rows (four in
+ * its 4:3 shape, 344 lines tall): its second ring is in the first pass too, and the steps go by how much of
  * their room the band shows, then by how near it stands to Link. */
 static unsigned list_steps(const OraclesEnhancedView *v, const run_plan *p, int visible_only, run_step out[28])
 {

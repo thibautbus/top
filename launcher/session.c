@@ -3,7 +3,7 @@
  *
  * --zoom-out (implies --enhanced) draws the view back: a surface of
  * 480x270, four times 1920x1080, that shows three rooms across and two down
- * outdoors.  A savestate taken with it loads only with it, and the other way
+ * outdoors, or 480x360 on a 4:3 screen.  A savestate taken with it loads only with it, and the other way
  * round: the camera's state is a place of the surface.
  *
  * --continuous-transitions (both games, implies --enhanced) keeps Link walking
