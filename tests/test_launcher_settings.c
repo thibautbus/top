@@ -213,6 +213,21 @@ int main(int argc, char **argv)
     CHECK(read_back.rom[ORACLES_SETTINGS_SEASONS][0] == 0);
     CHECK(read_back.transitions == 1 && read_back.item_hotkeys[ORACLES_SETTINGS_SEASONS] == ORACLES_HOTKEYS_OFF);
     CHECK(read_back.window_scale == 0);
+    /* Display's View: far at the first opening, a level written and read by its name, an unknown name the default. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.view == 2);
+    write_text(path, "view=near\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.view == 0);
+    read_back.view = 1;
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.view == 1);
+    write_text(path, "view=wide\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.view == 2);
     /* zoom-out is not a profile, and the per-game keys are not the launcher's: the defaults stay, and the next store
      * writes the global keys alone. */
     write_text(path, "profile=zoom-out\nprofile_ages=enhanced\ntransitions_ages=off\nprofile_seasons=enhanced\n");

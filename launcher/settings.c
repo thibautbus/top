@@ -13,6 +13,7 @@ static const char *const pad_setting_names[4] = { "a", "b", "select", "start" };
 
 static const char *const game_names[ORACLES_SETTINGS_GAMES] = { "ages", "seasons" };
 static const char *const profile_names[ORACLES_PROFILES] = { "faithful", "enhanced" };
+static const char *const view_names[3] = { "near", "medium", "far" };   /* OraclesEnhancedLevel's order */
 /* The launcher window at its first opening. */
 #define LAUNCHER_WIDTH 1280
 #define LAUNCHER_HEIGHT 720
@@ -123,13 +124,14 @@ void oracles_settings_defaults(oracles_settings *s)
     /* A first opening plays Enhanced, the view drawn back with the continuous transitions it carries, fullscreen. */
     s->profile = ORACLES_PROFILE_ENHANCED;
     s->transitions = 1;
+    s->view = 2;   /* far: the view drawn back, as Enhanced was before the levels */
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
  * line was one of them.  A value the launcher does not know leaves the key's default. */
 static int load_launcher(oracles_settings *s, const char *name, const char *value)
 {
@@ -139,6 +141,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     }
     if (!strcmp(name, "transitions")) {
         if (!strcmp(value, "on") || !strcmp(value, "off")) s->transitions = !strcmp(value, "on");
+        return 1;
+    }
+    if (!strcmp(name, "view")) {
+        for (int v = 0; v < 3; v++) if (!strcmp(value, view_names[v])) s->view = v;
         return 1;
     }
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -247,10 +253,12 @@ int oracles_settings_store(const oracles_settings *s)
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) fprintf(f, "item_hotkeys_%s=%s\n", game_names[g], hotkey_names[s->item_hotkeys[g]]);
     fprintf(f, "# Each game's active mods (its Mods page), the names of their folders in the mods folder beside this file.\n");
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) fprintf(f, "mods_%s=%s\n", game_names[g], s->mods[g]);
-    fprintf(f, "# Display, for the games the home screen starts: the profile (faithful, or enhanced: the view drawn back), the\n"
-               "# continuous transitions (off|on, in enhanced only), and the window, 2, 3 or 4 times its surface or full (the screen);\n"
-               "# enhanced, on and full at the first opening.\n");
+    fprintf(f, "# Display, for the games the home screen starts: the profile (faithful or enhanced), the view in enhanced (near,\n"
+               "# medium or far, how much of the world it shows, in the screen's shape), the continuous transitions (off|on, in\n"
+               "# enhanced only), and the window, 2, 3 or 4 times its surface or full (the screen); enhanced, far, on and full at\n"
+               "# the first opening.\n");
     fprintf(f, "profile=%s\n", profile_names[s->profile]);
+    fprintf(f, "view=%s\n", view_names[s->view >= 0 && s->view < 3 ? s->view : 2]);
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
     fprintf(f, "launcher_window=%dx%d\n", s->launcher_width, s->launcher_height);

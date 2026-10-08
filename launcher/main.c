@@ -91,7 +91,8 @@ static int usage(void)
                     "                           [--vsync auto|on|off] [--camera 1|2] [--mute] [--frames N] [--no-window] [--screenshot PATH.ppm]\n"
                     "                           [--record ROUTE] [--play ROUTE] [--diagnostics] [--native-renderer] [--enhanced] [--neighbours off|static (static)] [--continuous-transitions]\n"
                     "                           [--continuous-swim]   (the continuous transitions with Link swimming at the surface too; implies --continuous-transitions)\n"
-                    "                           [--zoom-out]   (Enhanced drawn back, 480x270, three rooms across outdoors; --fullscreen --scale 4 fills 1920x1080)\n"
+                    "                           [--zoom-out]   (Enhanced drawn back, 480x270, three rooms across outdoors; --fullscreen --scale 4 fills 1920x1080; --view far)\n"
+                    "                           [--view near|medium|far]   (Enhanced: how much of the world it shows, in the screen's shape)\n"
                     "                           [--mods DIR]...   (a mod in Lua, run during the game, --mods repeated for up to 8; its conversations hold the keys and draw over the screen)\n"
                     "                           [--start-at-house NAME]   (with --mods: every file of the save starts in front of the house NAME, or MOD/NAME)\n"
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
@@ -145,7 +146,13 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
         }
         else if (!strcmp(argv[i], "--continuous-transitions")) { o->continuous_transitions = 1; o->enhanced = 1; }
         else if (!strcmp(argv[i], "--continuous-swim")) { o->continuous_swim = o->continuous_transitions = 1; o->enhanced = 1; }
-        else if (!strcmp(argv[i], "--zoom-out")) { o->zoom_out = 1; o->enhanced = 1; }
+        else if (!strcmp(argv[i], "--zoom-out")) { o->zoom_out = 1; o->enhanced = 1; o->view = 3; }
+        else if (!strcmp(argv[i], "--view") && more) {
+            const char *name = argv[++i];
+            o->view = !strcmp(name, "near") ? 1 : !strcmp(name, "medium") ? 2 : !strcmp(name, "far") ? 3 : 0;
+            if (!o->view) return 1;
+            o->enhanced = 1;
+        }
         else if (!strcmp(argv[i], "--mods") && i + 1 < argc) { if (o->mods_count == 8u) return 1; o->mods_dirs[o->mods_count++] = argv[++i]; }
         else if (!strcmp(argv[i], "--start-at-house") && more) o->start_house = argv[++i];
         else if (!strncmp(argv[i], "--item-hotkeys=", 15)) o->hotkeys_option = argv[i] + 15;
@@ -220,6 +227,7 @@ int main(int argc, char **argv)
         if (status) fprintf(stderr, "oracles: %s\n", error);
     } else if (options.rom_path) {
         oracles_settings_store(prefs); /* also writes the defaults the first time, so they can be edited */
+        if (options.enhanced && !options.no_window) options.screen_4_3 = oracles_sdl_screen_4_3(NULL);   /* the view's shape */
         OraclesSessionResult result;
         status = oracles_session_run(&options, prefs, &result);
     } else {

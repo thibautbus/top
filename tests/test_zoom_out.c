@@ -217,13 +217,13 @@ static void view_and_savestate(void)
     CHECK(oracles_enhanced_view_save_state(zoom, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 8u);
     CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) == 0);
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) == 0);
-    /* It names both surfaces with what gives them, for the command line and for the launcher. */
+    /* It names both surfaces by the view's level, as Display does, and the screen's shape where the level has two. */
     CHECK(oracles_enhanced_view_check_state(normal, wire, written, why, sizeof why) != 0);
-    CHECK(!strcmp(why, "the savestate was taken on the view drawn back, 480x270 (--zoom-out, or the launcher's Enhanced), "
-                       "and this session shows the band, 256x144 (--enhanced without --zoom-out): it loads only on its own surface"));
+    CHECK(!strcmp(why, "the savestate was taken on the far view, 480x270, "
+                       "and this session shows the near view, 256x144 in 16:9: it loads only on its own surface"));
     CHECK(oracles_enhanced_view_load_state(normal, wire, written) != 0);
     CHECK(oracles_enhanced_view_save_state(normal, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u);
-    CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) != 0 && strstr(why, "--zoom-out"));
+    CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) != 0 && strstr(why, "the near view, 256x144 in 16:9, and this session shows the far view"));
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) != 0);
     CHECK(oracles_enhanced_view_load_state(zoom, wire, 2u * ORACLES_E11_STATE_WIRE_SIZE) != 0);   /* a state from before the size record: the normal surface's */
     CHECK(oracles_enhanced_view_load_state(normal, wire, written) == 0);

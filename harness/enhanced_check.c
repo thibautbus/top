@@ -41,9 +41,11 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *c, uint32_t frame) { c->reload_at = frame; }
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *c, int paced) { c->paced = paced; }
 
-void oracles_enhanced_check_set_zoom_out(OraclesEnhancedCheck *c, int enabled)
+void oracles_enhanced_check_set_zoom_out(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_check_set_size(c, oracles_enhanced_size(enabled)); }
+
+void oracles_enhanced_check_set_size(OraclesEnhancedCheck *c, OraclesEnhancedSize size)
 {
-    oracles_enhanced_view_set_zoom_out(c->view, enabled);
+    oracles_enhanced_view_set_size(c->view, size);
     c->width = oracles_enhanced_view_width(c->view);
     c->band_height = oracles_enhanced_view_height(c->view) - ORACLES_ENHANCED_HUD_HEIGHT;
     c->link_edge_margin_min = (int32_t)c->width;
@@ -126,7 +128,9 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     for (unsigned i = 0; i < c->surfaces; i++) if (c->surface_at[i] == frame) write_surface(c, surface, c->surface_path[i]);
     c->frames++;
     const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
-    ec_measure_camera(c, ob, mode, camera_x, camera_y);
+    int blank = surface != NULL;   /* one colour: the screen faded out, where a camera that moves shows nothing moving */
+    for (size_t i = 1, n = (size_t)c->width * oracles_enhanced_view_height(c->view); blank && i < n; i++) blank = surface[i] == surface[0];
+    ec_measure_camera(c, ob, mode, camera_x, camera_y, blank);
 
     int shown[4];
     uint8_t room[4];

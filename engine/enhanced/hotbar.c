@@ -6,6 +6,8 @@
 #define SLOT_H 16u
 #define ICON ORACLES_HOTBAR_ICON
 
+int oracles_hotbar_fits(unsigned width, unsigned core_width) { return width >= core_width + 4u * SLOT_W; }
+
 unsigned oracles_hotbar_slot_x(unsigned n, unsigned width, unsigned core_width)
 {
     const unsigned gutter = (width - core_width) / 2u;   /* 48: two slots a side, against the status bar (160 in the drawn-back view) */
@@ -71,6 +73,7 @@ static void draw_slot(const canvas *c, const OraclesHotbarSlotView *s, const Ora
 
 void oracles_hotbar_draw(uint32_t *surface, unsigned width, unsigned core_width, const OraclesHotbarSlotView slots[ORACLES_HOTBAR_SLOTS], const OraclesHotbarPalette *palette)
 {
+    if (!oracles_hotbar_fits(width, core_width)) return;
     for (unsigned n = 0; n < ORACLES_HOTBAR_SLOTS; n++) {
         const canvas c = { surface, width, oracles_hotbar_slot_x(n, width, core_width) };
         draw_slot(&c, &slots[n], palette);

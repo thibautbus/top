@@ -96,7 +96,9 @@ static void option(OraclesUiDraw *draw, const OraclesUiOptionLayout *o, const Or
 {
     const OraclesUiColor frame = on ? (focused ? accent : oracles_ui_rgba(0xffffffu, FRAME_ON_OPACITY)) : oracles_ui_rgba(0xffffffu, FRAME_OFF_OPACITY);
     const OraclesUiColor color = on ? (focused ? accent : oracles_ui_rgb(TEXT)) : oracles_ui_rgb(off);
-    oracles_ui_stroke_round_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, size ? 6.0f : 5.0f, 1.0f, oracles_ui_fade(frame, opacity));
+    /* A profile's and a window's frame is rounder than a choice's, View's with its size included. */
+    oracles_ui_stroke_round_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, style == &oracles_ui_option_name ? 6.0f : 5.0f, 1.0f,
+                                 oracles_ui_fade(frame, opacity));
     text(draw, style, &o->name, name, oracles_ui_fade(color, opacity));
     if (size) text(draw, &oracles_ui_option_size, &o->size, size, oracles_ui_rgba(PATH, opacity));
 }
@@ -198,7 +200,13 @@ static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
     t->explanations[0] = oracles_display_explanation(ORACLES_DISPLAY_COLOUR);
     t->explanations[1] = oracles_display_explanation(ORACLES_DISPLAY_TRANSITIONS);
     t->explanations[2] = oracles_display_explanation(ORACLES_DISPLAY_VSYNC);
-    oracles_display_diagram(nav, ORACLES_UI_DIAGRAM_W, ORACLES_UI_DIAGRAM_H, &t->diagram_w, &t->diagram_h, t->diagram_label, sizeof t->diagram_label);
+    t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
+    for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
+    for (int v = 0; v < 3; v++) oracles_display_view_size(nav, v, t->view_sizes[v], sizeof t->view_sizes[v]);
+    /* The diagram's box has the screen's shape at its height, as the sizes take it: 432 wide for 16:9 (and any wider
+     * screen, which the view takes as 16:9), 324 for 4:3. */
+    t->diagram_box_w = oracles_display_screen_4_3(nav) ? 324.0f : ORACLES_UI_DIAGRAM_W;
+    oracles_display_diagram(nav, t->diagram_box_w, ORACLES_UI_DIAGRAM_H, &t->diagram_w, &t->diagram_h, t->diagram_label, sizeof t->diagram_label);
 }
 
 void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
@@ -222,15 +230,15 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
 
     oracles_ui_fill_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
     oracles_ui_stroke_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, 1.0f, oracles_ui_rgba(PANEL_BORDER, PANEL_BORDER_OPACITY));
-    /* The transitions carry the Enhanced view: in Faithful their row is dimmed, label and all. */
+    /* View and the transitions carry the Enhanced view: in Faithful their rows are dimmed, label and all. */
     const float applied = oracles_display_transitions_apply(nav) ? 1.0f : ROW_NOT_APPLIED;
     for (unsigned r = 0; r < ORACLES_DISPLAY_ROWS; r++) {
-        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS ? applied : 1.0f;
+        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS || r == ORACLES_DISPLAY_VIEW ? applied : 1.0f;
         highlight_dimmed(draw, &l.rows[r], r == row, opacity);
         wrapped(draw, &oracles_ui_row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
     }
     for (int p = 0; p < ORACLES_PROFILES; p++)
-        option(draw, &l.profiles[p], &oracles_ui_option_name, oracles_profile_names[p], oracles_profile_sizes[p], p == (int)nav->display.profile,
+        option(draw, &l.profiles[p], &oracles_ui_option_name, oracles_profile_names[p], t.profile_sizes[p], p == (int)nav->display.profile,
                row == ORACLES_DISPLAY_PROFILE, accent, OPTION_OFF, 1.0f);
     text(draw, &oracles_ui_row_text, &l.profile_note, t.profile_note, oracles_ui_rgb(NOTE));
     for (int i = 0; i < 4; i++)
@@ -238,12 +246,17 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
                row == ORACLES_DISPLAY_WINDOW, accent, OPTION_OFF, 1.0f);
     text(draw, &oracles_ui_row_text, &l.window_note, t.window_note, oracles_ui_rgb(NOTE));
     text(draw, &oracles_ui_row_text, &l.window_reduced, t.window_reduced, oracles_ui_rgb(NOTE));
+    wrapped(draw, &oracles_ui_row_text, &l.view_explanation, oracles_ui_rgba(NOTE, applied));
+    for (int v = 0; v < 3; v++)
+        option(draw, &l.views[v], &oracles_ui_choice, oracles_display_view_names[v], t.view_sizes[v], v == nav->display.view,
+               row == ORACLES_DISPLAY_VIEW, accent, CHOICE_OFF, applied);
     wrapped(draw, &oracles_ui_row_text, &l.explanations[0], oracles_ui_rgb(NOTE));
     wrapped(draw, &oracles_ui_row_text, &l.explanations[1], oracles_ui_rgba(NOTE, applied));
     text(draw, &oracles_ui_row_note, &l.transitions_note, oracles_ui_transitions_note, oracles_ui_rgba(NOTE_ITALIC, applied));
     if (t.later) {
         text(draw, &oracles_ui_row_note, &l.profile_later, oracles_ui_later, oracles_ui_rgb(NOTE_ITALIC));
         text(draw, &oracles_ui_row_note, &l.window_later, oracles_ui_later, oracles_ui_rgb(NOTE_ITALIC));
+        text(draw, &oracles_ui_row_note, &l.view_later, oracles_ui_later, oracles_ui_rgba(NOTE_ITALIC, applied));
         text(draw, &oracles_ui_row_note, &l.transitions_later, oracles_ui_later, oracles_ui_rgba(NOTE_ITALIC, applied));
         text(draw, &oracles_ui_row_note, &l.vsync_later, oracles_ui_later, oracles_ui_rgb(NOTE_ITALIC));
     }
@@ -266,6 +279,7 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
     *option = -1;
     for (int p = 0; p < ORACLES_PROFILES; p++) if (inside(&l.profiles[p].box, x, y)) { *option = p; return ORACLES_DISPLAY_PROFILE; }
     for (int i = 0; i < 4; i++) if (inside(&l.windows[i].box, x, y)) { *option = i; return ORACLES_DISPLAY_WINDOW; }
+    for (int v = 0; v < 3; v++) if (inside(&l.views[v].box, x, y)) { *option = v; return ORACLES_DISPLAY_VIEW; }
     for (int c = 0; c < 2; c++) if (inside(&l.transitions[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_TRANSITIONS; }
     for (int c = 0; c < 2; c++) if (inside(&l.colour[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_COLOUR; }
     for (int c = 0; c < 3; c++) if (inside(&l.vsync[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_VSYNC; }

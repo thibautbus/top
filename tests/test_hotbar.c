@@ -36,6 +36,18 @@ int main(void)
     CHECK(oracles_hotbar_slot_x(0, W, CORE) == 0 && oracles_hotbar_slot_x(1, W, CORE) == 24 && oracles_hotbar_slot_x(2, W, CORE) == 208 && oracles_hotbar_slot_x(3, W, CORE) == 232);
     /* The drawn-back view's 480: two slots against each side of the status bar, not at the surface's edges. */
     CHECK(oracles_hotbar_slot_x(0, 480u, CORE) == 112 && oracles_hotbar_slot_x(1, 480u, CORE) == 136 && oracles_hotbar_slot_x(2, 480u, CORE) == 320 && oracles_hotbar_slot_x(3, 480u, CORE) == 344);
+    /* The near view in 4:3, 213 wide, has 26 px a side: no room for two slots, nothing is drawn; the other sizes fit. */
+    CHECK(!oracles_hotbar_fits(213u, CORE) && oracles_hotbar_fits(256u, CORE) && oracles_hotbar_fits(320u, CORE) && oracles_hotbar_fits(384u, CORE));
+    {
+        static uint32_t narrow[213u * 16u];
+        for (unsigned i = 0; i < 213u * 16u; i++) narrow[i] = 0x12345678u;
+        OraclesHotbarSlotView none[ORACLES_HOTBAR_SLOTS];
+        memset(none, 0, sizeof none);
+        oracles_hotbar_draw(narrow, 213u, CORE, none, &palette);
+        int untouched = 1;
+        for (unsigned i = 0; i < 213u * 16u; i++) untouched &= narrow[i] == 0x12345678u;
+        CHECK(untouched);
+    }
 
     uint16_t icon[ORACLES_HOTBAR_ICON * ORACLES_HOTBAR_ICON];
     memset(icon, 0, sizeof icon);

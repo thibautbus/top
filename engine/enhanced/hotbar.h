@@ -39,6 +39,9 @@ typedef struct OraclesHotbarPalette {
 
 /* The left edge of slot `n` in a band `width` wide whose game window is `core_width` wide and centred. */
 unsigned oracles_hotbar_slot_x(unsigned n, unsigned width, unsigned core_width);
+/* 1 when the gutters beside the status bar hold two slots a side; a narrower surface (the near view in 4:3, 213 wide)
+ * draws no hotbar, the hotkeys working all the same. */
+int oracles_hotbar_fits(unsigned width, unsigned core_width);
 /* Draws the four slots in the top sixteen lines of `surface` (`width` pixels a line). */
 void oracles_hotbar_draw(uint32_t *surface, unsigned width, unsigned core_width, const OraclesHotbarSlotView slots[ORACLES_HOTBAR_SLOTS], const OraclesHotbarPalette *palette);
 

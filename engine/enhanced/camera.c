@@ -11,6 +11,7 @@
 #define LARGE_ROOM_H 176   /* LARGE_ROOM_HEIGHT * 16 */
 #define NARROW_BAND_W 256  /* the reducer's pinned viewport, the normal band's width */
 #define NARROW_BAND_H 128  /* the normal band's height, the core's game area's */
+#define GAME_WINDOW_W 160  /* the core's game area's width, its window on the room */
 #define NORMAL_SCROLL_MODE 0x01u
 #define TRANSITION_IDLE 0x02u
 #define GAME_STATE_PLAYING 0x02u
@@ -61,6 +62,8 @@ static OraclesE11Domain domain_of_group(uint8_t group)
  * band there, centred in its own (but at sea, oracles_enhanced_world_extend_to_sea). */
 static int wide_domain(OraclesE11Domain domain) { return domain == ORACLES_E11_EXTERIOR || domain == ORACLES_E11_ERA; }
 static int drawn_back(const OraclesEnhancedWorld *world) { return world->viewport > NARROW_BAND_W; }
+/* The viewport elsewhere than outdoors: the pinned 256, or the band's width when the band is narrower (near, 4:3). */
+static int narrow_viewport(unsigned band_width) { return band_width && band_width < NARROW_BAND_W ? (int)band_width : NARROW_BAND_W; }
 
 int oracles_enhanced_world_from_room(uint8_t group, uint8_t room, int room_is_large,
                                      int link_x, int link_y, unsigned overworld_stride, unsigned map_width, unsigned map_height,
@@ -72,7 +75,7 @@ int oracles_enhanced_world_from_room(uint8_t group, uint8_t room, int room_is_la
      * a scroll between a room of the map and one off it, or the view learning of it a frame late, would lower the
      * epoch and leave the camera behind (the reducer ignores a lower one). */
     out->domain = domain_of_group(group);
-    const int viewport = wide_domain(out->domain) && band_width ? (int)band_width : NARROW_BAND_W;
+    const int viewport = wide_domain(out->domain) && band_width ? (int)band_width : narrow_viewport(band_width);
     out->viewport = viewport;
     (void)room;
     const unsigned col = cell & 0x0fu;
@@ -87,8 +90,8 @@ int oracles_enhanced_world_from_room(uint8_t group, uint8_t room, int room_is_la
         const int left = (open_edges >> 3) & 1u, right = (open_edges >> 1) & 1u, up = open_edges & 1u, down = (open_edges >> 2) & 1u;
         out->origin_x = (int32_t)(col * LARGE_ROOM_W);
         out->origin_y = (int32_t)(row * LARGE_ROOM_H);
-        const int gutter = (viewport - LARGE_ROOM_W) / 2;
-        int32_t origin = out->origin_x - gutter, right_edge = out->origin_x + LARGE_ROOM_W + gutter;
+        const int gutter = (viewport - LARGE_ROOM_W) / 2;   /* the left one; the right one takes an odd width's pixel */
+        int32_t origin = out->origin_x - gutter, right_edge = out->origin_x + viewport - gutter;
         if (left && out->origin_x - LARGE_ROOM_W < origin) origin = out->origin_x - LARGE_ROOM_W;
         if (right && out->origin_x + 2 * LARGE_ROOM_W > right_edge) right_edge = out->origin_x + 2 * LARGE_ROOM_W;
         out->bounds_origin_x = origin;
@@ -108,8 +111,8 @@ int oracles_enhanced_world_from_room(uint8_t group, uint8_t room, int room_is_la
          * connected room landing in the cache widens the bounds without ever
          * putting the camera outside them (the reducer would desynchronise
          * and snap), at the price of the gutter it could show on that side. */
-        const int gutter = (viewport - SMALL_ROOM_W) / 2;
-        int32_t origin = out->origin_x - gutter, right_edge = out->origin_x + SMALL_ROOM_W + gutter;
+        const int gutter = (viewport - SMALL_ROOM_W) / 2;   /* the left one; the right one takes an odd width's pixel */
+        int32_t origin = out->origin_x - gutter, right_edge = out->origin_x + viewport - gutter;
         if (left && out->origin_x - SMALL_ROOM_W < origin) origin = out->origin_x - SMALL_ROOM_W;
         if (right && out->origin_x + 2 * SMALL_ROOM_W > right_edge) right_edge = out->origin_x + 2 * SMALL_ROOM_W;
         out->bounds_origin_x = origin;
@@ -341,7 +344,8 @@ struct OraclesEnhancedCamera {
     OraclesE11Config config;             /* the pinned configuration of the profile, the reducers' but outdoors */
     OraclesE11Config wide;               /* outdoors: the same, its viewport the band's width and framed at its middle */
     unsigned band_w, band_h;             /* the surface's world band: 256x128, or 480x254 in the drawn-back view */
-    int shown_wide;                      /* the last reduction framed the whole band */
+    int shown_wide;                      /* the last reduction framed the band's whole width */
+    int shown_height;                    /* and that many of its lines */
     int restored;                        /* states just restored (a savestate): the next reduction takes their viewport as it finds it */
     OraclesE11State state;               /* the horizontal reducer */
     OraclesE11State state_y;             /* the vertical one: the same reducer, the axes swapped */
@@ -359,7 +363,15 @@ struct OraclesEnhancedCamera {
  * are widened by 64 px each way so that the band, not the viewport, stops at
  * the map's edge.  Framing at 128 puts Link at the band's middle line.  (The
  * drawn-back view outdoors: a viewport of 480, a band of 254, a margin of 113.) */
-static int band_px(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return drawn_back(world) ? (int)c->band_h : NARROW_BAND_H; }
+/* The reducers frame the band's whole width where the viewport is as wide as it (outdoors, a large room drawn back,
+ * and every place in a band no wider than 256), else the normal 256 centred in it (the interiors of a wider band);
+ * its whole height outdoors and where a large room is drawn back, else the 128 lines of a room (an interior, a band
+ * of the normal height). */
+static int whole_band(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return world->viewport >= (int32_t)c->band_w; }
+static int band_px(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world)
+{
+    return whole_band(c, world) && (wide_domain(world->domain) || drawn_back(world)) ? (int)c->band_h : NARROW_BAND_H;
+}
 static int vertical_margin(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return (world->viewport - band_px(c, world)) / 2; }
 
 /* The configuration outdoors: the pinned one, its viewport widened to the band's. */
@@ -367,9 +379,9 @@ static void set_wide_config(OraclesEnhancedCamera *c)
 {
     c->wide = c->config;
     c->wide.viewport_width = (int32_t)c->band_w * ORACLES_E11_F256;
-    c->wide.framing = (int32_t)c->band_w / 2 * ORACLES_E11_F256;
+    c->wide.framing = (int32_t)c->band_w * ORACLES_E11_F256 / 2;   /* the middle, an odd width's included (213) */
 }
-static const OraclesE11Config *config_for(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return drawn_back(world) ? &c->wide : &c->config; }
+static const OraclesE11Config *config_for(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return whole_band(c, world) ? &c->wide : &c->config; }
 
 OraclesEnhancedCamera *oracles_enhanced_camera_start(OraclesGuest *guest)
 {
@@ -432,7 +444,9 @@ static void reducer_observation(const OraclesEnhancedCamera *c, uint32_t frame, 
         }
         obs->bounds_origin_x = (top - vertical_margin(c, world)) * ORACLES_E11_F256;
         obs->bounds_origin_y = world->bounds_origin_x * ORACLES_E11_F256;
-        obs->bounds_width = (int64_t)(height + 2 * vertical_margin(c, world)) * ORACLES_E11_F256;
+        /* The margins add up to the viewport less the band, an odd width's included (213 near in 4:3), where twice
+         * the halved margin would leave the bounds a pixel short of the viewport. */
+        obs->bounds_width = (int64_t)(height + world->viewport - band) * ORACLES_E11_F256;
         obs->bounds_height = (int64_t)world->bounds_width * ORACLES_E11_F256;
         /* The rooms above and below come from the ghost, which runs the
          * grid rooms (the overworlds, the interiors): elsewhere the vertical
@@ -466,12 +480,13 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, con
     /* The sea and a house under water share a domain but not a viewport (a
      * warp between them, a new epoch): the reducers restart for the other one.
      * Not across a savestate's load: the states restored are the place's. */
-    if (c->restored) { c->shown_wide = drawn_back(here); c->restored = 0; }
-    if (drawn_back(here) != c->shown_wide) {
+    if (c->restored) { c->shown_wide = whole_band(c, here); c->restored = 0; }
+    if (whole_band(c, here) != c->shown_wide) {
         oracles_e11_state_initial(&c->state, config);
         oracles_e11_state_initial(&c->state_y, config);
     }
-    c->shown_wide = drawn_back(here);
+    c->shown_wide = whole_band(c, here);
+    c->shown_height = band_px(c, here);
     if (observation->large_grid) {
         /* A large room (a dungeon) keeps the game's own framing, the room
          * extended: the band's lines are the game's window's (its camera
@@ -487,11 +502,33 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, con
         int32_t cx = world->origin_x - ((int32_t)c->band_w - LARGE_ROOM_W) / 2;
         if (observation->in_scroll && (observation->scroll_direction & 1u))
             cx += (observation->window_left - observation->scroll_start_left) * LARGE_ROOM_W / 160;
+        /* A band narrower than the room (near, 4:3) follows the game's window across, inside the room: the window's
+         * 80 px of travel take the band's 27, its left edge on the room's at one end, its right edge on the room's at
+         * the other, so that the band never shows past the room while the window has room to show.  A scroll slides
+         * it from the place it had in the room left to the one it takes in the room entered, the band's width over
+         * the window's 160 px. */
+        if (c->band_w < LARGE_ROOM_W) {
+            const int32_t slack = LARGE_ROOM_W - (int32_t)c->band_w, travel = LARGE_ROOM_W - GAME_WINDOW_W;
+            const int across = observation->in_scroll && (observation->scroll_direction & 1u);
+            const int32_t left = across ? observation->scroll_start_left : observation->window_left;
+            cx = world->origin_x + (left - world->origin_x) * slack / travel;
+            if (across) cx += (observation->window_left - observation->scroll_start_left) * (int32_t)c->band_w / GAME_WINDOW_W;
+        }
         int32_t cy = observation->window_top - window_inset;
         if (drawn_back(world)) {
             cy = world->origin_y - ((int32_t)c->band_h - LARGE_ROOM_H) / 2;
             if (observation->in_scroll && !(observation->scroll_direction & 1u))
                 cy += (observation->window_top - observation->scroll_start_top) * LARGE_ROOM_H / (int32_t)NARROW_BAND_H;
+        } else if (c->band_h > NARROW_BAND_H) {
+            /* A band taller than the game's window but not the room's (near, 4:3: 144 lines) shows all its lines,
+             * following the window up and down as it does across: the window's 48 lines of travel take the band's
+             * 32, and a scroll slides it the band's height over the window's 128 lines. */
+            const int32_t slack = LARGE_ROOM_H - (int32_t)c->band_h, travel = LARGE_ROOM_H - (int32_t)NARROW_BAND_H;
+            const int down = observation->in_scroll && !(observation->scroll_direction & 1u);
+            const int32_t top = down ? observation->scroll_start_top : observation->window_top;
+            cy = world->origin_y + (top - world->origin_y) * slack / travel;
+            if (down) cy += (observation->window_top - observation->scroll_start_top) * (int32_t)c->band_h / (int32_t)NARROW_BAND_H;
+            c->shown_height = (int)c->band_h;
         }
         if (camera_x) *camera_x = cx;
         if (camera_y) *camera_y = cy;
@@ -530,7 +567,7 @@ void oracles_enhanced_camera_set_band(OraclesEnhancedCamera *c, unsigned width, 
 void oracles_enhanced_camera_shown(const OraclesEnhancedCamera *c, unsigned *width, unsigned *height)
 {
     *width = c->shown_wide ? c->band_w : NARROW_BAND_W;
-    *height = c->shown_wide ? c->band_h : NARROW_BAND_H;
+    *height = c->shown_height ? (unsigned)c->shown_height : NARROW_BAND_H;
 }
 
 int oracles_enhanced_camera_frame(OraclesEnhancedCamera *c, uint32_t frame, int32_t *camera_x, int32_t *camera_y)

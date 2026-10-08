@@ -24,7 +24,8 @@ options: extra harness flags, `-` for none (a route recorded with
 --continuous-transitions carries the option in its header, and the harness
 turns it on by itself); a --mods directory is relative to the repository.  expect: `;`-separated `key=value` or `key<=value`
 over the harness summary (--summary), on top of the rules every row must
-satisfy (below).  run_hash: the Enhanced run hash the row last produced, `-`
+satisfy (below); a rule prefixed with a core (`mgba:key<=value`) holds on that
+core only, a row of both holding each core's measure.  run_hash: the Enhanced run hash the row last produced, `-`
 when the mode has none; each core has its own (the game and its timing differ
 from one to the other), so that a row of both cores in a hashed mode holds
 `sameboy:HASH,mgba:HASH`; a change is a failure until --update rewrites it, so
@@ -102,6 +103,9 @@ ALWAYS = {
 # would count none and pass any ceiling.
 ALWAYS["enhanced-zoom"] = ALWAYS["enhanced"] + ["enhanced.ghost_wrong_room=0", "enhanced.cold_fill_frames>=0"]
 ALWAYS["enhanced-zoom-threaded"] = ALWAYS["enhanced-threaded"]   # a run the thread's timing sends astray is dropped, as in enhanced-threaded: nothing wrong is shown
+# A row at another of the view's sizes (`--view`) holds what a zoom row holds: the synchronous ghost in the right room, and
+# the band filled at least once.
+SIZED = {"enhanced": ["enhanced.ghost_wrong_room=0", "enhanced.cold_fill_frames>=0"]}
 MODE_FLAGS = {
     "faithful": lambda w: ["--render-check", str(w / "render"), "--colour-correction", "off", "--ghost-check", str(w / "ghost"), "--ghost-trace",
                            "--out", str(w / "fingerprints.tsv")],
@@ -323,7 +327,13 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work:
             violations.append("no positions to compare with SameBoy's replay")
     if not values:
         violations.append(f"no summary written (harness exit {proc.returncode}{retried}; see {w / 'harness.log'})")
-    for rule in ALWAYS[row["mode"]] + row["expect"]:
+    sized = SIZED.get(row["mode"], []) if "--view" in row["options"] else []
+    for rule in ALWAYS[row["mode"]] + sized + row["expect"]:
+        on, colon, rest = rule.partition(":")
+        if colon and on in CORES:
+            if on != core:
+                continue
+            rule = rest
         v = check(rule, values)
         if v:
             violations.append(v)
@@ -343,6 +353,20 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work:
             "fingerprints": fingerprints if fingerprints.exists() else None}
 
 
+def view_free(options: list) -> list:
+    """The options less the view's level and shape (--view, --aspect), which do not change the game: a row of a size
+    is compared with the faithful row of its route."""
+    out, skip = [], False
+    for option in options:
+        if skip:
+            skip = False
+        elif option in ("--view", "--aspect"):
+            skip = True
+        else:
+            out.append(option)
+    return out
+
+
 def compare_fingerprints(results: list, harness: Path) -> list:
     """The faithful row of a route and each of its enhanced rows, synchronous and threaded (same options), must give the same live-state fingerprints."""
     by_key = {}
@@ -350,20 +374,21 @@ def compare_fingerprints(results: list, harness: Path) -> list:
         if "error" in res or not res.get("fingerprints"):
             continue
         row = res["row"]
-        by_key.setdefault((row["route"], tuple(row["options"])), {})[row["mode"]] = res
+        by_key.setdefault((row["route"], tuple(view_free(row["options"]))), {}).setdefault(row["mode"], []).append(res)
     verdicts = []
     for (route, options), modes in sorted(by_key.items()):
         if "faithful" not in modes:
             continue
+        faithful = modes["faithful"][0]
         for mode in ("enhanced", "enhanced-threaded", "enhanced-zoom", "enhanced-zoom-threaded"):
-            if mode not in modes:
-                continue
-            proc = subprocess.run([str(harness), "--compare", str(modes["faithful"]["fingerprints"]), str(modes[mode]["fingerprints"])],
-                                  capture_output=True, text=True)
-            text = (proc.stdout + proc.stderr).strip().splitlines()
-            last = text[-1] if text else "no output"
-            ok = proc.returncode == 0 and "identical" in last
-            verdicts.append({"route": route, "label": modes["faithful"]["row"]["label"], "options": options, "mode": mode, "ok": ok, "text": last})
+            for res in modes.get(mode, []):
+                proc = subprocess.run([str(harness), "--compare", str(faithful["fingerprints"]), str(res["fingerprints"])],
+                                      capture_output=True, text=True)
+                text = (proc.stdout + proc.stderr).strip().splitlines()
+                last = text[-1] if text else "no output"
+                ok = proc.returncode == 0 and "identical" in last
+                verdicts.append({"route": route, "label": faithful["row"]["label"], "options": tuple(res["row"]["options"]) or options,
+                                 "mode": mode, "ok": ok, "text": last})
     return verdicts
 
 

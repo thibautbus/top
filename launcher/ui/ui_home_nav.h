@@ -183,6 +183,7 @@ typedef struct OraclesHomeGame {
 typedef struct OraclesHomeDisplay {
     OraclesProfile profile;     /* the one chosen; a game whose ROM allows only Faithful plays in Faithful */
     int transitions;            /* continuous transitions, on by default, in Enhanced only */
+    int view;                   /* the Enhanced view: 0 near, 1 medium, 2 far (the default), in Enhanced only */
     int window;                 /* 0, 1, 2: the surface at 2x, 3x, 4x; 3: fullscreen */
     int colour;                 /* colour correction */
     int vsync;                  /* 0 auto, 1 on, 2 off */

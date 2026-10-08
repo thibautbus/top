@@ -440,9 +440,10 @@ static int check_profile(session *s, const OraclesSessionOptions *o, OraclesSess
         s->continuous_swim = 0;
     }
     if (s->zoom_out && !oracles_compat_zoom_out(s->profile)) {
-        if (!from_home) return failed(result, "%s does not support --zoom-out yet", name);
-        fprintf(stderr, "oracles: %s does not support the drawn-back view yet; the band plays instead\n", name);
+        if (!from_home) return failed(result, "%s does not support a view drawn back (--view medium or far, --zoom-out) yet", name);
+        fprintf(stderr, "oracles: %s does not support the drawn-back view yet; the near view plays instead\n", name);
         s->zoom_out = 0;
+        s->view_level = ORACLES_ENHANCED_NEAR;
     }
     const int route_exchanges = o->play_path && s->play.action_count != 0;
     if ((s->hotkeys_mode != ORACLES_HOTKEYS_OFF || route_exchanges) && !oracles_compat_item_hotkeys(s->profile)) {
@@ -483,7 +484,8 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
     if (s->enhanced) {
         s->view = oracles_enhanced_view_start(s->core, s->guest, s->rom, s->rom_size);
         if (!s->view) return failed(result, "cannot start the Enhanced view");
-        oracles_enhanced_view_set_zoom_out(s->view, s->zoom_out);
+        oracles_enhanced_view_set_size(s->view, oracles_enhanced_view_size((OraclesEnhancedLevel)s->view_level,
+                                                                           s->view_4_3 ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9));
         const int camera = o->camera_profile ? o->camera_profile : s->settings->camera;
         oracles_enhanced_view_set_camera_profile(s->view, (unsigned)camera);
         if (o->neighbour_objects) oracles_enhanced_view_set_neighbour_objects(s->view, 1);
@@ -656,10 +658,14 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->colour_applied = o->colour_option ? !strcmp(o->colour_option, "on") : settings->colour_correction;
     s->vsync = o->vsync_option ? o->vsync_option : settings->vsync;
     s->record_path = o->record_path;
-    s->enhanced = o->enhanced || o->zoom_out || o->continuous_transitions || o->continuous_swim;
+    s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim;
     s->continuous_transitions = o->continuous_transitions || o->continuous_swim;
     s->continuous_swim = o->continuous_swim;
-    s->zoom_out = o->zoom_out;
+    /* The view's level (--view, Display's View; --zoom-out is far, --enhanced alone near), and its shape: the screen's,
+     * a window taking the surface's (docs/PLAYING.md). */
+    s->view_level = o->view ? o->view - 1 : o->zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
+    s->view_4_3 = o->screen_4_3;
+    s->zoom_out = s->view_level != ORACLES_ENHANCED_NEAR;
     s->hotkeys_mode = oracles_settings_hotkeys_mode(o->hotkeys_option);   /* for this run alone; the slots and the keys are remembered */
     /* The profile's refusals come before the recording opens: a refused session writes no route. */
     int ok = load_game(s, o, result) && (!o->play_path || replay_route(s, o, result)) && check_profile(s, o, result)

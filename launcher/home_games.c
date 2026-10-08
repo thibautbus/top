@@ -1,6 +1,7 @@
 #include "home_games.h"
 
 #include "bps.h"
+#include "compositor.h"
 #include "file_dialog.h"
 #include "guest_tables.h"
 #include "mod_folder.h"
@@ -18,8 +19,6 @@
 #include <string.h>
 
 /* The surfaces a game plays at, for the window's scale: Faithful, --enhanced's band, the view drawn back. */
-static const int surface_width[3] = { 160, 256, 480 };
-static const int surface_height[3] = { 144, 144, 270 };
 /* Room left on the display for the window's frame and title bar, which its usable area does not count. */
 #define WINDOW_FRAME 64
 
@@ -155,6 +154,7 @@ static void inspect_display(const oracles_settings *settings, OraclesHomeDisplay
 {
     display->profile = settings->profile;
     display->transitions = settings->transitions;
+    display->view = settings->view;
     display->window = settings->window_scale ? settings->window_scale - 2 : 3;
     display->colour = settings->colour_correction;
     display->vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
@@ -263,6 +263,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     store_controls(&nav->controls, prefs);
     prefs->profile = nav->display.profile;
     prefs->transitions = nav->display.transitions;
+    prefs->view = nav->display.view;
     static const char *const vsync_names[3] = { "auto", "on", "off" };
     prefs->window_scale = nav->display.window < 3 ? nav->display.window + 2 : 0;
     prefs->colour_correction = nav->display.colour;
@@ -470,7 +471,7 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
 }
 
 /* The largest whole scale, up to the one asked for, at which the surface's window fits the display. */
-static unsigned fitting_scale(struct SDL_Window *window, unsigned wanted, int surface)
+static unsigned fitting_scale(struct SDL_Window *window, unsigned wanted, OraclesEnhancedSize surface)
 {
     SDL_Rect usable;
     const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
@@ -479,7 +480,7 @@ static unsigned fitting_scale(struct SDL_Window *window, unsigned wanted, int su
     /* The usable area in pixels, as the window is sized (points on a Retina display), less the window's frame. */
     const float ratio = oracles_sdl_pixel_ratio(window), frame = WINDOW_FRAME * oracles_sdl_point_scale(window);
     const int room_w = (int)((float)usable.w * ratio + 0.5f), room_h = (int)(((float)usable.h - frame) * ratio + 0.5f);
-    while (scale > 1u && ((int)scale * surface_width[surface] > room_w || (int)scale * surface_height[surface] > room_h)) scale--;
+    while (scale > 1u && ((int)(scale * surface.width) > room_w || (int)(scale * surface.height) > room_h)) scale--;
     return scale;
 }
 
@@ -508,7 +509,7 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     OraclesHomeGame state;
     if (fan) inspect_fan(games, fan, &state);
     else inspect(games, g, &state);
-    const int command_line_view = o.enhanced || o.zoom_out || o.continuous_transitions;
+    const int command_line_view = o.enhanced || o.zoom_out || o.view || o.continuous_transitions;
     const OraclesProfile chosen = command_line_view ? ORACLES_PROFILE_ENHANCED : games->settings->profile;
     const int effective = oracles_page_profile(&state, chosen);
     const OraclesProfile profile = effective < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)effective;
@@ -521,8 +522,8 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     /* No fan game's profile allows the item hotkeys yet: off, whatever the command line gave for the Oracles. */
     if (fan) o.hotkeys_option = hotkey_names[0];
     else if (!o.hotkeys_option) o.hotkeys_option = hotkey_names[state.hotkeys];
-    if (profile == ORACLES_PROFILE_FAITHFUL) o.enhanced = o.zoom_out = 0;
-    else if (!command_line_view) o.enhanced = o.zoom_out = 1;
+    if (profile == ORACLES_PROFILE_FAITHFUL) o.enhanced = o.zoom_out = o.view = 0;
+    else if (!command_line_view) { o.enhanced = 1; o.view = games->settings->view + 1; }   /* Display's View */
     else o.enhanced = 1;
     /* Display shows no camera: a game started here in Enhanced takes profile 2, the smooth camera. The camera key of
      * settings.txt stays for the command line and hand editing, and --camera given to the launcher still wins. */
@@ -534,13 +535,20 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
         o.sdl.fullscreen = games->settings->window_scale == 0;
         if (games->settings->window_scale) o.sdl.scale = (unsigned)games->settings->window_scale;
     }
-    o.sdl.scale = fitting_scale(window, o.sdl.scale, !o.enhanced ? 0 : o.zoom_out ? 2 : 1);
     if (oracles_sdl_fullscreen_only()) o.sdl.fullscreen = 1;   /* Android: the whole screen, whatever Display says */
+    /* The view's surface: its level in the screen's shape (as the session takes it). */
+    o.screen_4_3 = oracles_sdl_screen_4_3(window);
+    const OraclesEnhancedLevel level = o.view ? (OraclesEnhancedLevel)(o.view - 1) : o.zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
+    const OraclesEnhancedSize surface = !o.enhanced ? (OraclesEnhancedSize){ 160u, 144u }
+                                      : oracles_enhanced_view_size(level, o.screen_4_3 ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9);
+    o.sdl.scale = fitting_scale(window, o.sdl.scale, surface);
     char window_text[48];
     if (o.sdl.fullscreen) snprintf(window_text, sizeof window_text, "fullscreen");
     else snprintf(window_text, sizeof window_text, "windowed at scale %u", o.sdl.scale);
+    char surface_text[24];
+    snprintf(surface_text, sizeof surface_text, "%ux%u", surface.width, surface.height);
     fprintf(stderr, "oracles: starting %s in the %s profile (%s), %s, continuous transitions %s, item hotkeys %s, %u mod%s\n", name,
-            oracles_settings_profile_name(profile), !o.enhanced ? "160x144" : o.zoom_out ? "480x270" : "256x144, the command line's --enhanced",
+            oracles_settings_profile_name(profile), surface_text,
             window_text, o.continuous_swim ? "on, swimming too" : o.continuous_transitions ? "on" : "off", o.hotkeys_option, o.mods_count,
             o.mods_count == 1 ? "" : "s");
     /* Escape opens the pause menu over the game, its settings read and written as the home screen's are. */

@@ -2528,122 +2528,234 @@
     "w": 922,
     "h": 190
    },
-   "Color correction": {
+   "View": {
     "x": 689,
-    "w": 93.281,
+    "w": 69.266,
     "glyph_top": 464,
     "glyph_h": 27,
     "top": 464,
     "h": 27,
     "baseline": 485,
+    "width": 69.266,
+    "lines": 1
+   },
+   "view explanation": {
+    "x": 929,
+    "w": 461.594,
+    "glyph_top": 467.5,
+    "glyph_h": 24,
+    "top": 465.5,
+    "h": 29,
+    "baseline": 486.5,
+    "width": 461.594,
+    "lines": 2
+   },
+   "View row": {
+    "x": 909,
+    "y": 446,
+    "w": 922,
+    "h": 97
+   },
+   "view 0": {
+    "x": 1460.188,
+    "w": 54.75,
+    "glyph_top": 465,
+    "glyph_h": 31,
+    "top": 465,
+    "h": 31,
+    "baseline": 489,
+    "width": 54.75,
+    "lines": 1
+   },
+   "view 1": {
+    "x": 1571.563,
+    "w": 96.438,
+    "glyph_top": 465,
+    "glyph_h": 31,
+    "top": 465,
+    "h": 31,
+    "baseline": 489,
+    "width": 96.438,
+    "lines": 1
+   },
+   "view 2": {
+    "x": 1735.313,
+    "w": 33.375,
+    "glyph_top": 465,
+    "glyph_h": 31,
+    "top": 465,
+    "h": 31,
+    "baseline": 489,
+    "width": 33.375,
+    "lines": 1
+   },
+   "view 0 size": {
+    "x": 1445.563,
+    "w": 84,
+    "glyph_top": 498,
+    "glyph_h": 26,
+    "top": 498,
+    "h": 26,
+    "baseline": 518,
+    "width": 84,
+    "lines": 1
+   },
+   "view 1 size": {
+    "x": 1577.781,
+    "w": 84,
+    "glyph_top": 498,
+    "glyph_h": 26,
+    "top": 498,
+    "h": 26,
+    "baseline": 518,
+    "width": 84,
+    "lines": 1
+   },
+   "view 2 size": {
+    "x": 1710,
+    "w": 84,
+    "glyph_top": 498,
+    "glyph_h": 26,
+    "top": 498,
+    "h": 26,
+    "baseline": 518,
+    "width": 84,
+    "lines": 1
+   },
+   "view Near": {
+    "x": 1428.563,
+    "y": 460,
+    "w": 118,
+    "h": 69
+   },
+   "view Medium": {
+    "x": 1554.563,
+    "y": 460,
+    "w": 130.438,
+    "h": 69
+   },
+   "view Far": {
+    "x": 1693,
+    "y": 460,
+    "w": 118,
+    "h": 69
+   },
+   "Color correction": {
+    "x": 689,
+    "w": 93.281,
+    "glyph_top": 575,
+    "glyph_h": 27,
+    "top": 575,
+    "h": 27,
+    "baseline": 596,
     "width": 176.859,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 462,
+    "glyph_top": 573,
     "glyph_h": 24,
-    "top": 460,
+    "top": 571,
     "h": 29,
-    "baseline": 481,
+    "baseline": 592,
     "width": 689.719,
     "lines": 2
    },
    "color Off": {
     "x": 1664.484,
-    "y": 468.5,
+    "y": 579.5,
     "w": 70.156,
     "h": 41
    },
    "color On": {
     "x": 1742.641,
-    "y": 468.5,
+    "y": 579.5,
     "w": 68.359,
     "h": 41
    },
    "Continuous transitions": {
     "x": 689,
     "w": 182.688,
-    "glyph_top": 564,
+    "glyph_top": 675,
     "glyph_h": 27,
-    "top": 564,
+    "top": 675,
     "h": 27,
-    "baseline": 585,
+    "baseline": 696,
     "width": 182.688,
     "lines": 2
    },
    "transitions explanation": {
     "x": 929,
     "w": 625.5,
-    "glyph_top": 562,
+    "glyph_top": 673,
     "glyph_h": 24,
-    "top": 560,
+    "top": 671,
     "h": 29,
-    "baseline": 581,
+    "baseline": 692,
     "width": 625.5,
     "lines": 2
    },
    "transitions note": {
     "x": 929,
     "w": 391.078,
-    "glyph_top": 622,
+    "glyph_top": 733,
     "glyph_h": 22,
-    "top": 620,
+    "top": 731,
     "h": 26,
-    "baseline": 640,
+    "baseline": 751,
     "width": 391.078,
     "lines": 1
    },
    "transitions Off": {
     "x": 1664.484,
-    "y": 582.5,
+    "y": 693.5,
     "w": 70.156,
     "h": 41
    },
    "transitions On": {
     "x": 1742.641,
-    "y": 582.5,
+    "y": 693.5,
     "w": 68.359,
     "h": 41
    },
    "transitions row": {
     "x": 909,
-    "y": 546,
+    "y": 657,
     "w": 922,
     "h": 114
    },
    "Vsync": {
     "x": 689,
     "w": 89.109,
-    "glyph_top": 692,
+    "glyph_top": 803,
     "glyph_h": 27,
-    "top": 692,
+    "top": 803,
     "h": 27,
-    "baseline": 713,
+    "baseline": 824,
     "width": 89.109,
     "lines": 1
    },
    "vsync explanation": {
     "x": 929,
     "w": 466.563,
-    "glyph_top": 696,
+    "glyph_top": 807,
     "glyph_h": 24,
-    "top": 694,
+    "top": 805,
     "h": 29,
-    "baseline": 715,
+    "baseline": 826,
     "width": 466.563,
     "lines": 1
    },
    "vsync Auto": {
     "x": 1566.703,
-    "y": 688,
+    "y": 799,
     "w": 89.781,
     "h": 41
    },
    "vsync Off": {
     "x": 1740.844,
-    "y": 688,
+    "y": 799,
     "w": 70.156,
     "h": 41
    },
@@ -2651,7 +2763,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 712
+    "h": 823
    }
   },
   "2g": {
@@ -2683,54 +2795,71 @@
     "width": 186,
     "lines": 1
    },
-   "Color row": {
+   "View row": {
     "x": 909,
     "y": 520,
+    "w": 922,
+    "h": 114
+   },
+   "view later": {
+    "x": 929,
+    "w": 186,
+    "glyph_top": 596,
+    "glyph_h": 22,
+    "top": 594,
+    "h": 26,
+    "baseline": 614,
+    "width": 186,
+    "lines": 1
+   },
+   "Color row": {
+    "x": 909,
+    "y": 648,
     "w": 922,
     "h": 86
    },
    "transitions note": {
     "x": 929,
     "w": 391.078,
-    "glyph_top": 696,
+    "glyph_top": 824,
     "glyph_h": 22,
-    "top": 694,
+    "top": 822,
     "h": 26,
-    "baseline": 714,
+    "baseline": 842,
     "width": 391.078,
     "lines": 1
    },
    "transitions later": {
     "x": 929,
     "w": 186,
-    "glyph_top": 724,
+    "glyph_top": 852,
     "glyph_h": 22,
-    "top": 722,
+    "top": 850,
     "h": 26,
-    "baseline": 742,
+    "baseline": 870,
     "width": 186,
     "lines": 1
    },
    "transitions Off": {
     "x": 1664.484,
-    "y": 670.5,
+    "y": 798.5,
     "w": 70.156,
     "h": 41
    },
    "vsync later": {
     "x": 929,
     "w": 186,
-    "glyph_top": 823,
+    "glyph_top": 951,
     "glyph_h": 22,
-    "top": 821,
+    "top": 949,
     "h": 26,
-    "baseline": 841,
+    "baseline": 969,
     "width": 186,
     "lines": 1
    },
    "vsync Auto": {
     "x": 1566.703,
-    "y": 798,
+    "y": 926,
     "w": 89.781,
     "h": 41
    },
@@ -2738,7 +2867,229 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 830
+    "h": 958
+   }
+  },
+  "2r": {
+   "profile 1 size": {
+    "x": 1086.156,
+    "w": 84,
+    "glyph_top": 140,
+    "glyph_h": 26,
+    "top": 140,
+    "h": 26,
+    "baseline": 160,
+    "width": 84,
+    "lines": 1
+   },
+   "view 1 size": {
+    "x": 1577.781,
+    "w": 84,
+    "glyph_top": 457,
+    "glyph_h": 26,
+    "top": 457,
+    "h": 26,
+    "baseline": 477,
+    "width": 84,
+    "lines": 1
+   },
+   "view Medium": {
+    "x": 1554.563,
+    "y": 419,
+    "w": 130.438,
+    "h": 69
+   },
+   "window 0 size": {
+    "x": 948,
+    "w": 84,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 84,
+    "lines": 1
+   },
+   "window 1 size": {
+    "x": 1082,
+    "w": 96,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 96,
+    "lines": 1
+   },
+   "window 2 size": {
+    "x": 1228,
+    "w": 96,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 96,
+    "lines": 1
+   },
+   "window 3 size": {
+    "x": 1374,
+    "w": 168,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 168,
+    "lines": 1
+   },
+   "diagram window": {
+    "x": 139,
+    "y": 387.5,
+    "w": 346,
+    "h": 194
+   },
+   "diagram label": {
+    "x": 96,
+    "w": 271.156,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 271.156,
+    "lines": 1
+   }
+  },
+  "2s": {
+   "profile 1 size": {
+    "x": 1086.156,
+    "w": 84,
+    "glyph_top": 140,
+    "glyph_h": 26,
+    "top": 140,
+    "h": 26,
+    "baseline": 160,
+    "width": 84,
+    "lines": 1
+   },
+   "view 0 size": {
+    "x": 1445.563,
+    "w": 84,
+    "glyph_top": 457,
+    "glyph_h": 26,
+    "top": 457,
+    "h": 26,
+    "baseline": 477,
+    "width": 84,
+    "lines": 1
+   },
+   "view 1 size": {
+    "x": 1577.781,
+    "w": 84,
+    "glyph_top": 457,
+    "glyph_h": 26,
+    "top": 457,
+    "h": 26,
+    "baseline": 477,
+    "width": 84,
+    "lines": 1
+   },
+   "view 2 size": {
+    "x": 1710,
+    "w": 84,
+    "glyph_top": 457,
+    "glyph_h": 26,
+    "top": 457,
+    "h": 26,
+    "baseline": 477,
+    "width": 84,
+    "lines": 1
+   },
+   "view Near": {
+    "x": 1428.563,
+    "y": 419,
+    "w": 118,
+    "h": 69
+   },
+   "view Medium": {
+    "x": 1554.563,
+    "y": 419,
+    "w": 130.438,
+    "h": 69
+   },
+   "view Far": {
+    "x": 1693,
+    "y": 419,
+    "w": 118,
+    "h": 69
+   },
+   "window 0 size": {
+    "x": 948,
+    "w": 84,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 84,
+    "lines": 1
+   },
+   "window 1 size": {
+    "x": 1082,
+    "w": 84,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 84,
+    "lines": 1
+   },
+   "window 2 size": {
+    "x": 1216,
+    "w": 96,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 96,
+    "lines": 1
+   },
+   "window 3 size": {
+    "x": 1362,
+    "w": 156,
+    "glyph_top": 301,
+    "glyph_h": 26,
+    "top": 301,
+    "h": 26,
+    "baseline": 321,
+    "width": 156,
+    "lines": 1
+   },
+   "diagram": {
+    "x": 96,
+    "y": 363,
+    "w": 324,
+    "h": 243
+   },
+   "diagram window": {
+    "x": 114,
+    "y": 376.5,
+    "w": 288,
+    "h": 216
+   },
+   "diagram label": {
+    "x": 96,
+    "w": 276.375,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 276.375,
+    "lines": 1
    }
   },
   "2b": {
@@ -2794,24 +3145,24 @@
    },
    "transitions Off": {
     "x": 1664.484,
-    "y": 541.5,
+    "y": 652.5,
     "w": 70.156,
     "h": 41
    },
    "vsync explanation": {
     "x": 929,
     "w": 466.563,
-    "glyph_top": 655,
+    "glyph_top": 766,
     "glyph_h": 24,
-    "top": 653,
+    "top": 764,
     "h": 29,
-    "baseline": 674,
+    "baseline": 785,
     "width": 466.563,
     "lines": 1
    },
    "vsync Auto": {
     "x": 1566.703,
-    "y": 647,
+    "y": 758,
     "w": 89.781,
     "h": 41
    },
@@ -2819,7 +3170,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 671
+    "h": 782
    }
   },
   "2q": {

@@ -14,7 +14,8 @@ int harness_usage(void)
                     "                       [--render-check SAMPLES_DIR] [--render-expect CLASSES]   (native renderer against the core, samples written there; exit 1 on a mismatch, an empty expected class or a ceiling)\n"
                     "                       [--ghost-check DIR] [--ghost-lead FRAMES] [--ghost-threaded] [--ghost-trace] [--ghost-trace-load]   (ghost instance against every scrolling transition; the second trace counts the whole load's reads)\n"
                     "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2] [--enhanced-neighbours off|static (static)]   (the Enhanced surface of every frame composed and hashed)\n"
-                    "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, as the launcher's --zoom-out)\n"
+                    "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, as the launcher's --zoom-out; --view far)\n"
+                    "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/PLAYING.md)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
                     "                       (--enhanced-paced holds each frame to the Game Boy's period by a busy wait: a core a replay, as in play)\n"
                     "                       [--continuous-transitions]   (the gameplay policy of the continuous transitions, both games; on by itself for a route recorded with it)\n"
@@ -75,7 +76,21 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--enhanced-reload-at") && i + 1 < argc) o->enhanced_reload_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-threaded")) o->enhanced_threaded = 1;
         else if (!strcmp(argv[i], "--enhanced-paced")) o->enhanced_paced = 1;
-        else if (!strcmp(argv[i], "--zoom-out")) o->enhanced_zoom_out = 1;
+        else if (!strcmp(argv[i], "--zoom-out")) { o->enhanced_zoom_out = 1; o->enhanced_level = 2; }
+        else if (!strcmp(argv[i], "--view") && i + 1 < argc) {
+            const char *name = argv[++i];
+            if (!strcmp(name, "near")) o->enhanced_level = 0;
+            else if (!strcmp(name, "medium")) o->enhanced_level = 1;
+            else if (!strcmp(name, "far")) o->enhanced_level = 2;
+            else { fprintf(stderr, "harness: --view is near, medium or far, not %s\n", name); return -1; }
+            o->enhanced_zoom_out = o->enhanced_level == 2;
+        }
+        else if (!strcmp(argv[i], "--aspect") && i + 1 < argc) {
+            const char *name = argv[++i];
+            if (!strcmp(name, "16:9")) o->enhanced_aspect = 0;
+            else if (!strcmp(name, "4:3")) o->enhanced_aspect = 1;
+            else { fprintf(stderr, "harness: --aspect is 16:9 or 4:3, not %s\n", name); return -1; }
+        }
         else if (!strcmp(argv[i], "--enhanced-camera") && i + 1 < argc) o->enhanced_camera = (unsigned)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--continuous-transitions")) o->continuous_transitions = 1;
         else if (!strcmp(argv[i], "--continuous-swim")) o->continuous_transitions = o->continuous_swim = 1;

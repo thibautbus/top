@@ -89,7 +89,7 @@ void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, c
  * the camera's jumps on both axes, and outside cutscenes the feel of the
  * follow (steps, stillness while Link walks, step changes, Link's offset
  * from the centre). */
-void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y)
+void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank)
 {
     if (mode != ORACLES_ENHANCED_WORLD) {
         c->framed_frames++;
@@ -106,11 +106,13 @@ void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
     if (c->have_camera && c->have_mode && c->last_mode == ORACLES_ENHANCED_WORLD && ob->epoch == c->epochs) {
         const int32_t delta = camera_x - c->last_camera;
         const int32_t magnitude = delta < 0 ? -delta : delta;
-        const int sliding = ob->large_grid && ob->in_scroll;   /* a large room's scroll slides the band with the game's window */
-        if (magnitude > MAX_CAMERA_STEP && !sliding) { c->camera_jumps++; if (magnitude > c->largest_jump) c->largest_jump = magnitude; }
+        /* a large room's scroll slides the band with the game's window; a move to or from a screen of one colour (a
+         * fade's end, where a band narrower than a room takes the window the game sets as it fades in) is not seen */
+        const int unseen = (ob->large_grid && ob->in_scroll) || blank || c->last_blank;
+        if (magnitude > MAX_CAMERA_STEP && !unseen) { c->camera_jumps++; if (magnitude > c->largest_jump) c->largest_jump = magnitude; }
         const int32_t delta_y = camera_y - c->last_camera_y;
         const int32_t magnitude_y = delta_y < 0 ? -delta_y : delta_y;
-        if (magnitude_y > MAX_CAMERA_STEP && !sliding) { c->camera_jumps_y++; if (magnitude_y > c->largest_jump_y) c->largest_jump_y = magnitude_y; }
+        if (magnitude_y > MAX_CAMERA_STEP && !unseen) { c->camera_jumps_y++; if (magnitude_y > c->largest_jump_y) c->largest_jump_y = magnitude_y; }
         if (!ob->cutscene) {
             c->camera_steps[magnitude > 4 ? 4 : magnitude]++;
             /* Still while Link walks, the camera not clamped at the row's edge: the dead zone at work. */
@@ -139,6 +141,7 @@ void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
     }
     c->last_camera = camera_x;
     c->last_camera_y = camera_y;
+    c->last_blank = blank;
     c->have_camera = 1;
     if (!c->have_mode || c->last_mode != ORACLES_ENHANCED_WORLD) c->world_runs++;
     c->last_mode = mode;
@@ -167,8 +170,9 @@ void ec_measure_scroll(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
     const int scrolling = ob->playing && state >= 3u && state <= 5u && (scroll == 4u || scroll == 8u);
     unsigned shown_w = 0, shown_h = 0;
     oracles_enhanced_view_shown(c->view, &shown_w, &shown_h);
-    /* The normal band counts the room's gutters as black; the drawn-back view counts the rooms' own pixels only. */
-    const unsigned decided = shown_w > 256u ? 0u : (shown_w - 240u) * shown_h;
+    /* The normal band counts the room's gutters as black; the drawn-back view counts the rooms' own pixels only, and
+     * so does a band narrower than the room (the near view in 4:3, 213 wide), which has no gutter. */
+    const unsigned decided = shown_w > 256u || shown_w <= 240u ? 0u : (shown_w - 240u) * shown_h;
     if (scrolling && ob->large_grid && mode == ORACLES_ENHANCED_WORLD && uncovered > decided) c->large_scroll_black++;
     if (scrolling && !c->in_transition) { c->in_transition = 1; c->transition_frames = 0; c->transition_frozen = 0; c->transition_last_x = ob->world.link_x; c->transition_last_y = ob->world.link_y; c->transition_frozen_at[0] = 0; }
     else if (scrolling) {

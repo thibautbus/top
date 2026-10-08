@@ -394,8 +394,13 @@ static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
     t->explanations[0] = oracles_display_explanation(ORACLES_DISPLAY_COLOUR);
     t->explanations[1] = oracles_display_explanation(ORACLES_DISPLAY_TRANSITIONS);
     t->explanations[2] = oracles_display_explanation(ORACLES_DISPLAY_VSYNC);
+    t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
+    for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
+    for (int v = 0; v < 3; v++) oracles_display_view_size(nav, v, t->view_sizes[v], sizeof t->view_sizes[v]);
     t->later = nav->in_game;
-    oracles_display_diagram(nav, ORACLES_UI_DIAGRAM_W, ORACLES_UI_DIAGRAM_H, &t->diagram_w, &t->diagram_h, t->diagram_label, sizeof t->diagram_label);
+    /* The diagram's box, the screen's shape at its height, as ui_page.c draws it. */
+    t->diagram_box_w = oracles_display_screen_4_3(nav) ? 324.0f : ORACLES_UI_DIAGRAM_W;
+    oracles_display_diagram(nav, t->diagram_box_w, ORACLES_UI_DIAGRAM_H, &t->diagram_w, &t->diagram_h, t->diagram_label, sizeof t->diagram_label);
 }
 
 /* Frame 2q: an unrecognised ROM with Enhanced chosen plays in Faithful, and Display counts its sizes and draws its
@@ -601,6 +606,20 @@ static void display_2a_2b(void)
     CHECK(!strcmp(t.window_reduced, "Reduced to 3\xc3\x97 to fit this screen") && oracles_display_fit(&nav) == 3);
     layout_text("2a", "reduced", &l.window_reduced);
     layout_box("2a", "Window row", &l.rows[ORACLES_DISPLAY_WINDOW]);
+    /* View under it: each level framed with its size, far chosen; its explanation on two lines beside them. */
+    static const char *const view_probes[3] = { "Near", "Medium", "Far" };
+    CHECK(nav.display.view == 2 && l.view_explanation.count == 2);
+    layout_text("2a", "View", &l.labels[ORACLES_DISPLAY_VIEW].lines[0]);
+    layout_near("2a", "view explanation", "top", l.view_explanation.lines[0].y);
+    layout_near("2a", "view explanation", "width", l.view_explanation.w);
+    for (int v = 0; v < 3; v++) {
+        char what[32];
+        snprintf(what, sizeof what, "view %d", v); layout_text("2a", what, &l.views[v].name);
+        snprintf(what, sizeof what, "view %d size", v); layout_text("2a", what, &l.views[v].size);
+        snprintf(what, sizeof what, "view %s", view_probes[v]); layout_box("2a", what, &l.views[v].box);
+    }
+    CHECK(!strcmp(t.view_sizes[1], "384\xc3\x97" "216") && !strcmp(t.profile_sizes[ORACLES_PROFILE_ENHANCED], "480\xc3\x97" "270"));
+    layout_box("2a", "View row", &l.rows[ORACLES_DISPLAY_VIEW]);
     /* Color correction: its label and its explanation each on two lines. */
     CHECK(l.labels[ORACLES_DISPLAY_COLOUR].count == 2 && l.explanations[0].count == 2);
     CHECK(!strcmp(l.labels[ORACLES_DISPLAY_COLOUR].text[0], "Color"));
@@ -635,6 +654,9 @@ static void display_2a_2b(void)
     layout_line_top("2g", "profile later", &l.profile_later);
     layout_near("2g", "Window row", "y", l.rows[ORACLES_DISPLAY_WINDOW].y);
     layout_near("2g", "window later", "top", l.window_later.y);
+    layout_near("2g", "View row", "y", l.rows[ORACLES_DISPLAY_VIEW].y);
+    layout_near("2g", "View row", "h", l.rows[ORACLES_DISPLAY_VIEW].h);
+    layout_near("2g", "view later", "top", l.view_later.y);
     layout_near("2g", "Color row", "y", l.rows[ORACLES_DISPLAY_COLOUR].y);
     CHECK(l.explanations[0].count == 2);
     layout_near("2g", "transitions note", "top", l.transitions_note.y);
@@ -661,6 +683,45 @@ static void display_2a_2b(void)
     layout_text("2b", "vsync explanation", &l.explanations[2].lines[0]);
     layout_box("2b", "vsync Auto", &l.vsync[0].box);
     layout_box("2b", "panel", &l.panel);
+
+    /* 2r: the medium view; Enhanced's size under its profile, the windows and the diagram follow it. */
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.view = 1;
+    nav.display.window = 2;
+    display_texts(&nav, &t);
+    oracles_ui_layout_display(&t, &l);
+    layout_text("2r", "profile 1 size", &l.profiles[ORACLES_PROFILE_ENHANCED].size);
+    layout_text("2r", "view 1 size", &l.views[1].size);
+    layout_box("2r", "view Medium", &l.views[1].box);
+    for (int i = 0; i < 4; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "window %d size", i);
+        layout_text("2r", what, &l.windows[i].size);
+    }
+    layout_box("2r", "diagram window", &l.diagram_window);
+    layout_text("2r", "diagram label", &l.diagram_label);
+    /* 2s: the same on a 4:3 screen, which the mockup takes as 1440x1080: the view's 4:3 sizes, far keeping its 16:9
+     * one, the windows counted in them, the diagram's box narrower. */
+    nav.display.screen_w = 1440;
+    nav.display.room_w = 1440;
+    nav.display.window = 3;
+    display_texts(&nav, &t);
+    oracles_ui_layout_display(&t, &l);
+    CHECK(oracles_display_screen_4_3(&nav) && !strcmp(t.view_sizes[0], "213\xc3\x97" "160") && !strcmp(t.view_sizes[2], "480\xc3\x97" "270"));
+    layout_text("2s", "profile 1 size", &l.profiles[ORACLES_PROFILE_ENHANCED].size);
+    for (int v = 0; v < 3; v++) {
+        char what[32];
+        snprintf(what, sizeof what, "view %d size", v); layout_text("2s", what, &l.views[v].size);
+        snprintf(what, sizeof what, "view %s", view_probes[v]); layout_box("2s", what, &l.views[v].box);
+    }
+    for (int i = 0; i < 4; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "window %d size", i);
+        layout_text("2s", what, &l.windows[i].size);
+    }
+    layout_box("2s", "diagram", &l.diagram);
+    layout_box("2s", "diagram window", &l.diagram_window);
+    layout_text("2s", "diagram label", &l.diagram_label);
 }
 
 static void display_navigation(void)
@@ -681,6 +742,12 @@ static void display_navigation(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.window == 3);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.display.window == 0);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.window == 3);
+    /* View goes round near, medium, far, far first. */
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_VIEW && nav.display.view == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.view == 0);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.view == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.view == 1);
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_COLOUR && oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.colour == 1);
     /* The transitions toggle in Enhanced, and not in Faithful. */
@@ -692,8 +759,10 @@ static void display_navigation(void)
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TRANSITIONS, 1) == ORACLES_HOME_STAY);
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_VSYNC && oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.vsync == 2);
-    /* Five rows: down from Vsync wraps to Profile. */
+    /* Six rows: down from Vsync wraps to Profile. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PROFILE);
+    /* In Faithful, View does not change either, by a click as by a key. */
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_VIEW, 0) == ORACLES_HOME_STAY && nav.display.view == 1);
     /* A click on a choice sets it. */
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PROFILE, ORACLES_PROFILE_ENHANCED) == ORACLES_HOME_STORE && nav.display.profile == ORACLES_PROFILE_ENHANCED);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_WINDOW, 1) == ORACLES_HOME_STORE && nav.display.window == 1 && nav.row == ORACLES_DISPLAY_WINDOW);

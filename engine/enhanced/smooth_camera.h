@@ -32,13 +32,16 @@
 #define ORACLES_E11_U64_MAX UINT64_MAX
 
 /* The viewports a pinned configuration may frame: the normal band's, and the
- * drawn-back view's outdoors (camera.c), framed at its middle.  The
- * digest names the rest of the configuration, which the two share. */
+ * bands of the view's levels outdoors (camera.c; compositor.h's sizes:
+ * 213 near in 4:3, 320 and 384 medium, 480 far), framed at their middle.  The
+ * digest names the rest of the configuration, which they share. */
 #define ORACLES_E11_VIEWPORT 256
 #define ORACLES_E11_ZOOM_VIEWPORT 480
 static inline bool oracles_e11_viewport_valid(int32_t viewport_width, int32_t framing) {
-    return (viewport_width == ORACLES_E11_VIEWPORT * ORACLES_E11_F256 || viewport_width == ORACLES_E11_ZOOM_VIEWPORT * ORACLES_E11_F256) &&
-        framing * 2 == viewport_width;
+    static const int32_t widths[] = { 213, ORACLES_E11_VIEWPORT, 320, 384, ORACLES_E11_ZOOM_VIEWPORT };
+    bool known = false;
+    for (size_t i = 0; i < sizeof widths / sizeof widths[0]; i++) known = known || viewport_width == widths[i] * ORACLES_E11_F256;
+    return known && framing * 2 == viewport_width;
 }
 
 #define ORACLES_E11_CONFIG_SCHEMA "camera-smooth-horizontal-v1"

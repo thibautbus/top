@@ -51,6 +51,7 @@ typedef struct oracles_settings {
      * enhanced (enhanced by default: the view drawn back), transitions=off|on (on by default: they come with Enhanced). */
     OraclesProfile profile;
     int transitions;
+    int view;                     /* view=near|medium|far, Display's View in Enhanced: an OraclesEnhancedLevel, far by default */
     OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */
     /* mods_ages=, mods_seasons=: the mods the game's Mods page made active, their names in order and separated by
      * commas, eight at most; empty: none.  The Mods page's Play starts the game with them. */

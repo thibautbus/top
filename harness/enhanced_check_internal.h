@@ -40,6 +40,7 @@ struct OraclesEnhancedCheck {
     int32_t largest_jump;
     unsigned camera_jumps_y;          /* the same, on the vertical camera */
     int32_t largest_jump_y, last_camera_y;
+    int last_blank;                          /* the last world frame's surface was of one colour */
     /* the feel of the camera, over consecutive world frames of one epoch, outside cutscenes */
     unsigned camera_steps[5];         /* frames by |delta|: 0, 1, 2, 3, 4 px and more */
     unsigned camera_still_link_moving;/* frames with the camera still while Link's world x changed */
@@ -148,7 +149,8 @@ double ec_monotonic_us(void);
 
 /* The camera, the scrolls and the savestate reload (enhanced_check_camera.c). */
 void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, const int shown[4], const uint8_t room[4]);
-void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
+/* `blank`: the composed surface is of one colour (a fade at its end): a camera that moves to or from it shows no jump. */
+void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank);
 void ec_measure_coverage(OraclesEnhancedCheck *c, uint32_t frame, unsigned uncovered);
 void ec_measure_scroll(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, unsigned uncovered);
 void ec_measure_seams(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode);

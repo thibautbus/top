@@ -234,7 +234,7 @@ static uint64_t hash_outside_slots(const OraclesEnhancedView *v)
 
 void ev_draw_hotbar(OraclesEnhancedView *v)
 {
-    if (!v->hotbar_shown) return;
+    if (!v->hotbar_shown || !oracles_hotbar_fits(v->size.width, ORACLES_ENHANCED_CORE_WIDTH)) return;
     OraclesGuestInventoryState s;
     oracles_guest_inventory_state(v->guest, &s);
     capture_icons(v, &s);

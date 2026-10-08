@@ -88,11 +88,21 @@ void oracles_enhanced_view_stop(OraclesEnhancedView *v)
 uint32_t oracles_enhanced_view_width(const OraclesEnhancedView *v) { return v->size.width; }
 uint32_t oracles_enhanced_view_height(const OraclesEnhancedView *v) { return v->size.height; }
 
-void oracles_enhanced_view_set_zoom_out(OraclesEnhancedView *v, int enabled)
+void oracles_enhanced_view_set_zoom_out(OraclesEnhancedView *v, int enabled) { oracles_enhanced_view_set_size(v, oracles_enhanced_size(enabled)); }
+
+void oracles_enhanced_view_set_size(OraclesEnhancedView *v, OraclesEnhancedSize size)
 {
-    /* Before the first composition: the cache is empty, the surface unwritten. */
-    const unsigned slots = enabled ? SLOTS : NORMAL_SLOTS;
-    const OraclesEnhancedSize size = oracles_enhanced_size(enabled);
+    /* Before the first composition: the cache is empty, the surface unwritten.  A band wider than the normal one
+     * draws back, and shows more rooms at once. */
+    /* Only the sizes of the levels (compositor.h): the view, the camera and the hotbar are made for those. */
+    int known = 0;
+    for (unsigned l = 0; l < ORACLES_ENHANCED_LEVELS; l++)
+        for (unsigned a = 0; a < ORACLES_ENHANCED_ASPECTS; a++) {
+            const OraclesEnhancedSize s = oracles_enhanced_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a);
+            known |= s.width == size.width && s.height == size.height;
+        }
+    if (!known) return;
+    const unsigned slots = size.width > ORACLES_ENHANCED_NARROW_WIDTH ? SLOTS : NORMAL_SLOTS;
     entry *fresh = calloc(slots, sizeof *fresh);
     uint32_t *surface = calloc((size_t)size.width * size.height, sizeof *surface);
     if (!fresh || !surface) { free(fresh); free(surface); return; }   /* the view keeps its size */
@@ -577,15 +587,21 @@ static void size_record(OraclesEnhancedSize size, uint8_t out[SIZE_RECORD_SIZE])
     out[6] = (uint8_t)size.height; out[7] = (uint8_t)(size.height >> 8);
 }
 
-/* A surface as the player chose it: the options, and the launcher's profile, that give it. */
+/* A surface as the player chose it: the view's level and the screen's shape that give it. */
 static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
 {
-    if (size.width == ORACLES_ENHANCED_ZOOM_WIDTH && size.height == ORACLES_ENHANCED_ZOOM_HEIGHT)
-        snprintf(out, capacity, "the view drawn back, %ux%u (--zoom-out, or the launcher's Enhanced)", size.width, size.height);
-    else if (size.width == ORACLES_ENHANCED_NARROW_WIDTH && size.height == ORACLES_ENHANCED_NARROW_HEIGHT)
-        snprintf(out, capacity, "the band, %ux%u (--enhanced without --zoom-out)", size.width, size.height);
-    else
-        snprintf(out, capacity, "a surface of %ux%u", size.width, size.height);
+    static const char *const levels[ORACLES_ENHANCED_LEVELS] = { "near", "medium", "far" };
+    static const char *const aspects[ORACLES_ENHANCED_ASPECTS] = { "16:9", "4:3" };
+    for (unsigned l = ORACLES_ENHANCED_LEVELS; l-- > 0;)
+        for (unsigned a = 0; a < ORACLES_ENHANCED_ASPECTS; a++) {
+            const OraclesEnhancedSize s = oracles_enhanced_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a);
+            if (s.width == size.width && s.height == size.height) {
+                if (l == ORACLES_ENHANCED_FAR) snprintf(out, capacity, "the far view, %ux%u", size.width, size.height);
+                else snprintf(out, capacity, "the %s view, %ux%u in %s", levels[l], size.width, size.height, aspects[a]);
+                return;
+            }
+        }
+    snprintf(out, capacity, "a surface of %ux%u", size.width, size.height);
 }
 
 int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_t *data, size_t size, char *why, size_t capacity)

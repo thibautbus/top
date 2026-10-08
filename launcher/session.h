@@ -31,6 +31,8 @@ typedef struct OraclesSessionOptions {
     uint32_t frames;                 /* 0: no limit */
     int no_window, mute, diagnostics, native_renderer;
     int enhanced, zoom_out, continuous_transitions;
+    int view;                        /* the Enhanced view's level plus one (an OraclesEnhancedLevel; --view, Display's View); 0: far with zoom_out, else near */
+    int screen_4_3;                  /* the screen is nearer 4:3 than 16:9: the view takes that shape */
     int continuous_swim;             /* --continuous-swim: the transitions with Link swimming at the surface too (implies them) */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
     int camera_profile;              /* 0: the settings' camera; 1 or 2: this one for the session, not stored */

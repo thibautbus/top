@@ -130,6 +130,18 @@ int oracles_sdl_fullscreen_only(void)
 #endif
 }
 
+int oracles_sdl_screen_4_3(struct SDL_Window *window)
+{
+    /* The display's desktop mode, its shape nearer 4:3 (1.33) than 16:9 (1.78): below their middle, 1.56.  A screen
+     * held upright (a phone) counts by its long side over its short one. */
+    if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) return 0;
+    const SDL_DisplayID display = window ? SDL_GetDisplayForWindow(window) : SDL_GetPrimaryDisplay();
+    const SDL_DisplayMode *mode = display ? SDL_GetDesktopDisplayMode(display) : NULL;
+    if (!mode || mode->w <= 0 || mode->h <= 0) return 0;
+    const int long_side = mode->w > mode->h ? mode->w : mode->h, short_side = mode->w > mode->h ? mode->h : mode->w;
+    return (float)long_side / (float)short_side < (4.0f / 3.0f + 16.0f / 9.0f) / 2.0f;
+}
+
 float oracles_sdl_pixel_ratio(struct SDL_Window *window)
 {
     const float density = window ? SDL_GetWindowPixelDensity(window) : 0.0f;

@@ -38,6 +38,8 @@ struct OraclesEnhancedView *oracles_enhanced_check_view(OraclesEnhancedCheck *ch
 void oracles_enhanced_check_set_camera_profile(OraclesEnhancedCheck *check, unsigned profile);
 /* The drawn-back view's surface, 480x270, before the first frame. */
 void oracles_enhanced_check_set_zoom_out(OraclesEnhancedCheck *check, int enabled);
+/* The surface of a view's level in a screen's shape (oracles_enhanced_view_size), before the first frame. */
+void oracles_enhanced_check_set_size(OraclesEnhancedCheck *check, OraclesEnhancedSize size);
 /* Each frame held to the Game Boy's period (59.7275 Hz), as a session plays
  * it: what the ghost in its thread delivers in a frame of play. */
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *check, int paced);

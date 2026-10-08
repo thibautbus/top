@@ -80,6 +80,9 @@ typedef struct OraclesUiDisplayTexts {
     const char *profile_note;
     int later;                            /* opened from a game: the rows the next Play takes say so */
     const char *explanations[3];          /* color correction, continuous transitions, vsync */
+    const char *view_explanation;
+    char profile_sizes[ORACLES_PROFILES][24], view_sizes[3][24];   /* the sizes of the screen's shape, Enhanced's at the view chosen */
+    float diagram_box_w;                  /* the diagram's box, the screen's shape at its height (0: 16:9's) */
     float diagram_w, diagram_h;           /* the window drawn in the diagram's box */
     char diagram_label[ORACLES_HOME_TEXT_LENGTH];
 } OraclesUiDisplayTexts;
@@ -89,14 +92,16 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiBox diagram, diagram_window;
     OraclesUiLine diagram_label;
     OraclesUiBox panel;
-    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];   /* Profile, Window, Color correction, Continuous transitions, Vsync */
+    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];   /* Profile, Window, View, Color correction, Continuous transitions, Vsync */
     OraclesUiBox rows[ORACLES_DISPLAY_ROWS];         /* each row's highlight, the pointer's target */
     OraclesUiOptionLayout profiles[ORACLES_PROFILES];
     OraclesUiLine profile_note;
     OraclesUiOptionLayout windows[4];
     OraclesUiLine window_note, window_reduced;
     OraclesUiLine transitions_note;
-    OraclesUiLine profile_later, window_later, transitions_later, vsync_later;   /* zero unless `later` */
+    OraclesUiLine profile_later, window_later, view_later, transitions_later, vsync_later;   /* zero unless `later` */
+    OraclesUiOptionLayout views[3];
+    OraclesUiWrapped view_explanation;
     OraclesUiOptionLayout transitions[2];
     OraclesUiWrapped explanations[3];
     OraclesUiOptionLayout colour[2], vsync[3];

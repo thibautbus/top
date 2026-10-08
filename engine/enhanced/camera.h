@@ -69,10 +69,11 @@ int oracles_enhanced_world_from_room(uint8_t group, uint8_t room, int room_is_la
 #define ORACLES_ENHANCED_ISOLATED 1
 #define ORACLES_ENHANCED_INDOORS 2
 /* `band_width`: the world band's width outdoors (groups 0 and 1), which is
- * the reducer's viewport there: 256, or 480 in the drawn-back view;
- * 0 stands for 256.  Elsewhere the viewport is 256, but for a large
- * room of the grid (groups 2 to 7), which the drawn-back view shows whole in
- * the whole band. */
+ * the reducer's viewport there: the band of the view's size, 213 to 480
+ * (256 the normal one, 480 the drawn-back view); 0 stands for 256.  Elsewhere
+ * the viewport is 256, or the band where it is narrower, but for a large
+ * room of the grid (groups 2 to 7), which a band wider than 256 shows whole
+ * in the whole band. */
 /* Pure: in the drawn-back view (a band wider than 256), a room of Ages' open
  * sea takes the sea for its extent, as the map is outdoors, and the whole
  * band for its viewport: `sea` is the sea's rectangle on the grid (first
@@ -122,7 +123,7 @@ typedef struct OraclesEnhancedObserver {
     unsigned map_width;                      /* rooms per overworld row: 14 in Ages, 16 in Seasons (0: 16) */
     unsigned map_height;                     /* rows of the reference group's map under the tileset map rules (set by the view), 0: the grid's 16 */
     unsigned map_left, map_top;              /* its first column and row, 0 but for a map walled inside the grid (set by the view) */
-    unsigned band_width;                     /* the world band's width outdoors (0: 256; 480 in the drawn-back view) */
+    unsigned band_width;                     /* the world band's width outdoors (0: 256; 213 to 480 by the view's size) */
     int sea;                                 /* the reference room is of Ages' open sea, whose rectangle is `sea_extent` (set by the view) */
     uint8_t sea_extent[4];
     unsigned open_edges;                     /* an interior's open edges, set by the view from its cache */
@@ -180,11 +181,16 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *camera, uint32_t frame
 /* 1 when the vertical reducer tracked at the last reduction. */
 int oracles_enhanced_camera_vertical_tracking(const OraclesEnhancedCamera *camera);
 /* The surface's world band, which the reducers frame outdoors: 256x128 (the
- * default), or 480x254 in the drawn-back view, where elsewhere
- * they keep the 256x128 band, centred in the surface's.  Restarts them. */
+ * default), or that of another of the view's sizes, 213x144 to 480x254 (the
+ * drawn-back view); elsewhere they keep 128 lines and the band's width up to
+ * 256, centred in the surface's, but for a large room a band wider than 256
+ * draws back whole, and a narrower one taller than 128 shows all its lines.
+ * Restarts them. */
 void oracles_enhanced_camera_set_band(OraclesEnhancedCamera *camera, unsigned width, unsigned height);
 /* The part of the band the last reduction framed, centred in it: all of it,
- * but where the drawn-back view does not draw back (256x128). */
+ * but where a band wider than 256 does not draw back (256x128), and its
+ * width by 128 lines where a narrower band frames a room off the overworlds,
+ * but for a large room. */
 void oracles_enhanced_camera_shown(const OraclesEnhancedCamera *camera, unsigned *width, unsigned *height);
 
 /* Attaches to a guest (its tables give the addresses; the game decides the

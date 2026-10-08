@@ -59,10 +59,13 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
                                                  const uint8_t *rom, size_t rom_size);
 void oracles_enhanced_view_stop(OraclesEnhancedView *view);
 
-/* The surface: 256x144, or 480x270 in the drawn-back view (`--zoom-out`),
+/* The surface: 256x144, or 480x270 in the drawn-back view (`--zoom-out`, the far 16:9 size),
  * which outdoors shows three rooms across and two down, and keeps
- * the normal band elsewhere, centred.  Chosen before the first composition. */
+ * the normal band elsewhere, centred; set_size takes the view's other sizes.  Chosen before the first composition. */
 void oracles_enhanced_view_set_zoom_out(OraclesEnhancedView *view, int enabled);
+/* The surface's size: a level in the screen's shape (compositor.h, oracles_enhanced_view_size); the same moment as
+ * set_zoom_out, which is the near or the far 16:9 size.  A size wider than the normal band draws back. */
+void oracles_enhanced_view_set_size(OraclesEnhancedView *view, OraclesEnhancedSize size);
 uint32_t oracles_enhanced_view_width(const OraclesEnhancedView *view);
 uint32_t oracles_enhanced_view_height(const OraclesEnhancedView *view);
 

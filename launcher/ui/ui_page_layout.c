@@ -228,19 +228,25 @@ static float framed(const char *const *names, const char *const *sizes, unsigned
     return height;
 }
 
-/* A row of choices framed, right-aligned at `right` in a line of `height` from `top`. */
-static void choices(const char *const *names, unsigned count, float right, float top, OraclesUiOptionLayout *out)
+/* A row of choices framed, right-aligned at `right` in a line of `height` from `top`; with `sizes` (NULL: none), each
+ * choice's size under its name, the two centred in the frame (View). */
+static void choices(const char *const *names, const char *const *sizes, unsigned count, float right, float top, OraclesUiOptionLayout *out)
 {
     float x = right;
     for (unsigned i = count; i-- > 0;) {
         OraclesUiOptionLayout *o = &out[i];
         o->name = line_at(&oracles_ui_choice, names[i], 0.0f, 0.0f, 0.0f);
         memset(&o->size, 0, sizeof o->size);
-        o->box.w = o->name.w + 2.0f * (CHOICE_PAD_X + BORDER);
-        o->box.h = o->name.h + 2.0f * (CHOICE_PAD_Y + BORDER);
+        if (sizes) o->size = line_at(&oracles_ui_option_size, sizes[i], 0.0f, 0.0f, 0.0f);
+        const float inner = sizes && o->size.w > o->name.w ? o->size.w : o->name.w;
+        const float inner_h = o->name.h + (sizes ? OPTION_LINE_GAP + o->size.h : 0.0f);
+        o->box.w = inner + 2.0f * (CHOICE_PAD_X + BORDER);
+        o->box.h = inner_h + 2.0f * (CHOICE_PAD_Y + BORDER);
         o->box.x = x - o->box.w;
         o->box.y = top;
-        move_line(&o->name, o->box.x + BORDER + CHOICE_PAD_X, top + BORDER + CHOICE_PAD_Y);
+        const float inner_x = o->box.x + BORDER + CHOICE_PAD_X;
+        move_line(&o->name, inner_x + (inner - o->name.w) * 0.5f, top + BORDER + CHOICE_PAD_Y);
+        if (sizes) move_line(&o->size, inner_x + (inner - o->size.w) * 0.5f, o->name.y + o->name.h + OPTION_LINE_GAP);
         x = o->box.x - CHOICE_GAP;
     }
 }
@@ -388,12 +394,12 @@ static void move_wrapped(OraclesUiWrapped *w, float y)
 /* A row of Display with choices: its explanation wrapped beside them, with its italic note under it if any (NULL: none),
  * both centred on the row. Returns the row's height. */
 static float display_row(float x, float y, float w, const char *label, float label_x, const char *explanation, const char *const *notes,
-                         int note_count, const char *const *names, unsigned count, OraclesUiWrapped *label_out, OraclesUiWrapped *explanation_out,
-                         OraclesUiLine *const *notes_out, OraclesUiOptionLayout *options, OraclesUiBox *row)
+                         int note_count, const char *const *names, const char *const *sizes, unsigned count, OraclesUiWrapped *label_out,
+                         OraclesUiWrapped *explanation_out, OraclesUiLine *const *notes_out, OraclesUiOptionLayout *options, OraclesUiBox *row)
 {
     oracles_ui_wrap(&oracles_ui_row_label, label, DISPLAY_LABEL_W, label_x, y + LABEL_PAD_TOP, label_out);
     const float inner_x = x + ROW_PAD_X, inner_y = y + DISPLAY_ROW_PAD_Y, right = x + w - ROW_PAD_X;
-    choices(names, count, right, inner_y, options);
+    choices(names, sizes, count, right, inner_y, options);
     const float options_w = right - options[0].box.x;
     oracles_ui_wrap(&oracles_ui_row_text, explanation, right - inner_x - ROW_GAP - options_w, inner_x, inner_y, explanation_out);
     float text_h = explanation_out->h;
@@ -409,7 +415,11 @@ static float display_row(float x, float y, float w, const char *label, float lab
         note_y = notes_out[i]->y + notes_out[i]->h;
     }
     const float dy = (inner_h - options[0].box.h) * 0.5f;
-    for (unsigned i = 0; i < count; i++) { options[i].box.y += dy; move_line(&options[i].name, options[i].name.x, options[i].name.y + dy); }
+    for (unsigned i = 0; i < count; i++) {
+        options[i].box.y += dy;
+        move_line(&options[i].name, options[i].name.x, options[i].name.y + dy);
+        if (sizes) move_line(&options[i].size, options[i].size.x, options[i].size.y + dy);
+    }
     *row = box(x, y, w, inner_h + 2.0f * DISPLAY_ROW_PAD_Y);
     const float label_h = LABEL_PAD_TOP + label_out->h;
     return label_h > row->h ? label_h : row->h;
@@ -419,8 +429,9 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
 {
     memset(out, 0, sizeof *out);
     oracles_ui_layout_page_head("Display", t->over, t->title, NULL, &out->head);
-    out->diagram = box(HEAD_X, out->head.title.lines[0].y + out->head.title.h + DIAGRAM_MARGIN, ORACLES_UI_DIAGRAM_W, ORACLES_UI_DIAGRAM_H);
-    out->diagram_window = box(out->diagram.x + (ORACLES_UI_DIAGRAM_W - t->diagram_w) * 0.5f, out->diagram.y + (ORACLES_UI_DIAGRAM_H - t->diagram_h) * 0.5f,
+    const float diagram_w = t->diagram_box_w > 0.0f ? t->diagram_box_w : ORACLES_UI_DIAGRAM_W;
+    out->diagram = box(HEAD_X, out->head.title.lines[0].y + out->head.title.h + DIAGRAM_MARGIN, diagram_w, ORACLES_UI_DIAGRAM_H);
+    out->diagram_window = box(out->diagram.x + (diagram_w - t->diagram_w) * 0.5f, out->diagram.y + (ORACLES_UI_DIAGRAM_H - t->diagram_h) * 0.5f,
                               t->diagram_w, t->diagram_h);
     out->diagram_label = line_at(&oracles_ui_diagram_label, t->diagram_label, HEAD_X, out->diagram.y + out->diagram.h + DIAGRAM_LABEL_GAP, 0.0f);
 
@@ -433,7 +444,9 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
     oracles_ui_wrap(&oracles_ui_row_label, oracles_display_labels[ORACLES_DISPLAY_PROFILE], DISPLAY_LABEL_W, left, y + LABEL_PAD_TOP,
                     &out->labels[ORACLES_DISPLAY_PROFILE]);
     float inner_y = y + DISPLAY_ROW_PAD_Y;
-    float options_h = framed(oracles_profile_names, oracles_profile_sizes, ORACLES_PROFILES, inner_x, inner_y, out->profiles);
+    const char *profile_sizes[ORACLES_PROFILES];
+    for (int p = 0; p < ORACLES_PROFILES; p++) profile_sizes[p] = t->profile_sizes[p];
+    float options_h = framed(oracles_profile_names, profile_sizes, ORACLES_PROFILES, inner_x, inner_y, out->profiles);
     out->profile_note = line_at(&oracles_ui_row_text, t->profile_note, inner_x, inner_y + options_h + PROFILE_NOTE_GAP, 0.0f);
     float bottom = out->profile_note.y + out->profile_note.h;
     /* Opened from a game, what only the next session takes says so, under its row. */
@@ -464,16 +477,25 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
     out->rows[ORACLES_DISPLAY_WINDOW] = box(value_x, y, value_w, bottom + DISPLAY_ROW_PAD_Y - y);
     y += out->rows[ORACLES_DISPLAY_WINDOW].h + DISPLAY_ROW_GAP;
 
-    /* Color correction, continuous transitions (with the note on savestates), vsync: an explanation and choices. */
-    const char *const transitions_notes[2] = { oracles_ui_transitions_note, oracles_ui_later }, *const vsync_notes[1] = { oracles_ui_later };
-    OraclesUiLine *const transitions_out[2] = { &out->transitions_note, &out->transitions_later }, *const vsync_out[1] = { &out->vsync_later };
+    /* View (each level with its size), color correction, continuous transitions (with the note on savestates), vsync: an
+     * explanation and choices. */
+    const char *const later_notes[1] = { oracles_ui_later };
+    const char *const transitions_notes[2] = { oracles_ui_transitions_note, oracles_ui_later };
+    OraclesUiLine *const view_out[1] = { &out->view_later }, *const vsync_out[1] = { &out->vsync_later };
+    OraclesUiLine *const transitions_out[2] = { &out->transitions_note, &out->transitions_later };
+    const char *view_sizes[3];
+    for (int v = 0; v < 3; v++) view_sizes[v] = t->view_sizes[v];
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VIEW], left, t->view_explanation, later_notes, t->later ? 1 : 0,
+                     oracles_display_view_names, view_sizes, 3, &out->labels[ORACLES_DISPLAY_VIEW], &out->view_explanation, view_out, out->views,
+                     &out->rows[ORACLES_DISPLAY_VIEW]) + DISPLAY_ROW_GAP;
     y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_COLOUR], left, t->explanations[0], NULL, 0, oracles_display_colour_choices,
-                     2, &out->labels[ORACLES_DISPLAY_COLOUR], &out->explanations[0], NULL, out->colour, &out->rows[ORACLES_DISPLAY_COLOUR]) + DISPLAY_ROW_GAP;
+                     NULL, 2, &out->labels[ORACLES_DISPLAY_COLOUR], &out->explanations[0], NULL, out->colour, &out->rows[ORACLES_DISPLAY_COLOUR])
+         + DISPLAY_ROW_GAP;
     y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_TRANSITIONS], left, t->explanations[1], transitions_notes, t->later ? 2 : 1,
-                     oracles_ui_transition_choices, 2, &out->labels[ORACLES_DISPLAY_TRANSITIONS], &out->explanations[1], transitions_out,
+                     oracles_ui_transition_choices, NULL, 2, &out->labels[ORACLES_DISPLAY_TRANSITIONS], &out->explanations[1], transitions_out,
                      out->transitions, &out->rows[ORACLES_DISPLAY_TRANSITIONS]) + DISPLAY_ROW_GAP;
-    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VSYNC], left, t->explanations[2], vsync_notes, t->later ? 1 : 0,
-                     oracles_display_vsync_choices, 3, &out->labels[ORACLES_DISPLAY_VSYNC], &out->explanations[2], vsync_out, out->vsync,
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VSYNC], left, t->explanations[2], later_notes, t->later ? 1 : 0,
+                     oracles_display_vsync_choices, NULL, 3, &out->labels[ORACLES_DISPLAY_VSYNC], &out->explanations[2], vsync_out, out->vsync,
                      &out->rows[ORACLES_DISPLAY_VSYNC]);
     out->panel = box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
 }

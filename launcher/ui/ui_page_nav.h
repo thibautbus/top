@@ -65,7 +65,8 @@ const char *oracles_page_save_file(const OraclesHomeGame *game);        /* "No s
 void oracles_page_save_line(const OraclesHomeGame *game, char *out, size_t capacity);
 const char *oracles_page_play_note(const OraclesHomeNav *nav);          /* shown beside Play; empty mostly */
 extern const char *const oracles_profile_names[ORACLES_PROFILES];
-extern const char *const oracles_profile_sizes[ORACLES_PROFILES];
+/* The size written under a profile: Faithful's, or Enhanced's at the view chosen in the screen's shape. */
+void oracles_profile_size(const OraclesHomeNav *nav, int profile, char *out, size_t capacity);
 
 OraclesHomeCommand oracles_page_act(OraclesHomeNav *nav, OraclesHomeAction action);
 void oracles_page_hover(OraclesHomeNav *nav, unsigned row);
@@ -75,14 +76,20 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row);
 typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PROFILE,
     ORACLES_DISPLAY_WINDOW,
+    ORACLES_DISPLAY_VIEW,
     ORACLES_DISPLAY_COLOUR,
     ORACLES_DISPLAY_TRANSITIONS,
     ORACLES_DISPLAY_VSYNC,
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
-/* Continuous transitions carry the Enhanced view: they apply in Enhanced only. */
+/* Continuous transitions carry the Enhanced view: they apply in Enhanced only, as View does. */
 int oracles_display_transitions_apply(const OraclesHomeNav *nav);
+/* The screen is nearer 4:3 than 16:9: the Enhanced view takes the 4:3 sizes (docs/PLAYING.md). */
+int oracles_display_screen_4_3(const OraclesHomeNav *nav);
+/* View's choices and the size of each, the view's level in the screen's shape. */
+extern const char *const oracles_display_view_names[3];
+void oracles_display_view_size(const OraclesHomeNav *nav, int view, char *out, size_t capacity);
 /* The profile the game shown plays in: the one chosen, or Faithful for an unrecognised ROM (the chosen one for a game
  * without a usable ROM, a fan game's included). */
 OraclesProfile oracles_display_played_profile(const OraclesHomeNav *nav);

@@ -45,7 +45,7 @@ static uint32_t gutter_pixel(const OraclesEnhancedCompose *in, uint32_t border)
 static unsigned compose_row(const OraclesEnhancedCompose *in, const uint32_t *core, uint32_t *row, unsigned x0, unsigned x1,
                             int32_t world_y, int32_t shift_x, int32_t shift_y)
 {
-    uint8_t painted[ORACLES_ENHANCED_ZOOM_WIDTH];
+    uint8_t painted[ORACLES_ENHANCED_MAX_WIDTH];
     memset(painted + x0, 0, x1 - x0);
     /* The band column x shows world column left + x (the shift applied). */
     const int32_t left = in->world_left + shift_x, wy = world_y + shift_y;
