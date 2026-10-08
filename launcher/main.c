@@ -37,23 +37,41 @@
 #include <string.h>
 
 #ifdef __ANDROID__
+#include <SDL3/SDL_system.h>
 #include <android/log.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <unistd.h>
 
 /* Android keeps no process's standard error: each line the launcher writes there (a session's report, a refusal) goes
- * to the system's log instead, tagged "the-oracles-project" (adb logcat -s the-oracles-project). */
+ * to the system's log instead, tagged "the-oracles-project" (adb logcat -s the-oracles-project), and to a file in the
+ * application's folder on the shared storage, beside the ROMs and reachable over USB, so that a player can send a
+ * session's report without a computer: the-oracles-project.log for this run, the one before kept as
+ * the-oracles-project.previous.log. */
+static char log_path[1024];
+
 static void *forward_stderr(void *opaque)
 {
     FILE *in = fdopen((int)(intptr_t)opaque, "r");
+    FILE *file = log_path[0] ? fopen(log_path, "w") : NULL;
     char line[1024];
-    while (in && fgets(line, sizeof line, in)) __android_log_write(ANDROID_LOG_INFO, "the-oracles-project", line);
+    while (in && fgets(line, sizeof line, in)) {
+        __android_log_write(ANDROID_LOG_INFO, "the-oracles-project", line);
+        if (file) { fputs(line, file); fflush(file); }   /* a line at a time: the file holds what was said if the system ends the process */
+    }
+    if (file) fclose(file);
     return NULL;
 }
 
 static void log_stderr(void)
 {
+    const char *base = SDL_GetAndroidExternalStoragePath();
+    if (base) {
+        char previous[sizeof log_path];
+        snprintf(log_path, sizeof log_path, "%s/the-oracles-project.log", base);
+        snprintf(previous, sizeof previous, "%s/the-oracles-project.previous.log", base);
+        rename(log_path, previous);
+    }
     int pipes[2];
     if (pipe(pipes) != 0) return;
     dup2(pipes[1], STDERR_FILENO);

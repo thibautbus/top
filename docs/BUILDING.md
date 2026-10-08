@@ -71,7 +71,7 @@ adb install -r android/build-apk/the-oracles-project-debug.apk
 adb shell am start -n io.github.thibautbus.theoraclesproject/.OraclesActivity
 ```
 
-The launcher's standard error, the session report included, goes to Android's log: `adb logcat -s the-oracles-project`.
+The launcher's standard error, the session report included, goes to Android's log, `adb logcat -s the-oracles-project`, and to `the-oracles-project.log` in the application's folder on the shared storage ([PLAYING.md](PLAYING.md#android)).
 
 ## Tests
 
