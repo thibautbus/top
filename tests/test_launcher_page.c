@@ -9,9 +9,10 @@
  * lines), at 1920x1080 with the vendored fonts; and in the 4:3 layout, at
  * 1440x1080, Cartridge (10d, and Moonrise Regalia's, 10e), Display (10f, 10g
  * with View highlighted, 10o from the pause menu, 10s on a 640x480 screen,
- * where the Window row comes to one size) and its Advanced rows (10h, 10p); a
- * text is compared by its left, its width and its baseline (in 4:3 its line
- * box too). */
+ * where the Window row comes to one size) and its Advanced rows (10h, 10p).
+ * Display's Quality on High and on Custom, highlighted, in 16:9 (11a, 11b),
+ * in 4:3 (11d, 11e) and on a 640x480 screen (11g).  A text is compared by its
+ * left, its width and its baseline (in 4:3 its line box too). */
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_controls_nav.h"
@@ -273,11 +274,11 @@ static void layout_1k_1l(void)
     g->image = ORACLES_ROM_UNRECOGNISED;
     g->usable = 1;
     oracles_page_image_status(g, text, sizeof text, &tone);
-    CHECK(!strcmp(text, "Patched image not recognised, Faithful only") && tone == ORACLES_TONE_WARN);
+    CHECK(!strcmp(text, "Patched image not recognized, Faithful only") && tone == ORACLES_TONE_WARN);
     CHECK(oracles_page_profile(g, ORACLES_PROFILE_ENHANCED) == ORACLES_PROFILE_FAITHFUL && oracles_page_rom_note(&nav)[0] == 0);
     g->rom = ORACLES_ROM_UNRECOGNISED;
     oracles_page_rom_status(g, text, sizeof text, &tone);
-    CHECK(!strcmp(text, "Unrecognised ROM, not Oracle of Ages (USA)"));
+    CHECK(!strcmp(text, "Unrecognized ROM, not Oracle of Ages (USA)"));
     g->rom = ORACLES_ROM_NONE;
     oracles_page_rom_status(g, text, sizeof text, &tone);
     CHECK(!strcmp(text, "No base ROM chosen"));
@@ -498,7 +499,7 @@ static void layout_fan_page(const fan_frames *f)
     layout_text(p, "patch status", &l.patch_status);
     layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
     layout_text(p, "patch folder", &l.patch_folder);
-    snprintf(expected, sizeof expected, "Patched image recognised: %s", f->file_stem);
+    snprintf(expected, sizeof expected, "Patched image recognized: %s", f->file_stem);
     CHECK(!strcmp(t.image_status, expected));
     layout_text(p, "image status", &l.image_status);
     layout_text(p, "save file", &l.save_file);
@@ -529,7 +530,7 @@ static void layout_fan_page(const fan_frames *f)
     OraclesTone tone;
     g->rom = ORACLES_ROM_UNRECOGNISED;
     oracles_page_rom_status(g, text, sizeof text, &tone);
-    snprintf(expected, sizeof expected, "Unrecognised ROM, not %s", f->base_name);
+    snprintf(expected, sizeof expected, "Unrecognized ROM, not %s", f->base_name);
     CHECK(!strcmp(text, expected) && tone == ORACLES_TONE_WARN);
 
     /* Display from the fan game. */
@@ -545,6 +546,28 @@ static void layout_fan_page(const fan_frames *f)
     layout_near(f->display, "title box", "h", dl.head.title.h);
     layout_box(f->display, "diagram", &dl.diagram);
     layout_text(f->display, "diagram label", &dl.diagram_label);
+}
+
+/* Quality's row in 16:9 or 4:3: its label, its row, each choice's frame, name and second line, Custom's place laid out
+ * whether it shows or not. */
+static void display_quality_row(const char *frame, const OraclesUiDisplayTexts *t, const OraclesUiDisplayLayout *l)
+{
+    static const char *const ids[ORACLES_DISPLAY_QUALITIES + 1] = { "low", "medium", "high", "max", "custom" };
+    static const char *const sets[ORACLES_DISPLAY_QUALITIES + 1] = { "Near \xc2\xb7 Fast", "Medium \xc2\xb7 Fast", "Far \xc2\xb7 Fast",
+                                                                     "Far \xc2\xb7 Accurate", "By hand" };
+    const int wide = layout_reference(frame, "Quality", "h") > 30.0f;   /* 4:3's label is 37 tall */
+    if (wide) layout_line(frame, "Quality", &l->labels[ORACLES_DISPLAY_QUALITY].lines[0]);
+    else layout_text(frame, "Quality", &l->labels[ORACLES_DISPLAY_QUALITY].lines[0]);
+    for (int q = 0; q <= ORACLES_DISPLAY_QUALITIES; q++) {
+        char what[48];
+        CHECK(!strcmp(t->quality_sets[q], sets[q]));
+        snprintf(what, sizeof what, "quality %s", ids[q]); layout_box(frame, what, &l->qualities[q].box);
+        snprintf(what, sizeof what, "quality %s name", ids[q]);
+        if (wide) layout_line(frame, what, &l->qualities[q].name); else layout_text(frame, what, &l->qualities[q].name);
+        snprintf(what, sizeof what, "quality %s sets", ids[q]);
+        if (wide) layout_line(frame, what, &l->qualities[q].size); else layout_text(frame, what, &l->qualities[q].size);
+    }
+    layout_box(frame, wide ? "quality grid" : "quality row", &l->rows[ORACLES_DISPLAY_QUALITY]);
 }
 
 static void display_2a_2b(void)
@@ -575,6 +598,8 @@ static void display_2a_2b(void)
     }
     layout_text("2a", "profile note", &l.profile_note);
     layout_box("2a", "Profile row", &l.rows[ORACLES_DISPLAY_PROFILE]);
+    /* Quality under it: its four qualities and Custom's place, whichever is in effect. */
+    display_quality_row("2a", &t, &l);
     /* Window next. */
     layout_text("2a", "Window", &l.labels[ORACLES_DISPLAY_WINDOW].lines[0]);
     static const char *const sizes[4] = { "960\xc3\x97" "540", "1440\xc3\x97" "810", "1920\xc3\x97" "1080", "4\xc3\x97 \xc2\xb7 1920\xc3\x97" "1080" };
@@ -586,8 +611,11 @@ static void display_2a_2b(void)
     }
     layout_text("2a", "window note", &l.window_note);
     /* 4x makes 1920x1080: with its title bar the window is reduced to 3x on a 1080p screen, and a line says so. */
-    CHECK(!strcmp(t.window_reduced, "Reduced to 3\xc3\x97 to fit this screen") && oracles_display_fit(&nav) == 3);
+    CHECK(!strcmp(t.window_reduced, "Reduced to 3\xc3\x97 to fit this screen.") && oracles_display_fit(&nav) == 3);
+    CHECK(t.window_fit == t.window_reduced);
     layout_text("2a", "reduced", &l.window_reduced);
+    layout_near("2a", "fit", "y", l.window_reduced.y);
+    layout_near("2a", "fit", "h", l.window_reduced.h);
     layout_box("2a", "Window row", &l.rows[ORACLES_DISPLAY_WINDOW]);
     /* View under it: each level framed with its size, far chosen; its explanation on two lines beside them. */
     static const char *const view_probes[3] = { "Near", "Medium", "Far" };
@@ -821,7 +849,9 @@ static void display_navigation(void)
     CHECK(nav.display.profile == ORACLES_PROFILE_ENHANCED);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.profile == ORACLES_PROFILE_FAITHFUL);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.display.profile == ORACLES_PROFILE_ENHANCED);
-    /* The window goes round 2x, 3x, 4x, fullscreen. */
+    /* Quality under it (display_quality_navigation); the window goes round 2x, 3x, 4x, fullscreen. */
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_QUALITY);
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_WINDOW && nav.display.window == 2);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.window == 3);
@@ -904,6 +934,8 @@ static void display_navigation(void)
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_WINDOW, 1) == ORACLES_HOME_STORE && nav.display.window == 1 && nav.row == ORACLES_DISPLAY_WINDOW);
     nav.display.profile = ORACLES_PROFILE_FAITHFUL;
     oracles_home_act(&nav, ORACLES_HOME_UP);
+    CHECK(nav.row == ORACLES_DISPLAY_QUALITY);
+    oracles_home_act(&nav, ORACLES_HOME_UP);
     CHECK(nav.row == ORACLES_DISPLAY_PROFILE);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && oracles_home_focus(&nav) == 3);
     /* Display opens on its own rows, whatever it was left on. */
@@ -924,7 +956,7 @@ static void display_navigation(void)
     CHECK(reduced[0] == 0);
     nav.display.room_h = 500;
     oracles_display_reduced(&nav, reduced, sizeof reduced);
-    CHECK(!strcmp(reduced, "Reduced to 3\xc3\x97 to fit this screen"));
+    CHECK(!strcmp(reduced, "Reduced to 3\xc3\x97 to fit this screen."));
     nav.display.window = 3;
     oracles_display_reduced(&nav, reduced, sizeof reduced);
     CHECK(reduced[0] == 0);   /* fullscreen is never reduced */
@@ -1028,7 +1060,7 @@ static void layout_10d(void)
     const OraclesUiTextStyle *const all[] = { st->section, st->title, st->state, st->page_note, st->row_label, st->row_title, st->row_path,
                                               st->row_status, st->row_text, st->row_note, st->row_button, st->play, st->option_name,
                                               st->option_size, st->choice, st->diagram_label, st->help, st->help_note, st->mod_games,
-                                              st->mods_empty, st->mods_note };
+                                              st->mods_empty, st->mods_note, st->quality_sets };
     for (size_t i = 0; i < sizeof all / sizeof all[0]; i++) CHECK(all[i]->size >= 27.0f);
 }
 
@@ -1071,9 +1103,7 @@ static void layout_10e(void)
     layout_box("10e", "Play row", &l.rows[ORACLES_ROW_PLAY]);
 }
 
-/* Display in 4:3 on the mockup's screen of `width` x `height`.  The mockup's far view in 4:3 is 480x270, the size the
- * port gives the 16:9 shape (480x360 in 4:3, docs/PLAYING.md): the frames' texts are laid out with aspect=16:9, the
- * diagram's box, the screen's shape, checked apart. */
+/* Display in 4:3 on the mockup's screen of `width` x `height`, the view's sizes in that screen's shape. */
 static void display_4_3_nav(OraclesHomeNav *nav, int width, int height)
 {
     oracles_home_init(nav);
@@ -1083,7 +1113,6 @@ static void display_4_3_nav(OraclesHomeNav *nav, int width, int height)
     nav->display.profile = ORACLES_PROFILE_ENHANCED;
     nav->display.window = 2;
     nav->display.cores = 8;
-    nav->display.aspect = 1;
     nav->display.screen_w = nav->display.room_w = width;
     nav->display.screen_h = height;
     nav->display.room_h = height - 64;
@@ -1101,11 +1130,12 @@ static void display_4_3(void)
     layout_line("10f", "section", &l.head.section);
     CHECK(!strcmp(l.head.title.text[0], "Oracle of Ages") && l.head.state.h == 0.0f && l.page_note.h == 0.0f);
     layout_line("10f", "title", &l.head.title.lines[0]);
-    layout_near("10f", "diagram", "y", l.diagram.y);
-    layout_near("10f", "diagram", "h", l.diagram.h);
-    layout_near("10f", "diagram", "x", l.diagram.x + l.diagram.w - layout_reference("10f", "diagram", "w"));
-    layout_near("10f", "diagram window", "h", l.diagram_window.h);
-    layout_line("10f", "diagram label", &l.diagram_label);
+    /* The diagram's box in the screen's shape, 162 wide; Advanced beside it, framed. */
+    layout_box("10f", "diagram", &l.diagram);
+    layout_box("10f", "diagram window", &l.diagram_window);
+    layout_line("10f", "Advanced", &l.advanced_label);
+    layout_box("10f", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
+    CHECK(l.diagram_label.h == 0.0f);   /* Window's help says the size */
     layout_line("10f", "Profile", &l.labels[ORACLES_DISPLAY_PROFILE].lines[0]);
     static const char *const profiles[2] = { "Faithful", "Enhanced" };
     for (int p = 0; p < ORACLES_PROFILES; p++) {
@@ -1115,6 +1145,7 @@ static void display_4_3(void)
         snprintf(what, sizeof what, "profile %s", profiles[p]); layout_box("10f", what, &l.profiles[p].box);
     }
     layout_box("10f", "Profile row", &l.rows[ORACLES_DISPLAY_PROFILE]);
+    display_quality_row("10f", &t, &l);
     layout_line("10f", "Window", &l.labels[ORACLES_DISPLAY_WINDOW].lines[0]);
     for (int i = 0; i < 4; i++) {
         char what[32];
@@ -1144,35 +1175,48 @@ static void display_4_3(void)
     layout_box("10f", "transitions On", &l.transitions[1].box);
     layout_box("10f", "transitions row", &l.rows[ORACLES_DISPLAY_TRANSITIONS]);
     CHECK(l.explanations[0].count == 0 && l.view_explanation.count == 0 && l.transitions_note.h == 0.0f);
-    layout_line("10f", "Advanced", &l.advanced_label);
-    layout_line("10f", "advanced text", &l.advanced_text);
-    layout_box("10f", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
-    CHECK(l.advanced_arrow.x == l.advanced_text.x + l.advanced_text.w + 16.0f && l.advanced_arrow.w == 13.0f && l.advanced_arrow.h == 18.0f);
-    CHECK(!strcmp(t.help, "The wide world, drawn back, with continuous transitions and the smooth camera.") && !t.help_note);
-    layout_line("10f", "help text", &l.help.lines[0]);
-    layout_near("10f", "help", "y", l.help.lines[0].y);
+    CHECK(l.quality_text.h == 0.0f && l.quality_note.h == 0.0f);
+    CHECK(l.advanced_arrow.x == l.advanced_label.x + l.advanced_label.w + 16.0f && l.advanced_arrow.w == 13.0f && l.advanced_arrow.h == 18.0f);
+    CHECK(!strcmp(t.help, "The wide world, drawn back.") && !t.help_note);
+    layout_line("10f", "help text", &l.help);
+    layout_near("10f", "help", "y", l.help.y);
+    layout_near("10f", "help", "h", l.help.h);
+    layout_near("10f", "help note", "y", l.help_note.y);
+    layout_near("10f", "help note", "h", l.help_note.h);
     for (unsigned r = 0; r <= ORACLES_DISPLAY_ADVANCED; r++) CHECK(l.rows[r].h >= 90.0f);
-    /* The diagram's box on a 4:3 screen, the shape the sizes take there: 162 wide. */
-    nav.display.aspect = 0;
-    OraclesUiDisplayTexts shaped;
-    OraclesUiDisplayLayout sl;
-    oracles_ui_display_texts(&nav, &shaped);
-    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &shaped, &sl);
-    layout_box("10f", "diagram", &sl.diagram);
-    nav.display.aspect = 1;
+    for (unsigned r = 0; r < ORACLES_DISPLAY_ADVANCED; r++) CHECK(l.rows[r].h == 100.0f);
 
     /* 10g: View highlighted, its explanation under the rows; the window's note and the reduced line under Window's. */
     nav.row = ORACLES_DISPLAY_VIEW;
     oracles_ui_display_texts(&nav, &t);
     oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
-    layout_line("10g", "help text", &l.help.lines[0]);
-    layout_near("10g", "help", "y", l.help.lines[0].y);
+    layout_line("10g", "help text", &l.help);
+    layout_near("10g", "help", "y", l.help.y);
+    /* Window's help: its note, and that the window is reduced, or else its size, the diagram's, which 4:3 does not write
+     * under it; never 16:9's line on the view. */
     nav.row = ORACLES_DISPLAY_WINDOW;
     oracles_ui_display_texts(&nav, &t);
-    CHECK(!strcmp(t.help, oracles_display_window_note) && !strcmp(t.help_note, "Reduced to 3\xc3\x97 to fit this screen"));
+    CHECK(!strcmp(t.help, "Whole multiples of the picture: pixels stay sharp.") && !strcmp(t.help_note, "Reduced to 2\xc3\x97 to fit this screen."));
+    nav.display.window = 0;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.help_note, "960\xc3\x97" "720 on a 1440\xc3\x97" "1080 screen."));
+    nav.display.window = 2;
     nav.row = ORACLES_DISPLAY_ADVANCED;
     oracles_ui_display_texts(&nav, &t);
-    CHECK(!strcmp(t.help, "Core, Vsync and neighbour workers.") && !t.help_note);
+    CHECK(!strcmp(t.help, "Core, Vsync and neighbor workers.") && !t.help_note);
+    nav.row = ORACLES_DISPLAY_TRANSITIONS;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.help, "Rooms scroll into one another, swimming too.") && !strcmp(t.help_note, "Savestates with it on need it on."));
+    /* The profile's: Faithful's, and that a game whose ROM allows only Faithful plays in it. */
+    nav.row = ORACLES_DISPLAY_PROFILE;
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.help, "The game as it was, 160\xc3\x97" "144."));
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.games[0].rom = ORACLES_ROM_UNRECOGNISED;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.help, "Enhanced needs an original ROM: this game plays in Faithful."));
+    nav.games[0].rom = ORACLES_ROM_ORIGINAL;
 
     /* 10o: from the pause menu, the note at the state's place; the rows where they were. */
     nav.row = ORACLES_DISPLAY_PROFILE;
@@ -1181,8 +1225,8 @@ static void display_4_3(void)
     oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
     layout_line("10o", "page note", &l.page_note);
     layout_box("10o", "Window row", &l.rows[ORACLES_DISPLAY_WINDOW]);
+    layout_near("10o", "help", "y", l.help.y);
     layout_box("10o", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
-    layout_near("10o", "help", "y", l.help.lines[0].y);
 
     /* 10h, 10p: the Advanced rows, Core highlighted, its explanation and its note under them; from the pause menu too. */
     for (int in_game = 0; in_game < 2; in_game++) {
@@ -1194,9 +1238,10 @@ static void display_4_3(void)
         oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
         layout_box(frame, "core row", &l.rows[ORACLES_DISPLAY_CORE]);
         layout_box(frame, "workers row", &l.rows[ORACLES_DISPLAY_WORKERS]);
-        layout_near(frame, "help", "y", l.help.lines[0].y);
+        layout_near(frame, "help", "y", l.help.y);
         layout_line(frame, "help note", &l.help_note);
-        CHECK(l.rows[ORACLES_DISPLAY_PROFILE].w == 0.0f && l.rows[ORACLES_DISPLAY_ADVANCED].w == 0.0f && l.advanced_label.h == 0.0f);
+        CHECK(l.rows[ORACLES_DISPLAY_PROFILE].w == 0.0f && l.rows[ORACLES_DISPLAY_QUALITY].w == 0.0f && l.rows[ORACLES_DISPLAY_ADVANCED].w == 0.0f
+              && l.advanced_label.h == 0.0f);
         if (in_game) { layout_line(frame, "page note", &l.page_note); continue; }
         layout_line(frame, "section", &l.head.section);
         layout_line(frame, "Core", &l.labels[ORACLES_DISPLAY_CORE].lines[0]);
@@ -1216,31 +1261,27 @@ static void display_4_3(void)
             snprintf(what, sizeof what, "workers %d", i); layout_line(frame, what, &l.workers[i].name);
             snprintf(what, sizeof what, "workers %s", workers[i]); layout_box(frame, what, &l.workers[i].box);
         }
-        layout_line(frame, "help text", &l.help.lines[0]);
+        layout_line(frame, "help text", &l.help);
     }
 
-    /* 10s: a 640x480 screen, where every window comes to one size: the Window row taller with its note, inert. */
+    /* 10s: a 640x480 screen, where every window comes to one size: the Window row inert, its note in the windows' place,
+     * as tall; the help says the size there. */
     display_4_3_nav(&nav, 640, 480);
     CHECK(oracles_display_one_size(&nav));
     oracles_ui_display_texts(&nav, &t);
     oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
     CHECK(t.window_one && !strcmp(t.window_reduced, oracles_display_one_size_note));
-    layout_line("10s", "diagram label", &l.diagram_label);
     layout_line("10s", "Window", &l.labels[ORACLES_DISPLAY_WINDOW].lines[0]);
     layout_box("10s", "Window row", &l.rows[ORACLES_DISPLAY_WINDOW]);
-    for (int i = 0; i < 4; i++) {
-        char what[32];
-        snprintf(what, sizeof what, "window %d box", i); layout_box("10s", what, &l.windows[i].box);
-    }
-    layout_line("10s", "window 3 size", &l.windows[3].size);
+    for (int i = 0; i < 4; i++) CHECK(l.windows[i].box.w == 0.0f);
     layout_line("10s", "one size", &l.window_one);
     layout_box("10s", "View row", &l.rows[ORACLES_DISPLAY_VIEW]);
-    layout_box("10s", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
-    layout_near("10s", "help", "y", l.help.lines[0].y);
-    nav.display.aspect = 0;
-    oracles_ui_display_texts(&nav, &t);
-    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    layout_near("10s", "help", "y", l.help.y);
     layout_box("10s", "diagram", &l.diagram);
+    layout_box("10s", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
+    nav.row = ORACLES_DISPLAY_WINDOW;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.help_note, "480\xc3\x97" "360 on a 640\xc3\x97" "480 screen."));
 }
 
 /* Where every window comes to one size, the Window row keeps the highlight but changes no more, by a key or a click,
@@ -1250,7 +1291,7 @@ static void one_size(void)
     OraclesHomeNav nav;
     display_4_3_nav(&nav, 640, 480);
     nav.layout = ORACLES_UI_LAYOUT_16_9;
-    nav.row = ORACLES_DISPLAY_PROFILE;
+    nav.row = ORACLES_DISPLAY_QUALITY;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_WINDOW);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY
           && nav.display.window == 2);
@@ -1269,6 +1310,211 @@ static void one_size(void)
     CHECK(!oracles_display_one_size(&nav));
     nav.display.fullscreen_only = 1;
     CHECK(oracles_display_one_size(&nav) && oracles_display_click(&nav, ORACLES_DISPLAY_WINDOW, 0) == ORACLES_HOME_STAY);
+}
+
+/* Display's rows and Quality's choices where another quality or another highlighted row leaves them: no row's height
+ * changes with the choice or the focus. */
+static int same_places(const OraclesUiDisplayLayout *a, const OraclesUiDisplayLayout *b)
+{
+    for (unsigned r = 0; r < ORACLES_DISPLAY_ROWS; r++) if (memcmp(&a->rows[r], &b->rows[r], sizeof a->rows[r])) return 0;
+    for (int q = 0; q <= ORACLES_DISPLAY_QUALITIES; q++) if (memcmp(&a->qualities[q].box, &b->qualities[q].box, sizeof a->qualities[q].box)) return 0;
+    return a->panel.h == b->panel.h && a->quality_text.y == b->quality_text.y && a->quality_note.y == b->quality_note.y && a->help.y == b->help.y
+           && a->help_note.y == b->help_note.y;
+}
+
+/* Window's four boxes against a frame's. */
+static void display_window_boxes(const char *frame, const OraclesUiDisplayLayout *l)
+{
+    for (int i = 0; i < 4; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "window %d box", i);
+        layout_box(frame, what, &l->windows[i].box);
+    }
+}
+
+/* Window's boxes where another view leaves them: each as wide as its longest size over the views and Faithful. */
+static int same_windows(const OraclesUiDisplayLayout *a, const OraclesUiDisplayLayout *b)
+{
+    for (int i = 0; i < 4; i++) if (memcmp(&a->windows[i].box, &b->windows[i].box, sizeof a->windows[i].box)) return 0;
+    return 1;
+}
+
+/* Quality highlighted on High (the far view on the Fast core, the workers on Auto) in 16:9: 11a. */
+static void quality_16_9(const char *frame, const OraclesHomeNav *nav, const char *text, const char *note, OraclesUiDisplayLayout *l)
+{
+    OraclesUiDisplayTexts t;
+    oracles_ui_display_texts(nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, l);
+    display_quality_row(frame, &t, l);
+    CHECK(!strcmp(t.quality_text, text) && !strcmp(t.quality_note, note));
+    layout_text(frame, "quality text", &l->quality_text);
+    layout_near(frame, "quality expl", "y", l->quality_text.y);
+    layout_near(frame, "quality expl", "h", l->quality_text.h);
+    layout_text(frame, "quality note", &l->quality_note);
+    layout_near(frame, "quality expl note", "y", l->quality_note.y);
+    layout_near(frame, "quality expl note", "h", l->quality_note.h);
+    layout_box(frame, "Profile row", &l->rows[ORACLES_DISPLAY_PROFILE]);
+    layout_text(frame, "profile note", &l->profile_note);
+    layout_box(frame, "Window row", &l->rows[ORACLES_DISPLAY_WINDOW]);
+    layout_text(frame, "window note", &l->window_note);
+    layout_near(frame, "fit", "y", l->window_reduced.y);
+    layout_near(frame, "fit", "h", l->window_reduced.h);
+    CHECK(!strcmp(t.window_fit, oracles_ui_window_fit_note));
+    layout_text(frame, "fit text", &l->window_reduced);
+    display_window_boxes(frame, l);
+    layout_box(frame, "View row", &l->rows[ORACLES_DISPLAY_VIEW]);
+    layout_box(frame, "Color row", &l->rows[ORACLES_DISPLAY_COLOUR]);
+    layout_box(frame, "transitions row", &l->rows[ORACLES_DISPLAY_TRANSITIONS]);
+    layout_box(frame, "panel", &l->panel);
+    layout_text(frame, "Advanced", &l->advanced_label);
+    layout_box(frame, "advanced", &l->rows[ORACLES_DISPLAY_ADVANCED]);
+}
+
+/* The same in 4:3: the description in the help lines under the rows, Advanced beside the diagram. */
+static void quality_4_3(const char *frame, OraclesHomeNav *nav, const char *text, const char *note, OraclesUiDisplayLayout *l)
+{
+    OraclesUiDisplayTexts t;
+    oracles_ui_display_texts(nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, l);
+    display_quality_row(frame, &t, l);
+    CHECK(!strcmp(t.help, text) && !strcmp(t.help_note, note));
+    layout_line(frame, "help text", &l->help);
+    layout_near(frame, "help", "y", l->help.y);
+    layout_near(frame, "help", "h", l->help.h);
+    layout_near(frame, "help note box", "y", l->help_note.y);
+    layout_near(frame, "help note box", "h", l->help_note.h);
+    layout_line(frame, "help note", &l->help_note);
+    layout_box(frame, "Profile row", &l->rows[ORACLES_DISPLAY_PROFILE]);
+    layout_box(frame, "Window row", &l->rows[ORACLES_DISPLAY_WINDOW]);
+    layout_box(frame, "View row", &l->rows[ORACLES_DISPLAY_VIEW]);
+    layout_box(frame, "diagram", &l->diagram);
+    layout_line(frame, "Advanced", &l->advanced_label);
+    layout_box(frame, "advanced", &l->rows[ORACLES_DISPLAY_ADVANCED]);
+}
+
+/* 11a, 11b, 11d, 11e, 11g: Quality highlighted on High, then on Custom (the near view on the Accurate core, which no
+ * quality makes), in both layouts and on a 640x480 screen; the rows do not move with the quality nor with the focus. */
+static void display_quality(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_1h(&nav.games[0]);
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.window = 1;
+    nav.display.core = 1;
+    nav.row = ORACLES_DISPLAY_QUALITY;
+    CHECK(oracles_display_quality(&nav) == 2 && !strcmp(oracles_display_quality_names[2], "High"));
+    OraclesUiDisplayLayout high, custom, other;
+    OraclesUiDisplayTexts t;
+    quality_16_9("11a", &nav, "Far view, Fast core, neighbor workers on auto.", "Changing one of them by hand makes it Custom.", &high);
+    nav.display.view = 0;
+    nav.display.core = 0;
+    CHECK(oracles_display_quality(&nav) == ORACLES_DISPLAY_QUALITY_CUSTOM);
+    quality_16_9("11b", &nav, "Set by hand: Near view, Accurate core, neighbor workers on auto.", "Pick a quality to set all three again.", &custom);
+    CHECK(same_places(&high, &custom) && same_windows(&high, &custom));
+    /* 11i: Low, the near view on the Fast core: Window's boxes as at High. */
+    nav.display.core = 1;
+    quality_16_9("11i", &nav, "Near view, Fast core, neighbor workers on auto.", "Changing one of them by hand makes it Custom.", &other);
+    CHECK(oracles_display_quality(&nav) == 0 && same_places(&high, &other) && same_windows(&high, &other));
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &other);
+    CHECK(same_windows(&high, &other));
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.core = 0;
+    for (unsigned row = 0; row < ORACLES_DISPLAY_ADVANCED; row++) {
+        nav.row = row;
+        oracles_ui_display_texts(&nav, &t);
+        oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &other);
+        CHECK(same_places(&custom, &other));
+    }
+    /* Max, its workers two; in Faithful the row keeps its place. */
+    nav.display.view = 2;
+    nav.display.workers = 2;
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    CHECK(oracles_display_quality(&nav) == 3 && !oracles_display_quality_applies(&nav));
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &other);
+    CHECK(!strcmp(t.quality_text, "Far view, Accurate core, neighbor workers at 2.") && same_places(&high, &other));
+
+    display_4_3_nav(&nav, 1440, 1080);
+    nav.display.window = 1;
+    nav.display.core = 1;
+    nav.row = ORACLES_DISPLAY_QUALITY;
+    quality_4_3("11d", &nav, "Far view, Fast core, workers on auto.", "Changing one by hand makes it Custom.", &high);
+    layout_box("11d", "Color row", &high.rows[ORACLES_DISPLAY_COLOUR]);
+    layout_box("11d", "transitions row", &high.rows[ORACLES_DISPLAY_TRANSITIONS]);
+    nav.display.view = 0;
+    nav.display.core = 0;
+    quality_4_3("11e", &nav, "Set by hand: Near, Accurate, workers auto.", "Pick a quality to set all three again.", &custom);
+    display_window_boxes("11d", &high);
+    display_window_boxes("11e", &custom);
+    CHECK(same_places(&high, &custom) && same_windows(&high, &custom));
+    for (unsigned row = 0; row < ORACLES_DISPLAY_ROWS; row++) {
+        if (!oracles_display_row_shown(&nav, row)) continue;
+        nav.row = row;
+        oracles_ui_display_texts(&nav, &t);
+        oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &other);
+        CHECK(same_places(&custom, &other));
+    }
+
+    /* 11g: a 640x480 screen, the Window row's note in place of its windows, the rows where they were. */
+    display_4_3_nav(&nav, 640, 480);
+    nav.display.core = 1;
+    nav.row = ORACLES_DISPLAY_QUALITY;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &other);
+    display_quality_row("11g", &t, &other);
+    layout_line("11g", "one size", &other.window_one);
+    layout_line("11g", "help text", &other.help);
+    layout_box("11g", "Window row", &other.rows[ORACLES_DISPLAY_WINDOW]);
+    layout_box("11g", "View row", &other.rows[ORACLES_DISPLAY_VIEW]);
+    CHECK(same_places(&high, &other));
+    layout_box("11g", "advanced", &other.rows[ORACLES_DISPLAY_ADVANCED]);
+}
+
+/* Quality by the keys and the pointer: each sets the view, the core and the workers; a hand change makes it Custom. */
+static void display_quality_navigation(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_1h(&nav.games[0]);
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.row = ORACLES_DISPLAY_QUALITY;
+    /* The far view on the Accurate core, the workers on Auto: no quality, Max having two. */
+    CHECK(oracles_display_quality(&nav) == ORACLES_DISPLAY_QUALITY_CUSTOM && oracles_display_quality_applies(&nav));
+    /* Right from Custom takes Low, then each heavier one, stopping at Max; left the lighter. */
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 0);
+    CHECK(nav.display.view == 0 && nav.display.core == 1 && nav.display.workers == 0);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.view == 1 && oracles_display_quality(&nav) == 1);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.display.view == 2 && oracles_display_quality(&nav) == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 3);
+    CHECK(nav.display.view == 2 && nav.display.core == 0 && nav.display.workers == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && oracles_display_quality(&nav) == 3);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 2);
+    /* View changed by hand makes Medium; the workers then, Custom; left from Custom takes Max. */
+    nav.row = ORACLES_DISPLAY_VIEW;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 1);
+    nav.display.workers = 1;
+    CHECK(oracles_display_quality(&nav) == ORACLES_DISPLAY_QUALITY_CUSTOM);
+    char text[ORACLES_HOME_TEXT_LENGTH];
+    oracles_display_quality_text(&nav, 1, text, sizeof text);
+    CHECK(!strcmp(text, "Set by hand: Medium, Fast, workers 1."));
+    nav.row = ORACLES_DISPLAY_QUALITY;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 3);
+    oracles_display_quality_text(&nav, 1, text, sizeof text);
+    CHECK(!strcmp(text, "Far view, Accurate core, workers at 2."));
+    /* A click on a quality applies it; on Custom's place, or on the quality in effect, nothing changes. */
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_QUALITY, 0) == ORACLES_HOME_STORE && oracles_display_quality(&nav) == 0);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_QUALITY, 0) == ORACLES_HOME_STAY);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_QUALITY, ORACLES_DISPLAY_QUALITY_CUSTOM) == ORACLES_HOME_STAY && oracles_display_quality(&nav) == 0);
+    /* In Faithful, and from a game (whose core is fixed), the row is inert. */
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && oracles_display_click(&nav, ORACLES_DISPLAY_QUALITY, 2) == ORACLES_HOME_STAY);
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.in_game = 1;
+    CHECK(!oracles_display_quality_applies(&nav) && oracles_display_row_fixed(&nav, ORACLES_DISPLAY_QUALITY));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STAY && oracles_display_quality(&nav) == 0);
 }
 
 int main(int argc, char **argv)
@@ -1291,6 +1537,8 @@ int main(int argc, char **argv)
     layout_10e();
     display_4_3();
     one_size();
+    display_quality();
+    display_quality_navigation();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher pages: Cartridge and Display match the layout reference within %.1f px in both layouts, and their rows and options behave as expected\n",
            (double)LAYOUT_TOLERANCE);

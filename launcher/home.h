@@ -50,9 +50,9 @@ typedef struct OraclesHomeHost {
     void (*open_mods)(void *opaque, char *message, size_t capacity);
     /* Plays the game in the launcher's window until the player leaves it, the pause menu drawn with `draw`.  Returns
      * 1 when the window was closed meanwhile (the launcher then ends too); *message is what to show, empty when all
-     * went well. */
+     * went well; *slow, 1 when the game ran slowly and the home screen suggests something lighter (nav->slow). */
     int (*start)(void *opaque, OraclesHomeCommand game, struct SDL_Window *window, struct SDL_Renderer *renderer,
-                 OraclesUiDraw *draw, char *message, size_t capacity);
+                 OraclesUiDraw *draw, char *message, size_t capacity, int *slow);
 } OraclesHomeHost;
 
 /* Runs the home screen until Exit or the window is closed.  *width and *height
@@ -63,7 +63,7 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height);
 /* Draws the home screen at rest (with `frame`, a binary PPM of a game's image, the pause menu over it, Ages paused in
  * Display's profile), in `width` x `height` pixels, after the
  * navigation `inputs` (a comma-separated list of up, down, left, right, ok,
- * back; NULL or empty: the default state), and writes it as a binary PPM.
+ * back, and slow, the return from a game that ran slowly; NULL or empty: the default state), and writes it as a binary PPM.
  * It draws offscreen with SDL's software renderer: no display is needed.
  * Returns 0, or 1 with the reason in *error. */
 int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int width, int height, const char *inputs,

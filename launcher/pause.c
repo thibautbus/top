@@ -87,7 +87,7 @@ static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
         home->hero_over, home->hero_title, home->hero_state, home->item_note, home->item_label,
         home->hint_key, home->hint_label, home->version, home->toast,
         page->section, page->over, page->title, page->row_label, page->row_title, page->row_text, page->row_note, page->row_button,
-        page->option_name, page->option_size, page->choice, page->diagram_label, page->help, page->help_note, page->page_note,
+        page->option_name, page->option_size, page->choice, page->diagram_label, page->help, page->help_note, page->page_note, page->quality_sets,
         controls->title, controls->prompt, controls->heading, controls->name, controls->cell, controls->cell_locked, controls->cell_waiting,
         controls->item, controls->item_empty, controls->slots_note, controls->shortcut_key, controls->shortcut_label, controls->tab,
     };

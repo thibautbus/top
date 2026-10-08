@@ -10,6 +10,8 @@
 #include "item_hotkeys.h"
 #include "ui_controls_nav.h"
 
+#include <stdint.h>
+
 #define ORACLES_SETTINGS_NAME_LENGTH 32
 #define ORACLES_SETTINGS_PATH_LENGTH 4096
 /* The mods a game plays together (ORACLES_MOD_SET_MAX), and a mod's name: its folder's, a-z, 0-9, - and _. */
@@ -91,8 +93,8 @@ typedef struct oracles_settings {
     char mods[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_MODS_LENGTH];
     int launcher_width, launcher_height;                      /* launcher_window=WxH: the home screen's window as the player left it */
     int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen (the default) */
-    int quality_hint;             /* quality_hint=low|medium|high|max: the profile a game that ran slowly was last suggested to leave, -1 none:
-                                   * the suggestion is made once a profile */
+    int quality_hint;             /* quality_hint=low|medium|high|max|custom: the quality a game that ran slowly was last suggested to leave,
+                                   * -1 none: the suggestion is made once a quality, until the view, the core or the workers change */
     int first_run;                /* no settings.txt was read: the first opening, which takes the device's profile */
 } oracles_settings;
 
@@ -112,6 +114,21 @@ void oracles_settings_apply_quality(oracles_settings *settings, OraclesQuality q
 OraclesQuality oracles_settings_default_quality(int fullscreen_only, int processor_threads, int ram_mb);
 /* The profile just lighter than `quality`, the one a game that ran slowly is suggested: Custom for Low and Custom. */
 OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality);
+/* A game ran slowly when it played in Enhanced (`enhanced`) for a minute at least, ORACLES_SLOW_FRAMES of its `frames`,
+ * with more than 2 % of them `late`: the home screen then suggests something lighter. */
+#define ORACLES_SLOW_FRAMES 3584u   /* a minute at 59.7275 Hz */
+int oracles_settings_ran_slowly(int enhanced, uint32_t frames, uint32_t late);
+/* What a game that ran slowly suggests: 1 with *quality, the profile just lighter than the settings', or under Custom,
+ * *quality Custom, with *view, the view's level just nearer than the settings'; 0 when nothing is lighter (Low, Custom
+ * in the near view). */
+int oracles_settings_lighter(const oracles_settings *settings, OraclesQuality *quality, int *view);
+/* After a game of `frames` frames, `late` of them late: 1 when the home screen suggests something lighter, the game
+ * having run slowly at a quality with something lighter, which quality_hint does not hold and then holds; 0 otherwise. */
+int oracles_settings_slow_hint(oracles_settings *settings, int enhanced, uint32_t frames, uint32_t late);
+/* Display's rows that make the quality were `view`, `core` (oracles_settings_core's) and `ghosts` before a change:
+ * quality_hint is forgotten when they differ now, another quality picked or Custom changed by hand, for a game that runs
+ * slowly to suggest again. */
+void oracles_settings_quality_changed(oracles_settings *settings, int view, int core, int ghosts);
 /* The names of settings.txt: "faithful", "enhanced", and the games' "ages", "seasons". */
 const char *oracles_settings_profile_name(OraclesProfile profile);
 const char *oracles_settings_game_name(OraclesSettingsGame game);

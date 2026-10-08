@@ -73,6 +73,8 @@ void oracles_ui_fill_rect(OraclesUiDraw *draw, float x, float y, float w, float 
 void oracles_ui_fill_round_rect(OraclesUiDraw *draw, float x, float y, float w, float h, float radius, OraclesUiColor color);
 /* A border of `border` scene pixels inside the box, as CSS draws one. */
 void oracles_ui_stroke_round_rect(OraclesUiDraw *draw, float x, float y, float w, float h, float radius, float border, OraclesUiColor color);
+/* A dashed border of `border` scene pixels inside the box, along its straight sides, dashes and gaps three times as long. */
+void oracles_ui_stroke_dashed_rect(OraclesUiDraw *draw, float x, float y, float w, float h, float radius, float border, OraclesUiColor color);
 /* A convex polygon of `count` points, x then y. */
 void oracles_ui_fill_polygon(OraclesUiDraw *draw, const float *points, int count, OraclesUiColor color);
 /* One line of text starting at `x` with its baseline at `baseline`. */

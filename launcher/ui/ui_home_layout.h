@@ -1,6 +1,6 @@
 /* Where the home screen's pieces go in the scene of a layout (ui_layout.h), without SDL: in 16:9 the stack of games
  * on the left, in 4:3 the games as tabs along the top; the hero and its menu, the version and the help bar, which
- * every screen has, and the toast; computed from the text widths. */
+ * every screen has, and the toasts, a message's and the one after a game that ran slowly; computed from the text widths. */
 #ifndef ORACLES_UI_HOME_LAYOUT_H
 #define ORACLES_UI_HOME_LAYOUT_H
 
@@ -40,6 +40,17 @@ typedef struct OraclesUiToastLayout {
     OraclesUiLine text;
 } OraclesUiToastLayout;
 
+/* The toast after a game that ran slowly, at the bottom left: its text, on as many lines as it takes within the
+ * toast's widest, and under it the row it leads to. */
+#define ORACLES_UI_SLOW_LINES 3
+typedef struct OraclesUiSlowLayout {
+    OraclesUiBox box;
+    unsigned lines;
+    char text[ORACLES_UI_SLOW_LINES][ORACLES_HOME_TEXT_LENGTH];
+    OraclesUiLine text_lines[ORACLES_UI_SLOW_LINES];
+    OraclesUiLine path;
+} OraclesUiSlowLayout;
+
 /* A game's tab (4:3): its box, its label, and the line along its bottom, the chosen tab's drawn in the accent. */
 typedef struct OraclesUiTabLayout {
     OraclesUiBox box, line;
@@ -55,11 +66,13 @@ extern const OraclesUiTextStyle oracles_ui_version, oracles_ui_toast;
 extern const OraclesUiTextStyle oracles_ui_tab_4_3, oracles_ui_hero_over_4_3, oracles_ui_hero_title_4_3, oracles_ui_hero_state_4_3;
 extern const OraclesUiTextStyle oracles_ui_item_note_4_3, oracles_ui_item_label_4_3, oracles_ui_hint_key_4_3, oracles_ui_hint_label_4_3;
 extern const OraclesUiTextStyle oracles_ui_version_4_3, oracles_ui_toast_4_3;
+extern const OraclesUiTextStyle oracles_ui_slow_path, oracles_ui_slow_path_4_3;
 
 /* The styles a layout draws the home screen's pieces in. */
 typedef struct OraclesUiHomeStyles {
     const OraclesUiTextStyle *hero_over, *hero_title, *hero_state, *item_note, *item_label, *hint_key, *hint_label, *version, *toast;
     const OraclesUiTextStyle *tab;   /* the games' tabs: 4:3's only, NULL in 16:9 */
+    const OraclesUiTextStyle *slow_path;   /* the slow game's toast: its text in `toast`'s style, the row it leads to in this one */
 } OraclesUiHomeStyles;
 const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout);
 
@@ -76,6 +89,8 @@ void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, co
 void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out);
 void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, OraclesUiLine *out);
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out);
+/* The slow game's toast (oracles_home_slow_text): its text and the row it leads to ("Display › Quality"). */
+void oracles_ui_layout_slow(OraclesUiLayout layout, const char *text, const char *path, OraclesUiSlowLayout *out);
 
 /* The text "·" that ends each menu item. */
 extern const char oracles_ui_item_dot[];

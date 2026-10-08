@@ -13,7 +13,7 @@ void oracles_profile_size(const OraclesHomeNav *nav, int profile, char *out, siz
     else snprintf(out, capacity, "160\xc3\x97" "144");
 }
 static const char *const profile_notes[ORACLES_PROFILES] = {
-    "The core alone, as an unrecognised ROM sees it.", "The wide world, drawn back, with continuous transitions and the smooth camera."
+    "The core alone, as an unrecognized ROM sees it.", "The wide world, drawn back, with continuous transitions and the smooth camera."
 };
 
 static int page_game(const OraclesHomeNav *nav)
@@ -52,8 +52,8 @@ void oracles_page_rom_status(const OraclesHomeGame *game, char *out, size_t capa
             break;
         case ORACLES_ROM_UNRECOGNISED:
             /* A base that is not the original: the patch, made for it, is refused on it. */
-            if (game->fan) snprintf(out, capacity, "Unrecognised ROM, not %s", game->fan->base_name);
-            else snprintf(out, capacity, "Unrecognised ROM, Faithful only");
+            if (game->fan) snprintf(out, capacity, "Unrecognized ROM, not %s", game->fan->base_name);
+            else snprintf(out, capacity, "Unrecognized ROM, Faithful only");
             *tone = ORACLES_TONE_WARN;
             break;
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->rom_reason); *tone = ORACLES_TONE_ERROR; break;
@@ -78,8 +78,8 @@ void oracles_page_patch_status(const OraclesHomeGame *game, char *out, size_t ca
 void oracles_page_image_status(const OraclesHomeGame *game, char *out, size_t capacity, OraclesTone *tone)
 {
     switch (game->image) {
-        case ORACLES_ROM_ORIGINAL: snprintf(out, capacity, "Patched image recognised: %s", game->fan ? game->fan->image_name : "?"); *tone = ORACLES_TONE_OK; break;
-        case ORACLES_ROM_UNRECOGNISED: snprintf(out, capacity, "Patched image not recognised, Faithful only"); *tone = ORACLES_TONE_WARN; break;
+        case ORACLES_ROM_ORIGINAL: snprintf(out, capacity, "Patched image recognized: %s", game->fan ? game->fan->image_name : "?"); *tone = ORACLES_TONE_OK; break;
+        case ORACLES_ROM_UNRECOGNISED: snprintf(out, capacity, "Patched image not recognized, Faithful only"); *tone = ORACLES_TONE_WARN; break;
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->image_reason); *tone = ORACLES_TONE_ERROR; break;
         default: snprintf(out, capacity, "The game needs both files."); *tone = ORACLES_TONE_NONE; break;
     }
@@ -173,12 +173,14 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row)
 
 /* ---- Display --------------------------------------------------------------------- */
 
-const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Window", "View", "Color correction", "Continuous transitions", "Advanced",
-                                                                   "Core", "Vsync", "Neighbour workers" };
+const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Quality", "Window", "View", "Color correction", "Continuous transitions",
+                                                                   "Advanced", "Core", "Vsync", "Neighbor workers" };
 const char *const oracles_display_view_names[3] = { "Near", "Medium", "Far" };
 const char *const oracles_display_colour_choices[2] = { "Off", "On" };
 const char *const oracles_display_vsync_choices[3] = { "Auto", "On", "Off" };
 const char *const oracles_display_core_choices[2] = { "Accurate (SameBoy)", "Fast (mGBA)" };
+const char *const oracles_display_core_names[2] = { "Accurate", "Fast" };
+const char *const oracles_display_quality_names[ORACLES_DISPLAY_QUALITIES + 1] = { "Low", "Medium", "High", "Max", "Custom" };
 int oracles_display_transitions_apply(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
 
 int oracles_display_row_shown(const OraclesHomeNav *nav, unsigned row)
@@ -198,7 +200,75 @@ const char *oracles_display_section(const OraclesHomeNav *nav) { return nav->adv
 
 int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row)
 {
-    return nav->in_game && (row == ORACLES_DISPLAY_CORE || row == ORACLES_DISPLAY_WORKERS);
+    return nav->in_game && (row == ORACLES_DISPLAY_CORE || row == ORACLES_DISPLAY_WORKERS || row == ORACLES_DISPLAY_QUALITY);
+}
+
+/* Each quality's view, core (0 Accurate, 1 Fast) and workers (0 Auto): settings.c's, which tests/test_launcher_settings.c
+ * checks these against. */
+static const struct { int view, core, workers; } qualities[ORACLES_DISPLAY_QUALITIES] = {
+    { 0, 1, 0 },   /* Low: near */
+    { 1, 1, 0 },   /* Medium */
+    { 2, 1, 0 },   /* High: far */
+    { 2, 0, 2 },   /* Max */
+};
+
+int oracles_display_quality(const OraclesHomeNav *nav)
+{
+    for (int q = 0; q < ORACLES_DISPLAY_QUALITIES; q++)
+        if (nav->display.view == qualities[q].view && nav->display.core == qualities[q].core && nav->display.workers == qualities[q].workers) return q;
+    return ORACLES_DISPLAY_QUALITY_CUSTOM;
+}
+
+int oracles_display_quality_applies(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED && !nav->in_game; }
+
+void oracles_display_quality_sets(int quality, char *out, size_t capacity)
+{
+    if (quality < 0 || quality >= ORACLES_DISPLAY_QUALITIES) snprintf(out, capacity, "By hand");
+    else snprintf(out, capacity, "%s \xc2\xb7 %s", oracles_display_view_names[qualities[quality].view], oracles_display_core_names[qualities[quality].core]);
+}
+
+void oracles_display_quality_text(const OraclesHomeNav *nav, int short_form, char *out, size_t capacity)
+{
+    const int view = nav->display.view >= 0 && nav->display.view < 3 ? nav->display.view : 2, core = nav->display.core ? 1 : 0;
+    const int workers = nav->display.workers;
+    char on[16];
+    if (workers) snprintf(on, sizeof on, "at %d", workers);
+    else snprintf(on, sizeof on, "on auto");
+    const char *const view_name = oracles_display_view_names[view], *const core_name = oracles_display_core_names[core];
+    if (oracles_display_quality(nav) != ORACLES_DISPLAY_QUALITY_CUSTOM)
+        snprintf(out, capacity, short_form ? "%s view, %s core, workers %s." : "%s view, %s core, neighbor workers %s.", view_name, core_name, on);
+    else if (short_form) {
+        char count[8];
+        if (workers) snprintf(count, sizeof count, "%d", workers);
+        else snprintf(count, sizeof count, "auto");
+        snprintf(out, capacity, "Set by hand: %s, %s, workers %s.", view_name, core_name, count);
+    } else snprintf(out, capacity, "Set by hand: %s view, %s core, neighbor workers %s.", view_name, core_name, on);
+}
+
+const char *oracles_display_quality_note(const OraclesHomeNav *nav, int short_form)
+{
+    if (oracles_display_quality(nav) == ORACLES_DISPLAY_QUALITY_CUSTOM) return "Pick a quality to set all three again.";
+    return short_form ? "Changing one by hand makes it Custom." : "Changing one of them by hand makes it Custom.";
+}
+
+/* The quality `quality` applied: the view, the core and the workers it sets. */
+static OraclesHomeCommand quality_set(OraclesHomeNav *nav, int quality)
+{
+    if (!oracles_display_quality_applies(nav) || quality < 0 || quality >= ORACLES_DISPLAY_QUALITIES || quality == oracles_display_quality(nav))
+        return ORACLES_HOME_STAY;
+    nav->display.view = qualities[quality].view;
+    nav->display.core = qualities[quality].core;
+    nav->display.workers = qualities[quality].workers;
+    return ORACLES_HOME_STORE;
+}
+
+/* One quality lighter (`by` -1) or heavier (1), stopping at Low and at Max; from Custom, heavier is Low, lighter Max. */
+static OraclesHomeCommand quality_step(OraclesHomeNav *nav, int by)
+{
+    const int quality = oracles_display_quality(nav);
+    if (quality == ORACLES_DISPLAY_QUALITY_CUSTOM) return quality_set(nav, by > 0 ? 0 : ORACLES_DISPLAY_QUALITIES - 1);
+    const int next = quality + by;
+    return quality_set(nav, next < 0 ? 0 : next >= ORACLES_DISPLAY_QUALITIES ? ORACLES_DISPLAY_QUALITIES - 1 : next);
 }
 
 int oracles_display_screen_4_3(const OraclesHomeNav *nav)
@@ -279,7 +349,7 @@ void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capaci
     const int fit = oracles_display_fit(nav);
     if (oracles_display_one_size(nav)) snprintf(out, capacity, "%s", oracles_display_one_size_note);
     else if (nav->display.window < 3 && oracles_display_scale(nav, nav->display.window) > fit)
-        snprintf(out, capacity, "Reduced to %d\xc3\x97 to fit this screen", fit);
+        snprintf(out, capacity, "Reduced to %d\xc3\x97 to fit this screen.", fit);
     else if (capacity) out[0] = 0;
 }
 
@@ -298,6 +368,33 @@ void oracles_display_window_texts(const OraclesHomeNav *nav, int window, char *n
 }
 
 const char oracles_display_window_note[] = "Each step is a whole multiple of the game's picture, so pixels stay sharp.";
+
+/* The characters of a window's size on the surface w x h, as oracles_display_window_texts writes it. */
+static int window_size_length(const OraclesHomeNav *nav, int window, int w, int h)
+{
+    char text[48];
+    int k = window + 2;
+    if (window >= 3) {
+        const int kx = nav->display.screen_w / w, ky = nav->display.screen_h / h;
+        k = kx < ky ? kx : ky;
+        if (k < 1) k = 1;
+        snprintf(text, sizeof text, "%d\xc3\x97 \xc2\xb7 %d\xc3\x97%d", k, k * w, k * h);
+    } else snprintf(text, sizeof text, "%d\xc3\x97%d", k * w, k * h);
+    int length = 0;
+    for (const char *p = text; *p; p++) length += ((unsigned char)*p & 0xc0u) != 0x80u;
+    return length;
+}
+
+int oracles_display_window_size_length(const OraclesHomeNav *nav, int window)
+{
+    int longest = window_size_length(nav, window, 160, 144);
+    for (int v = 0; v < ORACLES_ENHANCED_LEVELS; v++) {
+        const OraclesEnhancedSize s = view_surface(nav, v);
+        const int length = window_size_length(nav, window, (int)s.width, (int)s.height);
+        if (length > longest) longest = length;
+    }
+    return longest;
+}
 
 void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h, float *w, float *h, char *label, size_t capacity)
 {
@@ -329,18 +426,19 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         case ORACLES_DISPLAY_WORKERS:
             return "Rooms around you are prepared by background workers. Two fill the view faster after a warp or a load, using one more processor core.";
-        case ORACLES_DISPLAY_ADVANCED: return "Core, Vsync and neighbour workers.";
-        default: return "";
+        case ORACLES_DISPLAY_ADVANCED: return "Core, Vsync and neighbor workers.";
+        default: return "";   /* Quality's says what is in effect: oracles_display_quality_text */
     }
 }
 
 /* The value of a row, set to `value` (wrapped to the row's choices); the view and the transitions do not change in Faithful,
- * nor the core and the workers in a game, nor the window at one size.  Advanced has no value. */
+ * nor the core and the workers in a game, nor the window at one size.  Advanced has no value, nor Quality, which the
+ * view, the core and the workers make (quality_set). */
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
-    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 0, 2, 3, 3 };
+    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 0, 4, 3, 2, 2, 0, 2, 3, 3 };
     int profile = (int)nav->display.profile;
-    int *fields[ORACLES_DISPLAY_ROWS] = { &profile, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions, NULL,
+    int *fields[ORACLES_DISPLAY_ROWS] = { &profile, NULL, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions, NULL,
                                           &nav->display.core, &nav->display.vsync, &nav->display.workers };
     if (row >= ORACLES_DISPLAY_ROWS || !fields[row] || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
         || oracles_display_row_fixed(nav, row) || (row == ORACLES_DISPLAY_WINDOW && oracles_display_one_size(nav)))
@@ -354,8 +452,8 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
 
 static int display_value(const OraclesHomeNav *nav, unsigned row)
 {
-    const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions, 0,
-                                               nav->display.core, nav->display.vsync, nav->display.workers };
+    const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, 0, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions,
+                                               0, nav->display.core, nav->display.vsync, nav->display.workers };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 
@@ -376,10 +474,13 @@ OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction ac
     switch (action) {
         case ORACLES_HOME_UP: nav->row = first + (row - first + count - 1u) % count; return ORACLES_HOME_STAY;
         case ORACLES_HOME_DOWN: nav->row = first + (row - first + 1u) % count; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_LEFT: return row == ORACLES_DISPLAY_ADVANCED ? ORACLES_HOME_STAY : display_set(nav, row, display_value(nav, row) - 1);
+        case ORACLES_HOME_LEFT:
+            if (row == ORACLES_DISPLAY_QUALITY) return quality_step(nav, -1);
+            return row == ORACLES_DISPLAY_ADVANCED ? ORACLES_HOME_STAY : display_set(nav, row, display_value(nav, row) - 1);
         case ORACLES_HOME_RIGHT:
         case ORACLES_HOME_OK:
             if (row == ORACLES_DISPLAY_ADVANCED) { display_advanced(nav, 1); return ORACLES_HOME_STAY; }
+            if (row == ORACLES_DISPLAY_QUALITY) return quality_step(nav, 1);
             return display_set(nav, row, display_value(nav, row) + 1);
         case ORACLES_HOME_BACK:
             if (nav->advanced) { display_advanced(nav, 0); return ORACLES_HOME_STAY; }
@@ -396,5 +497,6 @@ OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int 
     if (!oracles_display_row_shown(nav, row)) return ORACLES_HOME_STAY;
     if (row == ORACLES_DISPLAY_ADVANCED) { display_advanced(nav, 1); return ORACLES_HOME_STAY; }
     nav->row = row;
-    return option < 0 ? ORACLES_HOME_STAY : display_set(nav, row, option);
+    if (option < 0) return ORACLES_HOME_STAY;
+    return row == ORACLES_DISPLAY_QUALITY ? quality_set(nav, option) : display_set(nav, row, option);
 }

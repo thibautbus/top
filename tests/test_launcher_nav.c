@@ -330,6 +330,66 @@ static void pointer(void)
     CHECK(oracles_home_focus(&nav) == 3);
 }
 
+/* The toast after a game that ran slowly: what it suggests, from Display's quality or its view; the first input takes it
+ * away, changing nothing; a click on it opens Display on the row it names. */
+static void slow_toast(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    char text[ORACLES_HOME_TEXT_LENGTH];
+    const char *path = NULL;
+    static const struct { int view, core, workers; const char *text, *path; } cases[] = {
+        { 2, 1, 0, "The game ran slowly at High: Medium may play smoother.", "Display \xe2\x80\xba Quality" },
+        { 2, 0, 2, "The game ran slowly at Max: High may play smoother.", "Display \xe2\x80\xba Quality" },
+        { 1, 1, 0, "The game ran slowly at Medium: Low may play smoother.", "Display \xe2\x80\xba Quality" },
+        { 2, 0, 0, "The game ran slowly in the Far view: the Medium view may play smoother.", "Display \xe2\x80\xba View" },   /* Custom */
+        { 1, 0, 1, "The game ran slowly in the Medium view: the Near view may play smoother.", "Display \xe2\x80\xba View" },
+    };
+    for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        nav.display.view = cases[i].view;
+        nav.display.core = cases[i].core;
+        nav.display.workers = cases[i].workers;
+        CHECK(oracles_home_slow_text(&nav, text, sizeof text, &path) && !strcmp(text, cases[i].text) && !strcmp(path, cases[i].path));
+    }
+    /* Nothing lighter: Low, and Custom in the near view. */
+    nav.display.view = 0; nav.display.core = 1; nav.display.workers = 0;
+    CHECK(!oracles_home_slow_text(&nav, text, sizeof text, &path));
+    nav.display.core = 0;
+    CHECK(!oracles_home_slow_text(&nav, text, sizeof text, &path));
+
+    /* The first input takes it away, and does what it does; no setting changes. */
+    oracles_home_init(&nav);
+    nav.display.core = 1;
+    nav.slow = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && !nav.slow && nav.focus == 1);
+    CHECK(nav.display.view == 2 && nav.display.core == 1 && nav.display.workers == 0);
+    nav.slow = 1;
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
+    CHECK(!nav.slow && nav.screen == ORACLES_SCREEN_HOME);
+    nav.slow = 1;
+    oracles_home_click(&nav, 2);
+    CHECK(!nav.slow);
+    nav.screen = ORACLES_SCREEN_HOME;
+    nav.slow = 1;
+    oracles_home_select(&nav, ORACLES_HOME_SEASONS);
+    CHECK(!nav.slow);
+
+    /* A click on it: Display, its own rows, on Quality; back on the home screen, Display highlighted. */
+    oracles_home_init(&nav);
+    nav.display.core = 1;
+    nav.slow = 1;
+    nav.advanced = 1;
+    oracles_home_slow_open(&nav);
+    CHECK(!nav.slow && nav.screen == ORACLES_SCREEN_DISPLAY && !nav.advanced && nav.row == ORACLES_DISPLAY_QUALITY);
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
+    CHECK(nav.screen == ORACLES_SCREEN_HOME && nav.focus == 3);
+    /* Under Custom, on View. */
+    nav.display.core = 0;
+    nav.slow = 1;
+    oracles_home_slow_open(&nav);
+    CHECK(nav.screen == ORACLES_SCREEN_DISPLAY && nav.row == ORACLES_DISPLAY_VIEW);
+}
+
 int main(void)
 {
     entries();
@@ -338,6 +398,7 @@ int main(void)
     fan_games();
     mods();
     pointer();
+    slow_toast();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("launcher navigation: entries, fan games, disabled items and going back behave as expected\n");
     return 0;

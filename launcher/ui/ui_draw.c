@@ -458,6 +458,21 @@ void oracles_ui_stroke_round_rect(OraclesUiDraw *draw, float x, float y, float w
     SDL_RenderGeometry(draw->renderer, NULL, vertices, vertex_count, indices, index_count);
 }
 
+void oracles_ui_stroke_dashed_rect(OraclesUiDraw *draw, float x, float y, float w, float h, float radius, float border, OraclesUiColor color)
+{
+    const float dash = 3.0f * border;
+    for (float at = x + radius; at < x + w - radius; at += 2.0f * dash) {
+        const float length = at + dash > x + w - radius ? x + w - radius - at : dash;
+        oracles_ui_fill_rect(draw, at, y, length, border, color);
+        oracles_ui_fill_rect(draw, at, y + h - border, length, border, color);
+    }
+    for (float at = y + radius; at < y + h - radius; at += 2.0f * dash) {
+        const float length = at + dash > y + h - radius ? y + h - radius - at : dash;
+        oracles_ui_fill_rect(draw, x, at, border, length, color);
+        oracles_ui_fill_rect(draw, x + w - border, at, border, length, color);
+    }
+}
+
 #define MAX_POLYGON 16
 
 void oracles_ui_fill_polygon(OraclesUiDraw *draw, const float *points, int count, OraclesUiColor color)

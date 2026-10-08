@@ -278,6 +278,30 @@ static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, OraclesUiLayout 
     return oracles_ui_tween_running(&home->toast, now_ms);
 }
 
+/* The slow game's toast, on the home screen only, as long as nav->slow holds, and the row it leads to: 0 when there is
+ * none to show. */
+static int layout_slow(const OraclesHomeNav *nav, OraclesUiSlowLayout *out, const char **path)
+{
+    char text[ORACLES_HOME_TEXT_LENGTH];
+    if (!nav->slow || nav->screen != ORACLES_SCREEN_HOME || !oracles_home_slow_text(nav, text, sizeof text, path)) return 0;
+    oracles_ui_layout_slow(oracles_ui_home_scene(nav), text, *path, out);
+    return 1;
+}
+
+/* No fade: it shows on the return from the game, and goes with the first input. */
+static void draw_slow(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiLayout scene, OraclesUiColor accent)
+{
+    OraclesUiSlowLayout l;
+    const char *path;
+    if (!layout_slow(nav, &l, &path)) return;
+    const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
+    const float radius = look_of(scene)->toast_radius;
+    oracles_ui_fill_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, oracles_ui_rgb(TOAST_BACKGROUND));
+    oracles_ui_stroke_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, 1.0f, oracles_ui_rgba(TOAST_BORDER, TOAST_BORDER_OPACITY));
+    for (unsigned i = 0; i < l.lines; i++) draw_line(draw, st->toast, &l.text_lines[i], l.text[i], 0.0f, oracles_ui_rgb(TOAST_TEXT));
+    draw_line(draw, st->slow_path, &l.path, path, 0.0f, accent);
+}
+
 int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const OraclesHomeNav *nav, double now_ms)
 {
     int moving = 0;
@@ -329,6 +353,9 @@ int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const Oracles
         draw_line(draw, oracles_ui_home_styles(scene)->version, &version, ORACLES_VERSION, 0.0f, oracles_ui_rgb(VERSION_TEXT));
     oracles_ui_draw_anchor(draw, 0.5f, 1.0f);
     draw_hints(draw, nav, scene);
+    oracles_ui_draw_anchor(draw, 0.0f, 1.0f);
+    draw_slow(draw, nav, scene, accent);
+    oracles_ui_draw_anchor(draw, 0.5f, 1.0f);
     moving |= draw_toast(draw, home, scene, now_ms);
     return moving;
 }
@@ -353,6 +380,9 @@ OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y
 {
     OraclesUiHomeHit hit = { ORACLES_UI_HIT_NONE, 0, -1, ORACLES_HOME_AGES, 0, 0 };
     if (back_hint(nav, x, y)) { hit.kind = ORACLES_UI_HIT_BACK; return hit; }
+    OraclesUiSlowLayout slow;
+    const char *path;
+    if (layout_slow(nav, &slow, &path) && inside(&slow.box, x, y)) { hit.kind = ORACLES_UI_HIT_SLOW; return hit; }
     if (nav->screen == ORACLES_SCREEN_CONTROLS) {
         if (oracles_ui_controls_hit(nav, x, y, &hit.column, &hit.row, &hit.option)) hit.kind = ORACLES_UI_HIT_CELL;
         return hit;

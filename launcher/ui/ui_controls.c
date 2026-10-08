@@ -30,7 +30,6 @@
 #define KEY_TEXT 0xd6d3dcu
 #define KEY_BORDER 0x4a4752u
 #define SHORTCUT 0xc9c6cfu
-#define DASH 3.0f                      /* a dashed border's dash and gap, in scene pixels */
 #define WARN 0xecd198u                 /* a fan game's line, the warning tone's text */
 #define TAB_CHOSEN 0xf3f1f5u
 #define TAB_OTHER 0x8a8793u
@@ -46,21 +45,6 @@ static const look look_4_3 = { 7.0f, 8.0f, 7.0f, 2.0f, 6.0f, 7.0f };
 static void text(OraclesUiDraw *draw, const OraclesUiTextStyle *style, const OraclesUiLine *line, const char *s, OraclesUiColor color)
 {
     if (s && s[0]) oracles_ui_draw_text(draw, style, line->x, line->baseline, s, color);
-}
-
-/* A dashed border of one scene pixel, along the box's straight sides. */
-static void dashed(OraclesUiDraw *draw, const OraclesUiBox *b, float radius, OraclesUiColor color)
-{
-    for (float x = b->x + radius; x < b->x + b->w - radius; x += 2.0f * DASH) {
-        const float w = x + DASH > b->x + b->w - radius ? b->x + b->w - radius - x : DASH;
-        oracles_ui_fill_rect(draw, x, b->y, w, 1.0f, color);
-        oracles_ui_fill_rect(draw, x, b->y + b->h - 1.0f, w, 1.0f, color);
-    }
-    for (float y = b->y + radius; y < b->y + b->h - radius; y += 2.0f * DASH) {
-        const float h = y + DASH > b->y + b->h - radius ? b->y + b->h - radius - y : DASH;
-        oracles_ui_fill_rect(draw, b->x, y, 1.0f, h, color);
-        oracles_ui_fill_rect(draw, b->x + b->w - 1.0f, y, 1.0f, h, color);
-    }
 }
 
 /* A box whose top corners only are rounded (a tab's). */
@@ -90,7 +74,7 @@ static void cell(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUi
     const int focused = c->column == column && c->row == row, waiting = focused && c->capturing;
     const char *s = oracles_controls_cell_text(nav, column, row);
     if (oracles_controls_cell_locked(column, row)) {
-        dashed(draw, b, lk->cell_radius, oracles_ui_rgba(0xffffffu, CELL_LOCKED_BORDER_OPACITY * opacity));
+        oracles_ui_stroke_dashed_rect(draw, b->x, b->y, b->w, b->h, lk->cell_radius, 1.0f, oracles_ui_rgba(0xffffffu, CELL_LOCKED_BORDER_OPACITY * opacity));
         text(draw, st->cell_locked, &l->cell_texts[column][row], s, oracles_ui_rgba(CELL_NONE, opacity));
         return;
     }

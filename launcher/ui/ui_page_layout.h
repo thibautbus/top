@@ -1,8 +1,10 @@
 /* Where Cartridge, Display and Mods put their pieces in the scene of a
  * layout (ui_layout.h), without SDL: in 16:9 the title column at the left,
  * the panel of rows at the right; in 4:3 a header with the game's title (and
- * Display's diagram, small, at the top right) over a single column of rows,
- * Display saying the highlighted row's explanation once, under its rows. */
+ * Display's diagram, small, at the top right, its Advanced button beside it)
+ * over a single column of rows, Display saying the highlighted row's
+ * explanation once, under its rows, on one line with a note line under it.
+ * Display's rows keep their heights whatever the choices and the highlight. */
 #ifndef ORACLES_UI_PAGE_LAYOUT_H
 #define ORACLES_UI_PAGE_LAYOUT_H
 
@@ -67,21 +69,21 @@ extern const OraclesUiTextStyle oracles_ui_option_name, oracles_ui_option_size, 
 extern const OraclesUiTextStyle oracles_ui_page_section_4_3, oracles_ui_page_title_4_3, oracles_ui_page_state_4_3, oracles_ui_page_note_4_3;
 extern const OraclesUiTextStyle oracles_ui_row_label_4_3, oracles_ui_row_title_4_3, oracles_ui_row_path_4_3, oracles_ui_row_text_4_3;
 extern const OraclesUiTextStyle oracles_ui_row_note_4_3, oracles_ui_row_button_4_3, oracles_ui_play_4_3, oracles_ui_option_size_4_3;
-extern const OraclesUiTextStyle oracles_ui_diagram_label_4_3, oracles_ui_help_4_3, oracles_ui_mod_games_4_3;
+extern const OraclesUiTextStyle oracles_ui_diagram_label_4_3, oracles_ui_help_4_3, oracles_ui_mod_games_4_3, oracles_ui_quality_sets_4_3;
 
 /* The styles a layout draws the pages in.  16:9's row_text is also its explanations', row_note its notes'; 4:3 says
  * the highlighted row's explanation in `help`, with its note in `help_note`, and has no `over` (the title's line holds
- * it: the title's style there). */
+ * it: the title's style there).  `quality_sets`: what a quality sets, under its name. */
 typedef struct OraclesUiPageStyles {
     const OraclesUiTextStyle *section, *over, *title, *state, *page_note;
     const OraclesUiTextStyle *row_label, *row_title, *row_path, *row_status, *row_text, *row_note, *row_button, *play;
     const OraclesUiTextStyle *option_name, *option_size, *choice, *diagram_label, *help, *help_note;
-    const OraclesUiTextStyle *mod_games, *mods_empty, *mods_note;
+    const OraclesUiTextStyle *mod_games, *mods_empty, *mods_note, *quality_sets;
 } OraclesUiPageStyles;
 const OraclesUiPageStyles *oracles_ui_page_styles(OraclesUiLayout layout);
 
-/* The transitions' and the core's notes on Display; 4:3's Advanced row, what it opens. */
-extern const char oracles_ui_transitions_note[], oracles_ui_core_note[], oracles_ui_advanced_rows[];
+/* The transitions' and the core's notes on Display; under 16:9's windows, when no line says their size is reduced. */
+extern const char oracles_ui_transitions_note[], oracles_ui_core_note[], oracles_ui_window_fit_note[];
 /* Under Display's title, opened from a game: what applies at once and what waits for the next session. */
 extern const char oracles_ui_display_later[];
 /* Under a row of Display opened from a game, what only the next session takes. */
@@ -102,7 +104,12 @@ typedef struct OraclesUiDisplayTexts {
     char window_names[4][32], window_sizes[4][48];
     const char *window_note;
     char window_reduced[ORACLES_HOME_TEXT_LENGTH];   /* empty when the window fits the screen */
+    const char *window_fit;               /* 16:9's line under the windows: window_reduced, or oracles_ui_window_fit_note */
+    int window_size_length[4];            /* the characters each window's size line keeps room for */
     const char *profile_note;
+    char quality_sets[ORACLES_DISPLAY_QUALITIES + 1][32];   /* "Far · Fast", ..., "By hand" */
+    char quality_text[ORACLES_HOME_TEXT_LENGTH];             /* the quality in effect, said in full */
+    const char *quality_note;
     int later;                            /* opened from a game: the note under the title says what the next Play takes */
     const char *explanations[5];          /* color correction, continuous transitions, vsync, core, the workers */
     const char *view_explanation;
@@ -112,7 +119,9 @@ typedef struct OraclesUiDisplayTexts {
     float diagram_w, diagram_h;           /* the window drawn in the diagram's box */
     char diagram_label[ORACLES_HOME_TEXT_LENGTH];
     int window_one;                       /* every window comes to one size here: the Window row dimmed and inert */
-    const char *help, *help_note;         /* 4:3: the highlighted row's explanation and its note (NULL: none) */
+    const char *help, *help_note;         /* 4:3: the highlighted row's explanation and its note (NULL: none), short */
+    char help_text[ORACLES_HOME_TEXT_LENGTH];              /* `help` when made: Quality's */
+    char help_note_text[ORACLES_HOME_TEXT_LENGTH + 1];     /* `help_note` when made: the diagram's line and a period */
 } OraclesUiDisplayTexts;
 
 /* Display's texts for the state of `nav`. */
@@ -123,18 +132,22 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiBox diagram, diagram_window;
     OraclesUiLine diagram_label;
     OraclesUiBox panel;
-    /* Profile, Window, View, Color correction, Continuous transitions, or Core, Vsync, Neighbour workers; zero for the
-     * rows not shown.  16:9 lays Advanced out under the diagram: its row is its own highlight, its label and arrow in
-     * it; 4:3 as the last row, what it opens written before the arrow. */
+    /* Profile, Quality, Window, View, Color correction, Continuous transitions, or Core, Vsync, Neighbour workers; zero
+     * for the rows not shown.  Advanced is its own highlight, its label and arrow in it: under the diagram in 16:9, a
+     * framed button beside it in 4:3. */
     OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];
     OraclesUiBox rows[ORACLES_DISPLAY_ROWS];         /* each row's highlight, the pointer's target */
-    OraclesUiLine advanced_label, advanced_text;     /* the text: 4:3's only */
+    OraclesUiLine advanced_label;
     OraclesUiBox advanced_arrow;                     /* a triangle pointing right, in this box */
     OraclesUiOptionLayout profiles[ORACLES_PROFILES];
     OraclesUiLine profile_note;
+    /* Quality's choices, what each sets under its name, Custom's last, laid out whether it shows or not; 16:9 says the
+     * quality in effect and its note under them. */
+    OraclesUiOptionLayout qualities[ORACLES_DISPLAY_QUALITIES + 1];
+    OraclesUiLine quality_text, quality_note;
     OraclesUiOptionLayout windows[4];
     OraclesUiLine window_note, window_reduced;
-    OraclesUiLine window_one;                        /* 4:3: under the windows, that they come to one size; else zero */
+    OraclesUiLine window_one;                        /* 4:3: in the windows' place, that they come to one size; else zero */
     OraclesUiLine transitions_note, core_note;
     OraclesUiLine page_note;                         /* under the title, zero unless `later` */
     OraclesUiOptionLayout views[3];
@@ -142,8 +155,7 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiOptionLayout transitions[2];
     OraclesUiWrapped explanations[5];
     OraclesUiOptionLayout colour[2], vsync[3], core[2], workers[3];
-    OraclesUiWrapped help;                           /* 4:3: under the rows, the highlighted row's explanation */
-    OraclesUiLine help_note;
+    OraclesUiLine help, help_note;                   /* 4:3: under the rows, the highlighted row's explanation and its note */
 } OraclesUiDisplayLayout;
 
 /* The diagram's box in 16:9, the screen's shape at its height (texts->diagram_box_w its width); 4:3 draws it and its

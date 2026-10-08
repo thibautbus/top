@@ -4,9 +4,10 @@
  * picked in the list), 1f (Seasons, no ROM) and 8e (Moonrise Regalia's Mods,
  * greyed), and a toast; in the 4:3 layout, 10a (Ages), 10b (Fan games), 10c
  * (Seasons, no ROM), a toast, and the pause menu, 10n, and 10t in a 640x480
- * window: a text is compared by its left edge, its width, the top and height of
- * its line box, and its baseline; an element by its box.  And the choice of the
- * layout by the window's shape. */
+ * window; the toast after a game that ran slowly, 11c, 11f and 11h: a text is
+ * compared by its left edge, its width, the top and height of its line box,
+ * and its baseline; an element by its box.  And the choice of the layout by the
+ * window's shape. */
 #include "layout_reference.h"
 #include "ui_home_layout.h"
 #include "ui_home_nav.h"
@@ -234,6 +235,35 @@ static void toast(void)
     layout_line("toast 4:3", "toast text", &t.text);
 }
 
+/* The toast after a game that ran slowly at High, at the bottom left (11c), in 4:3 on two lines (11f), and in a 640x480
+ * window (11h), which takes 4:3's scene: Display's Quality suggests Medium, and opens on its row. */
+static void slow_toast(const char *frame, int width, int height, unsigned lines)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.layout = oracles_ui_layout_choose(width, height, 0);
+    nav.display.view = 2;
+    nav.display.core = 1;
+    char text[ORACLES_HOME_TEXT_LENGTH];
+    const char *path = NULL;
+    CHECK(oracles_home_slow_text(&nav, text, sizeof text, &path));
+    CHECK(!strcmp(text, "The game ran slowly at High: Medium may play smoother.") && !strcmp(path, "Display \xe2\x80\xba Quality"));
+    OraclesUiSlowLayout l;
+    oracles_ui_layout_slow(nav.layout, text, path, &l);
+    layout_box(frame, "toast", &l.box);
+    layout_line(frame, "toast text", &l.text_lines[0]);
+    layout_line(frame, "toast path", &l.path);
+    CHECK(l.lines == lines && (unsigned)layout_reference(frame, "toast text", "lines") == lines);
+    /* text-wrap: pretty: "smoother." alone on the last line takes "play" with it. */
+    CHECK(lines == 1 || !strcmp(l.text[1], "play smoother."));
+    float widest = 0.0f;
+    for (unsigned i = 0; i < l.lines; i++) {
+        if (l.text_lines[i].w > widest) widest = l.text_lines[i].w;
+        CHECK(l.text_lines[i].x == l.text_lines[0].x && (i == 0 || l.text_lines[i].y == l.text_lines[i - 1].y + l.text_lines[i - 1].h));
+    }
+    layout_near(frame, "toast text", "width", widest);
+}
+
 /* The help bar of a frame: each hint's box, its key's box and text, its label. */
 static void hints_of(const char *frame, const OraclesHomeNav *nav, OraclesUiLayout layout, unsigned expected)
 {
@@ -421,11 +451,14 @@ int main(int argc, char **argv)
     frame_1f();
     frame_8e();
     toast();
+    slow_toast("11c", 1920, 1080, 1);
     frame_10a();
     frame_10b();
     frame_10c();
     pause_4_3("10n", 1440, 1080);
     pause_4_3("10t", 640, 480);
+    slow_toast("11f", 1440, 1080, 2);
+    slow_toast("11h", 640, 480, 2);
     layout_choice();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher layout: the home screen matches the layout reference within %.1f px\n", (double)LAYOUT_TOLERANCE);

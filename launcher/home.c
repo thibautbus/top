@@ -116,7 +116,8 @@ static void start(home_app *app, OraclesHomeCommand game)
 {
     if (!app->host || !app->host->start) return;
     char message[256] = "";
-    const int closed = app->host->start(app->host->opaque, game, app->window, app->renderer, app->draw, message, sizeof message);
+    int slow = 0;
+    const int closed = app->host->start(app->host->opaque, game, app->window, app->renderer, app->draw, message, sizeof message, &slow);
     oracles_ui_draw_freeze(app->draw, 0);   /* the pause held the rasters at the game's scale; the home screen redoes its own */
     if (closed) { app->running = 0; return; }
     restore_window(app);
@@ -125,6 +126,7 @@ static void start(home_app *app, OraclesHomeCommand game)
     /* Back from the game to the home screen, on Start game, from the page's Play as from the menu. */
     app->nav.screen = ORACLES_SCREEN_HOME;
     app->nav.focus = 0;
+    app->nav.slow = slow;
     /* What the game left in the queue (the Escape that ended it) is not the home screen's. */
     SDL_FlushEvents(SDL_EVENT_KEY_DOWN, SDL_EVENT_GAMEPAD_REMAPPED);
     report_window(app, "back from the game");
@@ -237,7 +239,8 @@ static void pointer(home_app *app, float x, float y, int click)
         if (hit.kind == ORACLES_UI_HIT_ITEM && hit.index != oracles_home_focus(&app->nav)) { oracles_home_hover(&app->nav, hit.index); changed(app); }
         return;
     }
-    if (hit.kind == ORACLES_UI_HIT_ITEM) { const OraclesHomeCommand c = oracles_home_click(&app->nav, hit.index); changed(app); command(app, c); }
+    if (hit.kind == ORACLES_UI_HIT_SLOW) { oracles_home_slow_open(&app->nav); changed(app); }
+    else if (hit.kind == ORACLES_UI_HIT_ITEM) { const OraclesHomeCommand c = oracles_home_click(&app->nav, hit.index); changed(app); command(app, c); }
     else if (hit.kind == ORACLES_UI_HIT_ENTRY) { oracles_home_select(&app->nav, hit.entry); changed(app); }
     else if (hit.kind == ORACLES_UI_HIT_BACK) act(app, ORACLES_HOME_BACK);
 }

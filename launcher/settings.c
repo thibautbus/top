@@ -62,6 +62,39 @@ OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality)
     return quality > ORACLES_QUALITY_LOW && quality < ORACLES_QUALITY_CUSTOM ? (OraclesQuality)(quality - 1) : ORACLES_QUALITY_CUSTOM;
 }
 
+int oracles_settings_ran_slowly(int enhanced, uint32_t frames, uint32_t late)
+{
+    return enhanced && frames >= ORACLES_SLOW_FRAMES && (uint64_t)late * 50u > frames;
+}
+
+int oracles_settings_lighter(const oracles_settings *s, OraclesQuality *quality, int *view)
+{
+    *quality = oracles_settings_quality(s);
+    *view = s->view;
+    if (*quality != ORACLES_QUALITY_CUSTOM) {
+        *quality = oracles_settings_lighter_quality(*quality);
+        return *quality != ORACLES_QUALITY_CUSTOM;
+    }
+    if (s->view <= 0 || s->view > 2) return 0;
+    *view = s->view - 1;
+    return 1;
+}
+
+int oracles_settings_slow_hint(oracles_settings *s, int enhanced, uint32_t frames, uint32_t late)
+{
+    OraclesQuality lighter;
+    int view;
+    const OraclesQuality quality = oracles_settings_quality(s);
+    if (!oracles_settings_ran_slowly(enhanced, frames, late) || !oracles_settings_lighter(s, &lighter, &view) || s->quality_hint == (int)quality) return 0;
+    s->quality_hint = (int)quality;
+    return 1;
+}
+
+void oracles_settings_quality_changed(oracles_settings *s, int view, int core, int ghosts)
+{
+    if (s->view != view || oracles_settings_core(s) != core || s->ghosts != ghosts) s->quality_hint = -1;
+}
+
 int oracles_settings_core(const oracles_settings *s)
 {
     if (s->core == ORACLES_CORE_SAMEBOY || s->core == ORACLES_CORE_MGBA) return s->core;
@@ -257,7 +290,7 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
         return 1;
     }
     if (!strcmp(name, "quality_hint")) {
-        for (int q = 0; q < ORACLES_QUALITIES; q++) if (!strcmp(value, oracles_settings_quality_names[q])) s->quality_hint = q;
+        for (int q = 0; q <= ORACLES_QUALITY_CUSTOM; q++) if (!strcmp(value, oracles_settings_quality_names[q])) s->quality_hint = q;
         return 1;
     }
     if (strcmp(name, "launcher_window") != 0) return 0;
@@ -358,8 +391,9 @@ int oracles_settings_store(const oracles_settings *s)
     fprintf(f, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
                "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
     if (s->ghosts == 1 || s->ghosts == 2) fprintf(f, "ghosts=%d\n", s->ghosts); else fprintf(f, "ghosts=auto\n");
-    if (s->quality_hint >= 0 && s->quality_hint < ORACLES_QUALITIES) {
-        fprintf(f, "# The quality a game that ran slowly was last suggested to leave: the suggestion is made once a quality.\n");
+    if (s->quality_hint >= 0 && s->quality_hint <= ORACLES_QUALITY_CUSTOM) {
+        fprintf(f, "# The quality a game that ran slowly was last suggested to leave: the suggestion is made once a quality, until\n"
+                   "# the view, the core or the ghosts change.\n");
         fprintf(f, "quality_hint=%s\n", oracles_settings_quality_names[s->quality_hint]);
     }
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");

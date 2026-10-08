@@ -102,10 +102,11 @@ static int usage(void)
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
                     "       --patch: a fan game, the BPS patch applied to --rom in memory at each start; its save beside the patch\n"
                     "       without --rom, the home screen opens; the game options apply to the games it starts, --record to the first\n"
-                    "       the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,left,right,ok,back]\n"
+                    "       the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,left,right,ok,back,slow]\n"
                     "                           [--launcher-frame GAME.ppm]\n"
                     "                           (the home screen drawn offscreen, 1920x1080 by default, and written as a PPM; with a game's image\n"
-                    "                           from --screenshot, the pause menu over it, as the game's window shows it)\n");
+                    "                           from --screenshot, the pause menu over it, as the game's window shows it; slow: the return from a\n"
+                    "                           game that ran slowly, its toast suggesting something lighter)\n");
     return 2;
 }
 

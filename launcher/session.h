@@ -50,6 +50,11 @@ typedef struct OraclesSessionResult {
     char error[256];                 /* why the session could not run or stopped, empty otherwise */
     int route_written;               /* --record's route was written */
     int hotkeys_dropped;             /* a game the home screen started played without the item hotkeys: they could not attach */
+    /* How the game ran, for the home screen to suggest something lighter (oracles_settings_slow_hint): in Enhanced or
+     * not, the frames it played outside its pauses, and those late: the host's late frames, or under vsync, where the
+     * host counts none, the frames whose work took over one frame past the first second, whichever are more. */
+    int enhanced;
+    uint32_t frames_played, frames_late;
 } OraclesSessionResult;
 
 /* Defaults: Faithful, the neighbours' objects shown in Enhanced, a window at scale 4. */

@@ -74,12 +74,14 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, profile < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)profile,
                            oracles_ui_layout_narrow(nav.layout, width));
     }
-    /* The inputs move the navigation only: a game is not started, the launcher does not exit. */
+    /* The inputs move the navigation only: a game is not started, the launcher does not exit.  `slow` is the return
+     * from a game that ran slowly, its toast shown until the next input. */
     for (const char *p = inputs; p && *p;) {
         const size_t length = strcspn(p, ",");
         OraclesHomeAction action;
-        if (!parse_action(p, length, &action)) { snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back)", (int)length, p); return 1; }
-        oracles_home_act(&nav, action);
+        if (length == 4 && !strncmp(p, "slow", 4)) nav.slow = 1;
+        else if (!parse_action(p, length, &action)) { snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow)", (int)length, p); return 1; }
+        else oracles_home_act(&nav, action);
         p += length + (p[length] == ',');
     }
     SDL_Surface *surface = SDL_CreateSurface(width, height, SDL_PIXELFORMAT_ARGB8888);

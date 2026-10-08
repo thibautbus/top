@@ -252,6 +252,9 @@ typedef struct OraclesHomeNav {
     int in_game, narrow;
     OraclesProfile playing;
     char load_note[ORACLES_HOME_NAME_LENGTH];
+    /* After a game that ran slowly, the home screen's toast that suggests something lighter (oracles_home_slow_text),
+     * until the first input. */
+    int slow;
 } OraclesHomeNav;
 
 typedef struct OraclesHomeItem {
@@ -292,6 +295,13 @@ OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction actio
 int oracles_home_game(const OraclesHomeNav *nav);
 /* The game a session plays, from Start game or Play: ORACLES_HOME_START_AGES, _SEASONS or a fan game's. */
 OraclesHomeCommand oracles_home_start_command(int game);
+
+/* The toast after a game that ran slowly: its text, "The game ran slowly at High: Medium may play smoother.", from
+ * Display's quality, or under Custom from its view ("... in the Far view: the Medium view ..."), and the row it leads to,
+ * "Display › Quality" or "Display › View"; 0 when nothing is lighter (Low, Custom in the near view). */
+int oracles_home_slow_text(const OraclesHomeNav *nav, char *text, size_t capacity, const char **path);
+/* The toast clicked: Display, on its Quality row (View under Custom); the toast goes. */
+void oracles_home_slow_open(OraclesHomeNav *nav);
 
 /* The pointer: an entry of the left stack clicked, an item hovered or clicked. */
 void oracles_home_select(OraclesHomeNav *nav, OraclesHomeEntry entry);

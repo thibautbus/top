@@ -42,7 +42,8 @@ typedef enum OraclesUiHomeHitKind {
     ORACLES_UI_HIT_ENTRY,      /* an entry of the left stack (16:9) or its tab (4:3): `entry` */
     ORACLES_UI_HIT_BACK,       /* the help bar's hint that goes back */
     ORACLES_UI_HIT_ROW,        /* a row of a page: `index`, and one of its options: `option`, or -1 */
-    ORACLES_UI_HIT_CELL        /* a place of Controls: `column`, `row`, and the Item hotkeys' Off or On: `option`, or -1 */
+    ORACLES_UI_HIT_CELL,       /* a place of Controls: `column`, `row`, and the Item hotkeys' Off or On: `option`, or -1 */
+    ORACLES_UI_HIT_SLOW        /* the slow game's toast, which opens Display (oracles_home_slow_open) */
 } OraclesUiHomeHitKind;
 
 typedef struct OraclesUiHomeHit {

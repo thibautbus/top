@@ -579,6 +579,31 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
                 s->sdl.vsync ? "the display paces the frames" : "the host paces the frames at 59.7275 Hz");
 }
 
+/* The frames late as the slow game's suggestion counts them (OraclesSessionResult). */
+static uint32_t late_frames(const oracles_host_run_report *report)
+{
+    return report->frames_late > report->frames_over_budget ? report->frames_late : report->frames_over_budget;
+}
+
+/* A game that ran slowly, said in one line: what the home screen suggests after it, or that nothing is lighter. */
+static void report_slow(const session *s, const oracles_host_run_report *report)
+{
+    const uint32_t late = late_frames(report);
+    if (!oracles_settings_ran_slowly(s->enhanced, report->frames_presented, late)) return;
+    static const char *const views[3] = { "Near", "Medium", "Far" };
+    static const char *const qualities[5] = { "Low", "Medium", "High", "Max", "Custom" };
+    const OraclesQuality quality = oracles_settings_quality(s->settings);
+    const int view = s->settings->view >= 0 && s->settings->view < 3 ? s->settings->view : 2;
+    OraclesQuality lighter;
+    int lighter_view;
+    fprintf(stderr, "oracles: the game ran slowly: %u of %u frames late (%.1f %%, over 2 %% for a minute or more), at the %s quality",
+            late, report->frames_presented, 100.0 * late / report->frames_presented, qualities[quality]);
+    if (quality == ORACLES_QUALITY_CUSTOM) fprintf(stderr, " in the %s view", views[view]);
+    if (!oracles_settings_lighter(s->settings, &lighter, &lighter_view)) fprintf(stderr, "; nothing lighter to suggest\n");
+    else if (lighter == ORACLES_QUALITY_CUSTOM) fprintf(stderr, ": the %s view may play smoother (Display > View)\n", views[lighter_view]);
+    else fprintf(stderr, ": %s may play smoother (Display > Quality)\n", qualities[lighter]);
+}
+
 static void report_frames(const session *s, const oracles_host_run_report *report)
 {
     fprintf(stderr, "oracles: version %s, build %s, core %s\n", ORACLES_VERSION, ORACLES_BUILD, oracles_core_version(s->core));
@@ -604,6 +629,7 @@ static void report_frames(const session *s, const oracles_host_run_report *repor
     const int held = report->frames_over_budget == 0 && (uint64_t)report->frames_late * 1000u <= report->frames_presented;
     fprintf(stderr, "oracles: frame budget %s: %u frames whose work, presentation left out, took over one frame past the first second (0 allowed), %u late of %u (1 in 1000 allowed; none counted when the display paces)\n",
             held ? "held" : "NOT held", report->frames_over_budget, report->frames_late, report->frames_presented);
+    report_slow(s, report);
 }
 
 /* What the session's parts have to say at its end, and their release. */
@@ -723,6 +749,9 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
         s->display_unpaced_frame = report.display_unpaced_frame;
         if (status != ORACLES_HOST_OK) ok = failed(result, "%s", error);
         report_frames(s, &report);
+        result->enhanced = s->enhanced;
+        result->frames_played = report.frames_presented;
+        result->frames_late = late_frames(&report);
         if (!o->no_window) result->window_closed = oracles_sdl_backend_window_closed(&s->backend);
     }
     finish(s, o);

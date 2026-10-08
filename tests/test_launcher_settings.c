@@ -7,6 +7,7 @@
 #include "session.h"
 #include "settings.h"
 #include "core.h"
+#include "ui_page_nav.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -368,6 +369,29 @@ int main(int argc, char **argv)
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MEDIUM) == ORACLES_QUALITY_LOW);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_LOW) == ORACLES_QUALITY_CUSTOM);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_CUSTOM) == ORACLES_QUALITY_CUSTOM);
+    /* Display's Quality (ui_page_nav.c) reads the same profile off every view, core and workers, and picking one there
+     * sets what oracles_settings_apply_quality sets. */
+    for (int view = 0; view < 3; view++)
+        for (int core = 0; core < 2; core++)
+            for (int ghosts = 0; ghosts < 3; ghosts++) {
+                OraclesHomeNav nav;
+                oracles_home_init(&nav);
+                oracles_settings_defaults(&written);
+                written.view = nav.display.view = view;
+                written.core = nav.display.core = core;
+                written.ghosts = nav.display.workers = ghosts;
+                CHECK((int)oracles_settings_quality(&written) == oracles_display_quality(&nav));
+            }
+    for (int q = ORACLES_QUALITY_LOW; q < ORACLES_QUALITY_CUSTOM; q++) {
+        OraclesHomeNav nav;
+        oracles_home_init(&nav);
+        nav.screen = ORACLES_SCREEN_DISPLAY;
+        nav.display.workers = 1;
+        oracles_settings_defaults(&written);
+        oracles_settings_apply_quality(&written, (OraclesQuality)q);
+        CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_QUALITY, q) == ORACLES_HOME_STORE);
+        CHECK(nav.display.view == written.view && nav.display.core == oracles_settings_core(&written) && nav.display.workers == written.ghosts);
+    }
     /* quality_hint= round-trips, none by default and not written then; a first opening is no file. */
     oracles_settings_defaults(&written);
     snprintf(written.path, sizeof written.path, "%s", path);
@@ -383,6 +407,63 @@ int main(int argc, char **argv)
     snprintf(read_back.path, sizeof read_back.path, "%s", path);
     oracles_settings_load(&read_back);
     CHECK(read_back.first_run && read_back.quality_hint == -1);
+
+    /* A game ran slowly: in Enhanced, a minute at least (3584 frames at 59.7275 Hz), over 2 % of its frames late. */
+    CHECK(oracles_settings_ran_slowly(1, 6000, 121) && !oracles_settings_ran_slowly(1, 6000, 120));   /* 2 % is not over */
+    CHECK(!oracles_settings_ran_slowly(1, 3583, 3000) && oracles_settings_ran_slowly(1, ORACLES_SLOW_FRAMES, 72));
+    CHECK(!oracles_settings_ran_slowly(0, 6000, 3000));   /* Faithful */
+    /* The suggestion: the quality just lighter, or under Custom the view just nearer; none under Low, nor in the near view. */
+    OraclesQuality lighter;
+    int lighter_view;
+    oracles_settings_defaults(&written);
+    snprintf(written.path, sizeof written.path, "%s", path);
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_HIGH);
+    CHECK(oracles_settings_lighter(&written, &lighter, &lighter_view) && lighter == ORACLES_QUALITY_MEDIUM);
+    CHECK(!oracles_settings_slow_hint(&written, 1, 6000, 100) && written.quality_hint == -1);   /* under 2 % */
+    CHECK(!oracles_settings_slow_hint(&written, 1, 3000, 3000) && written.quality_hint == -1);   /* under a minute */
+    CHECK(!oracles_settings_slow_hint(&written, 0, 6000, 3000) && written.quality_hint == -1);   /* Faithful */
+    CHECK(oracles_settings_slow_hint(&written, 1, 6000, 300) && written.quality_hint == ORACLES_QUALITY_HIGH);
+    /* Once a quality: the same one flagged suggests nothing again, nor does the same quality left as it was. */
+    CHECK(!oracles_settings_slow_hint(&written, 1, 6000, 300));
+    oracles_settings_quality_changed(&written, 2, ORACLES_CORE_MGBA, 0);
+    CHECK(written.quality_hint == ORACLES_QUALITY_HIGH);
+    /* quality_hint written when the toast shows, and read back. */
+    CHECK(oracles_settings_store(&written) == 1);
+    oracles_settings_defaults(&read_back);
+    snprintf(read_back.path, sizeof read_back.path, "%s", path);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.quality_hint == ORACLES_QUALITY_HIGH && !oracles_settings_slow_hint(&read_back, 1, 6000, 300));
+    /* Another quality picked: Medium suggests Low; back at High, the hint no longer holds it back. */
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_MEDIUM);
+    oracles_settings_quality_changed(&written, 2, ORACLES_CORE_MGBA, 0);
+    CHECK(written.quality_hint == -1);
+    CHECK(oracles_settings_slow_hint(&written, 1, 6000, 300) && written.quality_hint == ORACLES_QUALITY_MEDIUM);
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_HIGH);
+    oracles_settings_quality_changed(&written, 1, ORACLES_CORE_MGBA, 0);
+    CHECK(written.quality_hint == -1 && oracles_settings_slow_hint(&written, 1, 6000, 300) && written.quality_hint == ORACLES_QUALITY_HIGH);
+    /* Low: nothing lighter, no suggestion. */
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_LOW);
+    written.quality_hint = -1;
+    CHECK(!oracles_settings_lighter(&written, &lighter, &lighter_view) && !oracles_settings_slow_hint(&written, 1, 6000, 3000) && written.quality_hint == -1);
+    /* Custom: the far view on the Accurate core with the workers on auto suggests the medium view, once; the view
+     * changed by hand, the near view has nothing nearer. */
+    oracles_settings_defaults(&written);
+    snprintf(written.path, sizeof written.path, "%s", path);
+    CHECK(oracles_settings_quality(&written) == ORACLES_QUALITY_CUSTOM);
+    CHECK(oracles_settings_lighter(&written, &lighter, &lighter_view) && lighter == ORACLES_QUALITY_CUSTOM && lighter_view == 1);
+    CHECK(oracles_settings_slow_hint(&written, 1, 6000, 300) && written.quality_hint == ORACLES_QUALITY_CUSTOM);
+    CHECK(!oracles_settings_slow_hint(&written, 1, 6000, 300));
+    CHECK(oracles_settings_store(&written) == 1);
+    oracles_settings_defaults(&read_back);
+    snprintf(read_back.path, sizeof read_back.path, "%s", path);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.quality_hint == ORACLES_QUALITY_CUSTOM);
+    written.view = 1;
+    oracles_settings_quality_changed(&written, 2, oracles_settings_core(&written), 0);
+    CHECK(written.quality_hint == -1);
+    CHECK(oracles_settings_lighter(&written, &lighter, &lighter_view) && lighter_view == 0);
+    written.view = 0;
+    CHECK(!oracles_settings_lighter(&written, &lighter, &lighter_view) && !oracles_settings_slow_hint(&written, 1, 6000, 300));
 
     remove(path);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }

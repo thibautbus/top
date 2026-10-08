@@ -1,5 +1,8 @@
 #include "ui_home_layout.h"
 
+#include "ui_page_layout.h"
+
+#include <stdio.h>
 #include <string.h>
 
 /* The home screen's text styles (font, size, letter spacing, capitals). */
@@ -15,6 +18,7 @@ const OraclesUiTextStyle oracles_ui_hint_key = { ORACLES_UI_FONT_MONO, 19.0f, 0.
 const OraclesUiTextStyle oracles_ui_hint_label = { ORACLES_UI_FONT_SANS, 23.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_version = { ORACLES_UI_FONT_SERIF, 22.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_toast = { ORACLES_UI_FONT_SANS, 24.0f, 0.0f, 0 };
+const OraclesUiTextStyle oracles_ui_slow_path = { ORACLES_UI_FONT_SERIF, 22.0f, 0.14f, 1 };
 /* 4:3's, larger for a 640x480 screen. */
 const OraclesUiTextStyle oracles_ui_tab_4_3 = { ORACLES_UI_FONT_SERIF, 36.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_hero_over_4_3 = { ORACLES_UI_FONT_SERIF, 40.0f, 0.0f, 0 };
@@ -26,14 +30,15 @@ const OraclesUiTextStyle oracles_ui_hint_key_4_3 = { ORACLES_UI_FONT_MONO, 27.0f
 const OraclesUiTextStyle oracles_ui_hint_label_4_3 = { ORACLES_UI_FONT_SANS, 30.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_version_4_3 = { ORACLES_UI_FONT_SERIF, 27.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_toast_4_3 = { ORACLES_UI_FONT_SANS, 30.0f, 0.0f, 0 };
+const OraclesUiTextStyle oracles_ui_slow_path_4_3 = { ORACLES_UI_FONT_SERIF, 27.0f, 0.14f, 1 };
 
 static const OraclesUiHomeStyles styles_16_9 = {
     &oracles_ui_hero_over, &oracles_ui_hero_title, &oracles_ui_hero_state, &oracles_ui_item_note, &oracles_ui_item_label,
-    &oracles_ui_hint_key, &oracles_ui_hint_label, &oracles_ui_version, &oracles_ui_toast, NULL,
+    &oracles_ui_hint_key, &oracles_ui_hint_label, &oracles_ui_version, &oracles_ui_toast, NULL, &oracles_ui_slow_path,
 };
 static const OraclesUiHomeStyles styles_4_3 = {
     &oracles_ui_hero_over_4_3, &oracles_ui_hero_title_4_3, &oracles_ui_hero_state_4_3, &oracles_ui_item_note_4_3, &oracles_ui_item_label_4_3,
-    &oracles_ui_hint_key_4_3, &oracles_ui_hint_label_4_3, &oracles_ui_version_4_3, &oracles_ui_toast_4_3, &oracles_ui_tab_4_3,
+    &oracles_ui_hint_key_4_3, &oracles_ui_hint_label_4_3, &oracles_ui_version_4_3, &oracles_ui_toast_4_3, &oracles_ui_tab_4_3, &oracles_ui_slow_path_4_3,
 };
 
 const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &styles_4_3 : &styles_16_9; }
@@ -51,6 +56,7 @@ typedef struct metrics {
     float hints_bottom, hints_gap, hint_min_height, hint_pad_x, hint_pad_y, hint_gap, key_pad_x, key_pad_y;
     float version_left, version_bottom;
     float toast_bottom, toast_pad_x, toast_pad_y;
+    float slow_left, slow_bottom, slow_max_width, slow_pad_x, slow_pad_y, slow_gap, slow_line;   /* the slow game's toast */
 } metrics;
 
 static const metrics metrics_16_9 = {
@@ -64,6 +70,8 @@ static const metrics metrics_16_9 = {
     .key_pad_x = 9.0f, .key_pad_y = 1.0f,
     .version_left = 24.0f, .version_bottom = 1080.0f - 20.0f,
     .toast_bottom = 1080.0f - 78.0f, .toast_pad_x = 26.0f, .toast_pad_y = 14.0f,
+    .slow_left = 96.0f, .slow_bottom = 1080.0f - 96.0f, .slow_max_width = 760.0f, .slow_pad_x = 26.0f, .slow_pad_y = 16.0f, .slow_gap = 6.0f,
+    .slow_line = 24.0f * 1.35f,
 };
 /* 4:3: every target at least 90 tall; the hero under the tabs, and higher in the pause, which has none. */
 static const metrics metrics_4_3 = {
@@ -77,6 +85,8 @@ static const metrics metrics_4_3 = {
     .key_pad_x = 10.0f, .key_pad_y = 0.0f,
     .version_left = 28.0f, .version_bottom = 1080.0f - 38.0f,
     .toast_bottom = 1080.0f - 120.0f, .toast_pad_x = 28.0f, .toast_pad_y = 16.0f,
+    .slow_left = 64.0f, .slow_bottom = 1080.0f - 120.0f, .slow_max_width = 640.0f, .slow_pad_x = 28.0f, .slow_pad_y = 18.0f, .slow_gap = 6.0f,
+    .slow_line = 30.0f * 1.3f,
 };
 
 static const metrics *metrics_of(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &metrics_4_3 : &metrics_16_9; }
@@ -277,4 +287,42 @@ void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUi
     out->text.x = out->box.x + TOAST_BORDER + m->toast_pad_x;
     out->text.y = out->box.y + TOAST_BORDER + m->toast_pad_y;
     out->text.baseline += out->text.y;
+}
+
+void oracles_ui_layout_slow(OraclesUiLayout layout, const char *text, const char *path, OraclesUiSlowLayout *out)
+{
+    const metrics *m = metrics_of(layout);
+    const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout);
+    memset(out, 0, sizeof *out);
+    /* As wide as its longer text, up to its widest, where the text wraps. */
+    const float frame = 2.0f * (m->slow_pad_x + TOAST_BORDER);
+    float inner = oracles_ui_text_width(st->toast, text);
+    const float path_w = oracles_ui_text_width(st->slow_path, path);
+    if (path_w > inner) inner = path_w;
+    if (inner > m->slow_max_width - frame) inner = m->slow_max_width - frame;
+    OraclesUiWrapped wrapped, pretty;
+    oracles_ui_wrap(st->toast, text, inner, 0.0f, 0.0f, &wrapped);
+    /* text-wrap: pretty, as the browser applies it here: a last line of a single word takes the word before it. */
+    if (wrapped.count >= 2 && !strchr(wrapped.text[wrapped.count - 1], ' ')) {
+        oracles_ui_wrap(st->toast, text, wrapped.lines[wrapped.count - 2].w - 1.0f, 0.0f, 0.0f, &pretty);
+        if (pretty.count == wrapped.count) wrapped = pretty;
+    }
+    const float left = m->slow_left + TOAST_BORDER + m->slow_pad_x;
+    float y = 0.0f;
+    for (unsigned i = 0; i < wrapped.count && i < ORACLES_UI_SLOW_LINES; i++) {
+        snprintf(out->text[i], sizeof out->text[i], "%s", wrapped.text[i]);
+        out->text_lines[i] = line_at(st->toast, out->text[i], left, y, m->slow_line);
+        y += out->text_lines[i].h;
+        out->lines++;
+    }
+    out->path = line_at(st->slow_path, path, left, y + m->slow_gap, 0.0f);
+    out->box.w = inner + frame;
+    out->box.h = out->path.y + out->path.h + 2.0f * (m->slow_pad_y + TOAST_BORDER);
+    out->box.x = m->slow_left;
+    out->box.y = m->slow_bottom - out->box.h;
+    /* The lines laid out from 0, moved under the box's top. */
+    const float top = out->box.y + TOAST_BORDER + m->slow_pad_y;
+    for (unsigned i = 0; i < out->lines; i++) { out->text_lines[i].y += top; out->text_lines[i].baseline += top; }
+    out->path.y += top;
+    out->path.baseline += top;
 }

@@ -11,19 +11,22 @@
  * item hotkeys' mode is set in Controls and kept in settings.txt.
  *
  * Display, for every game: the profile (Faithful or
- * Enhanced), the window (the profile's surface at 2x, 3x, 4x, or fullscreen
+ * Enhanced), the quality (Low to Max: the view, the core and the neighbour
+ * workers set at once; Custom when they make none, which is shown and never
+ * chosen; dimmed and inert in Faithful and from a game), the window (the profile's surface at 2x, 3x, 4x, or fullscreen
  * at the largest whole scale of the display), the view, color correction,
  * continuous transitions (on by default, dimmed in Faithful), then Advanced
- * under the diagram, which opens Display's Advanced rows in place of those:
+ * under the diagram (4:3: beside it, in the header), which opens Display's Advanced rows in place of those:
  * the core, vsync, the neighbour workers.  No camera: Enhanced takes the
  * smooth one.  Left and right change the option of the row, OK takes its
- * next one; on Advanced, OK and right open it, on Core, or from a game on
+ * next one (Quality stops at Low and at Max; from Custom, right takes Low and
+ * left Max); on Advanced, OK and right open it, on Core, or from a game on
  * Vsync.  Where every window comes to one size (a 640x480 screen, a
  * platform always fullscreen), the Window row is dimmed and changes no
  * more, and says so; it keeps the highlight.  The choices apply at the
  * next Play; Back returns from the Advanced rows to Advanced, from Display
  * to Display in the menu.  From a game the core and the workers are the
- * game's, dimmed and inert. */
+ * game's, dimmed and inert, and so is the quality. */
 #ifndef ORACLES_UI_PAGE_NAV_H
 #define ORACLES_UI_PAGE_NAV_H
 
@@ -83,6 +86,7 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row);
 /* Display's rows in the order of the keys: its own, Advanced last; then the Advanced rows, which show in their place. */
 typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PROFILE,
+    ORACLES_DISPLAY_QUALITY,
     ORACLES_DISPLAY_WINDOW,
     ORACLES_DISPLAY_VIEW,
     ORACLES_DISPLAY_COLOUR,
@@ -106,6 +110,24 @@ int oracles_display_screen_4_3(const OraclesHomeNav *nav);
 /* View's choices and the size of each, the view's level in the screen's shape. */
 extern const char *const oracles_display_view_names[3];
 void oracles_display_view_size(const OraclesHomeNav *nav, int view, char *out, size_t capacity);
+/* Quality's choices, Low, Medium, High and Max, then Custom, which is never chosen: the view, the core and the workers
+ * make it when they make no quality.  Each sets View, and Core and Neighbour workers in Advanced, as settings.c's
+ * oracles_settings_apply_quality does: Low near, Medium medium, High far, all three on the Fast core with the workers
+ * on Auto; Max far on the Accurate core with two workers. */
+#define ORACLES_DISPLAY_QUALITIES 4
+#define ORACLES_DISPLAY_QUALITY_CUSTOM 4
+extern const char *const oracles_display_quality_names[ORACLES_DISPLAY_QUALITIES + 1];
+/* The quality the view, the core and the workers make, ORACLES_DISPLAY_QUALITY_CUSTOM when none. */
+int oracles_display_quality(const OraclesHomeNav *nav);
+/* A quality applies in Enhanced chosen, and not from a game, whose core is fixed: the row is dimmed and inert else. */
+int oracles_display_quality_applies(const OraclesHomeNav *nav);
+/* What a choice sets, under its name: "Far · Fast", "By hand" for Custom. */
+void oracles_display_quality_sets(int quality, char *out, size_t capacity);
+/* The quality in effect said in full ("Far view, Fast core, neighbour workers on auto.", "Set by hand: ...") or short
+ * (4:3's help: "Far view, Fast core, workers on auto."), and its note: that a hand change makes it Custom, or that a
+ * quality sets the three again. */
+void oracles_display_quality_text(const OraclesHomeNav *nav, int short_form, char *out, size_t capacity);
+const char *oracles_display_quality_note(const OraclesHomeNav *nav, int short_form);
 /* The profile the game shown plays in: the one chosen, or Faithful for an unrecognised ROM (the chosen one for a game
  * without a usable ROM, a fan game's included). */
 OraclesProfile oracles_display_played_profile(const OraclesHomeNav *nav);
@@ -120,11 +142,14 @@ int oracles_display_fit(const OraclesHomeNav *nav);
 int oracles_display_one_size(const OraclesHomeNav *nav);
 extern const char oracles_display_one_size_note[];   /* "This screen shows the game at one size only." */
 /* The line under the windows: oracles_display_one_size_note at one size, else that a windowed scale chosen above the
- * fit is reduced to it, "Reduced to 3x to fit this screen"; empty when it fits. */
+ * fit is reduced to it, "Reduced to 3x to fit this screen."; empty when it fits. */
 void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capacity);
 /* The page's texts: a window's name and size, the note under the windows, the diagram's line, the profile's note. */
 void oracles_display_window_texts(const OraclesHomeNav *nav, int window, char *name, char *size, size_t capacity);
 extern const char oracles_display_window_note[];
+/* The characters of the longest size a choice of Window shows over every surface of the screen's shape, Faithful's
+ * and each view's: its frame keeps that width whatever the profile and the view. */
+int oracles_display_window_size_length(const OraclesHomeNav *nav, int window);
 /* The diagram: the window the game will have, reduced to fit when it must, on the screen. */
 void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h, float *w, float *h, char *label, size_t capacity);
 /* The chosen profile's note, or that the game shown plays in Faithful. */
@@ -133,18 +158,20 @@ extern const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS];
 extern const char *const oracles_display_colour_choices[2];
 extern const char *const oracles_display_vsync_choices[3];
 extern const char *const oracles_display_core_choices[2];   /* "Accurate (SameBoy)", "Fast (mGBA)": an OraclesCoreKind */
+extern const char *const oracles_display_core_names[2];     /* "Accurate", "Fast" */
 /* The workers' choices: "Auto · 2" (the count Auto takes), "1", "2". */
 void oracles_display_workers_choice(const OraclesHomeNav *nav, int choice, char *out, size_t capacity);
 /* Display's section name: "Display", or "Display › Advanced" while the Advanced rows show. */
 const char *oracles_display_section(const OraclesHomeNav *nav);
-/* The core and the workers are fixed for a running game: from it their rows are dimmed and inert. */
+/* The core and the workers are fixed for a running game, and so the quality, which sets them: from it their rows are
+ * dimmed and inert. */
 int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row);
-/* A row's explanation; Advanced's says what it opens (4:3 says it under the rows). */
+/* A row's explanation beside its choices (16:9; 4:3 says shorter ones under the rows); Advanced's says what it opens. */
 const char *oracles_display_explanation(unsigned row);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);
-/* A click on a row, or on one of its options (a profile, a window, Off/On, Auto/On/Off): `option` -1 for the row itself;
- * one on Advanced opens it. */
+/* A click on a row, or on one of its options (a profile, a quality, a window, Off/On, Auto/On/Off): `option` -1 for the
+ * row itself; one on Advanced opens it. */
 OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int option);
 
 /* ---- Mods ------------------------------------------------------------------------

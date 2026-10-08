@@ -228,8 +228,34 @@ unsigned oracles_home_hints(const OraclesHomeNav *nav, OraclesHomeHint hints[ORA
     return 4;
 }
 
+int oracles_home_slow_text(const OraclesHomeNav *nav, char *text, size_t capacity, const char **path)
+{
+    const int quality = oracles_display_quality(nav), view = nav->display.view;
+    if (quality == ORACLES_DISPLAY_QUALITY_CUSTOM) {
+        if (view < 1 || view > 2) return 0;
+        snprintf(text, capacity, "The game ran slowly in the %s view: the %s view may play smoother.", oracles_display_view_names[view],
+                 oracles_display_view_names[view - 1]);
+        *path = "Display \xe2\x80\xba View";
+        return 1;
+    }
+    if (quality < 1) return 0;
+    snprintf(text, capacity, "The game ran slowly at %s: %s may play smoother.", oracles_display_quality_names[quality],
+             oracles_display_quality_names[quality - 1]);
+    *path = "Display \xe2\x80\xba Quality";
+    return 1;
+}
+
+void oracles_home_slow_open(OraclesHomeNav *nav)
+{
+    nav->slow = 0;
+    nav->screen = ORACLES_SCREEN_DISPLAY;
+    nav->advanced = 0;
+    nav->row = oracles_display_quality(nav) == ORACLES_DISPLAY_QUALITY_CUSTOM ? ORACLES_DISPLAY_VIEW : ORACLES_DISPLAY_QUALITY;
+}
+
 void oracles_home_select(OraclesHomeNav *nav, OraclesHomeEntry entry)
 {
+    nav->slow = 0;
     if (nav->entry == entry) return;
     nav->entry = entry;
     nav->fan_pick = ORACLES_HOME_HERO_FAN;
@@ -266,6 +292,7 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
 OraclesHomeCommand oracles_home_click(OraclesHomeNav *nav, unsigned item)
 {
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
+    nav->slow = 0;
     if (item >= oracles_home_items(nav, items)) return ORACLES_HOME_STAY;
     nav->focus = item;
     return activate(nav, &items[item]);
@@ -281,6 +308,8 @@ OraclesHomeCommand oracles_home_start_command(int game)
 
 OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction action)
 {
+    /* The slow game's toast goes with the first input; it changes no setting. */
+    nav->slow = 0;
     if (nav->screen == ORACLES_SCREEN_GAME) return oracles_page_act(nav, action);
     if (nav->screen == ORACLES_SCREEN_DISPLAY) return oracles_display_act(nav, action);
     if (nav->screen == ORACLES_SCREEN_CONTROLS) return oracles_controls_act(nav, action);

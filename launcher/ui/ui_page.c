@@ -35,6 +35,8 @@
 #define DIAGRAM_WINDOW_OPACITY 0.07f
 #define DIAGRAM_LABEL 0xa19eaau
 #define HELP 0xc9c6cfu
+#define ADVANCED_BORDER_OPACITY 0.14f   /* 4:3's Advanced button, framed */
+#define CUSTOM_OPACITY 0.6f             /* Quality's Custom, shown and never chosen */
 
 #define MODS_PATH 0xc9c6cfu
 #define MODS_EMPTY 0xd6d3dcu
@@ -231,21 +233,23 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
     oracles_ui_fill_rect(draw, w->x, w->y, w->w, w->h, oracles_ui_rgba(0xffffffu, DIAGRAM_WINDOW_OPACITY));
     oracles_ui_stroke_round_rect(draw, w->x, w->y, w->w, w->h, 0.0f, 2.0f, accent);
     text(draw, st->diagram_label, &l.diagram_label, t.diagram_label, oracles_ui_rgb(DIAGRAM_LABEL));
-    /* Advanced, in the accent while highlighted, its arrow with it: under the diagram (16:9), or the last row (4:3)
-     * with what it opens. */
+    /* Advanced, in the accent while highlighted, its arrow with it: under the diagram (16:9), or beside it (4:3),
+     * framed, the frame in the accent too. */
     if (!t.advanced) {
-        const OraclesUiColor color = row == ORACLES_DISPLAY_ADVANCED ? accent : oracles_ui_rgb(LABEL);
-        const OraclesUiBox *a = &l.advanced_arrow;
+        const int on = row == ORACLES_DISPLAY_ADVANCED;
+        const OraclesUiColor color = on ? accent : oracles_ui_rgb(LABEL);
+        const OraclesUiBox *a = &l.advanced_arrow, *b = &l.rows[ORACLES_DISPLAY_ADVANCED];
         const float arrow[6] = { a->x, a->y, a->x + a->w, a->y + a->h * 0.5f, a->x, a->y + a->h };
-        highlight(draw, lk, &l.rows[ORACLES_DISPLAY_ADVANCED], row == ORACLES_DISPLAY_ADVANCED);
+        highlight(draw, lk, b, on);
+        if (nav->layout == ORACLES_UI_LAYOUT_4_3)
+            oracles_ui_stroke_round_rect(draw, b->x, b->y, b->w, b->h, lk->row_radius, lk->frame_width, on ? accent : oracles_ui_rgba(0xffffffu, ADVANCED_BORDER_OPACITY));
         text(draw, st->row_label, &l.advanced_label, oracles_display_labels[ORACLES_DISPLAY_ADVANCED], color);
-        text(draw, st->row_text, &l.advanced_text, oracles_ui_advanced_rows, oracles_ui_rgb(PATH));
         oracles_ui_fill_polygon(draw, arrow, 3, color);
     }
 
     panel(draw, &l.panel);
-    /* 4:3: the highlighted row's explanation, under the rows. */
-    wrapped(draw, st->help, &l.help, oracles_ui_rgb(HELP));
+    /* 4:3: the highlighted row's explanation and its note, under the rows. */
+    text(draw, st->help, &l.help, t.help, oracles_ui_rgb(HELP));
     text(draw, st->help_note, &l.help_note, t.help_note, oracles_ui_rgb(NOTE_ITALIC));
     if (t.advanced) {
         /* The core and the workers are the running game's: from it their rows are dimmed, label and all. */
@@ -272,11 +276,13 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         return;
     }
     /* View and the transitions carry the Enhanced view: in Faithful their rows are dimmed, label and all; Window at
-     * one size too. */
+     * one size too, and Quality in Faithful and from a game. */
     const float applied = oracles_display_transitions_apply(nav) ? 1.0f : ROW_NOT_APPLIED;
     const float window = t.window_one ? ROW_NOT_APPLIED : 1.0f;
+    const float quality = oracles_display_quality_applies(nav) ? 1.0f : ROW_NOT_APPLIED;
     for (unsigned r = 0; r < ORACLES_DISPLAY_ADVANCED; r++) {
-        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS || r == ORACLES_DISPLAY_VIEW ? applied : r == ORACLES_DISPLAY_WINDOW ? window : 1.0f;
+        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS || r == ORACLES_DISPLAY_VIEW ? applied : r == ORACLES_DISPLAY_WINDOW ? window
+                            : r == ORACLES_DISPLAY_QUALITY ? quality : 1.0f;
         highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
         wrapped(draw, st->row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
     }
@@ -284,11 +290,28 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         option(draw, st, lk, &l.profiles[p], 1, oracles_profile_names[p], t.profile_sizes[p], p == (int)nav->display.profile,
                row == ORACLES_DISPLAY_PROFILE, accent, OPTION_OFF, 1.0f);
     text(draw, st->row_text, &l.profile_note, t.profile_note, oracles_ui_rgb(NOTE));
+    /* The qualities, Custom only while it is in effect, dashed and fainter; the one in effect and its note (16:9). */
+    const int in_effect = oracles_display_quality(nav);
+    for (int q = 0; q <= ORACLES_DISPLAY_QUALITIES; q++) {
+        const OraclesUiOptionLayout *o = &l.qualities[q];
+        const int on = q == in_effect, focused = row == ORACLES_DISPLAY_QUALITY;
+        if (q == ORACLES_DISPLAY_QUALITY_CUSTOM && !on) continue;
+        const float opacity = quality * (q == ORACLES_DISPLAY_QUALITY_CUSTOM ? CUSTOM_OPACITY : 1.0f);
+        const OraclesUiColor frame = on ? (focused ? accent : oracles_ui_rgba(0xffffffu, FRAME_ON_OPACITY)) : oracles_ui_rgba(0xffffffu, FRAME_OFF_OPACITY);
+        if (q == ORACLES_DISPLAY_QUALITY_CUSTOM)
+            oracles_ui_stroke_dashed_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, lk->choice_radius, lk->frame_width, oracles_ui_fade(frame, opacity));
+        else oracles_ui_stroke_round_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, lk->choice_radius, lk->frame_width, oracles_ui_fade(frame, opacity));
+        const OraclesUiColor color = on ? (focused ? accent : oracles_ui_rgb(TEXT)) : oracles_ui_rgb(CHOICE_OFF);
+        text(draw, st->choice, &o->name, oracles_display_quality_names[q], oracles_ui_fade(color, opacity));
+        text(draw, st->quality_sets, &o->size, t.quality_sets[q], oracles_ui_rgba(PATH, opacity));
+    }
+    text(draw, st->row_text, &l.quality_text, t.quality_text, oracles_ui_rgba(NOTE, quality));
+    text(draw, st->row_note, &l.quality_note, t.quality_note, oracles_ui_rgba(NOTE_ITALIC, quality));
     for (int i = 0; i < 4; i++)
         option(draw, st, lk, &l.windows[i], 1, t.window_names[i], t.window_sizes[i], i == nav->display.window,
                row == ORACLES_DISPLAY_WINDOW, accent, OPTION_OFF, window);
     text(draw, st->row_text, &l.window_note, t.window_note, oracles_ui_rgba(NOTE, window));
-    text(draw, st->row_text, &l.window_reduced, t.window_reduced, oracles_ui_rgba(NOTE, window));
+    text(draw, st->row_note, &l.window_reduced, t.window_fit, oracles_ui_rgba(NOTE_ITALIC, window));
     text(draw, st->row_text, &l.window_one, oracles_display_one_size_note, oracles_ui_rgba(NOTE, window));
     wrapped(draw, st->row_text, &l.view_explanation, oracles_ui_rgba(NOTE, applied));
     for (int v = 0; v < 3; v++)
@@ -320,6 +343,8 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         return -1;
     }
     for (int p = 0; p < ORACLES_PROFILES; p++) if (inside(&l.profiles[p].box, x, y)) { *option = p; return ORACLES_DISPLAY_PROFILE; }
+    /* Custom's place is the row's: it is never chosen. */
+    for (int q = 0; q < ORACLES_DISPLAY_QUALITIES; q++) if (inside(&l.qualities[q].box, x, y)) { *option = q; return ORACLES_DISPLAY_QUALITY; }
     for (int i = 0; i < 4; i++) if (inside(&l.windows[i].box, x, y)) { *option = i; return ORACLES_DISPLAY_WINDOW; }
     for (int v = 0; v < 3; v++) if (inside(&l.views[v].box, x, y)) { *option = v; return ORACLES_DISPLAY_VIEW; }
     for (int c = 0; c < 2; c++) if (inside(&l.transitions[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_TRANSITIONS; }

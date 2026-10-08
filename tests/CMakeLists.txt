@@ -255,6 +255,17 @@ if(BUILD_TESTING)
         add_test(NAME oracles-launcher-screenshot-controls-4-3
             COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_controls_4_3.ppm 640 480 ${ORACLES_LAYOUT_REFERENCE} 10j "Item hotkeys title")
         set_tests_properties(oracles-launcher-screenshot-controls-4-3 PROPERTIES FIXTURES_REQUIRED launcher_controls_4_3)
+        # The home screen at a handheld's 640x480 back from a game that ran slowly at High (core=mgba, far and auto by
+        # default): its toast at the bottom left (the layout reference's frame 11h).
+        set(slow_home ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-slow)
+        file(MAKE_DIRECTORY ${slow_home})
+        file(WRITE ${slow_home}/settings.txt "core=mgba\n")
+        add_test(NAME oracles-launcher-screenshot-slow-draw
+            COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_slow.ppm --launcher-size 640x480 --launcher-input slow)
+        set_tests_properties(oracles-launcher-screenshot-slow-draw PROPERTIES FIXTURES_SETUP launcher_slow ENVIRONMENT "ORACLES_SETTINGS_DIR=${slow_home}")
+        add_test(NAME oracles-launcher-screenshot-slow
+            COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_slow.ppm 640 480 ${ORACLES_LAYOUT_REFERENCE} 11h "toast text")
+        set_tests_properties(oracles-launcher-screenshot-slow PROPERTIES FIXTURES_REQUIRED launcher_slow)
         # Mods at the smallest window: a settings directory of the build whose mods folder holds the two example mods,
         # both active, and a third refused for its missing main.lua (the layout reference's frame 8c).
         # A copy of the sources without mods/ skips it.

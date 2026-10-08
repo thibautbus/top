@@ -266,6 +266,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     oracles_settings *prefs = games->settings;
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) prefs->item_hotkeys[g] = (OraclesHotkeysMode)nav->games[g].hotkeys;
     store_controls(&nav->controls, prefs);
+    const int view = prefs->view, core = oracles_settings_core(prefs), ghosts = prefs->ghosts;
     prefs->profile = nav->display.profile;
     prefs->transitions = nav->display.transitions;
     prefs->view = nav->display.view;
@@ -274,6 +275,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     if (!nav->in_game && (prefs->core >= 0 || nav->display.core != oracles_settings_core(prefs))) prefs->core = nav->display.core;
     /* So are the workers: a game's are perhaps --ghosts', for its run alone. */
     if (!nav->in_game) prefs->ghosts = nav->display.workers;
+    oracles_settings_quality_changed(prefs, view, core, ghosts);
     static const char *const vsync_names[3] = { "auto", "on", "off" };
     prefs->window_scale = nav->display.window < 3 ? nav->display.window + 2 : 0;
     prefs->colour_correction = nav->display.colour;
@@ -476,7 +478,7 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
     }
     const OraclesSettingsGame g = info.game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS;
     offer(games, g, path);
-    snprintf(message, capacity, "%s ROM set%s", oracles_game_name(info.game), oracles_rom_is_original(&info) ? "" : ": unrecognised, Faithful only");
+    snprintf(message, capacity, "%s ROM set%s", oracles_game_name(info.game), oracles_rom_is_original(&info) ? "" : ": unrecognized, Faithful only");
     return g == ORACLES_SETTINGS_AGES ? ORACLES_HOME_AGES : ORACLES_HOME_SEASONS;
 }
 
@@ -495,7 +497,7 @@ static unsigned fitting_scale(struct SDL_Window *window, unsigned wanted, Oracle
 }
 
 static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *window, struct SDL_Renderer *renderer,
-                 OraclesUiDraw *draw, char *message, size_t capacity)
+                 OraclesUiDraw *draw, char *message, size_t capacity, int *slow)
 {
     OraclesHomeGames *games = opaque;
     /* A fan game plays from its Oracle's ROM and its patch, the image built by the session. */
@@ -523,7 +525,7 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     const OraclesProfile chosen = command_line_view ? ORACLES_PROFILE_ENHANCED : games->settings->profile;
     const int effective = oracles_page_profile(&state, chosen);
     const OraclesProfile profile = effective < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)effective;
-    if (profile != chosen) fprintf(stderr, "oracles: an unrecognised ROM plays in the Faithful profile, not %s\n", oracles_settings_profile_name(chosen));
+    if (profile != chosen) fprintf(stderr, "oracles: an unrecognized ROM plays in the Faithful profile, not %s\n", oracles_settings_profile_name(chosen));
     static const char *const hotkey_names[3] = { "off", "use", "equip" };
     /* Display's Continuous transitions take Link swimming too; --continuous-transitions alone is
      * the command line's, for the routes recorded with it, and so is --continuous-swim. */
@@ -580,6 +582,9 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     else if (result.hotkeys_dropped && result.route_written) snprintf(message, capacity, "%s Route written to %s", dropped, o.record_path);
     else if (result.hotkeys_dropped) snprintf(message, capacity, "%s", dropped);
     else if (result.route_written) snprintf(message, capacity, "Route written to %s", o.record_path);
+    /* A game that ran slowly: the home screen suggests something lighter, once for the quality it ran at. */
+    *slow = !result.error[0] && oracles_settings_slow_hint(games->settings, result.enhanced, result.frames_played, result.frames_late);
+    if (*slow) oracles_settings_store(games->settings);
     return result.window_closed;
 }
 
