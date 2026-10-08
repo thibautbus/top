@@ -151,6 +151,8 @@ VARIABLES = [
     # Ghost: over a hole (bit 7) or on a conveyor (bits 0-6), which decide a transition at an edge without input.
     ("hole_or_conveyor", "wcc92"),
     ("screen_offset_x", "wScreenOffsetX"), ("screen_offset_y", "wScreenOffsetY"),
+    # The screen shake, added to the scroll registers past the camera (updateScreenShake): the band shakes with it.
+    ("screen_shake_counter_y", "wScreenShakeCounterY"), ("screen_shake_counter_x", "wScreenShakeCounterX"),
     ("camera_x", "hCameraX"), ("camera_y", "hCameraY"),
     ("keys_pressed", "wKeysPressed"), ("keys_just_pressed", "wKeysJustPressed"),
     ("frame_counter", "wFrameCounter"),

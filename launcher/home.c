@@ -16,6 +16,11 @@
 
 /* While something moves, a frame at most this often if the display does not pace the presentation. */
 #define FRAME_MS 16.0
+/* The home screen paces its own frames (FRAME_MS): vsync only spares a desktop tearing.  On Android the compositor
+ * shows whole frames anyway, and a presentation that waits on a display the window has lost may not return, the
+ * likely cause of the freeze an Anbernic RG DS (two screens) showed back from a game: none there. */
+#define HOME_VSYNC (!oracles_sdl_fullscreen_only())
+#define WATCH_MS 15000.0   /* after a game, the seconds the loop says what it did */
 #ifdef __ANDROID__
 /* Android shows a window's surface some frames after it is ready: a single frame drawn then, at the start or after a
  * window event (the return from the background), can be lost and leave the screen black until an input. */
@@ -40,6 +45,10 @@ typedef struct home_app {
     int dialog_open;         /* the file dialog has not answered yet */
     int quit_after_dialog;   /* the window was closed meanwhile: zenity's dialog is not modal */
     int inputs_reported;     /* after a game, the inputs said on the standard error so far (the first few) */
+    /* After a game, a line a second on the standard error until watch_until_ms: what the loop did, so that a report
+     * that stops shows when the loop stopped, and one that goes on shows a loop alive behind a frozen screen. */
+    double watch_since_ms, watch_until_ms, watch_next_ms, watch_present_max_ms;
+    unsigned watch_events, watch_inputs, watch_window, watch_frames, watch_presented;
     double presented_ms;
 } home_app;
 
@@ -87,7 +96,7 @@ static void report_window(home_app *app, const char *when)
  * nothing. */
 static void restore_window(home_app *app)
 {
-    if (oracles_sdl_fullscreen_only()) { SDL_SetRenderVSync(app->renderer, 1); return; }
+    if (oracles_sdl_fullscreen_only()) { SDL_SetRenderVSync(app->renderer, HOME_VSYNC); return; }
     const float scale = oracles_sdl_point_scale(app->window);
     SDL_SetWindowFullscreen(app->window, app->fullscreen != 0);
     SDL_SyncWindow(app->window);
@@ -100,7 +109,7 @@ static void restore_window(home_app *app)
         SDL_SyncWindow(app->window);
         oracles_sdl_place_window(app->window, x + w / 2, y + h / 2);
     }
-    SDL_SetRenderVSync(app->renderer, 1);
+    SDL_SetRenderVSync(app->renderer, HOME_VSYNC);
 }
 
 static void start(home_app *app, OraclesHomeCommand game)
@@ -120,6 +129,12 @@ static void start(home_app *app, OraclesHomeCommand game)
     SDL_FlushEvents(SDL_EVENT_KEY_DOWN, SDL_EVENT_GAMEPAD_REMAPPED);
     report_window(app, "back from the game");
     app->inputs_reported = 0;
+    app->watch_presented = 0;
+    app->watch_since_ms = now_ms();
+    app->watch_until_ms = app->watch_since_ms + WATCH_MS;
+    app->watch_next_ms = app->watch_since_ms + 1000.0;
+    app->watch_events = app->watch_inputs = app->watch_window = app->watch_frames = 0;
+    app->watch_present_max_ms = 0.0;
     refresh(app);
     changed(app);
     if (message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
@@ -269,6 +284,14 @@ static void handle(home_app *app, const SDL_Event *e)
         fprintf(stderr, "oracles: home screen input: %s %d\n", e->type == SDL_EVENT_KEY_DOWN ? "key" : e->type == SDL_EVENT_FINGER_DOWN ? "finger" : "controller button",
                 e->type == SDL_EVENT_KEY_DOWN ? (int)e->key.key : e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN ? (int)e->gbutton.button : 0);
     }
+    if (app->watch_until_ms > 0.0) {
+        app->watch_events++;
+        if (e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e->type == SDL_EVENT_FINGER_DOWN) app->watch_inputs++;
+        if (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST) app->watch_window++;
+        /* The application's life (background, foreground, low memory) and any window event, by its number. */
+        if ((e->type >= SDL_EVENT_TERMINATING && e->type <= SDL_EVENT_DID_ENTER_FOREGROUND) || (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST))
+            fprintf(stderr, "oracles: home screen event 0x%x, %.0f ms after the game\n", (unsigned)e->type, now_ms() - app->watch_since_ms);
+    }
     if (e->type == SDL_EVENT_WINDOW_FOCUS_GAINED || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED
         || e->type == SDL_EVENT_WINDOW_HIDDEN || e->type == SDL_EVENT_WINDOW_SHOWN)
         fprintf(stderr, "oracles: home screen window: %s\n", e->type == SDL_EVENT_WINDOW_FOCUS_GAINED ? "focus gained" : e->type == SDL_EVENT_WINDOW_FOCUS_LOST ? "focus lost"
@@ -317,7 +340,18 @@ static int render(home_app *app, double now)
     if (!oracles_ui_draw_begin(app->draw, w, h, now)) return 0;
     app->moving = oracles_ui_home_draw(app->draw, &app->view, &app->nav, now);
     oracles_ui_draw_end(app->draw);
+    /* After a game, each presentation of the watched seconds said before and after: a session report that stops
+     * between the two is a presentation that never returned. */
+    const int watched = app->watch_until_ms > 0.0;
+    if (watched) fprintf(stderr, "oracles: home screen: presenting frame %u after the game\n", ++app->watch_presented);
+    const double present_started = now_ms();
     SDL_RenderPresent(app->renderer);
+    if (watched) {
+        const double took = now_ms() - present_started;
+        app->watch_frames++;
+        if (took > app->watch_present_max_ms) app->watch_present_max_ms = took;
+        fprintf(stderr, "oracles: home screen: frame %u presented in %.1f ms\n", app->watch_presented, took);
+    }
     app->presented_ms = now;
     app->dirty = 0;
     if (app->redraws > 0) app->redraws--;
@@ -333,6 +367,7 @@ static int wait_ms(const home_app *app, double now)
     if (app->moving) { const double left = FRAME_MS - (now - app->presented_ms); return left > 0.0 ? (int)left : 0; }
     if (app->idle_work) return 0;
     double due = oracles_ui_home_due_ms(&app->view);
+    if (app->watch_until_ms > 0.0 && (due < 0.0 || app->watch_next_ms < due)) due = app->watch_next_ms;
     const double settle = oracles_ui_draw_due_ms(app->draw);
     if (settle >= 0.0 && (due < 0.0 || settle < due)) due = settle;
     if (due < 0.0) return -1;
@@ -356,7 +391,7 @@ static int open_window(home_app *app)
                                             SDL_WINDOW_RESIZABLE | oracles_sdl_window_flags() | (app->fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (!app->window) return 0;
     SDL_SetWindowMinimumSize(app->window, to_window(ORACLES_HOME_MIN_WIDTH, scale), to_window(ORACLES_HOME_MIN_HEIGHT, scale));
-    app->renderer = oracles_sdl_create_renderer(app->window, 1);
+    app->renderer = oracles_sdl_create_renderer(app->window, HOME_VSYNC);
     if (!app->renderer) return 0;
     oracles_sdl_pads_open(&app->pads);
     app->draw = oracles_ui_draw_create(app->renderer);
@@ -393,6 +428,16 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
             }
             if (!app.running) break;
             const double now = now_ms();
+            if (app.watch_until_ms > 0.0 && now >= app.watch_next_ms) {
+                const SDL_WindowFlags flags = SDL_GetWindowFlags(app.window);
+                fprintf(stderr, "oracles: home screen, %.0f s after the game: %u events (%u inputs, %u of the window), %u frames presented (at most %.1f ms), input focus %s%s\n",
+                        (now - app.watch_since_ms) / 1000.0, app.watch_events, app.watch_inputs, app.watch_window, app.watch_frames, app.watch_present_max_ms,
+                        (flags & SDL_WINDOW_INPUT_FOCUS) ? "yes" : "no", (flags & SDL_WINDOW_HIDDEN) ? ", hidden" : "");
+                app.watch_events = app.watch_inputs = app.watch_window = app.watch_frames = 0;
+                app.watch_present_max_ms = 0.0;
+                app.watch_next_ms += 1000.0;
+                if (app.watch_next_ms > app.watch_until_ms) app.watch_until_ms = 0.0;
+            }
             const double toast = oracles_ui_home_due_ms(&app.view), settle = oracles_ui_draw_due_ms(app.draw);
             if (app.dirty || ((app.moving || app.redraws > 0) && now - app.presented_ms >= FRAME_MS) || (toast >= 0.0 && now >= toast) || (settle >= 0.0 && now >= settle)) {
                 if (!render(&app, now)) { fprintf(stderr, "oracles: the launcher cannot draw: %s\n", SDL_GetError()); status = 1; break; }

@@ -851,6 +851,8 @@ void oracles_sdl_backend_hold(const oracles_host_backend *backend, int held)
     if (!held) state->hold_started_ns = 0;
     if (!held) state->suspended = 0;   /* a suspension during the pause: the player comes back to the game, not to a pause */
     if (held) { oracles_touch_release(&state->touch.touch); state->touch_buttons = 0; }   /* the pause's menu takes the fingers */
+    /* The pause's menu had the plugs and unplugs, and left none in the queue: those unplugged are let go, those plugged in are taken. */
+    if (!held) oracles_sdl_pads_open(&state->pads);
 }
 
 void oracles_sdl_backend_rebind(const oracles_host_backend *backend, const oracles_sdl_options *options)

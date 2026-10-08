@@ -580,6 +580,11 @@ static void blank_captures(void)
     SET_OFFSET(0);
     live[0] = 0xff; live[1] = 0x7f; live[2] = 0xff; live[3] = 0x7f;       /* a palette set white by other code (Seasons' outdoors): outvoted */
     CHECK(!oracles_enhanced_capture_blank(live, base, 0, NULL, 0));
+    for (unsigned c = 0; c < 4u; c++) { live[c * 2u] = 0xff; live[c * 2u + 1u] = 0x7f; }   /* the whole palette white, the others the room's: still outvoted */
+    CHECK(!oracles_enhanced_capture_blank(live, base, 0, NULL, 0));
+    memset(live, 0, sizeof live);   /* a fade to black that puts one palette back, in the base too (the Maku Tree's remote voice): a full fade */
+    memcpy(live + 8u, base + 8u, 8u);
+    CHECK(oracles_enhanced_capture_blank(live, base, 0, NULL, 0));
     SET_OFFSET(-16);   /* a room the game darkens (checkDarkenRoom): -16 kept on it, its own look */
     CHECK(!oracles_enhanced_capture_blank(live, base, -16, NULL, 0));
     CHECK(oracles_enhanced_capture_blank(live, base, 0, NULL, 0));        /* the same palettes on a room kept at 0: a fade caught */

@@ -160,6 +160,7 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
     e->settled_size = e->settled_state ? oracles_ghost_settled_state(v->ghost, e->settled_state, v->state_size) : 0;
     e->valid = 1; e->failed = 0; e->live_valid = 0; e->refresh = 0; e->refresh_season = 0; e->refresh_failures = 0; e->rerun = 0;
     e->accepted_at = v->frame;
+    e->render_wanted_at = 0;
     v->completed++;
 }
 

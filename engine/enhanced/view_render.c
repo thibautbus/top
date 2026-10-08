@@ -1,6 +1,8 @@
 #include "view_internal.h"
 
 #define ANIMATION_RENDERS_PER_FRAME 3u   /* neighbours rendered again for their own tiles alone, per frame: the others wait a frame */
+#define RENDER_WAIT_LIMIT 4u             /* frames such a render waits at most for the budget */
+#define FULL_FADE_PALETTES 6u            /* palettes all black (or all white), the others unchanged: a full fade */
 
 #define TILES_SETTLING_FRAMES 8u   /* frames of play after a load where the vblank queue still writes the room's own graphics */
 
@@ -251,7 +253,8 @@ void ev_advance_neighbour_animations(OraclesEnhancedView *v)
 }
 
 /* The live room's animation handed to its own entry as it becomes a
- * neighbour: the game's state, and the live tiles its animation writes. */
+ * neighbour: the game's state, and the live tiles its animation writes,
+ * which are then its own and no longer the ghost's. */
 void ev_hand_live_animation(OraclesEnhancedView *v, entry *e)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
@@ -262,6 +265,7 @@ void ev_hand_live_animation(OraclesEnhancedView *v, entry *e)
     for (unsigned k = 0; k < e->image_count; k++) {
         const unsigned bank = e->image_tiles[k] / 384u, tile = e->image_tiles[k] % 384u;
         memcpy(e->tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, (bank ? vram1 : vram0) + tile * 16u, 16u);
+        e->own_animated[e->image_tiles[k] >> 3] |= (uint8_t)(1u << (e->image_tiles[k] & 7u));
     }
     e->animation_version++;
 }
@@ -275,6 +279,24 @@ void ev_hand_live_animation(OraclesEnhancedView *v, entry *e)
  * outvoted); channels all saturated are a full fade. */
 int ev_displayed_fade(const uint8_t live[64], const uint8_t base[64])
 {
+    /* A full fade that spares a palette or two: the Maku Tree's remote voice
+     * (remoteMakuCutscene) fades the screen to black, then puts the text
+     * box's palette back, in the base palettes too; its unchanged channels
+     * would outvote the black ones, which do not vote. */
+    unsigned black_palettes = 0, white_palettes = 0, same_palettes = 0;
+    for (unsigned p = 0; p < 8u; p++) {
+        if (memcmp(live + p * 8u, base + p * 8u, 8u) == 0) { same_palettes++; continue; }
+        unsigned black_colours = 0, white_colours = 0;
+        for (unsigned c = 0; c < 4u; c++) {
+            const unsigned colour = (unsigned)(live[p * 8u + c * 2u] | (live[p * 8u + c * 2u + 1u] << 8)) & 0x7fffu;
+            black_colours += colour == 0u;
+            white_colours += colour == 0x7fffu;
+        }
+        black_palettes += black_colours == 4u;
+        white_palettes += white_colours == 4u;
+    }
+    if (black_palettes >= FULL_FADE_PALETTES && black_palettes + same_palettes == 8u) return -32;
+    if (white_palettes >= FULL_FADE_PALETTES && white_palettes + same_palettes == 8u) return 31;
     unsigned votes[63] = { 0 }, white = 0, black = 0;
     for (unsigned i = 0; i < 32u; i++) {
         const unsigned a = (unsigned)(live[i * 2u] | (live[i * 2u + 1u] << 8)), b = (unsigned)(base[i * 2u] | (base[i * 2u + 1u] << 8));
@@ -376,6 +398,9 @@ static int neighbour_oam(OraclesEnhancedView *v, const entry *e, uint8_t out[160
 {
     memset(out, 0, 160);
     if (!v->neighbour_objects || !e->tag_count) return 0;
+    /* A full fade hides the rooms with their objects: the game shows only the
+     * sprites it keeps (Link, while the Maku Tree speaks from afar). */
+    if (v->fade_effective <= -32 || v->fade_effective >= 31) return 0;
     /* The two frames captured in turn, one a frame: an object the game draws
      * one frame in two (a fountain's spurt) flickers in the neighbour as it
      * does in the room, instead of being there or not depending on the frame
@@ -432,9 +457,9 @@ static uint64_t render_inputs(const OraclesEnhancedView *v, const entry *e, int 
         uint8_t live = 0;
         if (in_step) live = (uint8_t)(animated[i] & e->used_tiles[i]);
         /* Its own tiles that may differ from its delivery: its animation's,
-         * but those the live ones replace; all of them while it draws objects,
-         * whose tiles its map need not use. */
-        const uint8_t own = (uint8_t)(e->own_animated[i] & (draw_objects ? 0xffu : e->used_tiles[i]) & ~live);
+         * a live tile not one of its images leaving its own; all of them
+         * while it draws objects, whose tiles its map need not use. */
+        const uint8_t own = (uint8_t)(e->own_animated[i] & (draw_objects ? 0xffu : e->used_tiles[i]));
         if (!live && !own) continue;
         const uint8_t place[3] = { (uint8_t)i, live, own };
         key = oracles_guest_hash(place, sizeof place, key);
@@ -444,13 +469,10 @@ static uint64_t render_inputs(const OraclesEnhancedView *v, const entry *e, int 
             if (own & (1u << b)) key = oracles_guest_hash(e->tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, 16u, key);
         }
     }
-    for (unsigned k = 0; k < e->image_count; k++) {
-        /* An image's tile, written by the hand-over of the live animation, and
-         * the live one it may take instead. */
+    for (unsigned k = 0; k < e->image_count && !in_step; k++) {
+        /* The live tile an image's tile may take instead of its own. */
         const unsigned bit = e->image_tiles[k], bank = bit / 384u, tile = bit % 384u;
-        const int used = (e->used_tiles[bit >> 3] & (1u << (bit & 7u))) != 0, replaced = in_step && used && (animated[bit >> 3] & (1u << (bit & 7u)));
-        if ((used || draw_objects) && !replaced) key = oracles_guest_hash(e->tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, 16u, key);
-        if (!in_step && used) key = oracles_guest_hash((bank ? vram1 : vram0) + tile * 16u, 16u, key);
+        if (e->used_tiles[bit >> 3] & (1u << (bit & 7u))) key = oracles_guest_hash((bank ? vram1 : vram0) + tile * 16u, 16u, key);
     }
     if (draw_objects) key = oracles_guest_hash(oam, 160u, key);
     if (use_live) key = oracles_guest_hash(live_palettes, 64u, key);
@@ -548,18 +570,36 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
         }
     }
     const int animation_only = e->live_valid && !in_step && e->live_base_hash == base && e->live_tiles_hash != hash;
-    if (animation_only && v->animation_renders >= ANIMATION_RENDERS_PER_FRAME) return e->live_area;
     if (!e->live_valid || e->live_tiles_hash != hash) {
-        if (animation_only) v->animation_renders++;
-        e->live_base_hash = base;
         /* The live tiles change every frame the game streams its objects' in:
-         * a render reads few of them, and is made again only when they change. */
+         * a render reads few of them, and is made again only when they change.
+         * That check costs none of the frame's renders: counted before it, the
+         * first neighbours of another animation spent them every frame and the
+         * others were never drawn again, their water left at an old step. */
         const uint64_t inputs = render_inputs(v, e, in_step, vram0, vram1, animated, draw_objects, oam, use_live, live_palettes);
         if (e->live_valid && e->live_inputs == inputs) {
+            e->live_base_hash = base;
             e->live_tiles_hash = hash;
             v->live_renders_kept++;
             return e->live_area;
         }
+        /* The frame's budget spent, the render waits; past RENDER_WAIT_LIMIT frames it is made anyway: the
+         * neighbours first in the cache, whose animation may change every frame, would otherwise take the budget
+         * each frame and leave the others behind (the past of Ages, 45 frames). */
+        if (animation_only && v->animation_renders >= ANIMATION_RENDERS_PER_FRAME) {
+            /* Frames in a row: a wait the neighbour left the band during starts again. */
+            if (!e->render_wanted_at || e->render_put_off_at + 1u != v->frame) e->render_wanted_at = v->frame + 1u;
+            const unsigned waited = v->frame + 2u - e->render_wanted_at;
+            if (waited > v->render_wait_max) v->render_wait_max = waited;
+            if (waited <= RENDER_WAIT_LIMIT) {
+                e->render_put_off_at = v->frame;
+                return e->live_area;
+            }
+            v->renders_forced++;
+        }
+        e->render_wanted_at = 0;
+        if (animation_only) v->animation_renders++;
+        e->live_base_hash = base;
         e->live_inputs = inputs;
         memcpy(v->hybrid_vram, e->tiles, TILE_DATA_BYTES);
         memcpy(v->hybrid_vram + MAP_OFFSET, e->bg_map, 0x800u);
@@ -570,25 +610,23 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
          * frames reach it through the vblank queue), and those belong to the
          * live room's objects, not to the neighbour's, which take theirs
          * from the ghost. */
-        if (in_step || e->image_count) {
+        if (e->image_count) {
             const uint8_t *used = e->used_tiles;
-            if (in_step) {
-                for (unsigned bank = 0; bank < 2; bank++)
-                    for (unsigned tile = 0; tile < 384u; tile++) {
-                        const unsigned bit = bank * 384u + tile;
-                        if ((animated[bit >> 3] & used[bit >> 3] & (uint8_t)(1u << (bit & 7u))) != 0)
-                            memcpy(v->hybrid_vram + bank * 0x2000u + tile * 16u, (bank ? vram1 : vram0) + tile * 16u, 16u);
-                    }
-            } else {
-                /* Its own animation, but the live tile wherever the live room
-                 * shows on it an image this animation can put there: the same
-                 * element, kept in step with the room across the edge. */
-                for (unsigned k = 0; k < e->image_count; k++) {
-                    const unsigned bit = e->image_tiles[k], bank = bit / 384u, tile = bit % 384u;
-                    if (!(used[bit >> 3] & (1u << (bit & 7u)))) continue;
-                    const uint8_t *live = (bank ? vram1 : vram0) + tile * 16u;
-                    if (e->image_sources[k] + 16u <= v->rom_size && memcmp(live, v->rom + e->image_sources[k], 16u) == 0)
-                    { memcpy(v->hybrid_vram + bank * 0x2000u + tile * 16u, live, 16u); v->image_live_tiles++; }
+            /* The live tile wherever the live room shows on it an image its
+             * animation can put there: the same element, kept in step with
+             * the room across the edge; in step, among the tiles the live
+             * VRAM animates.  Any other stays its own: the game names the
+             * room's animation as a scroll begins and its queue brings the
+             * images over the frames after, the live tiles meanwhile those of
+             * the room left. */
+            for (unsigned k = 0; k < e->image_count; k++) {
+                const unsigned bit = e->image_tiles[k], bank = bit / 384u, tile = bit % 384u;
+                if (!(used[bit >> 3] & (1u << (bit & 7u)))) continue;
+                if (in_step && !(animated[bit >> 3] & (1u << (bit & 7u)))) continue;
+                const uint8_t *live = (bank ? vram1 : vram0) + tile * 16u;
+                if (e->image_sources[k] + 16u <= v->rom_size && memcmp(live, v->rom + e->image_sources[k], 16u) == 0) {
+                    memcpy(v->hybrid_vram + bank * 0x2000u + tile * 16u, live, 16u);
+                    if (!in_step) v->image_live_tiles++;
                 }
             }
         }

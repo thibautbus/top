@@ -379,7 +379,7 @@ static void pause_4_3(const char *frame, int width, int height)
 }
 
 /* The layout of a window's shape: the nearer of 4:3 and 16:9 by their ratio, unless aspect= names one; the narrow
- * pause menu in 16:9 only. */
+ * pause menu in 16:9 only, and the pause in 4:3 from 640x480 only. */
 static void layout_choice(void)
 {
     CHECK(oracles_ui_layout_choose(1920, 1080, 0) == ORACLES_UI_LAYOUT_16_9);
@@ -398,6 +398,15 @@ static void layout_choice(void)
     CHECK(oracles_ui_scene_width(ORACLES_UI_LAYOUT_16_9) == 1920.0f && oracles_ui_scene_width(ORACLES_UI_LAYOUT_4_3) == 1440.0f);
     CHECK(oracles_ui_layout_narrow(ORACLES_UI_LAYOUT_16_9, 959) && !oracles_ui_layout_narrow(ORACLES_UI_LAYOUT_16_9, 960));
     CHECK(!oracles_ui_layout_narrow(ORACLES_UI_LAYOUT_4_3, 640));
+    /* The pause: 4:3 from about 640x480 only; Faithful 2x and 3x and Near 4:3 at 2x take the narrow 16:9 menu. */
+    CHECK(oracles_ui_layout_pause(640, 480, 0) == ORACLES_UI_LAYOUT_4_3);
+    CHECK(oracles_ui_layout_pause(640, 576, 0) == ORACLES_UI_LAYOUT_4_3);   /* Faithful 4x */
+    CHECK(oracles_ui_layout_pause(480, 432, 0) == ORACLES_UI_LAYOUT_16_9 && oracles_ui_layout_narrow(ORACLES_UI_LAYOUT_16_9, 480));
+    CHECK(oracles_ui_layout_pause(320, 288, 0) == ORACLES_UI_LAYOUT_16_9);
+    CHECK(oracles_ui_layout_pause(426, 320, 0) == ORACLES_UI_LAYOUT_16_9);
+    CHECK(oracles_ui_layout_pause(639, 480, 0) == ORACLES_UI_LAYOUT_4_3);   /* Near 4:3 at 3x */
+    CHECK(oracles_ui_layout_pause(480, 432, 2) == ORACLES_UI_LAYOUT_16_9);   /* aspect=4:3 too */
+    CHECK(oracles_ui_layout_pause(1920, 1080, 0) == ORACLES_UI_LAYOUT_16_9 && oracles_ui_layout_pause(1440, 1080, 0) == ORACLES_UI_LAYOUT_4_3);
 }
 
 int main(int argc, char **argv)

@@ -231,6 +231,20 @@
       "length": 1
     },
     {
+      "name": "screen_shake_counter_y",
+      "space": "wram",
+      "bank": 0,
+      "address": "0xcd18",
+      "length": 1
+    },
+    {
+      "name": "screen_shake_counter_x",
+      "space": "wram",
+      "bank": 0,
+      "address": "0xcd19",
+      "length": 1
+    },
+    {
       "name": "link_object_index",
       "space": "wram",
       "bank": 0,
@@ -766,6 +780,8 @@
     },
     "screen_offset_x": "ghost_fields.screen_offset_x",
     "screen_offset_y": "ghost_fields.screen_offset_y",
+    "screen_shake_counter_y": "ghost_fields.screen_shake_counter_y",
+    "screen_shake_counter_x": "ghost_fields.screen_shake_counter_x",
     "camera_x": "fields.camera_x",
     "camera_y": "fields.camera_y",
     "keys_pressed": "fields.keys_pressed",

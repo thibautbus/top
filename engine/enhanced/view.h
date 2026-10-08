@@ -156,6 +156,11 @@ unsigned oracles_enhanced_view_chained_results(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_live_renders(const OraclesEnhancedView *view);
 /* The renders the live tiles asked for whose inputs had not changed (ev_neighbour_pixels): the last one kept, not made again. */
 unsigned oracles_enhanced_view_live_renders_kept(const OraclesEnhancedView *view);
+/* The most frames in a row a neighbour waited for the render its own animation wanted (the frame's budget spent), the frame it was
+ * made counted: 0 if none waited.  A diagnostic: the wait is bounded by construction (RENDER_WAIT_LIMIT, view_render.c). */
+unsigned oracles_enhanced_view_render_wait_max(const OraclesEnhancedView *view);
+/* Those renders made past the frame's budget once they had waited the most it allows. */
+unsigned oracles_enhanced_view_renders_forced(const OraclesEnhancedView *view);
 /* The lines of the renders made that were not drawn again, their tiles unchanged since the last render (ev_neighbour_pixels). */
 unsigned oracles_enhanced_view_live_lines_kept(const OraclesEnhancedView *view);
 /* The most 8x8 blocks of tiles the live VRAM does not animate that a live render differed from the ghost's render of the same room by: none if the live render is right. */
@@ -176,6 +181,8 @@ void oracles_enhanced_view_shown(const OraclesEnhancedView *view, unsigned *widt
 unsigned oracles_enhanced_view_off_camera_frames(const OraclesEnhancedView *view);
 /* Frames shown in the band with the game's per-line scroll (under water, the strange force). */
 unsigned oracles_enhanced_view_wave_frames(const OraclesEnhancedView *view);
+/* Frames shown in the band shaken whole with the game's screen shake (a gate, a bomb, a boss). */
+unsigned oracles_enhanced_view_shake_frames(const OraclesEnhancedView *view);
 /* World frames where the band shows an overworld room beside the reference room, diagonals included, that no delivered terrain covers yet. */
 unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
 /* Rooms delivered for a direction of a room the game routes itself. */

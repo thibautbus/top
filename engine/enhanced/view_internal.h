@@ -121,6 +121,8 @@ typedef struct entry {
     int refresh_season;                 /* that refresh is a season change: its terrain differs from the live one until it is delivered */
     unsigned refresh_failures;          /* runs of the refresh that failed: at the second, the old terrain is no longer drawn */
     uint32_t accepted_at;               /* the view's frame when its last result was accepted */
+    uint32_t render_wanted_at;          /* 1 + the frame its own animation first wanted a render the frame's budget put off; 0: none waiting */
+    uint32_t render_put_off_at;         /* the last frame that render was put off */
     int near;                           /* last wanted near its reference room, not in the second ring: evicted after the others */
     int rerun;                          /* valid and drawn, its settled state not a start for the rooms beyond: run again from the live state */
     uint32_t rerun_at;                  /* when a chained run last asked for that */
@@ -330,6 +332,8 @@ struct OraclesEnhancedView {
     uint8_t *rom;
     size_t rom_size;
     unsigned animation_renders;       /* this frame's renders for a neighbour's own animation alone */
+    unsigned render_wait_max;         /* the most frames in a row a neighbour's own-animation render waited, the frame it was made past the budget counted */
+    unsigned renders_forced;          /* such renders made past the frame's budget, having waited RENDER_WAIT_LIMIT frames */
     unsigned image_live_tiles;        /* tiles a neighbour of another animation took live, the live room showing one of its images */
     unsigned streams_matched;         /* neighbour streams matched with a live stream of the same loop */
     unsigned streams_followed;        /* frames a matched stream was moved to its live twin's step (the view's own step not landing there) */
@@ -468,6 +472,8 @@ struct OraclesEnhancedView {
     unsigned uncovered;              /* world-band pixels without a source in the last composed frame */
     unsigned off_camera_frames;      /* frames the game drew its area elsewhere than its camera: framed */
     unsigned wave_frames;            /* frames the game scrolled its area line by line (under water, the strange force): shown in the band, waves and all */
+    unsigned shake_frames;           /* frames the game shook its screen (updateScreenShake): shown in the band, shaken whole */
+    unsigned shake_history;          /* bit n: the shake under way n + 1 observations ago (the image on screen shows the registers of a logic run one or more observations before) */
     int16_t line_shift[ORACLES_ENHANCED_AREA_HEIGHT], line_shift_y[ORACLES_ENHANCED_AREA_HEIGHT];   /* this frame's per-line scroll, less the camera's */
     int have_wave;
     /* The tile animation of a scroll, run by the view alone (view_scroll.c). */

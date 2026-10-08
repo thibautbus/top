@@ -581,6 +581,8 @@ unsigned oracles_enhanced_view_drop_log(const OraclesEnhancedView *v, char *out,
 }
 unsigned oracles_enhanced_view_live_renders(const OraclesEnhancedView *v) { return v->live_renders; }
 unsigned oracles_enhanced_view_live_renders_kept(const OraclesEnhancedView *v) { return v->live_renders_kept; }
+unsigned oracles_enhanced_view_render_wait_max(const OraclesEnhancedView *v) { return v->render_wait_max; }
+unsigned oracles_enhanced_view_renders_forced(const OraclesEnhancedView *v) { return v->renders_forced; }
 unsigned oracles_enhanced_view_live_lines_kept(const OraclesEnhancedView *v) { return v->live_lines_kept; }
 unsigned oracles_enhanced_view_live_diff_max(const OraclesEnhancedView *v) { return v->live_diff_max; }
 unsigned oracles_enhanced_view_plain_renders(const OraclesEnhancedView *v) { return v->plain_renders; }
@@ -592,6 +594,7 @@ unsigned oracles_enhanced_view_uncovered(const OraclesEnhancedView *v) { return 
 void oracles_enhanced_view_shown(const OraclesEnhancedView *v, unsigned *width, unsigned *height) { *width = v->shown_width; *height = v->shown_height; }
 unsigned oracles_enhanced_view_off_camera_frames(const OraclesEnhancedView *v) { return v->off_camera_frames; }
 unsigned oracles_enhanced_view_wave_frames(const OraclesEnhancedView *v) { return v->wave_frames; }
+unsigned oracles_enhanced_view_shake_frames(const OraclesEnhancedView *v) { return v->shake_frames; }
 unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *v) { return v->waiting_frames; }
 unsigned oracles_enhanced_view_routed_delivered(const OraclesEnhancedView *v) { return v->routed_delivered; }
 unsigned oracles_enhanced_view_plain_shown_frames(const OraclesEnhancedView *v) { return v->plain_shown_frames; }
@@ -745,7 +748,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     v->source_valid = 0; v->large_capture_valid = 0; v->large_prev_valid = 0; v->large_was_in_scroll = 0;
     v->have_ref_collisions = 0; v->ref_maku = 0;
     v->blind_mask = 0; v->blind_epoch = 0;
-    v->have_live_tiles_prev = 0; v->have_wave = 0; v->blurb_seen = 0; v->blurb = NULL; v->blurb_mask = 0;
+    v->have_live_tiles_prev = 0; v->have_wave = 0; v->shake_history = 0; v->blurb_seen = 0; v->blurb = NULL; v->blurb_mask = 0;
     ev_scroll_reset(v);   /* a scroll's animation (view_scroll.c): the one under way stays frozen, as the state loaded has it */
     v->strip_valid = 0;
     /* The objects' bookkeeping: the image of the room left,

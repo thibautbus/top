@@ -526,6 +526,14 @@
       "bank": 0,
       "address": "0xcd08"
     },
+    "screen_shake_counter_y": {
+      "bank": 0,
+      "address": "0xcd18"
+    },
+    "screen_shake_counter_x": {
+      "bank": 0,
+      "address": "0xcd19"
+    },
     "camera_x": {
       "bank": 0,
       "address": "0xffaa"

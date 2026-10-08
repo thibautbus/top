@@ -67,7 +67,8 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     OraclesHomeNav nav;
     oracles_home_init(&nav);
     if (host && host->refresh) host->refresh(host->opaque, &nav, NULL);
-    nav.layout = oracles_ui_layout_choose(width, height, nav.display.aspect);
+    /* Over a game's frame, the pause's layout, as the game shows it. */
+    nav.layout = frame ? oracles_ui_layout_pause(width, height, nav.display.aspect) : oracles_ui_layout_choose(width, height, nav.display.aspect);
     if (frame) {
         const int profile = oracles_page_profile(&nav.games[0], nav.display.profile);
         oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, profile < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)profile,

@@ -54,8 +54,8 @@ static void glyph_text(char *out, size_t capacity)
     out[n] = 0;
 }
 
-/* The pause's scale floor: the reduced menu keeps its text readable in a small 16:9 window; the 4:3 layout is sized
- * for 640x480 and fits. */
+/* The pause's scale floor: the reduced menu keeps its text readable in a small window; the 4:3 layout, taken from
+ * about 640x480 only (oracles_ui_layout_pause), fits. */
 static float min_scale(int narrow) { return narrow ? NARROW_MIN_SCALE : 0.0f; }
 
 OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing, int aspect)
@@ -98,7 +98,7 @@ static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
 
 static void prepare(OraclesPause *pause, int width, int height, const char *when)
 {
-    const OraclesUiLayout layout = oracles_ui_layout_choose(width, height, pause->aspect);
+    const OraclesUiLayout layout = oracles_ui_layout_pause(width, height, pause->aspect);
     const OraclesUiTextStyle *list[64];
     const int count = styles(layout, list);
     static char text[1024];
@@ -294,7 +294,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
 
     oracles_home_init(&p.nav);
     if (pause->host && pause->host->refresh) pause->host->refresh(pause->host->opaque, &p.nav, window);
-    p.nav.layout = oracles_ui_layout_choose(out_w, out_h, p.nav.display.aspect);
+    p.nav.layout = oracles_ui_layout_pause(out_w, out_h, p.nav.display.aspect);
     oracles_home_pause(&p.nav, pause->game, pause->playing, oracles_ui_layout_narrow(p.nav.layout, out_w));
     p.nav.display.core = session->core;
     p.nav.display.workers = session->ghosts;
@@ -306,7 +306,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
         const double now = now_ms();
         if (p.dirty || ((p.moving || p.redraws > 0) && now - presented >= FRAME_MS) || (oracles_ui_home_due_ms(&p.view) >= 0.0 && now >= oracles_ui_home_due_ms(&p.view))) {
             SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
-            p.nav.layout = oracles_ui_layout_choose(out_w, out_h, p.nav.display.aspect);
+            p.nav.layout = oracles_ui_layout_pause(out_w, out_h, p.nav.display.aspect);
             p.nav.narrow = oracles_ui_layout_narrow(p.nav.layout, out_w);
             p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, out_w, out_h, &p.view, &p.nav, now);
             SDL_RenderPresent(renderer);

@@ -57,8 +57,8 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.transitions=%u\nenhanced.transitions_vertical=%u\nenhanced.transitions_shown=%u\nenhanced.transitions_black=%u\nenhanced.transitions_other_room=%u\nenhanced.transitions_large=%u\nenhanced.large_scroll_black=%u\nenhanced.terrains_equal=%u\nenhanced.terrains_different=%u\n",
             c->transitions, c->transitions_vertical, c->transitions_with_terrain, c->transitions_black, c->transitions_other_room, c->transitions_large, c->large_scroll_black, c->terrains_equal, c->terrains_different);
     fprintf(out, "enhanced.terrains_old=%u\n", c->terrains_old);
-    fprintf(out, "enhanced.scrolls=%u\nenhanced.scroll_frames=%u\nenhanced.scroll_frozen_frames=%u\nenhanced.scroll_solid_arrivals=%u\nenhanced.window_checked=%u\nenhanced.window_misplaced=%u\nenhanced.off_camera_frames=%u\nenhanced.wave_frames=%u\nenhanced.window_lines_checked=%u\nenhanced.window_lines_wrong=%u\n",
-            c->transitions_seen, c->transition_frames_total, c->transition_frozen_total, c->transition_arrivals_solid, c->window_checked, c->window_misplaced, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_wave_frames(c->view), c->window_lines_checked, c->window_lines_wrong);
+    fprintf(out, "enhanced.scrolls=%u\nenhanced.scroll_frames=%u\nenhanced.scroll_frozen_frames=%u\nenhanced.scroll_solid_arrivals=%u\nenhanced.window_checked=%u\nenhanced.window_misplaced=%u\nenhanced.off_camera_frames=%u\nenhanced.wave_frames=%u\nenhanced.shake_frames=%u\nenhanced.window_lines_checked=%u\nenhanced.window_lines_wrong=%u\n",
+            c->transitions_seen, c->transition_frames_total, c->transition_frozen_total, c->transition_arrivals_solid, c->window_checked, c->window_misplaced, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_wave_frames(c->view), oracles_enhanced_view_shake_frames(c->view), c->window_lines_checked, c->window_lines_wrong);
     fprintf(out, "enhanced.curtain_frames=%u\nenhanced.curtain_frames_wrong=%u\nenhanced.curtain_frames_unchecked=%u\nenhanced.curtain_pixels_wrong=%u\n",
             c->curtain_frames, c->curtain_frames_wrong, c->curtain_frames_unchecked, c->curtain_pixels_wrong);
     fprintf(out, "enhanced.text_box_frames_in_place=%u\nenhanced.curtain_window_frames_wrong=%u\n", c->text_box_frames_in_place, c->curtain_window_frames_wrong);
@@ -107,6 +107,7 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
             c->uncovered_frames, c->uncovered_max, oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_stale_results(c->view), oracles_enhanced_view_season_rejected(c->view),
             oracles_enhanced_view_coarse_drops(c->view));
     fprintf(out, "enhanced.beside_refused=%u\n", oracles_enhanced_view_beside_refused(c->view));
+    fprintf(out, "enhanced.render_wait_max=%u\nenhanced.renders_forced=%u\n", oracles_enhanced_view_render_wait_max(c->view), oracles_enhanced_view_renders_forced(c->view));   /* a neighbour's own-animation render: the most frames it waited for the frame's budget, and those made past it */
     if (c->reload_at)
         fprintf(out, "enhanced.reload=%s\nenhanced.reload_camera_delta=%" PRId32 "\nenhanced.reload_camera_frozen=%u\n",
                 !c->reload_done ? "not-performed" : c->reload_settled == 1 ? "neighbours-back" : "neighbours-not-back", c->reload_camera_delta,
@@ -146,8 +147,8 @@ static void report_the_band(OraclesEnhancedCheck *c, FILE *out)
     if (reasons[0] || reasons[2] || reasons[3]) fprintf(out, "  failed runs (from>expected=got, from>room?: never settled, from>room!reason: not primeable): %s\n", oracles_enhanced_view_failure_log(c->view));
     fprintf(out, "  scrolling transitions %u: %u frames in all (%u at most), Link's position unchanged on %u of them; arrivals on a tile with a collision: %u; room:frames/frozen@x,y: %s\n",
             c->transitions_seen, c->transition_frames_total, c->transition_frames_max, c->transition_frozen_total, c->transition_arrivals_solid, c->transition_list);
-    fprintf(out, "  window against the drawn scroll registers: %u world frames checked, misplaced %u%s%s; frames framed because the game drew its area elsewhere than its camera: %u\n",
-            c->window_checked, c->window_misplaced, c->window_misplaced ? ": frame:dx,dy " : "", c->window_misplaced_list, oracles_enhanced_view_off_camera_frames(c->view));
+    fprintf(out, "  window against the drawn scroll registers: %u world frames checked, misplaced %u%s%s; frames framed because the game drew its area elsewhere than its camera: %u; frames shown shaken with the game's screen shake: %u\n",
+            c->window_checked, c->window_misplaced, c->window_misplaced ? ": frame:dx,dy " : "", c->window_misplaced_list, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_shake_frames(c->view));
     fprintf(out, "  text box in the middle of the band: %u world frames, %u with the wrong pixels (%u pixels), %u showing it where the game drew it%s%s\n",
             c->text_box_frames, c->text_box_frames_wrong, c->text_box_pixels_wrong, c->text_box_frames_at_origin, c->text_box_frames_wrong ? ": frame:pixels " : "", c->text_box_list);
     fprintf(out, "  curtain of a warp over the band: %u world frames, %u with the wrong pixels (%u pixels), %u with the window fully drawn (colour unchecked)%s%s\n",
@@ -180,9 +181,9 @@ static void report_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     const unsigned dropped = oracles_enhanced_view_drop_log(c->view, drops, sizeof drops);
     unsigned blind_filed = 0, blind_dropped = 0;
     oracles_enhanced_view_blind_runs(c->view, &blind_filed, &blind_dropped);
-    fprintf(out, "  neighbours computed ahead from another neighbour's settled state: %u, sources run again after a key change: %u; pre-runs while a room loaded: %u filed, %u dropped; renders of a neighbour with the live tiles (animated in step): %u, %u more kept, what they read unchanged, and %u lines of those made kept, their tiles unchanged (differing from the ghost's render outside the animated tiles by at most %u blocks of 8x8); captures of no terrain refused (a fade caught, the LCD off): %u%s%s; terrains dropped by a key byte they read: %u%s%s\n",
+    fprintf(out, "  neighbours computed ahead from another neighbour's settled state: %u, sources run again after a key change: %u; pre-runs while a room loaded: %u filed, %u dropped; renders of a neighbour with the live tiles (animated in step): %u, %u more kept, what they read unchanged, a render put off by the frame's budget for %u frames at most (%u made past it), and %u lines of those made kept, their tiles unchanged (differing from the ghost's render outside the animated tiles by at most %u blocks of 8x8); captures of no terrain refused (a fade caught, the LCD off): %u%s%s; terrains dropped by a key byte they read: %u%s%s\n",
             oracles_enhanced_view_chained_results(c->view), oracles_enhanced_view_refreshed_parents(c->view), blind_filed, blind_dropped,
-            oracles_enhanced_view_live_renders(c->view), oracles_enhanced_view_live_renders_kept(c->view), oracles_enhanced_view_live_lines_kept(c->view), oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_plain_renders(c->view) ? " " : "", oracles_enhanced_view_plain_log(c->view),
+            oracles_enhanced_view_live_renders(c->view), oracles_enhanced_view_live_renders_kept(c->view), oracles_enhanced_view_render_wait_max(c->view), oracles_enhanced_view_renders_forced(c->view), oracles_enhanced_view_live_lines_kept(c->view), oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_plain_renders(c->view) ? " " : "", oracles_enhanced_view_plain_log(c->view),
             dropped, dropped ? " " : "", drops);
     if (c->reload_at) {
         if (!c->reload_done) fprintf(out, "  reload at frame %u: not performed (the route is shorter, or the state could not be saved)\n", c->reload_at);

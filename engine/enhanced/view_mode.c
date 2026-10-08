@@ -3,14 +3,27 @@
  * area drawn elsewhere than its camera, and a load not yet placed. */
 #include "view_internal.h"
 
+/* The largest offset a shake adds to a scroll register (updateScreenShake@data: magnitude 2). */
+#define SHAKE_REACH 3
+#define SHAKE_HISTORY 0x0fu   /* the observations a shaken image may come from, the last four */
+
+static int shaking(OraclesEnhancedView *v)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    return oracles_guest_read8(v->guest, t->screen_shake_counter_y) != 0 || oracles_guest_read8(v->guest, t->screen_shake_counter_x) != 0;
+}
+
 /* The scroll registers of each line of the game area, less the camera the
  * frame was drawn with (the journal, the stat mode 0 write landing on the
  * next line).  The game scrolls a line at a time to make the screen ripple
  * (under water, the return by the strange force: hLcdInterruptBehaviour 0
  * writes SCX and 1 SCY from wBigBuffer during the scan), which the whole
  * band can follow; a shift the same on every line is the area drawn elsewhere (a
- * cutscene's pan), which it cannot.  Returns 1 and fills `shift` for a
- * ripple, 0 otherwise. */
+ * cutscene's pan), which it cannot, but for the screen's shake: a gate that
+ * opens, a bomb, a boss, add up to 3 pixels to the registers past the camera
+ * while wScreenShakeCounterY or X counts down (updateScreenShake), and the
+ * band shakes with them.  Returns 1 and fills `shift` for a ripple or a
+ * shake, 0 otherwise. */
 static int line_scroll_shifts(OraclesEnhancedView *v, int16_t shift[ORACLES_ENHANCED_AREA_HEIGHT], int16_t shift_y[ORACLES_ENHANCED_AREA_HEIGHT])
 {
     size_t count = 0;
@@ -36,7 +49,16 @@ static int line_scroll_shifts(OraclesEnhancedView *v, int16_t shift[ORACLES_ENHA
         shift_y[line] = (int16_t)dy;
         if (dx != shift[0] || dy != shift_y[0]) varies = 1;
     }
-    return varies;
+    if (varies) return 1;
+    /* The frame on screen shows the registers of an earlier logic, which
+     * shook them and then counted down: the shake shows while the counter
+     * ran before that logic, two observations back, or more when a logic ran
+     * past the vblank and the image showed the same registers again (a
+     * lagging frame).  The last four observations stand for it. */
+    const int shaken = (shaking(v) || (v->shake_history & SHAKE_HISTORY)) && (shift[0] || shift_y[0])
+        && shift[0] >= -SHAKE_REACH && shift[0] <= SHAKE_REACH && shift_y[0] >= -SHAKE_REACH && shift_y[0] <= SHAKE_REACH;
+    if (shaken) v->shake_frames++;
+    return shaken;
 }
 
 /* Whether the frame on screen drew its game area where the game's camera
@@ -128,6 +150,7 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking)
         && !(lcd_on && ev_on_grid(v) && v->observer.ref_group == ob->group && v->observer.ref_room == ob->room))
         || ob->cell_pending;   /* a dungeon room not yet placed on its floor's map */
     v->have_wave = ob->playing && !loading && !framed_frame_menus(v) && line_scroll_shifts(v, v->line_shift, v->line_shift_y);
+    v->shake_history = (v->shake_history << 1) | (unsigned)shaking(v);
     const int off_camera = !room_load && !v->have_wave && framed_area(v);
     if (v->framed_only || !ob->playing || loading || framed_frame_menus(v) || off_camera || !tracking) return ORACLES_ENHANCED_FRAMED;
     return ORACLES_ENHANCED_WORLD;
