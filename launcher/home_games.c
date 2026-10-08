@@ -160,6 +160,8 @@ static void inspect_display(const oracles_settings *settings, OraclesHomeDisplay
     display->window = settings->window_scale ? settings->window_scale - 2 : 3;
     display->colour = settings->colour_correction;
     display->vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
+    display->workers = settings->ghosts;
+    display->cores = SDL_GetNumLogicalCPUCores();   /* as the session counts them for Auto */
     /* Without a window (a capture drawn offscreen), a 1080p screen. */
     SDL_Rect usable;
     const SDL_DisplayID index = window ? SDL_GetDisplayForWindow(window) : 0;
@@ -269,6 +271,8 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     /* The core is stored once the player chooses one other than the playing default; a game's core is its own, perhaps
      * --core's, never stored. */
     if (!nav->in_game && (prefs->core >= 0 || nav->display.core != oracles_settings_core(prefs))) prefs->core = nav->display.core;
+    /* So are the workers: a game's are perhaps --ghosts', for its run alone. */
+    if (!nav->in_game) prefs->ghosts = nav->display.workers;
     static const char *const vsync_names[3] = { "auto", "on", "off" };
     prefs->window_scale = nav->display.window < 3 ? nav->display.window + 2 : 0;
     prefs->colour_correction = nav->display.colour;

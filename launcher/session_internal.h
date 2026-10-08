@@ -38,6 +38,7 @@ typedef struct session {
     char route_sram_path[PATH_MAX_LENGTH], record_sram_path[PATH_MAX_LENGTH];
     int enhanced, continuous_transitions, continuous_swim, zoom_out;   /* zoom_out: the view draws back (medium or far) */
     int view_level, view_4_3;                    /* the Enhanced view's level (OraclesEnhancedLevel) and its shape: 4:3, else 16:9 */   /* the options, as a replayed route or the profile may change them */
+    int ghosts;                                  /* the neighbour ghosts chosen, --ghosts' else the settings': 0 auto, 1, 2 */
     OraclesHotkeysMode hotkeys_mode;
     oracles_sdl_options sdl;
     unsigned display_hz;

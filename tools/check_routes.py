@@ -65,6 +65,7 @@ import argparse
 import concurrent.futures
 import hashlib
 import os
+import shlex
 import subprocess
 import sys
 import zlib
@@ -276,7 +277,7 @@ def check(rule: str, values: dict) -> str:
     return ""
 
 
-def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work: Path) -> dict:
+def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work: Path, threaded_args: tuple = ()) -> dict:
     # A route's rows for one core and its rows for both may share a mode: the line tells them apart.
     name = f"{row['label']}-{row['mode']}" + (f"-{row['line']}" if row["options"] or row["core"] != "-" else "") + ("" if core == "sameboy" else f"-{core}")
     w = work / name
@@ -297,7 +298,8 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, work:
     # Off SameBoy, a faithful row is also compared with SameBoy's replay of the route: the rooms both go through.
     compare_cores = core != "sameboy" and row["mode"] == "faithful"
     positions = [] if not compare_cores else ["--positions", str(w / "positions.tsv")]
-    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + positions + ["--summary", str(summary)]
+    extra = list(threaded_args) if row["mode"].endswith("-threaded") else []
+    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + extra + positions + ["--summary", str(summary)]
     with open(w / "harness.log", "w") as log:
         proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
     retried = ""
@@ -401,6 +403,7 @@ def main() -> int:
     ap.add_argument("--rom-dir", type=Path, default=None, help="defaults to $ORACLES_ROM_DIR; without it the check is skipped (exit 77)")
     ap.add_argument("--work", type=Path, default=None, help="defaults to build/routes-check, build/routes-check-mgba on mGBA")
     ap.add_argument("--jobs", type=int, default=DEFAULT_JOBS)
+    ap.add_argument("--threaded-args", default="", help="harness flags added to the rows whose ghost runs in its thread (\"--enhanced-ghosts 2\")")
     ap.add_argument("--only", default=None, help="run the rows whose route, label or mode contains this text, or, for a text starting with --, whose options do")
     ap.add_argument("--update", action="store_true", help="rewrite the run hashes that changed in their manifests")
     args = ap.parse_args()
@@ -427,7 +430,7 @@ def main() -> int:
         return 2
     args.work.mkdir(parents=True, exist_ok=True)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        results = list(pool.map(lambda r: run_row(r, args.harness, args.core, args.routes, roms, args.work), rows))
+        results = list(pool.map(lambda r: run_row(r, args.harness, args.core, args.routes, roms, args.work, tuple(shlex.split(args.threaded_args))), rows))
     failed = 0
     changed = {}
     for res in results:

@@ -228,6 +228,7 @@ static entry *take_victim(OraclesEnhancedView *v, uint8_t group, const uint8_t *
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *c = &v->slots[i];
         if (!c->used) return c;
+        if (c->in_flight) continue;   /* its run would come back to a room no longer there */
         if (c->routed && c->group == group && c->routed_from == routed_from) continue;
         int wanted_now = 0;
         if (!c->routed) for (unsigned w = 0; w < wanted_count; w++) if (c->group == group && c->room == wanted[w]) wanted_now = 1;

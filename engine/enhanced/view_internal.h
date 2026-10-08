@@ -51,6 +51,7 @@
  * (view->slot_count), and SLOTS bounds them, for the arrays that hold a
  * composition's sources. */
 #define SLOTS 56u
+#define EV_LANES 2u                  /* ghosts at most, each with a run in flight */
 #define NORMAL_SLOTS 48u
 #define PLAN_ROOMS 25u               /* the rooms a plan wants at most */
 #define SEA_LEVEL_GROUPS 2u          /* the sea under a group of the surface is two groups on (checkForUnderwaterTransition) */
@@ -178,6 +179,8 @@ typedef struct entry {
     uint8_t rendered_tiles[2u * ORACLES_GHOST_TILE_BYTES];
     uint64_t rendered_rest;
     int live_valid;
+    int in_flight;                     /* a run of its room is under way in one of the ghosts (ev_lane) */
+    uint32_t run_serial;               /* that run's: its result is this entry's only while the serials agree */
 } entry;
 
 /* A drawing of the game in a large room: every object's sprites, built, and the wOam it wrote. */
@@ -265,7 +268,32 @@ struct OraclesEnhancedView {
     uint64_t blind_epoch;
     uint8_t blind_room, blind_mask;
     unsigned blind_results, blind_dropped;
-    OraclesGhostResult job;          /* the result of the run in flight */
+    uint32_t pending_parent_accepted; /* the parent's accepted_at when its settled state was taken: another ghost may deliver it again meanwhile */
+    uint32_t pending_serial;         /* the run's serial, given to its entry (entry.run_serial) */
+    uint32_t run_serials;            /* the last serial given */
+    OraclesGhostResult *job;         /* the result of the run in flight */
+    /* The ghosts, each with its run in flight: the fields above from `ghost`
+     * to `job` are those of the lane being served (ev_lane_serve), lane 0's
+     * between two services.  One lane when the ghost is synchronous. */
+    struct ev_lane {
+        OraclesGhost *ghost;
+        OraclesGhostResult *job;
+        int pending;
+        unsigned pending_slot;
+        uint8_t pending_group, pending_room;
+        unsigned pending_generation;
+        int pending_chained, pending_beside;
+        uint8_t pending_killed_list[16];
+        unsigned pending_parent;
+        uint8_t pending_parent_room;
+        uint32_t pending_parent_accepted, pending_serial;
+        int pending_blind, pending_routed;
+        uint8_t pending_routed_from;
+        OraclesGhostDirection pending_dir;
+    } lanes[EV_LANES];
+    unsigned lane_count, lane_now;
+    const OraclesCompatProfile *rom_profile;   /* for a ghost created later (oracles_enhanced_view_set_ghosts) */
+    OraclesCoreKind ghost_core;
     unsigned generation;             /* bumped when every entry must go: the colour pipeline, a savestate load */
     /* the cache */
     entry *slots;                    /* slot_count of them, allocated for the view's size */
@@ -581,6 +609,7 @@ void ev_scroll_overlay(uint8_t *tiles, size_t stride, const uint8_t *images, con
 unsigned ev_scroll_tiles_off(const uint8_t *live0, const uint8_t *live1, const uint8_t *images, const uint8_t *touched, const uint8_t *held, const uint8_t *game_wrote);
 int ev_displayed_fade(const uint8_t live[64], const uint8_t base[64]);
 const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e);
+void ev_lane_serve(OraclesEnhancedView *v, unsigned lane);
 void ev_entry_used_tiles(entry *e);
 void ev_render_large_room(OraclesEnhancedView *v);
 void ev_overlay_edge_sprites(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);

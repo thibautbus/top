@@ -41,6 +41,13 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
             oracles_ghost_set_trace(v->ghost, 1);  /* the bytes each room's substitutions read: its invalidation */
             oracles_ghost_set_prerun(v->ghost, GHOST_PRERUN_FRAMES);
         }
+        v->job = malloc(sizeof *v->job);
+        if (v->ghost && !v->job) { oracles_ghost_destroy(v->ghost); free(v->snapshot); v->ghost = NULL; v->snapshot = NULL; }
+        v->lane_count = 1;
+        v->lanes[0].ghost = v->ghost;
+        v->lanes[0].job = v->job;
+        v->rom_profile = profile;
+        v->ghost_core = oracles_core_kind(core);
     }
     v->key_count = oracles_ghost_key_ranges(oracles_guest_profile(guest), v->key, sizeof v->key / sizeof v->key[0]);
     v->colours_pipeline = -1;
@@ -72,7 +79,12 @@ void oracles_enhanced_view_stop(OraclesEnhancedView *v)
         v->live_sprites = NULL;
         v->live_objects = NULL;
     }
-    if (v->ghost) oracles_ghost_destroy(v->ghost);
+    ev_lane_serve(v, 0);
+    for (unsigned l = 0; l < v->lane_count; l++) {
+        if (v->lanes[l].ghost) oracles_ghost_destroy(v->lanes[l].ghost);
+        if (l) free(v->lanes[l].job);   /* lane 0's is the view's own, freed below */
+    }
+    free(v->job);
     for (unsigned i = 0; i < v->slot_count; i++) free(v->slots[i].settled_state);
     free(v->slots);
     free(v->surface);
@@ -118,6 +130,32 @@ void oracles_enhanced_view_set_size(OraclesEnhancedView *v, OraclesEnhancedSize 
 }
 
 void oracles_enhanced_view_set_sync_budget(OraclesEnhancedView *v, unsigned frames_per_host_frame) { v->sync_budget = frames_per_host_frame; }
+
+int oracles_enhanced_view_set_ghosts(OraclesEnhancedView *v, unsigned count)
+{
+    /* Synchronous, one: the run order, and the suite's hashes, are a single ghost's. */
+    if (!v->ghost || v->sync_budget || count <= 1u || v->lane_count >= count) return (int)v->lane_count;
+    ev_lane_serve(v, 0);
+    while (v->lane_count < count && v->lane_count < EV_LANES) {
+        struct ev_lane *lane = &v->lanes[v->lane_count];
+        memset(lane, 0, sizeof *lane);
+        lane->ghost = oracles_ghost_create(v->rom, v->rom_size, v->rom_profile, v->ghost_core);
+        lane->job = malloc(sizeof *lane->job);
+        if (!lane->ghost || !lane->job || oracles_ghost_state_size(lane->ghost) != v->state_size) {
+            if (lane->ghost) oracles_ghost_destroy(lane->ghost);
+            free(lane->job);
+            memset(lane, 0, sizeof *lane);
+            break;
+        }
+        oracles_ghost_set_trace(lane->ghost, 1);
+        oracles_ghost_set_prerun(lane->ghost, GHOST_PRERUN_FRAMES);
+        oracles_ghost_set_capture(lane->ghost, v->neighbour_objects);
+        v->lane_count++;
+    }
+    return (int)v->lane_count;
+}
+
+unsigned oracles_enhanced_view_ghosts(const OraclesEnhancedView *v) { return v->lane_count; }
 void oracles_enhanced_view_toggle(OraclesEnhancedView *v) { v->framed_only = !v->framed_only; }
 int oracles_enhanced_view_framed_only(const OraclesEnhancedView *v) { return v->framed_only; }
 void oracles_enhanced_view_set_camera_profile(OraclesEnhancedView *v, unsigned profile) { oracles_enhanced_camera_set_profile(v->camera, profile); }
@@ -135,7 +173,7 @@ void oracles_enhanced_view_set_neighbour_objects(OraclesEnhancedView *v, int ena
 {
     if (v->neighbour_objects == (enabled != 0)) return;
     v->neighbour_objects = enabled != 0;
-    oracles_ghost_set_capture(v->ghost, v->neighbour_objects);
+    for (unsigned l = 0; l < v->lane_count; l++) oracles_ghost_set_capture(l == v->lane_now ? v->ghost : v->lanes[l].ghost, v->neighbour_objects);
     if (v->neighbour_objects && !v->live_sprites) {
         /* The live sprites tagged by object: which of the OAM entries on screen
          * are the room's objects, for the image of a room left and for the

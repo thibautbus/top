@@ -173,12 +173,33 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row)
 
 /* ---- Display --------------------------------------------------------------------- */
 
-const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Window", "View", "Color correction", "Continuous transitions", "Vsync", "Core" };
+const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Window", "View", "Color correction", "Continuous transitions", "Advanced",
+                                                                   "Core", "Vsync", "Neighbour workers" };
 const char *const oracles_display_view_names[3] = { "Near", "Medium", "Far" };
 const char *const oracles_display_colour_choices[2] = { "Off", "On" };
 const char *const oracles_display_vsync_choices[3] = { "Auto", "On", "Off" };
 const char *const oracles_display_core_choices[2] = { "Accurate (SameBoy)", "Fast (mGBA)" };
 int oracles_display_transitions_apply(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
+
+int oracles_display_row_shown(const OraclesHomeNav *nav, unsigned row)
+{
+    return nav->advanced ? row >= ORACLES_DISPLAY_CORE && row < ORACLES_DISPLAY_ROWS : row <= ORACLES_DISPLAY_ADVANCED;
+}
+
+int oracles_display_auto_workers(const OraclesHomeNav *nav) { return nav->display.cores >= 4 ? 2 : 1; }
+
+void oracles_display_workers_choice(const OraclesHomeNav *nav, int choice, char *out, size_t capacity)
+{
+    if (choice == 0) snprintf(out, capacity, "Auto \xc2\xb7 %d", oracles_display_auto_workers(nav));
+    else snprintf(out, capacity, "%d", choice);
+}
+
+const char *oracles_display_section(const OraclesHomeNav *nav) { return nav->advanced ? "Display \xe2\x80\xba Advanced" : "Display"; }
+
+int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row)
+{
+    return nav->in_game && (row == ORACLES_DISPLAY_CORE || row == ORACLES_DISPLAY_WORKERS);
+}
 
 int oracles_display_screen_4_3(const OraclesHomeNav *nav)
 {
@@ -296,20 +317,22 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_TRANSITIONS: return "Rooms scroll into one another instead of stopping at each edge, Link swimming too.";
         case ORACLES_DISPLAY_VSYNC: return "Auto: follows your display when it is close to 60 Hz.";
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
+        case ORACLES_DISPLAY_WORKERS:
+            return "Rooms around you are prepared by background workers. Two fill the view faster after a warp or a load, using one more processor core.";
         default: return "";
     }
 }
 
 /* The value of a row, set to `value` (wrapped to the row's choices); the view and the transitions do not change in Faithful,
- * nor the core in a game. */
+ * nor the core and the workers in a game.  Advanced has no value. */
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
-    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 3, 2 };
+    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 0, 2, 3, 3 };
     int profile = (int)nav->display.profile;
-    int *fields[ORACLES_DISPLAY_ROWS] = { &profile, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions,
-                                          &nav->display.vsync, &nav->display.core };
-    if (row >= ORACLES_DISPLAY_ROWS || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
-        || (row == ORACLES_DISPLAY_CORE && nav->in_game))
+    int *fields[ORACLES_DISPLAY_ROWS] = { &profile, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions, NULL,
+                                          &nav->display.core, &nav->display.vsync, &nav->display.workers };
+    if (row >= ORACLES_DISPLAY_ROWS || !fields[row] || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
+        || oracles_display_row_fixed(nav, row))
         return ORACLES_HOME_STAY;
     value = (value % counts[row] + counts[row]) % counts[row];
     if (*fields[row] == value) return ORACLES_HOME_STAY;
@@ -320,21 +343,34 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
 
 static int display_value(const OraclesHomeNav *nav, unsigned row)
 {
-    const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions,
-                                               nav->display.vsync, nav->display.core };
+    const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions, 0,
+                                               nav->display.core, nav->display.vsync, nav->display.workers };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
+}
+
+/* Advanced opens on its first row; closed, Display shows Advanced highlighted. */
+static void display_advanced(OraclesHomeNav *nav, int open)
+{
+    nav->advanced = open;
+    nav->row = open ? ORACLES_DISPLAY_CORE : ORACLES_DISPLAY_ADVANCED;
 }
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action)
 {
-    const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : 0;
+    /* The rows shown, from `first`, `count` of them: up and down go round them. */
+    const unsigned first = nav->advanced ? ORACLES_DISPLAY_CORE : ORACLES_DISPLAY_PROFILE;
+    const unsigned count = nav->advanced ? ORACLES_DISPLAY_ROWS - ORACLES_DISPLAY_CORE : ORACLES_DISPLAY_ADVANCED + 1u;
+    const unsigned row = oracles_display_row_shown(nav, nav->row) ? nav->row : first;
     switch (action) {
-        case ORACLES_HOME_UP: nav->row = (row + ORACLES_DISPLAY_ROWS - 1u) % ORACLES_DISPLAY_ROWS; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_DOWN: nav->row = (row + 1u) % ORACLES_DISPLAY_ROWS; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_LEFT: return display_set(nav, row, display_value(nav, row) - 1);
+        case ORACLES_HOME_UP: nav->row = first + (row - first + count - 1u) % count; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_DOWN: nav->row = first + (row - first + 1u) % count; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_LEFT: return row == ORACLES_DISPLAY_ADVANCED ? ORACLES_HOME_STAY : display_set(nav, row, display_value(nav, row) - 1);
         case ORACLES_HOME_RIGHT:
-        case ORACLES_HOME_OK: return display_set(nav, row, display_value(nav, row) + 1);
+        case ORACLES_HOME_OK:
+            if (row == ORACLES_DISPLAY_ADVANCED) { display_advanced(nav, 1); return ORACLES_HOME_STAY; }
+            return display_set(nav, row, display_value(nav, row) + 1);
         case ORACLES_HOME_BACK:
+            if (nav->advanced) { display_advanced(nav, 0); return ORACLES_HOME_STAY; }
             /* Back to the menu Display was opened from, on Display. */
             nav->screen = nav->in_game ? ORACLES_SCREEN_PAUSE : ORACLES_SCREEN_HOME;
             nav->focus = nav->in_game ? 4 : 3;
@@ -345,7 +381,8 @@ OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction ac
 
 OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int option)
 {
-    if (row >= ORACLES_DISPLAY_ROWS) return ORACLES_HOME_STAY;
+    if (!oracles_display_row_shown(nav, row)) return ORACLES_HOME_STAY;
+    if (row == ORACLES_DISPLAY_ADVANCED) { display_advanced(nav, 1); return ORACLES_HOME_STAY; }
     nav->row = row;
     return option < 0 ? ORACLES_HOME_STAY : display_set(nav, row, option);
 }

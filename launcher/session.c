@@ -187,7 +187,8 @@ static oracles_host_pause_result session_pause(void *opaque)
     oracles_sdl_backend_pause_view(&s->backend, &window, &renderer, &frame, &width, &height);
     oracles_sdl_backend_suspend_audio(&s->backend);
     oracles_sdl_backend_hold(&s->backend, 1);
-    const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, (int)oracles_core_kind(s->core) };
+    const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, (int)oracles_core_kind(s->core),
+                                           s->ghosts };
     const OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
     if (result == ORACLES_PAUSE_RESUME) oracles_sdl_backend_hold(&s->backend, 0);   /* a pause that ends the session is past the last present */
     if (result == ORACLES_PAUSE_WINDOW_CLOSED) oracles_sdl_backend_set_window_closed(&s->backend);
@@ -505,6 +506,13 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         const int camera = o->camera_profile ? o->camera_profile : s->settings->camera;
         oracles_enhanced_view_set_camera_profile(s->view, (unsigned)camera);
         if (o->neighbour_objects) oracles_enhanced_view_set_neighbour_objects(s->view, 1);
+        /* The ghosts: the command line's, else the settings'; auto, two where four cores leave one to each besides the
+         * game's own threads (the sound, the display). */
+        const int ghosts = s->ghosts;
+        const int cores = SDL_GetNumLogicalCPUCores();
+        const int wanted = ghosts == 1 || ghosts == 2 ? ghosts : cores >= 4 ? 2 : 1;
+        fprintf(stderr, "oracles: neighbour ghosts: %d (%s, %d processor cores)\n", oracles_enhanced_view_set_ghosts(s->view, (unsigned)wanted),
+                ghosts == 1 || ghosts == 2 ? "chosen" : "auto", cores);
         fprintf(stderr, "oracles: Enhanced profile on screen (%ux%u): the wide world band, neighbours from the ghost instance with their objects%s, the framed fallback; F3 switches to the framed core; camera profile %d\n",
                 oracles_enhanced_view_width(s->view), oracles_enhanced_view_height(s->view), o->neighbour_objects ? "" : " off", camera);
     }
@@ -685,6 +693,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->colour_setting = settings->colour_correction;
     s->colour_applied = o->colour_option ? !strcmp(o->colour_option, "on") : settings->colour_correction;
     s->vsync = o->vsync_option ? o->vsync_option : settings->vsync;
+    s->ghosts = o->ghosts ? o->ghosts - 1 : settings->ghosts;
     s->record_path = o->record_path;
     s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim;
     s->continuous_transitions = o->continuous_transitions || o->continuous_swim;

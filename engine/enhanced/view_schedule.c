@@ -16,7 +16,7 @@ static int room_in_view(const OraclesEnhancedView *v, uint8_t room)
  * waits for him to be 16 px from where he stood. */
 static int entry_wanting(const OraclesEnhancedView *v, entry *e)
 {
-    if (!e || (e->valid && !e->refresh && !e->rerun)) return 0;
+    if (!e || (e->valid && !e->refresh && !e->rerun) || e->in_flight) return 0;   /* in flight: in another ghost */
     if (e->retry_when_link_moves && e->retry_after_fade && v->fade_effective == 0) { e->retry_when_link_moves = 0; e->retry_after_fade = 0; }
     if (e->retry_when_link_moves) {
         const int dx = v->observation.world.link_x - e->link_x, dy = v->observation.world.link_y - e->link_y;
@@ -31,7 +31,7 @@ static int entry_wanting(const OraclesEnhancedView *v, entry *e)
 /* A run from the live state, if it can be primed. */
 static int run_from_live(OraclesEnhancedView *v, entry *e, OraclesGhostDirection dir, int live_primeable)
 {
-    if (!live_primeable) return 0;
+    if (!live_primeable || e->in_flight) return 0;
     e->last_use = v->frame;
     if (oracles_core_save_state(v->core, v->snapshot, v->state_size) != 0) return 0;
     return ev_start_job(v, e, v->snapshot, v->state_size, dir, NULL);
@@ -546,6 +546,8 @@ static void keep_plan(OraclesEnhancedView *v, const run_plan *p)
  * passes over the same order: first the rooms the world band shows right now
  * (a black patch on screen), then the rest, so that a room Link walks toward
  * after a warp comes before a room two away. */
+static void schedule_idle(OraclesEnhancedView *v, run_plan *p, run_plan *q);
+
 void ev_update_neighbours(OraclesEnhancedView *v)
 {
     if (!v->ghost) return;
@@ -561,9 +563,11 @@ void ev_update_neighbours(OraclesEnhancedView *v)
         entry *e = &v->slots[i];
         if (e->used && e->valid && e->read_count > ENTRY_READS && !ev_entry_key_current(v, e, p->key, p->key_len, e->group, e->room)) ev_drop_entry(e);
     }
-    ev_advance_pending_run(v);
+    /* Each ghost's run filed, then each idle ghost given a pre-run while a room loads. */
+    for (unsigned l = 0; l < v->lane_count; l++) { ev_lane_serve(v, l); ev_advance_pending_run(v); }
     for (unsigned d = 0; d < 4; d++) v->shown_slot[d] = SLOTS;
-    ev_blind_prerun(v);
+    for (unsigned l = 0; l < v->lane_count; l++) { ev_lane_serve(v, l); ev_blind_prerun(v); }
+    ev_lane_serve(v, 0);
     if (!ev_on_map(v)) { v->keep_count = 0; return; }
     plan_runs(v, p, v->observer.ref_group, 0);
     /* Ages: the same place on the other side of the sea, planned too, so that
@@ -583,8 +587,20 @@ void ev_update_neighbours(OraclesEnhancedView *v)
         for (unsigned w = 0; w < p->wanted_count; w++) if (p->wanted[w] == c->room) { c->near = w < p->near_count; break; }
     }
     mark_shown_sides(v, p);
-    if (v->pending) return;
     p->live_primeable = v->observation.playing && oracles_ghost_primeable(v->guest, NULL);
+    /* Each idle ghost takes the next run of the order; the one in flight in
+     * another ghost is not wanted again (entry_wanting). */
+    for (unsigned l = 0; l < v->lane_count; l++) {
+        ev_lane_serve(v, l);
+        if (!v->pending) schedule_idle(v, p, q);
+    }
+    ev_lane_serve(v, 0);
+}
+
+/* The runs one idle ghost may start, in the order's passes: the band's
+ * rooms, the rest, the rooms behind a routed one, the other side of the sea. */
+static void schedule_idle(OraclesEnhancedView *v, run_plan *p, run_plan *q)
+{
     for (int visible_only = 1; visible_only >= 0; visible_only--)
         if (schedule_pass(v, p, visible_only)) return;
     /* Nothing else to run: the drawn-back band tries the rooms whose

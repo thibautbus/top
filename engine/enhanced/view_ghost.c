@@ -328,14 +328,41 @@ static void finish_routed_job(OraclesEnhancedView *v, entry *e, const OraclesGho
     accept_result(v, e, r);
 }
 
+/* The lane whose run the job fields are: its fields copied in, the lane
+ * served before stored back. */
+#define LANE_FIELDS(X) X(ghost) X(job) X(pending) X(pending_slot) X(pending_group) X(pending_room) X(pending_generation) \
+    X(pending_chained) X(pending_beside) X(pending_parent) X(pending_parent_room) X(pending_parent_accepted) X(pending_serial) X(pending_blind) \
+    X(pending_routed) X(pending_routed_from) X(pending_dir)
+void ev_lane_serve(OraclesEnhancedView *v, unsigned lane)
+{
+    if (lane == v->lane_now || lane >= v->lane_count) return;
+    struct ev_lane *out = &v->lanes[v->lane_now], *in = &v->lanes[lane];
+#define STORE(f) out->f = v->f;
+#define LOAD(f) v->f = in->f;
+    LANE_FIELDS(STORE)
+    memcpy(out->pending_killed_list, v->pending_killed_list, sizeof out->pending_killed_list);
+    LANE_FIELDS(LOAD)
+    memcpy(v->pending_killed_list, in->pending_killed_list, sizeof v->pending_killed_list);
+#undef STORE
+#undef LOAD
+    v->lane_now = lane;
+}
+
 /* The run in flight is over: its result goes to the slot it was started for,
  * unless the world moved on under it. */
 static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int rc)
 {
     v->pending = 0;
+    /* The run's own entry, by its serial: a slot dropped and taken again
+     * meanwhile (a routed direction asked again under another key, by the
+     * other ghost) has another run's, or none. */
+    entry *e = !v->pending_blind && v->pending_slot < v->slot_count ? &v->slots[v->pending_slot] : NULL;
+    const int own = e && e->run_serial == v->pending_serial;
+    if (own) e->in_flight = 0;
     if (v->pending_generation != v->generation) { v->stale++; return; }   /* the pipeline or a load changed everything */
+    if (e && !own) { v->stale++; return; }
     if (v->pending_blind && !file_blind_result(v, r, rc)) return;
-    entry *e = &v->slots[v->pending_slot];
+    e = &v->slots[v->pending_slot];
     if (v->pending_routed) {
         if (!e->used || !e->routed || e->group != v->pending_group
             || e->routed_from != v->pending_routed_from || e->routed_dir != (uint8_t)v->pending_dir) { v->stale++; return; }
@@ -345,7 +372,8 @@ static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int 
     if (!e->used || e->routed || e->group != v->pending_group || e->room != v->pending_room) { v->stale++; return; }   /* the slot was taken */
     if (v->pending_chained) {
         const entry *parent = &v->slots[v->pending_parent];
-        if (!parent->used || !parent->valid || parent->group != v->pending_group || parent->room != v->pending_parent_room) { v->stale++; return; }
+        if (!parent->used || !parent->valid || parent->group != v->pending_group || parent->room != v->pending_parent_room
+            || parent->accepted_at != v->pending_parent_accepted) { v->stale++; return; }   /* delivered again meanwhile, by another ghost */
     }
     const int delivered = rc == 1 && r->status == ORACLES_GHOST_OK && r->settled;
     if (delivered && !v->pending_chained && r->group == v->pending_group && r->room != v->pending_room
@@ -393,13 +421,14 @@ static void note_live_killed_list(OraclesEnhancedView *v)
 
 int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t size, OraclesGhostDirection dir, const entry *parent)
 {
+    if (e->in_flight) return 0;   /* the other ghost runs it (a parent run again for a room beyond): not a failure */
     hold_live_season(v);
     const int chained = parent != NULL;
     /* A run from the live state for the other side of the sea crosses it first. */
     const int across = !chained && v->level_change >= 0;
     oracles_ghost_set_level_change(v->ghost, across ? v->level_change : -1);
     int started;
-    if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, state, size, dir, 1, v->colours, &v->job) == 0;
+    if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, state, size, dir, 1, v->colours, v->job) == 0;
     /* In the thread the budget is the whole job's: a run across the surface plays its warp first, as a pre-run does. */
     else started = oracles_ghost_request_ex(v->ghost, state, size, dir, 1, v->colours, across ? GHOST_BLIND_SETTLE_FRAMES : GHOST_SETTLE_FRAMES) == 0;
     v->requested++;
@@ -408,14 +437,14 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
          * cannot be primed); threaded: the worker is busy.  Tried again later. */
         v->failed++;
         e->failed = 1; e->failed_at = v->frame;
-        if (v->sync_budget && v->job.status == ORACLES_GHOST_NOT_PRIMEABLE) {
+        if (v->sync_budget && v->job->status == ORACLES_GHOST_NOT_PRIMEABLE) {
             v->failure_reasons[0]++;
             const size_t used = strlen(v->failure_log);
             if (used + 40 < sizeof v->failure_log)
                 snprintf(v->failure_log + used, sizeof v->failure_log - used, "%s%u:%02x>%u:%02x!%s", used ? " " : "",
                          v->observer.ref_group, v->observer.ref_room, e->group, e->room, oracles_ghost_last_reason(v->ghost));
         }
-        else if (v->sync_budget && v->job.status == ORACLES_GHOST_LOAD_FAILED) v->failure_reasons[1]++;
+        else if (v->sync_budget && v->job->status == ORACLES_GHOST_LOAD_FAILED) v->failure_reasons[1]++;
         else v->failure_reasons[4]++;
         return 0;
     }
@@ -434,7 +463,10 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     v->pending_beside = 0;
     v->pending_parent = chained ? (unsigned)(parent - v->slots) : 0;
     v->pending_parent_room = chained ? parent->room : 0;
+    v->pending_parent_accepted = chained ? parent->accepted_at : 0;
     v->pending_blind = 0;
+    e->in_flight = 1;
+    e->run_serial = v->pending_serial = ++v->run_serials;
     v->pending_routed = e->routed;
     v->pending_routed_from = e->routed_from;
     v->pending_dir = dir;
@@ -462,7 +494,7 @@ void ev_blind_prerun(OraclesEnhancedView *v)
         if (v->observer.have_reference && v->observer.ref_room == ob->room) {
             if (!ev_room_toward(v, ob->room, dir, &target)) { v->blind_mask |= (uint8_t)(1u << dir); continue; }   /* the map's edge */
             const entry *e = ev_find_entry(v, ob->group, target);
-            if (e && e->valid) { v->blind_mask |= (uint8_t)(1u << dir); continue; }
+            if (e && (e->valid || e->in_flight)) { v->blind_mask |= (uint8_t)(1u << dir); continue; }
         }
         v->blind_mask |= (uint8_t)(1u << dir);
         if (oracles_core_save_state(v->core, v->snapshot, v->state_size) != 0) return;
@@ -471,13 +503,14 @@ void ev_blind_prerun(OraclesEnhancedView *v)
          * (checkRoomPackAfterWarp): it holds the one the ghost has once loaded, the game's. */
         oracles_ghost_set_held_season(v->ghost, oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) ? ORACLES_GHOST_HOLD_OWN : -1);
         oracles_ghost_set_level_change(v->ghost, -1);
-        if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, &v->job) == 0;
+        if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, v->job) == 0;
         else started = oracles_ghost_request_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, GHOST_BLIND_SETTLE_FRAMES) == 0;
         v->requested++;
         if (!started) { v->failed++; v->failure_reasons[4]++; return; }
         note_live_killed_list(v);
         v->pending = 1;
         v->pending_blind = 1;
+        v->pending_routed = 0;
         v->pending_dir = dir;
         v->pending_chained = 0;
         v->pending_beside = 0;
@@ -491,11 +524,11 @@ void ev_advance_pending_run(OraclesEnhancedView *v)
 {
     if (!v->pending) return;
     if (v->sync_budget) {
-        const int rc = oracles_ghost_step(v->ghost, v->sync_budget, v->pending_blind ? GHOST_BLIND_SETTLE_FRAMES : GHOST_SETTLE_FRAMES, &v->job);
-        if (rc != 0) finish_job(v, &v->job, rc);
+        const int rc = oracles_ghost_step(v->ghost, v->sync_budget, v->pending_blind ? GHOST_BLIND_SETTLE_FRAMES : GHOST_SETTLE_FRAMES, v->job);
+        if (rc != 0) finish_job(v, v->job, rc);
     } else {
-        const int polled = oracles_ghost_poll(v->ghost, &v->job);
-        if (polled == 1) finish_job(v, &v->job, 1);
-        else if (polled == -1) finish_job(v, &v->job, -1);
+        const int polled = oracles_ghost_poll(v->ghost, v->job);
+        if (polled == 1) finish_job(v, v->job, 1);
+        else if (polled == -1) finish_job(v, v->job, -1);
     }
 }

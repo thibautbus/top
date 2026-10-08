@@ -244,6 +244,26 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.aspect == ORACLES_ASPECT_AUTO);
+    /* The ghosts: auto at the first opening, a count written and read back, an unknown value auto. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.ghosts == 0);
+    write_text(path, "ghosts=1\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.ghosts == 1);
+    read_back.ghosts = 2;
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.ghosts == 2);
+    read_back.ghosts = 0;
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.ghosts == 0);
+    write_text(path, "ghosts=3\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.ghosts == 0);
     /* The game's menus: framed at the view's scale on a desktop (the tests' build), large written and read back. */
     oracles_settings_defaults(&read_back);
     CHECK(read_back.menus_large == 0);

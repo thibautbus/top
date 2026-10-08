@@ -188,6 +188,8 @@ typedef struct OraclesHomeDisplay {
     int colour;                 /* colour correction */
     int vsync;                  /* 0 auto, 1 on, 2 off */
     int core;                   /* 0 Accurate (SameBoy), 1 Fast (mGBA); in a game, the running game's, which does not change */
+    int workers;                /* the neighbour workers, the settings' ghosts=: 0 auto, 1, 2; in a game, the running game's */
+    int cores;                  /* the device's logical processor cores, which Auto's count follows */
     int screen_w, screen_h;     /* the display's size, for the sizes the page shows */
     int aspect;                 /* the settings' aspect= (an OraclesAspect): the shape of those sizes, the screen's when auto */
     int room_w, room_h;         /* the room a window has there: the usable area, less the title bar */
@@ -233,6 +235,7 @@ typedef struct OraclesHomeNav {
     OraclesHomeHero fan_pick;          /* ORACLES_HOME_HERO_FAN while the list shows */
     unsigned focus;
     unsigned row;                      /* the highlighted row of the game's page, or of Display */
+    int advanced;                      /* Display shows its Advanced rows in place of its own */
     OraclesHomeGame games[ORACLES_HOME_GAMES];   /* Ages, Seasons, the fan games */
     OraclesHomeDisplay display;
     OraclesHomeControls controls;

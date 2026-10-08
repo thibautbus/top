@@ -72,6 +72,10 @@ uint32_t oracles_enhanced_view_height(const OraclesEnhancedView *view);
 /* 0 (default): the ghost runs in a worker thread.  N > 0: the ghost runs
  * synchronously, N guest frames per composed frame (validation routes). */
 void oracles_enhanced_view_set_sync_budget(OraclesEnhancedView *view, unsigned frames_per_host_frame);
+/* Ghosts working at once, each on its own thread with its own run in flight (1 or 2), before the first composition and
+ * after set_sync_budget: a synchronous view keeps one.  Returns the count it has. */
+int oracles_enhanced_view_set_ghosts(OraclesEnhancedView *view, unsigned count);
+unsigned oracles_enhanced_view_ghosts(const OraclesEnhancedView *view);
 
 /* The camera's pinned configuration: 1 (dead zone of sixteen pixels) or 2
  * (a continuous, gentler follow).  Restarts the camera. */

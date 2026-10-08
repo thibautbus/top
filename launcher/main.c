@@ -95,6 +95,7 @@ static int usage(void)
                     "                           [--view near|medium|far]   (Enhanced: how much of the world it shows, in the screen's shape)\n"
                     "                           [--core sameboy|mgba]   (the core: Accurate, the reference, or Fast, lighter)\n"
                     "                           [--aspect auto|16:9|4:3]   (the view's shape: the screen's, or the one named)\n"
+                    "                           [--ghosts auto|1|2]   (Enhanced: the ghosts preparing the rooms around at once, for this run; auto: two on four processor threads or more)\n"
                     "                           [--mods DIR]...   (a mod in Lua, run during the game, --mods repeated for up to 8; its conversations hold the keys and draw over the screen)\n"
                     "                           [--start-at-house NAME]   (with --mods: every file of the save starts in front of the house NAME, or MOD/NAME)\n"
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
@@ -160,6 +161,11 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
             o->core = 0;
             for (int c = 0; c < 2; c++) if (!strcmp(name, oracles_settings_core_names[c])) o->core = c + 1;
             if (!o->core) return 1;
+        }
+        else if (!strcmp(argv[i], "--ghosts") && more) {
+            const char *name = argv[++i];
+            o->ghosts = !strcmp(name, "auto") ? 1 : !strcmp(name, "1") ? 2 : !strcmp(name, "2") ? 3 : 0;
+            if (!o->ghosts) return 1;
         }
         else if (!strcmp(argv[i], "--aspect") && more) {
             const char *name = argv[++i];

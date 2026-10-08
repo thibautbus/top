@@ -27,6 +27,7 @@ typedef struct OraclesPauseSession {
     /* The settings changed: the keys and the colour correction apply at once. */
     void (*settings_changed)(void *opaque);
     int core;   /* the running game's core, an OraclesCoreKind: Display shows it, dimmed */
+    int ghosts; /* the running game's neighbour workers, 0 auto, 1 or 2: Display shows them, dimmed */
 } OraclesPauseSession;
 
 typedef enum OraclesPauseResult {

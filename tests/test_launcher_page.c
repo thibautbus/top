@@ -385,6 +385,8 @@ static void navigation(void)
 static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
 {
     memset(t, 0, sizeof *t);
+    t->section = oracles_display_section(nav);
+    t->advanced = nav->advanced;
     t->over = oracles_home_over(oracles_home_hero(nav));
     t->title = oracles_home_title(oracles_home_hero(nav));
     for (int w = 0; w < 4; w++) oracles_display_window_texts(nav, w, t->window_names[w], t->window_sizes[w], sizeof t->window_sizes[w]);
@@ -395,7 +397,9 @@ static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
     t->explanations[1] = oracles_display_explanation(ORACLES_DISPLAY_TRANSITIONS);
     t->explanations[2] = oracles_display_explanation(ORACLES_DISPLAY_VSYNC);
     t->explanations[3] = oracles_display_explanation(ORACLES_DISPLAY_CORE);
+    t->explanations[4] = oracles_display_explanation(ORACLES_DISPLAY_WORKERS);
     t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
+    for (int i = 0; i < 3; i++) oracles_display_workers_choice(nav, i, t->workers_names[i], sizeof t->workers_names[i]);
     for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
     for (int v = 0; v < 3; v++) oracles_display_view_size(nav, v, t->view_sizes[v], sizeof t->view_sizes[v]);
     t->later = nav->in_game;
@@ -641,20 +645,14 @@ static void display_2a_2b(void)
     layout_box("2a", "transitions Off", &l.transitions[0].box);
     layout_box("2a", "transitions On", &l.transitions[1].box);
     layout_box("2a", "transitions row", &l.rows[ORACLES_DISPLAY_TRANSITIONS]);
-    /* Vsync, then Core last: its two cores, its explanation on two lines and its note on savestates. */
-    layout_text("2a", "Vsync", &l.labels[ORACLES_DISPLAY_VSYNC].lines[0]);
-    layout_text("2a", "vsync explanation", &l.explanations[2].lines[0]);
-    layout_box("2a", "vsync Auto", &l.vsync[0].box);
-    layout_box("2a", "vsync Off", &l.vsync[2].box);
-    CHECK(l.explanations[3].count == 2 && nav.display.core == 0);
-    layout_text("2a", "Core", &l.labels[ORACLES_DISPLAY_CORE].lines[0]);
-    layout_text("2a", "core explanation", &l.explanations[3].lines[0]);
-    layout_text("2a", "core note", &l.core_note);
-    layout_text("2a", "core 0", &l.core[0].name);
-    layout_text("2a", "core 1", &l.core[1].name);
-    layout_box("2a", "core Accurate", &l.core[0].box);
-    layout_box("2a", "core Fast", &l.core[1].box);
+    /* The transitions are the panel's last row; Advanced sits under the diagram, its highlight past its label on both
+     * sides; the Advanced rows are not laid out. */
     layout_box("2a", "panel", &l.panel);
+    layout_text("2a", "Advanced", &l.advanced_label);
+    layout_near("2a", "Advanced", "top", l.advanced_label.y);
+    layout_box("2a", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
+    CHECK(l.rows[ORACLES_DISPLAY_CORE].w == 0.0f && l.rows[ORACLES_DISPLAY_VSYNC].w == 0.0f && l.rows[ORACLES_DISPLAY_WORKERS].w == 0.0f);
+    CHECK(!strcmp(t.section, "Display"));
 
     /* 2g: opened from the game, a note under the title says what the next Play takes, once for the page; color
      * correction applies at once; the core is the game's, its row dimmed and inert. */
@@ -669,10 +667,10 @@ static void display_2a_2b(void)
     CHECK(l.explanations[0].count == 2);
     layout_near("2g", "transitions note", "top", l.transitions_note.y);
     layout_box("2g", "transitions Off", &l.transitions[0].box);
-    layout_box("2g", "vsync Auto", &l.vsync[0].box);
-    layout_text("2g", "core note", &l.core_note);
-    layout_box("2g", "core Fast", &l.core[1].box);
     layout_box("2g", "panel", &l.panel);
+    /* Advanced under the diagram, which the note moved down. */
+    layout_text("2g", "Advanced", &l.advanced_label);
+    layout_box("2g", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
     /* The panel ends above the pause's key hints, which start at 1025 in 1080p. */
     CHECK(l.panel.y + l.panel.h <= 1025.0f);
     nav.in_game = 0;
@@ -690,8 +688,7 @@ static void display_2a_2b(void)
     layout_text("2b", "window 2", &l.windows[2].name);
     layout_text("2b", "window 3", &l.windows[3].name);
     layout_box("2b", "transitions Off", &l.transitions[0].box);
-    layout_text("2b", "vsync explanation", &l.explanations[2].lines[0]);
-    layout_box("2b", "vsync Auto", &l.vsync[0].box);
+    layout_box("2b", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
     layout_box("2b", "panel", &l.panel);
 
     /* 2r: the medium view; Enhanced's size under its profile, the windows and the diagram follow it. */
@@ -743,6 +740,85 @@ static void display_2a_2b(void)
     layout_text("2s", "diagram label", &l.diagram_label);
 }
 
+/* The Advanced rows of a frame: Core with its two cores, its explanation on two lines and its note on savestates;
+ * Vsync; the neighbour workers, their label and explanation on two lines, Auto naming the two of an eight-core device. */
+static void display_advanced_rows(const char *frame, const OraclesUiDisplayTexts *t, const OraclesUiDisplayLayout *l)
+{
+    layout_text(frame, "section", &l->head.section);
+    CHECK(!strcmp(t->section, "Display \xe2\x80\xba Advanced"));
+    CHECK(l->rows[ORACLES_DISPLAY_PROFILE].w == 0.0f && l->rows[ORACLES_DISPLAY_TRANSITIONS].w == 0.0f && l->rows[ORACLES_DISPLAY_ADVANCED].w == 0.0f
+          && l->advanced_label.w == 0.0f);
+    CHECK(l->explanations[3].count == 2);
+    layout_text(frame, "Core", &l->labels[ORACLES_DISPLAY_CORE].lines[0]);
+    layout_text(frame, "core explanation", &l->explanations[3].lines[0]);
+    layout_near(frame, "core explanation", "width", l->explanations[3].w);
+    layout_text(frame, "core note", &l->core_note);
+    layout_text(frame, "core 0", &l->core[0].name);
+    layout_text(frame, "core 1", &l->core[1].name);
+    layout_box(frame, "core Accurate", &l->core[0].box);
+    layout_box(frame, "core Fast", &l->core[1].box);
+    layout_box(frame, "core row", &l->rows[ORACLES_DISPLAY_CORE]);
+    layout_text(frame, "Vsync", &l->labels[ORACLES_DISPLAY_VSYNC].lines[0]);
+    layout_text(frame, "vsync explanation", &l->explanations[2].lines[0]);
+    layout_box(frame, "vsync Auto", &l->vsync[0].box);
+    layout_box(frame, "vsync Off", &l->vsync[2].box);
+    layout_box(frame, "vsync row", &l->rows[ORACLES_DISPLAY_VSYNC]);
+    CHECK(l->labels[ORACLES_DISPLAY_WORKERS].count == 2 && l->explanations[4].count == 2);
+    layout_text(frame, "Neighbour workers", &l->labels[ORACLES_DISPLAY_WORKERS].lines[0]);
+    layout_near(frame, "Neighbour workers", "width", l->labels[ORACLES_DISPLAY_WORKERS].w);
+    layout_text(frame, "workers explanation", &l->explanations[4].lines[0]);
+    layout_near(frame, "workers explanation", "width", l->explanations[4].w);
+    CHECK(!strcmp(t->workers_names[0], "Auto \xc2\xb7 2") && !strcmp(t->workers_names[1], "1") && !strcmp(t->workers_names[2], "2"));
+    static const char *const workers[3] = { "Auto", "One", "Two" };
+    for (int i = 0; i < 3; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "workers %d", i); layout_text(frame, what, &l->workers[i].name);
+        snprintf(what, sizeof what, "workers %s", workers[i]); layout_box(frame, what, &l->workers[i].box);
+    }
+    layout_box(frame, "workers row", &l->rows[ORACLES_DISPLAY_WORKERS]);
+    layout_box(frame, "panel", &l->panel);
+}
+
+/* 9a: Display with Advanced highlighted; 9b: its Advanced rows from the home screen; 9c: from the game, the note under
+ * the title. */
+static void display_9a_9b_9c(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_1h(&nav.games[0]);
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.window = 2;
+    nav.display.cores = 8;
+    nav.row = ORACLES_DISPLAY_ADVANCED;
+    OraclesUiDisplayTexts t;
+    OraclesUiDisplayLayout l;
+    display_texts(&nav, &t);
+    oracles_ui_layout_display(&t, &l);
+    layout_text("9a", "Advanced", &l.advanced_label);
+    layout_box("9a", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
+    layout_text("9a", "diagram label", &l.diagram_label);
+
+    nav.advanced = 1;
+    nav.row = ORACLES_DISPLAY_CORE;
+    display_texts(&nav, &t);
+    oracles_ui_layout_display(&t, &l);
+    display_advanced_rows("9b", &t, &l);
+    layout_box("9b", "diagram", &l.diagram);
+    layout_text("9b", "diagram label", &l.diagram_label);
+
+    nav.in_game = 1;
+    display_texts(&nav, &t);
+    oracles_ui_layout_display(&t, &l);
+    display_advanced_rows("9c", &t, &l);
+    layout_text("9c", "page note", &l.page_note);
+    layout_box("9c", "diagram", &l.diagram);
+    /* Auto names the one worker of a device under four cores. */
+    nav.display.cores = 2;
+    display_texts(&nav, &t);
+    CHECK(!strcmp(t.workers_names[0], "Auto \xc2\xb7 1"));
+}
+
 static void display_navigation(void)
 {
     OraclesHomeNav nav;
@@ -776,19 +852,53 @@ static void display_navigation(void)
     nav.display.profile = ORACLES_PROFILE_FAITHFUL;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.transitions == 0);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TRANSITIONS, 1) == ORACLES_HOME_STAY);
+    /* Advanced after the transitions, last: left does nothing there, right and OK open its rows on Core.  Down from it
+     * wraps to Profile, up from Profile to it. */
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
-    CHECK(nav.row == ORACLES_DISPLAY_VSYNC && oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.vsync == 2);
-    /* Core under Vsync, last: the two cores by a key and by a click; from a game the core is the game's and does not
-     * change.  Seven rows: down from Core wraps to Profile. */
+    CHECK(nav.row == ORACLES_DISPLAY_ADVANCED && !nav.advanced);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STAY && !nav.advanced);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PROFILE);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_ADVANCED);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.advanced && nav.row == ORACLES_DISPLAY_CORE);
+    CHECK(!strcmp(oracles_display_section(&nav), "Display \xe2\x80\xba Advanced"));
+    /* Its rows: Core, Vsync, the workers, going round; Display's own are not there. */
+    CHECK(oracles_display_row_shown(&nav, ORACLES_DISPLAY_WORKERS) && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_PROFILE)
+          && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_ADVANCED));
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PROFILE, 0) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_WORKERS);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
+    /* The two cores by a key and by a click; from a game the core is the game's and does not change. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.core == 1);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_CORE, 0) == ORACLES_HOME_STORE && nav.display.core == 0);
     nav.in_game = 1;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.core == 0);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_CORE, 1) == ORACLES_HOME_STAY && nav.display.core == 0);
     nav.in_game = 0;
-    nav.row = ORACLES_DISPLAY_CORE;
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PROFILE);
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_VSYNC && oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.vsync == 2);
+    /* Vsync changes from a game too. */
+    nav.in_game = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.vsync == 0);
+    nav.in_game = 0;
+    /* The workers go round Auto, 1, 2, by a key and by a click; from a game they are the game's and do not change. */
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_WORKERS && nav.display.workers == 0);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.workers == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.display.workers == 0);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_WORKERS, 1) == ORACLES_HOME_STORE && nav.display.workers == 1);
+    nav.in_game = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.workers == 1);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_WORKERS, 2) == ORACLES_HOME_STAY && nav.display.workers == 1);
+    nav.in_game = 0;
+    /* Back closes them on Advanced; a click on Advanced opens them again, Back closes them. */
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_DISPLAY && !nav.advanced
+          && nav.row == ORACLES_DISPLAY_ADVANCED && !strcmp(oracles_display_section(&nav), "Display"));
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_ADVANCED, -1) == ORACLES_HOME_STAY && nav.advanced && nav.row == ORACLES_DISPLAY_CORE);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_VSYNC, -1) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_VSYNC);
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
+    CHECK(!nav.advanced && nav.row == ORACLES_DISPLAY_ADVANCED);
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_PROFILE);
     /* In Faithful, View does not change either, by a click as by a key. */
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_VIEW, 0) == ORACLES_HOME_STAY && nav.display.view == 1);
     /* A click on a choice sets it. */
@@ -798,6 +908,11 @@ static void display_navigation(void)
     oracles_home_act(&nav, ORACLES_HOME_UP);
     CHECK(nav.row == ORACLES_DISPLAY_PROFILE);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && oracles_home_focus(&nav) == 3);
+    /* Display opens on its own rows, whatever it was left on. */
+    nav.advanced = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_DISPLAY && !nav.advanced
+          && nav.row == ORACLES_DISPLAY_PROFILE);
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
     /* Display's sizes follow the display: fullscreen on a 2560x1440 screen is 10x Faithful. */
     nav.display.screen_w = 2560;
     nav.display.screen_h = 1440;
@@ -884,6 +999,7 @@ int main(int argc, char **argv)
     layout_fan_page(&kinomi_frames);
     navigation();
     display_2a_2b();
+    display_9a_9b_9c();
     display_2q();
     display_2m();
     long_paths();

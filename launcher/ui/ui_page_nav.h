@@ -12,11 +12,15 @@
  *
  * Display, for every game: the profile (Faithful or
  * Enhanced), the window (the profile's surface at 2x, 3x, 4x, or fullscreen
- * at the largest whole scale of the display), color correction, continuous
- * transitions (on by default, dimmed in Faithful), vsync.  No camera:
- * Enhanced takes the smooth one.  Left and right change the option of the
- * row, OK takes its next one.  The choices apply at the next Play; Back
- * returns to Display in the menu. */
+ * at the largest whole scale of the display), the view, color correction,
+ * continuous transitions (on by default, dimmed in Faithful), then Advanced
+ * under the diagram, which opens Display's Advanced rows in place of those:
+ * the core, vsync, the neighbour workers.  No camera: Enhanced takes the
+ * smooth one.  Left and right change the option of the row, OK takes its
+ * next one; on Advanced, OK and right open it.  The choices apply at the
+ * next Play; Back returns from the Advanced rows to Advanced, from Display
+ * to Display in the menu.  From a game the core and the workers are the
+ * game's, dimmed and inert. */
 #ifndef ORACLES_UI_PAGE_NAV_H
 #define ORACLES_UI_PAGE_NAV_H
 
@@ -73,16 +77,24 @@ void oracles_page_hover(OraclesHomeNav *nav, unsigned row);
 /* A click on a row. */
 OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row);
 
+/* Display's rows in the order of the keys: its own, Advanced last; then the Advanced rows, which show in their place. */
 typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PROFILE,
     ORACLES_DISPLAY_WINDOW,
     ORACLES_DISPLAY_VIEW,
     ORACLES_DISPLAY_COLOUR,
     ORACLES_DISPLAY_TRANSITIONS,
-    ORACLES_DISPLAY_VSYNC,
+    ORACLES_DISPLAY_ADVANCED,
     ORACLES_DISPLAY_CORE,
+    ORACLES_DISPLAY_VSYNC,
+    ORACLES_DISPLAY_WORKERS,
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
+
+/* The row shows: one of Display's own, or of the Advanced rows while they are open. */
+int oracles_display_row_shown(const OraclesHomeNav *nav, unsigned row);
+/* The workers Auto takes: two on a device of four processor cores or more, one otherwise, as the session counts them. */
+int oracles_display_auto_workers(const OraclesHomeNav *nav);
 
 /* Continuous transitions carry the Enhanced view: they apply in Enhanced only, as View does. */
 int oracles_display_transitions_apply(const OraclesHomeNav *nav);
@@ -113,10 +125,17 @@ extern const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS];
 extern const char *const oracles_display_colour_choices[2];
 extern const char *const oracles_display_vsync_choices[3];
 extern const char *const oracles_display_core_choices[2];   /* "Accurate (SameBoy)", "Fast (mGBA)": an OraclesCoreKind */
+/* The workers' choices: "Auto · 2" (the count Auto takes), "1", "2". */
+void oracles_display_workers_choice(const OraclesHomeNav *nav, int choice, char *out, size_t capacity);
+/* Display's section name: "Display", or "Display › Advanced" while the Advanced rows show. */
+const char *oracles_display_section(const OraclesHomeNav *nav);
+/* The core and the workers are fixed for a running game: from it their rows are dimmed and inert. */
+int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row);
 const char *oracles_display_explanation(unsigned row);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);
-/* A click on a row, or on one of its options (a profile, a window, Off/On, Auto/On/Off): `option` -1 for the row itself. */
+/* A click on a row, or on one of its options (a profile, a window, Off/On, Auto/On/Off): `option` -1 for the row itself;
+ * one on Advanced opens it. */
 OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int option);
 
 /* ---- Mods ------------------------------------------------------------------------

@@ -34,6 +34,7 @@ typedef struct OraclesSessionOptions {
     int view;                        /* the Enhanced view's level plus one (an OraclesEnhancedLevel; --view, Display's View); 0: far with zoom_out, else near */
     int screen_4_3;                  /* the view takes the 4:3 shape (oracles_session_view_4_3) */
     int aspect;                      /* --aspect: an OraclesAspect plus one, for the run, never stored; 0: the settings' */
+    int ghosts;                      /* --ghosts: auto, 1 or 2 as 1, 2 or 3, for the run, never stored; 0: the settings' ghosts= */
     int core;                        /* --core: an OraclesCoreKind plus one, for the run, never stored; 0: the settings' core= */
     int continuous_swim;             /* --continuous-swim: the transitions with Link swimming at the surface too (implies them) */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */

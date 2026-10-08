@@ -15,7 +15,7 @@ int harness_usage(void)
                     "                       [--keys-read FILE]   (the keys the game read in every frame, in a route's order, and whether it read them in that frame: tools/debounce_route.py)\n"
                     "                       [--render-check SAMPLES_DIR] [--render-expect CLASSES]   (native renderer against the core, samples written there; exit 1 on a mismatch, an empty expected class or a ceiling)\n"
                     "                       [--ghost-check DIR] [--ghost-lead FRAMES] [--ghost-threaded] [--ghost-trace] [--ghost-trace-load]   (ghost instance against every scrolling transition; the second trace counts the whole load's reads)\n"
-                    "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2] [--enhanced-neighbours off|static (static)]   (the Enhanced surface of every frame composed and hashed)\n"
+                    "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-ghosts 1|2 (with --enhanced-threaded)] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2] [--enhanced-neighbours off|static (static)]   (the Enhanced surface of every frame composed and hashed)\n"
                     "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, 480x360 with --aspect 4:3, as the launcher's --zoom-out; --view far)\n"
                     "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/PLAYING.md)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
@@ -80,6 +80,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--enhanced-ghost-budget") && i + 1 < argc) o->enhanced_budget = (unsigned)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-reload-at") && i + 1 < argc) o->enhanced_reload_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-threaded")) o->enhanced_threaded = 1;
+        else if (!strcmp(argv[i], "--enhanced-ghosts") && i + 1 < argc) o->enhanced_ghosts = (unsigned)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-paced")) o->enhanced_paced = 1;
         else if (!strcmp(argv[i], "--zoom-out")) { o->enhanced_zoom_out = 1; o->enhanced_level = 2; }
         else if (!strcmp(argv[i], "--view") && i + 1 < argc) {

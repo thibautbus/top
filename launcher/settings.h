@@ -67,6 +67,9 @@ typedef struct oracles_settings {
                                    * (ORACLES_DEFAULT_CORE) then playing, and the file holding no core= line */
     int menus_large;              /* menus=large|view: the game's menus, its map and its cutscenes, which the Enhanced view shows
                                    * framed, at their own largest whole scale (large) or the view's (view); large on Android */
+    int ghosts;                   /* ghosts=auto|1|2: the ghosts that prepare the rooms around, each on its own thread; 0 (auto, the
+                                   * default) two on a device of four processor threads or more, else one; Display's Neighbour
+                                   * workers, in its Advanced rows */
     int aspect;                   /* an OraclesAspect: aspect=auto|16:9|4:3, the view's shape: the screen's (auto, the default), or the one named; not in Display */
     OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */
     /* mods_ages=, mods_seasons=: the mods the game's Mods page made active, their names in order and separated by

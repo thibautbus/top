@@ -75,14 +75,17 @@ void oracles_ui_layout_game(OraclesUiGameTexts *texts, OraclesUiGameLayout *out)
 
 /* The texts of Display. */
 typedef struct OraclesUiDisplayTexts {
+    const char *section;                  /* "Display", or "Display › Advanced" */
+    int advanced;                         /* the Advanced rows in place of Display's own, and no Advanced under the diagram */
     const char *over, *title;           /* no state line: the profile is Display's first row */
     char window_names[4][32], window_sizes[4][48];
     const char *window_note;
     char window_reduced[ORACLES_HOME_TEXT_LENGTH];   /* empty when the window fits the screen */
     const char *profile_note;
     int later;                            /* opened from a game: the note under the title says what the next Play takes */
-    const char *explanations[4];          /* color correction, continuous transitions, vsync, core */
+    const char *explanations[5];          /* color correction, continuous transitions, vsync, core, the workers */
     const char *view_explanation;
+    char workers_names[3][16];            /* "Auto · 2", "1", "2" */
     char profile_sizes[ORACLES_PROFILES][24], view_sizes[3][24];   /* the sizes of the screen's shape, Enhanced's at the view chosen */
     float diagram_box_w;                  /* the diagram's box, the screen's shape at its height (0: 16:9's) */
     float diagram_w, diagram_h;           /* the window drawn in the diagram's box */
@@ -94,8 +97,12 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiBox diagram, diagram_window;
     OraclesUiLine diagram_label;
     OraclesUiBox panel;
-    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];   /* Profile, Window, View, Color correction, Continuous transitions, Vsync, Core */
+    /* Profile, Window, View, Color correction, Continuous transitions, or Core, Vsync, Neighbour workers; zero for the
+     * rows not shown.  Advanced is laid out under the diagram: its row is its own highlight, its label and arrow in it. */
+    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];
     OraclesUiBox rows[ORACLES_DISPLAY_ROWS];         /* each row's highlight, the pointer's target */
+    OraclesUiLine advanced_label;
+    OraclesUiBox advanced_arrow;                     /* a triangle pointing right, in this box */
     OraclesUiOptionLayout profiles[ORACLES_PROFILES];
     OraclesUiLine profile_note;
     OraclesUiOptionLayout windows[4];
@@ -105,8 +112,8 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiOptionLayout views[3];
     OraclesUiWrapped view_explanation;
     OraclesUiOptionLayout transitions[2];
-    OraclesUiWrapped explanations[4];
-    OraclesUiOptionLayout colour[2], vsync[3], core[2];
+    OraclesUiWrapped explanations[5];
+    OraclesUiOptionLayout colour[2], vsync[3], core[2], workers[3];
 } OraclesUiDisplayLayout;
 
 #define ORACLES_UI_DIAGRAM_W 432.0f

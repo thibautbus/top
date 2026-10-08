@@ -318,6 +318,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (slots && !o->hotkeys_live.mode && !oracles_hotkeys_slots_hotbar(&o->hotkeys_live, oracles_enhanced_check_view(r->enhanced))) { fprintf(stderr, "harness: a --hotkey-slot is not <b|a>:<item>:<variant or -->\n"); return 1; }
         oracles_enhanced_check_set_size(r->enhanced, oracles_enhanced_view_size((OraclesEnhancedLevel)o->enhanced_level, (OraclesEnhancedAspect)o->enhanced_aspect));
         oracles_enhanced_check_set_camera_profile(r->enhanced, o->enhanced_camera);
+        if (o->enhanced_ghosts > 1u) oracles_enhanced_view_set_ghosts(oracles_enhanced_check_view(r->enhanced), o->enhanced_ghosts);
         oracles_enhanced_check_set_paced(r->enhanced, o->enhanced_paced);
         if (o->enhanced_objects) oracles_enhanced_check_set_neighbour_objects(r->enhanced, 1);
         r->animation = oracles_animation_check_start(r->guest, rom, rom_size);

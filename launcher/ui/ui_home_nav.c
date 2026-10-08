@@ -238,7 +238,7 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
         case ORACLES_HOME_ITEM_START: return oracles_home_start_command(oracles_home_game(nav));
         case ORACLES_HOME_ITEM_EXIT: return ORACLES_HOME_EXIT;
         case ORACLES_HOME_ITEM_GAME: nav->screen = ORACLES_SCREEN_GAME; nav->row = 0; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_ITEM_DISPLAY: nav->screen = ORACLES_SCREEN_DISPLAY; nav->row = 0; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_ITEM_DISPLAY: nav->screen = ORACLES_SCREEN_DISPLAY; nav->row = 0; nav->advanced = 0; return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_CONTROLS: oracles_controls_open(nav); return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_MODS: nav->screen = ORACLES_SCREEN_MODS; nav->row = 0; return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_RESUME: return ORACLES_HOME_RESUME;

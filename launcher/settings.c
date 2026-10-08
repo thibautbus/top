@@ -140,6 +140,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->transitions = 1;
     s->view = 2;   /* far: the view drawn back, as Enhanced was before the levels */
     s->aspect = ORACLES_ASPECT_AUTO;
+    s->ghosts = 0;   /* auto */
 #ifdef __ANDROID__
     s->menus_large = 1;   /* a small screen: the framed core at the view's scale, often 1 or 2, is hard to read */
 #else
@@ -154,7 +155,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `ghosts=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
  * line was one of them.  A value the launcher does not know leaves the key's default. */
 static int load_launcher(oracles_settings *s, const char *name, const char *value)
 {
@@ -176,6 +177,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     }
     if (!strcmp(name, "menus")) {
         if (!strcmp(value, "large") || !strcmp(value, "view")) s->menus_large = !strcmp(value, "large");
+        return 1;
+    }
+    if (!strcmp(name, "ghosts")) {
+        if (!strcmp(value, "auto") || !strcmp(value, "1") || !strcmp(value, "2")) s->ghosts = !strcmp(value, "auto") ? 0 : value[0] - '0';
         return 1;
     }
     if (!strcmp(name, "aspect")) {
@@ -303,6 +308,9 @@ int oracles_settings_store(const oracles_settings *s)
     fprintf(f, "menus=%s\n", s->menus_large ? "large" : "view");
     fprintf(f, "# The view's shape: auto (the screen's, nearer 4:3 or 16:9), 16:9 or 4:3, whatever the screen.\n");
     fprintf(f, "aspect=%s\n", oracles_settings_aspect_names[s->aspect >= 0 && s->aspect < 3 ? s->aspect : 0]);
+    fprintf(f, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
+               "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
+    if (s->ghosts == 1 || s->ghosts == 2) fprintf(f, "ghosts=%d\n", s->ghosts); else fprintf(f, "ghosts=auto\n");
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
     fprintf(f, "launcher_window=%dx%d\n", s->launcher_width, s->launcher_height);
