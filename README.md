@@ -1,6 +1,6 @@
 # The Oracles Project
 
-A faithful, moddable port of Oracle of Ages and Oracle of Seasons for PC, macOS and Android. Your own ROM runs in an unmodified [SameBoy](https://sameboy.github.io/) core; around it, a native host observes the game and presents it:
+A faithful, moddable port of Oracle of Ages and Oracle of Seasons for PC, macOS and Android. Your own ROM runs in an emulator core, [SameBoy](https://sameboy.github.io/), unmodified, the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices (Display's Core); around it, a native host observes the game and presents it:
 
 - **Faithful**: the original image, 160x144, exactly what the game draws;
 - **Enhanced**: a widescreen view with the neighbouring rooms, which the game itself computes in a second instance of the core, a smooth camera, and the status bar repositioned in a band of its own;
@@ -64,7 +64,8 @@ This repository was developed with AI assistance. Every change, whoever writes i
 ## Credits
 
 - [oracles-disasm](https://github.com/Stewmath/oracles-disasm), the disassembly of both games by Stewmath and its contributors: the addresses and symbol names the host reads and hooks are generated from its symbol files.
-- [SameBoy](https://sameboy.github.io/) by Lior Halphon: the emulator core the game runs in, unmodified.
+- [SameBoy](https://sameboy.github.io/) by Lior Halphon: the emulator core the game runs in, unmodified, the accurate one.
+- [mGBA](https://mgba.io/) by Vicki Pfau and its contributors: the lighter core the game can run in, for small devices.
 - The fan games the port recognises, and their authors:
   - Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro;
   - Moonrise Regalia, by PontiusStone;
@@ -75,7 +76,7 @@ This repository was developed with AI assistance. Every change, whoever writes i
 The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries:
 
 - [SameBoy](third_party/sameboy/) (Expat/MIT), the emulator core;
-- [mGBA](third_party/mgba/)'s Game Boy core (Mozilla Public License 2.0), with one patch, and the [inih](third_party/mgba/core/src/third-party/inih/) it uses (BSD 3-Clause), a lighter emulator core, not used yet;
+- [mGBA](third_party/mgba/)'s Game Boy core (Mozilla Public License 2.0), with one patch, and the [inih](third_party/mgba/core/src/third-party/inih/) it uses (BSD 3-Clause), the lighter emulator core;
 - [Lua](third_party/lua/) (MIT), the mods' runtime;
 - [SDL 3](https://libsdl.org/) (zlib), built from the release pinned in `config/sdl3.json`;
 - [stb_truetype](third_party/stb/) (MIT or public domain) and [NanoSVG](third_party/nanosvg/) (zlib), the launcher's text and motifs;

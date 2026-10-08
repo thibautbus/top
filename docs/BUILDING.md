@@ -21,6 +21,7 @@ The launcher is `build/the-oracles-project`, the differential harness `build/ora
 | `ORACLES_BUILD_LAUNCHER` | `ON` | the SDL 3 launcher; `OFF` builds the core, the host, the harness and the tests only, without SDL |
 | `ORACLES_WARNINGS_AS_ERRORS` | `OFF` | warnings in the port's own code are errors (the CI sets it) |
 | `ORACLES_SDL3_FROM_SOURCE` | `OFF` | build the pinned SDL 3 even when one is installed |
+| `ORACLES_DEFAULT_CORE` | `sameboy`, `mgba` on Android | the core the games run on until the player chooses one in Display's Core (`core=` in the settings): `sameboy` (Accurate) or `mgba` (Fast); `android/build_apk.sh` builds on mGBA, and on SameBoy with `ORACLES_DEFAULT_CORE=sameboy` (`the-oracles-project-release-sameboy.apk`) |
 | `ORACLES_GIT_DESCRIBE` | empty | the commit description shown beside the version, for a copy of the sources without `.git` |
 | `BUILD_TESTING` | `ON` | the tests |
 
@@ -97,7 +98,7 @@ make check DISASM=/path/to/oracles-disasm ROM_AGES=/path/to/ages.gbc ROM_SEASONS
 
 ## Releasing
 
-The product's version is in `config/version.json`, the same on every platform, and changes only at a release. To release: change that file (`1.0.0` to `1.1.0`), commit, tag the commit `vX.Y.Z` and push the tag. A build of that commit shows `v1.1.0`; any other shows its commit's short hash beside it, `v1.1.0 (be8571e)`, and CMake warns when a release tag does not match the file. On Android the `versionCode` that decides updates follows it, `MAJOR x 10000 + MINOR x 100 + PATCH` (10000 for 1.0.0): a release installs over the one before, and builds between two releases over one another.
+The product's version is in `config/version.json`, the same on every platform, and changes only at a release. To release: change that file (`1.0.0` to `1.1.0`), commit, tag the commit `vX.Y.Z` and push the tag. A build of that commit shows `v1.1.0`; any other shows its commit's short hash beside it, `v1.1.0 (be8571e)`, and CMake warns when a release tag does not match the file. On Android the `versionCode` that decides updates follows it, `MAJOR x 10000 + MINOR x 100 + PATCH` plus one for the application on mGBA, Android's default (10001 for 1.0.0, 10000 for one built on SameBoy): a release installs over the one before, and builds between two releases over one another.
 
 Pushing the tag starts the `Release` workflow (`.github/workflows/release.yml`). It checks the tag against `config/version.json`, builds every platform in Release with warnings as errors (the tests are the CI's, run on the same commit), and publishes a GitHub Release of the tag with five files, which players download with their own ROM:
 

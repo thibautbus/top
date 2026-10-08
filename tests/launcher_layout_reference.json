@@ -2759,115 +2759,205 @@
     "w": 70.156,
     "h": 41
    },
+   "Core": {
+    "x": 689,
+    "w": 72.25,
+    "glyph_top": 886,
+    "glyph_h": 27,
+    "top": 886,
+    "h": 27,
+    "baseline": 907,
+    "width": 72.25,
+    "lines": 1
+   },
+   "core explanation": {
+    "x": 929,
+    "w": 419.813,
+    "glyph_top": 884,
+    "glyph_h": 24,
+    "top": 882,
+    "h": 29,
+    "baseline": 903,
+    "width": 419.813,
+    "lines": 2
+   },
+   "core note": {
+    "x": 929,
+    "w": 204.875,
+    "glyph_top": 944,
+    "glyph_h": 22,
+    "top": 942,
+    "h": 26,
+    "baseline": 962,
+    "width": 204.875,
+    "lines": 1
+   },
+   "core 0": {
+    "x": 1389.969,
+    "w": 225.844,
+    "glyph_top": 909.5,
+    "glyph_h": 31,
+    "top": 909.5,
+    "h": 31,
+    "baseline": 933.5,
+    "width": 225.844,
+    "lines": 1
+   },
+   "core 1": {
+    "x": 1657.813,
+    "w": 136.188,
+    "glyph_top": 909.5,
+    "glyph_h": 31,
+    "top": 909.5,
+    "h": 31,
+    "baseline": 933.5,
+    "width": 136.188,
+    "lines": 1
+   },
+   "core Accurate": {
+    "x": 1372.969,
+    "y": 904.5,
+    "w": 259.844,
+    "h": 41
+   },
+   "core Fast": {
+    "x": 1640.813,
+    "y": 904.5,
+    "w": 170.188,
+    "h": 41
+   },
    "panel": {
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 823
+    "h": 951
    }
   },
   "2g": {
-   "profile later": {
-    "x": 929,
-    "w": 186,
-    "glyph_top": 226,
+   "page note": {
+    "x": 96,
+    "w": 473.266,
+    "glyph_top": 329,
     "glyph_h": 22,
-    "top": 224,
+    "top": 327,
     "h": 26,
-    "baseline": 244,
-    "width": 186,
+    "baseline": 347,
+    "width": 473.266,
     "lines": 1
    },
    "Window row": {
     "x": 909,
-    "y": 278,
+    "y": 242,
     "w": 922,
-    "h": 228
-   },
-   "window later": {
-    "x": 929,
-    "w": 186,
-    "glyph_top": 468,
-    "glyph_h": 22,
-    "top": 466,
-    "h": 26,
-    "baseline": 486,
-    "width": 186,
-    "lines": 1
+    "h": 190
    },
    "View row": {
     "x": 909,
-    "y": 520,
+    "y": 446,
     "w": 922,
-    "h": 114
-   },
-   "view later": {
-    "x": 929,
-    "w": 186,
-    "glyph_top": 596,
-    "glyph_h": 22,
-    "top": 594,
-    "h": 26,
-    "baseline": 614,
-    "width": 186,
-    "lines": 1
+    "h": 97
    },
    "Color row": {
     "x": 909,
-    "y": 648,
+    "y": 557,
     "w": 922,
     "h": 86
    },
    "transitions note": {
     "x": 929,
     "w": 391.078,
-    "glyph_top": 824,
+    "glyph_top": 733,
     "glyph_h": 22,
-    "top": 822,
+    "top": 731,
     "h": 26,
-    "baseline": 842,
+    "baseline": 751,
     "width": 391.078,
-    "lines": 1
-   },
-   "transitions later": {
-    "x": 929,
-    "w": 186,
-    "glyph_top": 852,
-    "glyph_h": 22,
-    "top": 850,
-    "h": 26,
-    "baseline": 870,
-    "width": 186,
     "lines": 1
    },
    "transitions Off": {
     "x": 1664.484,
-    "y": 798.5,
+    "y": 693.5,
     "w": 70.156,
     "h": 41
    },
-   "vsync later": {
-    "x": 929,
-    "w": 186,
-    "glyph_top": 951,
-    "glyph_h": 22,
-    "top": 949,
-    "h": 26,
-    "baseline": 969,
-    "width": 186,
-    "lines": 1
-   },
    "vsync Auto": {
     "x": 1566.703,
-    "y": 926,
+    "y": 799,
     "w": 89.781,
+    "h": 41
+   },
+   "Core": {
+    "x": 689,
+    "w": 72.25,
+    "glyph_top": 886,
+    "glyph_h": 27,
+    "top": 886,
+    "h": 27,
+    "baseline": 907,
+    "width": 72.25,
+    "lines": 1
+   },
+   "core explanation": {
+    "x": 929,
+    "w": 419.813,
+    "glyph_top": 884,
+    "glyph_h": 24,
+    "top": 882,
+    "h": 29,
+    "baseline": 903,
+    "width": 419.813,
+    "lines": 2
+   },
+   "core note": {
+    "x": 929,
+    "w": 204.875,
+    "glyph_top": 944,
+    "glyph_h": 22,
+    "top": 942,
+    "h": 26,
+    "baseline": 962,
+    "width": 204.875,
+    "lines": 1
+   },
+   "core 0": {
+    "x": 1389.969,
+    "w": 225.844,
+    "glyph_top": 909.5,
+    "glyph_h": 31,
+    "top": 909.5,
+    "h": 31,
+    "baseline": 933.5,
+    "width": 225.844,
+    "lines": 1
+   },
+   "core 1": {
+    "x": 1657.813,
+    "w": 136.188,
+    "glyph_top": 909.5,
+    "glyph_h": 31,
+    "top": 909.5,
+    "h": 31,
+    "baseline": 933.5,
+    "width": 136.188,
+    "lines": 1
+   },
+   "core Accurate": {
+    "x": 1372.969,
+    "y": 904.5,
+    "w": 259.844,
+    "h": 41
+   },
+   "core Fast": {
+    "x": 1640.813,
+    "y": 904.5,
+    "w": 170.188,
     "h": 41
    },
    "panel": {
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 958
+    "h": 951
    }
   },
   "2r": {
@@ -3170,7 +3260,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 782
+    "h": 910
    }
   },
   "2q": {

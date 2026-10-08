@@ -38,6 +38,7 @@ typedef struct sdl_backend {
     SDL_Renderer *renderer;
     SDL_Texture *texture;
     int frame_width, frame_height;   /* the texture's: the session's surface */
+    int logical_w, logical_h;        /* the renderer's logical size: the surface's, or the part shown alone */
     int pause_menu;         /* Escape pauses rather than quits */
     int borrowed;           /* the window and the renderer are the launcher's: known from the start, never destroyed here */
     int subsystems;         /* the audio and controller subsystems a borrowed window started, to quit at the end */
@@ -316,6 +317,8 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     if (!backend->texture) return 0;
     backend->frame_width = (int)width;
     backend->frame_height = (int)height;
+    backend->logical_w = (int)width;
+    backend->logical_h = (int)height;
     SDL_SetTextureScaleMode(backend->texture, SDL_SCALEMODE_NEAREST);
     backend->controller = oracles_sdl_open_gamepad();
     if (!audio_enabled) return 1;
@@ -472,6 +475,11 @@ static void handle_event(sdl_backend *backend, const SDL_Event *e)
 {
     unsigned button;
     if (touch_event(backend, e)) return;
+    /* The window's focus and screen changes, said on the standard error: on a device of two screens, the input follows
+     * the screen that has the focus. */
+    if (e->type == SDL_EVENT_WINDOW_FOCUS_GAINED || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
+        fprintf(stderr, "oracles: game window: %s\n", e->type == SDL_EVENT_WINDOW_FOCUS_GAINED ? "focus gained"
+                : e->type == SDL_EVENT_WINDOW_FOCUS_LOST ? "focus lost" : "moved to another display");
     switch (e->type) {
         case SDL_EVENT_QUIT: backend->window_closed = 1; push_quit(backend); break;
         case SDL_EVENT_KEY_DOWN:
@@ -536,9 +544,18 @@ static int sdl_present_frame(void *opaque, const oracles_host_video_frame *frame
     sdl_backend *backend = opaque;
     if (frame->pitch_bytes > INT_MAX) return 0;
     if (!SDL_UpdateTexture(backend->texture, NULL, frame->pixels, (int)frame->pitch_bytes)) return 0;
-    if (!oracles_touch_sdl_frame(&backend->touch, backend->renderer, backend->texture)) {   /* the touch controls' own drawing */
+    /* A part shown alone (the game's menus enlarged) takes its own whole scale: the logical size follows it. */
+    const SDL_FRect part = { (float)frame->crop_x, (float)frame->crop_y, (float)frame->crop_w, (float)frame->crop_h };
+    const int cropped = frame->crop_w > 0 && frame->crop_h > 0;
+    const int logical_w = cropped ? (int)frame->crop_w : backend->frame_width, logical_h = cropped ? (int)frame->crop_h : backend->frame_height;
+    if (logical_w != backend->logical_w || logical_h != backend->logical_h) {
+        if (!backend->touch.direct) SDL_SetRenderLogicalPresentation(backend->renderer, logical_w, logical_h, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+        backend->logical_w = logical_w;
+        backend->logical_h = logical_h;
+    }
+    if (!oracles_touch_sdl_frame(&backend->touch, backend->renderer, backend->texture, cropped ? &part : NULL)) {   /* the touch controls' own drawing */
         if (!SDL_RenderClear(backend->renderer)) return 0;
-        if (!SDL_RenderTexture(backend->renderer, backend->texture, NULL, NULL)) return 0;
+        if (!SDL_RenderTexture(backend->renderer, backend->texture, cropped ? &part : NULL, NULL)) return 0;
     }
     const uint64_t present_started_ns = sdl_monotonic_ns(backend);
     SDL_RenderPresent(backend->renderer);

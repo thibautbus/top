@@ -173,15 +173,19 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row)
 
 /* ---- Display --------------------------------------------------------------------- */
 
-const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Window", "View", "Color correction", "Continuous transitions", "Vsync" };
+const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Window", "View", "Color correction", "Continuous transitions", "Vsync", "Core" };
 const char *const oracles_display_view_names[3] = { "Near", "Medium", "Far" };
 const char *const oracles_display_colour_choices[2] = { "Off", "On" };
 const char *const oracles_display_vsync_choices[3] = { "Auto", "On", "Off" };
+const char *const oracles_display_core_choices[2] = { "Accurate (SameBoy)", "Fast (mGBA)" };
 int oracles_display_transitions_apply(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
 
 int oracles_display_screen_4_3(const OraclesHomeNav *nav)
 {
-    /* As the host decides it (oracles_sdl_screen_4_3): the long side over the short one below the middle of 4:3 and 16:9. */
+    /* As the session decides it (oracles_session_view_4_3): the settings' shape, else the screen's, the long side over
+     * the short one below the middle of 4:3 and 16:9 (oracles_sdl_screen_4_3). */
+    if (nav->display.aspect == 2) return 1;   /* ORACLES_ASPECT_4_3 */
+    if (nav->display.aspect == 1) return 0;   /* ORACLES_ASPECT_16_9 */
     const int w = nav->display.screen_w, h = nav->display.screen_h;
     if (w <= 0 || h <= 0) return 0;
     const int long_side = w > h ? w : h, short_side = w > h ? h : w;
@@ -291,18 +295,21 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_COLOUR: return "On: colors as the Game Boy Color screen showed them. Off: the raw palette. Also F2 in game.";
         case ORACLES_DISPLAY_TRANSITIONS: return "Rooms scroll into one another instead of stopping at each edge, Link swimming too.";
         case ORACLES_DISPLAY_VSYNC: return "Auto: follows your display when it is close to 60 Hz.";
+        case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         default: return "";
     }
 }
 
-/* The value of a row, set to `value` (wrapped to the row's choices); the view and the transitions do not change in Faithful. */
+/* The value of a row, set to `value` (wrapped to the row's choices); the view and the transitions do not change in Faithful,
+ * nor the core in a game. */
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
-    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 3 };
+    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 3, 2 };
     int profile = (int)nav->display.profile;
     int *fields[ORACLES_DISPLAY_ROWS] = { &profile, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions,
-                                          &nav->display.vsync };
-    if (row >= ORACLES_DISPLAY_ROWS || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav)))
+                                          &nav->display.vsync, &nav->display.core };
+    if (row >= ORACLES_DISPLAY_ROWS || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
+        || (row == ORACLES_DISPLAY_CORE && nav->in_game))
         return ORACLES_HOME_STAY;
     value = (value % counts[row] + counts[row]) % counts[row];
     if (*fields[row] == value) return ORACLES_HOME_STAY;
@@ -314,7 +321,7 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
 static int display_value(const OraclesHomeNav *nav, unsigned row)
 {
     const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions,
-                                               nav->display.vsync };
+                                               nav->display.vsync, nav->display.core };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 

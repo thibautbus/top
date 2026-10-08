@@ -61,8 +61,10 @@ extern const OraclesUiTextStyle oracles_ui_row_label, oracles_ui_row_title, orac
 extern const OraclesUiTextStyle oracles_ui_row_status, oracles_ui_row_text, oracles_ui_row_note, oracles_ui_row_button;
 extern const OraclesUiTextStyle oracles_ui_option_name, oracles_ui_option_size, oracles_ui_choice, oracles_ui_play;
 
-/* The transitions' note on Display. */
-extern const char oracles_ui_transitions_note[];
+/* The transitions' and the core's notes on Display. */
+extern const char oracles_ui_transitions_note[], oracles_ui_core_note[];
+/* Under Display's title, opened from a game: what applies at once and what waits for the next session. */
+extern const char oracles_ui_display_later[];
 /* Under a row of Display opened from a game, what only the next session takes. */
 extern const char oracles_ui_later[];
 extern const char *const oracles_ui_transition_choices[2];
@@ -78,8 +80,8 @@ typedef struct OraclesUiDisplayTexts {
     const char *window_note;
     char window_reduced[ORACLES_HOME_TEXT_LENGTH];   /* empty when the window fits the screen */
     const char *profile_note;
-    int later;                            /* opened from a game: the rows the next Play takes say so */
-    const char *explanations[3];          /* color correction, continuous transitions, vsync */
+    int later;                            /* opened from a game: the note under the title says what the next Play takes */
+    const char *explanations[4];          /* color correction, continuous transitions, vsync, core */
     const char *view_explanation;
     char profile_sizes[ORACLES_PROFILES][24], view_sizes[3][24];   /* the sizes of the screen's shape, Enhanced's at the view chosen */
     float diagram_box_w;                  /* the diagram's box, the screen's shape at its height (0: 16:9's) */
@@ -92,19 +94,19 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiBox diagram, diagram_window;
     OraclesUiLine diagram_label;
     OraclesUiBox panel;
-    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];   /* Profile, Window, View, Color correction, Continuous transitions, Vsync */
+    OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];   /* Profile, Window, View, Color correction, Continuous transitions, Vsync, Core */
     OraclesUiBox rows[ORACLES_DISPLAY_ROWS];         /* each row's highlight, the pointer's target */
     OraclesUiOptionLayout profiles[ORACLES_PROFILES];
     OraclesUiLine profile_note;
     OraclesUiOptionLayout windows[4];
     OraclesUiLine window_note, window_reduced;
-    OraclesUiLine transitions_note;
-    OraclesUiLine profile_later, window_later, view_later, transitions_later, vsync_later;   /* zero unless `later` */
+    OraclesUiLine transitions_note, core_note;
+    OraclesUiLine page_note;                         /* under the title, zero unless `later` */
     OraclesUiOptionLayout views[3];
     OraclesUiWrapped view_explanation;
     OraclesUiOptionLayout transitions[2];
-    OraclesUiWrapped explanations[3];
-    OraclesUiOptionLayout colour[2], vsync[3];
+    OraclesUiWrapped explanations[4];
+    OraclesUiOptionLayout colour[2], vsync[3], core[2];
 } OraclesUiDisplayLayout;
 
 #define ORACLES_UI_DIAGRAM_W 432.0f

@@ -153,6 +153,17 @@ int oracles_state_mods_storage(const uint8_t *data, size_t size, const uint8_t *
     return 0;
 }
 
+int oracles_state_core_version(const uint8_t *data, size_t size, char *version, size_t capacity)
+{
+    const uint8_t *field = NULL;
+    size_t length = 0;
+    if (capacity) version[0] = 0;
+    if (peek_field(data, size, 0u, &field, &length) != 0 || length >= capacity) return -1;
+    if (length) memcpy(version, field, length);
+    version[length] = 0;
+    return 0;
+}
+
 int oracles_state_mods(const uint8_t *data, size_t size, char *mods, size_t capacity)
 {
     const uint8_t *field = NULL;

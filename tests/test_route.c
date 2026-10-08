@@ -121,6 +121,27 @@ int main(int argc, char **argv)
     fprintf(f, "oracles-route 2\ngame seasons\nrom_sha1 x\nsram_sha1 none\ncore joypad-bouncing-off-and-more\ninputs\n0 keys 00\n");
     fclose(f);
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
+    f = fopen(path, "w");
+    fprintf(f, "oracles-route 2\ngame seasons\nrom_sha1 x\nsram_sha1 none\ncore joypad-bouncing-off,mgba,gambatte\ninputs\n0 keys 00\n");
+    fclose(f);
+    CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
+    f = fopen(path, "w");   /* mgba alone would read as a route with joypad bouncing, which mGBA never had */
+    fprintf(f, "oracles-route 2\ngame seasons\nrom_sha1 x\nsram_sha1 none\ncore mgba\ninputs\n0 keys 00\n");
+    fclose(f);
+    CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
+    /* A route recorded on mGBA says so beside the joypad bouncing it never had; one without the word was SameBoy's. */
+    f = fopen(path, "w");
+    fprintf(f, "oracles-route 2\ngame seasons\nrom_sha1 x\nsram_sha1 none\ncore joypad-bouncing-off,mgba\ninputs\n0 keys 00\n");
+    fclose(f);
+    CHECK(oracles_route_read(path, &route, error, sizeof error) == 0);
+    CHECK(oracles_route_core_mgba(&route.header) && !oracles_route_joypad_bouncing(&route.header));
+    oracles_route_free(&route);
+    f = fopen(path, "w");
+    fprintf(f, "oracles-route 2\ngame seasons\nrom_sha1 x\nsram_sha1 none\ncore joypad-bouncing-off\ninputs\n0 keys 00\n");
+    fclose(f);
+    CHECK(oracles_route_read(path, &route, error, sizeof error) == 0);
+    CHECK(!oracles_route_core_mgba(&route.header) && !oracles_route_joypad_bouncing(&route.header));
+    oracles_route_free(&route);
     OraclesRouteHeader two = { "ages", "x", "none", "a-mod,continuous-transitions", "", "", "" };
     CHECK(oracles_route_has_option(&two, "a-mod") && oracles_route_has_option(&two, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS) && !oracles_route_has_option(&two, "mod"));
 

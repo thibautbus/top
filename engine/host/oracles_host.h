@@ -54,6 +54,9 @@ typedef struct oracles_host_video_frame {
     uint32_t width;
     uint32_t height;
     size_t pitch_bytes;
+    /* The part of the frame to show alone, at its own largest whole scale (the game's menus enlarged); crop_w 0: the
+     * whole frame. */
+    uint32_t crop_x, crop_y, crop_w, crop_h;
 } oracles_host_video_frame;
 
 typedef struct oracles_host_audio_chunk {
@@ -133,6 +136,10 @@ typedef struct oracles_host_run_config {
      * core's framebuffer (the native renderer). */
     const uint32_t *(*frame_source)(void *opaque);
     void *frame_source_opaque;
+    /* When set and it returns 1, the part of the frame the backend shows alone (x, y, width, height), at its own
+     * largest whole scale: the game's menus, which the Enhanced view shows framed, enlarged on a small screen. */
+    int (*frame_crop)(void *opaque, uint32_t rect[4]);
+    void *frame_crop_opaque;
     /* The surface the frame source fills; 0 means the core screen (160x144). */
     uint32_t frame_width, frame_height;
     /* Once the backend has started (its window is open and sized), before the first frame: what must be ready before

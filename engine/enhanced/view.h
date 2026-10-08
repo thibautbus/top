@@ -125,6 +125,9 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *view, Oracles
 
 /* The frame source signature the host expects (advances one frame). */
 const uint32_t *oracles_enhanced_view_frame_source(void *opaque);
+/* The host's frame crop (oracles_host_run_config): 1 when the last composition showed the core framed (the game's menus,
+ * its map, its cutscenes, or F3), with the core's 160x144 rectangle in the surface. */
+int oracles_enhanced_view_framed_crop(void *opaque, uint32_t rect[4]);
 /* The last composed surface, without advancing (a screenshot at exit). */
 const uint32_t *oracles_enhanced_view_surface(const OraclesEnhancedView *view);
 /* The observation of the last composed frame (Link's world position, the window). */

@@ -394,6 +394,7 @@ static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
     t->explanations[0] = oracles_display_explanation(ORACLES_DISPLAY_COLOUR);
     t->explanations[1] = oracles_display_explanation(ORACLES_DISPLAY_TRANSITIONS);
     t->explanations[2] = oracles_display_explanation(ORACLES_DISPLAY_VSYNC);
+    t->explanations[3] = oracles_display_explanation(ORACLES_DISPLAY_CORE);
     t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
     for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
     for (int v = 0; v < 3; v++) oracles_display_view_size(nav, v, t->view_sizes[v], sizeof t->view_sizes[v]);
@@ -640,31 +641,40 @@ static void display_2a_2b(void)
     layout_box("2a", "transitions Off", &l.transitions[0].box);
     layout_box("2a", "transitions On", &l.transitions[1].box);
     layout_box("2a", "transitions row", &l.rows[ORACLES_DISPLAY_TRANSITIONS]);
-    /* Vsync last. */
+    /* Vsync, then Core last: its two cores, its explanation on two lines and its note on savestates. */
     layout_text("2a", "Vsync", &l.labels[ORACLES_DISPLAY_VSYNC].lines[0]);
     layout_text("2a", "vsync explanation", &l.explanations[2].lines[0]);
     layout_box("2a", "vsync Auto", &l.vsync[0].box);
     layout_box("2a", "vsync Off", &l.vsync[2].box);
+    CHECK(l.explanations[3].count == 2 && nav.display.core == 0);
+    layout_text("2a", "Core", &l.labels[ORACLES_DISPLAY_CORE].lines[0]);
+    layout_text("2a", "core explanation", &l.explanations[3].lines[0]);
+    layout_text("2a", "core note", &l.core_note);
+    layout_text("2a", "core 0", &l.core[0].name);
+    layout_text("2a", "core 1", &l.core[1].name);
+    layout_box("2a", "core Accurate", &l.core[0].box);
+    layout_box("2a", "core Fast", &l.core[1].box);
     layout_box("2a", "panel", &l.panel);
 
-    /* 2g: opened from the game, the rows the next Play takes say so; color correction applies at once. */
+    /* 2g: opened from the game, a note under the title says what the next Play takes, once for the page; color
+     * correction applies at once; the core is the game's, its row dimmed and inert. */
     nav.in_game = 1;
     display_texts(&nav, &t);
     oracles_ui_layout_display(&t, &l);
-    layout_line_top("2g", "profile later", &l.profile_later);
+    layout_text("2g", "page note", &l.page_note);
     layout_near("2g", "Window row", "y", l.rows[ORACLES_DISPLAY_WINDOW].y);
-    layout_near("2g", "window later", "top", l.window_later.y);
     layout_near("2g", "View row", "y", l.rows[ORACLES_DISPLAY_VIEW].y);
     layout_near("2g", "View row", "h", l.rows[ORACLES_DISPLAY_VIEW].h);
-    layout_near("2g", "view later", "top", l.view_later.y);
     layout_near("2g", "Color row", "y", l.rows[ORACLES_DISPLAY_COLOUR].y);
     CHECK(l.explanations[0].count == 2);
     layout_near("2g", "transitions note", "top", l.transitions_note.y);
-    layout_near("2g", "transitions later", "top", l.transitions_later.y);
     layout_box("2g", "transitions Off", &l.transitions[0].box);
-    layout_near("2g", "vsync later", "top", l.vsync_later.y);
     layout_box("2g", "vsync Auto", &l.vsync[0].box);
+    layout_text("2g", "core note", &l.core_note);
+    layout_box("2g", "core Fast", &l.core[1].box);
     layout_box("2g", "panel", &l.panel);
+    /* The panel ends above the pause's key hints, which start at 1025 in 1080p. */
+    CHECK(l.panel.y + l.panel.h <= 1025.0f);
     nav.in_game = 0;
 
     /* 2b: Faithful; the window fullscreen, seven times on a 1080p screen, never reduced. */
@@ -700,7 +710,7 @@ static void display_2a_2b(void)
     }
     layout_box("2r", "diagram window", &l.diagram_window);
     layout_text("2r", "diagram label", &l.diagram_label);
-    /* 2s: the same on a 4:3 screen, which the mockup takes as 1440x1080: the view's 4:3 sizes, far keeping its 16:9
+    /* 2s: the same on a 4:3 screen, which the layout reference takes as 1440x1080: the view's 4:3 sizes, far keeping its 16:9
      * one, the windows counted in them, the diagram's box narrower. */
     nav.display.screen_w = 1440;
     nav.display.room_w = 1440;
@@ -708,6 +718,15 @@ static void display_2a_2b(void)
     display_texts(&nav, &t);
     oracles_ui_layout_display(&t, &l);
     CHECK(oracles_display_screen_4_3(&nav) && !strcmp(t.view_sizes[0], "213\xc3\x97" "160") && !strcmp(t.view_sizes[2], "480\xc3\x97" "270"));
+    /* The settings' aspect= names the shape whatever the screen: 16:9 on this 4:3 one, 4:3 on a 16:9 one. */
+    nav.display.aspect = 1;
+    CHECK(!oracles_display_screen_4_3(&nav));
+    nav.display.screen_w = 1920;
+    nav.display.aspect = 2;
+    CHECK(oracles_display_screen_4_3(&nav));
+    nav.display.aspect = 0;
+    CHECK(!oracles_display_screen_4_3(&nav));
+    nav.display.screen_w = 1440;
     layout_text("2s", "profile 1 size", &l.profiles[ORACLES_PROFILE_ENHANCED].size);
     for (int v = 0; v < 3; v++) {
         char what[32];
@@ -759,7 +778,16 @@ static void display_navigation(void)
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TRANSITIONS, 1) == ORACLES_HOME_STAY);
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_VSYNC && oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.vsync == 2);
-    /* Six rows: down from Vsync wraps to Profile. */
+    /* Core under Vsync, last: the two cores by a key and by a click; from a game the core is the game's and does not
+     * change.  Seven rows: down from Core wraps to Profile. */
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.core == 1);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_CORE, 0) == ORACLES_HOME_STORE && nav.display.core == 0);
+    nav.in_game = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.core == 0);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_CORE, 1) == ORACLES_HOME_STAY && nav.display.core == 0);
+    nav.in_game = 0;
+    nav.row = ORACLES_DISPLAY_CORE;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PROFILE);
     /* In Faithful, View does not change either, by a click as by a key. */
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_VIEW, 0) == ORACLES_HOME_STAY && nav.display.view == 1);

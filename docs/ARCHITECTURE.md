@@ -1,10 +1,10 @@
 # Architecture
 
-How the port is built: the layers, the rules between them, and why the game runs in an unmodified emulator core. The facts of the game's engine that the host relies on are in [`GAME_HOOKS.md`](GAME_HOOKS.md), the formats of its data in [`ROM_DATA_FORMATS.md`](ROM_DATA_FORMATS.md).
+How the port is built: the layers, the rules between them, and why the game runs in an emulator core, SameBoy unmodified or mGBA's with one patch. The facts of the game's engine that the host relies on are in [`GAME_HOOKS.md`](GAME_HOOKS.md), the formats of its data in [`ROM_DATA_FORMATS.md`](ROM_DATA_FORMATS.md).
 
 ## The SameBoy strategy
 
-The game runs unmodified in SameBoy, an emulator that aims at accuracy first. The Faithful profile is therefore exact by construction: it is the game, frame for frame, on the player's own ROM. Everything the port adds, the widescreen view, the camera, the options, the mods, is a host around that core that **observes** the game's state and presents it, instead of reimplementing the game's logic.
+The game runs unmodified in SameBoy, an emulator that aims at accuracy first. The Faithful profile on it is therefore exact by construction: it is the game, frame for frame, on the player's own ROM. The player may choose mGBA's Game Boy core instead (Display's Core, Fast), several times lighter, for small devices: every layer below runs on both cores through the same interface, SameBoy staying the reference, and the routes hold on both. Everything the port adds, the widescreen view, the camera, the options, the mods, is a host around that core that **observes** the game's state and presents it, instead of reimplementing the game's logic.
 
 The project's first chain took the other road: a static recompilation of the ROM into C. Such a chain needs a generation step per ROM, and to be correct it must reproduce the machine's timing anyway. The game's vblank handler works to a budget of cycles and its LCD interrupts fire per line: moving an interrupt by a few cycles changes what the handler finishes, and an interrupt that lands inside a replaced routine pushes different bytes on the stack. The recompiled code ends up as an unrolled interpreter around a complete emulator, with the same observables as an emulator and more moving parts: generation, patches, private build identities. With an accuracy-first core those observables come for free, and replacing a routine by native code is neither needed nor, for whole subsystems, even possible cycle for cycle: what the port keeps equal is the observable state of each frame.
 
@@ -19,6 +19,7 @@ the player's ROM (+ a fan game's BPS patch, + the mods' houses composed in memor
         |
         v
 SameBoy core, vendored, unmodified          <- runs the game; the only authority on gameplay
+  (or mGBA's Game Boy core, one patch)       <- the same, lighter, when the player chooses Fast
         |            |               |
    framebuffer   direct access    callbacks (vblank, memory write, execution)
         |            |               |
@@ -45,7 +46,7 @@ The tree:
 
 | Directory | What it holds |
 | --- | --- |
-| `engine/core`, `engine/rom` | the core's interface (`core.h`: memory, registers, hooks), its SameBoy implementation (`core_sameboy.c`, the only file that sees SameBoy), the free boot ROM and composite savestates; the ROM loader, SHA-1 identification and BPS patches |
+| `engine/core`, `engine/rom` | the core's interface (`core.h`: memory, registers, hooks), its SameBoy and mGBA implementations (`core_sameboy.c`, `core_mgba.c`, the only files that see each core), the free boot ROM and composite savestates; the ROM loader, SHA-1 identification and BPS patches |
 | `engine/game/guest` | the guest bus, the hooks, the register journal, the transactions, the fingerprints, the tables generated per game |
 | `engine/game/profiles` | the profiles of the recognised images, and each fan game's manifest and generated table |
 | `engine/game/data` | the ROM data readers and their oracle against the disassembly |
@@ -60,7 +61,7 @@ The tree:
 
 ## Principles
 
-- **The core is the only authority.** The game runs in SameBoy; the host reads the game's state and never reimplements its logic. What needs a computation of the game (a neighbour's terrain with its substitutions) is asked of the game itself, in a ghost instance.
+- **The core is the only authority.** The game runs in SameBoy, or in mGBA when the player chooses it; the host reads the game's state and never reimplements its logic. What needs a computation of the game (a neighbour's terrain with its substitutions) is asked of the game itself, in a ghost instance.
 - **Faithful depends on the core alone.** The renderer, the hooks and the mods are layers above; the Faithful profile shows the core's framebuffer and stays playable if everything else is absent or off.
 - **Reads by physical address, never through the guest CPU's bus.** The host reads the core's memory by bank and offset, through direct access; the CPU bus returns `$ff` on VRAM and OAM while the PPU draws and drops writes.
 - **The presentation never writes into the game.** Enhanced never changes the live instance, and the route suite compares the live-state fingerprints with and without the view on every route. The only guest writes are the three closed transactions of the bus, at the safe points of [`GAME_HOOKS.md`](GAME_HOOKS.md), section 6: the continuous transitions (with `--continuous-swim`, through a swim too), the item hotkeys, and the mods' calls to the game's own routines.
@@ -95,7 +96,7 @@ Each rendered room is a cache entry that stays valid while the bytes of the cach
 
 ## The Enhanced compositor
 
-`engine/enhanced` composes the wide surface: 256x144, or 480x270 in the drawn-back view (`--zoom-out`). A band of sixteen lines at the top holds the status bar copied from the core and centred; the world band below it holds the play area placed by a host camera in world coordinates, the neighbours from the ghost's cache around it. The camera is a smooth reducer (dead zone, bounded look-ahead, damping) fed from the guest bus with Link's world position; a second reducer drives the vertical axis. Large rooms (dungeons) are shown whole, centred; frames outside the world (menus, cutscenes, the file select) show the core's 160x144 image framed. Columns no terrain covers yet are black, never a wrong terrain.
+`engine/enhanced` composes the wide surface, the size of the view's level in the screen's shape (`compositor.h`): near 256x144, medium 384x216, far 480x270 (the drawn-back view, `--zoom-out`), or on a 4:3 screen near 213x160 and medium 320x240. A band of sixteen lines at the top holds the status bar copied from the core and centred; the world band below it holds the play area placed by a host camera in world coordinates, the neighbours from the ghost's cache around it. The camera is a smooth reducer (dead zone, bounded look-ahead, damping) fed from the guest bus with Link's world position; a second reducer drives the vertical axis. Large rooms (dungeons) are shown whole, centred; frames outside the world (menus, cutscenes, the file select) show the core's 160x144 image framed. Columns no terrain covers yet are black, never a wrong terrain.
 
 ## The neighbours' objects
 

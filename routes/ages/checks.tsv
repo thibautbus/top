@@ -65,3 +65,8 @@ swim.route	enhanced	--view medium --aspect 16:9	enhanced.camera_jumps=0;enhanced
 swim.route	enhanced-threaded	--view medium --aspect 16:9	-	-	-
 swim.route	enhanced	--view medium --aspect 4:3	enhanced.camera_jumps=0;enhanced.camera_jumps_y<=1;enhanced.link_jumps<=1;enhanced.link_jumps_y<=1;enhanced.ghost_failed<=6;enhanced.window_misplaced=0;enhanced.transitions_black=0;enhanced.handoff_jumps=0;enhanced.handoff_hole_frames=0;enhanced.handoff_unseen=0;enhanced.curtain_frames_wrong=0;enhanced.text_box_frames_wrong=0;animation.state_wrong=0;animation.copies_wrong=0;animation.read_failures=0;enhanced.coarse_drops=0;transitions.vblank_scroll_writes=0;transitions.vblank_other_writes=0;transitions.swim_taken>=22;enhanced.ghost_wrong_room=0;sameboy:enhanced.black_pixels_mean<=1095;mgba:enhanced.black_pixels_mean<=1095;sameboy:enhanced.drops<=33;mgba:enhanced.drops<=33	sameboy:de2081fd3f1aec43,mgba:ddd9cd6af5e9a982	-
 swim.route	enhanced-threaded	--view medium --aspect 4:3	-	-	-
+# save.route: the game's own save at the end of overworld.route, the same cartridge RAM on both cores (its SHA-1); load.route
+# opens that file, on mGBA compared room by room with SameBoy's replay (in room 104, where the file before the save opens
+# in 141).
+save.route	faithful	-	sram.sha1=fb747d0a739962a54fed9e7fa76e534292313322	-	-
+load.route	faithful	-	-	-	-

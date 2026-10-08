@@ -6,6 +6,7 @@
  * written. */
 #include "session.h"
 #include "settings.h"
+#include "core.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -228,6 +229,61 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.view == 2);
+    /* The view's shape: the screen's at the first opening, a shape written and read by its name, an unknown one auto. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.aspect == ORACLES_ASPECT_AUTO);
+    write_text(path, "aspect=4:3\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.aspect == ORACLES_ASPECT_4_3);
+    read_back.aspect = ORACLES_ASPECT_16_9;
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.aspect == ORACLES_ASPECT_16_9);
+    write_text(path, "aspect=21:9\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.aspect == ORACLES_ASPECT_AUTO);
+    /* The game's menus: framed at the view's scale on a desktop (the tests' build), large written and read back. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.menus_large == 0);
+    write_text(path, "menus=large\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menus_large == 1);
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menus_large == 1);
+    write_text(path, "menus=huge\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menus_large == 0);
+    /* The core: none chosen at the first opening, the build's default playing (SameBoy in the tests' build) and no core=
+     * line written, so that another build's default plays its own; a core chosen is written and read by its name; an
+     * unknown name leaves none chosen. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.core == -1 && oracles_settings_core(&read_back) == ORACLES_CORE_SAMEBOY);
+    oracles_settings_store(&read_back);
+    {
+        FILE *f = fopen(path, "r");
+        char line[512];
+        int core_line = 0;
+        while (f && fgets(line, sizeof line, f)) if (!strncmp(line, "core=", 5)) core_line = 1;
+        if (f) fclose(f);
+        CHECK(!core_line);
+    }
+    write_text(path, "core=mgba\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.core == ORACLES_CORE_MGBA && oracles_settings_core(&read_back) == ORACLES_CORE_MGBA);
+    read_back.core = ORACLES_CORE_SAMEBOY;
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.core == ORACLES_CORE_SAMEBOY);
+    write_text(path, "core=gambatte\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.core == -1 && oracles_settings_core(&read_back) == ORACLES_CORE_SAMEBOY);
     /* zoom-out is not a profile, and the per-game keys are not the launcher's: the defaults stay, and the next store
      * writes the global keys alone. */
     write_text(path, "profile=zoom-out\nprofile_ages=enhanced\ntransitions_ages=off\nprofile_seasons=enhanced\n");

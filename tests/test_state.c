@@ -89,6 +89,11 @@ static void check_core(OraclesCoreKind kind)
     CHECK(!strcmp(error, "the savestate was made with another set of mods and gameplay options (none, now demo-mod)"));
     char mods[32];
     CHECK(oracles_state_mods(state, state_size, mods, sizeof mods) == 0 && mods[0] == 0);
+    /* The core it was taken on, read without loading it: the launcher refuses another core's state by its name. */
+    char version[64];
+    CHECK(oracles_state_core_version(state, state_size, version, sizeof version) == 0 && !strcmp(version, oracles_core_version(core)));
+    CHECK(oracles_state_core_version(state, state_size, version, 4) == -1);   /* longer than the room given */
+    CHECK(oracles_state_core_version((const uint8_t *)"not a state", 11, version, sizeof version) == -1);
     {
         const OraclesStateInfo with_mod = { "ages", "0123456789abcdef0123456789abcdef01234567", "demo-mod", NULL, 0, NULL, 0 };
         uint8_t *modded = NULL;

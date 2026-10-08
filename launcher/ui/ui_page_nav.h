@@ -80,6 +80,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_COLOUR,
     ORACLES_DISPLAY_TRANSITIONS,
     ORACLES_DISPLAY_VSYNC,
+    ORACLES_DISPLAY_CORE,
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
@@ -111,6 +112,7 @@ const char *oracles_display_profile_note(const OraclesHomeNav *nav);
 extern const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS];
 extern const char *const oracles_display_colour_choices[2];
 extern const char *const oracles_display_vsync_choices[3];
+extern const char *const oracles_display_core_choices[2];   /* "Accurate (SameBoy)", "Fast (mGBA)": an OraclesCoreKind */
 const char *oracles_display_explanation(unsigned row);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);

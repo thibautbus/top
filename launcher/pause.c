@@ -282,6 +282,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     oracles_home_init(&p.nav);
     if (pause->host && pause->host->refresh) pause->host->refresh(pause->host->opaque, &p.nav, window);
     oracles_home_pause(&p.nav, pause->game, pause->playing, oracles_pause_narrow(out_w));
+    p.nav.display.core = session->core;
     load_note(&p);
     oracles_ui_home_start(&p.view, &p.nav);
     p.dirty = 1;

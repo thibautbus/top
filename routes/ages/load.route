@@ -1,0 +1,22 @@
+oracles-route 2
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 fb747d0a739962a54fed9e7fa76e534292313322
+core joypad-bouncing-off
+# Written by hand: the file save.route saved, opened by the same keys, and a few steps; on mGBA the suite compares the rooms
+# with SameBoy's replay, so that a save made on one core opens the same on the other.
+inputs
+0 keys 00
+490 keys 80
+496 keys 00
+529 keys 80
+537 keys 00
+642 keys 10
+653 keys 00
+677 keys 10
+686 keys 00
+900 keys 01
+960 keys 00
+1000 keys 08
+1060 keys 00
+1400 keys 00

@@ -14,8 +14,8 @@
 #     %LOCALAPPDATA%\oracles-android (updated in place, so that Gradle builds
 #     incrementally); the APK is copied back.
 #
-# ORACLES_DEFAULT_CORE=mgba builds the application on the lighter core (sameboy
-# when unset), its version code one more, its file named -mgba.
+# The application's default core is mGBA, the lighter (Display's Core lets the player choose SameBoy);
+# ORACLES_DEFAULT_CORE=sameboy builds one on SameBoy, to measure it, its version code one less, its file named -sameboy.
 #
 # The Android Gradle plugin installs the NDK and CMake the build names when the
 # SDK lacks them.
@@ -32,8 +32,8 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repository="$(cd "$here/.." && pwd)"
 describe="$(git -C "$repository" describe --tags --always --long --match "v[0-9]*" 2>/dev/null || true)"
 output="$here/build-apk"
-core="${ORACLES_DEFAULT_CORE:-sameboy}"
-case "$core" in sameboy) suffix="" ;; mgba) suffix="-mgba" ;; *) echo "ORACLES_DEFAULT_CORE is sameboy or mgba" >&2; exit 2 ;; esac
+core="${ORACLES_DEFAULT_CORE:-mgba}"
+case "$core" in sameboy) suffix="-sameboy" ;; mgba) suffix="" ;; *) echo "ORACLES_DEFAULT_CORE is sameboy or mgba" >&2; exit 2 ;; esac
 mkdir -p "$output"
 
 if [ -z "${ANDROID_HOME:-}" ] && grep -qi microsoft /proc/version 2>/dev/null; then

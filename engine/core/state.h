@@ -62,6 +62,9 @@ int oracles_state_host_state(const uint8_t *data, size_t size, const uint8_t **h
  * same way into `mods`: 0, or -1 for a state that is not one of this format
  * or a set longer than `capacity`. */
 int oracles_state_mods(const uint8_t *data, size_t size, char *mods, size_t capacity);
+/* The core version a savestate was taken on ("sameboy-1.0.3", "mgba-..."), read without loading it.  0, or -1 when
+ * the data is no savestate or the version does not fit. */
+int oracles_state_core_version(const uint8_t *data, size_t size, char *version, size_t capacity);
 
 /* The mods' storage of a composite savestate, read in place: 0 with `storage` pointing into `data` (NULL and 0 when
  * empty or absent), or -1 for a state that is not one of this format. */

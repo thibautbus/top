@@ -39,6 +39,7 @@ typedef struct home_app {
     int redraws;             /* frames still to draw whatever changed (Android: see ANDROID_REDRAWS) */
     int dialog_open;         /* the file dialog has not answered yet */
     int quit_after_dialog;   /* the window was closed meanwhile: zenity's dialog is not modal */
+    int inputs_reported;     /* after a game, the inputs said on the standard error so far (the first few) */
     double presented_ms;
 } home_app;
 
@@ -65,10 +66,29 @@ static void refresh(home_app *app)
 /* A size of the launcher, in points (settings.txt's), in the window's coordinates: pixels on Windows. */
 static int to_window(int points, float scale) { return (int)lroundf((float)points * scale); }
 
+/* What the window and the controllers are, said on the standard error: where the home screen stands after a game, so
+ * that a session report shows where the input goes (a device of two screens may give the input to the other one). */
+static void report_window(home_app *app, const char *when)
+{
+    const SDL_WindowFlags flags = SDL_GetWindowFlags(app->window);
+    int count = 0;
+    SDL_JoystickID *pads = SDL_GetGamepads(&count);
+    SDL_free(pads);
+    const char *name = app->controller ? SDL_GetGamepadName(app->controller) : NULL;
+    fprintf(stderr, "oracles: home screen %s: display %u, input focus %s, %s, %d controller(s), %s%s%s\n", when,
+            (unsigned)SDL_GetDisplayForWindow(app->window), (flags & SDL_WINDOW_INPUT_FOCUS) ? "yes" : "no",
+            (flags & SDL_WINDOW_FULLSCREEN) ? "fullscreen" : "windowed", count,
+            app->controller ? (SDL_GamepadConnected(app->controller) ? "the one taken connected" : "the one taken gone") : "none taken",
+            name ? ": " : "", name ? name : "");
+}
+
 /* The window as the launcher keeps it, after a game had it: its fullscreen state, its smallest and its own size.  SDL
- * 3 may apply them after the calls return: each is waited for before the window is read. */
+ * 3 may apply them after the calls return: each is waited for before the window is read.  Where the window is always
+ * fullscreen (Android), it is left as it is: the game kept it fullscreen, and asking again waits on the system for
+ * nothing. */
 static void restore_window(home_app *app)
 {
+    if (oracles_sdl_fullscreen_only()) { SDL_SetRenderVSync(app->renderer, 1); return; }
     const float scale = oracles_sdl_point_scale(app->window);
     SDL_SetWindowFullscreen(app->window, app->fullscreen != 0);
     SDL_SyncWindow(app->window);
@@ -99,6 +119,8 @@ static void start(home_app *app, OraclesHomeCommand game)
     app->nav.focus = 0;
     /* What the game left in the queue (the Escape that ended it) is not the home screen's. */
     SDL_FlushEvents(SDL_EVENT_KEY_DOWN, SDL_EVENT_GAMEPAD_REMAPPED);
+    report_window(app, "back from the game");
+    app->inputs_reported = 0;
     refresh(app);
     changed(app);
     if (message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
@@ -241,6 +263,17 @@ static void handle(home_app *app, const SDL_Event *e)
     if (app->dialog_open && input(e)) return;
     /* A cell of Controls that waits takes the next key or button, Escape included (it cancels). */
     if (oracles_home_capture(&app->nav, e, &captured)) { changed(app); command(app, captured); return; }
+    /* After a game, the first inputs the home screen gets, and its window's focus and screen changes: what a session
+     * report needs to tell input that stopped from input that went elsewhere. */
+    if (app->inputs_reported < 3 && (e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e->type == SDL_EVENT_FINGER_DOWN)) {
+        app->inputs_reported++;
+        fprintf(stderr, "oracles: home screen input: %s %d\n", e->type == SDL_EVENT_KEY_DOWN ? "key" : e->type == SDL_EVENT_FINGER_DOWN ? "finger" : "controller button",
+                e->type == SDL_EVENT_KEY_DOWN ? (int)e->key.key : e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN ? (int)e->gbutton.button : 0);
+    }
+    if (e->type == SDL_EVENT_WINDOW_FOCUS_GAINED || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED
+        || e->type == SDL_EVENT_WINDOW_HIDDEN || e->type == SDL_EVENT_WINDOW_SHOWN)
+        fprintf(stderr, "oracles: home screen window: %s\n", e->type == SDL_EVENT_WINDOW_FOCUS_GAINED ? "focus gained" : e->type == SDL_EVENT_WINDOW_FOCUS_LOST ? "focus lost"
+                : e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED ? "moved to another display" : e->type == SDL_EVENT_WINDOW_HIDDEN ? "hidden" : "shown");
     switch (e->type) {
         case SDL_EVENT_QUIT: app->running = 0; break;
         case SDL_EVENT_KEY_DOWN:

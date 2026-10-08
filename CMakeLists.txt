@@ -28,8 +28,14 @@ set(CMAKE_C_EXTENSIONS ON)
 
 option(ORACLES_WARNINGS_AS_ERRORS "Treat warnings in the engine's own code as errors" OFF)
 option(ORACLES_BUILD_LAUNCHER "Build the SDL 3 launcher" ON)
-# The core the launcher's games run on, until Display lets the player choose it: sameboy (accurate) or mgba (lighter).
-set(ORACLES_DEFAULT_CORE sameboy CACHE STRING "The core the launcher's games run on: sameboy or mgba")
+# The core the launcher's games run on until the player chooses one in Display: sameboy (accurate) on the desktops, mgba
+# (lighter) on Android, whose devices go down to small handhelds.
+if(ANDROID)
+    set(ORACLES_DEFAULT_CORE_FOR_PLATFORM mgba)
+else()
+    set(ORACLES_DEFAULT_CORE_FOR_PLATFORM sameboy)
+endif()
+set(ORACLES_DEFAULT_CORE ${ORACLES_DEFAULT_CORE_FOR_PLATFORM} CACHE STRING "The core the launcher's games run on until the player chooses one: sameboy or mgba")
 set_property(CACHE ORACLES_DEFAULT_CORE PROPERTY STRINGS sameboy mgba)
 if(NOT ORACLES_DEFAULT_CORE MATCHES "^(sameboy|mgba)$")
     message(FATAL_ERROR "ORACLES_DEFAULT_CORE is sameboy or mgba, not ${ORACLES_DEFAULT_CORE}")

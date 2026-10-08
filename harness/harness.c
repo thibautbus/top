@@ -451,7 +451,10 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
             if (oracles_mod_session_storage_open(r->mod, store, 0, error, sizeof error) != 0) { fprintf(stderr, "harness: %s: %s\n", store, error); free(rom); return 1; }
         }
     }
-    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction, (OraclesCoreKind)o->core_kind };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
+    if (oracles_route_read(o->route_path, &r->route, error, sizeof error) != 0) { fprintf(stderr, "harness: %s\n", error); free(rom); return 1; }
+    /* The core: --core's, else the one the route was recorded on. */
+    const OraclesCoreKind kind = o->core_given ? (OraclesCoreKind)o->core_kind : oracles_route_core_mgba(&r->route.header) ? ORACLES_CORE_MGBA : ORACLES_CORE_SAMEBOY;
+    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction, kind };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
     r->core = oracles_core_create(rom, rom_size, &options);
     r->profile = oracles_compat_find(&info);
     r->game = info.game;
@@ -462,7 +465,6 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
         free(rom);
         return 1;
     }
-    if (oracles_route_read(o->route_path, &r->route, error, sizeof error) != 0) { fprintf(stderr, "harness: %s\n", error); return 1; }
     if (strcmp(r->route.header.rom_sha1, info.sha1) != 0) { fprintf(stderr, "harness: the route was recorded with another ROM\n"); return 1; }
     /* A route recorded before the core's joypad bouncing was cut (the header's core line) ran with it and only replays with it. */
     if (oracles_route_joypad_bouncing(&r->route.header) && oracles_core_set_joypad_bouncing(r->core, 1) != 0)
@@ -522,7 +524,13 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     }
     if (o->hotkeys_live.mode) {
         if (!r->guest || o->hotkeys_dir || r->route.action_count) { fprintf(stderr, "harness: --hotkeys-live needs the hooks on, and a route without exchanges of its own\n"); return 1; }
-        r->hotkeys_live = oracles_hotkeys_live_start(r->guest, &o->hotkeys_live, &r->route.header);
+        /* The route it records says the core that ran, as the launcher's: mGBA's, or the replayed route's joypad bouncing. */
+        OraclesRouteHeader header = r->route.header;
+        if (oracles_core_kind(r->core) == ORACLES_CORE_MGBA)
+            snprintf(header.core, sizeof header.core, "%s,%s", ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF, ORACLES_ROUTE_CORE_MGBA);
+        else
+            snprintf(header.core, sizeof header.core, "%s", oracles_route_joypad_bouncing(&r->route.header) ? "" : ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF);
+        r->hotkeys_live = oracles_hotkeys_live_start(r->guest, &o->hotkeys_live, &header);
         if (!r->hotkeys_live) return 1;
     }
     /* A route's exchanges (format 2, the item hotkeys) are part of its replay: applied whenever the route has some. */
@@ -575,11 +583,29 @@ int main(int argc, char **argv)
     oracles_null_backend_init(&backend);
     oracles_host_run_report report;
     const int result = replay_route(&r, &o, &backend, &report);
+    /* The cartridge RAM at the end: its SHA-1 in the summary (a save the game made, the same on both cores), the bytes
+     * with --sram-out. */
+    int sram_failed = 0;
+    char sram_sha1[41] = "none";
+    {
+        const size_t size = oracles_core_sram_size(r.core);
+        uint8_t *sram = size ? malloc(size) : NULL;
+        if (sram && oracles_core_save_sram(r.core, sram, size) == 0) {
+            oracles_sha1_hex(sram, size, sram_sha1);
+            if (o.sram_out_path) {
+                FILE *f = fopen(o.sram_out_path, "wb");
+                if (!f || fwrite(sram, 1, size, f) != size) sram_failed = 1;
+                if (f && fclose(f) != 0) sram_failed = 1;
+            }
+        } else if (o.sram_out_path) sram_failed = 1;
+        if (sram_failed) fprintf(stderr, "harness: cannot write the cartridge RAM to %s\n", o.sram_out_path);
+        free(sram);
+    }
     FILE *summary = NULL;
     if (o.summary_path) {
         summary = fopen(o.summary_path, "w");
         if (!summary) fprintf(stderr, "harness: cannot write %s\n", o.summary_path);
-        else fprintf(summary, "frames=%u\nresult=%s\n", report.frames_presented, result == ORACLES_HOST_OK ? "ok" : "error");
+        else fprintf(summary, "frames=%u\nresult=%s\nsram.sha1=%s\n", report.frames_presented, result == ORACLES_HOST_OK ? "ok" : "error", sram_sha1);
     }
     const int renderer_failed = report_renderer(&r, &o, summary);
     const int verdict_failed = report_hotkeys(&r, summary) || renderer_failed;
@@ -590,5 +616,5 @@ int main(int argc, char **argv)
     oracles_null_backend_release(&backend);
     oracles_route_free(&r.route);
     oracles_core_destroy(r.core);
-    return result == ORACLES_HOST_OK && !verdict_failed ? 0 : 1;
+    return result == ORACLES_HOST_OK && !verdict_failed && !sram_failed ? 0 : 1;
 }

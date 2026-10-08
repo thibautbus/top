@@ -187,7 +187,9 @@ typedef struct OraclesHomeDisplay {
     int window;                 /* 0, 1, 2: the surface at 2x, 3x, 4x; 3: fullscreen */
     int colour;                 /* colour correction */
     int vsync;                  /* 0 auto, 1 on, 2 off */
+    int core;                   /* 0 Accurate (SameBoy), 1 Fast (mGBA); in a game, the running game's, which does not change */
     int screen_w, screen_h;     /* the display's size, for the sizes the page shows */
+    int aspect;                 /* the settings' aspect= (an OraclesAspect): the shape of those sizes, the screen's when auto */
     int room_w, room_h;         /* the room a window has there: the usable area, less the title bar */
 } OraclesHomeDisplay;
 

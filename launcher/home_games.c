@@ -155,6 +155,8 @@ static void inspect_display(const oracles_settings *settings, OraclesHomeDisplay
     display->profile = settings->profile;
     display->transitions = settings->transitions;
     display->view = settings->view;
+    display->aspect = settings->aspect;
+    display->core = oracles_settings_core(settings);
     display->window = settings->window_scale ? settings->window_scale - 2 : 3;
     display->colour = settings->colour_correction;
     display->vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
@@ -264,6 +266,9 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     prefs->profile = nav->display.profile;
     prefs->transitions = nav->display.transitions;
     prefs->view = nav->display.view;
+    /* The core is stored once the player chooses one other than the playing default; a game's core is its own, perhaps
+     * --core's, never stored. */
+    if (!nav->in_game && (prefs->core >= 0 || nav->display.core != oracles_settings_core(prefs))) prefs->core = nav->display.core;
     static const char *const vsync_names[3] = { "auto", "on", "off" };
     prefs->window_scale = nav->display.window < 3 ? nav->display.window + 2 : 0;
     prefs->colour_correction = nav->display.colour;
@@ -537,7 +542,7 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     }
     if (oracles_sdl_fullscreen_only()) o.sdl.fullscreen = 1;   /* Android: the whole screen, whatever Display says */
     /* The view's surface: its level in the screen's shape (as the session takes it). */
-    o.screen_4_3 = oracles_sdl_screen_4_3(window);
+    o.screen_4_3 = oracles_session_view_4_3(&o, games->settings, window);
     const OraclesEnhancedLevel level = o.view ? (OraclesEnhancedLevel)(o.view - 1) : o.zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
     const OraclesEnhancedSize surface = !o.enhanced ? (OraclesEnhancedSize){ 160u, 144u }
                                       : oracles_enhanced_view_size(level, o.screen_4_3 ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9);

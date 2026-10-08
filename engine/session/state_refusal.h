@@ -12,4 +12,10 @@
 int oracles_state_transitions_refusal(int taken_with_transitions, int enhanced, int transitions,
                                       char *message, size_t message_capacity, char *detail, size_t detail_capacity);
 
+/* 1 when a state taken on the core of version `taken_on` ("sameboy-1.0.3", "mgba-...") is refused by a session on the
+ * core of version `now` because they are not the same core: *message names the core it was taken on ("Refused: taken
+ * on Fast (mGBA)"), *detail the core to choose, in Display's Core or with --core.  0, both empty, for the same core
+ * (another version of it is refused by the load itself). */
+int oracles_state_core_refusal(const char *taken_on, const char *now, char *message, size_t message_capacity, char *detail, size_t detail_capacity);
+
 #endif

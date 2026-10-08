@@ -34,9 +34,11 @@ def fetchSdl3 = tasks.register("fetchSdl3") {
 
 // The commit the launcher shows beside the version (CMakeLists.txt): `git describe` of the repository, or
 // -PoraclesGitDescribe=... from a copy without git.
-// The core the games run on (CMakeLists.txt, ORACLES_DEFAULT_CORE): -PoraclesDefaultCore=mgba builds the lighter one.
-// Its version code is one more, so that it installs over the same commit's application built with SameBoy.
-def defaultCore = project.findProperty("oraclesDefaultCore") ?: "sameboy"
+// The core the games run on until the player chooses one in Display (CMakeLists.txt, ORACLES_DEFAULT_CORE): mGBA, the
+// lighter, on Android; -PoraclesDefaultCore=sameboy builds an application on SameBoy.  The application on mGBA has the
+// version code one more than the product's, so that it installs over the same commit's application built on SameBoy and
+// over the test builds on mGBA of version 1.0.0, which had it too.
+def defaultCore = project.findProperty("oraclesDefaultCore") ?: "mgba"
 if (!(defaultCore in ["sameboy", "mgba"])) {
     throw new GradleException("oraclesDefaultCore is sameboy or mgba, not ${defaultCore}")
 }

@@ -25,6 +25,8 @@ const OraclesUiTextStyle oracles_ui_diagram_label = { ORACLES_UI_FONT_SANS, 22.0
 const OraclesUiTextStyle oracles_ui_mod_games = { ORACLES_UI_FONT_SANS, 22.0f, 0.0f, 0 };
 
 const char oracles_ui_transitions_note[] = "A savestate taken with this on is refused with it off.";
+const char oracles_ui_core_note[] = "Save states keep their core.";
+const char oracles_ui_display_later[] = "Only color correction applies at once; the rest at the next Play.";
 const char oracles_ui_later[] = "Applies at the next Play.";
 const char *const oracles_ui_transition_choices[2] = { "Off", "On" };
 
@@ -72,6 +74,7 @@ const char *const oracles_ui_transition_choices[2] = { "Off", "On" };
 #define DISPLAY_ROW_PAD_Y 14.0f
 #define DISPLAY_WINDOW_GAP 12.0f     /* between the windows and their note */
 #define DIAGRAM_MARGIN 56.0f
+#define DISPLAY_PAGE_NOTE_GAP 20.0f   /* the note under Display's title, opened from a game */
 #define DIAGRAM_LABEL_GAP 12.0f
 #define DIAGRAM_BORDER 1.0f
 #define MODS_ROW_GAP 6.0f            /* between the list's rows, the count and the note */
@@ -430,7 +433,13 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
     memset(out, 0, sizeof *out);
     oracles_ui_layout_page_head("Display", t->over, t->title, NULL, &out->head);
     const float diagram_w = t->diagram_box_w > 0.0f ? t->diagram_box_w : ORACLES_UI_DIAGRAM_W;
-    out->diagram = box(HEAD_X, out->head.title.lines[0].y + out->head.title.h + DIAGRAM_MARGIN, diagram_w, ORACLES_UI_DIAGRAM_H);
+    float head_bottom = out->head.title.lines[0].y + out->head.title.h;
+    /* Opened from a game, under the title: what only the next session takes, said once for the page. */
+    if (t->later) {
+        out->page_note = line_at(&oracles_ui_row_note, oracles_ui_display_later, HEAD_X, head_bottom + DISPLAY_PAGE_NOTE_GAP, 0.0f);
+        head_bottom = out->page_note.y + out->page_note.h;
+    }
+    out->diagram = box(HEAD_X, head_bottom + DIAGRAM_MARGIN, diagram_w, ORACLES_UI_DIAGRAM_H);
     out->diagram_window = box(out->diagram.x + (diagram_w - t->diagram_w) * 0.5f, out->diagram.y + (ORACLES_UI_DIAGRAM_H - t->diagram_h) * 0.5f,
                               t->diagram_w, t->diagram_h);
     out->diagram_label = line_at(&oracles_ui_diagram_label, t->diagram_label, HEAD_X, out->diagram.y + out->diagram.h + DIAGRAM_LABEL_GAP, 0.0f);
@@ -449,11 +458,6 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
     float options_h = framed(oracles_profile_names, profile_sizes, ORACLES_PROFILES, inner_x, inner_y, out->profiles);
     out->profile_note = line_at(&oracles_ui_row_text, t->profile_note, inner_x, inner_y + options_h + PROFILE_NOTE_GAP, 0.0f);
     float bottom = out->profile_note.y + out->profile_note.h;
-    /* Opened from a game, what only the next session takes says so, under its row. */
-    if (t->later) {
-        out->profile_later = line_at(&oracles_ui_row_note, oracles_ui_later, inner_x, bottom + PROFILE_NOTE_GAP, 0.0f);
-        bottom = out->profile_later.y + out->profile_later.h;
-    }
     out->rows[ORACLES_DISPLAY_PROFILE] = box(value_x, y, value_w, bottom + DISPLAY_ROW_PAD_Y - y);
     y += out->rows[ORACLES_DISPLAY_PROFILE].h + DISPLAY_ROW_GAP;
 
@@ -470,33 +474,30 @@ void oracles_ui_layout_display(const OraclesUiDisplayTexts *t, OraclesUiDisplayL
         out->window_reduced = line_at(&oracles_ui_row_text, t->window_reduced, inner_x, bottom + DISPLAY_WINDOW_GAP, 0.0f);
         bottom = out->window_reduced.y + out->window_reduced.h;
     }
-    if (t->later) {
-        out->window_later = line_at(&oracles_ui_row_note, oracles_ui_later, inner_x, bottom + DISPLAY_WINDOW_GAP, 0.0f);
-        bottom = out->window_later.y + out->window_later.h;
-    }
     out->rows[ORACLES_DISPLAY_WINDOW] = box(value_x, y, value_w, bottom + DISPLAY_ROW_PAD_Y - y);
     y += out->rows[ORACLES_DISPLAY_WINDOW].h + DISPLAY_ROW_GAP;
 
-    /* View (each level with its size), color correction, continuous transitions (with the note on savestates), vsync: an
-     * explanation and choices. */
-    const char *const later_notes[1] = { oracles_ui_later };
-    const char *const transitions_notes[2] = { oracles_ui_transitions_note, oracles_ui_later };
-    OraclesUiLine *const view_out[1] = { &out->view_later }, *const vsync_out[1] = { &out->vsync_later };
-    OraclesUiLine *const transitions_out[2] = { &out->transitions_note, &out->transitions_later };
+    /* View (each level with its size), color correction, continuous transitions (with the note on savestates), vsync,
+     * core (with its note on savestates): an explanation and choices. */
+    const char *const transitions_notes[1] = { oracles_ui_transitions_note }, *const core_notes[1] = { oracles_ui_core_note };
+    OraclesUiLine *const transitions_out[1] = { &out->transitions_note }, *const core_out[1] = { &out->core_note };
     const char *view_sizes[3];
     for (int v = 0; v < 3; v++) view_sizes[v] = t->view_sizes[v];
-    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VIEW], left, t->view_explanation, later_notes, t->later ? 1 : 0,
-                     oracles_display_view_names, view_sizes, 3, &out->labels[ORACLES_DISPLAY_VIEW], &out->view_explanation, view_out, out->views,
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VIEW], left, t->view_explanation, NULL, 0,
+                     oracles_display_view_names, view_sizes, 3, &out->labels[ORACLES_DISPLAY_VIEW], &out->view_explanation, NULL, out->views,
                      &out->rows[ORACLES_DISPLAY_VIEW]) + DISPLAY_ROW_GAP;
     y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_COLOUR], left, t->explanations[0], NULL, 0, oracles_display_colour_choices,
                      NULL, 2, &out->labels[ORACLES_DISPLAY_COLOUR], &out->explanations[0], NULL, out->colour, &out->rows[ORACLES_DISPLAY_COLOUR])
          + DISPLAY_ROW_GAP;
-    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_TRANSITIONS], left, t->explanations[1], transitions_notes, t->later ? 2 : 1,
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_TRANSITIONS], left, t->explanations[1], transitions_notes, 1,
                      oracles_ui_transition_choices, NULL, 2, &out->labels[ORACLES_DISPLAY_TRANSITIONS], &out->explanations[1], transitions_out,
                      out->transitions, &out->rows[ORACLES_DISPLAY_TRANSITIONS]) + DISPLAY_ROW_GAP;
-    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VSYNC], left, t->explanations[2], later_notes, t->later ? 1 : 0,
-                     oracles_display_vsync_choices, NULL, 3, &out->labels[ORACLES_DISPLAY_VSYNC], &out->explanations[2], vsync_out, out->vsync,
-                     &out->rows[ORACLES_DISPLAY_VSYNC]);
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VSYNC], left, t->explanations[2], NULL, 0,
+                     oracles_display_vsync_choices, NULL, 3, &out->labels[ORACLES_DISPLAY_VSYNC], &out->explanations[2], NULL, out->vsync,
+                     &out->rows[ORACLES_DISPLAY_VSYNC]) + DISPLAY_ROW_GAP;
+    y += display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_CORE], left, t->explanations[3], core_notes, 1,
+                     oracles_display_core_choices, NULL, 2, &out->labels[ORACLES_DISPLAY_CORE], &out->explanations[3], core_out, out->core,
+                     &out->rows[ORACLES_DISPLAY_CORE]);
     out->panel = box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
 }
 

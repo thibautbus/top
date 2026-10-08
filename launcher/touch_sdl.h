@@ -6,6 +6,7 @@
 
 struct SDL_Renderer;
 struct SDL_Texture;
+struct SDL_FRect;
 union SDL_Event;
 
 /* The controls and how the game's frame is drawn once they showed: SDL's logical presentation draws the frame through
@@ -25,6 +26,6 @@ int oracles_touch_sdl_event(OraclesTouchScreen *screen, struct SDL_Renderer *ren
                             unsigned *buttons, int *pause);
 /* The game's frame, `frame`, drawn to the whole screen with the controls over it when they show: 1, from the first
  * touch of the session on.  0 before it, the caller drawing the frame through the logical presentation. */
-int oracles_touch_sdl_frame(OraclesTouchScreen *screen, struct SDL_Renderer *renderer, struct SDL_Texture *frame);
+int oracles_touch_sdl_frame(OraclesTouchScreen *screen, struct SDL_Renderer *renderer, struct SDL_Texture *frame, const struct SDL_FRect *part);
 
 #endif

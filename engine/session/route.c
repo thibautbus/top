@@ -138,8 +138,19 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
             }
             else if (strcmp(key, "core") == 0) {
                 /* How the core ran changes the game: a setting this reader does not know stops it, as an unknown verb does. */
-                if (strcmp(value, ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF) != 0) { set_error(error, error_capacity, "unknown core setting", number); goto fail; }
                 copy_field(route->header.core, sizeof route->header.core, value);
+                for (const char *p = route->header.core; *p;) {
+                    const size_t length = strcspn(p, ",");
+                    const int known = (length == strlen(ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF) && !memcmp(p, ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF, length))
+                                   || (length == strlen(ORACLES_ROUTE_CORE_MGBA) && !memcmp(p, ORACLES_ROUTE_CORE_MGBA, length));
+                    if (!known) { set_error(error, error_capacity, "unknown core setting", number); goto fail; }
+                    p += length + (p[length] == ',');
+                }
+                /* mGBA has no joypad bouncing: a route of it says so too, and one that does not is not of this format. */
+                if (oracles_route_core_mgba(&route->header) && oracles_route_joypad_bouncing(&route->header)) {
+                    set_error(error, error_capacity, "a core of mgba needs joypad-bouncing-off", number);
+                    goto fail;
+                }
             }
             /* other names are reserved for later formats and ignored */
             continue;
@@ -195,14 +206,10 @@ void oracles_route_free(OraclesRoute *route)
     memset(route, 0, sizeof *route);
 }
 
-int oracles_route_joypad_bouncing(const OraclesRouteHeader *header)
+/* Whether a comma-separated list holds `name`. */
+static int listed(const char *list, const char *name)
 {
-    return strcmp(header->core, ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF) != 0;
-}
-
-int oracles_route_has_option(const OraclesRouteHeader *header, const char *name)
-{
-    const char *p = header->options;
+    const char *p = list;
     const size_t n = strlen(name);
     while (*p) {
         const char *end = strchr(p, ',');
@@ -213,6 +220,10 @@ int oracles_route_has_option(const OraclesRouteHeader *header, const char *name)
     }
     return 0;
 }
+
+int oracles_route_has_option(const OraclesRouteHeader *header, const char *name) { return listed(header->options, name); }
+int oracles_route_joypad_bouncing(const OraclesRouteHeader *header) { return !listed(header->core, ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF); }
+int oracles_route_core_mgba(const OraclesRouteHeader *header) { return listed(header->core, ORACLES_ROUTE_CORE_MGBA); }
 
 size_t oracles_route_actions_at(const OraclesRoute *route, uint32_t frame, size_t *first)
 {

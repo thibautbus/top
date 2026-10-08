@@ -93,6 +93,8 @@ static int usage(void)
                     "                           [--continuous-swim]   (the continuous transitions with Link swimming at the surface too; implies --continuous-transitions)\n"
                     "                           [--zoom-out]   (Enhanced drawn back, 480x270, three rooms across outdoors; --fullscreen --scale 4 fills 1920x1080; --view far)\n"
                     "                           [--view near|medium|far]   (Enhanced: how much of the world it shows, in the screen's shape)\n"
+                    "                           [--core sameboy|mgba]   (the core: Accurate, the reference, or Fast, lighter)\n"
+                    "                           [--aspect auto|16:9|4:3]   (the view's shape: the screen's, or the one named; far keeps its 16:9)\n"
                     "                           [--mods DIR]...   (a mod in Lua, run during the game, --mods repeated for up to 8; its conversations hold the keys and draw over the screen)\n"
                     "                           [--start-at-house NAME]   (with --mods: every file of the save starts in front of the house NAME, or MOD/NAME)\n"
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
@@ -152,6 +154,18 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
             o->view = !strcmp(name, "near") ? 1 : !strcmp(name, "medium") ? 2 : !strcmp(name, "far") ? 3 : 0;
             if (!o->view) return 1;
             o->enhanced = 1;
+        }
+        else if (!strcmp(argv[i], "--core") && more) {
+            const char *name = argv[++i];
+            o->core = 0;
+            for (int c = 0; c < 2; c++) if (!strcmp(name, oracles_settings_core_names[c])) o->core = c + 1;
+            if (!o->core) return 1;
+        }
+        else if (!strcmp(argv[i], "--aspect") && more) {
+            const char *name = argv[++i];
+            o->aspect = 0;
+            for (int a = 0; a < 3; a++) if (!strcmp(name, oracles_settings_aspect_names[a])) o->aspect = a + 1;
+            if (!o->aspect) return 1;
         }
         else if (!strcmp(argv[i], "--mods") && i + 1 < argc) { if (o->mods_count == 8u) return 1; o->mods_dirs[o->mods_count++] = argv[++i]; }
         else if (!strcmp(argv[i], "--start-at-house") && more) o->start_house = argv[++i];
@@ -227,7 +241,7 @@ int main(int argc, char **argv)
         if (status) fprintf(stderr, "oracles: %s\n", error);
     } else if (options.rom_path) {
         oracles_settings_store(prefs); /* also writes the defaults the first time, so they can be edited */
-        if (options.enhanced && !options.no_window) options.screen_4_3 = oracles_sdl_screen_4_3(NULL);   /* the view's shape */
+        if (options.enhanced && !options.no_window) options.screen_4_3 = oracles_session_view_4_3(&options, prefs, NULL);   /* the view's shape */
         OraclesSessionResult result;
         status = oracles_session_run(&options, prefs, &result);
     } else {

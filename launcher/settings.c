@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#include "core.h"
+
 #include "hotkey_lines.h"
 #include "guest_tables.h"
 
@@ -14,6 +16,18 @@ static const char *const pad_setting_names[4] = { "a", "b", "select", "start" };
 static const char *const game_names[ORACLES_SETTINGS_GAMES] = { "ages", "seasons" };
 static const char *const profile_names[ORACLES_PROFILES] = { "faithful", "enhanced" };
 static const char *const view_names[3] = { "near", "medium", "far" };   /* OraclesEnhancedLevel's order */
+const char *const oracles_settings_core_names[2] = { "sameboy", "mgba" };   /* OraclesCoreKind's order */
+int oracles_settings_core(const oracles_settings *s)
+{
+    if (s->core == ORACLES_CORE_SAMEBOY || s->core == ORACLES_CORE_MGBA) return s->core;
+#ifdef ORACLES_DEFAULT_CORE_KIND
+    return ORACLES_DEFAULT_CORE_KIND;
+#else
+    return ORACLES_CORE_SAMEBOY;   /* a build that names none, as the tests' */
+#endif
+}
+
+const char *const oracles_settings_aspect_names[3] = { "auto", "16:9", "4:3" };   /* ORACLES_ASPECT_AUTO's order */
 /* The launcher window at its first opening. */
 #define LAUNCHER_WIDTH 1280
 #define LAUNCHER_HEIGHT 720
@@ -125,13 +139,22 @@ void oracles_settings_defaults(oracles_settings *s)
     s->profile = ORACLES_PROFILE_ENHANCED;
     s->transitions = 1;
     s->view = 2;   /* far: the view drawn back, as Enhanced was before the levels */
+    s->aspect = ORACLES_ASPECT_AUTO;
+#ifdef __ANDROID__
+    s->menus_large = 1;   /* a small screen: the framed core at the view's scale, often 1 or 2, is hard to read */
+#else
+    s->menus_large = 0;
+#endif
+    /* No core chosen: the build's default plays, and is not written, so that a build with another default (an update
+     * of the application, a build on the other core) plays its own. */
+    s->core = -1;
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
  * line was one of them.  A value the launcher does not know leaves the key's default. */
 static int load_launcher(oracles_settings *s, const char *name, const char *value)
 {
@@ -145,6 +168,18 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     }
     if (!strcmp(name, "view")) {
         for (int v = 0; v < 3; v++) if (!strcmp(value, view_names[v])) s->view = v;
+        return 1;
+    }
+    if (!strcmp(name, "core")) {
+        for (int c = 0; c < 2; c++) if (!strcmp(value, oracles_settings_core_names[c])) s->core = c;
+        return 1;
+    }
+    if (!strcmp(name, "menus")) {
+        if (!strcmp(value, "large") || !strcmp(value, "view")) s->menus_large = !strcmp(value, "large");
+        return 1;
+    }
+    if (!strcmp(name, "aspect")) {
+        for (int a = 0; a < 3; a++) if (!strcmp(value, oracles_settings_aspect_names[a])) s->aspect = a;
         return 1;
     }
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -259,6 +294,15 @@ int oracles_settings_store(const oracles_settings *s)
                "# the first opening.\n");
     fprintf(f, "profile=%s\n", profile_names[s->profile]);
     fprintf(f, "view=%s\n", view_names[s->view >= 0 && s->view < 3 ? s->view : 2]);
+    fprintf(f, "# The core the games run on: sameboy (Accurate, the reference) or mgba (Fast, lighter, for small devices);\n"
+               "# a savestate loads only on the core it was taken on.  Without a core= line, the application's default (%s).\n",
+            oracles_settings_core_names[oracles_settings_core(s)]);
+    if (s->core == ORACLES_CORE_SAMEBOY || s->core == ORACLES_CORE_MGBA) fprintf(f, "core=%s\n", oracles_settings_core_names[s->core]);
+    fprintf(f, "# The game's menus, its map and its cutscenes in Enhanced: large (at their own largest whole scale, as Faithful\n"
+               "# shows them) or view (framed at the view's scale).\n");
+    fprintf(f, "menus=%s\n", s->menus_large ? "large" : "view");
+    fprintf(f, "# The view's shape: auto (the screen's, nearer 4:3 or 16:9), 16:9 or 4:3, whatever the screen; far keeps its 16:9.\n");
+    fprintf(f, "aspect=%s\n", oracles_settings_aspect_names[s->aspect >= 0 && s->aspect < 3 ? s->aspect : 0]);
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
     fprintf(f, "launcher_window=%dx%d\n", s->launcher_width, s->launcher_height);

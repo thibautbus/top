@@ -18,7 +18,7 @@ typedef struct OraclesRouteHeader {
     char rom_sha1[41];
     char sram_sha1[41];   /* SHA-1 of the SRAM loaded before the run, or "none" */
     char options[64];     /* the gameplay options the session ran with, comma-separated ("continuous-transitions"); empty for none */
-    char core[48];        /* how the core ran, comma-separated ("joypad-bouncing-off"); empty in the routes recorded before the core's joypad bouncing was cut */
+    char core[48];        /* how the core ran, comma-separated ("joypad-bouncing-off", "mgba"); empty in the routes recorded before the core's joypad bouncing was cut */
     char mods[1024];      /* the mods the session ran, "NAME@SHA1,..." in the order of their names; empty for none */
     char store_sha1[41];  /* with mods: SHA-1 of the mods' storage the run starts from (ROUTE.store), or "none"; empty in routes before it */
 } OraclesRouteHeader;
@@ -31,6 +31,10 @@ int oracles_route_has_option(const OraclesRouteHeader *header, const char *name)
  * says `core joypad-bouncing-off`. */
 #define ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF "joypad-bouncing-off"
 int oracles_route_joypad_bouncing(const OraclesRouteHeader *header);
+/* A route recorded on mGBA says `core joypad-bouncing-off,mgba` (mGBA has no joypad bouncing): it replays on mGBA, one
+ * without it on SameBoy, the core it was recorded on, unless the replay names another. */
+#define ORACLES_ROUTE_CORE_MGBA "mgba"
+int oracles_route_core_mgba(const OraclesRouteHeader *header);
 
 typedef struct OraclesRouteEvent {
     uint32_t frame;

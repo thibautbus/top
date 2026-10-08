@@ -53,7 +53,10 @@ def recorded(route: Path) -> str:
     header = [line[len(RECORDED_HEADER):] for line in lines if line.startswith(RECORDED_HEADER)]
     inputs = [line[len(RECORDED):] for line in lines if line.startswith(RECORDED)]
     if not header:
-        if f"core {BOUNCING_OFF}" in lines:
+        core = [line[5:].split(",") for line in lines if line.startswith("core ")]
+        if any("mgba" in c for c in core):
+            sys.exit(f"debounce_route: {route} was recorded on mGBA, which has no joypad bouncing")
+        if any(BOUNCING_OFF in c for c in core):
             sys.exit(f"debounce_route: {route} was recorded without the bouncing")
         return "\n".join(lines)
     return "\n".join(header + ["inputs"] + inputs) + "\n"

@@ -32,7 +32,9 @@ typedef struct OraclesSessionOptions {
     int no_window, mute, diagnostics, native_renderer;
     int enhanced, zoom_out, continuous_transitions;
     int view;                        /* the Enhanced view's level plus one (an OraclesEnhancedLevel; --view, Display's View); 0: far with zoom_out, else near */
-    int screen_4_3;                  /* the screen is nearer 4:3 than 16:9: the view takes that shape */
+    int screen_4_3;                  /* the view takes the 4:3 shape (oracles_session_view_4_3) */
+    int aspect;                      /* --aspect: an OraclesAspect plus one, for the run, never stored; 0: the settings' */
+    int core;                        /* --core: an OraclesCoreKind plus one, for the run, never stored; 0: the settings' core= */
     int continuous_swim;             /* --continuous-swim: the transitions with Link swimming at the surface too (implies them) */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
     int camera_profile;              /* 0: the settings' camera; 1 or 2: this one for the session, not stored */
@@ -54,6 +56,9 @@ void oracles_session_defaults(OraclesSessionOptions *options);
 /* Plays the session with the player's settings, the options overriding them for the session alone; F2 changes and
  * stores the colour correction, the pause's Display and Controls the settings. Returns 0, or 1 on failure. */
 int oracles_session_run(const OraclesSessionOptions *options, oracles_settings *settings, OraclesSessionResult *result);
+/* Whether the view takes the 4:3 shape: the command line's --aspect, else the settings' aspect=, auto deciding by the
+ * screen of `window` (the primary display without one). */
+int oracles_session_view_4_3(const OraclesSessionOptions *options, const oracles_settings *settings, struct SDL_Window *window);
 
 /* The save file of a ROM: its path with the extension .sav. */
 void oracles_session_default_save_path(const char *rom_path, char *out, size_t capacity);

@@ -113,6 +113,16 @@ int oracles_session_load_state(session *s, char *message, size_t capacity)
         snprintf(message, capacity, "No savestate yet");
         return 0;
     }
+    /* A state taken on the other core is refused first, by the core's name: the core cannot read the other's state,
+     * and the player changes cores in Display (or with --core), not in a game.  Another version of the same core is
+     * refused by the load itself (oracles_state_deserialize). */
+    char taken_on[64], core_detail[320];
+    if (oracles_state_core_version(data, size, taken_on, sizeof taken_on) == 0
+        && oracles_state_core_refusal(taken_on, oracles_core_version(s->core), message, capacity, core_detail, sizeof core_detail)) {
+        fprintf(stderr, "oracles: %s\n", core_detail);
+        free(data);
+        return 0;
+    }
     /* A state taken with the transitions and loaded without them, or the other way round, or taken on the other
      * surface, is refused whole before the core is touched, with the options (and the launcher's choices) that
      * make each: a player of the launcher and one of the command line meet the same refusals. */

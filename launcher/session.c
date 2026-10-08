@@ -187,7 +187,7 @@ static oracles_host_pause_result session_pause(void *opaque)
     oracles_sdl_backend_pause_view(&s->backend, &window, &renderer, &frame, &width, &height);
     oracles_sdl_backend_suspend_audio(&s->backend);
     oracles_sdl_backend_hold(&s->backend, 1);
-    const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed };
+    const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, (int)oracles_core_kind(s->core) };
     const OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
     if (result == ORACLES_PAUSE_RESUME) oracles_sdl_backend_hold(&s->backend, 0);   /* a pause that ends the session is past the last present */
     if (result == ORACLES_PAUSE_WINDOW_CLOSED) oracles_sdl_backend_set_window_closed(&s->backend);
@@ -258,7 +258,19 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
         s->mod = oracles_mod_session_start(o->mods_dirs, o->mods_count, s->info.game, s->rom, s->rom_size, error, sizeof error);
         if (!s->mod || oracles_mod_session_compose(s->mod, oracles_rom_is_original(&s->info), &s->rom, &s->rom_size, error, sizeof error) != 0) return failed(result, "%s", error);
     }
-    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied, ORACLES_DEFAULT_CORE_KIND };
+    /* The command line's --core, else the core a replayed route was recorded on, else the settings' core= (Display's Core). */
+    OraclesCoreKind kind = o->core ? (OraclesCoreKind)(o->core - 1) : (OraclesCoreKind)oracles_settings_core(s->settings);
+    if (o->play_path && !o->core) {
+        OraclesRoute recorded;
+        char ignored[128];
+        if (oracles_route_read(o->play_path, &recorded, ignored, sizeof ignored) == 0) {
+            const OraclesCoreKind on = oracles_route_core_mgba(&recorded.header) ? ORACLES_CORE_MGBA : ORACLES_CORE_SAMEBOY;
+            if (on != kind) fprintf(stderr, "oracles: the route was recorded on %s: it replays on it\n", on == ORACLES_CORE_MGBA ? "mGBA" : "SameBoy");
+            kind = on;
+            oracles_route_free(&recorded);
+        }
+    }
+    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied, kind };
     s->core = oracles_core_create(s->rom, s->rom_size, &core_options);
     if (!s->core) return failed(result, "the core could not start");
     fprintf(stderr, "oracles: core %s\n", oracles_core_version(s->core));
@@ -382,8 +394,12 @@ static int record_route(session *s, const OraclesSessionOptions *o, OraclesSessi
         oracles_mod_session_file_sha1(path, header.store_sha1);
     }
     /* As every session runs, joypad bouncing off; an extension runs as the route it
-     * extends, whose replay keeps the joypad bouncing of a route recorded before. */
-    snprintf(header.core, sizeof header.core, "%s", o->play_path ? s->play.header.core : ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF);
+     * extends, whose replay keeps the joypad bouncing of a route recorded before.  A session on mGBA, which has no
+     * joypad bouncing, says so: its routes replay on mGBA. */
+    if (oracles_core_kind(s->core) == ORACLES_CORE_MGBA)
+        snprintf(header.core, sizeof header.core, "%s,%s", ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF, ORACLES_ROUTE_CORE_MGBA);
+    else
+        snprintf(header.core, sizeof header.core, "%s", o->play_path && oracles_route_joypad_bouncing(&s->play.header) ? "" : ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF);
     if (oracles_route_writer_open(&s->record, o->record_path, &header) != 0) return failed(result, "cannot write %s", o->record_path);
     if (s->mod) {
         char path[PATH_MAX_LENGTH + 16];
@@ -542,6 +558,8 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
     if (s->view) {
         config->frame_source = oracles_enhanced_view_frame_source;
         config->frame_source_opaque = s->view;
+        /* The game's menus enlarged: the framed core shown alone, at its own whole scale. */
+        if (s->settings->menus_large) { config->frame_crop = oracles_enhanced_view_framed_crop; config->frame_crop_opaque = s->view; }
         config->frame_width = oracles_enhanced_view_width(s->view);
         config->frame_height = oracles_enhanced_view_height(s->view);
     }
@@ -644,6 +662,12 @@ static void finish(session *s, const OraclesSessionOptions *o)
     if (s->backend_ready) { if (o->no_window) oracles_null_backend_release(&s->backend); else oracles_sdl_backend_release(&s->backend); }
     if (s->core) oracles_core_destroy(s->core);
     free(s->rom);
+}
+
+int oracles_session_view_4_3(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window)
+{
+    const int aspect = o->aspect ? o->aspect - 1 : settings->aspect;
+    return aspect == ORACLES_ASPECT_4_3 ? 1 : aspect == ORACLES_ASPECT_16_9 ? 0 : oracles_sdl_screen_4_3(window);
 }
 
 int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settings, OraclesSessionResult *result)

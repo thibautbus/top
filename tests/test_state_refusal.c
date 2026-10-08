@@ -1,5 +1,6 @@
 /* The refusal of a savestate whose continuous transitions differ from the session's, without a ROM: in Faithful, where
- * Display greys the transitions, it points to the profile; in Enhanced, to the transitions; a state that matches loads. */
+ * Display greys the transitions, it points to the profile; in Enhanced, to the transitions; a state that matches loads.
+ * And the refusal of a state taken on the other core, by its name. */
 #include "state_refusal.h"
 
 #include <stdio.h>
@@ -34,7 +35,17 @@ int main(void)
     CHECK(oracles_state_transitions_refusal(0, 1, 0, message, sizeof message, detail, sizeof detail) == 0);
     CHECK(oracles_state_transitions_refusal(0, 0, 0, message, sizeof message, detail, sizeof detail) == 0);
 
+    /* Taken on the other core: refused by the core's name, the core to choose said; the same core, another version
+     * included, passes (the load refuses another version itself). */
+    CHECK(oracles_state_core_refusal("mgba-c3c8e5e8", "sameboy-1.0.3", message, sizeof message, detail, sizeof detail) == 1);
+    CHECK(!strcmp(message, "Refused: taken on Fast (mGBA)"));
+    CHECK(strstr(detail, "choose Fast (mGBA) in Display's Core, or --core mgba") != NULL);
+    CHECK(oracles_state_core_refusal("sameboy-1.0.3", "mgba-c3c8e5e8", message, sizeof message, detail, sizeof detail) == 1);
+    CHECK(!strcmp(message, "Refused: taken on Accurate (SameBoy)") && strstr(detail, "--core sameboy"));
+    CHECK(oracles_state_core_refusal("sameboy-1.0.2", "sameboy-1.0.3", message, sizeof message, detail, sizeof detail) == 0 && !message[0] && !detail[0]);
+    CHECK(oracles_state_core_refusal("mgba-c3c8e5e8", "mgba-c3c8e5e8", message, sizeof message, detail, sizeof detail) == 0);
+
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
-    printf("state refusal: Faithful points to the profile, Enhanced to the transitions\n");
+    printf("state refusal: Faithful points to the profile, Enhanced to the transitions, another core to Display's Core\n");
     return 0;
 }

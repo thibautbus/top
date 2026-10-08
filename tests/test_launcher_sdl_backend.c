@@ -131,6 +131,30 @@ static void key(SDL_Keycode code)
     SDL_PushEvent(&e);
 }
 
+/* The game's menus enlarged: a frame of the view's 480x270 that names a part to show alone (the framed core, 160x144)
+ * takes that part's own logical size, so its own largest whole scale; the next whole frame takes the surface's again. */
+static void enlarged_menus(SDL_Window *window, SDL_Renderer *renderer)
+{
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
+    static uint32_t pixels[480 * 270];
+    if (backend.start(backend.opaque, 480, 270, 48000, 0)) {
+        int w = 0, h = 0;
+        oracles_host_video_frame frame = { pixels, 480, 270, 480 * sizeof(uint32_t), 160, 63, 160, 144 };
+        CHECK(backend.present_frame(backend.opaque, &frame));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, &w, &h, NULL) && w == 160 && h == 144);
+        frame.crop_w = frame.crop_h = 0;
+        CHECK(backend.present_frame(backend.opaque, &frame));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, &w, &h, NULL) && w == 480 && h == 270);
+    } else CHECK(0);
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
+}
+
 /* The touch controls in a session (asked here; on Android always): a finger presses and releases the game's buttons,
  * a cancelled one too; Back (AC_BACK) leaves them shown, a key of the game hides them and lets the d-pad go; the pause
  * asks for the pause menu; a finger held through a pause presses again as it moves.  And the frame they draw directly
@@ -439,6 +463,7 @@ int main(int argc, char **argv)
     unsigned south = 0, east = 0;
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
     touches(window, renderer);
+    enlarged_menus(window, renderer);
     face_buttons(window, renderer, 0, 0, NULL, &south, &east);
     CHECK(south == ORACLES_KEY_A && east == ORACLES_KEY_B);
     face_buttons(window, renderer, 0x057e, 0x2009, NULL, &south, &east);

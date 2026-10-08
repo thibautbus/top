@@ -24,6 +24,17 @@ typedef enum OraclesSettingsGame {
     ORACLES_SETTINGS_GAMES
 } OraclesSettingsGame;
 
+/* The Enhanced view's shape: the screen's, nearer 4:3 or 16:9 (auto), or the one named whatever the screen. */
+typedef enum OraclesAspect {
+    ORACLES_ASPECT_AUTO,
+    ORACLES_ASPECT_16_9,
+    ORACLES_ASPECT_4_3
+} OraclesAspect;
+/* Their names in settings.txt and on the command line: "auto", "16:9", "4:3". */
+extern const char *const oracles_settings_aspect_names[3];
+/* The cores' names in settings.txt and on the command line, by OraclesCoreKind: "sameboy", "mgba". */
+extern const char *const oracles_settings_core_names[2];
+
 
 
 typedef struct oracles_settings {
@@ -52,6 +63,11 @@ typedef struct oracles_settings {
     OraclesProfile profile;
     int transitions;
     int view;                     /* view=near|medium|far, Display's View in Enhanced: an OraclesEnhancedLevel, far by default */
+    int core;                     /* an OraclesCoreKind: core=sameboy|mgba, Display's Core; -1 until the player chooses one, the build's default
+                                   * (ORACLES_DEFAULT_CORE) then playing, and the file holding no core= line */
+    int menus_large;              /* menus=large|view: the game's menus, its map and its cutscenes, which the Enhanced view shows
+                                   * framed, at their own largest whole scale (large) or the view's (view); large on Android */
+    int aspect;                   /* an OraclesAspect: aspect=auto|16:9|4:3, the view's shape: the screen's (auto, the default), or the one named; not in Display */
     OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */
     /* mods_ages=, mods_seasons=: the mods the game's Mods page made active, their names in order and separated by
      * commas, eight at most; empty: none.  The Mods page's Play starts the game with them. */
@@ -64,6 +80,8 @@ void oracles_settings_defaults(oracles_settings *settings);
 void oracles_settings_load(oracles_settings *settings);
 /* Writes every setting through a temporary file renamed over settings.txt: 1 when done; 0 leaves the file as it was. */
 int oracles_settings_store(const oracles_settings *settings);
+/* The core the games run on: the one chosen, else the build's default. */
+int oracles_settings_core(const oracles_settings *settings);
 /* The names of settings.txt: "faithful", "enhanced", and the games' "ages", "seasons". */
 const char *oracles_settings_profile_name(OraclesProfile profile);
 const char *oracles_settings_game_name(OraclesSettingsGame game);

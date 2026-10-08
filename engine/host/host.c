@@ -311,10 +311,15 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
         }
 
         const uint64_t source_started_ns = frame_started_ns ? backend->monotonic_ns(backend->opaque) : 0;
-        const oracles_host_video_frame frame = {
+        oracles_host_video_frame frame = {
             config->frame_source ? config->frame_source(config->frame_source_opaque) : oracles_core_pixels(config->core),
-            frame_width, frame_height, frame_width * sizeof(uint32_t)
+            frame_width, frame_height, frame_width * sizeof(uint32_t), 0, 0, 0, 0
         };
+        uint32_t crop[4];
+        if (config->frame_crop && config->frame_crop(config->frame_crop_opaque, crop) && crop[2] && crop[3]
+            && crop[0] + crop[2] <= frame_width && crop[1] + crop[3] <= frame_height) {
+            frame.crop_x = crop[0]; frame.crop_y = crop[1]; frame.crop_w = crop[2]; frame.crop_h = crop[3];
+        }
         const uint64_t source_done_ns = frame_started_ns ? backend->monotonic_ns(backend->opaque) : 0;
         if (!backend->present_frame(backend->opaque, &frame)) {
             set_error(error, error_capacity, "backend frame presentation failed");
