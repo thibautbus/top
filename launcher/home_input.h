@@ -16,8 +16,5 @@ int oracles_home_button_action(const SDL_Event *event, OraclesHomeAction *action
  * did in *command (STORE when the cell took it); 0 when the event is not for the capture. */
 int oracles_home_capture(OraclesHomeNav *nav, const SDL_Event *event, OraclesHomeCommand *command);
 
-/* The gamepad the home screen reads: a handle whose device went away is closed (a session consumed its removal),
- * and without one the first gamepad plugged in is opened, one plugged in during the session included. */
-void oracles_home_take_controller(SDL_Gamepad **controller);
 
 #endif

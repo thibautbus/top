@@ -50,7 +50,7 @@ typedef struct sdl_backend {
     void *on_suspend_opaque;
     int suspended;   /* the watch saw a suspension, which the next poll hands to the host */
     SDL_AudioStream *audio;          /* bound to the device, which pulls from it */
-    SDL_Gamepad *controller;
+    OraclesSdlPads pads;               /* every gamepad plugged in (oracles_sdl_pads_open) */
     uint32_t sample_rate_hz;
     int audio_started;
     unsigned audio_underruns;
@@ -197,14 +197,49 @@ struct SDL_Renderer *oracles_sdl_create_renderer(struct SDL_Window *window, int 
     return renderer;
 }
 
-struct SDL_Gamepad *oracles_sdl_open_gamepad(void)
+static void pads_drop(OraclesSdlPads *pads, unsigned i)
 {
+    SDL_CloseGamepad(pads->pad[i]);
+    pads->pad[i] = pads->pad[--pads->count];
+    pads->pad[pads->count] = NULL;
+}
+
+static void pads_take(OraclesSdlPads *pads, SDL_JoystickID id)
+{
+    for (unsigned i = 0; i < pads->count; i++) if (SDL_GetGamepadID(pads->pad[i]) == id) return;
+    if (pads->count >= ORACLES_SDL_PADS) return;
+    SDL_Gamepad *pad = SDL_OpenGamepad(id);
+    if (pad) pads->pad[pads->count++] = pad;
+}
+
+void oracles_sdl_pads_open(OraclesSdlPads *pads)
+{
+    for (unsigned i = pads->count; i-- > 0;) if (!SDL_GamepadConnected(pads->pad[i])) pads_drop(pads, i);
     int count = 0;
-    SDL_JoystickID *pads = SDL_GetGamepads(&count);
-    SDL_Gamepad *gamepad = NULL;
-    for (int i = 0; i < count && !gamepad; i++) gamepad = SDL_OpenGamepad(pads[i]);
-    SDL_free(pads);
-    return gamepad;
+    SDL_JoystickID *ids = SDL_GetGamepads(&count);
+    for (int i = 0; i < count; i++) pads_take(pads, ids[i]);
+    SDL_free(ids);
+}
+
+void oracles_sdl_pads_event(OraclesSdlPads *pads, const SDL_Event *event)
+{
+    if (event->type == SDL_EVENT_GAMEPAD_ADDED) pads_take(pads, event->gdevice.which);
+    else if (event->type == SDL_EVENT_GAMEPAD_REMOVED)
+        for (unsigned i = 0; i < pads->count; i++) if (SDL_GetGamepadID(pads->pad[i]) == event->gdevice.which) { pads_drop(pads, i); break; }
+}
+
+void oracles_sdl_pads_close(OraclesSdlPads *pads)
+{
+    while (pads->count) pads_drop(pads, pads->count - 1u);
+}
+
+void oracles_sdl_pads_describe(const OraclesSdlPads *pads, char *out, size_t capacity)
+{
+    size_t used = (size_t)snprintf(out, capacity, "%u open", pads->count);
+    for (unsigned i = 0; i < pads->count && used < capacity; i++) {
+        const char *name = SDL_GetGamepadName(pads->pad[i]);
+        used += (size_t)snprintf(out + used, capacity - used, "%s%s", i ? ", " : ": ", name ? name : "unnamed");
+    }
 }
 
 int oracles_sdl_pad_button(const SDL_Event *event)
@@ -323,7 +358,12 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     backend->logical_w = (int)width;
     backend->logical_h = (int)height;
     SDL_SetTextureScaleMode(backend->texture, SDL_SCALEMODE_NEAREST);
-    backend->controller = oracles_sdl_open_gamepad();
+    oracles_sdl_pads_open(&backend->pads);
+    {
+        char pads[256];
+        oracles_sdl_pads_describe(&backend->pads, pads, sizeof pads);
+        fprintf(stderr, "oracles: game controllers: %s\n", pads);
+    }
     if (!audio_enabled) return 1;
     /* The device's buffer SDL 2 was asked for, 512 frames; the stream converts to what the device plays. */
     SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "512");
@@ -513,13 +553,8 @@ static void handle_event(sdl_backend *backend, const SDL_Event *e)
             else if (e->gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) update_axis(backend, ORACLES_KEY_UP, ORACLES_KEY_DOWN, e->gaxis.value);
             break;
         case SDL_EVENT_GAMEPAD_ADDED:
-            if (!backend->controller) backend->controller = SDL_OpenGamepad(e->gdevice.which);
-            break;
         case SDL_EVENT_GAMEPAD_REMOVED:
-            if (backend->controller && SDL_GetGamepadID(backend->controller) == e->gdevice.which) {
-                SDL_CloseGamepad(backend->controller);
-                backend->controller = NULL;
-            }
+            oracles_sdl_pads_event(&backend->pads, e);
             break;
         default: break;   /* a file or a text dropped on the window during the game: SDL keeps and frees its copy */
     }
@@ -729,7 +764,7 @@ static void sdl_stop(void *opaque)
 {
     sdl_backend *backend = opaque;
     if (backend->audio) { SDL_DestroyAudioStream(backend->audio); backend->audio = NULL; }   /* its device closes with it */
-    if (backend->controller) { SDL_CloseGamepad(backend->controller); backend->controller = NULL; }
+    oracles_sdl_pads_close(&backend->pads);
     if (backend->texture) SDL_DestroyTexture(backend->texture);
     backend->texture = NULL;
     if (backend->borrowed) {

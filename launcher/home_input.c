@@ -51,12 +51,3 @@ int oracles_home_capture(OraclesHomeNav *nav, const SDL_Event *event, OraclesHom
     /* What the capture does not take while it waits: the other keys' releases, the arrows' repeats. */
     return event->type == SDL_EVENT_KEY_UP || event->type == SDL_EVENT_GAMEPAD_BUTTON_UP;
 }
-
-void oracles_home_take_controller(SDL_Gamepad **controller)
-{
-    if (*controller && !SDL_GamepadConnected(*controller)) {
-        SDL_CloseGamepad(*controller);
-        *controller = NULL;
-    }
-    if (!*controller) *controller = oracles_sdl_open_gamepad();
-}

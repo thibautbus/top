@@ -18,6 +18,7 @@
 #define WRAM_BANK0_BASE 0xc000u
 #define WRAM_BANKED_BASE 0xd000u
 #define FORCED_TRANSITION 0x80u   /* bit 7 of wScreenTransitionDirection (screenTransitionState2) */
+#define TRANSITION_DEST_TIMEWARP 6u   /* wWarpTransition's low nibble while a time warp arrives (Ages; Seasons' 6 is another) */
 #define NORMAL_PLAY_SCROLL_MODE 0x01u
 #define TRANSITION_STATE_IDLE 0x02u
 #define GAME_STATE_PLAYING 0x02u

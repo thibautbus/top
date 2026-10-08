@@ -516,7 +516,8 @@ void ev_update_neighbours(OraclesEnhancedView *v);
 int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t size, OraclesGhostDirection dir, const entry *parent);
 void ev_advance_pending_run(OraclesEnhancedView *v);
 void ev_blind_prerun(OraclesEnhancedView *v);
-int ev_entry_key_current(const OraclesEnhancedView *v, const entry *e, const uint8_t *key, size_t key_len);
+int ev_entry_key_current(const OraclesEnhancedView *v, const entry *e, const uint8_t *key, size_t key_len, uint8_t group, uint8_t room);
+int ev_key_byte_exempt(const OraclesEnhancedView *v, long i, const uint8_t *snapshot, const uint8_t *live, uint8_t group, uint8_t room);
 int ev_entry_drawable(const OraclesEnhancedView *v, const entry *e);
 void ev_capture_source_terrain(OraclesEnhancedView *v);
 /* The OAM of the live frame on screen with only the sprites of the room's own

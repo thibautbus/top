@@ -84,8 +84,21 @@ int oracles_sdl_screen_4_3(struct SDL_Window *window);
 float oracles_sdl_point_scale(struct SDL_Window *window);
 /* Sizes a window with a renderer to `width` x `height` pixels, whatever the display's scale. */
 void oracles_sdl_size_window(struct SDL_Window *window, int width, int height);
-/* The first gamepad plugged in, opened, or NULL. */
-struct SDL_Gamepad *oracles_sdl_open_gamepad(void);
+/* The gamepads plugged in, every one open.  A device may count several (a handheld's own controls and another input
+ * the system takes for a gamepad, a phone's and a Bluetooth pad), and SDL gives the buttons of a pad that is not open
+ * as keys, not as the pad's: on Android its A as Enter (Start in the game) and its B as Escape (the pause). */
+#define ORACLES_SDL_PADS 8u
+typedef struct OraclesSdlPads {
+    struct SDL_Gamepad *pad[ORACLES_SDL_PADS];
+    unsigned count;
+} OraclesSdlPads;
+/* Closes the pads unplugged (a session may have consumed their removal) and opens every one plugged in not yet open. */
+void oracles_sdl_pads_open(OraclesSdlPads *pads);
+/* A pad plugged in is opened, one unplugged closed; other events are left. */
+void oracles_sdl_pads_event(OraclesSdlPads *pads, const union SDL_Event *event);
+void oracles_sdl_pads_close(OraclesSdlPads *pads);
+/* "N open: name, name" for a report. */
+void oracles_sdl_pads_describe(const OraclesSdlPads *pads, char *out, size_t capacity);
 /* The SDL_GamepadButton of a button event as settings.txt names it: a face button labelled A, B, X or Y is that
  * letter's, as SDL 2 had it, whatever its place (a Nintendo controller's A is on the right). */
 int oracles_sdl_pad_button(const union SDL_Event *event);

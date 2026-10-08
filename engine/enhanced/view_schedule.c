@@ -50,7 +50,7 @@ static int run_from_other_side(OraclesEnhancedView *v, entry *e, const entry *ro
         if (!ev_room_toward(v, e->room, (OraclesGhostDirection)d, &room) || room == routed->room) continue;
         entry *side = ev_find_entry(v, e->group, room);
         if (!side || !side->valid || !side->settled_size || side->refresh || side->rerun || ev_self_routed(v, side->group, side->room)) continue;
-        if (!ev_entry_key_current(v, side, key, key_len)) continue;
+        if (!ev_entry_key_current(v, side, key, key_len, e->group, e->room)) continue;
         if (v->neighbour_objects && oracles_objects_killed_in_list(side->killed_list, e->room) != oracles_objects_killed_enemies(v->guest, e->room)) continue;
         e->last_use = v->frame;
         return ev_start_job(v, e, side->settled_state, side->settled_size, (OraclesGhostDirection)((d + 2u) & 3u), side);
@@ -100,8 +100,8 @@ static int run_from_parent(OraclesEnhancedView *v, entry *e, entry *parent, Orac
      * wRoomStateModifier, the visited bit the ghost set): never the live
      * key.  It stands for the live state through that room, whose key it is
      * judged on, the diagonal delivered since that room's last run. */
-    const int key_current = two_steps ? (via && ev_entry_key_current(v, via, key, key_len) && parent->accepted_at >= via->accepted_at)
-                                      : ev_entry_key_current(v, parent, key, key_len);
+    const int key_current = two_steps ? (via && ev_entry_key_current(v, via, key, key_len, e->group, e->room) && parent->accepted_at >= via->accepted_at)
+                                      : ev_entry_key_current(v, parent, key, key_len, e->group, e->room);
     if (parent->refresh || parent->rerun || !killed_current || !key_current) {
         /* A parent whose run for its state failed stays drawn (record_failure): tried again at the pace of a failure. */
         if (parent->failed && v->frame - parent->failed_at < FAILED_RETRY_FRAMES) return 0;
@@ -340,7 +340,13 @@ static int parent_holds(OraclesEnhancedView *v, const run_plan *p, const entry *
 {
     if (!parent || !parent->valid || !parent->settled_size || parent->refresh || parent->rerun || parent->key_len != p->key_len) return 0;
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
-    if (!oracles_enhanced_parent_key_holds(parent->key_snapshot, p->key, p->key_len, ev_key_offset(v, t->group0_room_flags.addr), t->room_flags_size,
+    /* The time portal and a time warp's arrival, for the room chained, as in ev_invalidate_by_reads: the live key with
+     * the parent's values where they do not matter to it. */
+    uint8_t live[ORACLES_GHOST_KEY_BYTES];
+    if (p->key_len > sizeof live) return 0;
+    memcpy(live, p->key, p->key_len);
+    for (size_t i = 0; i < p->key_len; i++) if (live[i] != parent->key_snapshot[i] && ev_key_byte_exempt(v, (long)i, parent->key_snapshot, p->key, group, room)) live[i] = parent->key_snapshot[i];
+    if (!oracles_enhanced_parent_key_holds(parent->key_snapshot, live, p->key_len, ev_key_offset(v, t->group0_room_flags.addr), t->room_flags_size,
                                            ev_key_offset(v, ev_room_flags_address(v, group, room)))) return 0;
     return !v->neighbour_objects || oracles_objects_killed_in_list(parent->killed_list, room) == oracles_objects_killed_enemies(v->guest, room);
 }
@@ -431,7 +437,7 @@ static int run_step_now(OraclesEnhancedView *v, run_plan *p, const run_step *st)
          * corner never has its parent run again, which would need a run three
          * rooms back. */
         entry *parent = ev_find_entry(v, group, p->second_diagonal[u][s]);
-        if (!parent || !parent->valid || parent->refresh || parent->rerun || !ev_entry_key_current(v, parent, p->key, p->key_len)) return 0;
+        if (!parent || !parent->valid || parent->refresh || parent->rerun || !ev_entry_key_current(v, parent, p->key, p->key_len, group, p->corner[u][s])) return 0;
         if (v->neighbour_objects && oracles_objects_killed_in_list(parent->killed_list, p->corner[u][s]) != oracles_objects_killed_enemies(v->guest, p->corner[u][s])) return 0;
         entry *e = ev_take_slot(v, group, p->corner[u][s], p->wanted, p->wanted_count);
         return entry_wanting(v, e) && run_from_parent(v, e, parent, plan_verticals[u], plan_verticals[u], 0, NULL, plan_verticals[u], p->key, p->key_len, p->live_primeable);
@@ -553,7 +559,7 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     ev_check_routing_keys(v);
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *e = &v->slots[i];
-        if (e->used && e->valid && e->read_count > ENTRY_READS && !ev_entry_key_current(v, e, p->key, p->key_len)) ev_drop_entry(e);
+        if (e->used && e->valid && e->read_count > ENTRY_READS && !ev_entry_key_current(v, e, p->key, p->key_len, e->group, e->room)) ev_drop_entry(e);
     }
     ev_advance_pending_run(v);
     for (unsigned d = 0; d < 4; d++) v->shown_slot[d] = SLOTS;

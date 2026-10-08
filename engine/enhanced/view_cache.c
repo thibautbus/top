@@ -104,6 +104,47 @@ static void invalidate_by_coarse_list(OraclesEnhancedView *v)
     v->coarse_len = len;
 }
 
+/* The time portal (Ages): its group, room and position, which the game reads
+ * to ask whether the portal is in the room it loads (replaceBreakableTileOverPortal,
+ * the portal's interaction).  Set where Link arrives after a time warp and
+ * cleared when he steps into it, they change for one room: an entry that the
+ * portal was in neither before nor now is the same, and is kept (thrown, it
+ * was black until the ghost ran it again, and so was every room around). */
+static int portal_elsewhere(OraclesEnhancedView *v, const entry *e, uint16_t address)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    const OraclesGuestSym portal = t->portal_group, portal_room = t->portal_room;
+    /* The group, the room and the position, in a row (wPortalPos follows wPortalRoom). */
+    if (portal.bank == ORACLES_GUEST_ABSENT || address < portal.addr || address > portal_room.addr + 1u) return 0;
+    int group = -1, room = -1;
+    for (unsigned r = 0; r < e->read_count; r++) {
+        if (e->read_addr[r] == portal.addr) group = e->read_value[r];
+        else if (e->read_addr[r] == portal_room.addr) room = e->read_value[r];
+    }
+    const int was_here = group == e->group && room == e->room;
+    const int is_here = ev_live_byte(v, portal.addr) == e->group && ev_live_byte(v, portal_room.addr) == e->room;
+    return !was_here && !is_here;
+}
+
+/* The same two exemptions on a whole key: byte `i` of a key taken with
+ * `snapshot`, now `live`, for the terrain of `group`:`room` (a room chained
+ * from a parent's settled state, or an entry judged on the whole key). */
+int ev_key_byte_exempt(const OraclesEnhancedView *v, long i, const uint8_t *snapshot, const uint8_t *live, uint8_t group, uint8_t room)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    if (t->portal_group.bank != ORACLES_GUEST_ABSENT) {
+        const long at_group = ev_key_offset(v, t->portal_group.addr), at_room = ev_key_offset(v, t->portal_room.addr);
+        const long at_pos = ev_key_offset(v, (uint16_t)(t->portal_room.addr + 1u));
+        if (at_group >= 0 && at_room >= 0 && (i == at_group || i == at_room || i == at_pos)) {
+            const int was_here = snapshot[at_group] == group && snapshot[at_room] == room;
+            const int is_here = live[at_group] == group && live[at_room] == room;
+            return !was_here && !is_here;
+        }
+    }
+    if (t->link_time_warp_tile.bank != ORACLES_GUEST_ABSENT && i == ev_key_offset(v, t->link_time_warp_tile.addr)) return snapshot[i] == 0;
+    return 0;
+}
+
 void ev_invalidate_by_reads(OraclesEnhancedView *v)
 {
     invalidate_by_coarse_list(v);
@@ -142,6 +183,13 @@ void ev_invalidate_by_reads(OraclesEnhancedView *v)
              * Link enters, and a room computed ahead of a first visit was
              * thrown at that very frame. */
             if (e->read_addr[r] == own_flags) differs &= (uint8_t)~oracles_guest_tables(v->guest)->roomflag_visited;
+            if (differs && portal_elsewhere(v, e, e->read_addr[r])) differs = 0;
+            /* The spot of a time warp's arrival (Ages): set while Link arrives
+             * and cleared as he gets his control back, it changes the room he
+             * arrives in alone; a neighbour computed with none is the room he
+             * will scroll into once it is cleared. */
+            const OraclesGuestSym warp_tile = oracles_guest_tables(v->guest)->link_time_warp_tile;
+            if (differs && warp_tile.bank != ORACLES_GUEST_ABSENT && e->read_addr[r] == warp_tile.addr && e->read_value[r] == 0) differs = 0;
             if (differs) { log_drop(v, e->read_addr[r]); ev_drop_entry(e); break; }
         }
     }

@@ -28,7 +28,7 @@ typedef struct home_app {
     const OraclesHomeHost *host;
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_Gamepad *controller;
+    OraclesSdlPads pads;      /* every gamepad plugged in */
     OraclesUiDraw *draw;
     OraclesHomeNav nav;
     OraclesScreen screen;    /* the one shown when the navigation last changed */
@@ -74,12 +74,11 @@ static void report_window(home_app *app, const char *when)
     int count = 0;
     SDL_JoystickID *pads = SDL_GetGamepads(&count);
     SDL_free(pads);
-    const char *name = app->controller ? SDL_GetGamepadName(app->controller) : NULL;
-    fprintf(stderr, "oracles: home screen %s: display %u, input focus %s, %s, %d controller(s), %s%s%s\n", when,
+    char open[256];
+    oracles_sdl_pads_describe(&app->pads, open, sizeof open);
+    fprintf(stderr, "oracles: home screen %s: display %u, input focus %s, %s, %d controller(s), %s\n", when,
             (unsigned)SDL_GetDisplayForWindow(app->window), (flags & SDL_WINDOW_INPUT_FOCUS) ? "yes" : "no",
-            (flags & SDL_WINDOW_FULLSCREEN) ? "fullscreen" : "windowed", count,
-            app->controller ? (SDL_GamepadConnected(app->controller) ? "the one taken connected" : "the one taken gone") : "none taken",
-            name ? ": " : "", name ? name : "");
+            (flags & SDL_WINDOW_FULLSCREEN) ? "fullscreen" : "windowed", count, open);
 }
 
 /* The window as the launcher keeps it, after a game had it: its fullscreen state, its smallest and its own size.  SDL
@@ -112,8 +111,8 @@ static void start(home_app *app, OraclesHomeCommand game)
     oracles_ui_draw_freeze(app->draw, 0);   /* the pause held the rasters at the game's scale; the home screen redoes its own */
     if (closed) { app->running = 0; return; }
     restore_window(app);
-    /* The session had the controllers' plugs and unplugs: the one unplugged is let go, one plugged in is taken. */
-    oracles_home_take_controller(&app->controller);
+    /* The session had the controllers' plugs and unplugs: those unplugged are let go, those plugged in are taken. */
+    oracles_sdl_pads_open(&app->pads);
     /* Back from the game to the home screen, on Start game, from the page's Play as from the menu. */
     app->nav.screen = ORACLES_SCREEN_HOME;
     app->nav.focus = 0;
@@ -285,13 +284,8 @@ static void handle(home_app *app, const SDL_Event *e)
             if (oracles_home_button_action(e, &action)) act(app, action);
             break;
         case SDL_EVENT_GAMEPAD_ADDED:
-            if (!app->controller) app->controller = SDL_OpenGamepad(e->gdevice.which);
-            break;
         case SDL_EVENT_GAMEPAD_REMOVED:
-            if (app->controller && SDL_GetGamepadID(app->controller) == e->gdevice.which) {
-                SDL_CloseGamepad(app->controller);
-                app->controller = NULL;
-            }
+            oracles_sdl_pads_event(&app->pads, e);
             break;
         case SDL_EVENT_MOUSE_MOTION: pointer(app, e->motion.x, e->motion.y, 0); break;
         case SDL_EVENT_MOUSE_BUTTON_UP: if (e->button.button == SDL_BUTTON_LEFT) pointer(app, e->button.x, e->button.y, 1); break;
@@ -359,7 +353,7 @@ static int open_window(home_app *app)
     SDL_SetWindowMinimumSize(app->window, to_window(ORACLES_HOME_MIN_WIDTH, scale), to_window(ORACLES_HOME_MIN_HEIGHT, scale));
     app->renderer = oracles_sdl_create_renderer(app->window, 1);
     if (!app->renderer) return 0;
-    oracles_home_take_controller(&app->controller);
+    oracles_sdl_pads_open(&app->pads);
     app->draw = oracles_ui_draw_create(app->renderer);
     return app->draw != NULL;
 }
@@ -405,7 +399,7 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
     *width = app.width;
     *height = app.height;
     oracles_ui_draw_destroy(app.draw);
-    if (app.controller) SDL_CloseGamepad(app.controller);
+    oracles_sdl_pads_close(&app.pads);
     if (app.renderer) SDL_DestroyRenderer(app.renderer);
     if (app.window) SDL_DestroyWindow(app.window);
     SDL_Quit();

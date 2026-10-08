@@ -244,6 +244,18 @@ static int prime(OraclesGhost *g, OraclesGhostDirection direction)
     wram[warp.addr - WRAM_BANK0_BASE] = 1;
     g->warp_tiles_guarded = 1;
     wram[sym.addr - WRAM_BANK0_BASE] = (uint8_t)(FORCED_TRANSITION | ((unsigned)direction & 3u));
+    /* Ages: a time warp's arrival still under way (wWarpTransition's
+     * TRANSITION_DEST_TIMEWARP, the spot of a refused travel in
+     * wLinkTimeWarpTile), as when the ghost primes in the room reached: the
+     * game ends it before Link can scroll anywhere (warpTransition6, substate
+     * 3, clears both), and the room he scrolls into is loaded without it.  Run
+     * with it, the room would lose the breakable tile at the arrival's spot
+     * (replaceBreakableTileOverLinkTimeWarpingIn), which no key byte says. */
+    if (t->link_time_warp_tile.bank != ORACLES_GUEST_ABSENT && bank0_symbol(t->warp_transition) && bank0_symbol(t->link_time_warp_tile)
+        && (wram[t->warp_transition.addr - WRAM_BANK0_BASE] & 0x0fu) == TRANSITION_DEST_TIMEWARP) {
+        wram[t->warp_transition.addr - WRAM_BANK0_BASE] = 0;
+        wram[t->link_time_warp_tile.addr - WRAM_BANK0_BASE] = 0;
+    }
     /* Seasons, the band in one season: the run starts in the season the game
      * holds, whatever the state it starts from (a neighbour kept in an area of
      * a fixed season): an area that follows the season keeps it

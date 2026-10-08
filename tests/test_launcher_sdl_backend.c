@@ -252,6 +252,27 @@ static void face_buttons(SDL_Window *window, SDL_Renderer *renderer, Uint16 vend
     SDL_DetachVirtualJoystick(pad);
 }
 
+/* The game's buttons the south and the east buttons of the second of two gamepads press, south's in the low byte. */
+static unsigned second_pad_buttons(SDL_Window *window, SDL_Renderer *renderer)
+{
+    unsigned result = 0;
+    const SDL_JoystickID first = attach_gamepad(0, 0), second = attach_gamepad(0, 0);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (first && second && oracles_sdl_backend_init(&backend, &options)) {
+        if (backend.start(backend.opaque, 160, 144, 48000, 0))
+            result = pressed_by(&backend, second, SDL_GAMEPAD_BUTTON_SOUTH) | pressed_by(&backend, second, SDL_GAMEPAD_BUTTON_EAST) << 8;
+        backend.stop(backend.opaque);
+        oracles_sdl_backend_release(&backend);
+    }
+    SDL_DetachVirtualJoystick(first);
+    SDL_DetachVirtualJoystick(second);
+    return result;
+}
+
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <sys/stat.h>
 
@@ -441,22 +462,30 @@ int main(int argc, char **argv)
 
     /* A controller at the start; unplugged during a session, which consumes the removal; another plugged in there. */
     const SDL_JoystickID first = attach_gamepad(0, 0);
-    SDL_Gamepad *controller = NULL;
-    oracles_home_take_controller(&controller);
-    CHECK(first && controller && SDL_GamepadConnected(controller));
+    OraclesSdlPads pads = { { NULL }, 0 };
+    oracles_sdl_pads_open(&pads);
+    CHECK(first && pads.count == 1 && SDL_GamepadConnected(pads.pad[0]));
     SDL_DetachVirtualJoystick(first);
     SDL_PumpEvents();
     SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
-    CHECK(controller && !SDL_GamepadConnected(controller));
+    CHECK(pads.count == 1 && !SDL_GamepadConnected(pads.pad[0]));
     const SDL_JoystickID second = attach_gamepad(0, 0);
     SDL_PumpEvents();
     SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
-    oracles_home_take_controller(&controller);
-    CHECK(second && controller && SDL_GamepadConnected(controller));
-    /* Unplugged with none left: the handle goes. */
+    oracles_sdl_pads_open(&pads);
+    CHECK(second && pads.count == 1 && SDL_GamepadConnected(pads.pad[0]) && SDL_GetGamepadID(pads.pad[0]) == second);
+    /* Two plugged in: both open, opened once each however often asked. */
+    const SDL_JoystickID third = attach_gamepad(0, 0);
+    oracles_sdl_pads_open(&pads);
+    oracles_sdl_pads_open(&pads);
+    CHECK(third && pads.count == 2);
+    /* Unplugged with none left: the handles go. */
     SDL_DetachVirtualJoystick(second);
-    oracles_home_take_controller(&controller);
-    CHECK(controller == NULL);
+    SDL_DetachVirtualJoystick(third);
+    oracles_sdl_pads_open(&pads);
+    CHECK(pads.count == 0);
+    oracles_sdl_pads_close(&pads);
+
 
     /* In play, "a" is the south button of a pad like Xbox's, and the button labelled A, on the right, of a Nintendo
      * Switch Pro Controller (057e:2009), as SDL 2 had it; "b" the other. */
@@ -466,6 +495,9 @@ int main(int argc, char **argv)
     enlarged_menus(window, renderer);
     face_buttons(window, renderer, 0, 0, NULL, &south, &east);
     CHECK(south == ORACLES_KEY_A && east == ORACLES_KEY_B);
+    /* In play, with two gamepads plugged in, the buttons of the second are the game's too, as the first's: SDL gives a
+     * pad that is not open as keys (on Android, its A as Enter, the game's Start). */
+    CHECK(second_pad_buttons(window, renderer) == (ORACLES_KEY_A | (ORACLES_KEY_B << 8)));
     face_buttons(window, renderer, 0x057e, 0x2009, NULL, &south, &east);
     CHECK(south == ORACLES_KEY_B && east == ORACLES_KEY_A);
     /* An 8BitDo SN30 Pro known by SDL 3's database line, of a standard type: its joystick button 0, labelled A, is "a". */

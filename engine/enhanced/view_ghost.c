@@ -59,7 +59,7 @@ static entry *loop_return_entry(OraclesEnhancedView *v, entry *e, const OraclesG
     v->failure_reasons[3]++;
     const uint8_t wanted[2] = { r->room, v->pending_room };
     entry *own = ev_take_slot(v, r->group, r->room, wanted, 2);
-    if (!own || (own->valid && ev_entry_key_current(v, own, r->key, r->key_len))) return NULL;
+    if (!own || (own->valid && ev_entry_key_current(v, own, r->key, r->key_len, own->group, own->room))) return NULL;
     v->pending_room = r->room;
     return own;
 }
@@ -361,14 +361,18 @@ static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int 
 }
 
 
-/* An entry whose trace overflowed is compared on the whole key. */
-int ev_entry_key_current(const OraclesEnhancedView *v, const entry *e, const uint8_t *key, size_t key_len)
+/* An entry whose trace overflowed is compared on the whole key, as is a
+ * parent a room is chained from: for the terrain of `group`:`room` (the
+ * entry's own, or the room chained), the time portal and a time warp's
+ * arrival as in ev_invalidate_by_reads. */
+int ev_entry_key_current(const OraclesEnhancedView *v, const entry *e, const uint8_t *key, size_t key_len, uint8_t group, uint8_t room)
 {
     if (e->key_len != key_len) return 0;
     const long own = ev_key_offset(v, ev_room_flags_address(v, e->group, e->room));   /* its visited bit aside, as in ev_invalidate_by_reads */
     for (size_t i = 0; i < key_len; i++) {
         const uint8_t differs = (uint8_t)(e->key_snapshot[i] ^ key[i]);
-        if (differs && !((long)i == own && !(differs & (uint8_t)~oracles_guest_tables(v->guest)->roomflag_visited))) return 0;
+        if (differs && !((long)i == own && !(differs & (uint8_t)~oracles_guest_tables(v->guest)->roomflag_visited))
+            && !ev_key_byte_exempt(v, (long)i, e->key_snapshot, key, group, room)) return 0;
     }
     return 1;
 }
