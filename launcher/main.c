@@ -100,6 +100,7 @@ static int usage(void)
                     "                           [--mods DIR]...   (a mod in Lua, run during the game, --mods repeated for up to 8; its conversations hold the keys and draw over the screen)\n"
                     "                           [--start-at-house NAME]   (with --mods: every file of the save starts in front of the house NAME, or MOD/NAME)\n"
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
+                    "                           [--pretend-slow]   (each game in Enhanced counts as one that ran slowly: the home screen suggests a lighter quality)\n"
                     "       --patch: a fan game, the BPS patch applied to --rom in memory at each start; its save beside the patch\n"
                     "       without --rom, the home screen opens; the game options apply to the games it starts, --record to the first\n"
                     "       the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,left,right,ok,back,slow]\n"
@@ -136,6 +137,7 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
         else if (!strcmp(argv[i], "--mute")) o->mute = 1;
         else if (!strcmp(argv[i], "--frames") && more) o->frames = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--no-window")) o->no_window = 1;
+        else if (!strcmp(argv[i], "--pretend-slow")) o->pretend_slow = 1;
         else if (!strcmp(argv[i], "--screenshot") && more) o->screenshot = argv[++i];
         else if (!strcmp(argv[i], "--record") && more) o->record_path = argv[++i];
         else if (!strcmp(argv[i], "--play") && more) o->play_path = argv[++i];

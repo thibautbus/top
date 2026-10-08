@@ -64,6 +64,7 @@ To try the examples: copy `mods/claw-game` and `mods/fortune-teller` into the mo
 | `--scale N`, `--fullscreen` | the window |
 | `--colour-correction on\|off`, `--vsync auto\|on\|off`, `--mute` | image, pacing, sound |
 | `--frames N`, `--no-window`, `--screenshot PATH.ppm` | quit after N frames; no window and no pacing; the last frame as an image at exit |
+| `--pretend-slow` | each game in Enhanced counts as one that ran slowly: back on the home screen, the suggestion of a lighter quality, to try it |
 
 A gameplay option given without `--rom` (`--continuous-transitions`, `--item-hotkeys`, `--enhanced`, `--zoom-out`, `--view`, `--aspect`, `--core`, `--camera`) overrides Display and the settings for the games the home screen starts. `--save`, `--frames`, `--no-window`, `--screenshot` and `--play` belong to the game `--rom` starts and are refused without it. `--record ROUTE` without `--rom` records the first session the home screen starts. `--vsync`, `--colour-correction`, `--camera`, `--aspect` and `--core` hold for the run they are given in and never change the settings file.
 

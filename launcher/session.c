@@ -752,6 +752,11 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
         result->enhanced = s->enhanced;
         result->frames_played = report.frames_presented;
         result->frames_late = late_frames(&report);
+        if (o->pretend_slow && s->enhanced) {
+            if (result->frames_played < ORACLES_SLOW_FRAMES) result->frames_played = ORACLES_SLOW_FRAMES;
+            result->frames_late = result->frames_played;
+            fprintf(stderr, "oracles: --pretend-slow: the game counts as one that ran slowly\n");
+        }
         if (!o->no_window) result->window_closed = oracles_sdl_backend_window_closed(&s->backend);
     }
     finish(s, o);

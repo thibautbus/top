@@ -39,6 +39,7 @@ typedef struct OraclesSessionOptions {
     int continuous_swim;             /* --continuous-swim: the transitions with Link swimming at the surface too (implies them) */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
     int camera_profile;              /* 0: the settings' camera; 1 or 2: this one for the session, not stored */
+    int pretend_slow;                /* --pretend-slow: the game counts as one that ran slowly, to try the home screen's suggestion */
     /* The window: its scale and fullscreen state, and the launcher's own window when the home screen lends it. */
     oracles_sdl_options sdl;
     /* A game the home screen started: Escape opens this pause menu (pause.h) rather than ending the session. */
