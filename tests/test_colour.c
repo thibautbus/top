@@ -15,7 +15,7 @@ int main(void)
     uint8_t *rom = calloc(size, 1);
     if (!rom) return 1;
     rom[0x143] = 0xc0;
-    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     CHECK(core != NULL);
     if (!core) return 1;

@@ -239,7 +239,7 @@ int main(void)
         memcpy(rom + 0x150, program, sizeof program);
     }
 
-    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     CHECK(core != NULL);
     if (!core) return 1;

@@ -29,7 +29,7 @@ static OraclesCore *make_core(OraclesCoreKind kind)
     /* $0100: nop ; jp $0150.  $0150: ld hl,$c000 ; inc (hl) ; jr -3 : the state changes every frame. */
     rom[0x100] = 0x00; rom[0x101] = 0xc3; rom[0x102] = 0x50; rom[0x103] = 0x01;
     rom[0x150] = 0x21; rom[0x151] = 0x00; rom[0x152] = 0xc0; rom[0x153] = 0x34; rom[0x154] = 0x18; rom[0x155] = 0xfd;
-    const OraclesCoreOptions options = { 0, 0, kind };
+    const OraclesCoreOptions options = { 0, 0, kind, 0 };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     free(rom);
     return core;

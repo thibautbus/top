@@ -43,6 +43,7 @@ int oracles_core_sameboy_init(OraclesCore *core, const uint8_t *rom, size_t rom_
     GB_set_rgb_encode_callback(gb, encode_rgb);
     oracles_core_set_colour_correction(core, options && options->colour_correction);
     GB_set_pixels_output(gb, core->pixels);
+    if (options && options->no_video) GB_set_rendering_disabled(gb, true);
     if (options && options->sample_rate_hz) {
         GB_set_sample_rate(gb, options->sample_rate_hz);
         /* The hardware's own high-pass: no DC offset, so discontinuities do not pop. */

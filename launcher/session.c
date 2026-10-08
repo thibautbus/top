@@ -271,7 +271,7 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
             oracles_route_free(&recorded);
         }
     }
-    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied, kind };
+    OraclesCoreOptions core_options = { o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ, s->colour_applied, kind, 0 };
     s->core = oracles_core_create(s->rom, s->rom_size, &core_options);
     if (!s->core) return failed(result, "the core could not start");
     fprintf(stderr, "oracles: core %s\n", oracles_core_version(s->core));

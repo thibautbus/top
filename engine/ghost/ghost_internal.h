@@ -30,6 +30,7 @@
 struct OraclesGhost {
     OraclesCore *core;
     OraclesGuest *guest;
+    int scroll_doubled;                 /* the forced scroll's step doubled (scroll_policy), until the scroll ends */
     OraclesObjects *objects;            /* the room's objects and their creation numbers */
     OraclesSprites *sprites;            /* their sprites, tagged by object */
     int capture;                        /* freeze the objects of the room entered and keep their sprites */

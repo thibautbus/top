@@ -35,6 +35,20 @@ extern const char *const oracles_settings_aspect_names[3];
 /* The cores' names in settings.txt and on the command line, by OraclesCoreKind: "sameboy", "mgba". */
 extern const char *const oracles_settings_core_names[2];
 
+/* Display's Quality: a profile sets at once what weighs on the device, the view's level, the core and the neighbour
+ * workers; Custom when the three match none.  Low: near, Fast, auto; Medium: medium, Fast, auto; High: far, Fast,
+ * auto; Max: far, Accurate, two. */
+typedef enum OraclesQuality {
+    ORACLES_QUALITY_LOW,
+    ORACLES_QUALITY_MEDIUM,
+    ORACLES_QUALITY_HIGH,
+    ORACLES_QUALITY_MAX,
+    ORACLES_QUALITY_CUSTOM
+} OraclesQuality;
+#define ORACLES_QUALITIES 4   /* the profiles, Custom left out */
+/* Their names in settings.txt: "low", "medium", "high", "max", "custom". */
+extern const char *const oracles_settings_quality_names[5];
+
 
 
 typedef struct oracles_settings {
@@ -77,6 +91,9 @@ typedef struct oracles_settings {
     char mods[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_MODS_LENGTH];
     int launcher_width, launcher_height;                      /* launcher_window=WxH: the home screen's window as the player left it */
     int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen (the default) */
+    int quality_hint;             /* quality_hint=low|medium|high|max: the profile a game that ran slowly was last suggested to leave, -1 none:
+                                   * the suggestion is made once a profile */
+    int first_run;                /* no settings.txt was read: the first opening, which takes the device's profile */
 } oracles_settings;
 
 void oracles_settings_defaults(oracles_settings *settings);
@@ -85,6 +102,16 @@ void oracles_settings_load(oracles_settings *settings);
 int oracles_settings_store(const oracles_settings *settings);
 /* The core the games run on: the one chosen, else the build's default. */
 int oracles_settings_core(const oracles_settings *settings);
+/* The profile the view's level, the core the games run on and the neighbour workers make: Custom when none. */
+OraclesQuality oracles_settings_quality(const oracles_settings *settings);
+/* Sets the view's level, the core and the neighbour workers of `quality` (Custom changes nothing).  The core is
+ * written only when it is not the build's default, the player having chosen none: a later build keeps its own. */
+void oracles_settings_apply_quality(oracles_settings *settings, OraclesQuality quality);
+/* The profile a first opening takes: Max on a desktop; where the window is always fullscreen (Android), High on a
+ * device of 8 processor threads and 6 GB or more (`ram_mb` as SDL_GetSystemRAM gives it), Medium otherwise. */
+OraclesQuality oracles_settings_default_quality(int fullscreen_only, int processor_threads, int ram_mb);
+/* The profile just lighter than `quality`, the one a game that ran slowly is suggested: Custom for Low and Custom. */
+OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality);
 /* The names of settings.txt: "faithful", "enhanced", and the games' "ages", "seasons". */
 const char *oracles_settings_profile_name(OraclesProfile profile);
 const char *oracles_settings_game_name(OraclesSettingsGame game);

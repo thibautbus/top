@@ -73,13 +73,44 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
     }
 }
 
+/* ---- the forced scroll at the doubled step ---------------------------------------- */
+
+#define SCROLL_STATE 5u                 /* wScreenTransitionState: the scroll */
+#define SCROLL_SUBSTATE_VERTICAL 1u
+#define SCROLL_SUBSTATE_HORIZONTAL 2u
+#define SCROLL_PHASE_SCROLLING 2u       /* wScreenTransitionState3: 2 scrolls */
+#define SCROLL_COUNTER_HORIZONTAL 0x14u /* wScreenScrollCounter at the first step: a small room's columns */
+#define SCROLL_COUNTER_VERTICAL 0x10u   /* and rows */
+
+/* The scroll a run forces into a small room, at the step the continuous transitions double (room_transition.c): wcd14
+ * at 8 instead of 4 at the scroll's first frame, its counter whole and the registers aligned, one column or row drawn
+ * a step, the scroll in half the frames, the room's map and tiles the same.  Link moves half his way over it: the
+ * run takes nothing of where he stands, its objects frozen as the room is initialised and its terrain read off the
+ * VRAM.  A large room or a side-view one keeps the game's step. */
+static void scroll_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    OraclesGhost *g = opaque;
+    const int horizontal = (s->transition_direction & 1u) != 0;
+    const int scrolling = s->transition_state == SCROLL_STATE
+        && s->transition_substate == (horizontal ? SCROLL_SUBSTATE_HORIZONTAL : SCROLL_SUBSTATE_VERTICAL);
+    if (!scrolling) { g->scroll_doubled = 0; return; }
+    if (g->scroll_doubled || !g->active || !g->primed || s->room_is_large || (s->tileset_flags & ORACLES_TILESETFLAG_SIDESCROLL)
+        || s->transition_phase > SCROLL_PHASE_SCROLLING || s->transition_direction > 3u
+        || s->screen_scroll_counter != (horizontal ? SCROLL_COUNTER_HORIZONTAL : SCROLL_COUNTER_VERTICAL) || s->scroll_alignment != 0u) return;
+    m->set_scroll_delta = 1;
+    m->scroll_delta = (s->transition_direction == 1u || s->transition_direction == 2u) ? 8u : 0xf8u;
+    g->scroll_doubled = 1;
+}
+
+static void scroll_policy_reset(void *opaque) { ((OraclesGhost *)opaque)->scroll_doubled = 0; }
+
 /* ---- create / destroy ---------------------------------------------------------- */
 
 OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind)
 {
     OraclesGhost *g = calloc(1, sizeof *g);
     if (!g) return NULL;
-    const OraclesCoreOptions options = { 0, 0, kind };   /* no audio, raw colours: the ghost is never shown */
+    const OraclesCoreOptions options = { 0, 0, kind, 1 };   /* no audio, raw colours, no frame drawn: the ghost is never shown */
     g->core = oracles_core_create(rom, rom_size, &options);
     if (!g->core) { free(g); return NULL; }
     g->guest = oracles_guest_attach(g->core, profile);
@@ -109,6 +140,7 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
         return NULL;
     }
     oracles_guest_set_event_sink(g->guest, on_event, g);
+    oracles_guest_set_transition_policy(g->guest, scroll_policy, scroll_policy_reset, g);
     oracles_ghost_find_fixed_seasons(g, rom, rom_size);
     oracles_ghost_find_open_water_rooms(g, rom, rom_size);
     oracles_ghost_find_map_rooms(g, rom, rom_size);

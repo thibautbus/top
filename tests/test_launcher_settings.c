@@ -339,6 +339,51 @@ int main(int argc, char **argv)
     rmdir(temporary);
     CHECK(oracles_settings_store(&written) == 1);
 
+    /* Quality: the profile the view, the core and the neighbour workers make, Custom when none. */
+    oracles_settings_defaults(&written);
+    for (int q = ORACLES_QUALITY_LOW; q < ORACLES_QUALITY_CUSTOM; q++) {
+        oracles_settings_apply_quality(&written, (OraclesQuality)q);
+        CHECK(oracles_settings_quality(&written) == (OraclesQuality)q);
+    }
+    CHECK(written.view == 2 && oracles_settings_core(&written) == ORACLES_CORE_SAMEBOY && written.ghosts == 2);   /* Max */
+    CHECK(written.core == ORACLES_CORE_SAMEBOY);   /* chosen once (Low's Fast): written from then on */
+    oracles_settings_defaults(&written);
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_MAX);
+    CHECK(written.core == -1);   /* none chosen, and the tests' build plays SameBoy by default: Max does not write it */
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_MEDIUM);
+    CHECK(written.view == 1 && written.core == ORACLES_CORE_MGBA && written.ghosts == 0);
+    written.view = 2;   /* View changed by hand: Far, Fast, auto is High */
+    CHECK(oracles_settings_quality(&written) == ORACLES_QUALITY_HIGH);
+    written.ghosts = 1;   /* Neighbour workers changed by hand: no profile */
+    CHECK(oracles_settings_quality(&written) == ORACLES_QUALITY_CUSTOM);
+    oracles_settings_apply_quality(&written, ORACLES_QUALITY_CUSTOM);   /* Custom changes nothing */
+    CHECK(written.ghosts == 1 && written.view == 2);
+    oracles_settings_defaults(&written);   /* a player of before: far, the default core, auto: Custom on a desktop build */
+    CHECK(oracles_settings_quality(&written) == ORACLES_QUALITY_CUSTOM);
+    CHECK(oracles_settings_default_quality(0, 4, 8192) == ORACLES_QUALITY_MAX);
+    CHECK(oracles_settings_default_quality(1, 4, 4096) == ORACLES_QUALITY_MEDIUM);    /* the RG DS */
+    CHECK(oracles_settings_default_quality(1, 8, 5800) == ORACLES_QUALITY_HIGH);      /* a "6 GB" device */
+    CHECK(oracles_settings_default_quality(1, 8, 4096) == ORACLES_QUALITY_MEDIUM);
+    CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MAX) == ORACLES_QUALITY_HIGH);
+    CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MEDIUM) == ORACLES_QUALITY_LOW);
+    CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_LOW) == ORACLES_QUALITY_CUSTOM);
+    CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_CUSTOM) == ORACLES_QUALITY_CUSTOM);
+    /* quality_hint= round-trips, none by default and not written then; a first opening is no file. */
+    oracles_settings_defaults(&written);
+    snprintf(written.path, sizeof written.path, "%s", path);
+    CHECK(written.quality_hint == -1);
+    written.quality_hint = ORACLES_QUALITY_HIGH;
+    CHECK(oracles_settings_store(&written) == 1);
+    oracles_settings_defaults(&read_back);
+    snprintf(read_back.path, sizeof read_back.path, "%s", path);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.quality_hint == ORACLES_QUALITY_HIGH && !read_back.first_run);
+    remove(path);
+    oracles_settings_defaults(&read_back);
+    snprintf(read_back.path, sizeof read_back.path, "%s", path);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.first_run && read_back.quality_hint == -1);
+
     remove(path);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("launcher settings: ROMs, the profile, the active mods and the window's size round-trip through settings.txt\n");

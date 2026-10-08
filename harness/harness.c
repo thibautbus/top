@@ -486,7 +486,7 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
     if (oracles_route_read(o->route_path, &r->route, error, sizeof error) != 0) { fprintf(stderr, "harness: %s\n", error); free(rom); return 1; }
     /* The core: --core's, else the one the route was recorded on. */
     const OraclesCoreKind kind = o->core_given ? (OraclesCoreKind)o->core_kind : oracles_route_core_mgba(&r->route.header) ? ORACLES_CORE_MGBA : ORACLES_CORE_SAMEBOY;
-    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction, kind };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
+    const OraclesCoreOptions options = { o->sample_rate_hz, o->colour_correction, kind, 0 };   /* no audio unless asked: --sample-rate proves the state does not depend on it */
     r->core = oracles_core_create(rom, rom_size, &options);
     r->profile = oracles_compat_find(&info);
     r->game = info.game;

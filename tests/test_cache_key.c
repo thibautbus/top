@@ -76,7 +76,7 @@ int main(void)
     view->slots = slots;
     view->slot_count = NORMAL_SLOTS;
     rom[0x143] = 0xc0; rom[0x147] = 0x1b; rom[0x148] = 0x05; rom[0x149] = 0x02;
-    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
     view->core = oracles_core_create(rom, size, &options);
     view->guest = view->core ? oracles_guest_attach(view->core, profile) : NULL;
     CHECK(view->guest != NULL);

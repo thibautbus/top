@@ -17,14 +17,55 @@ static const char *const game_names[ORACLES_SETTINGS_GAMES] = { "ages", "seasons
 static const char *const profile_names[ORACLES_PROFILES] = { "faithful", "enhanced" };
 static const char *const view_names[3] = { "near", "medium", "far" };   /* OraclesEnhancedLevel's order */
 const char *const oracles_settings_core_names[2] = { "sameboy", "mgba" };   /* OraclesCoreKind's order */
-int oracles_settings_core(const oracles_settings *s)
+const char *const oracles_settings_quality_names[5] = { "low", "medium", "high", "max", "custom" };   /* OraclesQuality's order */
+
+/* Each profile's view's level (an OraclesEnhancedLevel), core (an OraclesCoreKind) and neighbour workers (0 auto). */
+static const struct { int view, core, ghosts; } qualities[ORACLES_QUALITIES] = {
+    { 0, ORACLES_CORE_MGBA, 0 },      /* Low: near */
+    { 1, ORACLES_CORE_MGBA, 0 },      /* Medium */
+    { 2, ORACLES_CORE_MGBA, 0 },      /* High: far */
+    { 2, ORACLES_CORE_SAMEBOY, 2 },   /* Max */
+};
+
+static int default_core(void)
 {
-    if (s->core == ORACLES_CORE_SAMEBOY || s->core == ORACLES_CORE_MGBA) return s->core;
 #ifdef ORACLES_DEFAULT_CORE_KIND
     return ORACLES_DEFAULT_CORE_KIND;
 #else
     return ORACLES_CORE_SAMEBOY;   /* a build that names none, as the tests' */
 #endif
+}
+
+OraclesQuality oracles_settings_quality(const oracles_settings *s)
+{
+    for (int q = 0; q < ORACLES_QUALITIES; q++)
+        if (s->view == qualities[q].view && oracles_settings_core(s) == qualities[q].core && s->ghosts == qualities[q].ghosts) return (OraclesQuality)q;
+    return ORACLES_QUALITY_CUSTOM;
+}
+
+void oracles_settings_apply_quality(oracles_settings *s, OraclesQuality quality)
+{
+    if (quality < ORACLES_QUALITY_LOW || quality >= ORACLES_QUALITY_CUSTOM) return;
+    s->view = qualities[quality].view;
+    s->ghosts = qualities[quality].ghosts;
+    s->core = s->core < 0 && qualities[quality].core == default_core() ? -1 : qualities[quality].core;
+}
+
+OraclesQuality oracles_settings_default_quality(int fullscreen_only, int processor_threads, int ram_mb)
+{
+    if (!fullscreen_only) return ORACLES_QUALITY_MAX;
+    return processor_threads >= 8 && ram_mb >= 6 * 1024 - 512 ? ORACLES_QUALITY_HIGH : ORACLES_QUALITY_MEDIUM;   /* "6 GB" devices report a little less */
+}
+
+OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality)
+{
+    return quality > ORACLES_QUALITY_LOW && quality < ORACLES_QUALITY_CUSTOM ? (OraclesQuality)(quality - 1) : ORACLES_QUALITY_CUSTOM;
+}
+
+int oracles_settings_core(const oracles_settings *s)
+{
+    if (s->core == ORACLES_CORE_SAMEBOY || s->core == ORACLES_CORE_MGBA) return s->core;
+    return default_core();
 }
 
 const char *const oracles_settings_aspect_names[3] = { "auto", "16:9", "4:3" };   /* ORACLES_ASPECT_AUTO's order */
@@ -153,9 +194,11 @@ void oracles_settings_defaults(oracles_settings *s)
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
+    s->quality_hint = -1;
+    s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `ghosts=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `ghosts=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=`, `quality_hint=` and `launcher_window=`: 1 when the
  * line was one of them.  A value the launcher does not know leaves the key's default. */
 static int load_launcher(oracles_settings *s, const char *name, const char *value)
 {
@@ -213,6 +256,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
         else if (!strcmp(value, "2") || !strcmp(value, "3") || !strcmp(value, "4")) s->window_scale = atoi(value);
         return 1;
     }
+    if (!strcmp(name, "quality_hint")) {
+        for (int q = 0; q < ORACLES_QUALITIES; q++) if (!strcmp(value, oracles_settings_quality_names[q])) s->quality_hint = q;
+        return 1;
+    }
     if (strcmp(name, "launcher_window") != 0) return 0;
     int width = 0, height = 0;
     if (sscanf(value, "%dx%d", &width, &height) == 2 && width > 0 && height > 0) { s->launcher_width = width; s->launcher_height = height; }
@@ -241,7 +288,7 @@ void oracles_settings_load(oracles_settings *s)
 {
     if (!s->path[0]) return;
     FILE *f = fopen(s->path, "r");
-    if (!f) return;
+    if (!f) { s->first_run = 1; return; }
     char line[LINE_LENGTH];
     while (fgets(line, sizeof line, f)) {
         line[strcspn(line, "\r\n")] = 0;
@@ -311,6 +358,10 @@ int oracles_settings_store(const oracles_settings *s)
     fprintf(f, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
                "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
     if (s->ghosts == 1 || s->ghosts == 2) fprintf(f, "ghosts=%d\n", s->ghosts); else fprintf(f, "ghosts=auto\n");
+    if (s->quality_hint >= 0 && s->quality_hint < ORACLES_QUALITIES) {
+        fprintf(f, "# The quality a game that ran slowly was last suggested to leave: the suggestion is made once a quality.\n");
+        fprintf(f, "quality_hint=%s\n", oracles_settings_quality_names[s->quality_hint]);
+    }
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
     fprintf(f, "launcher_window=%dx%d\n", s->launcher_width, s->launcher_height);

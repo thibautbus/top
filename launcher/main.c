@@ -30,6 +30,7 @@
 
 /* SDL's entry point where a platform needs one (Windows: the command line in UTF-8; Android: the activity calls it). */
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_cpuinfo.h>
 #include <SDL3/SDL_hints.h>
 
 #include <stdio.h>
@@ -206,6 +207,13 @@ static void load_settings(oracles_settings *prefs, const OraclesSessionOptions *
         if (oracles_sdl_settings_dir(dir, sizeof dir)) snprintf(prefs->path, sizeof prefs->path, "%ssettings.txt", dir);
     }
     oracles_settings_load(prefs);
+    /* A first opening takes the device's quality: what weighs on it set for it, Display's Quality to change. */
+    if (prefs->first_run) {
+        const OraclesQuality quality = oracles_settings_default_quality(oracles_sdl_fullscreen_only(), SDL_GetNumLogicalCPUCores(), SDL_GetSystemRAM());
+        oracles_settings_apply_quality(prefs, quality);
+        fprintf(stderr, "oracles: a first opening: the %s quality, for %d processor threads and %d MB\n", oracles_settings_quality_names[quality],
+                SDL_GetNumLogicalCPUCores(), SDL_GetSystemRAM());
+    }
 }
 
 int main(int argc, char **argv)

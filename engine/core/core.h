@@ -43,6 +43,8 @@ typedef struct OraclesCoreOptions {
     int colour_correction;
     /* The core to create. */
     OraclesCoreKind kind;
+    /* 1: the frame is not drawn (the LCD's timing kept): a core never shown, the ghost, which reads the VRAM. */
+    int no_video;
 } OraclesCoreOptions;
 
 typedef struct OraclesCore OraclesCore;

@@ -56,7 +56,7 @@ int main(void)
     rom[0x100] = 0x00; rom[0x101] = 0xc3; rom[0x102] = 0x50; rom[0x103] = 0x01;
     memcpy(rom + 0x150, program, sizeof program);
 
-    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY };
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
     OraclesCore *core = oracles_core_create(rom, size, &options);
     free(rom);
     CHECK(core != NULL);

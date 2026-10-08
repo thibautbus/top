@@ -65,6 +65,7 @@ typedef struct Mgba {
     void (*dma_service)(struct mTiming *, void *, uint32_t);
     int fetching;                           /* the next fetch is the opcode of an instruction that runs */
     int in_cpu_load8;
+    int no_video;                           /* no video buffer: mGBA keeps its dummy renderer, the frame is not drawn */
 } Mgba;
 
 static Mgba *mgba_of(const OraclesCore *core) { return core->backend; }
@@ -120,14 +121,14 @@ static void on_frame_ended(void *context)
     OraclesVblankType type = ORACLES_VBLANK_NORMAL;
     if (!(gb_of(core)->memory.io[GB_REG_LCDC] & 0x80u)) {
         type = ORACLES_VBLANK_LCD_OFF;
-        white_frame(core);
+        if (!m->no_video) white_frame(core);
         m->frames.scanned_recently = (uint8_t)recent;
     } else {
         if (m->frames.lcd_turned_on) {
             m->frames.lcd_turned_on = 0;
             if (recent) type = ORACLES_VBLANK_REPEAT;
-            else white_frame(core);
-        } else {
+            else if (!m->no_video) white_frame(core);
+        } else if (!m->no_video) {
             for (unsigned i = 0; i < ORACLES_SCREEN_PIXELS; i++) core->pixels[i] = m->colours[rgb555_of(m->video[i])];
         }
         m->frames.last_scanned = now;
@@ -301,7 +302,8 @@ int oracles_core_mgba_init(OraclesCore *core, const uint8_t *rom, size_t rom_siz
      * model, and its reset reads one key for each kind of cartridge. */
     static const char *const model_keys[] = { "gb.model", "sgb.model", "cgb.model", "cgb.hybridModel", "cgb.sgbModel" };
     for (size_t i = 0; i < sizeof model_keys / sizeof model_keys[0]; i++) mCoreConfigSetValue(&m->core->config, model_keys[i], "CGB");
-    m->core->setVideoBuffer(m->core, m->video, ORACLES_SCREEN_WIDTH);
+    m->no_video = options && options->no_video;
+    if (!m->no_video) m->core->setVideoBuffer(m->core, m->video, ORACLES_SCREEN_WIDTH);
     if (!m->core->loadROM(m->core, VFileMemChunk(rom, rom_size))) goto fail;   /* copied */
     if (!m->core->loadBIOS(m->core, VFileFromConstMemory(oracles_cgb_boot_rom_mgba, oracles_cgb_boot_rom_mgba_size), 0)) goto fail;
     m->callbacks.context = core;
