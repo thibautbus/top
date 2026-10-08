@@ -1,5 +1,6 @@
 /* Cartridge, Display and Mods drawn: ui_page_nav.h's state at the places of
- * ui_page_layout.h, in their colours. */
+ * ui_page_layout.h, in their colours, in the layout of nav->layout; a point
+ * is in that layout's scene. */
 #ifndef ORACLES_UI_PAGE_H
 #define ORACLES_UI_PAGE_H
 

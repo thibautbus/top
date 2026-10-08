@@ -12,6 +12,7 @@ const char *const oracles_controls_default_pads[ORACLES_HOME_PAD_BUTTONS] = { "a
 /* Under the left hand that already holds Z (B) and X (A); on a controller, the buttons the game does not use. */
 const char *const oracles_controls_default_hotkey_keys[ORACLES_HOME_HOTKEY_ROWS] = { "A", "S", "Q", "W", "Left Shift", "Left Ctrl" };
 const char *const oracles_controls_default_hotkey_pads[ORACLES_HOME_SLOTS] = { "x", "y", "leftshoulder", "rightshoulder" };
+const char *const oracles_controls_tab_names[ORACLES_CONTROLS_TABS] = { "Buttons", "Hotkeys", "In game" };
 const char *const oracles_controls_shortcuts[6][2] = {
     { "F2", "Color" }, { "F3", "Wide world or frame" }, { "F5", "Save state" }, { "F7", "Load state" }, { "F11", "Fullscreen" }, { "Esc", "Menu" },
 };
@@ -45,6 +46,7 @@ void oracles_controls_defaults(OraclesHomeControls *controls)
     memset(controls->items, 0, sizeof controls->items);
     controls->column = controls->row = 0;
     controls->capturing = 0;
+    controls->tab = ORACLES_CONTROLS_TAB_BUTTONS;
 }
 
 void oracles_controls_open(OraclesHomeNav *nav)
@@ -52,6 +54,14 @@ void oracles_controls_open(OraclesHomeNav *nav)
     nav->screen = ORACLES_SCREEN_CONTROLS;
     nav->controls.column = nav->controls.row = 0;
     nav->controls.capturing = 0;
+    nav->controls.tab = ORACLES_CONTROLS_TAB_BUTTONS;
+}
+
+int oracles_controls_tab(const OraclesHomeNav *nav)
+{
+    const OraclesHomeControls *c = &nav->controls;
+    if (c->row == ORACLES_CONTROLS_ROW_TAB) return c->tab;
+    return c->column >= 2 ? ORACLES_CONTROLS_TAB_HOTKEYS : ORACLES_CONTROLS_TAB_BUTTONS;
 }
 
 int oracles_controls_cell_exists(int column, int row)
@@ -130,12 +140,35 @@ const char *oracles_controls_item(const OraclesHomeNav *nav, int slot)
     return g >= 0 && slot >= 0 && slot < ORACLES_HOME_SLOTS ? nav->controls.items[g][slot] : "";
 }
 
-/* The cells the highlight goes to, in order (a tie for the nearest row goes to the first). */
+/* The cells the highlight goes to, in order (a tie for the nearest row goes to the first): 16:9's grid, or 4:3's
+ * shown tab, its strip first. */
 typedef struct cell { int column, row; } cell;
 
-static int cells(cell *out)
+static int cells(const OraclesHomeNav *nav, cell *out)
 {
     int n = 0;
+    if (nav->layout == ORACLES_UI_LAYOUT_4_3) {
+        switch (oracles_controls_tab(nav)) {
+            case ORACLES_CONTROLS_TAB_BUTTONS:
+                out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_TAB };
+                out[n++] = (cell){ 1, ORACLES_CONTROLS_ROW_TAB };
+                for (int r = 0; r < ORACLES_HOME_BUTTONS; r++) out[n++] = (cell){ 0, r };
+                for (int r = ORACLES_HOME_BUTTONS - ORACLES_HOME_PAD_BUTTONS; r < ORACLES_HOME_BUTTONS; r++) out[n++] = (cell){ 1, r };
+                out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_RESET };
+                out[n++] = (cell){ 1, ORACLES_CONTROLS_ROW_RESET };
+                break;
+            case ORACLES_CONTROLS_TAB_HOTKEYS:
+                out[n++] = (cell){ 2, ORACLES_CONTROLS_ROW_TAB };
+                out[n++] = (cell){ 3, ORACLES_CONTROLS_ROW_TAB };
+                out[n++] = (cell){ 2, ORACLES_CONTROLS_ROW_MODE };
+                out[n++] = (cell){ 3, ORACLES_CONTROLS_ROW_MODE };
+                for (int r = 0; r < ORACLES_HOME_HOTKEY_ROWS; r++) out[n++] = (cell){ 2, r };
+                for (int r = 0; r < ORACLES_HOME_SLOTS; r++) out[n++] = (cell){ 3, r };
+                break;
+            default: out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_TAB }; break;
+        }
+        return n;
+    }
     for (int r = 0; r < ORACLES_HOME_BUTTONS; r++) out[n++] = (cell){ 0, r };
     for (int r = ORACLES_HOME_BUTTONS - ORACLES_HOME_PAD_BUTTONS; r < ORACLES_HOME_BUTTONS; r++) out[n++] = (cell){ 1, r };
     out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_RESET };
@@ -147,17 +180,20 @@ static int cells(cell *out)
     return n;
 }
 
-/* Reset and the Item hotkeys line are one place each, whatever column they were reached from. */
+/* Reset, the Item hotkeys line and the tabs' strip are one place each, whatever column they were reached from. */
 static void settle(OraclesHomeControls *c)
 {
     if (c->row == ORACLES_CONTROLS_ROW_RESET) c->column = 0;
     if (c->row == ORACLES_CONTROLS_ROW_MODE) c->column = 2;
+    if (c->row == ORACLES_CONTROLS_ROW_TAB) c->column = c->tab == ORACLES_CONTROLS_TAB_HOTKEYS ? 2 : 0;
 }
 
-static void move(OraclesHomeControls *c, OraclesHomeAction action)
+static void move(OraclesHomeNav *nav, OraclesHomeAction action)
 {
+    OraclesHomeControls *c = &nav->controls;
     cell list[32];
-    const int count = cells(list);
+    const int count = cells(nav, list);
+    c->tab = oracles_controls_tab(nav);   /* the strip, when the move reaches it, holds the tab moved from */
     const cell *best = NULL;
     for (int i = 0; i < count; i++) {
         const cell *x = &list[i];
@@ -194,12 +230,13 @@ static OraclesHomeCommand reset(OraclesHomeNav *nav)
 {
     OraclesHomeControls *c = &nav->controls;
     char items[2][ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];
-    const int column = c->column, row = c->row;
+    const int column = c->column, row = c->row, tab = c->tab;
     memcpy(items, c->items, sizeof items);
     oracles_controls_defaults(c);
     memcpy(c->items, items, sizeof items);
     c->column = column;
     c->row = row;
+    c->tab = tab;
     return ORACLES_HOME_STORE;
 }
 
@@ -213,6 +250,14 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav)
     return ORACLES_HOME_STAY;
 }
 
+/* The tabs' strip: left, right and OK show the tab before or after, wrapping. */
+static OraclesHomeCommand turn_tab(OraclesHomeControls *c, int step)
+{
+    c->tab = (c->tab + step + ORACLES_CONTROLS_TABS) % ORACLES_CONTROLS_TABS;
+    settle(c);
+    return ORACLES_HOME_STAY;
+}
+
 OraclesHomeCommand oracles_controls_act(OraclesHomeNav *nav, OraclesHomeAction action)
 {
     OraclesHomeControls *c = &nav->controls;
@@ -220,14 +265,26 @@ OraclesHomeCommand oracles_controls_act(OraclesHomeNav *nav, OraclesHomeAction a
         if (action == ORACLES_HOME_BACK) c->capturing = 0;
         return ORACLES_HOME_STAY;
     }
+    if (c->row == ORACLES_CONTROLS_ROW_TAB && action != ORACLES_HOME_BACK) {
+        if (nav->layout == ORACLES_UI_LAYOUT_4_3) {
+            if (action == ORACLES_HOME_LEFT || action == ORACLES_HOME_RIGHT || action == ORACLES_HOME_OK)
+                return turn_tab(c, action == ORACLES_HOME_LEFT ? -1 : 1);
+        } else {
+            /* 16:9 has no strip: its tab's first cell. */
+            const int hotkeys = c->tab == ORACLES_CONTROLS_TAB_HOTKEYS;
+            c->column = hotkeys ? 2 : 0;
+            c->row = hotkeys ? ORACLES_CONTROLS_ROW_MODE : 0;
+            return ORACLES_HOME_STAY;
+        }
+    }
     switch (action) {
         case ORACLES_HOME_LEFT:
         case ORACLES_HOME_RIGHT:
             if (c->row == ORACLES_CONTROLS_ROW_MODE) return toggle_hotkeys(nav, !oracles_controls_hotkeys_on(nav));
-            move(c, action);
+            move(nav, action);
             return ORACLES_HOME_STAY;
         case ORACLES_HOME_UP:
-        case ORACLES_HOME_DOWN: move(c, action); return ORACLES_HOME_STAY;
+        case ORACLES_HOME_DOWN: move(nav, action); return ORACLES_HOME_STAY;
         case ORACLES_HOME_OK: return activate(nav);
         case ORACLES_HOME_BACK:
             /* Back to the menu Controls was opened from, on Controls. */
@@ -250,6 +307,12 @@ void oracles_controls_hover(OraclesHomeNav *nav, int column, int row)
 OraclesHomeCommand oracles_controls_click(OraclesHomeNav *nav, int column, int row, int option)
 {
     OraclesHomeControls *c = &nav->controls;
+    if (!c->capturing && row == ORACLES_CONTROLS_ROW_TAB && option >= 0 && option < ORACLES_CONTROLS_TABS) {
+        c->tab = option;
+        c->row = ORACLES_CONTROLS_ROW_TAB;
+        settle(c);
+        return ORACLES_HOME_STAY;
+    }
     if (c->capturing || !oracles_controls_cell_exists(column, row) || oracles_controls_cell_locked(column, row)) return ORACLES_HOME_STAY;
     c->column = column;
     c->row = row;

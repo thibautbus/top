@@ -2,7 +2,7 @@
  * it.
  *
  * The window opens 16:9, resizable down to 960x540; the scene follows its
- * size.  Cartridge opens the game's page (ui_page.h).  Keyboard: arrows, Enter or Space, Escape or Backspace; controller:
+ * size, and its shape the layout (ui_layout.h), 16:9 or 4:3.  Cartridge opens the game's page (ui_page.h).  Keyboard: arrows, Enter or Space, Escape or Backspace; controller:
  * d-pad, A, B; mouse: hover and click.  F11 toggles fullscreen.  The loop
  * waits for events, and draws only while something changes or moves.
  *

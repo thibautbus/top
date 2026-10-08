@@ -228,13 +228,14 @@ if(BUILD_TESTING)
         endforeach()
 
         # --launcher-screenshot draws offscreen with SDL's software renderer: a test
-        # without a display or a ROM, at 1080p, at the smallest window, and letterboxed.
+        # without a display or a ROM, at 1080p, at the smallest window, letterboxed in the
+        # 4:3 layout (1000x700 is nearer 4:3), and at a handheld's 640x480.
         # The settings directory is an empty one of the build (ORACLES_SETTINGS_DIR), the player's never read.
         file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home)
         add_executable(oracles-test-launcher-screenshot test_launcher_screenshot.c layout_reference.c)
         target_link_libraries(oracles-test-launcher-screenshot PRIVATE oracles_ui)
         oracles_set_warnings(oracles-test-launcher-screenshot)
-        foreach(size 1920x1080 960x540 1000x700)
+        foreach(size 1920x1080 960x540 1000x700 640x480)
             string(REPLACE "x" ";" dimensions ${size})
             list(GET dimensions 0 width)
             list(GET dimensions 1 height)
@@ -246,6 +247,14 @@ if(BUILD_TESTING)
                 COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm ${width} ${height} ${ORACLES_LAYOUT_REFERENCE})
             set_tests_properties(oracles-launcher-screenshot-${size} PROPERTIES FIXTURES_REQUIRED launcher_${size})
         endforeach()
+        # Controls in 4:3 at a handheld's 640x480, on its Hotkeys tab (the layout reference's frame 10j).
+        add_test(NAME oracles-launcher-screenshot-controls-4-3-draw
+            COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_controls_4_3.ppm --launcher-size 640x480 --launcher-input down,down,ok,up,right)
+        set_tests_properties(oracles-launcher-screenshot-controls-4-3-draw PROPERTIES FIXTURES_SETUP launcher_controls_4_3
+            ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
+        add_test(NAME oracles-launcher-screenshot-controls-4-3
+            COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_controls_4_3.ppm 640 480 ${ORACLES_LAYOUT_REFERENCE} 10j "Item hotkeys title")
+        set_tests_properties(oracles-launcher-screenshot-controls-4-3 PROPERTIES FIXTURES_REQUIRED launcher_controls_4_3)
         # Mods at the smallest window: a settings directory of the build whose mods folder holds the two example mods,
         # both active, and a third refused for its missing main.lua (the layout reference's frame 8c).
         # A copy of the sources without mods/ skips it.

@@ -1,7 +1,8 @@
 /* The launcher's layout reference, for the layout tests: tests/launcher_layout_reference.json, the measures the
  * layout tests compare with; to change the layout on purpose, update the values of the probes it moves.  Each
  * frame of the file holds named probes: a text's left, width, line box and
- * baseline, or an element's box, in the scene's pixels at 1920x1080; "texts" holds the fonts' own measures.
+ * baseline, or an element's box, in the scene's pixels at 1920x1080, or 1440x1080 for the 4:3 layout's frames; "texts"
+ * holds the fonts' own measures.
  *
  * A test loads the file (its path is the test's argument), compares its layout with a probe by name, within
  * LAYOUT_TOLERANCE, and a difference says which probe and how to update it. */

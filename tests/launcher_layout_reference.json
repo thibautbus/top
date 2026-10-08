@@ -1,5 +1,5 @@
 {
- "about": "The launcher's layout reference: the measures the layout tests compare with, in the scene's pixels at 1920x1080; edit a value when a change of layout is intended.",
+ "about": "The launcher's layout reference: the measures the layout tests compare with, in the scene's pixels at 1920x1080, or 1440x1080 for the 4:3 layout's frames (10a...); edit a value when a change of layout is intended.",
  "frames": {
   "1a": {
    "hero over": {
@@ -3333,6 +3333,108 @@
     "baseline": 638,
     "width": 273.594,
     "lines": 1
+   },
+   "hint 0": {
+    "x": 676.484,
+    "y": 1025,
+    "w": 121.484,
+    "h": 37
+   },
+   "hint 1": {
+    "x": 833.969,
+    "y": 1025,
+    "w": 201.406,
+    "h": 37
+   },
+   "hint 2": {
+    "x": 1071.375,
+    "y": 1025,
+    "w": 172.125,
+    "h": 37
+   },
+   "hint 0 key": {
+    "x": 686.484,
+    "y": 1029,
+    "w": 42.813,
+    "h": 29
+   },
+   "hint 1 key": {
+    "x": 843.969,
+    "y": 1029,
+    "w": 122.609,
+    "h": 29
+   },
+   "hint 2 key": {
+    "x": 1081.375,
+    "y": 1029,
+    "w": 99.813,
+    "h": 29
+   },
+   "hint 0 key text": {
+    "x": 696.484,
+    "w": 22.813,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 22.813,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 853.969,
+    "w": 102.609,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 102.609,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 1091.375,
+    "w": 79.813,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 79.813,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 739.297,
+    "w": 48.672,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 48.672,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 976.578,
+    "w": 48.797,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 48.797,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1191.188,
+    "w": 42.313,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 42.313,
+    "lines": 1
    }
   },
   "9b": {
@@ -5432,6 +5534,4520 @@
     "h": 29,
     "baseline": 886.5,
     "width": 293.797,
+    "lines": 1
+   }
+  },
+  "10a": {
+   "tab 0": {
+    "x": 64,
+    "y": 28,
+    "w": 287.844,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 363.844,
+    "y": 28,
+    "w": 332.234,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 708.078,
+    "y": 28,
+    "w": 216.891,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 88,
+    "w": 239.844,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 239.844,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 387.844,
+    "w": 284.234,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 284.234,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 732.078,
+    "w": 168.891,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 168.891,
+    "lines": 1
+   },
+   "hero over": {
+    "x": 1207.828,
+    "w": 168.172,
+    "glyph_top": 160,
+    "glyph_h": 50,
+    "top": 160,
+    "h": 50,
+    "baseline": 199,
+    "width": 168.172,
+    "lines": 1
+   },
+   "hero title": {
+    "x": 1117.016,
+    "w": 258.984,
+    "glyph_top": 194,
+    "glyph_h": 151,
+    "top": 210,
+    "h": 120,
+    "baseline": 311,
+    "width": 258.984,
+    "lines": 1
+   },
+   "hero state": {
+    "x": 834.734,
+    "w": 541.266,
+    "glyph_top": 347,
+    "glyph_h": 30,
+    "top": 344,
+    "h": 36,
+    "baseline": 371,
+    "width": 541.266,
+    "lines": 1
+   },
+   "hero": {
+    "x": 834.734,
+    "y": 160,
+    "w": 541.266,
+    "h": 220
+   },
+   "item 0": {
+    "x": 764,
+    "y": 410,
+    "w": 640,
+    "h": 90
+   },
+   "item 1": {
+    "x": 764,
+    "y": 504,
+    "w": 640,
+    "h": 90
+   },
+   "item 2": {
+    "x": 764,
+    "y": 598,
+    "w": 640,
+    "h": 90
+   },
+   "item 3": {
+    "x": 764,
+    "y": 692,
+    "w": 640,
+    "h": 90
+   },
+   "item 4": {
+    "x": 764,
+    "y": 786,
+    "w": 640,
+    "h": 90
+   },
+   "item 5": {
+    "x": 764,
+    "y": 880,
+    "w": 640,
+    "h": 90
+   },
+   "item 0 label": {
+    "x": 1052.5,
+    "w": 287.594,
+    "glyph_top": 418.094,
+    "glyph_h": 72,
+    "top": 423.094,
+    "h": 63.797,
+    "baseline": 474.094,
+    "width": 287.594,
+    "lines": 1
+   },
+   "item 1 label": {
+    "x": 1088.766,
+    "w": 251.328,
+    "glyph_top": 512.094,
+    "glyph_h": 72,
+    "top": 517.094,
+    "h": 63.797,
+    "baseline": 568.094,
+    "width": 251.328,
+    "lines": 1
+   },
+   "item 2 label": {
+    "x": 1118.656,
+    "w": 221.438,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 221.438,
+    "lines": 1
+   },
+   "item 3 label": {
+    "x": 1157.25,
+    "w": 182.844,
+    "glyph_top": 700.094,
+    "glyph_h": 72,
+    "top": 705.094,
+    "h": 63.797,
+    "baseline": 756.094,
+    "width": 182.844,
+    "lines": 1
+   },
+   "item 4 label": {
+    "x": 1190.609,
+    "w": 149.484,
+    "glyph_top": 794.094,
+    "glyph_h": 72,
+    "top": 799.094,
+    "h": 63.797,
+    "baseline": 850.094,
+    "width": 149.484,
+    "lines": 1
+   },
+   "item 5 label": {
+    "x": 1245.078,
+    "w": 95.016,
+    "glyph_top": 888.094,
+    "glyph_h": 72,
+    "top": 893.094,
+    "h": 63.797,
+    "baseline": 944.094,
+    "width": 95.016,
+    "lines": 1
+   },
+   "item 0 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 418.094,
+    "glyph_h": 72,
+    "top": 423.094,
+    "h": 63.797,
+    "baseline": 474.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 1 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 512.094,
+    "glyph_h": 72,
+    "top": 517.094,
+    "h": 63.797,
+    "baseline": 568.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 2 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 3 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 700.094,
+    "glyph_h": 72,
+    "top": 705.094,
+    "h": 63.797,
+    "baseline": 756.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 4 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 794.094,
+    "glyph_h": 72,
+    "top": 799.094,
+    "h": 63.797,
+    "baseline": 850.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 5 dot": {
+    "x": 1364.094,
+    "w": 11.906,
+    "glyph_top": 888.094,
+    "glyph_h": 72,
+    "top": 893.094,
+    "h": 63.797,
+    "baseline": 944.094,
+    "width": 11.906,
+    "lines": 1
+   },
+   "item 3 note": {
+    "x": 929.359,
+    "w": 203.891,
+    "glyph_top": 722,
+    "glyph_h": 30,
+    "top": 719,
+    "h": 36,
+    "baseline": 746,
+    "width": 203.891,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 384.422,
+    "y": 982,
+    "w": 175.5,
+    "h": 90
+   },
+   "hint 1": {
+    "x": 575.922,
+    "y": 982,
+    "w": 174.094,
+    "h": 90
+   },
+   "hint 2": {
+    "x": 766.016,
+    "y": 982,
+    "w": 289.563,
+    "h": 90
+   },
+   "hint 0 key": {
+    "x": 404.422,
+    "y": 1008,
+    "w": 54.406,
+    "h": 38
+   },
+   "hint 1 key": {
+    "x": 595.922,
+    "y": 1008,
+    "w": 54.406,
+    "h": 38
+   },
+   "hint 2 key": {
+    "x": 786.016,
+    "y": 1008,
+    "w": 167.813,
+    "h": 38
+   },
+   "hint 0 key text": {
+    "x": 415.422,
+    "w": 32.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 32.406,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 606.922,
+    "w": 32.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 32.406,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 797.016,
+    "w": 145.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 145.813,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 470.828,
+    "w": 69.094,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 69.094,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 662.328,
+    "w": 67.688,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 67.688,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 965.828,
+    "w": 69.75,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 69.75,
+    "lines": 1
+   },
+   "version": {
+    "x": 28,
+    "w": 75.438,
+    "glyph_top": 1008,
+    "glyph_h": 34,
+    "top": 1008,
+    "h": 34,
+    "baseline": 1034,
+    "width": 75.438,
+    "lines": 1
+   }
+  },
+  "10b": {
+   "tab 0": {
+    "x": 64,
+    "y": 28,
+    "w": 287.844,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 363.844,
+    "y": 28,
+    "w": 332.234,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 708.078,
+    "y": 28,
+    "w": 216.891,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 88,
+    "w": 239.844,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 239.844,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 387.844,
+    "w": 284.234,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 284.234,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 732.078,
+    "w": 168.891,
+    "glyph_top": 49,
+    "glyph_h": 45,
+    "top": 49,
+    "h": 45,
+    "baseline": 84,
+    "width": 168.891,
+    "lines": 1
+   },
+   "hero over": {
+    "x": 1163.703,
+    "w": 212.297,
+    "glyph_top": 160,
+    "glyph_h": 50,
+    "top": 160,
+    "h": 50,
+    "baseline": 199,
+    "width": 212.297,
+    "lines": 1
+   },
+   "hero title": {
+    "x": 813.031,
+    "w": 562.969,
+    "glyph_top": 194,
+    "glyph_h": 151,
+    "top": 210,
+    "h": 120,
+    "baseline": 311,
+    "width": 562.969,
+    "lines": 1
+   },
+   "hero state": {
+    "x": 1241.625,
+    "w": 134.375,
+    "glyph_top": 347,
+    "glyph_h": 30,
+    "top": 344,
+    "h": 36,
+    "baseline": 371,
+    "width": 134.375,
+    "lines": 1
+   },
+   "kinomi": {
+    "x": 528.594,
+    "y": 598,
+    "w": 875.406,
+    "h": 90
+   },
+   "kinomi note": {
+    "x": 564.594,
+    "w": 360.422,
+    "glyph_top": 628,
+    "glyph_h": 30,
+    "top": 625,
+    "h": 36,
+    "baseline": 652,
+    "width": 360.422,
+    "lines": 1
+   },
+   "kinomi label": {
+    "x": 949.016,
+    "w": 391.078,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 391.078,
+    "lines": 1
+   },
+   "moonrise": {
+    "x": 465.938,
+    "y": 692,
+    "w": 938.063,
+    "h": 90
+   },
+   "moonrise note": {
+    "x": 501.938,
+    "w": 358.813,
+    "glyph_top": 722,
+    "glyph_h": 30,
+    "top": 719,
+    "h": 36,
+    "baseline": 746,
+    "width": 358.813,
+    "lines": 1
+   },
+   "moonrise label": {
+    "x": 884.75,
+    "w": 455.344,
+    "glyph_top": 700.094,
+    "glyph_h": 72,
+    "top": 705.094,
+    "h": 63.797,
+    "baseline": 756.094,
+    "width": 455.344,
+    "lines": 1
+   },
+   "temple": {
+    "x": 443.375,
+    "y": 786,
+    "w": 960.625,
+    "h": 90
+   },
+   "temple note": {
+    "x": 479.375,
+    "w": 360.422,
+    "glyph_top": 816,
+    "glyph_h": 30,
+    "top": 813,
+    "h": 36,
+    "baseline": 840,
+    "width": 360.422,
+    "lines": 1
+   },
+   "temple label": {
+    "x": 863.797,
+    "w": 476.297,
+    "glyph_top": 794.094,
+    "glyph_h": 72,
+    "top": 799.094,
+    "h": 63.797,
+    "baseline": 850.094,
+    "width": 476.297,
+    "lines": 1
+   },
+   "exit": {
+    "x": 764,
+    "y": 880,
+    "w": 640,
+    "h": 90
+   }
+  },
+  "10c": {
+   "hero title": {
+    "x": 969.063,
+    "w": 406.938,
+    "glyph_top": 194,
+    "glyph_h": 151,
+    "top": 210,
+    "h": 120,
+    "baseline": 311,
+    "width": 406.938,
+    "lines": 1
+   },
+   "hero state": {
+    "x": 1109.203,
+    "w": 266.797,
+    "glyph_top": 347,
+    "glyph_h": 30,
+    "top": 344,
+    "h": 36,
+    "baseline": 371,
+    "width": 266.797,
+    "lines": 1
+   },
+   "start": {
+    "x": 610.125,
+    "y": 410,
+    "w": 793.875,
+    "h": 90
+   },
+   "start reason": {
+    "x": 656.125,
+    "w": 362.375,
+    "glyph_top": 440,
+    "glyph_h": 30,
+    "top": 437,
+    "h": 36,
+    "baseline": 464,
+    "width": 362.375,
+    "lines": 1
+   },
+   "start reason background": {
+    "x": 646.125,
+    "y": 435,
+    "w": 382.375,
+    "h": 40
+   }
+  },
+  "toast 4:3": {
+   "toast": {
+    "x": 420.367,
+    "y": 890,
+    "w": 599.266,
+    "h": 70
+   },
+   "toast text": {
+    "x": 449.367,
+    "w": 541.266,
+    "glyph_top": 910,
+    "glyph_h": 30,
+    "top": 907,
+    "h": 36,
+    "baseline": 934,
+    "width": 541.266,
+    "lines": 1
+   }
+  },
+  "10n": {
+   "hero over": {
+    "x": 1207.828,
+    "w": 168.172,
+    "glyph_top": 96,
+    "glyph_h": 50,
+    "top": 96,
+    "h": 50,
+    "baseline": 135,
+    "width": 168.172,
+    "lines": 1
+   },
+   "hero title": {
+    "x": 1117.016,
+    "w": 258.984,
+    "glyph_top": 130,
+    "glyph_h": 151,
+    "top": 146,
+    "h": 120,
+    "baseline": 247,
+    "width": 258.984,
+    "lines": 1
+   },
+   "hero state": {
+    "x": 899.266,
+    "w": 476.734,
+    "glyph_top": 283,
+    "glyph_h": 30,
+    "top": 280,
+    "h": 36,
+    "baseline": 307,
+    "width": 476.734,
+    "lines": 1
+   },
+   "hero": {
+    "x": 899.266,
+    "y": 96,
+    "w": 476.734,
+    "h": 220
+   },
+   "item 0": {
+    "x": 764,
+    "y": 410,
+    "w": 640,
+    "h": 90
+   },
+   "item 1": {
+    "x": 764,
+    "y": 504,
+    "w": 640,
+    "h": 90
+   },
+   "item 2": {
+    "x": 764,
+    "y": 598,
+    "w": 640,
+    "h": 90
+   },
+   "item 3": {
+    "x": 764,
+    "y": 692,
+    "w": 640,
+    "h": 90
+   },
+   "item 4": {
+    "x": 764,
+    "y": 786,
+    "w": 640,
+    "h": 90
+   },
+   "item 5": {
+    "x": 764,
+    "y": 880,
+    "w": 640,
+    "h": 90
+   },
+   "item 0 label": {
+    "x": 1138.219,
+    "w": 201.875,
+    "glyph_top": 418.094,
+    "glyph_h": 72,
+    "top": 423.094,
+    "h": 63.797,
+    "baseline": 474.094,
+    "width": 201.875,
+    "lines": 1
+   },
+   "item 1 label": {
+    "x": 1080.781,
+    "w": 259.313,
+    "glyph_top": 512.094,
+    "glyph_h": 72,
+    "top": 517.094,
+    "h": 63.797,
+    "baseline": 568.094,
+    "width": 259.313,
+    "lines": 1
+   },
+   "item 2 label": {
+    "x": 1069.656,
+    "w": 270.438,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 270.438,
+    "lines": 1
+   },
+   "item 3 label": {
+    "x": 1118.656,
+    "w": 221.438,
+    "glyph_top": 700.094,
+    "glyph_h": 72,
+    "top": 705.094,
+    "h": 63.797,
+    "baseline": 756.094,
+    "width": 221.438,
+    "lines": 1
+   },
+   "item 4 label": {
+    "x": 1157.25,
+    "w": 182.844,
+    "glyph_top": 794.094,
+    "glyph_h": 72,
+    "top": 799.094,
+    "h": 63.797,
+    "baseline": 850.094,
+    "width": 182.844,
+    "lines": 1
+   },
+   "item 5 label": {
+    "x": 906,
+    "w": 434.094,
+    "glyph_top": 888.094,
+    "glyph_h": 72,
+    "top": 893.094,
+    "h": 63.797,
+    "baseline": 944.094,
+    "width": 434.094,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 331.797,
+    "y": 982,
+    "w": 174.094,
+    "h": 90
+   },
+   "hint 1": {
+    "x": 521.891,
+    "y": 982,
+    "w": 289.563,
+    "h": 90
+   },
+   "hint 2": {
+    "x": 827.453,
+    "y": 982,
+    "w": 280.75,
+    "h": 90
+   },
+   "hint 0 key": {
+    "x": 351.797,
+    "y": 1008,
+    "w": 54.406,
+    "h": 38
+   },
+   "hint 1 key": {
+    "x": 541.891,
+    "y": 1008,
+    "w": 167.813,
+    "h": 38
+   },
+   "hint 2 key": {
+    "x": 847.453,
+    "y": 1008,
+    "w": 135.406,
+    "h": 38
+   },
+   "hint 0 key text": {
+    "x": 362.797,
+    "w": 32.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 32.406,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 552.891,
+    "w": 145.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 145.813,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 858.453,
+    "w": 113.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 113.406,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 418.203,
+    "w": 67.688,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 67.688,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 721.703,
+    "w": 69.75,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 69.75,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 994.859,
+    "w": 93.344,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 93.344,
+    "lines": 1
+   },
+   "version": {
+    "x": 28,
+    "w": 75.438,
+    "glyph_top": 1008,
+    "glyph_h": 34,
+    "top": 1008,
+    "h": 34,
+    "baseline": 1034,
+    "width": 75.438,
+    "lines": 1
+   }
+  },
+  "10t": {
+   "item 0": {
+    "x": 764,
+    "y": 410,
+    "w": 640,
+    "h": 90
+   },
+   "item 1": {
+    "x": 764,
+    "y": 504,
+    "w": 640,
+    "h": 90
+   },
+   "item 2": {
+    "x": 764,
+    "y": 598,
+    "w": 640,
+    "h": 90
+   },
+   "item 3": {
+    "x": 764,
+    "y": 692,
+    "w": 640,
+    "h": 90
+   },
+   "item 4": {
+    "x": 764,
+    "y": 786,
+    "w": 640,
+    "h": 90
+   },
+   "item 5": {
+    "x": 764,
+    "y": 880,
+    "w": 640,
+    "h": 90
+   },
+   "item 0 label": {
+    "x": 1138.219,
+    "w": 201.875,
+    "glyph_top": 418.094,
+    "glyph_h": 72,
+    "top": 423.094,
+    "h": 63.797,
+    "baseline": 474.094,
+    "width": 201.875,
+    "lines": 1
+   },
+   "item 1 label": {
+    "x": 1080.781,
+    "w": 259.313,
+    "glyph_top": 512.094,
+    "glyph_h": 72,
+    "top": 517.094,
+    "h": 63.797,
+    "baseline": 568.094,
+    "width": 259.313,
+    "lines": 1
+   },
+   "item 2 label": {
+    "x": 1069.656,
+    "w": 270.438,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 270.438,
+    "lines": 1
+   },
+   "item 3 label": {
+    "x": 1118.656,
+    "w": 221.438,
+    "glyph_top": 700.094,
+    "glyph_h": 72,
+    "top": 705.094,
+    "h": 63.797,
+    "baseline": 756.094,
+    "width": 221.438,
+    "lines": 1
+   },
+   "item 4 label": {
+    "x": 1157.25,
+    "w": 182.844,
+    "glyph_top": 794.094,
+    "glyph_h": 72,
+    "top": 799.094,
+    "h": 63.797,
+    "baseline": 850.094,
+    "width": 182.844,
+    "lines": 1
+   },
+   "item 5 label": {
+    "x": 906,
+    "w": 434.094,
+    "glyph_top": 888.094,
+    "glyph_h": 72,
+    "top": 893.094,
+    "h": 63.797,
+    "baseline": 944.094,
+    "width": 434.094,
+    "lines": 1
+   }
+  },
+  "10d": {
+   "section": {
+    "x": 64,
+    "w": 208.359,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 208.359,
+    "lines": 1
+   },
+   "title": {
+    "x": 64,
+    "w": 399.734,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 399.734,
+    "lines": 1
+   },
+   "state": {
+    "x": 64,
+    "w": 487.141,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 487.141,
+    "lines": 1
+   },
+   "ROM": {
+    "x": 84,
+    "w": 85.063,
+    "glyph_top": 228,
+    "glyph_h": 37,
+    "top": 228,
+    "h": 37,
+    "baseline": 257,
+    "width": 85.063,
+    "lines": 1
+   },
+   "Save": {
+    "x": 84,
+    "w": 83.766,
+    "glyph_top": 386,
+    "glyph_h": 37,
+    "top": 386,
+    "h": 37,
+    "baseline": 415,
+    "width": 83.766,
+    "lines": 1
+   },
+   "ROM file": {
+    "x": 308,
+    "w": 346.906,
+    "glyph_top": 228,
+    "glyph_h": 36,
+    "top": 225,
+    "h": 43,
+    "baseline": 257,
+    "width": 346.906,
+    "lines": 1
+   },
+   "ROM folder": {
+    "x": 308,
+    "w": 421.203,
+    "glyph_top": 270,
+    "glyph_h": 36,
+    "top": 270,
+    "h": 36,
+    "baseline": 298,
+    "width": 421.203,
+    "lines": 1
+   },
+   "ROM status": {
+    "x": 334,
+    "w": 291.844,
+    "glyph_top": 311,
+    "glyph_h": 30,
+    "top": 308,
+    "h": 36,
+    "baseline": 335,
+    "width": 291.844,
+    "lines": 1
+   },
+   "ROM dot": {
+    "x": 308,
+    "y": 319,
+    "w": 14,
+    "h": 14
+   },
+   "Choose ROM": {
+    "x": 1094.375,
+    "w": 240.234,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 240.234,
+    "lines": 1
+   },
+   "Choose ROM dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 7.391,
+    "lines": 1
+   },
+   "ROM row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 150
+   },
+   "save file": {
+    "x": 308,
+    "w": 342.375,
+    "glyph_top": 386,
+    "glyph_h": 36,
+    "top": 383,
+    "h": 43,
+    "baseline": 415,
+    "width": 342.375,
+    "lines": 1
+   },
+   "save line": {
+    "x": 308,
+    "w": 710.203,
+    "glyph_top": 431,
+    "glyph_h": 30,
+    "top": 428,
+    "h": 36,
+    "baseline": 455,
+    "width": 710.203,
+    "lines": 1
+   },
+   "Open folder": {
+    "x": 1136.953,
+    "w": 197.656,
+    "glyph_top": 380,
+    "glyph_h": 45,
+    "top": 380,
+    "h": 45,
+    "baseline": 415,
+    "width": 197.656,
+    "lines": 1
+   },
+   "Open folder dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 380,
+    "glyph_h": 45,
+    "top": 380,
+    "h": 45,
+    "baseline": 415,
+    "width": 7.391,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 64,
+    "y": 366,
+    "w": 1312,
+    "h": 112
+   },
+   "Play": {
+    "x": 1213.391,
+    "w": 106.297,
+    "glyph_top": 498.5,
+    "glyph_h": 75,
+    "top": 498.5,
+    "h": 75,
+    "baseline": 556.5,
+    "width": 106.297,
+    "lines": 1
+   },
+   "Play dot": {
+    "x": 1343.688,
+    "w": 12.313,
+    "glyph_top": 498.5,
+    "glyph_h": 75,
+    "top": 498.5,
+    "h": 75,
+    "baseline": 556.5,
+    "width": 12.313,
+    "lines": 1
+   },
+   "Play row": {
+    "x": 64,
+    "y": 486,
+    "w": 1312,
+    "h": 100
+   }
+  },
+  "10e": {
+   "section": {
+    "x": 64,
+    "w": 208.359,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 208.359,
+    "lines": 1
+   },
+   "title": {
+    "x": 64,
+    "w": 471.047,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 471.047,
+    "lines": 1
+   },
+   "state": {
+    "x": 64,
+    "w": 487.656,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 487.656,
+    "lines": 1
+   },
+   "Base ROM": {
+    "x": 84,
+    "w": 180.594,
+    "glyph_top": 228,
+    "glyph_h": 37,
+    "top": 228,
+    "h": 37,
+    "baseline": 257,
+    "width": 180.594,
+    "lines": 1
+   },
+   "Patch": {
+    "x": 84,
+    "w": 113.766,
+    "glyph_top": 348,
+    "glyph_h": 37,
+    "top": 348,
+    "h": 37,
+    "baseline": 377,
+    "width": 113.766,
+    "lines": 1
+   },
+   "Save": {
+    "x": 84,
+    "w": 83.766,
+    "glyph_top": 552,
+    "glyph_h": 37,
+    "top": 552,
+    "h": 37,
+    "baseline": 581,
+    "width": 83.766,
+    "lines": 1
+   },
+   "base file": {
+    "x": 308,
+    "w": 346.906,
+    "glyph_top": 228,
+    "glyph_h": 36,
+    "top": 225,
+    "h": 43,
+    "baseline": 257,
+    "width": 346.906,
+    "lines": 1
+   },
+   "base status": {
+    "x": 334,
+    "w": 408.578,
+    "glyph_top": 273,
+    "glyph_h": 30,
+    "top": 270,
+    "h": 36,
+    "baseline": 297,
+    "width": 408.578,
+    "lines": 1
+   },
+   "base dot": {
+    "x": 308,
+    "y": 281,
+    "w": 14,
+    "h": 14
+   },
+   "Choose ROM": {
+    "x": 1094.375,
+    "w": 240.234,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 240.234,
+    "lines": 1
+   },
+   "base row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 112
+   },
+   "patch file": {
+    "x": 308,
+    "w": 372,
+    "glyph_top": 348,
+    "glyph_h": 36,
+    "top": 345,
+    "h": 43,
+    "baseline": 377,
+    "width": 372,
+    "lines": 1
+   },
+   "patch status": {
+    "x": 334,
+    "w": 165.641,
+    "glyph_top": 393,
+    "glyph_h": 30,
+    "top": 390,
+    "h": 36,
+    "baseline": 417,
+    "width": 165.641,
+    "lines": 1
+   },
+   "patch dot": {
+    "x": 308,
+    "y": 401,
+    "w": 14,
+    "h": 14
+   },
+   "Choose patch": {
+    "x": 1089.25,
+    "w": 245.359,
+    "glyph_top": 342,
+    "glyph_h": 45,
+    "top": 342,
+    "h": 45,
+    "baseline": 377,
+    "width": 245.359,
+    "lines": 1
+   },
+   "Choose patch dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 342,
+    "glyph_h": 45,
+    "top": 342,
+    "h": 45,
+    "baseline": 377,
+    "width": 7.391,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 64,
+    "y": 328,
+    "w": 1312,
+    "h": 112
+   },
+   "patch folder": {
+    "x": 308,
+    "w": 421.203,
+    "glyph_top": 448,
+    "glyph_h": 36,
+    "top": 448,
+    "h": 36,
+    "baseline": 476,
+    "width": 421.203,
+    "lines": 1
+   },
+   "image status": {
+    "x": 334,
+    "w": 576.125,
+    "glyph_top": 491,
+    "glyph_h": 30,
+    "top": 488,
+    "h": 36,
+    "baseline": 515,
+    "width": 576.125,
+    "lines": 1
+   },
+   "image dot": {
+    "x": 308,
+    "y": 499,
+    "w": 14,
+    "h": 14
+   },
+   "save file": {
+    "x": 308,
+    "w": 368.219,
+    "glyph_top": 552,
+    "glyph_h": 36,
+    "top": 549,
+    "h": 43,
+    "baseline": 581,
+    "width": 368.219,
+    "lines": 1
+   },
+   "save line": {
+    "x": 308,
+    "w": 712.953,
+    "glyph_top": 597,
+    "glyph_h": 30,
+    "top": 594,
+    "h": 36,
+    "baseline": 621,
+    "width": 712.953,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 64,
+    "y": 532,
+    "w": 1312,
+    "h": 112
+   },
+   "Play": {
+    "x": 1213.391,
+    "w": 106.297,
+    "glyph_top": 664.5,
+    "glyph_h": 75,
+    "top": 664.5,
+    "h": 75,
+    "baseline": 722.5,
+    "width": 106.297,
+    "lines": 1
+   },
+   "Play row": {
+    "x": 64,
+    "y": 652,
+    "w": 1312,
+    "h": 100
+   }
+  },
+  "10f": {
+   "section": {
+    "x": 64,
+    "w": 147.172,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 147.172,
+    "lines": 1
+   },
+   "title": {
+    "x": 64,
+    "w": 399.734,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 399.734,
+    "lines": 1
+   },
+   "diagram": {
+    "x": 1214,
+    "y": 28,
+    "w": 162,
+    "h": 122
+   },
+   "diagram window": {
+    "x": 1215,
+    "y": 43.5,
+    "w": 160,
+    "h": 91
+   },
+   "diagram label": {
+    "x": 1039.219,
+    "w": 336.781,
+    "glyph_top": 158,
+    "glyph_h": 27,
+    "top": 156,
+    "h": 32,
+    "baseline": 180,
+    "width": 336.781,
+    "lines": 1
+   },
+   "Profile": {
+    "x": 84,
+    "w": 137.125,
+    "glyph_top": 239.5,
+    "glyph_h": 37,
+    "top": 239.5,
+    "h": 37,
+    "baseline": 268.5,
+    "width": 137.125,
+    "lines": 1
+   },
+   "profile 0": {
+    "x": 432,
+    "w": 117.531,
+    "glyph_top": 219.109,
+    "glyph_h": 45,
+    "top": 221.109,
+    "h": 41.391,
+    "baseline": 254.109,
+    "width": 117.531,
+    "lines": 1
+   },
+   "profile 0 size": {
+    "x": 434.063,
+    "w": 113.406,
+    "glyph_top": 260.5,
+    "glyph_h": 36,
+    "top": 262.5,
+    "h": 32.391,
+    "baseline": 288.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "profile 1": {
+    "x": 609.531,
+    "w": 157.031,
+    "glyph_top": 219.109,
+    "glyph_h": 45,
+    "top": 221.109,
+    "h": 41.391,
+    "baseline": 254.109,
+    "width": 157.031,
+    "lines": 1
+   },
+   "profile 1 size": {
+    "x": 631.344,
+    "w": 113.406,
+    "glyph_top": 260.5,
+    "glyph_h": 36,
+    "top": 262.5,
+    "h": 32.391,
+    "baseline": 288.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "Profile row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "profile Faithful": {
+    "x": 408,
+    "y": 213,
+    "w": 165.531,
+    "h": 90
+   },
+   "profile Enhanced": {
+    "x": 585.531,
+    "y": 213,
+    "w": 205.031,
+    "h": 90
+   },
+   "Window": {
+    "x": 84,
+    "w": 161.781,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 161.781,
+    "lines": 1
+   },
+   "window 0": {
+    "x": 467.422,
+    "w": 42.563,
+    "glyph_top": 325.109,
+    "glyph_h": 45,
+    "top": 327.109,
+    "h": 41.391,
+    "baseline": 360.109,
+    "width": 42.563,
+    "lines": 1
+   },
+   "window 1": {
+    "x": 649.438,
+    "w": 41.547,
+    "glyph_top": 325.109,
+    "glyph_h": 45,
+    "top": 327.109,
+    "h": 41.391,
+    "baseline": 360.109,
+    "width": 41.547,
+    "lines": 1
+   },
+   "window 2": {
+    "x": 845.891,
+    "w": 44.047,
+    "glyph_top": 325.109,
+    "glyph_h": 45,
+    "top": 327.109,
+    "h": 41.391,
+    "baseline": 360.109,
+    "width": 44.047,
+    "lines": 1
+   },
+   "window 3": {
+    "x": 1026.578,
+    "w": 159.094,
+    "glyph_top": 325.109,
+    "glyph_h": 45,
+    "top": 327.109,
+    "h": 41.391,
+    "baseline": 360.109,
+    "width": 159.094,
+    "lines": 1
+   },
+   "window 0 size": {
+    "x": 432,
+    "w": 113.406,
+    "glyph_top": 366.5,
+    "glyph_h": 36,
+    "top": 368.5,
+    "h": 32.391,
+    "baseline": 394.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "window 1 size": {
+    "x": 605.406,
+    "w": 129.609,
+    "glyph_top": 366.5,
+    "glyph_h": 36,
+    "top": 368.5,
+    "h": 32.391,
+    "baseline": 394.5,
+    "width": 129.609,
+    "lines": 1
+   },
+   "window 2 size": {
+    "x": 795.016,
+    "w": 145.813,
+    "glyph_top": 366.5,
+    "glyph_h": 36,
+    "top": 368.5,
+    "h": 32.391,
+    "baseline": 394.5,
+    "width": 145.813,
+    "lines": 1
+   },
+   "window 3 size": {
+    "x": 1000.828,
+    "w": 210.609,
+    "glyph_top": 366.5,
+    "glyph_h": 36,
+    "top": 368.5,
+    "h": 32.391,
+    "baseline": 394.5,
+    "width": 210.609,
+    "lines": 1
+   },
+   "window 0 box": {
+    "x": 408,
+    "y": 319,
+    "w": 161.406,
+    "h": 90
+   },
+   "window 1 box": {
+    "x": 581.406,
+    "y": 319,
+    "w": 177.609,
+    "h": 90
+   },
+   "window 2 box": {
+    "x": 771.016,
+    "y": 319,
+    "w": 193.813,
+    "h": 90
+   },
+   "window 3 box": {
+    "x": 976.828,
+    "y": 319,
+    "w": 258.609,
+    "h": 90
+   },
+   "Window row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "View": {
+    "x": 84,
+    "w": 89.641,
+    "glyph_top": 451.5,
+    "glyph_h": 37,
+    "top": 451.5,
+    "h": 37,
+    "baseline": 480.5,
+    "width": 89.641,
+    "lines": 1
+   },
+   "view 0": {
+    "x": 449.281,
+    "w": 78.844,
+    "glyph_top": 431.109,
+    "glyph_h": 45,
+    "top": 433.109,
+    "h": 41.391,
+    "baseline": 466.109,
+    "width": 78.844,
+    "lines": 1
+   },
+   "view 1": {
+    "x": 605.406,
+    "w": 138.859,
+    "glyph_top": 431.109,
+    "glyph_h": 45,
+    "top": 433.109,
+    "h": 41.391,
+    "baseline": 466.109,
+    "width": 138.859,
+    "lines": 1
+   },
+   "view 2": {
+    "x": 836.938,
+    "w": 48.063,
+    "glyph_top": 431.109,
+    "glyph_h": 45,
+    "top": 433.109,
+    "h": 41.391,
+    "baseline": 466.109,
+    "width": 48.063,
+    "lines": 1
+   },
+   "view 0 size": {
+    "x": 432,
+    "w": 113.406,
+    "glyph_top": 472.5,
+    "glyph_h": 36,
+    "top": 474.5,
+    "h": 32.391,
+    "baseline": 500.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "view 1 size": {
+    "x": 618.125,
+    "w": 113.406,
+    "glyph_top": 472.5,
+    "glyph_h": 36,
+    "top": 474.5,
+    "h": 32.391,
+    "baseline": 500.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "view 2 size": {
+    "x": 804.266,
+    "w": 113.406,
+    "glyph_top": 472.5,
+    "glyph_h": 36,
+    "top": 474.5,
+    "h": 32.391,
+    "baseline": 500.5,
+    "width": 113.406,
+    "lines": 1
+   },
+   "view Near": {
+    "x": 408,
+    "y": 425,
+    "w": 161.406,
+    "h": 90
+   },
+   "view Medium": {
+    "x": 581.406,
+    "y": 425,
+    "w": 186.859,
+    "h": 90
+   },
+   "view Far": {
+    "x": 780.266,
+    "y": 425,
+    "w": 161.406,
+    "h": 90
+   },
+   "View row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "Color correction": {
+    "x": 84,
+    "w": 121.203,
+    "glyph_top": 539,
+    "glyph_h": 37,
+    "top": 539,
+    "h": 37,
+    "baseline": 568,
+    "width": 229.172,
+    "lines": 2
+   },
+   "color Off": {
+    "x": 408,
+    "y": 531,
+    "w": 110,
+    "h": 90
+   },
+   "color On": {
+    "x": 530,
+    "y": 531,
+    "w": 110,
+    "h": 90
+   },
+   "color Off text": {
+    "x": 436.969,
+    "w": 52.063,
+    "glyph_top": 553.297,
+    "glyph_h": 45,
+    "top": 555.297,
+    "h": 41.391,
+    "baseline": 588.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "Color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "Continuous transitions": {
+    "x": 84,
+    "w": 237.125,
+    "glyph_top": 645,
+    "glyph_h": 37,
+    "top": 645,
+    "h": 37,
+    "baseline": 674,
+    "width": 237.125,
+    "lines": 2
+   },
+   "transitions Off": {
+    "x": 408,
+    "y": 637,
+    "w": 110,
+    "h": 90
+   },
+   "transitions On": {
+    "x": 530,
+    "y": 637,
+    "w": 110,
+    "h": 90
+   },
+   "transitions row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "Advanced": {
+    "x": 84,
+    "w": 192.563,
+    "glyph_top": 769.5,
+    "glyph_h": 37,
+    "top": 769.5,
+    "h": 37,
+    "baseline": 798.5,
+    "width": 192.563,
+    "lines": 1
+   },
+   "advanced text": {
+    "x": 408,
+    "w": 363.906,
+    "glyph_top": 773,
+    "glyph_h": 30,
+    "top": 770,
+    "h": 36,
+    "baseline": 797,
+    "width": 363.906,
+    "lines": 1
+   },
+   "advanced": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "help": {
+    "x": 84,
+    "y": 858,
+    "w": 1272,
+    "h": 46.797
+   },
+   "help text": {
+    "x": 84,
+    "w": 1124.938,
+    "glyph_top": 863,
+    "glyph_h": 36,
+    "top": 858,
+    "h": 46.797,
+    "baseline": 892,
+    "width": 1124.938,
+    "lines": 1
+   }
+  },
+  "10g": {
+   "help": {
+    "x": 84,
+    "y": 858,
+    "w": 1272,
+    "h": 46.797
+   },
+   "help text": {
+    "x": 84,
+    "w": 1130.344,
+    "glyph_top": 863,
+    "glyph_h": 36,
+    "top": 858,
+    "h": 46.797,
+    "baseline": 892,
+    "width": 1130.344,
+    "lines": 1
+   },
+   "View row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   }
+  },
+  "10h": {
+   "section": {
+    "x": 64,
+    "w": 391.766,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 391.766,
+    "lines": 1
+   },
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 312
+   },
+   "Core": {
+    "x": 84,
+    "w": 93.734,
+    "glyph_top": 239.5,
+    "glyph_h": 37,
+    "top": 239.5,
+    "h": 37,
+    "baseline": 268.5,
+    "width": 93.734,
+    "lines": 1
+   },
+   "core 0": {
+    "x": 432,
+    "w": 325.203,
+    "glyph_top": 235.297,
+    "glyph_h": 45,
+    "top": 237.297,
+    "h": 41.391,
+    "baseline": 270.297,
+    "width": 325.203,
+    "lines": 1
+   },
+   "core 1": {
+    "x": 817.203,
+    "w": 196.109,
+    "glyph_top": 235.297,
+    "glyph_h": 45,
+    "top": 237.297,
+    "h": 41.391,
+    "baseline": 270.297,
+    "width": 196.109,
+    "lines": 1
+   },
+   "core Accurate": {
+    "x": 408,
+    "y": 213,
+    "w": 373.203,
+    "h": 90
+   },
+   "core Fast": {
+    "x": 793.203,
+    "y": 213,
+    "w": 244.109,
+    "h": 90
+   },
+   "core row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "Vsync": {
+    "x": 84,
+    "w": 115.5,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 115.5,
+    "lines": 1
+   },
+   "vsync Auto": {
+    "x": 408,
+    "y": 319,
+    "w": 128.328,
+    "h": 90
+   },
+   "vsync Off": {
+    "x": 670.328,
+    "y": 319,
+    "w": 110,
+    "h": 90
+   },
+   "vsync row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "Neighbour workers": {
+    "x": 84,
+    "w": 206.75,
+    "glyph_top": 433,
+    "glyph_h": 37,
+    "top": 433,
+    "h": 37,
+    "baseline": 462,
+    "width": 206.75,
+    "lines": 2
+   },
+   "workers 0": {
+    "x": 432,
+    "w": 128.453,
+    "glyph_top": 447.297,
+    "glyph_h": 45,
+    "top": 449.297,
+    "h": 41.391,
+    "baseline": 482.297,
+    "width": 128.453,
+    "lines": 1
+   },
+   "workers 1": {
+    "x": 646.141,
+    "w": 10.625,
+    "glyph_top": 447.297,
+    "glyph_h": 45,
+    "top": 449.297,
+    "h": 41.391,
+    "baseline": 482.297,
+    "width": 10.625,
+    "lines": 1
+   },
+   "workers 2": {
+    "x": 763.859,
+    "w": 19.172,
+    "glyph_top": 447.297,
+    "glyph_h": 45,
+    "top": 449.297,
+    "h": 41.391,
+    "baseline": 482.297,
+    "width": 19.172,
+    "lines": 1
+   },
+   "workers Auto": {
+    "x": 408,
+    "y": 425,
+    "w": 176.453,
+    "h": 90
+   },
+   "workers One": {
+    "x": 596.453,
+    "y": 425,
+    "w": 110,
+    "h": 90
+   },
+   "workers Two": {
+    "x": 718.453,
+    "y": 425,
+    "w": 110,
+    "h": 90
+   },
+   "workers row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "help": {
+    "x": 84,
+    "y": 540,
+    "w": 1272,
+    "h": 46.797
+   },
+   "help text": {
+    "x": 84,
+    "w": 746.281,
+    "glyph_top": 545,
+    "glyph_h": 36,
+    "top": 540,
+    "h": 46.797,
+    "baseline": 574,
+    "width": 746.281,
+    "lines": 1
+   },
+   "help note": {
+    "x": 84,
+    "w": 279.375,
+    "glyph_top": 593.797,
+    "glyph_h": 30,
+    "top": 590.797,
+    "h": 36,
+    "baseline": 617.797,
+    "width": 279.375,
+    "lines": 1
+   }
+  },
+  "10o": {
+   "page note": {
+    "x": 64,
+    "w": 580.828,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 580.828,
+    "lines": 1
+   },
+   "Window row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "advanced": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "help": {
+    "x": 84,
+    "y": 858,
+    "w": 1272,
+    "h": 46.797
+   }
+  },
+  "10p": {
+   "page note": {
+    "x": 64,
+    "w": 580.828,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 580.828,
+    "lines": 1
+   },
+   "core row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "workers row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "help": {
+    "x": 84,
+    "y": 540,
+    "w": 1272,
+    "h": 46.797
+   },
+   "help note": {
+    "x": 84,
+    "w": 279.375,
+    "glyph_top": 593.797,
+    "glyph_h": 30,
+    "top": 590.797,
+    "h": 36,
+    "baseline": 617.797,
+    "width": 279.375,
+    "lines": 1
+   }
+  },
+  "10s": {
+   "diagram": {
+    "x": 1214,
+    "y": 28,
+    "w": 162,
+    "h": 122
+   },
+   "diagram label": {
+    "x": 1067.391,
+    "w": 308.609,
+    "glyph_top": 158,
+    "glyph_h": 27,
+    "top": 156,
+    "h": 32,
+    "baseline": 180,
+    "width": 308.609,
+    "lines": 1
+   },
+   "Window": {
+    "x": 84,
+    "w": 161.781,
+    "glyph_top": 367.5,
+    "glyph_h": 37,
+    "top": 367.5,
+    "h": 37,
+    "baseline": 396.5,
+    "width": 161.781,
+    "lines": 1
+   },
+   "Window row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 144
+   },
+   "window 0 box": {
+    "x": 408,
+    "y": 319,
+    "w": 161.406,
+    "h": 90
+   },
+   "window 1 box": {
+    "x": 581.406,
+    "y": 319,
+    "w": 177.609,
+    "h": 90
+   },
+   "window 2 box": {
+    "x": 771.016,
+    "y": 319,
+    "w": 193.813,
+    "h": 90
+   },
+   "window 3 box": {
+    "x": 976.828,
+    "y": 319,
+    "w": 242.406,
+    "h": 90
+   },
+   "window 3 size": {
+    "x": 1000.828,
+    "w": 194.406,
+    "glyph_top": 366.5,
+    "glyph_h": 36,
+    "top": 368.5,
+    "h": 32.391,
+    "baseline": 394.5,
+    "width": 194.406,
+    "lines": 1
+   },
+   "one size": {
+    "x": 408,
+    "w": 506.25,
+    "glyph_top": 420,
+    "glyph_h": 30,
+    "top": 417,
+    "h": 36,
+    "baseline": 444,
+    "width": 506.25,
+    "lines": 1
+   },
+   "View row": {
+    "x": 64,
+    "y": 464,
+    "w": 1312,
+    "h": 100
+   },
+   "advanced": {
+    "x": 64,
+    "y": 782,
+    "w": 1312,
+    "h": 100
+   },
+   "help": {
+    "x": 84,
+    "y": 902,
+    "w": 1272,
+    "h": 46.797
+   }
+  },
+  "10l": {
+   "section": {
+    "x": 64,
+    "w": 111.406,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 111.406,
+    "lines": 1
+   },
+   "title": {
+    "x": 64,
+    "w": 399.734,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 399.734,
+    "lines": 1
+   },
+   "state": {
+    "x": 64,
+    "w": 487.141,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 487.141,
+    "lines": 1
+   },
+   "panel": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 700.875
+   },
+   "Folder": {
+    "x": 84,
+    "w": 131.016,
+    "glyph_top": 228,
+    "glyph_h": 37,
+    "top": 228,
+    "h": 37,
+    "baseline": 257,
+    "width": 131.016,
+    "lines": 1
+   },
+   "folder row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 145
+   },
+   "folder path": {
+    "x": 308,
+    "w": 664.203,
+    "glyph_top": 229,
+    "glyph_h": 36,
+    "top": 229,
+    "h": 36,
+    "baseline": 257,
+    "width": 664.203,
+    "lines": 2
+   },
+   "folder line": {
+    "x": 308,
+    "w": 581.047,
+    "glyph_top": 306,
+    "glyph_h": 30,
+    "top": 303,
+    "h": 36,
+    "baseline": 330,
+    "width": 581.047,
+    "lines": 1
+   },
+   "Open folder": {
+    "x": 1136.953,
+    "w": 197.656,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 197.656,
+    "lines": 1
+   },
+   "Open folder dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 7.391,
+    "lines": 1
+   },
+   "Mods": {
+    "x": 84,
+    "w": 106.609,
+    "glyph_top": 395,
+    "glyph_h": 37,
+    "top": 395,
+    "h": 37,
+    "baseline": 424,
+    "width": 106.609,
+    "lines": 1
+   },
+   "list": {
+    "x": 308,
+    "y": 361,
+    "w": 1068,
+    "h": 439.875
+   },
+   "note": {
+    "x": 308,
+    "w": 1045.75,
+    "glyph_top": 732,
+    "glyph_h": 27,
+    "top": 728,
+    "h": 36.438,
+    "baseline": 754,
+    "width": 1045.75,
+    "lines": 2
+   },
+   "Play row": {
+    "x": 64,
+    "y": 808.875,
+    "w": 1312,
+    "h": 100
+   },
+   "Play": {
+    "x": 1213.391,
+    "w": 106.297,
+    "glyph_top": 821.375,
+    "glyph_h": 75,
+    "top": 821.375,
+    "h": 75,
+    "baseline": 879.375,
+    "width": 106.297,
+    "lines": 1
+   },
+   "Play dot": {
+    "x": 1343.688,
+    "w": 12.313,
+    "glyph_top": 821.375,
+    "glyph_h": 75,
+    "top": 821.375,
+    "h": 75,
+    "baseline": 879.375,
+    "width": 12.313,
+    "lines": 1
+   },
+   "count": {
+    "x": 308,
+    "w": 568.453,
+    "glyph_top": 689,
+    "glyph_h": 30,
+    "top": 686,
+    "h": 36,
+    "baseline": 713,
+    "width": 568.453,
+    "lines": 1
+   },
+   "claw row": {
+    "x": 288,
+    "y": 361,
+    "w": 1088,
+    "h": 101
+   },
+   "claw switch": {
+    "x": 308,
+    "y": 385.5,
+    "w": 96,
+    "h": 52
+   },
+   "claw name": {
+    "x": 428,
+    "w": 153.625,
+    "glyph_top": 374,
+    "glyph_h": 36,
+    "top": 371,
+    "h": 43,
+    "baseline": 403,
+    "width": 153.625,
+    "lines": 1
+   },
+   "claw games": {
+    "x": 597.625,
+    "w": 291.016,
+    "glyph_top": 381,
+    "glyph_h": 27,
+    "top": 379,
+    "h": 32,
+    "baseline": 403,
+    "width": 291.016,
+    "lines": 1
+   },
+   "claw dot": {
+    "x": 428,
+    "y": 427,
+    "w": 14,
+    "h": 14
+   },
+   "claw description": {
+    "x": 454,
+    "w": 604.234,
+    "glyph_top": 419,
+    "glyph_h": 30,
+    "top": 416,
+    "h": 36,
+    "baseline": 443,
+    "width": 604.234,
+    "lines": 1
+   },
+   "fortune row": {
+    "x": 288,
+    "y": 468,
+    "w": 1088,
+    "h": 101
+   },
+   "fortune switch": {
+    "x": 308,
+    "y": 492.5,
+    "w": 96,
+    "h": 52
+   },
+   "fortune name": {
+    "x": 428,
+    "w": 191.953,
+    "glyph_top": 481,
+    "glyph_h": 36,
+    "top": 478,
+    "h": 43,
+    "baseline": 510,
+    "width": 191.953,
+    "lines": 1
+   },
+   "fortune games": {
+    "x": 635.953,
+    "w": 157.953,
+    "glyph_top": 488,
+    "glyph_h": 27,
+    "top": 486,
+    "h": 32,
+    "baseline": 510,
+    "width": 157.953,
+    "lines": 1
+   },
+   "fortune dot": {
+    "x": 428,
+    "y": 534,
+    "w": 14,
+    "h": 14
+   },
+   "fortune description": {
+    "x": 454,
+    "w": 592.75,
+    "glyph_top": 526,
+    "glyph_h": 30,
+    "top": 523,
+    "h": 36,
+    "baseline": 550,
+    "width": 592.75,
+    "lines": 1
+   },
+   "refused row": {
+    "x": 288,
+    "y": 575,
+    "w": 1088,
+    "h": 101
+   },
+   "refused switch": {
+    "x": 308,
+    "y": 599.5,
+    "w": 96,
+    "h": 52
+   },
+   "refused name": {
+    "x": 428,
+    "w": 189.156,
+    "glyph_top": 588,
+    "glyph_h": 36,
+    "top": 585,
+    "h": 43,
+    "baseline": 617,
+    "width": 189.156,
+    "lines": 1
+   },
+   "refused dot": {
+    "x": 428,
+    "y": 641,
+    "w": 14,
+    "h": 14
+   },
+   "refused description": {
+    "x": 454,
+    "w": 508.922,
+    "glyph_top": 633,
+    "glyph_h": 30,
+    "top": 630,
+    "h": 36,
+    "baseline": 657,
+    "width": 508.922,
+    "lines": 1
+   }
+  },
+  "10m": {
+   "section": {
+    "x": 64,
+    "w": 111.406,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 111.406,
+    "lines": 1
+   },
+   "title": {
+    "x": 64,
+    "w": 399.734,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 399.734,
+    "lines": 1
+   },
+   "state": {
+    "x": 64,
+    "w": 487.141,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 487.141,
+    "lines": 1
+   },
+   "panel": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 494.875
+   },
+   "Folder": {
+    "x": 84,
+    "w": 131.016,
+    "glyph_top": 228,
+    "glyph_h": 37,
+    "top": 228,
+    "h": 37,
+    "baseline": 257,
+    "width": 131.016,
+    "lines": 1
+   },
+   "folder row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 145
+   },
+   "folder path": {
+    "x": 308,
+    "w": 664.203,
+    "glyph_top": 229,
+    "glyph_h": 36,
+    "top": 229,
+    "h": 36,
+    "baseline": 257,
+    "width": 664.203,
+    "lines": 2
+   },
+   "folder line": {
+    "x": 308,
+    "w": 581.047,
+    "glyph_top": 306,
+    "glyph_h": 30,
+    "top": 303,
+    "h": 36,
+    "baseline": 330,
+    "width": 581.047,
+    "lines": 1
+   },
+   "Open folder": {
+    "x": 1136.953,
+    "w": 197.656,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 197.656,
+    "lines": 1
+   },
+   "Open folder dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 222,
+    "glyph_h": 45,
+    "top": 222,
+    "h": 45,
+    "baseline": 257,
+    "width": 7.391,
+    "lines": 1
+   },
+   "Mods": {
+    "x": 84,
+    "w": 106.609,
+    "glyph_top": 395,
+    "glyph_h": 37,
+    "top": 395,
+    "h": 37,
+    "baseline": 424,
+    "width": 106.609,
+    "lines": 1
+   },
+   "list": {
+    "x": 308,
+    "y": 361,
+    "w": 1068,
+    "h": 233.875
+   },
+   "note": {
+    "x": 308,
+    "w": 1045.75,
+    "glyph_top": 526,
+    "glyph_h": 27,
+    "top": 522,
+    "h": 36.438,
+    "baseline": 548,
+    "width": 1045.75,
+    "lines": 2
+   },
+   "Play row": {
+    "x": 64,
+    "y": 602.875,
+    "w": 1312,
+    "h": 100
+   },
+   "Play": {
+    "x": 1213.391,
+    "w": 106.297,
+    "glyph_top": 615.375,
+    "glyph_h": 75,
+    "top": 615.375,
+    "h": 75,
+    "baseline": 673.375,
+    "width": 106.297,
+    "lines": 1
+   },
+   "Play dot": {
+    "x": 1343.688,
+    "w": 12.313,
+    "glyph_top": 615.375,
+    "glyph_h": 75,
+    "top": 615.375,
+    "h": 75,
+    "baseline": 673.375,
+    "width": 12.313,
+    "lines": 1
+   },
+   "empty": {
+    "x": 308,
+    "w": 1041.359,
+    "glyph_top": 380,
+    "glyph_h": 30,
+    "top": 375,
+    "h": 40.5,
+    "baseline": 404,
+    "width": 1041.359,
+    "lines": 2
+   },
+   "count": {
+    "x": 308,
+    "w": 136.422,
+    "glyph_top": 483,
+    "glyph_h": 30,
+    "top": 480,
+    "h": 36,
+    "baseline": 507,
+    "width": 136.422,
+    "lines": 1
+   }
+  },
+  "10u": {
+   "title": {
+    "x": 64,
+    "w": 206.172,
+    "glyph_top": 35,
+    "glyph_h": 68,
+    "top": 42,
+    "h": 54,
+    "baseline": 88,
+    "width": 206.172,
+    "lines": 1
+   },
+   "Game buttons": {
+    "x": 84,
+    "w": 280.922,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 280.922,
+    "lines": 1
+   },
+   "Keyboard": {
+    "x": 736.578,
+    "w": 186.828,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 186.828,
+    "lines": 1
+   },
+   "Gamepad": {
+    "x": 1099.391,
+    "w": 173.203,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 173.203,
+    "lines": 1
+   },
+   "row 0 key": {
+    "x": 660,
+    "y": 161,
+    "w": 340,
+    "h": 90
+   },
+   "row 1 key": {
+    "x": 660,
+    "y": 251,
+    "w": 340,
+    "h": 90
+   },
+   "row 2 key": {
+    "x": 660,
+    "y": 341,
+    "w": 340,
+    "h": 90
+   },
+   "row 3 key": {
+    "x": 660,
+    "y": 431,
+    "w": 340,
+    "h": 90
+   },
+   "row 4 key": {
+    "x": 660,
+    "y": 521,
+    "w": 340,
+    "h": 90
+   },
+   "row 5 key": {
+    "x": 660,
+    "y": 611,
+    "w": 340,
+    "h": 90
+   },
+   "row 6 key": {
+    "x": 660,
+    "y": 701,
+    "w": 340,
+    "h": 90
+   },
+   "row 7 key": {
+    "x": 660,
+    "y": 791,
+    "w": 340,
+    "h": 90
+   },
+   "row 0 button": {
+    "x": 1016,
+    "y": 161,
+    "w": 340,
+    "h": 90
+   },
+   "row 1 button": {
+    "x": 1016,
+    "y": 251,
+    "w": 340,
+    "h": 90
+   },
+   "row 2 button": {
+    "x": 1016,
+    "y": 341,
+    "w": 340,
+    "h": 90
+   },
+   "row 3 button": {
+    "x": 1016,
+    "y": 431,
+    "w": 340,
+    "h": 90
+   },
+   "row 4 button": {
+    "x": 1016,
+    "y": 521,
+    "w": 340,
+    "h": 90
+   },
+   "row 5 button": {
+    "x": 1016,
+    "y": 611,
+    "w": 340,
+    "h": 90
+   },
+   "row 6 button": {
+    "x": 1016,
+    "y": 701,
+    "w": 340,
+    "h": 90
+   },
+   "row 7 button": {
+    "x": 1016,
+    "y": 791,
+    "w": 340,
+    "h": 90
+   },
+   "row 0 name": {
+    "x": 84,
+    "w": 77.906,
+    "glyph_top": 187.5,
+    "glyph_h": 36,
+    "top": 184.5,
+    "h": 43,
+    "baseline": 216.5,
+    "width": 77.906,
+    "lines": 1
+   },
+   "row 1 name": {
+    "x": 84,
+    "w": 54.797,
+    "glyph_top": 277.5,
+    "glyph_h": 36,
+    "top": 274.5,
+    "h": 43,
+    "baseline": 306.5,
+    "width": 54.797,
+    "lines": 1
+   },
+   "row 2 name": {
+    "x": 84,
+    "w": 40.547,
+    "glyph_top": 367.5,
+    "glyph_h": 36,
+    "top": 364.5,
+    "h": 43,
+    "baseline": 396.5,
+    "width": 40.547,
+    "lines": 1
+   },
+   "row 3 name": {
+    "x": 84,
+    "w": 84,
+    "glyph_top": 457.5,
+    "glyph_h": 36,
+    "top": 454.5,
+    "h": 43,
+    "baseline": 486.5,
+    "width": 84,
+    "lines": 1
+   },
+   "row 4 name": {
+    "x": 84,
+    "w": 21.141,
+    "glyph_top": 547.5,
+    "glyph_h": 36,
+    "top": 544.5,
+    "h": 43,
+    "baseline": 576.5,
+    "width": 21.141,
+    "lines": 1
+   },
+   "row 5 name": {
+    "x": 84,
+    "w": 19.953,
+    "glyph_top": 637.5,
+    "glyph_h": 36,
+    "top": 634.5,
+    "h": 43,
+    "baseline": 666.5,
+    "width": 19.953,
+    "lines": 1
+   },
+   "row 6 name": {
+    "x": 84,
+    "w": 84.938,
+    "glyph_top": 727.5,
+    "glyph_h": 36,
+    "top": 724.5,
+    "h": 43,
+    "baseline": 756.5,
+    "width": 84.938,
+    "lines": 1
+   },
+   "row 7 name": {
+    "x": 84,
+    "w": 69.672,
+    "glyph_top": 817.5,
+    "glyph_h": 36,
+    "top": 814.5,
+    "h": 43,
+    "baseline": 846.5,
+    "width": 69.672,
+    "lines": 1
+   },
+   "Z": {
+    "x": 821.422,
+    "w": 17.156,
+    "glyph_top": 640,
+    "glyph_h": 32,
+    "top": 637,
+    "h": 38,
+    "baseline": 666,
+    "width": 17.156,
+    "lines": 1
+   },
+   "Backspace": {
+    "x": 764.578,
+    "w": 130.828,
+    "glyph_top": 730,
+    "glyph_h": 32,
+    "top": 727,
+    "h": 38,
+    "baseline": 756,
+    "width": 130.828,
+    "lines": 1
+   },
+   "d-pad": {
+    "x": 1102.547,
+    "w": 166.891,
+    "glyph_top": 192,
+    "glyph_h": 27,
+    "top": 190,
+    "h": 32,
+    "baseline": 214,
+    "width": 166.891,
+    "lines": 1
+   },
+   "Reset": {
+    "x": 64,
+    "y": 885,
+    "w": 1312,
+    "h": 90
+   },
+   "Reset to defaults": {
+    "x": 1063.984,
+    "w": 270.625,
+    "glyph_top": 907.5,
+    "glyph_h": 45,
+    "top": 907.5,
+    "h": 45,
+    "baseline": 942.5,
+    "width": 270.625,
+    "lines": 1
+   },
+   "Reset dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 907.5,
+    "glyph_h": 45,
+    "top": 907.5,
+    "h": 45,
+    "baseline": 942.5,
+    "width": 7.391,
+    "lines": 1
+   },
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "A key text": {
+    "x": 820.297,
+    "w": 19.406,
+    "glyph_top": 550,
+    "glyph_h": 32,
+    "top": 547,
+    "h": 38,
+    "baseline": 576,
+    "width": 19.406,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 330.094,
+    "y": 982,
+    "w": 202.297,
+    "h": 90
+   },
+   "hint 1": {
+    "x": 548.391,
+    "y": 982,
+    "w": 302.922,
+    "h": 90
+   },
+   "hint 2": {
+    "x": 867.313,
+    "y": 982,
+    "w": 242.578,
+    "h": 90
+   },
+   "hint 0 key text": {
+    "x": 361.094,
+    "w": 64.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 64.813,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 579.391,
+    "w": 145.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 145.813,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 898.313,
+    "w": 113.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 113.406,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 448.906,
+    "w": 63.484,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 63.484,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 748.203,
+    "w": 83.109,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 83.109,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1034.719,
+    "w": 55.172,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 55.172,
+    "lines": 1
+   }
+  },
+  "10i": {
+   "title": {
+    "x": 64,
+    "w": 206.172,
+    "glyph_top": 35,
+    "glyph_h": 68,
+    "top": 42,
+    "h": 54,
+    "baseline": 88,
+    "width": 206.172,
+    "lines": 1
+   },
+   "Game buttons": {
+    "x": 84,
+    "w": 280.922,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 280.922,
+    "lines": 1
+   },
+   "Keyboard": {
+    "x": 736.578,
+    "w": 186.828,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 186.828,
+    "lines": 1
+   },
+   "Gamepad": {
+    "x": 1099.391,
+    "w": 173.203,
+    "glyph_top": 120,
+    "glyph_h": 37,
+    "top": 120,
+    "h": 37,
+    "baseline": 149,
+    "width": 173.203,
+    "lines": 1
+   },
+   "row 0 key": {
+    "x": 660,
+    "y": 161,
+    "w": 340,
+    "h": 90
+   },
+   "row 1 key": {
+    "x": 660,
+    "y": 251,
+    "w": 340,
+    "h": 90
+   },
+   "row 2 key": {
+    "x": 660,
+    "y": 341,
+    "w": 340,
+    "h": 90
+   },
+   "row 3 key": {
+    "x": 660,
+    "y": 431,
+    "w": 340,
+    "h": 90
+   },
+   "row 4 key": {
+    "x": 660,
+    "y": 521,
+    "w": 340,
+    "h": 90
+   },
+   "row 5 key": {
+    "x": 660,
+    "y": 611,
+    "w": 340,
+    "h": 90
+   },
+   "row 6 key": {
+    "x": 660,
+    "y": 701,
+    "w": 340,
+    "h": 90
+   },
+   "row 7 key": {
+    "x": 660,
+    "y": 791,
+    "w": 340,
+    "h": 90
+   },
+   "row 0 button": {
+    "x": 1016,
+    "y": 161,
+    "w": 340,
+    "h": 90
+   },
+   "row 1 button": {
+    "x": 1016,
+    "y": 251,
+    "w": 340,
+    "h": 90
+   },
+   "row 2 button": {
+    "x": 1016,
+    "y": 341,
+    "w": 340,
+    "h": 90
+   },
+   "row 3 button": {
+    "x": 1016,
+    "y": 431,
+    "w": 340,
+    "h": 90
+   },
+   "row 4 button": {
+    "x": 1016,
+    "y": 521,
+    "w": 340,
+    "h": 90
+   },
+   "row 5 button": {
+    "x": 1016,
+    "y": 611,
+    "w": 340,
+    "h": 90
+   },
+   "row 6 button": {
+    "x": 1016,
+    "y": 701,
+    "w": 340,
+    "h": 90
+   },
+   "row 7 button": {
+    "x": 1016,
+    "y": 791,
+    "w": 340,
+    "h": 90
+   },
+   "row 0 name": {
+    "x": 84,
+    "w": 77.906,
+    "glyph_top": 187.5,
+    "glyph_h": 36,
+    "top": 184.5,
+    "h": 43,
+    "baseline": 216.5,
+    "width": 77.906,
+    "lines": 1
+   },
+   "row 1 name": {
+    "x": 84,
+    "w": 54.797,
+    "glyph_top": 277.5,
+    "glyph_h": 36,
+    "top": 274.5,
+    "h": 43,
+    "baseline": 306.5,
+    "width": 54.797,
+    "lines": 1
+   },
+   "row 2 name": {
+    "x": 84,
+    "w": 40.547,
+    "glyph_top": 367.5,
+    "glyph_h": 36,
+    "top": 364.5,
+    "h": 43,
+    "baseline": 396.5,
+    "width": 40.547,
+    "lines": 1
+   },
+   "row 3 name": {
+    "x": 84,
+    "w": 84,
+    "glyph_top": 457.5,
+    "glyph_h": 36,
+    "top": 454.5,
+    "h": 43,
+    "baseline": 486.5,
+    "width": 84,
+    "lines": 1
+   },
+   "row 4 name": {
+    "x": 84,
+    "w": 21.141,
+    "glyph_top": 547.5,
+    "glyph_h": 36,
+    "top": 544.5,
+    "h": 43,
+    "baseline": 576.5,
+    "width": 21.141,
+    "lines": 1
+   },
+   "row 5 name": {
+    "x": 84,
+    "w": 19.953,
+    "glyph_top": 637.5,
+    "glyph_h": 36,
+    "top": 634.5,
+    "h": 43,
+    "baseline": 666.5,
+    "width": 19.953,
+    "lines": 1
+   },
+   "row 6 name": {
+    "x": 84,
+    "w": 84.938,
+    "glyph_top": 727.5,
+    "glyph_h": 36,
+    "top": 724.5,
+    "h": 43,
+    "baseline": 756.5,
+    "width": 84.938,
+    "lines": 1
+   },
+   "row 7 name": {
+    "x": 84,
+    "w": 69.672,
+    "glyph_top": 817.5,
+    "glyph_h": 36,
+    "top": 814.5,
+    "h": 43,
+    "baseline": 846.5,
+    "width": 69.672,
+    "lines": 1
+   },
+   "Z": {
+    "x": 821.422,
+    "w": 17.156,
+    "glyph_top": 640,
+    "glyph_h": 32,
+    "top": 637,
+    "h": 38,
+    "baseline": 666,
+    "width": 17.156,
+    "lines": 1
+   },
+   "Backspace": {
+    "x": 764.578,
+    "w": 130.828,
+    "glyph_top": 730,
+    "glyph_h": 32,
+    "top": 727,
+    "h": 38,
+    "baseline": 756,
+    "width": 130.828,
+    "lines": 1
+   },
+   "d-pad": {
+    "x": 1102.547,
+    "w": 166.891,
+    "glyph_top": 192,
+    "glyph_h": 27,
+    "top": 190,
+    "h": 32,
+    "baseline": 214,
+    "width": 166.891,
+    "lines": 1
+   },
+   "Reset": {
+    "x": 64,
+    "y": 885,
+    "w": 1312,
+    "h": 90
+   },
+   "Reset to defaults": {
+    "x": 1063.984,
+    "w": 270.625,
+    "glyph_top": 907.5,
+    "glyph_h": 45,
+    "top": 907.5,
+    "h": 45,
+    "baseline": 942.5,
+    "width": 270.625,
+    "lines": 1
+   },
+   "Reset dot": {
+    "x": 1348.609,
+    "w": 7.391,
+    "glyph_top": 907.5,
+    "glyph_h": 45,
+    "top": 907.5,
+    "h": 45,
+    "baseline": 942.5,
+    "width": 7.391,
+    "lines": 1
+   },
+   "prompt": {
+    "x": 310.172,
+    "w": 478.234,
+    "glyph_top": 50.5,
+    "glyph_h": 37,
+    "top": 50.5,
+    "h": 37,
+    "baseline": 79.5,
+    "width": 478.234,
+    "lines": 1
+   },
+   "Press a key": {
+    "x": 761.109,
+    "w": 137.766,
+    "glyph_top": 550,
+    "glyph_h": 32,
+    "top": 547,
+    "h": 38,
+    "baseline": 576,
+    "width": 137.766,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 619.969,
+    "y": 982,
+    "w": 200.047,
+    "h": 90
+   },
+   "hint 0 key text": {
+    "x": 650.969,
+    "w": 48.609,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 48.609,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 722.578,
+    "w": 77.438,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 77.438,
+    "lines": 1
+   }
+  },
+  "10j": {
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "Item hotkeys": {
+    "x": 64,
+    "y": 120,
+    "w": 1312,
+    "h": 90
+   },
+   "Item hotkeys title": {
+    "x": 84,
+    "w": 183.219,
+    "glyph_top": 146.5,
+    "glyph_h": 36,
+    "top": 143.5,
+    "h": 43,
+    "baseline": 175.5,
+    "width": 183.219,
+    "lines": 1
+   },
+   "Off": {
+    "x": 1124,
+    "y": 120,
+    "w": 110,
+    "h": 90
+   },
+   "On": {
+    "x": 1246,
+    "y": 120,
+    "w": 110,
+    "h": 90
+   },
+   "Off text": {
+    "x": 1152.969,
+    "w": 52.063,
+    "glyph_top": 142.297,
+    "glyph_h": 45,
+    "top": 144.297,
+    "h": 41.391,
+    "baseline": 177.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "On text": {
+    "x": 1276.266,
+    "w": 49.469,
+    "glyph_top": 142.297,
+    "glyph_h": 45,
+    "top": 144.297,
+    "h": 41.391,
+    "baseline": 177.297,
+    "width": 49.469,
+    "lines": 1
+   },
+   "explanation": {
+    "x": 84,
+    "w": 668.141,
+    "glyph_top": 217,
+    "glyph_h": 30,
+    "top": 214,
+    "h": 36,
+    "baseline": 241,
+    "width": 668.141,
+    "lines": 1
+   },
+   "note": {
+    "x": 84,
+    "w": 635.781,
+    "glyph_top": 254,
+    "glyph_h": 27,
+    "top": 252,
+    "h": 32,
+    "baseline": 276,
+    "width": 635.781,
+    "lines": 1
+   },
+   "Hotkeys": {
+    "x": 84,
+    "w": 159.094,
+    "glyph_top": 294,
+    "glyph_h": 37,
+    "top": 294,
+    "h": 37,
+    "baseline": 323,
+    "width": 159.094,
+    "lines": 1
+   },
+   "Keyboard": {
+    "x": 356.578,
+    "w": 186.828,
+    "glyph_top": 294,
+    "glyph_h": 37,
+    "top": 294,
+    "h": 37,
+    "baseline": 323,
+    "width": 186.828,
+    "lines": 1
+   },
+   "Gamepad": {
+    "x": 639.391,
+    "w": 173.203,
+    "glyph_top": 294,
+    "glyph_h": 37,
+    "top": 294,
+    "h": 37,
+    "baseline": 323,
+    "width": 173.203,
+    "lines": 1
+   },
+   "slot 0 key": {
+    "x": 320,
+    "y": 335,
+    "w": 260,
+    "h": 90
+   },
+   "slot 1 key": {
+    "x": 320,
+    "y": 425,
+    "w": 260,
+    "h": 90
+   },
+   "slot 2 key": {
+    "x": 320,
+    "y": 515,
+    "w": 260,
+    "h": 90
+   },
+   "slot 3 key": {
+    "x": 320,
+    "y": 605,
+    "w": 260,
+    "h": 90
+   },
+   "slot 4 key": {
+    "x": 320,
+    "y": 703,
+    "w": 260,
+    "h": 90
+   },
+   "slot 5 key": {
+    "x": 320,
+    "y": 793,
+    "w": 260,
+    "h": 90
+   },
+   "slot 0 button": {
+    "x": 596,
+    "y": 335,
+    "w": 260,
+    "h": 90
+   },
+   "slot 1 button": {
+    "x": 596,
+    "y": 425,
+    "w": 260,
+    "h": 90
+   },
+   "slot 2 button": {
+    "x": 596,
+    "y": 515,
+    "w": 260,
+    "h": 90
+   },
+   "slot 3 button": {
+    "x": 596,
+    "y": 605,
+    "w": 260,
+    "h": 90
+   },
+   "slot 0 name": {
+    "x": 84,
+    "w": 74.125,
+    "glyph_top": 361.5,
+    "glyph_h": 36,
+    "top": 358.5,
+    "h": 43,
+    "baseline": 390.5,
+    "width": 74.125,
+    "lines": 1
+   },
+   "slot 1 name": {
+    "x": 84,
+    "w": 78.125,
+    "glyph_top": 451.5,
+    "glyph_h": 36,
+    "top": 448.5,
+    "h": 43,
+    "baseline": 480.5,
+    "width": 78.125,
+    "lines": 1
+   },
+   "slot 2 name": {
+    "x": 84,
+    "w": 76.609,
+    "glyph_top": 541.5,
+    "glyph_h": 36,
+    "top": 538.5,
+    "h": 43,
+    "baseline": 570.5,
+    "width": 76.609,
+    "lines": 1
+   },
+   "slot 3 name": {
+    "x": 84,
+    "w": 79.141,
+    "glyph_top": 631.5,
+    "glyph_h": 36,
+    "top": 628.5,
+    "h": 43,
+    "baseline": 660.5,
+    "width": 79.141,
+    "lines": 1
+   },
+   "slot 4 name": {
+    "x": 84,
+    "w": 127.016,
+    "glyph_top": 729.5,
+    "glyph_h": 36,
+    "top": 726.5,
+    "h": 43,
+    "baseline": 758.5,
+    "width": 127.016,
+    "lines": 1
+   },
+   "slot 5 name": {
+    "x": 84,
+    "w": 128.203,
+    "glyph_top": 819.5,
+    "glyph_h": 36,
+    "top": 816.5,
+    "h": 43,
+    "baseline": 848.5,
+    "width": 128.203,
+    "lines": 1
+   },
+   "In Ages": {
+    "x": 872,
+    "w": 139.484,
+    "glyph_top": 294,
+    "glyph_h": 37,
+    "top": 294,
+    "h": 37,
+    "baseline": 323,
+    "width": 139.484,
+    "lines": 1
+   },
+   "Seed Shooter": {
+    "x": 872,
+    "w": 153.313,
+    "glyph_top": 365,
+    "glyph_h": 30,
+    "top": 362,
+    "h": 36,
+    "baseline": 389,
+    "width": 153.313,
+    "lines": 1
+   },
+   "Empty": {
+    "x": 872,
+    "w": 70.453,
+    "glyph_top": 635,
+    "glyph_h": 30,
+    "top": 632,
+    "h": 36,
+    "baseline": 659,
+    "width": 70.453,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 330.094,
+    "y": 982,
+    "w": 202.297,
+    "h": 90
+   },
+   "hint 1": {
+    "x": 548.391,
+    "y": 982,
+    "w": 302.922,
+    "h": 90
+   },
+   "hint 2": {
+    "x": 867.313,
+    "y": 982,
+    "w": 242.578,
+    "h": 90
+   },
+   "hint 0 key text": {
+    "x": 361.094,
+    "w": 64.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 64.813,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 579.391,
+    "w": 145.813,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 145.813,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 898.313,
+    "w": 113.406,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 113.406,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 448.906,
+    "w": 63.484,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 63.484,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 748.203,
+    "w": 83.109,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 83.109,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1034.719,
+    "w": 55.172,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 55.172,
+    "lines": 1
+   }
+  },
+  "10q": {
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "Item hotkeys": {
+    "x": 64,
+    "y": 120,
+    "w": 1312,
+    "h": 90
+   },
+   "Item hotkeys title": {
+    "x": 84,
+    "w": 183.219,
+    "glyph_top": 146.5,
+    "glyph_h": 36,
+    "top": 143.5,
+    "h": 43,
+    "baseline": 175.5,
+    "width": 183.219,
+    "lines": 1
+   },
+   "Off": {
+    "x": 1124,
+    "y": 120,
+    "w": 110,
+    "h": 90
+   },
+   "On": {
+    "x": 1246,
+    "y": 120,
+    "w": 110,
+    "h": 90
+   },
+   "Off text": {
+    "x": 1152.969,
+    "w": 52.063,
+    "glyph_top": 142.297,
+    "glyph_h": 45,
+    "top": 144.297,
+    "h": 41.391,
+    "baseline": 177.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "On text": {
+    "x": 1276.266,
+    "w": 49.469,
+    "glyph_top": 142.297,
+    "glyph_h": 45,
+    "top": 144.297,
+    "h": 41.391,
+    "baseline": 177.297,
+    "width": 49.469,
+    "lines": 1
+   },
+   "explanation": {
+    "x": 84,
+    "w": 668.141,
+    "glyph_top": 217,
+    "glyph_h": 30,
+    "top": 214,
+    "h": 36,
+    "baseline": 241,
+    "width": 668.141,
+    "lines": 1
+   },
+   "note": {
+    "x": 84,
+    "w": 635.781,
+    "glyph_top": 254,
+    "glyph_h": 27,
+    "top": 252,
+    "h": 32,
+    "baseline": 276,
+    "width": 635.781,
+    "lines": 1
+   },
+   "Hotkeys": {
+    "x": 84,
+    "w": 159.094,
+    "glyph_top": 366,
+    "glyph_h": 37,
+    "top": 366,
+    "h": 37,
+    "baseline": 395,
+    "width": 159.094,
+    "lines": 1
+   },
+   "Keyboard": {
+    "x": 356.578,
+    "w": 186.828,
+    "glyph_top": 366,
+    "glyph_h": 37,
+    "top": 366,
+    "h": 37,
+    "baseline": 395,
+    "width": 186.828,
+    "lines": 1
+   },
+   "Gamepad": {
+    "x": 639.391,
+    "w": 173.203,
+    "glyph_top": 366,
+    "glyph_h": 37,
+    "top": 366,
+    "h": 37,
+    "baseline": 395,
+    "width": 173.203,
+    "lines": 1
+   },
+   "slot 0 key": {
+    "x": 320,
+    "y": 407,
+    "w": 260,
+    "h": 90
+   },
+   "slot 1 key": {
+    "x": 320,
+    "y": 497,
+    "w": 260,
+    "h": 90
+   },
+   "slot 2 key": {
+    "x": 320,
+    "y": 587,
+    "w": 260,
+    "h": 90
+   },
+   "slot 3 key": {
+    "x": 320,
+    "y": 677,
+    "w": 260,
+    "h": 90
+   },
+   "slot 4 key": {
+    "x": 320,
+    "y": 775,
+    "w": 260,
+    "h": 90
+   },
+   "slot 5 key": {
+    "x": 320,
+    "y": 865,
+    "w": 260,
+    "h": 90
+   },
+   "slot 0 button": {
+    "x": 596,
+    "y": 407,
+    "w": 260,
+    "h": 90
+   },
+   "slot 1 button": {
+    "x": 596,
+    "y": 497,
+    "w": 260,
+    "h": 90
+   },
+   "slot 2 button": {
+    "x": 596,
+    "y": 587,
+    "w": 260,
+    "h": 90
+   },
+   "slot 3 button": {
+    "x": 596,
+    "y": 677,
+    "w": 260,
+    "h": 90
+   },
+   "slot 0 name": {
+    "x": 84,
+    "w": 74.125,
+    "glyph_top": 433.5,
+    "glyph_h": 36,
+    "top": 430.5,
+    "h": 43,
+    "baseline": 462.5,
+    "width": 74.125,
+    "lines": 1
+   },
+   "slot 1 name": {
+    "x": 84,
+    "w": 78.125,
+    "glyph_top": 523.5,
+    "glyph_h": 36,
+    "top": 520.5,
+    "h": 43,
+    "baseline": 552.5,
+    "width": 78.125,
+    "lines": 1
+   },
+   "slot 2 name": {
+    "x": 84,
+    "w": 76.609,
+    "glyph_top": 613.5,
+    "glyph_h": 36,
+    "top": 610.5,
+    "h": 43,
+    "baseline": 642.5,
+    "width": 76.609,
+    "lines": 1
+   },
+   "slot 3 name": {
+    "x": 84,
+    "w": 79.141,
+    "glyph_top": 703.5,
+    "glyph_h": 36,
+    "top": 700.5,
+    "h": 43,
+    "baseline": 732.5,
+    "width": 79.141,
+    "lines": 1
+   },
+   "slot 4 name": {
+    "x": 84,
+    "w": 127.016,
+    "glyph_top": 801.5,
+    "glyph_h": 36,
+    "top": 798.5,
+    "h": 43,
+    "baseline": 830.5,
+    "width": 127.016,
+    "lines": 1
+   },
+   "slot 5 name": {
+    "x": 84,
+    "w": 128.203,
+    "glyph_top": 891.5,
+    "glyph_h": 36,
+    "top": 888.5,
+    "h": 43,
+    "baseline": 920.5,
+    "width": 128.203,
+    "lines": 1
+   },
+   "fan note": {
+    "x": 84,
+    "w": 757.75,
+    "glyph_top": 289,
+    "glyph_h": 30,
+    "top": 286,
+    "h": 36,
+    "baseline": 313,
+    "width": 757.75,
+    "lines": 1
+   },
+   "later": {
+    "x": 84,
+    "w": 228.266,
+    "glyph_top": 326,
+    "glyph_h": 27,
+    "top": 324,
+    "h": 32,
+    "baseline": 348,
+    "width": 228.266,
+    "lines": 1
+   },
+   "Empty": {
+    "x": 872,
+    "w": 70.453,
+    "glyph_top": 437,
+    "glyph_h": 30,
+    "top": 434,
+    "h": 36,
+    "baseline": 461,
+    "width": 70.453,
+    "lines": 1
+   }
+  },
+  "10k": {
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "title": {
+    "x": 84,
+    "w": 366.234,
+    "glyph_top": 140,
+    "glyph_h": 37,
+    "top": 140,
+    "h": 37,
+    "baseline": 169,
+    "width": 366.234,
+    "lines": 1
+   },
+   "list": {
+    "x": 64,
+    "y": 140,
+    "w": 1312,
+    "h": 525
+   },
+   "key 0": {
+    "x": 84,
+    "y": 206,
+    "w": 66,
+    "h": 46
+   },
+   "key 1": {
+    "x": 84,
+    "y": 286,
+    "w": 66,
+    "h": 46
+   },
+   "key 2": {
+    "x": 84,
+    "y": 366,
+    "w": 66,
+    "h": 46
+   },
+   "key 3": {
+    "x": 84,
+    "y": 446,
+    "w": 66,
+    "h": 46
+   },
+   "key 4": {
+    "x": 84,
+    "y": 526,
+    "w": 84,
+    "h": 46
+   },
+   "key 5": {
+    "x": 84,
+    "y": 606,
+    "w": 84,
+    "h": 46
+   },
+   "key 0 text": {
+    "x": 99,
+    "w": 36,
+    "glyph_top": 209,
+    "glyph_h": 40,
+    "top": 209,
+    "h": 40,
+    "baseline": 240,
+    "width": 36,
+    "lines": 1
+   },
+   "key 1 text": {
+    "x": 99,
+    "w": 36,
+    "glyph_top": 289,
+    "glyph_h": 40,
+    "top": 289,
+    "h": 40,
+    "baseline": 320,
+    "width": 36,
+    "lines": 1
+   },
+   "key 2 text": {
+    "x": 99,
+    "w": 36,
+    "glyph_top": 369,
+    "glyph_h": 40,
+    "top": 369,
+    "h": 40,
+    "baseline": 400,
+    "width": 36,
+    "lines": 1
+   },
+   "key 3 text": {
+    "x": 99,
+    "w": 36,
+    "glyph_top": 449,
+    "glyph_h": 40,
+    "top": 449,
+    "h": 40,
+    "baseline": 480,
+    "width": 36,
+    "lines": 1
+   },
+   "key 4 text": {
+    "x": 99,
+    "w": 54,
+    "glyph_top": 529,
+    "glyph_h": 40,
+    "top": 529,
+    "h": 40,
+    "baseline": 560,
+    "width": 54,
+    "lines": 1
+   },
+   "key 5 text": {
+    "x": 99,
+    "w": 54,
+    "glyph_top": 609,
+    "glyph_h": 40,
+    "top": 609,
+    "h": 40,
+    "baseline": 640,
+    "width": 54,
+    "lines": 1
+   },
+   "key 0 label": {
+    "x": 268,
+    "w": 73.516,
+    "glyph_top": 210.5,
+    "glyph_h": 36,
+    "top": 207.5,
+    "h": 43,
+    "baseline": 239.5,
+    "width": 73.516,
+    "lines": 1
+   },
+   "key 1 label": {
+    "x": 268,
+    "w": 287,
+    "glyph_top": 290.5,
+    "glyph_h": 36,
+    "top": 287.5,
+    "h": 43,
+    "baseline": 319.5,
+    "width": 287,
+    "lines": 1
+   },
+   "key 2 label": {
+    "x": 268,
+    "w": 138.719,
+    "glyph_top": 370.5,
+    "glyph_h": 36,
+    "top": 367.5,
+    "h": 43,
+    "baseline": 399.5,
+    "width": 138.719,
+    "lines": 1
+   },
+   "key 3 label": {
+    "x": 268,
+    "w": 142.359,
+    "glyph_top": 450.5,
+    "glyph_h": 36,
+    "top": 447.5,
+    "h": 43,
+    "baseline": 479.5,
+    "width": 142.359,
+    "lines": 1
+   },
+   "key 4 label": {
+    "x": 268,
+    "w": 140.297,
+    "glyph_top": 530.5,
+    "glyph_h": 36,
+    "top": 527.5,
+    "h": 43,
+    "baseline": 559.5,
+    "width": 140.297,
+    "lines": 1
+   },
+   "key 5 label": {
+    "x": 268,
+    "w": 81.219,
+    "glyph_top": 610.5,
+    "glyph_h": 36,
+    "top": 607.5,
+    "h": 43,
+    "baseline": 639.5,
+    "width": 81.219,
     "lines": 1
    }
   }

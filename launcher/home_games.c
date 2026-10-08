@@ -162,6 +162,7 @@ static void inspect_display(const oracles_settings *settings, OraclesHomeDisplay
     display->vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
     display->workers = settings->ghosts;
     display->cores = SDL_GetNumLogicalCPUCores();   /* as the session counts them for Auto */
+    display->fullscreen_only = oracles_sdl_fullscreen_only();
     /* Without a window (a capture drawn offscreen), a 1080p screen. */
     SDL_Rect usable;
     const SDL_DisplayID index = window ? SDL_GetDisplayForWindow(window) : 0;
@@ -564,7 +565,7 @@ static int start(void *opaque, OraclesHomeCommand game, struct SDL_Window *windo
     OraclesHomeHost pause_host;
     oracles_home_games_host(games, &pause_host);
     const int home_game = fan ? fan->game : g == ORACLES_SETTINGS_AGES ? ORACLES_HOME_GAME_AGES : ORACLES_HOME_GAME_SEASONS;
-    OraclesPause *pause = draw ? oracles_pause_create(draw, &pause_host, home_game, profile) : NULL;
+    OraclesPause *pause = draw ? oracles_pause_create(draw, &pause_host, home_game, profile, games->settings->aspect) : NULL;
     o.pause = pause;
     OraclesSessionResult result;
     oracles_session_run(&o, games->settings, &result);

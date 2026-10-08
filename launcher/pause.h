@@ -1,8 +1,10 @@
 /* The pause menu of a game the home screen started: Escape in play holds
  * the session between two frames
  * and lays the menu over the game's last image, darkened, at the size of the
- * game's window.  Resume, Save state, Load state, Controls, Display, Quit to
- * launcher; under 960 pixels wide, Controls and Display stay in the launcher.
+ * game's window, in the layout the window's shape chooses (ui_layout.h).
+ * Resume, Save state, Load state, Controls, Display, Quit to launcher; in the
+ * 16:9 layout under 960 pixels wide, Controls and Display stay in the
+ * launcher.
  *
  * Nothing is rasterised during the session: the glyphs of every screen the
  * pause shows are rasterised for the window's size before the first frame
@@ -39,8 +41,8 @@ typedef enum OraclesPauseResult {
 typedef struct OraclesPause OraclesPause;
 
 /* A pause for `game`'s session (ORACLES_HOME_GAME_*) running in `playing`, drawn with the home screen's `draw`, its settings read and written
- * through `host` (refresh, store). */
-OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing);
+ * through `host` (refresh, store); `aspect`, the settings' aspect=, which the layout follows. */
+OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing, int aspect);
 void oracles_pause_destroy(OraclesPause *pause);
 
 /* Before the session's first frame: the glyphs for the renderer's output, and the rasters frozen.  Says on stderr
@@ -53,10 +55,9 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
 unsigned oracles_pause_late_glyphs(const OraclesPause *pause);
 
 /* The pause's image on an output of `out_width` x `out_height`: the game's `frame` at its whole scale, darkened, and
- * the screen of `nav` over it (the capture draws it offscreen too).  Returns 1 while a transition runs. */
+ * the screen of `nav` over it, in its layout (nav->layout and nav->narrow set for that output); the capture draws it
+ * offscreen too.  Returns 1 while a transition runs. */
 int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height,
                         int out_width, int out_height, OraclesUiHome *view, const OraclesHomeNav *nav, double now_ms);
-/* Whether a window this wide gets the reduced menu. */
-int oracles_pause_narrow(int out_width);
 
 #endif

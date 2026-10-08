@@ -21,7 +21,7 @@
 #define MOTIF_SLIDE_MS 550.0f
 #define MOTIF_LAYER_MS 400.0f
 #define PAGE_MOTIF_OPACITY 0.5f
-#define CONTROLS_MOTIF_OPACITY 0.35f   /* behind Controls' two panels */
+#define CONTROLS_MOTIF_OPACITY 0.35f   /* behind Controls' grids */
 #define VERSION_GAP 24.0f               /* the least room between the version and the help bar */
 #define TOAST_SHOWN_MS 4000.0
 
@@ -51,6 +51,19 @@
 #define TOAST_BORDER 0xffffffu
 #define TOAST_BORDER_OPACITY 0.1f
 #define TOAST_TEXT 0xefedf2u
+#define TAB_CHOSEN 0xf3f1f5u
+#define TAB_OTHER 0x8a8793u
+
+/* What differs between the layouts in the drawing: corners, the help bar's background, the pause's notes. */
+typedef struct look {
+    float item_radius, reason_radius, hint_radius, key_radius, toast_radius;
+    float hint_opacity;
+    uint32_t paused_note;
+} look;
+static const look look_16_9 = { 6.0f, 5.0f, 6.0f, 4.0f, 8.0f, HINT_BACKGROUND_OPACITY, PAUSED_STATE };
+static const look look_4_3 = { 8.0f, 6.0f, 9.0f, 5.0f, 9.0f, 0.6f, ITEM_NOTE };
+
+static const look *look_of(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &look_4_3 : &look_16_9; }
 
 /* The accent of each motif: oklch(0.8 0.11 hue) for hues 230, 70 and 320. */
 static const uint32_t accents[ORACLES_UI_MOTIF_COUNT] = { 0x6bcbf7u, 0xebb16cu, 0xdda7eau };
@@ -60,6 +73,8 @@ static OraclesUiMotif motif_of(OraclesHomeHero hero)
 {
     return hero == ORACLES_HOME_HERO_AGES ? ORACLES_UI_MOTIF_AGES : hero == ORACLES_HOME_HERO_SEASONS ? ORACLES_UI_MOTIF_SEASONS : ORACLES_UI_MOTIF_FAN;
 }
+
+OraclesUiLayout oracles_ui_home_scene(const OraclesHomeNav *nav) { return nav->layout; }
 
 void oracles_ui_home_start(OraclesUiHome *home, const OraclesHomeNav *nav)
 {
@@ -132,6 +147,20 @@ static void layout_others(const OraclesHomeNav *nav, others_view *v)
     oracles_ui_layout_others(v->over, v->title, v->state, v->layout);
 }
 
+/* 4:3: the three entries as tabs, the chosen one underlined in the accent. */
+static const char *const tab_labels[ORACLES_HOME_ENTRIES] = { "Oracle of Ages", "Oracle of Seasons", "Fan games" };
+
+static void draw_tabs(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
+{
+    OraclesUiTabLayout tabs[ORACLES_HOME_ENTRIES];
+    oracles_ui_layout_tabs(tab_labels, tabs);
+    for (int i = 0; i < ORACLES_HOME_ENTRIES; i++) {
+        const int chosen = (OraclesHomeEntry)i == nav->entry;
+        if (chosen) oracles_ui_fill_rect(draw, tabs[i].line.x, tabs[i].line.y, tabs[i].line.w, tabs[i].line.h, accent);
+        draw_line(draw, &oracles_ui_tab_4_3, &tabs[i].label, tab_labels[i], 0.0f, oracles_ui_rgb(chosen ? TAB_CHOSEN : TAB_OTHER));
+    }
+}
+
 static void draw_others(OraclesUiDraw *draw, const OraclesHomeNav *nav)
 {
     others_view v;
@@ -143,8 +172,9 @@ static void draw_others(OraclesUiDraw *draw, const OraclesHomeNav *nav)
     }
 }
 
-static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const OraclesHomeNav *nav, double now_ms)
+static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const OraclesHomeNav *nav, OraclesUiLayout scene, double now_ms)
 {
+    const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
     int moving = 0;
     for (int h = 0; h < ORACLES_HOME_HEROES; h++) {
         moving |= oracles_ui_tween_running(&home->hero_opacity[h], now_ms) || oracles_ui_tween_running(&home->hero_shift[h], now_ms);
@@ -153,11 +183,11 @@ static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const Ora
         const float shift = oracles_ui_tween_value(&home->hero_shift[h], now_ms);
         char state[ORACLES_HOME_STATE_LENGTH];
         oracles_home_state(nav, (OraclesHomeHero)h, state);
-        OraclesUiTitleLayout layout;
-        oracles_ui_layout_hero(oracles_home_over((OraclesHomeHero)h), oracles_home_title((OraclesHomeHero)h), state, &layout);
-        draw_line(draw, &oracles_ui_hero_over, &layout.over, oracles_home_over((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_OVER, opacity));
-        draw_line(draw, &oracles_ui_hero_title, &layout.title, oracles_home_title((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_TITLE, opacity));
-        draw_line(draw, &oracles_ui_hero_state, &layout.state, state, shift, oracles_ui_rgba(nav->in_game ? PAUSED_STATE : HERO_STATE, opacity));
+        OraclesUiTitleLayout l;
+        oracles_ui_layout_hero(scene, nav->screen == ORACLES_SCREEN_PAUSE, oracles_home_over((OraclesHomeHero)h), oracles_home_title((OraclesHomeHero)h), state, &l);
+        draw_line(draw, st->hero_over, &l.over, oracles_home_over((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_OVER, opacity));
+        draw_line(draw, st->hero_title, &l.title, oracles_home_title((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_TITLE, opacity));
+        draw_line(draw, st->hero_state, &l.state, state, shift, oracles_ui_rgba(nav->in_game ? PAUSED_STATE : HERO_STATE, opacity));
     }
     return moving;
 }
@@ -174,59 +204,63 @@ static unsigned menu_texts(const OraclesHomeNav *nav, OraclesHomeItem *items, co
     return count;
 }
 
-static int draw_menu(OraclesUiDraw *draw, const OraclesUiHome *home, const OraclesHomeNav *nav, double now_ms)
+static int draw_menu(OraclesUiDraw *draw, const OraclesUiHome *home, const OraclesHomeNav *nav, OraclesUiLayout scene, double now_ms)
 {
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const char *notes[ORACLES_HOME_MAX_ITEMS], *labels[ORACLES_HOME_MAX_ITEMS];
     int reasons[ORACLES_HOME_MAX_ITEMS];
     const unsigned count = menu_texts(nav, items, notes, reasons, labels);
     OraclesUiItemLayout layout[ORACLES_HOME_MAX_ITEMS];
-    oracles_ui_layout_menu(notes, reasons, labels, count, layout);
+    oracles_ui_layout_menu(scene, notes, reasons, labels, count, layout);
+    const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
+    const look *lk = look_of(scene);
     const OraclesUiColor accent = oracles_ui_rgb(accents[motif_of(oracles_home_hero(nav))]);
     int moving = 0;
     for (unsigned i = 0; i < count; i++) {
         moving |= oracles_ui_tween_running(&home->highlight[i], now_ms);
         const float t = oracles_ui_tween_value(&home->highlight[i], now_ms);
         const OraclesUiItemLayout *l = &layout[i];
-        oracles_ui_fill_round_rect(draw, l->box.x, l->box.y, l->box.w, l->box.h, 6.0f, oracles_ui_rgba(ITEM_HIGHLIGHT, ITEM_HIGHLIGHT_OPACITY * t));
+        oracles_ui_fill_round_rect(draw, l->box.x, l->box.y, l->box.w, l->box.h, lk->item_radius, oracles_ui_rgba(ITEM_HIGHLIGHT, ITEM_HIGHLIGHT_OPACITY * t));
         const OraclesUiColor color = items[i].disabled ? oracles_ui_mix(oracles_ui_rgb(ITEM_DISABLED), oracles_ui_rgb(ITEM_DISABLED_FOCUSED), t)
                                                        : oracles_ui_mix(oracles_ui_rgb(ITEM_TEXT), accent, t);
         /* A reason on the highlight's background, readable over the motif. */
         if (l->note_box.w > 0.0f)
-            oracles_ui_fill_round_rect(draw, l->note_box.x, l->note_box.y, l->note_box.w, l->note_box.h, 5.0f, oracles_ui_rgba(ITEM_HIGHLIGHT, ITEM_HIGHLIGHT_OPACITY));
-        draw_line(draw, &oracles_ui_item_note, &l->note, notes[i], 0.0f, oracles_ui_rgb(nav->in_game ? PAUSED_STATE : ITEM_NOTE));
-        draw_line(draw, &oracles_ui_item_label, &l->label, labels[i], 0.0f, color);
-        draw_line(draw, &oracles_ui_item_label, &l->dot, oracles_ui_item_dot, 0.0f, color);
+            oracles_ui_fill_round_rect(draw, l->note_box.x, l->note_box.y, l->note_box.w, l->note_box.h, lk->reason_radius, oracles_ui_rgba(ITEM_HIGHLIGHT, ITEM_HIGHLIGHT_OPACITY));
+        draw_line(draw, st->item_note, &l->note, notes[i], 0.0f, oracles_ui_rgb(nav->in_game ? lk->paused_note : ITEM_NOTE));
+        draw_line(draw, st->item_label, &l->label, labels[i], 0.0f, color);
+        draw_line(draw, st->item_label, &l->dot, oracles_ui_item_dot, 0.0f, color);
     }
     return moving;
 }
 
 /* The help bar's left edge in the scene. */
-static float hints_left(const OraclesHomeNav *nav)
+static float hints_left(const OraclesHomeNav *nav, OraclesUiLayout scene)
 {
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     const unsigned count = oracles_home_hints(nav, hints);
     OraclesUiHintLayout layout[ORACLES_HOME_MAX_HINTS];
-    oracles_ui_layout_hints(hints, count, layout);
-    return count ? layout[0].box.x : ORACLES_UI_SCENE_WIDTH;
+    oracles_ui_layout_hints(scene, hints, count, layout);
+    return count ? layout[0].box.x : oracles_ui_scene_width(scene);
 }
 
-static void draw_hints(OraclesUiDraw *draw, const OraclesHomeNav *nav)
+static void draw_hints(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiLayout scene)
 {
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     const unsigned count = oracles_home_hints(nav, hints);
     OraclesUiHintLayout layout[ORACLES_HOME_MAX_HINTS];
-    oracles_ui_layout_hints(hints, count, layout);
+    oracles_ui_layout_hints(scene, hints, count, layout);
+    const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
+    const look *lk = look_of(scene);
     for (unsigned i = 0; i < count; i++) {
         const OraclesUiHintLayout *l = &layout[i];
-        oracles_ui_fill_round_rect(draw, l->box.x, l->box.y, l->box.w, l->box.h, 6.0f, oracles_ui_rgba(HINT_BACKGROUND, HINT_BACKGROUND_OPACITY));
-        oracles_ui_stroke_round_rect(draw, l->key_box.x, l->key_box.y, l->key_box.w, l->key_box.h, 4.0f, 1.0f, oracles_ui_rgb(HINT_KEY_BORDER));
-        draw_line(draw, &oracles_ui_hint_key, &l->key, hints[i].key, 0.0f, oracles_ui_rgb(HINT_KEY));
-        draw_line(draw, &oracles_ui_hint_label, &l->label, hints[i].label, 0.0f, oracles_ui_rgb(HINT_LABEL));
+        oracles_ui_fill_round_rect(draw, l->box.x, l->box.y, l->box.w, l->box.h, lk->hint_radius, oracles_ui_rgba(HINT_BACKGROUND, lk->hint_opacity));
+        oracles_ui_stroke_round_rect(draw, l->key_box.x, l->key_box.y, l->key_box.w, l->key_box.h, lk->key_radius, 1.0f, oracles_ui_rgb(HINT_KEY_BORDER));
+        draw_line(draw, st->hint_key, &l->key, hints[i].key, 0.0f, oracles_ui_rgb(HINT_KEY));
+        draw_line(draw, st->hint_label, &l->label, hints[i].label, 0.0f, oracles_ui_rgb(HINT_LABEL));
     }
 }
 
-static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, double now_ms)
+static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, OraclesUiLayout scene, double now_ms)
 {
     if (home->toast_until_ms > 0.0 && now_ms >= home->toast_until_ms) {
         home->toast_until_ms = 0.0;
@@ -235,10 +269,11 @@ static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, double now_ms)
     const float opacity = oracles_ui_tween_value(&home->toast, now_ms);
     if (opacity > 0.0f && home->toast_text[0]) {
         OraclesUiToastLayout l;
-        oracles_ui_layout_toast(home->toast_text, &l);
-        oracles_ui_fill_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, 8.0f, oracles_ui_rgba(TOAST_BACKGROUND, opacity));
-        oracles_ui_stroke_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, 8.0f, 1.0f, oracles_ui_rgba(TOAST_BORDER, TOAST_BORDER_OPACITY * opacity));
-        draw_line(draw, &oracles_ui_toast, &l.text, home->toast_text, 0.0f, oracles_ui_rgba(TOAST_TEXT, opacity));
+        oracles_ui_layout_toast(scene, home->toast_text, &l);
+        const float radius = look_of(scene)->toast_radius;
+        oracles_ui_fill_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, oracles_ui_rgba(TOAST_BACKGROUND, opacity));
+        oracles_ui_stroke_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, 1.0f, oracles_ui_rgba(TOAST_BORDER, TOAST_BORDER_OPACITY * opacity));
+        draw_line(draw, oracles_ui_home_styles(scene)->toast, &l.text, home->toast_text, 0.0f, oracles_ui_rgba(TOAST_TEXT, opacity));
     }
     return oracles_ui_tween_running(&home->toast, now_ms);
 }
@@ -246,9 +281,11 @@ static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, double now_ms)
 int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const OraclesHomeNav *nav, double now_ms)
 {
     int moving = 0;
+    const OraclesUiLayout scene = oracles_ui_home_scene(nav);
     /* The drawing order: motifs (ages under seasons under fan, one layer that slides and fades behind a page), then
-     * the diagonal, the stack, the title and the menu of the home screen, or a page; the version, the help, the toast.
-     * In a game the game's image stands behind instead of the motifs, drawn by the pause beforehand. */
+     * the diagonal and the stack (16:9) or the tabs (4:3), the title and the menu of the home screen, or a page; the
+     * version, the help, the toast.  In a game the game's image stands behind instead of the motifs, drawn by the
+     * pause beforehand. */
     if (!nav->in_game) {
         moving = oracles_ui_tween_running(&home->motif_shift, now_ms) || oracles_ui_tween_running(&home->motif_layer, now_ms);
         const float shift = oracles_ui_tween_value(&home->motif_shift, now_ms), layer = oracles_ui_tween_value(&home->motif_layer, now_ms);
@@ -259,17 +296,21 @@ int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const Oracles
     }
     const OraclesUiColor accent = oracles_ui_rgb(accents[motif_of(oracles_home_hero(nav))]);
     if (nav->screen == ORACLES_SCREEN_HOME) {
-        oracles_ui_fill_polygon(draw, diagonal, 4, oracles_ui_rgba(DIAGONAL, DIAGONAL_OPACITY));
-        draw_others(draw, nav);
-        moving |= draw_heroes(draw, home, nav, now_ms);
-        moving |= draw_menu(draw, home, nav, now_ms);
+        if (scene == ORACLES_UI_LAYOUT_4_3) {
+            draw_tabs(draw, nav, accent);
+        } else {
+            oracles_ui_fill_polygon(draw, diagonal, 4, oracles_ui_rgba(DIAGONAL, DIAGONAL_OPACITY));
+            draw_others(draw, nav);
+        }
+        moving |= draw_heroes(draw, home, nav, scene, now_ms);
+        moving |= draw_menu(draw, home, nav, scene, now_ms);
     } else if (nav->screen == ORACLES_SCREEN_PAUSE) {
         /* At the pause's minimum scale in a small window, the title keeps to the top right, the menu to the bottom
          * right (the anchors do nothing when the scene fits). */
         oracles_ui_draw_anchor(draw, 1.0f, 0.0f);
-        moving |= draw_heroes(draw, home, nav, now_ms);
+        moving |= draw_heroes(draw, home, nav, scene, now_ms);
         oracles_ui_draw_anchor(draw, 1.0f, 1.0f);
-        moving |= draw_menu(draw, home, nav, now_ms);
+        moving |= draw_menu(draw, home, nav, scene, now_ms);
     } else if (nav->screen == ORACLES_SCREEN_GAME) {
         oracles_ui_page_draw(draw, nav, accent);
     } else if (nav->screen == ORACLES_SCREEN_CONTROLS) {
@@ -280,15 +321,15 @@ int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const Oracles
         oracles_ui_display_draw(draw, nav, accent);
     }
     OraclesUiLine version;
-    oracles_ui_layout_version(ORACLES_VERSION, &version);
+    oracles_ui_layout_version(scene, ORACLES_VERSION, &version);
     oracles_ui_draw_anchor(draw, 0.0f, 1.0f);
     /* The version gives way to the help bar where the two would meet: a long `git describe` in the pause's small
      * window. */
-    if (version.x + version.w + VERSION_GAP <= hints_left(nav) + oracles_ui_draw_anchor_shift(draw, 0.0f, 0.5f))
-        draw_line(draw, &oracles_ui_version, &version, ORACLES_VERSION, 0.0f, oracles_ui_rgb(VERSION_TEXT));
+    if (version.x + version.w + VERSION_GAP <= hints_left(nav, scene) + oracles_ui_draw_anchor_shift(draw, 0.0f, 0.5f))
+        draw_line(draw, oracles_ui_home_styles(scene)->version, &version, ORACLES_VERSION, 0.0f, oracles_ui_rgb(VERSION_TEXT));
     oracles_ui_draw_anchor(draw, 0.5f, 1.0f);
-    draw_hints(draw, nav);
-    moving |= draw_toast(draw, home, now_ms);
+    draw_hints(draw, nav, scene);
+    moving |= draw_toast(draw, home, scene, now_ms);
     return moving;
 }
 
@@ -303,7 +344,7 @@ static int back_hint(const OraclesHomeNav *nav, float x, float y)
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     const unsigned count = oracles_home_hints(nav, hints);
     OraclesUiHintLayout layout[ORACLES_HOME_MAX_HINTS];
-    oracles_ui_layout_hints(hints, count, layout);
+    oracles_ui_layout_hints(oracles_ui_home_scene(nav), hints, count, layout);
     for (unsigned i = 0; i < count; i++) if (hints[i].back && inside(&layout[i].box, x, y)) return 1;
     return 0;
 }
@@ -327,10 +368,17 @@ OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y
     int reasons[ORACLES_HOME_MAX_ITEMS];
     const unsigned count = menu_texts(nav, items, notes, reasons, labels);
     OraclesUiItemLayout menu[ORACLES_HOME_MAX_ITEMS];
-    oracles_ui_layout_menu(notes, reasons, labels, count, menu);
+    oracles_ui_layout_menu(oracles_ui_home_scene(nav), notes, reasons, labels, count, menu);
     for (unsigned i = 0; i < count; i++)
         if (inside(&menu[i].box, x, y)) { hit.kind = ORACLES_UI_HIT_ITEM; hit.index = i; return hit; }
-    if (nav->screen == ORACLES_SCREEN_PAUSE) return hit;   /* the pause has no left stack */
+    if (nav->screen == ORACLES_SCREEN_PAUSE) return hit;   /* the pause has no left stack, no tabs */
+    if (oracles_ui_home_scene(nav) == ORACLES_UI_LAYOUT_4_3) {
+        OraclesUiTabLayout tabs[ORACLES_HOME_ENTRIES];
+        oracles_ui_layout_tabs(tab_labels, tabs);
+        for (int i = 0; i < ORACLES_HOME_ENTRIES; i++)
+            if (inside(&tabs[i].box, x, y)) { hit.kind = ORACLES_UI_HIT_ENTRY; hit.entry = (OraclesHomeEntry)i; return hit; }
+        return hit;
+    }
     /* The left stack's entries are as wide as the widest of them, a column's items being stretched. */
     others_view v;
     layout_others(nav, &v);

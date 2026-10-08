@@ -34,6 +34,7 @@
 #define DIAGRAM_BORDER_OPACITY 0.3f
 #define DIAGRAM_WINDOW_OPACITY 0.07f
 #define DIAGRAM_LABEL 0xa19eaau
+#define HELP 0xc9c6cfu
 
 #define MODS_PATH 0xc9c6cfu
 #define MODS_EMPTY 0xd6d3dcu
@@ -75,9 +76,19 @@ static void game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *s
     t->play_note = oracles_page_play_note(nav);
 }
 
+/* What differs between the layouts in the drawing: the rows' corners, the frames' corners and width. */
+typedef struct look {
+    float row_radius, frame_radius, choice_radius, frame_width;
+} look;
+static const look look_16_9 = { 6.0f, 6.0f, 5.0f, 1.0f };
+static const look look_4_3 = { 8.0f, 7.0f, 7.0f, 2.0f };
+
+static const look *look_of(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &look_4_3 : &look_16_9; }
+
+/* A line the layout has not laid out (zero) is not drawn: the other layout's. */
 static void text(OraclesUiDraw *draw, const OraclesUiTextStyle *style, const OraclesUiLine *line, const char *s, OraclesUiColor color)
 {
-    if (s && s[0]) oracles_ui_draw_text(draw, style, line->x, line->baseline, s, color);
+    if (s && s[0] && line->h > 0.0f) oracles_ui_draw_text(draw, style, line->x, line->baseline, s, color);
 }
 
 static void wrapped(OraclesUiDraw *draw, const OraclesUiTextStyle *style, const OraclesUiWrapped *w, OraclesUiColor color)
@@ -87,87 +98,102 @@ static void wrapped(OraclesUiDraw *draw, const OraclesUiTextStyle *style, const 
 
 static void dot(OraclesUiDraw *draw, const OraclesUiBox *b, OraclesTone tone)
 {
-    oracles_ui_fill_round_rect(draw, b->x, b->y, b->w, b->h, 6.0f, oracles_ui_rgb(tone_dots[tone]));
+    oracles_ui_fill_round_rect(draw, b->x, b->y, b->w, b->h, b->w * 0.5f, oracles_ui_rgb(tone_dots[tone]));
 }
 
-/* A framed option: its frame, its name, its size when it has one. */
-static void option(OraclesUiDraw *draw, const OraclesUiOptionLayout *o, const OraclesUiTextStyle *style, const char *name, const char *size,
-                   int on, int focused, OraclesUiColor accent, uint32_t off, float opacity)
+/* A framed option: its frame, its name, its size when it has one; `profile`, a profile's or a window's frame, which
+ * 16:9 rounds more than a choice's. */
+static void option(OraclesUiDraw *draw, const OraclesUiPageStyles *st, const look *lk, const OraclesUiOptionLayout *o, int profile, const char *name,
+                   const char *size, int on, int focused, OraclesUiColor accent, uint32_t off, float opacity)
 {
     const OraclesUiColor frame = on ? (focused ? accent : oracles_ui_rgba(0xffffffu, FRAME_ON_OPACITY)) : oracles_ui_rgba(0xffffffu, FRAME_OFF_OPACITY);
     const OraclesUiColor color = on ? (focused ? accent : oracles_ui_rgb(TEXT)) : oracles_ui_rgb(off);
-    /* A profile's and a window's frame is rounder than a choice's, View's with its size included. */
-    oracles_ui_stroke_round_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, style == &oracles_ui_option_name ? 6.0f : 5.0f, 1.0f,
+    oracles_ui_stroke_round_rect(draw, o->box.x, o->box.y, o->box.w, o->box.h, profile ? lk->frame_radius : lk->choice_radius, lk->frame_width,
                                  oracles_ui_fade(frame, opacity));
-    text(draw, style, &o->name, name, oracles_ui_fade(color, opacity));
-    if (size) text(draw, &oracles_ui_option_size, &o->size, size, oracles_ui_rgba(PATH, opacity));
+    text(draw, profile ? st->option_name : st->choice, &o->name, name, oracles_ui_fade(color, opacity));
+    if (size) text(draw, st->option_size, &o->size, size, oracles_ui_rgba(PATH, opacity));
 }
 
-static void highlight_dimmed(OraclesUiDraw *draw, const OraclesUiBox *b, int on, float opacity)
+static void highlight_dimmed(OraclesUiDraw *draw, const look *lk, const OraclesUiBox *b, int on, float opacity)
 {
-    if (on) oracles_ui_fill_round_rect(draw, b->x, b->y, b->w, b->h, 6.0f, oracles_ui_rgba(0xffffffu, ROW_HIGHLIGHT_OPACITY * opacity));
+    if (on) oracles_ui_fill_round_rect(draw, b->x, b->y, b->w, b->h, lk->row_radius, oracles_ui_rgba(0xffffffu, ROW_HIGHLIGHT_OPACITY * opacity));
 }
 
-static void highlight(OraclesUiDraw *draw, const OraclesUiBox *b, int on) { highlight_dimmed(draw, b, on, 1.0f); }
+static void highlight(OraclesUiDraw *draw, const look *lk, const OraclesUiBox *b, int on) { highlight_dimmed(draw, lk, b, on, 1.0f); }
+
+/* The page's head: its section in the accent, the words above the title (16:9), the title, the state (none: NULL). */
+static void head(OraclesUiDraw *draw, const OraclesUiPageStyles *st, const OraclesUiPageHead *h, const char *section, const char *over,
+                 const char *state, OraclesUiColor accent)
+{
+    text(draw, st->section, &h->section, section, accent);
+    text(draw, st->over, &h->over, over, oracles_ui_rgb(OVER));
+    wrapped(draw, st->title, &h->title, oracles_ui_rgb(TITLE));
+    text(draw, st->state, &h->state, state, oracles_ui_rgb(STATE));
+}
+
+/* 16:9's panel behind the rows; 4:3 has none. */
+static void panel(OraclesUiDraw *draw, const OraclesUiBox *p)
+{
+    if (p->w <= 0.0f) return;
+    oracles_ui_fill_round_rect(draw, p->x, p->y, p->w, p->h, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
+    oracles_ui_stroke_round_rect(draw, p->x, p->y, p->w, p->h, 10.0f, 1.0f, oracles_ui_rgba(PANEL_BORDER, PANEL_BORDER_OPACITY));
+}
 
 void oracles_ui_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
     const OraclesHomeGame *game = oracles_page_game_const(nav);
+    const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
+    const look *lk = look_of(nav->layout);
     OraclesUiGameTexts t;
     char state[ORACLES_HOME_STATE_LENGTH];
     page_tones tones;
     game_texts(nav, &t, state, &tones);
     OraclesUiGameLayout l;
-    oracles_ui_layout_game(&t, &l);
+    oracles_ui_layout_game(nav->layout, &t, &l);
     const unsigned row = nav->row;
 
-    text(draw, &oracles_ui_page_section, &l.head.section, "Cartridge", accent);
-    text(draw, &oracles_ui_page_over, &l.head.over, t.over, oracles_ui_rgb(OVER));
-    wrapped(draw, &oracles_ui_page_title, &l.head.title, oracles_ui_rgb(TITLE));
-    text(draw, &oracles_ui_page_state, &l.head.state, t.state, oracles_ui_rgb(STATE));
-
-    oracles_ui_fill_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
-    oracles_ui_stroke_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, 1.0f, oracles_ui_rgba(PANEL_BORDER, PANEL_BORDER_OPACITY));
-    for (unsigned r = 0; r < ORACLES_GAME_ROWS; r++) highlight(draw, &l.rows[r], r == row);
-    text(draw, &oracles_ui_row_label, &l.label_rom, t.patched ? "Base ROM" : "ROM", oracles_ui_rgb(LABEL));
-    text(draw, &oracles_ui_row_label, &l.label_save, "Save", oracles_ui_rgb(LABEL));
+    head(draw, st, &l.head, "Cartridge", t.over, t.state, accent);
+    panel(draw, &l.panel);
+    for (unsigned r = 0; r < ORACLES_GAME_ROWS; r++) highlight(draw, lk, &l.rows[r], r == row);
+    text(draw, st->row_label, &l.label_rom, t.patched ? "Base ROM" : "ROM", oracles_ui_rgb(LABEL));
+    text(draw, st->row_label, &l.label_save, "Save", oracles_ui_rgb(LABEL));
 
     const OraclesUiColor normal = oracles_ui_rgb(BUTTON);
     const OraclesUiColor off = oracles_ui_rgb(row == ORACLES_ROW_SAVE ? BUTTON_DISABLED_FOCUSED : BUTTON_DISABLED);
-    text(draw, &oracles_ui_row_title, &l.rom_file, t.rom_file, oracles_ui_rgb(game->rom_file[0] ? TEXT : TEXT_NONE));
-    text(draw, &oracles_ui_row_path, &l.rom_folder, t.rom_folder, oracles_ui_rgb(PATH));
+    text(draw, st->row_title, &l.rom_file, t.rom_file, oracles_ui_rgb(game->rom_file[0] ? TEXT : TEXT_NONE));
+    text(draw, st->row_path, &l.rom_folder, t.rom_folder, oracles_ui_rgb(PATH));
     dot(draw, &l.rom_dot, tones.rom);
-    text(draw, &oracles_ui_row_status, &l.rom_status, t.rom_status, oracles_ui_rgb(tone_texts[tones.rom]));
-    text(draw, &oracles_ui_row_text, &l.rom_note, t.rom_note, oracles_ui_rgb(NOTE));
-    text(draw, &oracles_ui_row_text, &l.rom_hotkeys_note, t.rom_hotkeys_note, oracles_ui_rgb(NOTE));
+    text(draw, st->row_status, &l.rom_status, t.rom_status, oracles_ui_rgb(tone_texts[tones.rom]));
+    text(draw, st->row_text, &l.rom_note, t.rom_note, oracles_ui_rgb(NOTE));
+    text(draw, st->row_text, &l.rom_hotkeys_note, t.rom_hotkeys_note, oracles_ui_rgb(NOTE));
     const OraclesUiColor rom_button = row == ORACLES_ROW_ROM ? accent : normal;
-    text(draw, &oracles_ui_row_button, &l.rom_button, "Choose ROM\xe2\x80\xa6", rom_button);
-    text(draw, &oracles_ui_row_button, &l.rom_button_dot, oracles_ui_item_dot, rom_button);
+    text(draw, st->row_button, &l.rom_button, "Choose ROM\xe2\x80\xa6", rom_button);
+    text(draw, st->row_button, &l.rom_button_dot, oracles_ui_item_dot, rom_button);
 
     if (t.patched) {
-        text(draw, &oracles_ui_row_label, &l.label_patch, "Patch", oracles_ui_rgb(LABEL));
-        text(draw, &oracles_ui_row_title, &l.patch_file, t.patch_file, oracles_ui_rgb(game->patch_file[0] ? TEXT : TEXT_NONE));
+        text(draw, st->row_label, &l.label_patch, "Patch", oracles_ui_rgb(LABEL));
+        text(draw, st->row_title, &l.patch_file, t.patch_file, oracles_ui_rgb(game->patch_file[0] ? TEXT : TEXT_NONE));
         dot(draw, &l.patch_dot, tones.patch);
-        text(draw, &oracles_ui_row_status, &l.patch_status, t.patch_status, oracles_ui_rgb(tone_texts[tones.patch]));
+        text(draw, st->row_status, &l.patch_status, t.patch_status, oracles_ui_rgb(tone_texts[tones.patch]));
         const OraclesUiColor patch_button = row == ORACLES_ROW_PATCH ? accent : normal;
-        text(draw, &oracles_ui_row_button, &l.patch_button, "Choose patch\xe2\x80\xa6", patch_button);
-        text(draw, &oracles_ui_row_button, &l.patch_button_dot, oracles_ui_item_dot, patch_button);
-        text(draw, &oracles_ui_row_path, &l.patch_folder, t.patch_folder, oracles_ui_rgb(PATH));
+        text(draw, st->row_button, &l.patch_button, "Choose patch\xe2\x80\xa6", patch_button);
+        text(draw, st->row_button, &l.patch_button_dot, oracles_ui_item_dot, patch_button);
+        text(draw, st->row_path, &l.patch_folder, t.patch_folder, oracles_ui_rgb(PATH));
         dot(draw, &l.image_dot, tones.image);
-        text(draw, &oracles_ui_row_status, &l.image_status, t.image_status, oracles_ui_rgb(tone_texts[tones.image]));
+        text(draw, st->row_status, &l.image_status, t.image_status, oracles_ui_rgb(tone_texts[tones.image]));
     }
 
-    text(draw, &oracles_ui_row_title, &l.save_file, t.save_file, oracles_ui_rgb(game->save_file[0] ? TEXT : TEXT_NONE));
-    text(draw, &oracles_ui_row_text, &l.save_line, t.save_line, oracles_ui_rgb(NOTE));
+    text(draw, st->row_title, &l.save_file, t.save_file, oracles_ui_rgb(game->save_file[0] ? TEXT : TEXT_NONE));
+    text(draw, st->row_text, &l.save_line, t.save_line, oracles_ui_rgb(NOTE));
     const OraclesUiColor save_button = !game->usable ? off : row == ORACLES_ROW_SAVE ? accent : normal;
-    text(draw, &oracles_ui_row_button, &l.save_button, "Open folder", save_button);
-    text(draw, &oracles_ui_row_button, &l.save_button_dot, oracles_ui_item_dot, save_button);
+    text(draw, st->row_button, &l.save_button, "Open folder", save_button);
+    text(draw, st->row_button, &l.save_button_dot, oracles_ui_item_dot, save_button);
 
     const OraclesUiColor play = !game->usable ? oracles_ui_rgb(row == ORACLES_ROW_PLAY ? BUTTON_DISABLED_FOCUSED : BUTTON_DISABLED)
                                               : row == ORACLES_ROW_PLAY ? accent : normal;
-    text(draw, &oracles_ui_row_text, &l.play_note, t.play_note, oracles_ui_rgb(NOTE));
-    text(draw, &oracles_ui_play, &l.play, "Play", play);
-    text(draw, &oracles_ui_play, &l.play_dot, oracles_ui_item_dot, play);
+    text(draw, st->row_text, &l.play_note, t.play_note, oracles_ui_rgb(NOTE));
+    text(draw, st->play, &l.play, "Play", play);
+    text(draw, st->play, &l.play_dot, oracles_ui_item_dot, play);
 }
 
 static int inside(const OraclesUiBox *b, float x, float y) { return x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h; }
@@ -179,132 +205,112 @@ int oracles_ui_page_hit(const OraclesHomeNav *nav, float x, float y)
     page_tones tones;
     game_texts(nav, &t, state, &tones);
     OraclesUiGameLayout l;
-    oracles_ui_layout_game(&t, &l);
+    oracles_ui_layout_game(nav->layout, &t, &l);
     for (int r = 0; r < ORACLES_GAME_ROWS; r++) if (inside(&l.rows[r], x, y)) return r;   /* a row the page has not is empty */
     return -1;
 }
 
 /* ---- Display --------------------------------------------------------------------- */
 
-static void display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t)
-{
-    const OraclesHomeHero hero = oracles_home_hero(nav);
-    memset(t, 0, sizeof *t);
-    t->section = oracles_display_section(nav);
-    t->advanced = nav->advanced;
-    t->over = oracles_home_over(hero);
-    t->title = oracles_home_title(hero);
-    for (int w = 0; w < 4; w++) oracles_display_window_texts(nav, w, t->window_names[w], t->window_sizes[w], sizeof t->window_sizes[w]);
-    t->window_note = oracles_display_window_note;
-    oracles_display_reduced(nav, t->window_reduced, sizeof t->window_reduced);
-    t->profile_note = oracles_display_profile_note(nav);
-    t->later = nav->in_game;
-    t->explanations[0] = oracles_display_explanation(ORACLES_DISPLAY_COLOUR);
-    t->explanations[1] = oracles_display_explanation(ORACLES_DISPLAY_TRANSITIONS);
-    t->explanations[2] = oracles_display_explanation(ORACLES_DISPLAY_VSYNC);
-    t->explanations[3] = oracles_display_explanation(ORACLES_DISPLAY_CORE);
-    t->explanations[4] = oracles_display_explanation(ORACLES_DISPLAY_WORKERS);
-    t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
-    for (int i = 0; i < 3; i++) oracles_display_workers_choice(nav, i, t->workers_names[i], sizeof t->workers_names[i]);
-    for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
-    for (int v = 0; v < 3; v++) oracles_display_view_size(nav, v, t->view_sizes[v], sizeof t->view_sizes[v]);
-    /* The diagram's box has the screen's shape at its height, as the sizes take it: 432 wide for 16:9 (and any wider
-     * screen, which the view takes as 16:9), 324 for 4:3. */
-    t->diagram_box_w = oracles_display_screen_4_3(nav) ? 324.0f : ORACLES_UI_DIAGRAM_W;
-    oracles_display_diagram(nav, t->diagram_box_w, ORACLES_UI_DIAGRAM_H, &t->diagram_w, &t->diagram_h, t->diagram_label, sizeof t->diagram_label);
-}
-
 void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
+    const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
+    const look *lk = look_of(nav->layout);
     OraclesUiDisplayTexts t;
-    display_texts(nav, &t);
+    oracles_ui_display_texts(nav, &t);
     OraclesUiDisplayLayout l;
-    oracles_ui_layout_display(&t, &l);
+    oracles_ui_layout_display(nav->layout, &t, &l);
     const unsigned row = nav->row;
 
-    text(draw, &oracles_ui_page_section, &l.head.section, t.section, accent);
-    text(draw, &oracles_ui_page_over, &l.head.over, t.over, oracles_ui_rgb(OVER));
-    wrapped(draw, &oracles_ui_page_title, &l.head.title, oracles_ui_rgb(TITLE));
-    if (t.later) text(draw, &oracles_ui_row_note, &l.page_note, oracles_ui_display_later, oracles_ui_rgb(NOTE_ITALIC));
+    head(draw, st, &l.head, t.section, t.over, NULL, accent);
+    if (t.later) text(draw, st->page_note, &l.page_note, oracles_ui_display_later, oracles_ui_rgb(NOTE_ITALIC));
     /* The window on the screen. */
     oracles_ui_fill_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, oracles_ui_rgba(DIAGRAM, DIAGRAM_OPACITY));
     oracles_ui_stroke_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, 1.0f, oracles_ui_rgba(0xffffffu, DIAGRAM_BORDER_OPACITY));
     const OraclesUiBox *w = &l.diagram_window;
     oracles_ui_fill_rect(draw, w->x, w->y, w->w, w->h, oracles_ui_rgba(0xffffffu, DIAGRAM_WINDOW_OPACITY));
     oracles_ui_stroke_round_rect(draw, w->x, w->y, w->w, w->h, 0.0f, 2.0f, accent);
-    text(draw, &oracles_ui_diagram_label, &l.diagram_label, t.diagram_label, oracles_ui_rgb(DIAGRAM_LABEL));
-    /* Advanced, in the accent while highlighted, its arrow with it. */
+    text(draw, st->diagram_label, &l.diagram_label, t.diagram_label, oracles_ui_rgb(DIAGRAM_LABEL));
+    /* Advanced, in the accent while highlighted, its arrow with it: under the diagram (16:9), or the last row (4:3)
+     * with what it opens. */
     if (!t.advanced) {
         const OraclesUiColor color = row == ORACLES_DISPLAY_ADVANCED ? accent : oracles_ui_rgb(LABEL);
         const OraclesUiBox *a = &l.advanced_arrow;
         const float arrow[6] = { a->x, a->y, a->x + a->w, a->y + a->h * 0.5f, a->x, a->y + a->h };
-        highlight(draw, &l.rows[ORACLES_DISPLAY_ADVANCED], row == ORACLES_DISPLAY_ADVANCED);
-        text(draw, &oracles_ui_row_label, &l.advanced_label, oracles_display_labels[ORACLES_DISPLAY_ADVANCED], color);
+        highlight(draw, lk, &l.rows[ORACLES_DISPLAY_ADVANCED], row == ORACLES_DISPLAY_ADVANCED);
+        text(draw, st->row_label, &l.advanced_label, oracles_display_labels[ORACLES_DISPLAY_ADVANCED], color);
+        text(draw, st->row_text, &l.advanced_text, oracles_ui_advanced_rows, oracles_ui_rgb(PATH));
         oracles_ui_fill_polygon(draw, arrow, 3, color);
     }
 
-    oracles_ui_fill_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
-    oracles_ui_stroke_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, 1.0f, oracles_ui_rgba(PANEL_BORDER, PANEL_BORDER_OPACITY));
+    panel(draw, &l.panel);
+    /* 4:3: the highlighted row's explanation, under the rows. */
+    wrapped(draw, st->help, &l.help, oracles_ui_rgb(HELP));
+    text(draw, st->help_note, &l.help_note, t.help_note, oracles_ui_rgb(NOTE_ITALIC));
     if (t.advanced) {
         /* The core and the workers are the running game's: from it their rows are dimmed, label and all. */
         const float core_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_CORE) ? ROW_NOT_APPLIED : 1.0f;
         const float workers_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_WORKERS) ? ROW_NOT_APPLIED : 1.0f;
         for (unsigned r = ORACLES_DISPLAY_CORE; r < ORACLES_DISPLAY_ROWS; r++) {
             const float opacity = r == ORACLES_DISPLAY_CORE ? core_applied : r == ORACLES_DISPLAY_WORKERS ? workers_applied : 1.0f;
-            highlight_dimmed(draw, &l.rows[r], r == row, opacity);
-            wrapped(draw, &oracles_ui_row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
+            highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
+            wrapped(draw, st->row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
         }
-        wrapped(draw, &oracles_ui_row_text, &l.explanations[3], oracles_ui_rgba(NOTE, core_applied));
-        text(draw, &oracles_ui_row_note, &l.core_note, oracles_ui_core_note, oracles_ui_rgba(NOTE_ITALIC, core_applied));
-        wrapped(draw, &oracles_ui_row_text, &l.explanations[2], oracles_ui_rgb(NOTE));
-        wrapped(draw, &oracles_ui_row_text, &l.explanations[4], oracles_ui_rgba(NOTE, workers_applied));
+        wrapped(draw, st->row_text, &l.explanations[3], oracles_ui_rgba(NOTE, core_applied));
+        text(draw, st->row_note, &l.core_note, oracles_ui_core_note, oracles_ui_rgba(NOTE_ITALIC, core_applied));
+        wrapped(draw, st->row_text, &l.explanations[2], oracles_ui_rgb(NOTE));
+        wrapped(draw, st->row_text, &l.explanations[4], oracles_ui_rgba(NOTE, workers_applied));
         for (int c = 0; c < 2; c++)
-            option(draw, &l.core[c], &oracles_ui_choice, oracles_display_core_choices[c], NULL, c == nav->display.core, row == ORACLES_DISPLAY_CORE, accent,
+            option(draw, st, lk, &l.core[c], 0, oracles_display_core_choices[c], NULL, c == nav->display.core, row == ORACLES_DISPLAY_CORE, accent,
                    CHOICE_OFF, core_applied);
         for (int c = 0; c < 3; c++)
-            option(draw, &l.vsync[c], &oracles_ui_choice, oracles_display_vsync_choices[c], NULL, c == nav->display.vsync, row == ORACLES_DISPLAY_VSYNC, accent,
+            option(draw, st, lk, &l.vsync[c], 0, oracles_display_vsync_choices[c], NULL, c == nav->display.vsync, row == ORACLES_DISPLAY_VSYNC, accent,
                    CHOICE_OFF, 1.0f);
         for (int c = 0; c < 3; c++)
-            option(draw, &l.workers[c], &oracles_ui_choice, t.workers_names[c], NULL, c == nav->display.workers, row == ORACLES_DISPLAY_WORKERS, accent,
+            option(draw, st, lk, &l.workers[c], 0, t.workers_names[c], NULL, c == nav->display.workers, row == ORACLES_DISPLAY_WORKERS, accent,
                    CHOICE_OFF, workers_applied);
         return;
     }
-    /* View and the transitions carry the Enhanced view: in Faithful their rows are dimmed, label and all. */
+    /* View and the transitions carry the Enhanced view: in Faithful their rows are dimmed, label and all; Window at
+     * one size too. */
     const float applied = oracles_display_transitions_apply(nav) ? 1.0f : ROW_NOT_APPLIED;
+    const float window = t.window_one ? ROW_NOT_APPLIED : 1.0f;
     for (unsigned r = 0; r < ORACLES_DISPLAY_ADVANCED; r++) {
-        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS || r == ORACLES_DISPLAY_VIEW ? applied : 1.0f;
-        highlight_dimmed(draw, &l.rows[r], r == row, opacity);
-        wrapped(draw, &oracles_ui_row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
+        const float opacity = r == ORACLES_DISPLAY_TRANSITIONS || r == ORACLES_DISPLAY_VIEW ? applied : r == ORACLES_DISPLAY_WINDOW ? window : 1.0f;
+        highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
+        wrapped(draw, st->row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
     }
     for (int p = 0; p < ORACLES_PROFILES; p++)
-        option(draw, &l.profiles[p], &oracles_ui_option_name, oracles_profile_names[p], t.profile_sizes[p], p == (int)nav->display.profile,
+        option(draw, st, lk, &l.profiles[p], 1, oracles_profile_names[p], t.profile_sizes[p], p == (int)nav->display.profile,
                row == ORACLES_DISPLAY_PROFILE, accent, OPTION_OFF, 1.0f);
-    text(draw, &oracles_ui_row_text, &l.profile_note, t.profile_note, oracles_ui_rgb(NOTE));
+    text(draw, st->row_text, &l.profile_note, t.profile_note, oracles_ui_rgb(NOTE));
     for (int i = 0; i < 4; i++)
-        option(draw, &l.windows[i], &oracles_ui_option_name, t.window_names[i], t.window_sizes[i], i == nav->display.window,
-               row == ORACLES_DISPLAY_WINDOW, accent, OPTION_OFF, 1.0f);
-    text(draw, &oracles_ui_row_text, &l.window_note, t.window_note, oracles_ui_rgb(NOTE));
-    text(draw, &oracles_ui_row_text, &l.window_reduced, t.window_reduced, oracles_ui_rgb(NOTE));
-    wrapped(draw, &oracles_ui_row_text, &l.view_explanation, oracles_ui_rgba(NOTE, applied));
+        option(draw, st, lk, &l.windows[i], 1, t.window_names[i], t.window_sizes[i], i == nav->display.window,
+               row == ORACLES_DISPLAY_WINDOW, accent, OPTION_OFF, window);
+    text(draw, st->row_text, &l.window_note, t.window_note, oracles_ui_rgba(NOTE, window));
+    text(draw, st->row_text, &l.window_reduced, t.window_reduced, oracles_ui_rgba(NOTE, window));
+    text(draw, st->row_text, &l.window_one, oracles_display_one_size_note, oracles_ui_rgba(NOTE, window));
+    wrapped(draw, st->row_text, &l.view_explanation, oracles_ui_rgba(NOTE, applied));
     for (int v = 0; v < 3; v++)
-        option(draw, &l.views[v], &oracles_ui_choice, oracles_display_view_names[v], t.view_sizes[v], v == nav->display.view,
+        option(draw, st, lk, &l.views[v], 0, oracles_display_view_names[v], t.view_sizes[v], v == nav->display.view,
                row == ORACLES_DISPLAY_VIEW, accent, CHOICE_OFF, applied);
-    wrapped(draw, &oracles_ui_row_text, &l.explanations[0], oracles_ui_rgb(NOTE));
-    wrapped(draw, &oracles_ui_row_text, &l.explanations[1], oracles_ui_rgba(NOTE, applied));
-    text(draw, &oracles_ui_row_note, &l.transitions_note, oracles_ui_transitions_note, oracles_ui_rgba(NOTE_ITALIC, applied));
+    wrapped(draw, st->row_text, &l.explanations[0], oracles_ui_rgb(NOTE));
+    wrapped(draw, st->row_text, &l.explanations[1], oracles_ui_rgba(NOTE, applied));
+    text(draw, st->row_note, &l.transitions_note, oracles_ui_transitions_note, oracles_ui_rgba(NOTE_ITALIC, applied));
     for (int c = 0; c < 2; c++)
-        option(draw, &l.colour[c], &oracles_ui_choice, oracles_display_colour_choices[c], NULL, c == nav->display.colour, row == ORACLES_DISPLAY_COLOUR, accent, CHOICE_OFF, 1.0f);
+        option(draw, st, lk, &l.colour[c], 0, oracles_display_colour_choices[c], NULL, c == nav->display.colour, row == ORACLES_DISPLAY_COLOUR, accent,
+               CHOICE_OFF, 1.0f);
     for (int c = 0; c < 2; c++)
-        option(draw, &l.transitions[c], &oracles_ui_choice, oracles_ui_transition_choices[c], NULL, c == nav->display.transitions,
+        option(draw, st, lk, &l.transitions[c], 0, oracles_ui_transition_choices[c], NULL, c == nav->display.transitions,
                row == ORACLES_DISPLAY_TRANSITIONS, accent, CHOICE_OFF, applied);
 }
 
 int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *option)
 {
     OraclesUiDisplayTexts t;
-    display_texts(nav, &t);
+    oracles_ui_display_texts(nav, &t);
     OraclesUiDisplayLayout l;
-    oracles_ui_layout_display(&t, &l);
+    oracles_ui_layout_display(nav->layout, &t, &l);
     *option = -1;
     if (t.advanced) {
         for (int c = 0; c < 2; c++) if (inside(&l.core[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_CORE; }
@@ -326,63 +332,60 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
 
 void oracles_ui_mods_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
+    const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
+    const look *lk = look_of(nav->layout);
     OraclesUiModsLayout l;
-    oracles_ui_layout_mods(nav, &l);
+    oracles_ui_layout_mods(nav->layout, nav, &l);
     const OraclesHomeMods *mods = oracles_mods_list(nav);
     const unsigned row = nav->row, play_row = oracles_mods_row_play(nav);
-    const OraclesHomeHero hero = oracles_home_hero(nav);
 
-    text(draw, &oracles_ui_page_section, &l.head.section, "Mods", accent);
-    text(draw, &oracles_ui_page_over, &l.head.over, oracles_home_over(hero), oracles_ui_rgb(OVER));
-    wrapped(draw, &oracles_ui_page_title, &l.head.title, oracles_ui_rgb(TITLE));
-    text(draw, &oracles_ui_page_state, &l.head.state, l.state, oracles_ui_rgb(STATE));
+    head(draw, st, &l.head, "Mods", oracles_home_over(oracles_home_hero(nav)), l.state, accent);
+    panel(draw, &l.panel);
+    text(draw, st->row_label, &l.label_folder, "Folder", oracles_ui_rgb(LABEL));
+    text(draw, st->row_label, &l.label_mods, "Mods", oracles_ui_rgb(LABEL));
 
-    oracles_ui_fill_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
-    oracles_ui_stroke_round_rect(draw, l.panel.x, l.panel.y, l.panel.w, l.panel.h, 10.0f, 1.0f, oracles_ui_rgba(PANEL_BORDER, PANEL_BORDER_OPACITY));
-    text(draw, &oracles_ui_row_label, &l.label_folder, "Folder", oracles_ui_rgb(LABEL));
-    text(draw, &oracles_ui_row_label, &l.label_mods, "Mods", oracles_ui_rgb(LABEL));
-
-    highlight(draw, &l.folder_row, row == ORACLES_MODS_ROW_FOLDER);
-    text(draw, &oracles_ui_row_path, &l.folder_path, l.folder_text, oracles_ui_rgb(MODS_PATH));
-    text(draw, &oracles_ui_row_text, &l.folder_line, oracles_mods_folder_line, oracles_ui_rgb(NOTE));
+    highlight(draw, lk, &l.folder_row, row == ORACLES_MODS_ROW_FOLDER);
+    if (l.folder_lines.count) wrapped(draw, st->row_path, &l.folder_lines, oracles_ui_rgb(MODS_PATH));
+    else text(draw, st->row_path, &l.folder_path, l.folder_text, oracles_ui_rgb(MODS_PATH));
+    text(draw, st->row_text, &l.folder_line, oracles_mods_folder_line, oracles_ui_rgb(NOTE));
     const OraclesUiColor folder_button = row == ORACLES_MODS_ROW_FOLDER ? accent : oracles_ui_rgb(BUTTON);
-    text(draw, &oracles_ui_row_button, &l.folder_button, "Open folder", folder_button);
-    text(draw, &oracles_ui_row_button, &l.folder_button_dot, oracles_ui_item_dot, folder_button);
+    text(draw, st->row_button, &l.folder_button, "Open folder", folder_button);
+    text(draw, st->row_button, &l.folder_button_dot, oracles_ui_item_dot, folder_button);
 
-    wrapped(draw, &oracles_ui_row_status, &l.empty, oracles_ui_rgb(MODS_EMPTY));
+    wrapped(draw, st->mods_empty, &l.empty, oracles_ui_rgb(MODS_EMPTY));
     for (unsigned i = 0; i < l.shown; i++) {
         const OraclesUiModLayout *m = &l.mods[i];
         const OraclesHomeMod *mod = &mods->mods[m->index];
         const int on = mod->active && !mod->refused;
         const float opacity = mod->refused ? MODS_REFUSED : 1.0f;
-        highlight(draw, &m->row, row == m->index + 1u);
+        highlight(draw, lk, &m->row, row == m->index + 1u);
         /* The switch: a pill, its knob at the right when on. */
         const OraclesUiBox *t = &m->toggle;
         oracles_ui_fill_round_rect(draw, t->x, t->y, t->w, t->h, t->h * 0.5f, oracles_ui_fade(on ? accent : oracles_ui_rgb(MODS_SWITCH_OFF), opacity));
         oracles_ui_stroke_round_rect(draw, t->x, t->y, t->w, t->h, t->h * 0.5f, 1.0f,
                                      oracles_ui_fade(on ? accent : oracles_ui_rgba(0xffffffu, MODS_SWITCH_OFF_BORDER_OPACITY), opacity));
         oracles_ui_fill_round_rect(draw, m->knob.x, m->knob.y, m->knob.w, m->knob.h, m->knob.w * 0.5f, oracles_ui_rgba(on ? MODS_KNOB_ON : MODS_KNOB_OFF, opacity));
-        text(draw, &oracles_ui_row_title, &m->name, m->name_text, oracles_ui_rgb(mod->refused ? LABEL : TEXT));
-        text(draw, &oracles_ui_mod_games, &m->games, m->games_text, oracles_ui_rgb(PATH));
+        text(draw, st->row_title, &m->name, m->name_text, oracles_ui_rgb(mod->refused ? LABEL : TEXT));
+        text(draw, st->mod_games, &m->games, m->games_text, oracles_ui_rgb(PATH));
         dot(draw, &m->dot, mod->refused ? ORACLES_TONE_ERROR : on ? ORACLES_TONE_OK : ORACLES_TONE_NONE);
-        text(draw, &oracles_ui_row_text, &m->line, m->line_text, oracles_ui_rgb(mod->refused ? tone_texts[ORACLES_TONE_ERROR] : NOTE));
+        text(draw, st->row_text, &m->line, m->line_text, oracles_ui_rgb(mod->refused ? tone_texts[ORACLES_TONE_ERROR] : NOTE));
     }
-    text(draw, &oracles_ui_row_text, &l.count, l.count_text, oracles_ui_rgb(NOTE));
-    wrapped(draw, &oracles_ui_row_note, &l.note, oracles_ui_rgb(NOTE_ITALIC));
+    text(draw, st->row_text, &l.count, l.count_text, oracles_ui_rgb(NOTE));
+    wrapped(draw, st->mods_note, &l.note, oracles_ui_rgb(NOTE_ITALIC));
 
     const int playable = !l.play_note_text[0];
-    highlight(draw, &l.play_row, row == play_row);
+    highlight(draw, lk, &l.play_row, row == play_row);
     const OraclesUiColor play = !playable ? oracles_ui_rgb(row == play_row ? BUTTON_DISABLED_FOCUSED : BUTTON_DISABLED)
                                           : row == play_row ? accent : oracles_ui_rgb(BUTTON);
-    text(draw, &oracles_ui_row_text, &l.play_note, l.play_note_text, oracles_ui_rgb(NOTE));
-    text(draw, &oracles_ui_play, &l.play, "Play", play);
-    text(draw, &oracles_ui_play, &l.play_dot, oracles_ui_item_dot, play);
+    text(draw, st->row_text, &l.play_note, l.play_note_text, oracles_ui_rgb(NOTE));
+    text(draw, st->play, &l.play, "Play", play);
+    text(draw, st->play, &l.play_dot, oracles_ui_item_dot, play);
 }
 
 int oracles_ui_mods_hit(const OraclesHomeNav *nav, float x, float y)
 {
     OraclesUiModsLayout l;
-    oracles_ui_layout_mods(nav, &l);
+    oracles_ui_layout_mods(nav->layout, nav, &l);
     if (inside(&l.folder_row, x, y)) return (int)ORACLES_MODS_ROW_FOLDER;
     for (unsigned i = 0; i < l.shown; i++) if (inside(&l.mods[i].row, x, y)) return (int)l.mods[i].index + 1;
     if (inside(&l.play_row, x, y)) return (int)oracles_mods_row_play(nav);

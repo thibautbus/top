@@ -67,9 +67,11 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     OraclesHomeNav nav;
     oracles_home_init(&nav);
     if (host && host->refresh) host->refresh(host->opaque, &nav, NULL);
+    nav.layout = oracles_ui_layout_choose(width, height, nav.display.aspect);
     if (frame) {
         const int profile = oracles_page_profile(&nav.games[0], nav.display.profile);
-        oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, profile < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)profile, oracles_pause_narrow(width));
+        oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, profile < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)profile,
+                           oracles_ui_layout_narrow(nav.layout, width));
     }
     /* The inputs move the navigation only: a game is not started, the launcher does not exit. */
     for (const char *p = inputs; p && *p;) {
@@ -99,6 +101,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     } else {
         OraclesUiHome view;
         oracles_ui_home_start(&view, &nav);
+        oracles_ui_draw_layout(draw, oracles_ui_home_scene(&nav));
         if (!oracles_ui_draw_begin(draw, width, height, 0.0)) {
             snprintf(error, capacity, "cannot draw offscreen: %s", SDL_GetError());
         } else {

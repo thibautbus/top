@@ -1,15 +1,17 @@
 /* The home screen drawn without a display (oracles --launcher-screenshot):
  * checks the PPM it wrote.  The image has the size asked for, is not empty
  * (many colours, the motif and the text drawn over the scene's background),
- * outside a 16:9 scene the letterbox is #050507, and a text is written: where
- * the layout reference puts the hero's title "Ages" (its line box in
- * launcher_layout_reference.json), or the text of FRAME's PROBE, light text
- * covers part of the box, which the background and the motif's strokes,
- * darker, do not.
+ * outside the scene of the layout the image's shape chooses (16:9 or 4:3,
+ * ui_layout.h) the letterbox is #050507, and a text is written: where the
+ * layout reference puts the hero's title "Ages" (its line box in
+ * launcher_layout_reference.json, frame 1a or 10a), or the text of FRAME's
+ * PROBE, light text covers part of the box, which the background and the
+ * motif's strokes, darker, do not.
  *
  *   oracles-test-launcher-screenshot FILE.ppm WIDTH HEIGHT launcher_layout_reference.json [FRAME PROBE]
  */
 #include "layout_reference.h"
+#include "ui_layout.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,15 +56,18 @@ int main(int argc, char **argv)
             if (!seen[bucket]) { seen[bucket] = 1; colours++; }
         }
     if (colours < MIN_COLOURS) { fprintf(stderr, "FAIL %u colours: the home screen is not drawn\n", colours); failures++; }
-    /* The scene, min(w/1920, h/1080), centred: the letterbox outside, not inside. */
-    const double scale = (double)width / 1920.0 < (double)height / 1080.0 ? (double)width / 1920.0 : (double)height / 1080.0;
-    const int scene_w = (int)(1920.0 * scale + 0.5), scene_h = (int)(1080.0 * scale + 0.5);
+    /* The scene of the layout, min(w/its width, h/1080), centred: the letterbox outside, not inside.  The settings
+     * are an empty folder's: aspect= is auto. */
+    const OraclesUiLayout layout = oracles_ui_layout_choose(width, height, 0);
+    const double scene_width = (double)oracles_ui_scene_width(layout);
+    const double scale = (double)width / scene_width < (double)height / 1080.0 ? (double)width / scene_width : (double)height / 1080.0;
+    const int scene_w = (int)(scene_width * scale + 0.5), scene_h = (int)(1080.0 * scale + 0.5);
     const int left = (width - scene_w) / 2, top = (height - scene_h) / 2;
     if (left > 1 && pixel(rgb, width, 0, height / 2) != LETTERBOX) { fprintf(stderr, "FAIL the letterbox on the left is #%06x\n", pixel(rgb, width, 0, height / 2)); failures++; }
     if (top > 1 && pixel(rgb, width, width / 2, 0) != LETTERBOX) { fprintf(stderr, "FAIL the letterbox at the top is #%06x\n", pixel(rgb, width, width / 2, 0)); failures++; }
     if (pixel(rgb, width, left + scene_w / 2, top + scene_h / 2) == LETTERBOX) { fprintf(stderr, "FAIL the scene's middle is the letterbox\n"); failures++; }
     /* The title "Ages" (or the probe asked for) in its line box, scaled into the image. */
-    const char *frame = argc == 7 ? argv[5] : "1a", *probe = argc == 7 ? argv[6] : "hero title";
+    const char *frame = argc == 7 ? argv[5] : layout == ORACLES_UI_LAYOUT_4_3 ? "10a" : "1a", *probe = argc == 7 ? argv[6] : "hero title";
     const double box_x = layout_reference(frame, probe, "x"), box_y = layout_reference(frame, probe, "top");
     const double box_w = layout_reference(frame, probe, "w"), box_h = layout_reference(frame, probe, "h");
     const int x0 = left + (int)(box_x * scale), y0 = top + (int)(box_y * scale);

@@ -266,10 +266,20 @@ int oracles_display_fit(const OraclesHomeNav *nav)
     return k > 1 ? k : 1;
 }
 
+int oracles_display_one_size(const OraclesHomeNav *nav)
+{
+    const int fit = oracles_display_fit(nav);
+    return nav->display.fullscreen_only || (fit <= 2 && fit == oracles_display_scale(nav, 3));
+}
+
+const char oracles_display_one_size_note[] = "This screen shows the game at one size only.";
+
 void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capacity)
 {
     const int fit = oracles_display_fit(nav);
-    if (nav->display.window < 3 && oracles_display_scale(nav, nav->display.window) > fit) snprintf(out, capacity, "Reduced to %d\xc3\x97 to fit this screen", fit);
+    if (oracles_display_one_size(nav)) snprintf(out, capacity, "%s", oracles_display_one_size_note);
+    else if (nav->display.window < 3 && oracles_display_scale(nav, nav->display.window) > fit)
+        snprintf(out, capacity, "Reduced to %d\xc3\x97 to fit this screen", fit);
     else if (capacity) out[0] = 0;
 }
 
@@ -319,12 +329,13 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         case ORACLES_DISPLAY_WORKERS:
             return "Rooms around you are prepared by background workers. Two fill the view faster after a warp or a load, using one more processor core.";
+        case ORACLES_DISPLAY_ADVANCED: return "Core, Vsync and neighbour workers.";
         default: return "";
     }
 }
 
 /* The value of a row, set to `value` (wrapped to the row's choices); the view and the transitions do not change in Faithful,
- * nor the core and the workers in a game.  Advanced has no value. */
+ * nor the core and the workers in a game, nor the window at one size.  Advanced has no value. */
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
     static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 4, 3, 2, 2, 0, 2, 3, 3 };
@@ -332,7 +343,7 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
     int *fields[ORACLES_DISPLAY_ROWS] = { &profile, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions, NULL,
                                           &nav->display.core, &nav->display.vsync, &nav->display.workers };
     if (row >= ORACLES_DISPLAY_ROWS || !fields[row] || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
-        || oracles_display_row_fixed(nav, row))
+        || oracles_display_row_fixed(nav, row) || (row == ORACLES_DISPLAY_WINDOW && oracles_display_one_size(nav)))
         return ORACLES_HOME_STAY;
     value = (value % counts[row] + counts[row]) % counts[row];
     if (*fields[row] == value) return ORACLES_HOME_STAY;
@@ -348,11 +359,12 @@ static int display_value(const OraclesHomeNav *nav, unsigned row)
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 
-/* Advanced opens on its first row; closed, Display shows Advanced highlighted. */
+/* Advanced opens on its first row, or from a game on Vsync, the one of its rows that changes there; closed, Display
+ * shows Advanced highlighted. */
 static void display_advanced(OraclesHomeNav *nav, int open)
 {
     nav->advanced = open;
-    nav->row = open ? ORACLES_DISPLAY_CORE : ORACLES_DISPLAY_ADVANCED;
+    nav->row = !open ? ORACLES_DISPLAY_ADVANCED : nav->in_game ? ORACLES_DISPLAY_VSYNC : ORACLES_DISPLAY_CORE;
 }
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action)

@@ -309,7 +309,12 @@ static void handle(home_app *app, const SDL_Event *e)
 static int render(home_app *app, double now)
 {
     int w, h;
-    if (!SDL_GetRenderOutputSize(app->renderer, &w, &h) || !oracles_ui_draw_begin(app->draw, w, h, now)) return 0;
+    if (!SDL_GetRenderOutputSize(app->renderer, &w, &h)) return 0;
+    /* The layout of the window's shape, chosen again at each frame: a resize across the middle of 4:3 and 16:9
+     * changes it, and the pointer is then looked for in the new one. */
+    app->nav.layout = oracles_ui_layout_choose(w, h, app->nav.display.aspect);
+    oracles_ui_draw_layout(app->draw, oracles_ui_home_scene(&app->nav));
+    if (!oracles_ui_draw_begin(app->draw, w, h, now)) return 0;
     app->moving = oracles_ui_home_draw(app->draw, &app->view, &app->nav, now);
     oracles_ui_draw_end(app->draw);
     SDL_RenderPresent(app->renderer);

@@ -17,7 +17,10 @@
  * under the diagram, which opens Display's Advanced rows in place of those:
  * the core, vsync, the neighbour workers.  No camera: Enhanced takes the
  * smooth one.  Left and right change the option of the row, OK takes its
- * next one; on Advanced, OK and right open it.  The choices apply at the
+ * next one; on Advanced, OK and right open it, on Core, or from a game on
+ * Vsync.  Where every window comes to one size (a 640x480 screen, a
+ * platform always fullscreen), the Window row is dimmed and changes no
+ * more, and says so; it keeps the highlight.  The choices apply at the
  * next Play; Back returns from the Advanced rows to Advanced, from Display
  * to Display in the menu.  From a game the core and the workers are the
  * game's, dimmed and inert. */
@@ -110,9 +113,14 @@ OraclesProfile oracles_display_played_profile(const OraclesHomeNav *nav);
 void oracles_display_surface(const OraclesHomeNav *nav, int *width, int *height);
 /* The whole scale of a choice of window: 2, 3, 4, or the largest the display holds. */
 int oracles_display_scale(const OraclesHomeNav *nav, int window);
-/* The largest whole scale at which a window of the surface fits the display's room, at least 1; and the line that says
- * a windowed scale chosen above it is reduced to it, "Reduced to 3x to fit this screen" (empty when it fits). */
+/* The largest whole scale at which a window of the surface fits the display's room, at least 1. */
 int oracles_display_fit(const OraclesHomeNav *nav);
+/* Every choice of Window comes to the same scale (2x, 3x and 4x reduced to the fit, fullscreen's no larger), or the
+ * platform plays fullscreen only: the row does not change. */
+int oracles_display_one_size(const OraclesHomeNav *nav);
+extern const char oracles_display_one_size_note[];   /* "This screen shows the game at one size only." */
+/* The line under the windows: oracles_display_one_size_note at one size, else that a windowed scale chosen above the
+ * fit is reduced to it, "Reduced to 3x to fit this screen"; empty when it fits. */
 void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capacity);
 /* The page's texts: a window's name and size, the note under the windows, the diagram's line, the profile's note. */
 void oracles_display_window_texts(const OraclesHomeNav *nav, int window, char *name, char *size, size_t capacity);
@@ -131,6 +139,7 @@ void oracles_display_workers_choice(const OraclesHomeNav *nav, int choice, char 
 const char *oracles_display_section(const OraclesHomeNav *nav);
 /* The core and the workers are fixed for a running game: from it their rows are dimmed and inert. */
 int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row);
+/* A row's explanation; Advanced's says what it opens (4:3 says it under the rows). */
 const char *oracles_display_explanation(unsigned row);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);

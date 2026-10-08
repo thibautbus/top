@@ -23,7 +23,9 @@
 #define SHADE 0x060609u
 #define SHADE_LEFT 0.62f
 #define SHADE_RIGHT 0.9f
-#define NARROW_WIDTH 960
+/* The 4:3 pages over the game (Display, Controls) have no panels: a second layer takes the image nearly to black. */
+#define PAGE_SHADE 0x09080cu
+#define PAGE_SHADE_ALPHA 0.86f
 #define NARROW_MIN_SCALE 0.5f   /* the reduced menu's smallest scale: 27 px labels, a menu 360 px wide */
 
 struct OraclesPause {
@@ -31,6 +33,7 @@ struct OraclesPause {
     const OraclesHomeHost *host;
     int game;                   /* ORACLES_HOME_GAME_* */
     OraclesProfile playing;
+    int aspect;                 /* the settings' aspect= */
     int prepared_width, prepared_height;
     unsigned late_glyphs;
 };
@@ -51,12 +54,11 @@ static void glyph_text(char *out, size_t capacity)
     out[n] = 0;
 }
 
-int oracles_pause_narrow(int out_width) { return out_width < NARROW_WIDTH; }
+/* The pause's scale floor: the reduced menu keeps its text readable in a small 16:9 window; the 4:3 layout is sized
+ * for 640x480 and fits. */
+static float min_scale(int narrow) { return narrow ? NARROW_MIN_SCALE : 0.0f; }
 
-/* The pause's scale floor: the reduced menu keeps its text readable in a small window. */
-static float min_scale(int out_width) { return oracles_pause_narrow(out_width) ? NARROW_MIN_SCALE : 0.0f; }
-
-OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing)
+OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing, int aspect)
 {
     OraclesPause *pause = calloc(1, sizeof *pause);
     if (!pause) return NULL;
@@ -64,6 +66,7 @@ OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *h
     pause->host = host;
     pause->game = game;
     pause->playing = playing;
+    pause->aspect = aspect;
     return pause;
 }
 
@@ -73,36 +76,41 @@ unsigned oracles_pause_late_glyphs(const OraclesPause *pause) { return pause ? p
 
 static double now_ms(void) { return (double)SDL_GetPerformanceCounter() * 1000.0 / (double)SDL_GetPerformanceFrequency(); }
 
-/* The styles of the pause menu, of Controls and Display, of the help and the toast. */
-static int styles(const OraclesUiTextStyle **out)
+/* The styles of the pause menu, of Controls and Display, of the help and the toast, in `layout` (Controls' tabs
+ * NULL in 16:9: left out). */
+static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
 {
+    const OraclesUiHomeStyles *home = oracles_ui_home_styles(layout);
+    const OraclesUiPageStyles *page = oracles_ui_page_styles(layout);
+    const OraclesUiControlsStyles *controls = oracles_ui_controls_styles(layout);
     const OraclesUiTextStyle *const all[] = {
-        &oracles_ui_hero_over, &oracles_ui_hero_title, &oracles_ui_hero_state, &oracles_ui_item_note, &oracles_ui_item_label,
-        &oracles_ui_hint_key, &oracles_ui_hint_label, &oracles_ui_version, &oracles_ui_toast,
-        &oracles_ui_page_section, &oracles_ui_page_over, &oracles_ui_page_title, &oracles_ui_row_label, &oracles_ui_row_title,
-        &oracles_ui_row_text, &oracles_ui_row_note, &oracles_ui_row_button, &oracles_ui_option_name, &oracles_ui_option_size, &oracles_ui_choice,
-        &oracles_ui_diagram_label,
-        &oracles_ui_controls_title, &oracles_ui_controls_prompt, &oracles_ui_controls_heading, &oracles_ui_controls_name,
-        &oracles_ui_controls_cell, &oracles_ui_controls_cell_locked, &oracles_ui_controls_cell_waiting, &oracles_ui_controls_item,
-        &oracles_ui_controls_item_empty, &oracles_ui_controls_slots_note, &oracles_ui_controls_shortcut_key,
+        home->hero_over, home->hero_title, home->hero_state, home->item_note, home->item_label,
+        home->hint_key, home->hint_label, home->version, home->toast,
+        page->section, page->over, page->title, page->row_label, page->row_title, page->row_text, page->row_note, page->row_button,
+        page->option_name, page->option_size, page->choice, page->diagram_label, page->help, page->help_note, page->page_note,
+        controls->title, controls->prompt, controls->heading, controls->name, controls->cell, controls->cell_locked, controls->cell_waiting,
+        controls->item, controls->item_empty, controls->slots_note, controls->shortcut_key, controls->shortcut_label, controls->tab,
     };
-    const int count = (int)(sizeof all / sizeof all[0]);
-    for (int i = 0; i < count; i++) out[i] = all[i];
+    int count = 0;
+    for (size_t i = 0; i < sizeof all / sizeof all[0]; i++) if (all[i]) out[count++] = all[i];
     return count;
 }
 
 static void prepare(OraclesPause *pause, int width, int height, const char *when)
 {
+    const OraclesUiLayout layout = oracles_ui_layout_choose(width, height, pause->aspect);
     const OraclesUiTextStyle *list[64];
-    const int count = styles(list);
+    const int count = styles(layout, list);
     static char text[1024];
     glyph_text(text, sizeof text);
     const double started = now_ms();
-    const int glyphs = oracles_ui_draw_prepare(pause->draw, width, height, min_scale(width), list, count, text);
+    oracles_ui_draw_layout(pause->draw, layout);
+    const int glyphs = oracles_ui_draw_prepare(pause->draw, width, height, min_scale(oracles_ui_layout_narrow(layout, width)), list, count, text);
     oracles_ui_draw_freeze(pause->draw, 1);
     pause->prepared_width = width;
     pause->prepared_height = height;
-    fprintf(stderr, "oracles: pause menu ready for %dx%d %s: %d glyphs in %.1f ms\n", width, height, when, glyphs, now_ms() - started);
+    fprintf(stderr, "oracles: pause menu ready for %dx%d in %s %s: %d glyphs in %.1f ms\n", width, height,
+            layout == ORACLES_UI_LAYOUT_4_3 ? "4:3" : "16:9", when, glyphs, now_ms() - started);
 }
 
 void oracles_pause_prepare(OraclesPause *pause, SDL_Renderer *renderer)
@@ -134,7 +142,12 @@ int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture
     };
     static const int corners[6] = { 0, 1, 2, 0, 2, 3 };
     SDL_RenderGeometry(renderer, NULL, shade, 4, corners, 6);
-    if (oracles_ui_draw_begin_over(draw, out_width, out_height, min_scale(out_width), now_ms)) {
+    if (oracles_ui_home_scene(nav) == ORACLES_UI_LAYOUT_4_3 && nav->screen != ORACLES_SCREEN_PAUSE) {
+        SDL_SetRenderDrawColor(renderer, (Uint8)(PAGE_SHADE >> 16), (Uint8)(PAGE_SHADE >> 8), (Uint8)PAGE_SHADE, (Uint8)(PAGE_SHADE_ALPHA * 255.0f + 0.5f));
+        SDL_RenderFillRect(renderer, NULL);
+    }
+    oracles_ui_draw_layout(draw, oracles_ui_home_scene(nav));
+    if (oracles_ui_draw_begin_over(draw, out_width, out_height, min_scale(nav->narrow), now_ms)) {
         moving = oracles_ui_home_draw(draw, view, nav, now_ms);
         oracles_ui_draw_end(draw);
     }
@@ -281,7 +294,8 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
 
     oracles_home_init(&p.nav);
     if (pause->host && pause->host->refresh) pause->host->refresh(pause->host->opaque, &p.nav, window);
-    oracles_home_pause(&p.nav, pause->game, pause->playing, oracles_pause_narrow(out_w));
+    p.nav.layout = oracles_ui_layout_choose(out_w, out_h, p.nav.display.aspect);
+    oracles_home_pause(&p.nav, pause->game, pause->playing, oracles_ui_layout_narrow(p.nav.layout, out_w));
     p.nav.display.core = session->core;
     p.nav.display.workers = session->ghosts;
     load_note(&p);
@@ -292,7 +306,8 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
         const double now = now_ms();
         if (p.dirty || ((p.moving || p.redraws > 0) && now - presented >= FRAME_MS) || (oracles_ui_home_due_ms(&p.view) >= 0.0 && now >= oracles_ui_home_due_ms(&p.view))) {
             SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
-            p.nav.narrow = oracles_pause_narrow(out_w);
+            p.nav.layout = oracles_ui_layout_choose(out_w, out_h, p.nav.display.aspect);
+            p.nav.narrow = oracles_ui_layout_narrow(p.nav.layout, out_w);
             p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, out_w, out_h, &p.view, &p.nav, now);
             SDL_RenderPresent(renderer);
             presented = now;

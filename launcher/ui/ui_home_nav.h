@@ -16,6 +16,8 @@
 #ifndef ORACLES_UI_HOME_NAV_H
 #define ORACLES_UI_HOME_NAV_H
 
+#include "ui_layout.h"
+
 #include <stddef.h>
 
 typedef enum OraclesHomeEntry {
@@ -193,6 +195,7 @@ typedef struct OraclesHomeDisplay {
     int screen_w, screen_h;     /* the display's size, for the sizes the page shows */
     int aspect;                 /* the settings' aspect= (an OraclesAspect): the shape of those sizes, the screen's when auto */
     int room_w, room_h;         /* the room a window has there: the usable area, less the title bar */
+    int fullscreen_only;        /* the platform plays every game fullscreen (Android): one size whatever Window says */
 } OraclesHomeDisplay;
 
 /* Controls (ui_controls_nav.h): the names settings.txt writes, SDL's key names and
@@ -210,6 +213,7 @@ typedef struct OraclesHomeControls {
     char items[2][ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];   /* the item in each slot, empty when none */
     int column, row;             /* the highlighted cell (ui_controls_nav.h) */
     int capturing;               /* the highlighted cell waits for a key or a button */
+    int tab;                     /* 4:3: the tab shown while the highlight is on the tabs (ORACLES_CONTROLS_TAB_*) */
 } OraclesHomeControls;
 
 /* Mods: the mods of the mods folder as the page lists them, for each Oracle (a mod is loaded for the game to say
@@ -231,6 +235,7 @@ typedef struct OraclesHomeMods {
 
 typedef struct OraclesHomeNav {
     OraclesScreen screen;
+    OraclesUiLayout layout;            /* the window's (oracles_ui_layout_choose), which its owner sets before each frame */
     OraclesHomeEntry entry;
     OraclesHomeHero fan_pick;          /* ORACLES_HOME_HERO_FAN while the list shows */
     unsigned focus;
@@ -242,7 +247,8 @@ typedef struct OraclesHomeNav {
     OraclesHomeMods mods[ORACLES_HOME_HOTKEY_GAMES];   /* Ages', Seasons' */
     char mods_folder[ORACLES_HOME_TEXT_LENGTH * 4];
     /* In a game (the pause menu, and Controls and Display opened from it): the running game's profile, the pause
-     * menu reduced in a window under 960 pixels wide, and Load state's note ("F7 · from 22:14"). */
+     * menu reduced in a 16:9 window under 960 pixels wide (oracles_ui_layout_narrow), and Load state's note
+     * ("F7 · from 22:14"). */
     int in_game, narrow;
     OraclesProfile playing;
     char load_note[ORACLES_HOME_NAME_LENGTH];

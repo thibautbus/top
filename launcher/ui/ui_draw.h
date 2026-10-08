@@ -1,7 +1,7 @@
 /* Drawing of the launcher on SDL's 2D renderer, in C.
  *
- * Everything is placed in the coordinates of a 1920x1080 scene, scaled
- * by min(w / 1920, h / 1080) and centred in the output on #050507.  Text is drawn from glyph atlases, one per font and size,
+ * Everything is placed in the coordinates of the scene of a layout (ui_layout.h), 1920x1080 or 1440x1080, scaled
+ * by min(w / its width, h / 1080) and centred in the output on #050507.  Text is drawn from glyph atlases, one per font and size,
  * and the motifs from textures, both rasterised at the output's scale so that
  * text stays sharp at any window size; when the scale changes they are
  * rasterised again once it has held for a moment (a window being resized),
@@ -11,13 +11,11 @@
 #define ORACLES_UI_DRAW_H
 
 #include "ui_font.h"
+#include "ui_layout.h"
 #include "ui_motif.h"
 
 #include <SDL3/SDL.h>
 #include <stdint.h>
-
-#define ORACLES_UI_SCENE_WIDTH 1920.0f
-#define ORACLES_UI_SCENE_HEIGHT 1080.0f
 
 typedef struct OraclesUiColor {
     uint8_t r, g, b, a;
@@ -35,6 +33,9 @@ typedef struct OraclesUiDraw OraclesUiDraw;
 OraclesUiDraw *oracles_ui_draw_create(SDL_Renderer *renderer);
 void oracles_ui_draw_destroy(OraclesUiDraw *draw);
 
+/* The layout of the frames begun from now on (16:9 until one is set): its scene's width, where the motifs sit in it.
+ * A motif rasterised for the other layout is rasterised again when it is next shown. */
+void oracles_ui_draw_layout(OraclesUiDraw *draw, OraclesUiLayout layout);
 /* Starts a frame on an output of `width` x `height` pixels: the letterbox, the
  * scene's background, the clip to the scene.  Returns 0 on failure. */
 int oracles_ui_draw_begin(OraclesUiDraw *draw, int width, int height, double now_ms);
@@ -49,7 +50,7 @@ void oracles_ui_draw_anchor(OraclesUiDraw *draw, float x, float y);
 /* How far, in the scene's units, a part anchored at `to_x` sits from one anchored at `from_x` (0 when the scene fits). */
 float oracles_ui_draw_anchor_shift(const OraclesUiDraw *draw, float from_x, float to_x);
 void oracles_ui_draw_end(OraclesUiDraw *draw);
-/* Rasterises, for an output of `width` x `height` drawn at `min_scale` at least, the glyphs of `text` in each of the `count` styles, and uploads
+/* Rasterises, for an output of `width` x `height` drawn in the layout set at `min_scale` at least, the glyphs of `text` in each of the `count` styles, and uploads
  * them: what a screen drawn later at that size needs, ready beforehand.  Returns the glyphs rasterised, -1 on failure. */
 int oracles_ui_draw_prepare(OraclesUiDraw *draw, int width, int height, float min_scale, const OraclesUiTextStyle *const *styles, int count, const char *text);
 /* Frozen, the rasters keep their scale whatever the output's: stretched, never redone (a game's pause). */

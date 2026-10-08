@@ -43,6 +43,7 @@ typedef struct atlas {
 
 struct OraclesUiDraw {
     SDL_Renderer *renderer;
+    float scene_width, motif_x;          /* the layout's (ui_layout.h) */
     float scale, origin_x, origin_y;    /* the scene's placement in the output */
     float raster_scale;                  /* the scale that has held: the atlases' and, once redone, the motifs'; 0: none yet */
     float wanted_scale;
@@ -52,6 +53,7 @@ struct OraclesUiDraw {
     SDL_Texture *motifs[ORACLES_UI_MOTIF_COUNT];
     int motif_width[ORACLES_UI_MOTIF_COUNT];
     float motif_scale[ORACLES_UI_MOTIF_COUNT];   /* each motif's own: a motif is redone when it is shown or when the launcher is idle */
+    float motif_left[ORACLES_UI_MOTIF_COUNT];    /* the motif's column at the texture's left, the scene's left edge: -motif_x */
     int max_texture_side;
     int frozen;                          /* the rasters stay at their scale (a game's pause): stretched, never redone */
     int out_width, out_height;           /* the output of the frame begun */
@@ -91,6 +93,8 @@ OraclesUiDraw *oracles_ui_draw_create(SDL_Renderer *renderer)
     OraclesUiDraw *draw = calloc(1, sizeof *draw);
     if (!draw) return NULL;
     draw->renderer = renderer;
+    draw->scene_width = oracles_ui_scene_width(ORACLES_UI_LAYOUT_16_9);
+    draw->motif_x = oracles_ui_motif_x(ORACLES_UI_LAYOUT_16_9);
     const Sint64 side = SDL_GetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0);
     draw->max_texture_side = side > 0 && side <= INT_MAX ? (int)side : 16384;
     return draw;
@@ -120,16 +124,16 @@ void oracles_ui_draw_destroy(OraclesUiDraw *draw)
 
 /* ---- motifs ---------------------------------------------------------------- */
 
-/* A motif at the scale that has held, rasterised up to the slide's reach within the renderer's largest texture
- * (about a tenth of a second at 1080p: NanoSVG's anti-aliasing covers every pixel). */
+/* A motif at the scale that has held, its columns from the scene's left edge rasterised up to the slide's reach within
+ * the renderer's largest texture (about a tenth of a second at 1080p: NanoSVG's anti-aliasing covers every pixel). */
 static int raster_motif(OraclesUiDraw *draw, OraclesUiMotif motif)
 {
-    const float scale = draw->raster_scale;
-    float right = ORACLES_UI_SCENE_WIDTH + ORACLES_UI_MOTIF_SLIDE;
-    if (right * scale > (float)draw->max_texture_side) right = (float)draw->max_texture_side / scale;
+    const float scale = draw->raster_scale, left = -draw->motif_x;
+    float right = left + draw->scene_width + ORACLES_UI_MOTIF_SLIDE;
+    if ((right - left) * scale > (float)draw->max_texture_side) right = left + (float)draw->max_texture_side / scale;
     unsigned char *rgba = NULL;
     int width = 0, height = 0;
-    if (!oracles_ui_motif_raster(motif, scale, 0.0f, right, &rgba, &width, &height)) return 0;
+    if (!oracles_ui_motif_raster(motif, scale, left, right, &rgba, &width, &height)) return 0;
     SDL_Texture *texture = SDL_CreateTexture(draw->renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
     const int ok = texture && SDL_UpdateTexture(texture, NULL, rgba, width * 4);
     free(rgba);
@@ -140,27 +144,39 @@ static int raster_motif(OraclesUiDraw *draw, OraclesUiMotif motif)
     draw->motifs[motif] = texture;
     draw->motif_width[motif] = width;
     draw->motif_scale[motif] = scale;
+    draw->motif_left[motif] = left;
     return 1;
+}
+
+/* Whether the motif's raster is for the scale that has held and the layout's place. */
+static int motif_current(const OraclesUiDraw *draw, int motif)
+{
+    return draw->motif_scale[motif] == draw->raster_scale && draw->motif_left[motif] == -draw->motif_x;
 }
 
 int oracles_ui_draw_idle(OraclesUiDraw *draw)
 {
     if (draw->raster_scale <= 0.0f) return 0;
     for (int i = 0; i < ORACLES_UI_MOTIF_COUNT; i++) {
-        if (draw->motif_scale[i] == draw->raster_scale) continue;
-        if (!raster_motif(draw, (OraclesUiMotif)i)) draw->motif_scale[i] = draw->raster_scale;   /* not again: the drawing stays without it */
+        if (motif_current(draw, i)) continue;
+        if (!raster_motif(draw, (OraclesUiMotif)i)) {   /* not again: the drawing stays without it */
+            draw->motif_scale[i] = draw->raster_scale;
+            draw->motif_left[i] = -draw->motif_x;
+        }
         break;
     }
     for (int i = 0; i < ORACLES_UI_MOTIF_COUNT; i++)
-        if (draw->motif_scale[i] != draw->raster_scale) return 1;
+        if (!motif_current(draw, i)) return 1;
     return 0;
 }
 
 void oracles_ui_draw_motif(OraclesUiDraw *draw, OraclesUiMotif motif, float shift, float opacity)
 {
     if (opacity <= 0.0f || draw->raster_scale <= 0.0f) return;
-    /* Shown before the idle time has redone it: now, unless an older raster can stand in while the scale settles. */
-    if (!draw->motifs[motif] || (draw->motif_scale[motif] != draw->raster_scale && draw->raster_scale == draw->wanted_scale))
+    /* Shown before the idle time has redone it: now, unless an older raster can stand in while the scale settles; a
+     * raster for the other layout's place, now. */
+    if (!draw->motifs[motif] || draw->motif_left[motif] != -draw->motif_x
+        || (draw->motif_scale[motif] != draw->raster_scale && draw->raster_scale == draw->wanted_scale))
         raster_motif(draw, motif);
     SDL_Texture *texture = draw->motifs[motif];
     if (!texture) return;
@@ -173,15 +189,21 @@ void oracles_ui_draw_motif(OraclesUiDraw *draw, OraclesUiMotif motif, float shif
 
 /* ---- frame ------------------------------------------------------------------- */
 
-static float scale_of(int width, int height)
+void oracles_ui_draw_layout(OraclesUiDraw *draw, OraclesUiLayout layout)
 {
-    return fminf((float)width / ORACLES_UI_SCENE_WIDTH, (float)height / ORACLES_UI_SCENE_HEIGHT);
+    draw->scene_width = oracles_ui_scene_width(layout);
+    draw->motif_x = oracles_ui_motif_x(layout);
+}
+
+static float scale_of(const OraclesUiDraw *draw, int width, int height)
+{
+    return fminf((float)width / draw->scene_width, (float)height / ORACLES_UI_SCENE_HEIGHT);
 }
 
 /* The scale that fits the output, raised to `min_scale` when it is under it. */
-static float scale_at_least(int width, int height, float min_scale)
+static float scale_at_least(const OraclesUiDraw *draw, int width, int height, float min_scale)
 {
-    const float fit = scale_of(width, height);
+    const float fit = scale_of(draw, width, height);
     return fit < min_scale ? min_scale : fit;
 }
 
@@ -192,7 +214,7 @@ static SDL_Rect place(OraclesUiDraw *draw, float scale, int width, int height, d
     draw->out_width = width;
     draw->out_height = height;
     draw->overflow = 0;
-    draw->origin_x = ((float)width - ORACLES_UI_SCENE_WIDTH * scale) * 0.5f;
+    draw->origin_x = ((float)width - draw->scene_width * scale) * 0.5f;
     draw->origin_y = ((float)height - ORACLES_UI_SCENE_HEIGHT * scale) * 0.5f;
     if (scale != draw->wanted_scale) { draw->wanted_scale = scale; draw->wanted_since_ms = now_ms; }
     if (!draw->frozen && draw->raster_scale != scale && (draw->raster_scale == 0.0f || now_ms - draw->wanted_since_ms >= RASTER_SETTLE_MS)) {
@@ -202,13 +224,13 @@ static SDL_Rect place(OraclesUiDraw *draw, float scale, int width, int height, d
     SDL_SetRenderClipRect(draw->renderer, NULL);
     SDL_SetRenderDrawBlendMode(draw->renderer, SDL_BLENDMODE_BLEND);
     const SDL_Rect scene = { (int)lroundf(draw->origin_x), (int)lroundf(draw->origin_y),
-                             (int)lroundf(ORACLES_UI_SCENE_WIDTH * scale), (int)lroundf(ORACLES_UI_SCENE_HEIGHT * scale) };
+                             (int)lroundf(draw->scene_width * scale), (int)lroundf(ORACLES_UI_SCENE_HEIGHT * scale) };
     return scene;
 }
 
 int oracles_ui_draw_begin(OraclesUiDraw *draw, int width, int height, double now_ms)
 {
-    const float scale = scale_of(width, height);
+    const float scale = scale_of(draw, width, height);
     if (scale <= 0.0f) return 1;
     const SDL_Rect scene = place(draw, scale, width, height, now_ms);
     const OraclesUiColor letterbox = oracles_ui_rgb(LETTERBOX);
@@ -226,10 +248,10 @@ int oracles_ui_draw_begin(OraclesUiDraw *draw, int width, int height, double now
 
 int oracles_ui_draw_begin_over(OraclesUiDraw *draw, int width, int height, float min_scale, double now_ms)
 {
-    const float scale = scale_at_least(width, height, min_scale);
+    const float scale = scale_at_least(draw, width, height, min_scale);
     if (scale <= 0.0f) return 1;
     const SDL_Rect scene = place(draw, scale, width, height, now_ms);
-    draw->overflow = scale > scale_of(width, height);
+    draw->overflow = scale > scale_of(draw, width, height);
     /* A scene larger than the output shows what its anchored parts put inside the output: no clip but the output's. */
     if (!draw->overflow) SDL_SetRenderClipRect(draw->renderer, &scene);
     return 1;
@@ -240,14 +262,14 @@ int oracles_ui_draw_overflows(const OraclesUiDraw *draw) { return draw->overflow
 void oracles_ui_draw_anchor(OraclesUiDraw *draw, float x, float y)
 {
     if (!draw->overflow) return;
-    draw->origin_x = ((float)draw->out_width - ORACLES_UI_SCENE_WIDTH * draw->scale) * x;
+    draw->origin_x = ((float)draw->out_width - draw->scene_width * draw->scale) * x;
     draw->origin_y = ((float)draw->out_height - ORACLES_UI_SCENE_HEIGHT * draw->scale) * y;
 }
 
 float oracles_ui_draw_anchor_shift(const OraclesUiDraw *draw, float from_x, float to_x)
 {
     if (!draw->overflow || draw->scale <= 0.0f) return 0.0f;
-    return ((float)draw->out_width / draw->scale - ORACLES_UI_SCENE_WIDTH) * (to_x - from_x);
+    return ((float)draw->out_width / draw->scale - draw->scene_width) * (to_x - from_x);
 }
 
 void oracles_ui_draw_freeze(OraclesUiDraw *draw, int frozen) { draw->frozen = frozen; }
@@ -265,7 +287,7 @@ static atlas *atlas_for(OraclesUiDraw *draw, OraclesUiFont font, float size);
 
 int oracles_ui_draw_prepare(OraclesUiDraw *draw, int width, int height, float min_scale, const OraclesUiTextStyle *const *styles, int count, const char *text)
 {
-    const float scale = scale_at_least(width, height, min_scale);
+    const float scale = scale_at_least(draw, width, height, min_scale);
     if (scale <= 0.0f) return 0;
     if (draw->raster_scale != scale) {
         release_atlases(draw);
@@ -312,7 +334,7 @@ void oracles_ui_draw_to_scene(const OraclesUiDraw *draw, float x, float y, float
 void oracles_ui_draw_to_scene_anchored(const OraclesUiDraw *draw, float x, float y, float anchor_x, float anchor_y, float *scene_x, float *scene_y)
 {
     const float ax = draw->overflow ? anchor_x : 0.5f, ay = draw->overflow ? anchor_y : 0.5f;
-    const float origin_x = ((float)draw->out_width - ORACLES_UI_SCENE_WIDTH * draw->scale) * ax;
+    const float origin_x = ((float)draw->out_width - draw->scene_width * draw->scale) * ax;
     const float origin_y = ((float)draw->out_height - ORACLES_UI_SCENE_HEIGHT * draw->scale) * ay;
     *scene_x = draw->scale > 0.0f ? (x - origin_x) / draw->scale : 0.0f;
     *scene_y = draw->scale > 0.0f ? (y - origin_y) / draw->scale : 0.0f;

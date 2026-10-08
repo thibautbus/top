@@ -15,7 +15,19 @@
  * columns) or a button (controller columns); Escape cancels the wait.  A key
  * or a button already held by another cell of the same device moves: that
  * cell is left without one ("—").  The fixed shortcuts (F2, F3, F5, F7, F11,
- * Escape) and the d-pad do not bind. */
+ * Escape) and the d-pad do not bind.
+ *
+ * In the 4:3 layout (nav->layout) the page is split in three tabs, Buttons
+ * (columns 0 and 1, Reset), Hotkeys (the Item hotkeys line, columns 2 and 3)
+ * and In game (the fixed shortcuts, read-only), whose strip is a row of its
+ * own above the cells (row -2): left, right and OK there change the tab,
+ * down enters it.  The arrows move among the shown tab's cells as above,
+ * the strip being the nearest row of both columns.  The tab shown is the
+ * highlighted cell's, or nav->controls.tab while the highlight is on the
+ * strip.  A click on a tab shows it, the highlight on the strip.  When the
+ * window turns 16:9 with the highlight on the strip, the next key but Back
+ * takes it to its tab's first cell (Buttons' and In game's: Right's key;
+ * Hotkeys': the Item hotkeys line). */
 #ifndef ORACLES_UI_CONTROLS_NAV_H
 #define ORACLES_UI_CONTROLS_NAV_H
 
@@ -24,6 +36,11 @@
 #define ORACLES_CONTROLS_COLUMNS 4
 #define ORACLES_CONTROLS_ROW_MODE (-1)     /* the Item hotkeys line, on columns 2 and 3 */
 #define ORACLES_CONTROLS_ROW_RESET 8       /* Reset to defaults, on columns 0 and 1 */
+#define ORACLES_CONTROLS_ROW_TAB (-2)      /* 4:3: the tabs' strip, on the shown tab's columns */
+
+/* 4:3's tabs, in their order. */
+enum { ORACLES_CONTROLS_TAB_BUTTONS, ORACLES_CONTROLS_TAB_HOTKEYS, ORACLES_CONTROLS_TAB_IN_GAME, ORACLES_CONTROLS_TABS };
+extern const char *const oracles_controls_tab_names[ORACLES_CONTROLS_TABS];   /* "Buttons", "Hotkeys", "In game" */
 
 extern const char *const oracles_controls_buttons[ORACLES_HOME_BUTTONS];         /* "Right" ... "Start" */
 extern const char *const oracles_controls_hotkey_rows[ORACLES_HOME_HOTKEY_ROWS];  /* "Slot 1" ... "Bind to A" */
@@ -37,8 +54,10 @@ extern const char *const oracles_controls_shortcuts[6][2];
 
 /* The defaults' names, no item in any slot, the first cell highlighted. */
 void oracles_controls_defaults(OraclesHomeControls *controls);
-/* Opens Controls on its first cell. */
+/* Opens Controls on its first cell, Buttons in 4:3. */
 void oracles_controls_open(OraclesHomeNav *nav);
+/* The tab shown in 4:3 (ORACLES_CONTROLS_TAB_*). */
+int oracles_controls_tab(const OraclesHomeNav *nav);
 
 /* Whether a cell exists, and whether it is one that does not bind (the d-pad's in the controller column). */
 int oracles_controls_cell_exists(int column, int row);
@@ -55,7 +74,8 @@ const char *oracles_controls_item_heading(const OraclesHomeNav *nav);
 const char *oracles_controls_item(const OraclesHomeNav *nav, int slot);
 
 OraclesHomeCommand oracles_controls_act(OraclesHomeNav *nav, OraclesHomeAction action);
-/* The pointer: a cell clicked (it waits), Reset, the Item hotkeys line's Off (0) or On (1). */
+/* The pointer: a cell clicked (it waits), Reset, the Item hotkeys line's Off (0) or On (1), a tab (row -2, its index
+ * in `option`). */
 void oracles_controls_hover(OraclesHomeNav *nav, int column, int row);
 OraclesHomeCommand oracles_controls_click(OraclesHomeNav *nav, int column, int row, int option);
 

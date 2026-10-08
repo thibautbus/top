@@ -27,6 +27,10 @@ void oracles_ui_home_follow(OraclesUiHome *home, const OraclesHomeNav *nav, doub
 /* A message shown for a few seconds above the help bar. */
 void oracles_ui_home_toast(OraclesUiHome *home, const char *text, double now_ms);
 
+/* The layout the screen of `nav` is drawn in, which the caller sets on the drawing before the frame begins
+ * (oracles_ui_draw_layout): the window's, nav->layout, for every screen. */
+OraclesUiLayout oracles_ui_home_scene(const OraclesHomeNav *nav);
+
 /* Draws the screen; returns 1 while a transition runs, for the caller to draw again. */
 int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const OraclesHomeNav *nav, double now_ms);
 /* The next time the screen changes without input (a toast fading out), or a negative value. */
@@ -35,7 +39,7 @@ double oracles_ui_home_due_ms(const OraclesUiHome *home);
 typedef enum OraclesUiHomeHitKind {
     ORACLES_UI_HIT_NONE,
     ORACLES_UI_HIT_ITEM,       /* a menu item: `index` */
-    ORACLES_UI_HIT_ENTRY,      /* an entry of the left stack: `entry` */
+    ORACLES_UI_HIT_ENTRY,      /* an entry of the left stack (16:9) or its tab (4:3): `entry` */
     ORACLES_UI_HIT_BACK,       /* the help bar's hint that goes back */
     ORACLES_UI_HIT_ROW,        /* a row of a page: `index`, and one of its options: `option`, or -1 */
     ORACLES_UI_HIT_CELL        /* a place of Controls: `column`, `row`, and the Item hotkeys' Off or On: `option`, or -1 */
@@ -49,7 +53,7 @@ typedef struct OraclesUiHomeHit {
     int column, row;
 } OraclesUiHomeHit;
 
-/* What lies under a point of the scene. */
+/* What lies under a point of the scene of oracles_ui_home_scene. */
 OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y);
 
 #endif

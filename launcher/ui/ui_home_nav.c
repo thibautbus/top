@@ -112,7 +112,8 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
 {
     const OraclesHomeHero hero = oracles_home_hero(nav);
     if (nav->screen == ORACLES_SCREEN_PAUSE) {
-        /* Under 960 pixels wide the menu keeps the session's own entries; the settings stay in the launcher. */
+        /* Narrow (a 16:9 window under 960 pixels wide), the menu keeps the session's own entries; the settings stay in
+         * the launcher.  The 4:3 layout keeps them all at every size. */
         unsigned n = 0;
         items[n++] = item(ORACLES_HOME_ITEM_RESUME, "Resume", NULL, 0, NULL);
         items[n++] = item(ORACLES_HOME_ITEM_SAVE_STATE, "Save state", "F5", 0, NULL);
@@ -192,6 +193,16 @@ unsigned oracles_home_hints(const OraclesHomeNav *nav, OraclesHomeHint hints[ORA
         };
         if (nav->controls.capturing) { memcpy(hints, capture, sizeof capture); return 1; }
         memcpy(hints, controls, sizeof controls);
+        return 3;
+    }
+    /* Display's Advanced highlighted opens its rows: nothing there changes with left and right. */
+    if (nav->screen == ORACLES_SCREEN_DISPLAY && !nav->advanced && nav->row == ORACLES_DISPLAY_ADVANCED) {
+        static const OraclesHomeHint advanced[3] = {
+            { "\xe2\x86\x91\xe2\x86\x93", "Move", 0 },    /* ↑↓ */
+            { "Enter / A", "Open", 0 },
+            { "Esc / B", "Back", 1 },
+        };
+        memcpy(hints, advanced, sizeof advanced);
         return 3;
     }
     if (nav->screen != ORACLES_SCREEN_HOME) {
