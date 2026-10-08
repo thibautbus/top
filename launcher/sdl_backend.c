@@ -58,6 +58,9 @@ typedef struct sdl_backend {
     uint64_t last_chunk_ns;          /* when the previous chunk was queued, and what the queue held after it */
     Uint32 last_chunk_queued_bytes;
     uint64_t last_present_ns_spent;  /* the duration of the last SDL_RenderPresent */
+    /* A game frame's presentation by step, summed and at most: the texture's upload, the drawing, SDL_RenderPresent. */
+    uint64_t step_ns_total[3], step_ns_max[3];
+    unsigned stepped_presents;
     oracles_sdl_underrun underrun_log[ORACLES_SDL_UNDERRUNS_LOGGED];
     Uint32 audio_peak_bytes;
     uint64_t audio_queued_sum_bytes;
@@ -543,7 +546,9 @@ static int sdl_present_frame(void *opaque, const oracles_host_video_frame *frame
 {
     sdl_backend *backend = opaque;
     if (frame->pitch_bytes > INT_MAX) return 0;
+    const uint64_t upload_started_ns = sdl_monotonic_ns(backend);
     if (!SDL_UpdateTexture(backend->texture, NULL, frame->pixels, (int)frame->pitch_bytes)) return 0;
+    const uint64_t draw_started_ns = sdl_monotonic_ns(backend);
     /* A part shown alone (the game's menus enlarged) takes its own whole scale: the logical size follows it. */
     const SDL_FRect part = { (float)frame->crop_x, (float)frame->crop_y, (float)frame->crop_w, (float)frame->crop_h };
     const int cropped = frame->crop_w > 0 && frame->crop_h > 0;
@@ -561,6 +566,12 @@ static int sdl_present_frame(void *opaque, const oracles_host_video_frame *frame
     SDL_RenderPresent(backend->renderer);
     backend->last_present_ns = sdl_monotonic_ns(backend);
     backend->last_present_ns_spent = backend->last_present_ns - present_started_ns;
+    const uint64_t steps[3] = { draw_started_ns - upload_started_ns, present_started_ns - draw_started_ns, backend->last_present_ns_spent };
+    for (unsigned i = 0; i < 3; i++) {
+        backend->step_ns_total[i] += steps[i];
+        if (steps[i] > backend->step_ns_max[i]) backend->step_ns_max[i] = steps[i];
+    }
+    backend->stepped_presents++;
     if (!backend->presents) backend->first_present_ns = backend->last_present_ns;
     backend->presents++;
     return 1;
@@ -581,6 +592,15 @@ void oracles_sdl_backend_present_report(const oracles_host_backend *backend, uns
     *presents = state ? state->presents : 0;
     const uint64_t span = state && state->presents > 1 ? state->last_present_ns - state->first_present_ns : 0;
     *seconds = state && span > state->held_ns ? (double)(span - state->held_ns) / 1e9 : 0.0;
+}
+
+void oracles_sdl_backend_present_steps(const oracles_host_backend *backend, double average_ms[3], double max_ms[3])
+{
+    const sdl_backend *state = backend->opaque;
+    for (unsigned i = 0; i < 3; i++) {
+        average_ms[i] = state && state->stepped_presents ? (double)state->step_ns_total[i] / state->stepped_presents / 1e6 : 0.0;
+        max_ms[i] = state ? (double)state->step_ns_max[i] / 1e6 : 0.0;
+    }
 }
 
 /* What the stream holds that the device has not taken yet, in bytes of the chunks put: SDL 2's queued audio. */

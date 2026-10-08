@@ -80,6 +80,7 @@ The checks, each writing its figures:
 | `--sram-out FILE` | the cartridge RAM at the end of the replay, raw, as a `.sav`: a save the game made on one core, read on the other |
 | `--positions FILE` | the group, the room and Link's position after every frame, to compare two replays' rooms with `tools/compare_positions.py` (two cores, or two versions) |
 | `--keys-read FILE` | the keys the game read in every frame, in a route's order, and whether it read them in that frame (`tools/debounce_route.py`) |
+| `--frame-times FILE` | each frame's phases, timed on the monotonic clock in microseconds: the core with its hooks, the frame source, the presentation, and the frame's end, where the Enhanced check composes; to find where a frame's time goes, on a desktop or under an emulator |
 
 A run with `--out` and one without `--enhanced-check` give the same fingerprints: the presentation writes nothing into the live instance.
 

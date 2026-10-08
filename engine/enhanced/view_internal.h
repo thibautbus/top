@@ -95,6 +95,7 @@ typedef struct entry {
     uint8_t layout[ORACLES_GHOST_LAYOUT_BYTES];
     uint8_t bg_map[ORACLES_GHOST_MAP_BYTES];
     uint8_t regs3[6];
+    uint8_t used_tiles[2u * 384u / 8u];   /* the tiles its map draws with, a bit each (bank * 384 + tile): set with the map */
     uint8_t tileset_gfx, tileset_palette, tileset_unique_gfx;
     /* Its tile animation, advanced by the view from the game's data while it
      * is cached: `tiles` is animated in place, and `animation_version`
@@ -171,6 +172,11 @@ typedef struct entry {
     /* the view's own render of the room from its map, tiles and palettes: the whole room (240x176 for a large one) */
     uint32_t live_area[LARGE_ROOM_W * LARGE_ROOM_H];
     uint64_t live_tiles_hash;
+    uint64_t live_inputs;              /* what that render read: rendered again only when it changes */
+    /* The tiles and the rest (palettes, objects) that render was drawn with: the
+     * next one draws again only the lines whose tiles have changed since. */
+    uint8_t rendered_tiles[2u * ORACLES_GHOST_TILE_BYTES];
+    uint64_t rendered_rest;
     int live_valid;
 } entry;
 
@@ -267,6 +273,8 @@ struct OraclesEnhancedView {
     int shown[4];                    /* a neighbour's terrain shown this frame, by the game's direction (0 up, 1 right, 2 down, 3 left) */
     unsigned shown_slot[4];
     unsigned requested, completed, failed, stale, chained, refreshed, live_renders;
+    unsigned live_lines_kept;        /* lines of those renders not drawn again, their tiles unchanged */
+    unsigned live_renders_kept;      /* renders the key asked for whose inputs had not changed: not made */
     unsigned season_rejected;        /* results of a room of the live area in another season than the live one (Seasons): not kept */
     unsigned beside_refused;         /* results run from a room beside, a byte they read no longer the live one: not kept */
     unsigned plain_renders;          /* results refused as no terrain (oracles_enhanced_capture_blank): a fade caught, the LCD off */
@@ -572,6 +580,7 @@ void ev_scroll_overlay(uint8_t *tiles, size_t stride, const uint8_t *images, con
 unsigned ev_scroll_tiles_off(const uint8_t *live0, const uint8_t *live1, const uint8_t *images, const uint8_t *touched, const uint8_t *held, const uint8_t *game_wrote);
 int ev_displayed_fade(const uint8_t live[64], const uint8_t base[64]);
 const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e);
+void ev_entry_used_tiles(entry *e);
 void ev_render_large_room(OraclesEnhancedView *v);
 void ev_overlay_edge_sprites(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
 void ev_large_objects_event(OraclesEnhancedView *v, const OraclesGuestEvent *event);

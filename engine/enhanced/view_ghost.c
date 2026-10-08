@@ -148,6 +148,7 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
     e->large = r->room_is_large != 0;
     memcpy(e->bg_map, r->bg_map, sizeof e->bg_map);
     memcpy(e->regs3, r->regs3, sizeof e->regs3);
+    ev_entry_used_tiles(e);
     e->tileset_gfx = r->tileset_gfx; e->tileset_palette = r->tileset_palette; e->tileset_unique_gfx = r->tileset_unique_gfx;
     e->animation = r->animation;
     e->animation_version = 0;

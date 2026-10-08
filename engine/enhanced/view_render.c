@@ -403,6 +403,98 @@ static int neighbour_oam(OraclesEnhancedView *v, const entry *e, uint8_t out[160
     return any;
 }
 
+/* The tiles a neighbour's map draws with, once for its map: what its render
+ * takes from the live tiles is among them. */
+void ev_entry_used_tiles(entry *e)
+{
+    memset(e->used_tiles, 0, sizeof e->used_tiles);
+    const int unsigned_tiles = (e->regs3[0] & 0x10u) != 0;
+    for (unsigned i = 0; i < 0x400u; i++) {
+        const uint8_t n = e->bg_map[i], attr = e->bg_map[0x800u + i];
+        const unsigned tile = unsigned_tiles ? n : (n < 128u ? 256u + n : n), bank = (attr >> 3) & 1u;
+        e->used_tiles[(bank * 384u + tile) >> 3] |= (uint8_t)(1u << ((bank * 384u + tile) & 7u));
+    }
+}
+
+/* What a neighbour's render reads beyond what its delivery fixed: the live
+ * tiles it takes, the tiles of its own its animation has written, its
+ * objects, the fade and the palettes.  Equal, the render it made is the one
+ * it would make again. */
+static uint64_t render_inputs(const OraclesEnhancedView *v, const entry *e, int in_step, const uint8_t *vram0, const uint8_t *vram1,
+                              const uint8_t *animated, int draw_objects, const uint8_t oam[160], int use_live, const uint8_t *live_palettes)
+{
+    uint64_t key = ORACLES_HASH_SEED;
+    const uint8_t flags[4] = { (uint8_t)in_step, (uint8_t)draw_objects, (uint8_t)use_live, (uint8_t)v->fade_effective };
+    key = oracles_guest_hash(flags, sizeof flags, key);
+    for (unsigned i = 0; i < sizeof e->used_tiles; i++) {
+        /* The live tiles it takes: in step, the animated ones its map draws
+         * with; otherwise those of its animation's images its map draws with. */
+        uint8_t live = 0;
+        if (in_step) live = (uint8_t)(animated[i] & e->used_tiles[i]);
+        /* Its own tiles that may differ from its delivery: its animation's,
+         * but those the live ones replace; all of them while it draws objects,
+         * whose tiles its map need not use. */
+        const uint8_t own = (uint8_t)(e->own_animated[i] & (draw_objects ? 0xffu : e->used_tiles[i]) & ~live);
+        if (!live && !own) continue;
+        const uint8_t place[3] = { (uint8_t)i, live, own };
+        key = oracles_guest_hash(place, sizeof place, key);
+        for (unsigned b = 0; b < 8u; b++) {
+            const unsigned bit = i * 8u + b, bank = bit / 384u, tile = bit % 384u;
+            if (live & (1u << b)) key = oracles_guest_hash((bank ? vram1 : vram0) + tile * 16u, 16u, key);
+            if (own & (1u << b)) key = oracles_guest_hash(e->tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, 16u, key);
+        }
+    }
+    for (unsigned k = 0; k < e->image_count; k++) {
+        /* An image's tile, written by the hand-over of the live animation, and
+         * the live one it may take instead. */
+        const unsigned bit = e->image_tiles[k], bank = bit / 384u, tile = bit % 384u;
+        const int used = (e->used_tiles[bit >> 3] & (1u << (bit & 7u))) != 0, replaced = in_step && used && (animated[bit >> 3] & (1u << (bit & 7u)));
+        if ((used || draw_objects) && !replaced) key = oracles_guest_hash(e->tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, 16u, key);
+        if (!in_step && used) key = oracles_guest_hash((bank ? vram1 : vram0) + tile * 16u, 16u, key);
+    }
+    if (draw_objects) key = oracles_guest_hash(oam, 160u, key);
+    if (use_live) key = oracles_guest_hash(live_palettes, 64u, key);
+    if (draw_objects && use_live) key = oracles_guest_hash(oracles_guest_obj_palettes(v->guest), 64u, key);
+    const uint8_t pipeline = (uint8_t)v->colours_pipeline;
+    return oracles_guest_hash(&pipeline, 1, key);
+}
+
+/* The lines of a small room's render (0 to its height) that show one of the
+ * `changed` tiles: in its map, at the place its registers show, or in one of its
+ * objects.  Every other line reads the same tiles, palettes and objects as when it
+ * was drawn, and would be drawn the same. */
+static unsigned changed_lines(const entry *e, const uint8_t *oam, int draw_objects, uint8_t lcdc, const uint8_t changed[2u * 384u / 8u],
+                              uint8_t lines[ORACLES_GHOST_AREA_HEIGHT])
+{
+    memset(lines, 0, ORACLES_GHOST_AREA_HEIGHT);
+    const unsigned scy = (uint8_t)(e->regs3[1] - e->camera_y), scx = (uint8_t)(e->regs3[2] - e->camera_x), unsigned_tiles = (e->regs3[0] & 0x10u) != 0;
+    uint32_t rows_changed = 0;   /* the map's rows of 8 lines showing a changed tile in the columns shown */
+    for (unsigned row = 0; row < 32u; row++)
+        for (unsigned x = 0; x <= ORACLES_GHOST_AREA_WIDTH; x += 8u) {
+            const unsigned col = ((scx + x) >> 3) & 31u;
+            const uint8_t n = e->bg_map[row * 32u + col], attr = e->bg_map[0x800u + row * 32u + col];
+            const unsigned bit = ((attr >> 3) & 1u) * 384u + (unsigned_tiles ? n : (n < 128u ? 256u + n : n));
+            if (changed[bit >> 3] & (1u << (bit & 7u))) { rows_changed |= 1u << row; break; }
+        }
+    unsigned count = 0;
+    for (unsigned y = 0; y < ORACLES_GHOST_AREA_HEIGHT; y++)
+        if (rows_changed & (1u << (((scy + ORACLES_ENHANCED_HUD_HEIGHT + y) >> 3) & 31u))) { lines[y] = 1; count++; }
+    if (!draw_objects) return count;
+    const unsigned height = (lcdc & 0x04u) ? 16u : 8u;
+    for (unsigned i = 0; i < 40u; i++) {
+        const uint8_t *o = oam + i * 4u;
+        const unsigned bank = (o[3] >> 3) & 1u, tile = height == 16u ? o[2] & 0xfeu : o[2];
+        int uses = 0;
+        for (unsigned t = tile; t < tile + height / 8u; t++) if (changed[(bank * 384u + t) >> 3] & (1u << ((bank * 384u + t) & 7u))) uses = 1;
+        if (!uses) continue;
+        for (unsigned k = 0; k < height; k++) {
+            const int y = (int)o[0] - 16 + (int)k - (int)ORACLES_ENHANCED_HUD_HEIGHT;
+            if (y >= 0 && y < (int)ORACLES_GHOST_AREA_HEIGHT && !lines[y]) { lines[y] = 1; count++; }
+        }
+    }
+    return count;
+}
+
 const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
@@ -460,6 +552,15 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
     if (!e->live_valid || e->live_tiles_hash != hash) {
         if (animation_only) v->animation_renders++;
         e->live_base_hash = base;
+        /* The live tiles change every frame the game streams its objects' in:
+         * a render reads few of them, and is made again only when they change. */
+        const uint64_t inputs = render_inputs(v, e, in_step, vram0, vram1, animated, draw_objects, oam, use_live, live_palettes);
+        if (e->live_valid && e->live_inputs == inputs) {
+            e->live_tiles_hash = hash;
+            v->live_renders_kept++;
+            return e->live_area;
+        }
+        e->live_inputs = inputs;
         memcpy(v->hybrid_vram, e->tiles, TILE_DATA_BYTES);
         memcpy(v->hybrid_vram + MAP_OFFSET, e->bg_map, 0x800u);
         memcpy(v->hybrid_vram + 0x2000u, e->tiles + ORACLES_GHOST_TILE_BYTES, TILE_DATA_BYTES);
@@ -470,14 +571,7 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
          * live room's objects, not to the neighbour's, which take theirs
          * from the ghost. */
         if (in_step || e->image_count) {
-            uint8_t used[2u * 384u / 8u];
-            memset(used, 0, sizeof used);
-            const int unsigned_tiles = (e->regs3[0] & 0x10u) != 0;
-            for (unsigned i = 0; i < 0x400u; i++) {
-                const uint8_t n = e->bg_map[i], attr = e->bg_map[0x800u + i];
-                const unsigned tile = unsigned_tiles ? n : (n < 128u ? 256u + n : n), bank = (attr >> 3) & 1u;
-                used[(bank * 384u + tile) >> 3] |= (uint8_t)(1u << ((bank * 384u + tile) & 7u));
-            }
+            const uint8_t *used = e->used_tiles;
             if (in_step) {
                 for (unsigned bank = 0; bank < 2; bank++)
                     for (unsigned tile = 0; tile < 384u; tile++) {
@@ -510,10 +604,44 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
         in.obj_palettes = draw_objects && !use_live ? e->obj_palettes : oracles_guest_obj_palettes(v->guest);
         in.colours = v->colours;
         const unsigned width = e->large ? LARGE_ROOM_W : ORACLES_GHOST_AREA_WIDTH, height = e->large ? LARGE_ROOM_H : ORACLES_GHOST_AREA_HEIGHT;
-        for (unsigned pass = 0; pass * ORACLES_ENHANCED_AREA_HEIGHT < height; pass++) {
-            /* Bit 1 of LCDC: the objects are drawn only when the neighbour has
-             * some to show, and never in a large room, which the view shows alone. */
-            const OraclesPpuRegs r = { (uint8_t)(draw_objects ? (e->regs3[0] | 0x82u) : ((e->regs3[0] | 0x80u) & ~0x02u)), (uint8_t)(e->regs3[1] - e->camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
+        /* Bit 1 of LCDC: the objects are drawn only when the neighbour has
+         * some to show, and never in a large room, which the view shows alone. */
+        const uint8_t lcdc = (uint8_t)(draw_objects ? (e->regs3[0] | 0x82u) : ((e->regs3[0] | 0x80u) & ~0x02u));
+        /* What the render reads besides its tiles; the same as the last render's,
+         * only the lines showing a tile that changed since are drawn again.  A
+         * large room is drawn whole, and so is a room under a window, whose lines
+         * the window's own count ties together. */
+        uint64_t rest = oracles_guest_hash(palettes, sizeof palettes, ORACLES_HASH_SEED);
+        rest = oracles_guest_hash(&lcdc, 1, rest);
+        if (draw_objects) rest = oracles_guest_hash(in.obj_palettes, 64u, oracles_guest_hash(oam, 160u, rest));
+        uint8_t lines[ORACLES_GHOST_AREA_HEIGHT];
+        unsigned count = ORACLES_GHOST_AREA_HEIGHT;
+        if (e->live_valid && !e->large && e->rendered_rest == rest && !((lcdc & 0x20u) && e->regs3[4] <= 166u)) {
+            uint8_t changed[2u * 384u / 8u];
+            memset(changed, 0, sizeof changed);
+            for (unsigned bank = 0; bank < 2u; bank++)
+                for (unsigned tile = 0; tile < 384u; tile++)
+                    if (memcmp(v->hybrid_vram + bank * 0x2000u + tile * 16u, e->rendered_tiles + bank * ORACLES_GHOST_TILE_BYTES + tile * 16u, 16u) != 0)
+                        changed[(bank * 384u + tile) >> 3] |= (uint8_t)(1u << ((bank * 384u + tile) & 7u));
+            count = changed_lines(e, oam, draw_objects, lcdc, changed, lines);
+        } else memset(lines, 1, sizeof lines);
+        e->rendered_rest = rest;
+        memcpy(e->rendered_tiles, v->hybrid_vram, ORACLES_GHOST_TILE_BYTES);
+        memcpy(e->rendered_tiles + ORACLES_GHOST_TILE_BYTES, v->hybrid_vram + 0x2000u, ORACLES_GHOST_TILE_BYTES);
+        if (count < ORACLES_GHOST_AREA_HEIGHT) {
+            v->live_lines_kept += ORACLES_GHOST_AREA_HEIGHT - count;
+            const OraclesPpuRegs r = { lcdc, (uint8_t)(e->regs3[1] - e->camera_y), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
+            for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
+            for (unsigned y = 0; y < ORACLES_GHOST_AREA_HEIGHT;) {   /* each run of lines to draw */
+                if (!lines[y]) { y++; continue; }
+                unsigned end = y;
+                while (end < ORACLES_GHOST_AREA_HEIGHT && lines[end]) end++;
+                oracles_ppu_render_wide_lines(&in, v->strip, width, ORACLES_ENHANCED_HUD_HEIGHT + y, ORACLES_ENHANCED_HUD_HEIGHT + end);
+                memcpy(e->live_area + y * width, v->strip + (ORACLES_ENHANCED_HUD_HEIGHT + y) * width, (end - y) * width * sizeof *v->strip);
+                y = end;
+            }
+        } else for (unsigned pass = 0; pass * ORACLES_ENHANCED_AREA_HEIGHT < height; pass++) {
+            const OraclesPpuRegs r = { lcdc, (uint8_t)(e->regs3[1] - e->camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
             for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
             const unsigned rows = height - pass * ORACLES_ENHANCED_AREA_HEIGHT < ORACLES_ENHANCED_AREA_HEIGHT ? height - pass * ORACLES_ENHANCED_AREA_HEIGHT : ORACLES_ENHANCED_AREA_HEIGHT;
             oracles_ppu_render_wide_lines(&in, v->strip, width, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + rows);   /* the lines kept */

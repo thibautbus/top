@@ -39,6 +39,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 typedef struct run {
     OraclesCore *core;
@@ -63,6 +66,7 @@ typedef struct run {
     FILE *out;
     FILE *positions;          /* --positions */
     FILE *keys_read;          /* --keys-read */
+    FILE *frame_times;        /* --frame-times */
     uint32_t keys_polls;      /* the game's input polls counted by the guest at the last frame's end */
     uint32_t corrupt_at;      /* 0: never */
     unsigned events;
@@ -230,6 +234,31 @@ static unsigned parse_expected_classes(const char *list)
     return mask;
 }
 
+/* --frame-times reads the real clock: the null backend's own counts a microsecond a reading, to stay deterministic.  The
+ * monotonic one, not the wall's, which the system sets by jumps of seconds under WSL. */
+static uint64_t real_monotonic_ns(void *opaque)
+{
+    (void)opaque;
+#ifdef _WIN32
+    LARGE_INTEGER frequency, counter;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return (uint64_t)((double)counter.QuadPart * 1e9 / (double)frequency.QuadPart);
+#else
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * 1000000000u + (uint64_t)t.tv_nsec;
+#endif
+}
+
+/* --frame-times: each frame's phases, in microseconds (the Enhanced check composes at the frame's end). */
+static void on_frame_timed(void *opaque, uint32_t frame, uint64_t core_ns, uint64_t source_ns, uint64_t present_ns, uint64_t end_ns)
+{
+    run *r = opaque;
+    fprintf(r->frame_times, "%u\t%llu\t%llu\t%llu\t%llu\n", frame, (unsigned long long)(core_ns / 1000u), (unsigned long long)(source_ns / 1000u),
+            (unsigned long long)(present_ns / 1000u), (unsigned long long)(end_ns / 1000u));
+}
+
 /* The route replayed through the host, and the line that says what it cost. */
 static int replay_route(run *r, const harness_options *o, oracles_host_backend *backend, oracles_host_run_report *report)
 {
@@ -242,6 +271,7 @@ static int replay_route(run *r, const harness_options *o, oracles_host_backend *
     config.on_frame_begin = on_frame_begin;
     config.on_frame_end = on_frame_end;
     config.frame_opaque = r;
+    if (r->frame_times) { config.measure_frames = 1; config.on_frame_timed = on_frame_timed; config.frame_timed_opaque = r; }
     if (r->mod) oracles_mod_session_configure(r->mod, &config);
     char error[256];
     const clock_t started = clock();
@@ -254,6 +284,7 @@ static int replay_route(run *r, const harness_options *o, oracles_host_backend *
     if (r->out) fclose(r->out);
     if (r->positions) fclose(r->positions);
     if (r->keys_read) fclose(r->keys_read);
+    if (r->frame_times) fclose(r->frame_times);
     return result;
 }
 
@@ -561,6 +592,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     r->dumps = o->dumps; memcpy(r->dump_at, o->dump_at, sizeof r->dump_at); memcpy(r->dump_path, o->dump_path, sizeof r->dump_path);
     if (o->out_path) { r->out = fopen(o->out_path, "wb"); if (!r->out) { fprintf(stderr, "harness: cannot write %s\n", o->out_path); return 1; } }
     if (o->positions_path) { r->positions = fopen(o->positions_path, "wb"); if (!r->positions) { fprintf(stderr, "harness: cannot write %s\n", o->positions_path); return 1; } }
+    if (o->frame_times_path) { r->frame_times = fopen(o->frame_times_path, "wb"); if (!r->frame_times) { fprintf(stderr, "harness: cannot write %s\n", o->frame_times_path); return 1; } fputs("frame\tcore_us\tsource_us\tpresent_us\tend_us\n", r->frame_times); }
     if (o->keys_read_path) { r->keys_read = fopen(o->keys_read_path, "wb"); if (!r->keys_read) { fprintf(stderr, "harness: cannot write %s\n", o->keys_read_path); return 1; } }
     if (o->frames == 0) o->frames = r->route.count ? oracles_route_last_frame(&r->route) + 1 : 1;
     return 0;
@@ -581,6 +613,7 @@ int main(int argc, char **argv)
 
     oracles_host_backend backend;
     oracles_null_backend_init(&backend);
+    if (o.frame_times_path) backend.monotonic_ns = real_monotonic_ns;
     oracles_host_run_report report;
     const int result = replay_route(&r, &o, &backend, &report);
     /* The cartridge RAM at the end: its SHA-1 in the summary (a save the game made, the same on both cores), the bytes

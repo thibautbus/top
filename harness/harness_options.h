@@ -13,6 +13,7 @@ typedef struct harness_options {
     const char *rom_path, *patch_path, *route_path, *out_path, *compare_a, *compare_b, *samples_dir;
     const char *ghost_dir, *enhanced_dir, *summary_path, *objects_dir, *render_expect, *hotkeys_dir;
     const char *positions_path;               /* --positions: group, room and Link's position after every frame */
+    const char *frame_times_path;             /* --frame-times: each frame's phases, timed */
     const char *sram_out_path;                /* --sram-out: the cartridge RAM at the end of the replay */
     const char *keys_read_path;               /* --keys-read: the keys the game read in every frame */
     const char *mods_dirs[8], *mod_trace_path;   /* the mods replayed with the route (--mods, repeated), and their state frame by frame */

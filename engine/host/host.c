@@ -344,6 +344,7 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
             if (source_ns > local.source_ns_max) local.source_ns_max = source_ns;
             if (present_ns > local.present_ns_max) local.present_ns_max = present_ns;
             if (end_ns > local.end_ns_max) local.end_ns_max = end_ns;
+            if (config->on_frame_timed) config->on_frame_timed(config->frame_timed_opaque, local.frames_presented, core_ns, source_ns, present_ns, end_ns);
             if (spent > 12000000u) local.frames_over_12ms++;
             if (spent > 16742706u) local.frames_over_16ms++;   /* one frame at 59.7275 Hz */
             if (spent - present_ns > 16742706u && local.frames_presented >= ORACLES_HOST_WARMUP_FRAMES) local.frames_over_budget++;

@@ -655,6 +655,10 @@ static void finish(session *s, const OraclesSessionOptions *o)
         else if (s->display_unpaced_frame)
             fprintf(stderr, "the presentation did not wait for the display: vsync off and the host paced from frame %u\n", s->display_unpaced_frame);
         else fprintf(stderr, "the display paced the whole run\n");
+        double step_average[3], step_max[3];
+        oracles_sdl_backend_present_steps(&s->backend, step_average, step_max);
+        fprintf(stderr, "oracles: presentation by step: texture upload %.2f ms, drawing %.2f ms, SDL_RenderPresent %.2f ms on average; at most %.2f, %.2f and %.2f ms\n",
+                step_average[0], step_average[1], step_average[2], step_max[0], step_max[1], step_max[2]);
     }
     oracles_session_stop_recording(s, "finished");
     if (s->fingerprints) fclose(s->fingerprints);

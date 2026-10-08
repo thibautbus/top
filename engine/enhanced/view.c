@@ -542,6 +542,8 @@ unsigned oracles_enhanced_view_drop_log(const OraclesEnhancedView *v, char *out,
     return v->drops;
 }
 unsigned oracles_enhanced_view_live_renders(const OraclesEnhancedView *v) { return v->live_renders; }
+unsigned oracles_enhanced_view_live_renders_kept(const OraclesEnhancedView *v) { return v->live_renders_kept; }
+unsigned oracles_enhanced_view_live_lines_kept(const OraclesEnhancedView *v) { return v->live_lines_kept; }
 unsigned oracles_enhanced_view_live_diff_max(const OraclesEnhancedView *v) { return v->live_diff_max; }
 unsigned oracles_enhanced_view_plain_renders(const OraclesEnhancedView *v) { return v->plain_renders; }
 unsigned oracles_enhanced_view_season_rejected(const OraclesEnhancedView *v) { return v->season_rejected; }

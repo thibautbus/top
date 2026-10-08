@@ -97,6 +97,9 @@ int oracles_sdl_backend_window_closed(const oracles_host_backend *backend);
  * the SDL renderer obtained with whether it reported vsync when the session started ("unknown" before start). */
 void oracles_sdl_backend_present_report(const oracles_host_backend *backend, unsigned *presents, double *seconds,
                                         const char **renderer, int *renderer_vsync);
+/* A game frame's presentation by step, on average and at most, in milliseconds: the texture's upload, the drawing
+ * (the frame and the touch controls), and SDL_RenderPresent. */
+void oracles_sdl_backend_present_steps(const oracles_host_backend *backend, double average_ms[3], double max_ms[3]);
 void oracles_sdl_backend_release(oracles_host_backend *backend);
 
 /* For the pause menu, between two frames: the window, its renderer, and the texture that holds the last image of the

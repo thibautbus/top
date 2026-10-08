@@ -180,9 +180,9 @@ static void report_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     const unsigned dropped = oracles_enhanced_view_drop_log(c->view, drops, sizeof drops);
     unsigned blind_filed = 0, blind_dropped = 0;
     oracles_enhanced_view_blind_runs(c->view, &blind_filed, &blind_dropped);
-    fprintf(out, "  neighbours computed ahead from another neighbour's settled state: %u, sources run again after a key change: %u; pre-runs while a room loaded: %u filed, %u dropped; renders of a neighbour with the live tiles (animated in step): %u (differing from the ghost's render outside the animated tiles by at most %u blocks of 8x8); captures of no terrain refused (a fade caught, the LCD off): %u%s%s; terrains dropped by a key byte they read: %u%s%s\n",
+    fprintf(out, "  neighbours computed ahead from another neighbour's settled state: %u, sources run again after a key change: %u; pre-runs while a room loaded: %u filed, %u dropped; renders of a neighbour with the live tiles (animated in step): %u, %u more kept, what they read unchanged, and %u lines of those made kept, their tiles unchanged (differing from the ghost's render outside the animated tiles by at most %u blocks of 8x8); captures of no terrain refused (a fade caught, the LCD off): %u%s%s; terrains dropped by a key byte they read: %u%s%s\n",
             oracles_enhanced_view_chained_results(c->view), oracles_enhanced_view_refreshed_parents(c->view), blind_filed, blind_dropped,
-            oracles_enhanced_view_live_renders(c->view), oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_plain_renders(c->view) ? " " : "", oracles_enhanced_view_plain_log(c->view),
+            oracles_enhanced_view_live_renders(c->view), oracles_enhanced_view_live_renders_kept(c->view), oracles_enhanced_view_live_lines_kept(c->view), oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_plain_renders(c->view) ? " " : "", oracles_enhanced_view_plain_log(c->view),
             dropped, dropped ? " " : "", drops);
     if (c->reload_at) {
         if (!c->reload_done) fprintf(out, "  reload at frame %u: not performed (the route is shorter, or the state could not be saved)\n", c->reload_at);

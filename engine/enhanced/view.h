@@ -150,6 +150,10 @@ unsigned oracles_enhanced_view_stale_results(const OraclesEnhancedView *view);
 /* Neighbours computed ahead from another neighbour's settled state, and renders of a neighbour with the live tiles. */
 unsigned oracles_enhanced_view_chained_results(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_live_renders(const OraclesEnhancedView *view);
+/* The renders the live tiles asked for whose inputs had not changed (ev_neighbour_pixels): the last one kept, not made again. */
+unsigned oracles_enhanced_view_live_renders_kept(const OraclesEnhancedView *view);
+/* The lines of the renders made that were not drawn again, their tiles unchanged since the last render (ev_neighbour_pixels). */
+unsigned oracles_enhanced_view_live_lines_kept(const OraclesEnhancedView *view);
 /* The most 8x8 blocks of tiles the live VRAM does not animate that a live render differed from the ghost's render of the same room by: none if the live render is right. */
 unsigned oracles_enhanced_view_live_diff_max(const OraclesEnhancedView *view);
 /* Results refused as a capture of no terrain (oracles_enhanced_capture_blank): the room run again later. */

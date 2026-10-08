@@ -102,6 +102,10 @@ typedef struct oracles_host_run_config {
      * with pace_frames. */
     int display_paces;
     int measure_frames;     /* time each frame's work with the backend clock even when the display paces (vsync): the report's figures and the frame budget */
+    /* With measure_frames, each frame's phases as they were timed: the core (its hooks included), the frame source (the
+     * Enhanced view), the presentation and the frame's end (on_frame_end), in nanoseconds. */
+    void (*on_frame_timed)(void *opaque, uint32_t frame, uint64_t core_ns, uint64_t source_ns, uint64_t present_ns, uint64_t end_ns);
+    void *frame_timed_opaque;
     uint32_t max_catch_up_frames; /* 0: ORACLES_HOST_DEFAULT_CATCH_UP_FRAMES */
     /* store_save receives the cartridge RAM every save_interval_frames frames
      * when it changed, and once at stop.  NULL disables saving. */
