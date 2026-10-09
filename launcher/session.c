@@ -155,8 +155,8 @@ static void pause_state_time(void *opaque, char *out, size_t capacity)
     if (!local || !strftime(out, capacity, "%H:%M", local)) { if (capacity) out[0] = 0; }
 }
 
-/* Controls or Display changed the settings: the keys and the colour correction apply at once, the rest at the next Play.
- * The colour correction applies when Display changed it: --colour-correction holds until then. */
+/* Controls or Display changed the settings: the keys, the colour correction and the scaling apply at once, the rest at
+ * the next Play.  The colour correction applies when Display changed it: --colour-correction holds until then. */
 static void pause_settings_changed(void *opaque)
 {
     session *s = opaque;
@@ -164,6 +164,11 @@ static void pause_settings_changed(void *opaque)
         s->colour_applied = s->colour_setting = s->settings->colour_correction;
         oracles_core_set_colour_correction(s->core, s->colour_applied);
         fprintf(stderr, "oracles: colour correction %s\n", s->colour_applied ? "on" : "off");
+    }
+    if (s->settings->scaling_fill != s->sdl.fill) {
+        s->sdl.fill = s->settings->scaling_fill;
+        oracles_sdl_backend_set_fill(&s->backend, s->sdl.fill);
+        fprintf(stderr, "oracles: scaling %s\n", s->sdl.fill ? "fill" : "sharp");
     }
     oracles_sdl_backend_rebind(&s->backend, &s->sdl);   /* s->sdl's names are the settings' own */
 }
@@ -428,6 +433,7 @@ static void window_options(session *s, const OraclesSessionOptions *o)
 #endif
     }
     s->sdl.pause_menu = s->pause != NULL && !o->no_window;
+    s->sdl.fill = prefs->scaling_fill;
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) s->sdl.key_names[i] = prefs->key_names[i];
     for (unsigned i = 0; i < 4; i++) s->sdl.pad_names[i] = prefs->pad_names[i];
     if (s->hotkeys_mode != ORACLES_HOTKEYS_OFF) {
@@ -699,6 +705,11 @@ static void finish(session *s, const OraclesSessionOptions *o)
         oracles_sdl_backend_present_steps(&s->backend, step_average, step_max);
         fprintf(stderr, "oracles: presentation by step: texture upload %.2f ms, drawing %.2f ms, SDL_RenderPresent %.2f ms on average; at most %.2f, %.2f and %.2f ms\n",
                 step_average[0], step_average[1], step_average[2], step_max[0], step_max[1], step_max[2]);
+        int fill = 0, filled = 0;
+        oracles_sdl_backend_scaling(&s->backend, &fill, &filled);
+        fprintf(stderr, "oracles: scaling %s: %s\n", fill ? "fill" : "sharp",
+                filled ? "the image filled the screen in its proportions, sampled for pixel art"
+                : fill ? "the image at its largest whole scale in a window (Fill applies in fullscreen)" : "the image at its largest whole scale");
     }
     oracles_session_stop_recording(s, "finished");
     if (s->fingerprints) fclose(s->fingerprints);

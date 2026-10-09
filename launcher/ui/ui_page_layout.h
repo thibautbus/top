@@ -4,7 +4,8 @@
  * Display's diagram, small, at the top right, its Advanced button beside it)
  * over a single column of rows, Display saying the highlighted row's
  * explanation once, under its rows, on one line with a note line under it.
- * Display's rows keep their heights whatever the choices and the highlight. */
+ * Display's rows keep their heights whatever the choices and the highlight;
+ * 16:9's Advanced rows keep two lines for their explanations. */
 #ifndef ORACLES_UI_PAGE_LAYOUT_H
 #define ORACLES_UI_PAGE_LAYOUT_H
 
@@ -82,8 +83,9 @@ typedef struct OraclesUiPageStyles {
 } OraclesUiPageStyles;
 const OraclesUiPageStyles *oracles_ui_page_styles(OraclesUiLayout layout);
 
-/* The transitions' and the core's notes on Display; under 16:9's windows, when no line says their size is reduced. */
-extern const char oracles_ui_transitions_note[], oracles_ui_core_note[], oracles_ui_window_fit_note[];
+/* The transitions', the core's and the scaling's notes on Display; under 16:9's windows, when no line says their size is
+ * reduced. */
+extern const char oracles_ui_transitions_note[], oracles_ui_core_note[], oracles_ui_scaling_note[], oracles_ui_window_fit_note[];
 /* Under Display's title, opened from a game: what applies at once and what waits for the next session. */
 extern const char oracles_ui_display_later[];
 /* Under a row of Display opened from a game, what only the next session takes. */
@@ -111,9 +113,10 @@ typedef struct OraclesUiDisplayTexts {
     char quality_text[ORACLES_HOME_TEXT_LENGTH];             /* the quality in effect, said in full */
     const char *quality_note;
     int later;                            /* opened from a game: the note under the title says what the next Play takes */
-    const char *explanations[5];          /* color correction, continuous transitions, vsync, core, the workers */
+    const char *explanations[6];          /* color correction, continuous transitions, vsync, core, the workers, the scaling */
     const char *view_explanation;
     char workers_names[3][16];            /* "Auto · 2", "1", "2" */
+    char scaling_sizes[2][24];            /* the image's size in fullscreen with Sharp, with Fill */
     char profile_sizes[ORACLES_PROFILES][24], view_sizes[3][24];   /* the sizes of the screen's shape, Enhanced's at the view chosen */
     float diagram_box_w;                  /* the diagram's box, the screen's shape at its height (0: 16:9's) */
     float diagram_w, diagram_h;           /* the window drawn in the diagram's box */
@@ -132,8 +135,8 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiBox diagram, diagram_window;
     OraclesUiLine diagram_label;
     OraclesUiBox panel;
-    /* Profile, Quality, Window, View, Color correction, Continuous transitions, or Core, Vsync, Neighbour workers; zero
-     * for the rows not shown.  Advanced is its own highlight, its label and arrow in it: under the diagram in 16:9, a
+    /* Profile, Quality, Window, View, Color correction, Continuous transitions, or Core, Vsync, Neighbour workers,
+     * Scaling; zero for the rows not shown.  Advanced is its own highlight, its label and arrow in it: under the diagram in 16:9, a
      * framed button beside it in 4:3. */
     OraclesUiWrapped labels[ORACLES_DISPLAY_ROWS];
     OraclesUiBox rows[ORACLES_DISPLAY_ROWS];         /* each row's highlight, the pointer's target */
@@ -148,13 +151,13 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiOptionLayout windows[4];
     OraclesUiLine window_note, window_reduced;
     OraclesUiLine window_one;                        /* 4:3: in the windows' place, that they come to one size; else zero */
-    OraclesUiLine transitions_note, core_note;
+    OraclesUiLine transitions_note, core_note, scaling_note;
     OraclesUiLine page_note;                         /* under the title, zero unless `later` */
     OraclesUiOptionLayout views[3];
     OraclesUiWrapped view_explanation;
     OraclesUiOptionLayout transitions[2];
-    OraclesUiWrapped explanations[5];
-    OraclesUiOptionLayout colour[2], vsync[3], core[2], workers[3];
+    OraclesUiWrapped explanations[6];
+    OraclesUiOptionLayout colour[2], vsync[3], core[2], workers[3], scaling[2];   /* each scaling with its size */
     OraclesUiLine help, help_note;                   /* 4:3: under the rows, the highlighted row's explanation and its note */
 } OraclesUiDisplayLayout;
 

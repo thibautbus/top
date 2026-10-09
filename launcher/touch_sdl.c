@@ -60,13 +60,13 @@ static void strokes(SDL_Renderer *renderer, float cx, float cy, float unit, cons
     }
 }
 
-/* The frame at the logical presentation's integer scale, centred, black beside it. */
-static void frame_direct(SDL_Renderer *renderer, SDL_Texture *frame, const SDL_FRect *part, int width, int height)
+/* The frame where the logical presentation puts it, centred, black beside it. */
+static void frame_direct(SDL_Renderer *renderer, SDL_Texture *frame, const SDL_FRect *part, int width, int height, int fill)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     const int w = part ? (int)part->w : frame->w, h = part ? (int)part->h : frame->h;
-    const OraclesTouchBox box = oracles_touch_frame(width, height, w, h);
+    const OraclesTouchBox box = oracles_touch_frame(width, height, w, h, fill);
     const SDL_FRect to = { box.x, box.y, box.w, box.h };
     SDL_RenderTexture(renderer, frame, part, &to);
 }
@@ -81,7 +81,7 @@ int oracles_touch_sdl_frame(OraclesTouchScreen *screen, SDL_Renderer *renderer, 
     }
     int width = 0, height = 0;
     if (!SDL_GetRenderOutputSize(renderer, &width, &height) || width <= 0 || height <= 0) return 1;
-    frame_direct(renderer, frame, part, width, height);
+    frame_direct(renderer, frame, part, width, height, screen->fill);
     if (screen->touch.shown) {
         OraclesTouchLayout l;
         oracles_touch_layout((float)width, (float)height, &l);

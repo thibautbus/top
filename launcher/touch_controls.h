@@ -46,9 +46,10 @@ int oracles_touch_on_pause(const OraclesTouchLayout *layout, float x, float y);
  * there.  Returns the game's buttons all the fingers press now; *pause is set when this finger went down on the pause. */
 unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, uint64_t id, OraclesTouchFingerKind kind,
                               float x, float y, int *pause);
-/* Where the game's frame of frame_w x frame_h goes on a screen of width x height, as SDL's integer-scaled logical
- * presentation puts it: the largest whole scale, centred. */
-OraclesTouchBox oracles_touch_frame(int width, int height, int frame_w, int frame_h);
+/* Where the game's frame of frame_w x frame_h goes on a screen of width x height, as SDL's logical presentation puts
+ * it: integer-scaled, the largest whole scale, centred; with `fill` (letterboxed), the largest size in the frame's
+ * proportions, centred. */
+OraclesTouchBox oracles_touch_frame(int width, int height, int frame_w, int frame_h, int fill);
 /* The game's buttons the fingers press. */
 unsigned oracles_touch_pressed(const OraclesTouch *touch);
 /* The fingers forgotten (a pause, whose menu takes them); hide: a key or a controller was used, the controls go too. */

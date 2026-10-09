@@ -143,8 +143,19 @@ unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, ui
     return oracles_touch_pressed(touch);
 }
 
-OraclesTouchBox oracles_touch_frame(int width, int height, int frame_w, int frame_h)
+OraclesTouchBox oracles_touch_frame(int width, int height, int frame_w, int frame_h, int fill)
 {
+    if (fill) {
+        /* SDL's letterbox: the side that limits takes the screen's, the other its scale floored. */
+        const float want = (float)frame_w / (float)frame_h, real = (float)width / (float)height;
+        if (fabsf(want - real) < 0.0001f) return (OraclesTouchBox){ 0.0f, 0.0f, (float)width, (float)height };
+        if (want > real) {
+            const float h = floorf((float)frame_h * ((float)width / (float)frame_w));
+            return (OraclesTouchBox){ 0.0f, ((float)height - h) / 2.0f, (float)width, h };
+        }
+        const float w = floorf((float)frame_w * ((float)height / (float)frame_h));
+        return (OraclesTouchBox){ ((float)width - w) / 2.0f, 0.0f, w, (float)height };
+    }
     int scale = width / frame_w < height / frame_h ? width / frame_w : height / frame_h;
     if (scale < 1) scale = 1;
     return (OraclesTouchBox){ (float)((width - frame_w * scale) / 2), (float)((height - frame_h * scale) / 2),

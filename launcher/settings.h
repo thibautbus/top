@@ -93,6 +93,8 @@ typedef struct oracles_settings {
     char mods[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_MODS_LENGTH];
     int launcher_width, launcher_height;                      /* launcher_window=WxH: the home screen's window as the player left it */
     int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen (the default) */
+    int scaling_fill;             /* scaling=sharp|fill, Display's Scaling: the game in fullscreen at its largest whole scale (sharp, the
+                                   * default), or filling the screen in its proportions (fill); a window keeps its whole scales */
     int quality_hint;             /* quality_hint=low|medium|high|max|custom: the quality a game that ran slowly was last suggested to leave,
                                    * -1 none: the suggestion is made once a quality, until the view, the core or the workers change */
     int first_run;                /* no settings.txt was read: the first opening, which takes the device's profile */

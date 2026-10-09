@@ -1,6 +1,7 @@
 #include "pause.h"
 
 #include "home_input.h"
+#include "touch_controls.h"
 #include "ui_controls.h"
 #include "ui_controls_layout.h"
 #include "ui_home_layout.h"
@@ -120,18 +121,19 @@ void oracles_pause_prepare(OraclesPause *pause, SDL_Renderer *renderer)
     prepare(pause, w, h, "before the first frame");
 }
 
-int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height,
+int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height, int fill,
                         int out_width, int out_height, OraclesUiHome *view, const OraclesHomeNav *nav, double now_ms)
 {
     int moving = 0;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    /* The game's image as the session shows it: its whole scale, centred. */
-    int k = width > 0 && height > 0 ? (out_width / width < out_height / height ? out_width / width : out_height / height) : 1;
-    if (k < 1) k = 1;
-    const SDL_FRect image = { (float)((out_width - width * k) / 2), (float)((out_height - height * k) / 2), (float)(width * k), (float)(height * k) };
-    if (frame) SDL_RenderTexture(renderer, frame, NULL, &image);
+    /* The game's image as the session shows it: its whole scale, or Fill's size, centred. */
+    if (frame && width > 0 && height > 0) {
+        const OraclesTouchBox box = oracles_touch_frame(out_width, out_height, width, height, fill);
+        const SDL_FRect image = { box.x, box.y, box.w, box.h };
+        SDL_RenderTexture(renderer, frame, NULL, &image);
+    }
     /* Darkened, more on the right where the menu is. */
     const SDL_FColor left = { (float)((SHADE >> 16) & 0xffu) / 255.0f, (float)((SHADE >> 8) & 0xffu) / 255.0f, (float)(SHADE & 0xffu) / 255.0f,
                               (float)(Uint8)(SHADE_LEFT * 255.0f + 0.5f) / 255.0f };
@@ -308,7 +310,9 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
             SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
             p.nav.layout = oracles_ui_layout_pause(out_w, out_h, p.nav.display.aspect);
             p.nav.narrow = oracles_ui_layout_narrow(p.nav.layout, out_w);
-            p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, out_w, out_h, &p.view, &p.nav, now);
+            /* Fill as the session presents it (oracles_sdl_presentation): Scaling, which Display changes here, in fullscreen. */
+            const int fill = p.nav.display.scaling && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
+            p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, fill, out_w, out_h, &p.view, &p.nav, now);
             SDL_RenderPresent(renderer);
             presented = now;
             p.dirty = 0;

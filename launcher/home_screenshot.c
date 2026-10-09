@@ -2,6 +2,7 @@
  * and for the test that runs without a display. */
 #include "home.h"
 
+#include "backends.h"
 #include "pause.h"
 #include "ui_home.h"
 #include "ui_page_nav.h"
@@ -95,9 +96,14 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     } else if (frame && !image) {
         snprintf(error, capacity, "cannot read the game's image %s (a binary PPM, as --screenshot writes)", frame);
     } else if (frame) {
+        /* The game fullscreen when Display says so, Scaling's Fill then filling the capture as it fills the screen. */
+        int presentation, scale_mode;
+        oracles_sdl_presentation(nav.display.window == 3 || nav.display.fullscreen_only, nav.display.scaling, &presentation, &scale_mode);
+        SDL_SetTextureScaleMode(image, (SDL_ScaleMode)scale_mode);
         OraclesUiHome view;
         oracles_ui_home_start(&view, &nav);
-        oracles_pause_paint(draw, renderer, image, frame_width, frame_height, width, height, &view, &nav, 0.0);
+        oracles_pause_paint(draw, renderer, image, frame_width, frame_height, presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX, width, height,
+                            &view, &nav, 0.0);
         SDL_RenderPresent(renderer);
         if (write_ppm(path, surface)) status = 0;
         else snprintf(error, capacity, "cannot write %s", path);

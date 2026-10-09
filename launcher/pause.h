@@ -54,10 +54,11 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
 /* Glyphs rasterised during the session's pauses (none when prepared beforehand), for the session's report. */
 unsigned oracles_pause_late_glyphs(const OraclesPause *pause);
 
-/* The pause's image on an output of `out_width` x `out_height`: the game's `frame` at its whole scale, darkened, and
- * the screen of `nav` over it, in its layout (nav->layout and nav->narrow set for that output); the capture draws it
- * offscreen too.  Returns 1 while a transition runs. */
-int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height,
+/* The pause's image on an output of `out_width` x `out_height`: the game's `frame` at its whole scale (with `fill`, as
+ * Scaling's Fill shows it in fullscreen: the whole output in its proportions), darkened, and the screen of `nav` over
+ * it, in its layout (nav->layout and nav->narrow set for that output); the capture draws it offscreen too.  Returns 1
+ * while a transition runs. */
+int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height, int fill,
                         int out_width, int out_height, OraclesUiHome *view, const OraclesHomeNav *nav, double now_ms);
 
 #endif

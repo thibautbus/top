@@ -158,18 +158,20 @@ static void enlarged_menus(SDL_Window *window, SDL_Renderer *renderer)
 /* The touch controls in a session (asked here; on Android always): a finger presses and releases the game's buttons,
  * a cancelled one too; Back (AC_BACK) leaves them shown, a key of the game hides them and lets the d-pad go; the pause
  * asks for the pause menu; a finger held through a pause presses again as it moves.  And the frame they draw directly
- * goes where SDL's integer-scaled logical presentation puts it. */
+ * goes where SDL's logical presentation puts it, integer-scaled, and letterboxed for Scaling's Fill. */
 static void touches(SDL_Window *window, SDL_Renderer *renderer)
 {
-    static const int frames[3][2] = { { 160, 144 }, { 256, 144 }, { 480, 270 } };
+    static const int frames[4][2] = { { 160, 144 }, { 256, 144 }, { 480, 270 }, { 320, 180 } };
     CHECK(SDL_GetRenderOutputSize(renderer, &output_w, &output_h) && output_w > 0 && output_h > 0);
-    for (int i = 0; i < 3; i++) {
-        SDL_FRect sdl_rect;
-        SDL_SetRenderLogicalPresentation(renderer, frames[i][0], frames[i][1], SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
-        CHECK(SDL_GetRenderLogicalPresentationRect(renderer, &sdl_rect));
-        const OraclesTouchBox ours = oracles_touch_frame(output_w, output_h, frames[i][0], frames[i][1]);
-        CHECK(ours.x == sdl_rect.x && ours.y == sdl_rect.y && ours.w == sdl_rect.w && ours.h == sdl_rect.h);
-    }
+    for (int fill = 0; fill < 2; fill++)
+        for (int i = 0; i < 4; i++) {
+            SDL_FRect sdl_rect;
+            SDL_SetRenderLogicalPresentation(renderer, frames[i][0], frames[i][1],
+                                             fill ? SDL_LOGICAL_PRESENTATION_LETTERBOX : SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+            CHECK(SDL_GetRenderLogicalPresentationRect(renderer, &sdl_rect));
+            const OraclesTouchBox ours = oracles_touch_frame(output_w, output_h, frames[i][0], frames[i][1], fill);
+            CHECK(ours.x == sdl_rect.x && ours.y == sdl_rect.y && ours.w == sdl_rect.w && ours.h == sdl_rect.h);
+        }
     SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 
     OraclesTouchLayout l;
@@ -220,6 +222,80 @@ static void touches(SDL_Window *window, SDL_Renderer *renderer)
     }
     backend.stop(backend.opaque);
     oracles_sdl_backend_release(&backend);
+}
+
+/* Scaling: Sharp, and Fill in a window, present the whole scales sampled to the nearest pixel; Fill in fullscreen the
+ * largest size in the image's proportions, sampled for pixel art.  A session on Fill follows the window into
+ * fullscreen and out, and a change from the pause takes the next frame, after the pause set back the presentation it
+ * had lifted. */
+static void scaling(SDL_Window *window, SDL_Renderer *renderer)
+{
+    int presentation, scale_mode;
+    oracles_sdl_presentation(0, 0, &presentation, &scale_mode);
+    CHECK(presentation == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE && scale_mode == SDL_SCALEMODE_NEAREST);
+    oracles_sdl_presentation(1, 0, &presentation, &scale_mode);
+    CHECK(presentation == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE && scale_mode == SDL_SCALEMODE_NEAREST);
+    oracles_sdl_presentation(0, 1, &presentation, &scale_mode);
+    CHECK(presentation == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE && scale_mode == SDL_SCALEMODE_NEAREST);
+    oracles_sdl_presentation(1, 1, &presentation, &scale_mode);
+    CHECK(presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX && scale_mode == SDL_SCALEMODE_PIXELART);
+
+    oracles_sdl_options options = { 0 };
+    options.scale = 2;
+    options.window = window;
+    options.renderer = renderer;
+    options.fill = 1;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
+    static uint32_t pixels[480 * 270];
+    if (backend.start(backend.opaque, 480, 270, 48000, 0)) {
+        SDL_Window *w;
+        SDL_Renderer *r;
+        SDL_Texture *frame;
+        int width, height, fill = 0, filled = 1;
+        oracles_sdl_backend_pause_view(&backend, &w, &r, &frame, &width, &height);
+        const oracles_host_video_frame image = { pixels, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0 };
+        SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_DISABLED;
+        SDL_ScaleMode sampling = SDL_SCALEMODE_INVALID;
+        /* In a window: whole scales. */
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, NULL, NULL, &mode) && mode == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+        CHECK(SDL_GetTextureScaleMode(frame, &sampling) && sampling == SDL_SCALEMODE_NEAREST);
+        oracles_sdl_backend_scaling(&backend, &fill, &filled);
+        CHECK(fill == 1 && filled == 0);
+        /* Fullscreen (F11): Fill. */
+        SDL_SetWindowFullscreen(window, true);
+        SDL_SyncWindow(window);
+        CHECK(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, NULL, NULL, &mode) && mode == SDL_LOGICAL_PRESENTATION_LETTERBOX);
+        CHECK(SDL_GetTextureScaleMode(frame, &sampling) && sampling == SDL_SCALEMODE_PIXELART);
+        oracles_sdl_backend_scaling(&backend, &fill, &filled);
+        CHECK(fill == 1 && filled == 1);
+        /* Sharp from the pause: the frame's sampling at once; the presentation the pause sets back is replaced at the
+         * next frame. */
+        SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+        oracles_sdl_backend_set_fill(&backend, 0);
+        CHECK(SDL_GetTextureScaleMode(frame, &sampling) && sampling == SDL_SCALEMODE_NEAREST);
+        SDL_SetRenderLogicalPresentation(renderer, 480, 270, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, NULL, NULL, &mode) && mode == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+        oracles_sdl_backend_scaling(&backend, &fill, &filled);
+        CHECK(fill == 0 && filled == 0);
+        /* Fill again, then out of fullscreen: whole scales. */
+        oracles_sdl_backend_set_fill(&backend, 1);
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, NULL, NULL, &mode) && mode == SDL_LOGICAL_PRESENTATION_LETTERBOX);
+        SDL_SetWindowFullscreen(window, false);
+        SDL_SyncWindow(window);
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(SDL_GetRenderLogicalPresentation(renderer, NULL, NULL, &mode) && mode == SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+        CHECK(SDL_GetTextureScaleMode(frame, &sampling) && sampling == SDL_SCALEMODE_NEAREST);
+    } else CHECK(0);
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
+    SDL_SetWindowFullscreen(window, false);
+    SDL_SyncWindow(window);
 }
 
 /* A session in the lent window with only a virtual gamepad `vendor`:`product` plugged in, known by `mapping` (a line
@@ -493,6 +569,7 @@ int main(int argc, char **argv)
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
     touches(window, renderer);
     enlarged_menus(window, renderer);
+    scaling(window, renderer);
     face_buttons(window, renderer, 0, 0, NULL, &south, &east);
     CHECK(south == ORACLES_KEY_A && east == ORACLES_KEY_B);
     /* In play, with two gamepads plugged in, the buttons of the second are the game's too, as the first's: SDL gives a

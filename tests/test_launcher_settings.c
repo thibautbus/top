@@ -265,6 +265,33 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.ghosts == 0);
+    /* The scaling: sharp at the first opening, written under its comment; fill read and written back; an unknown value
+     * sharp. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.scaling_fill == 0);
+    oracles_settings_store(&read_back);
+    {
+        FILE *f = fopen(path, "r");
+        char line[512], previous[512] = "";
+        int found = 0;
+        while (f && fgets(line, sizeof line, f)) {
+            if (!strcmp(line, "scaling=sharp\n")) found = !strncmp(previous, "# proportions, sampled for pixel art", 36);
+            snprintf(previous, sizeof previous, "%s", line);
+        }
+        if (f) fclose(f);
+        CHECK(found);
+    }
+    write_text(path, "scaling=fill\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.scaling_fill == 1);
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.scaling_fill == 1);
+    write_text(path, "scaling=smooth\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.scaling_fill == 0);
     /* The game's menus: framed at the view's scale on a desktop (the tests' build), large written and read back. */
     oracles_settings_defaults(&read_back);
     CHECK(read_back.menus_large == 0);

@@ -161,6 +161,7 @@ static void inspect_display(const oracles_settings *settings, OraclesHomeDisplay
     display->colour = settings->colour_correction;
     display->vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
     display->workers = settings->ghosts;
+    display->scaling = settings->scaling_fill;
     display->cores = SDL_GetNumLogicalCPUCores();   /* as the session counts them for Auto */
     display->fullscreen_only = oracles_sdl_fullscreen_only();
     /* Without a window (a capture drawn offscreen), a 1080p screen. */
@@ -279,6 +280,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     static const char *const vsync_names[3] = { "auto", "on", "off" };
     prefs->window_scale = nav->display.window < 3 ? nav->display.window + 2 : 0;
     prefs->colour_correction = nav->display.colour;
+    prefs->scaling_fill = nav->display.scaling;
     snprintf(prefs->vsync, sizeof prefs->vsync, "%s", vsync_names[nav->display.vsync]);
     /* Each Oracle's active mods, those its Mods page switched on. */
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {

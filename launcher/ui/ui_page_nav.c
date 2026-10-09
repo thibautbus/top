@@ -2,6 +2,7 @@
 
 #include "compositor.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -174,12 +175,13 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row)
 /* ---- Display --------------------------------------------------------------------- */
 
 const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Quality", "Window", "View", "Color correction", "Continuous transitions",
-                                                                   "Advanced", "Core", "Vsync", "Neighbor workers" };
+                                                                   "Advanced", "Core", "Vsync", "Neighbor workers", "Scaling" };
 const char *const oracles_display_view_names[3] = { "Near", "Medium", "Far" };
 const char *const oracles_display_colour_choices[2] = { "Off", "On" };
 const char *const oracles_display_vsync_choices[3] = { "Auto", "On", "Off" };
 const char *const oracles_display_core_choices[2] = { "Accurate (SameBoy)", "Fast (mGBA)" };
 const char *const oracles_display_core_names[2] = { "Accurate", "Fast" };
+const char *const oracles_display_scaling_choices[2] = { "Sharp", "Fill" };
 const char *const oracles_display_quality_names[ORACLES_DISPLAY_QUALITIES + 1] = { "Low", "Medium", "High", "Max", "Custom" };
 int oracles_display_transitions_apply(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
 
@@ -342,7 +344,7 @@ int oracles_display_one_size(const OraclesHomeNav *nav)
     return nav->display.fullscreen_only || (fit <= 2 && fit == oracles_display_scale(nav, 3));
 }
 
-const char oracles_display_one_size_note[] = "This screen shows the game at one size only.";
+const char oracles_display_one_size_note[] = "One size only here; Scaling in Advanced can fill the screen.";
 
 void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capacity)
 {
@@ -396,18 +398,43 @@ int oracles_display_window_size_length(const OraclesHomeNav *nav, int window)
     return longest;
 }
 
+/* The scale Fill gives the surface w x h on the screen: the largest that keeps its proportions. */
+static float fill_scale(const OraclesHomeNav *nav, int w, int h)
+{
+    const float kx = (float)nav->display.screen_w / (float)w, ky = (float)nav->display.screen_h / (float)h;
+    return kx < ky ? kx : ky;
+}
+
+void oracles_display_scaling_size(const OraclesHomeNav *nav, int scaling, char *out, size_t capacity)
+{
+    int w, h;
+    oracles_display_surface(nav, &w, &h);
+    if (scaling) {
+        const float k = fill_scale(nav, w, h);
+        snprintf(out, capacity, "%d\xc3\x97%d", (int)floorf(k * (float)w + 0.5f), (int)floorf(k * (float)h + 0.5f));
+    } else {
+        const int k = oracles_display_scale(nav, 3);
+        snprintf(out, capacity, "%d\xc3\x97%d", k * w, k * h);
+    }
+}
+
 void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h, float *w, float *h, char *label, size_t capacity)
 {
     int sw, sh;
     oracles_display_surface(nav, &sw, &sh);
     int k = oracles_display_scale(nav, nav->display.window);
     if (nav->display.window < 3 && k > oracles_display_fit(nav)) k = oracles_display_fit(nav);   /* as Play reduces it */
+    /* Fill takes the screen in fullscreen only: Fullscreen chosen, or every window the one size the screen holds. */
+    const int fill = nav->display.scaling && (nav->display.window == 3 || oracles_display_one_size(nav));
+    const float f = fill_scale(nav, sw, sh);
+    const float image_w = fill ? f * (float)sw : (float)(k * sw), image_h = fill ? f * (float)sh : (float)(k * sh);
     /* The window on the screen drawn to the box's scale, rounded to the pixel, and kept inside. */
-    *w = (float)(int)((float)(k * sw) / (float)nav->display.screen_w * box_w + 0.5f);
-    *h = (float)(int)((float)(k * sh) / (float)nav->display.screen_h * box_h + 0.5f);
+    *w = floorf(image_w / (float)nav->display.screen_w * box_w + 0.5f);
+    *h = floorf(image_h / (float)nav->display.screen_h * box_h + 0.5f);
     if (*w > box_w) *w = box_w;
     if (*h > box_h) *h = box_h;
-    snprintf(label, capacity, "%d\xc3\x97%d on a %d\xc3\x97%d screen", k * sw, k * sh, nav->display.screen_w, nav->display.screen_h);
+    snprintf(label, capacity, "%d\xc3\x97%d on a %d\xc3\x97%d screen", (int)floorf(image_w + 0.5f), (int)floorf(image_h + 0.5f),
+             nav->display.screen_w, nav->display.screen_h);
 }
 
 const char *oracles_display_profile_note(const OraclesHomeNav *nav)
@@ -430,6 +457,7 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         case ORACLES_DISPLAY_WORKERS:
             return "Rooms around you are prepared by background workers. Two fill the view faster after a warp or a load, using one more processor core.";
+        case ORACLES_DISPLAY_SCALING: return "Sharp: whole steps, every pixel exact. Fill: the whole screen, pixels slightly softer.";
         case ORACLES_DISPLAY_ADVANCED: return "Core, Vsync and neighbor workers.";
         default: return "";   /* Quality's says what is in effect: oracles_display_quality_text */
     }
@@ -440,10 +468,10 @@ const char *oracles_display_explanation(unsigned row)
  * view, the core and the workers make (quality_set). */
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
-    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 0, 4, 3, 2, 2, 0, 2, 3, 3 };
+    static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 0, 4, 3, 2, 2, 0, 2, 3, 3, 2 };
     int profile = (int)nav->display.profile;
     int *fields[ORACLES_DISPLAY_ROWS] = { &profile, NULL, &nav->display.window, &nav->display.view, &nav->display.colour, &nav->display.transitions, NULL,
-                                          &nav->display.core, &nav->display.vsync, &nav->display.workers };
+                                          &nav->display.core, &nav->display.vsync, &nav->display.workers, &nav->display.scaling };
     if (row >= ORACLES_DISPLAY_ROWS || !fields[row] || ((row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW) && !oracles_display_transitions_apply(nav))
         || oracles_display_row_fixed(nav, row) || (row == ORACLES_DISPLAY_WINDOW && oracles_display_one_size(nav)))
         return ORACLES_HOME_STAY;
@@ -457,11 +485,11 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
 static int display_value(const OraclesHomeNav *nav, unsigned row)
 {
     const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, 0, nav->display.window, nav->display.view, nav->display.colour, nav->display.transitions,
-                                               0, nav->display.core, nav->display.vsync, nav->display.workers };
+                                               0, nav->display.core, nav->display.vsync, nav->display.workers, nav->display.scaling };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 
-/* Advanced opens on its first row, or from a game on Vsync, the one of its rows that changes there; closed, Display
+/* Advanced opens on its first row, or from a game on Vsync, the first of its rows that change there; closed, Display
  * shows Advanced highlighted. */
 static void display_advanced(OraclesHomeNav *nav, int open)
 {

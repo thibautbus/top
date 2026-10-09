@@ -40,6 +40,7 @@ typedef struct oracles_sdl_options {
      * screen started.  With --rom Escape still ends it. */
     int pause_menu;
     int touch_controls;   /* the game's buttons on a touch screen: always on Android, where the tests ask elsewhere */
+    int fill;             /* Scaling's Fill: in fullscreen the image fills the screen in its proportions; a window keeps whole scales */
 } oracles_sdl_options;
 
 /* Default names, in the order above, for the settings file. */
@@ -104,6 +105,14 @@ void oracles_sdl_pads_describe(const OraclesSdlPads *pads, char *out, size_t cap
 int oracles_sdl_pad_button(const union SDL_Event *event);
 /* Moves a window so that its centre is at (centre_x, centre_y), kept on its display's usable area. */
 void oracles_sdl_place_window(struct SDL_Window *window, int centre_x, int centre_y);
+/* The game's presentation, an SDL_RendererLogicalPresentation and the frame's SDL_ScaleMode, for a window fullscreen or
+ * not and Scaling on Fill or not: the largest whole scale sampled to the nearest pixel (Sharp, and Fill in a window), or,
+ * Fill in fullscreen, the largest size in the image's proportions sampled for pixel art. */
+void oracles_sdl_presentation(int fullscreen, int fill, int *presentation, int *scale_mode);
+/* Scaling changed during the pause: the frame's sampling at once, the presentation from the next frame. */
+void oracles_sdl_backend_set_fill(const oracles_host_backend *backend, int fill);
+/* Scaling's Fill chosen, and in effect at the last frame (the window fullscreen then). */
+void oracles_sdl_backend_scaling(const oracles_host_backend *backend, int *chosen, int *in_effect);
 /* 1 when the session ended because the window was closed, not by Escape. */
 int oracles_sdl_backend_window_closed(const oracles_host_backend *backend);
 /* Frames presented and the seconds between the first and the last (with vsync, the rate the display imposed), and

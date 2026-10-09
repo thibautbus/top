@@ -1,4 +1,5 @@
-/* SDL 3 backend: window with integer scaling, keyboard, gamepad, audio.
+/* SDL 3 backend: window with integer scaling (Scaling's Fill: in fullscreen, the whole screen in the image's
+ * proportions), keyboard, gamepad, audio.
  * Keyboard by default: arrows, X = A, Z = B, Return = Start, Backspace =
  * Select; F2 = colour correction, F3 = Enhanced wide/framed, F5 = save state, F7 = load state,
  * F11 = fullscreen, Escape = quit, or the pause menu for a game the home screen started.
@@ -39,6 +40,8 @@ typedef struct sdl_backend {
     SDL_Texture *texture;
     int frame_width, frame_height;   /* the texture's: the session's surface */
     int logical_w, logical_h;        /* the renderer's logical size: the surface's, or the part shown alone */
+    int fill;                        /* Scaling's Fill chosen */
+    int filled;                      /* and presented: the window fullscreen at the last frame */
     int pause_menu;         /* Escape pauses rather than quits */
     int borrowed;           /* the window and the renderer are the launcher's: known from the start, never destroyed here */
     int subsystems;         /* the audio and controller subsystems a borrowed window started, to quit at the end */
@@ -319,6 +322,32 @@ static int borrow_window(sdl_backend *backend, uint32_t width, uint32_t height)
     return 1;
 }
 
+void oracles_sdl_presentation(int fullscreen, int fill, int *presentation, int *scale_mode)
+{
+    const int filled = fullscreen && fill;
+    *presentation = filled ? SDL_LOGICAL_PRESENTATION_LETTERBOX : SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+    *scale_mode = filled ? SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
+}
+
+static int window_fullscreen(const sdl_backend *backend)
+{
+    return backend->window && (SDL_GetWindowFlags(backend->window) & SDL_WINDOW_FULLSCREEN) != 0;
+}
+
+/* The presentation of a logical size for the window's state and Scaling: SDL's logical presentation (none once the
+ * touch controls draw the frame themselves, where SDL would put it) and the frame's sampling. */
+static void present_as(sdl_backend *backend, int logical_w, int logical_h)
+{
+    int presentation, scale_mode;
+    oracles_sdl_presentation(window_fullscreen(backend), backend->fill, &presentation, &scale_mode);
+    if (!backend->touch.direct)
+        SDL_SetRenderLogicalPresentation(backend->renderer, logical_w, logical_h, (SDL_RendererLogicalPresentation)presentation);
+    SDL_SetTextureScaleMode(backend->texture, (SDL_ScaleMode)scale_mode);
+    backend->filled = backend->touch.fill = presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX;
+    backend->logical_w = logical_w;
+    backend->logical_h = logical_h;
+}
+
 static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sample_rate_hz, int audio_enabled)
 {
     sdl_backend *backend = opaque;
@@ -348,16 +377,13 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     int vsync = 0;
     SDL_snprintf(backend->renderer_name, sizeof backend->renderer_name, "%s", SDL_GetRendererName(backend->renderer));
     backend->renderer_vsync = SDL_GetRenderVSync(backend->renderer, &vsync) && vsync != 0;
-    SDL_SetRenderLogicalPresentation(backend->renderer, (int)width, (int)height, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
     SDL_SetRenderDrawColor(backend->renderer, 0, 0, 0, 255);
     backend->texture = SDL_CreateTexture(backend->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                          (int)width, (int)height);
     if (!backend->texture) return 0;
     backend->frame_width = (int)width;
     backend->frame_height = (int)height;
-    backend->logical_w = (int)width;
-    backend->logical_h = (int)height;
-    SDL_SetTextureScaleMode(backend->texture, SDL_SCALEMODE_NEAREST);
+    present_as(backend, (int)width, (int)height);
     oracles_sdl_pads_open(&backend->pads);
     {
         char pads[256];
@@ -584,15 +610,14 @@ static int sdl_present_frame(void *opaque, const oracles_host_video_frame *frame
     const uint64_t upload_started_ns = sdl_monotonic_ns(backend);
     if (!SDL_UpdateTexture(backend->texture, NULL, frame->pixels, (int)frame->pitch_bytes)) return 0;
     const uint64_t draw_started_ns = sdl_monotonic_ns(backend);
-    /* A part shown alone (the game's menus enlarged) takes its own whole scale: the logical size follows it. */
+    /* A part shown alone (the game's menus enlarged) takes its own whole scale: the logical size follows it.  Fill
+     * follows the window into fullscreen and out (F11), and a change of Scaling from the pause, whose menu lifted the
+     * presentation and set back the one it found. */
     const SDL_FRect part = { (float)frame->crop_x, (float)frame->crop_y, (float)frame->crop_w, (float)frame->crop_h };
     const int cropped = frame->crop_w > 0 && frame->crop_h > 0;
     const int logical_w = cropped ? (int)frame->crop_w : backend->frame_width, logical_h = cropped ? (int)frame->crop_h : backend->frame_height;
-    if (logical_w != backend->logical_w || logical_h != backend->logical_h) {
-        if (!backend->touch.direct) SDL_SetRenderLogicalPresentation(backend->renderer, logical_w, logical_h, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
-        backend->logical_w = logical_w;
-        backend->logical_h = logical_h;
-    }
+    const int filled = backend->fill && window_fullscreen(backend);
+    if (logical_w != backend->logical_w || logical_h != backend->logical_h || filled != backend->filled) present_as(backend, logical_w, logical_h);
     if (!oracles_touch_sdl_frame(&backend->touch, backend->renderer, backend->texture, cropped ? &part : NULL)) {   /* the touch controls' own drawing */
         if (!SDL_RenderClear(backend->renderer)) return 0;
         if (!SDL_RenderTexture(backend->renderer, backend->texture, cropped ? &part : NULL, NULL)) return 0;
@@ -610,6 +635,22 @@ static int sdl_present_frame(void *opaque, const oracles_host_video_frame *frame
     if (!backend->presents) backend->first_present_ns = backend->last_present_ns;
     backend->presents++;
     return 1;
+}
+
+void oracles_sdl_backend_set_fill(const oracles_host_backend *backend, int fill)
+{
+    sdl_backend *state = backend->opaque;
+    state->fill = fill != 0;
+    int presentation, scale_mode;
+    oracles_sdl_presentation(window_fullscreen(state), state->fill, &presentation, &scale_mode);
+    if (state->texture) SDL_SetTextureScaleMode(state->texture, (SDL_ScaleMode)scale_mode);   /* the pause's image of the game too */
+}
+
+void oracles_sdl_backend_scaling(const oracles_host_backend *backend, int *chosen, int *in_effect)
+{
+    const sdl_backend *state = backend->opaque;
+    *chosen = state && state->fill;
+    *in_effect = state && state->filled;
 }
 
 int oracles_sdl_backend_window_closed(const oracles_host_backend *backend)
@@ -792,6 +833,7 @@ int oracles_sdl_backend_init(oracles_host_backend *backend, const oracles_sdl_op
     state->renderer = options ? options->renderer : NULL;
     state->borrowed = state->window != NULL;
     state->pause_menu = options ? options->pause_menu : 0;
+    state->fill = options && options->fill;
 #ifdef __ANDROID__
     state->touch_enabled = 1;
 #else

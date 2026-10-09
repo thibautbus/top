@@ -191,6 +191,7 @@ typedef struct OraclesHomeDisplay {
     int vsync;                  /* 0 auto, 1 on, 2 off */
     int core;                   /* 0 Accurate (SameBoy), 1 Fast (mGBA); in a game, the running game's, which does not change */
     int workers;                /* the neighbour workers, the settings' ghosts=: 0 auto, 1, 2; in a game, the running game's */
+    int scaling;                /* 0 Sharp, 1 Fill, the settings' scaling=; from a game too, where it applies at once */
     int cores;                  /* the device's logical processor cores, which Auto's count follows */
     int screen_w, screen_h;     /* the display's size, for the sizes the page shows */
     int aspect;                 /* the settings' aspect= (an OraclesAspect): the shape of those sizes, the screen's when auto */

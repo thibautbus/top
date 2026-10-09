@@ -17,7 +17,8 @@
  * at the largest whole scale of the display), the view, color correction,
  * continuous transitions (on by default, dimmed in Faithful), then Advanced
  * under the diagram (4:3: beside it, in the header), which opens Display's Advanced rows in place of those:
- * the core, vsync, the neighbour workers.  No camera: Enhanced takes the
+ * the core, vsync, the neighbour workers, the scaling (Sharp, the whole scales; Fill, the whole screen in the image's
+ * proportions, in fullscreen only).  No camera: Enhanced takes the
  * smooth one.  Left and right change the option of the row, OK takes its
  * next one (Quality stops at Low and at Max; from Custom, right takes Low and
  * left Max); on Advanced, OK and right open it, on Core, or from a game on
@@ -26,7 +27,8 @@
  * more, and says so; it keeps the highlight.  The choices apply at the
  * next Play; Back returns from the Advanced rows to Advanced, from Display
  * to Display in the menu.  From a game the core and the workers are the
- * game's, dimmed and inert, and so is the quality. */
+ * game's, dimmed and inert, and so is the quality; color correction and the
+ * scaling apply at once there. */
 #ifndef ORACLES_UI_PAGE_NAV_H
 #define ORACLES_UI_PAGE_NAV_H
 
@@ -95,6 +97,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_CORE,
     ORACLES_DISPLAY_VSYNC,
     ORACLES_DISPLAY_WORKERS,
+    ORACLES_DISPLAY_SCALING,
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
@@ -140,7 +143,7 @@ int oracles_display_fit(const OraclesHomeNav *nav);
 /* Every choice of Window comes to the same scale (2x, 3x and 4x reduced to the fit, fullscreen's no larger), or the
  * platform plays fullscreen only: the row does not change. */
 int oracles_display_one_size(const OraclesHomeNav *nav);
-extern const char oracles_display_one_size_note[];   /* "This screen shows the game at one size only." */
+extern const char oracles_display_one_size_note[];   /* "One size only here; Scaling in Advanced can fill the screen." */
 /* The line under the windows: oracles_display_one_size_note at one size, else that a windowed scale chosen above the
  * fit is reduced to it, "Reduced to 3x to fit this screen."; empty when it fits. */
 void oracles_display_reduced(const OraclesHomeNav *nav, char *out, size_t capacity);
@@ -150,7 +153,12 @@ extern const char oracles_display_window_note[];
 /* The characters of the longest size a choice of Window shows over every surface of the screen's shape, Faithful's
  * and each view's: its frame keeps that width whatever the profile and the view. */
 int oracles_display_window_size_length(const OraclesHomeNav *nav, int window);
-/* The diagram: the window the game will have, reduced to fit when it must, on the screen. */
+/* The scaling's choices, Sharp and Fill, and the size of the image in fullscreen with each: the largest whole scale
+ * of the surface, or the largest size in its proportions (1920x1080). */
+extern const char *const oracles_display_scaling_choices[2];
+void oracles_display_scaling_size(const OraclesHomeNav *nav, int scaling, char *out, size_t capacity);
+/* The diagram: the window the game will have, reduced to fit when it must, on the screen; with Fill chosen, when the
+ * game plays fullscreen (Fullscreen chosen, or one size), the image filling the screen in its proportions. */
 void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h, float *w, float *h, char *label, size_t capacity);
 /* The chosen profile's note, or that the game shown plays in Faithful. */
 const char *oracles_display_profile_note(const OraclesHomeNav *nav);

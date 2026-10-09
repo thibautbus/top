@@ -232,11 +232,12 @@ void oracles_settings_defaults(oracles_settings *s)
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
+    s->scaling_fill = 0;   /* sharp, Android included */
     s->quality_hint = -1;
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `ghosts=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=`, `quality_hint=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `profile=`, `transitions=`, `view=`, `aspect=`, `ghosts=`, `menus=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `window_scale=`, `scaling=`, `quality_hint=` and `launcher_window=`: 1 when the
  * line was one of them.  A value the launcher does not know leaves the key's default. */
 static int load_launcher(oracles_settings *s, const char *name, const char *value)
 {
@@ -292,6 +293,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     if (!strcmp(name, "window_scale")) {
         if (!strcmp(value, "full")) s->window_scale = 0;
         else if (!strcmp(value, "2") || !strcmp(value, "3") || !strcmp(value, "4")) s->window_scale = atoi(value);
+        return 1;
+    }
+    if (!strcmp(name, "scaling")) {
+        if (!strcmp(value, "sharp") || !strcmp(value, "fill")) s->scaling_fill = !strcmp(value, "fill");
         return 1;
     }
     if (!strcmp(name, "quality_hint")) {
@@ -403,6 +408,9 @@ int oracles_settings_store(const oracles_settings *s)
     }
     fprintf(f, "transitions=%s\n", s->transitions ? "on" : "off");
     if (s->window_scale) fprintf(f, "window_scale=%d\n", s->window_scale); else fprintf(f, "window_scale=full\n");
+    fprintf(f, "# The game in fullscreen: sharp (its largest whole scale, every pixel exact) or fill (the whole screen in its\n"
+               "# proportions, sampled for pixel art); a window keeps its whole scales.\n");
+    fprintf(f, "scaling=%s\n", s->scaling_fill ? "fill" : "sharp");
     fprintf(f, "launcher_window=%dx%d\n", s->launcher_width, s->launcher_height);
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) fprintf(f, "key_%s=%s\n", oracles_sdl_binding_names[i], s->key_names[i]);
     for (unsigned i = 0; i < 4; i++) fprintf(f, "pad_%s=%s\n", pad_setting_names[i], s->pad_names[i]);

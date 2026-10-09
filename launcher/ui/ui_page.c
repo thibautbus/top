@@ -252,7 +252,8 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
     text(draw, st->help, &l.help, t.help, oracles_ui_rgb(HELP));
     text(draw, st->help_note, &l.help_note, t.help_note, oracles_ui_rgb(NOTE_ITALIC));
     if (t.advanced) {
-        /* The core and the workers are the running game's: from it their rows are dimmed, label and all. */
+        /* The core and the workers are the running game's: from it their rows are dimmed, label and all; Vsync and the
+         * scaling stay live. */
         const float core_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_CORE) ? ROW_NOT_APPLIED : 1.0f;
         const float workers_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_WORKERS) ? ROW_NOT_APPLIED : 1.0f;
         for (unsigned r = ORACLES_DISPLAY_CORE; r < ORACLES_DISPLAY_ROWS; r++) {
@@ -264,6 +265,8 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         text(draw, st->row_note, &l.core_note, oracles_ui_core_note, oracles_ui_rgba(NOTE_ITALIC, core_applied));
         wrapped(draw, st->row_text, &l.explanations[2], oracles_ui_rgb(NOTE));
         wrapped(draw, st->row_text, &l.explanations[4], oracles_ui_rgba(NOTE, workers_applied));
+        wrapped(draw, st->row_text, &l.explanations[5], oracles_ui_rgb(NOTE));
+        text(draw, st->row_note, &l.scaling_note, oracles_ui_scaling_note, oracles_ui_rgb(NOTE_ITALIC));
         for (int c = 0; c < 2; c++)
             option(draw, st, lk, &l.core[c], 0, oracles_display_core_choices[c], NULL, c == nav->display.core, row == ORACLES_DISPLAY_CORE, accent,
                    CHOICE_OFF, core_applied);
@@ -273,6 +276,9 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         for (int c = 0; c < 3; c++)
             option(draw, st, lk, &l.workers[c], 0, t.workers_names[c], NULL, c == nav->display.workers, row == ORACLES_DISPLAY_WORKERS, accent,
                    CHOICE_OFF, workers_applied);
+        for (int c = 0; c < 2; c++)
+            option(draw, st, lk, &l.scaling[c], 0, oracles_display_scaling_choices[c], t.scaling_sizes[c], c == nav->display.scaling,
+                   row == ORACLES_DISPLAY_SCALING, accent, CHOICE_OFF, 1.0f);
         return;
     }
     /* View and the transitions carry the Enhanced view: in Faithful their rows are dimmed, label and all; Window at
@@ -312,7 +318,7 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
                row == ORACLES_DISPLAY_WINDOW, accent, OPTION_OFF, window);
     text(draw, st->row_text, &l.window_note, t.window_note, oracles_ui_rgba(NOTE, window));
     text(draw, st->row_note, &l.window_reduced, t.window_fit, oracles_ui_rgba(NOTE_ITALIC, window));
-    text(draw, st->row_text, &l.window_one, oracles_display_one_size_note, oracles_ui_rgba(NOTE, window));
+    text(draw, st->row_note, &l.window_one, oracles_display_one_size_note, oracles_ui_rgba(NOTE_ITALIC, window));
     wrapped(draw, st->row_text, &l.view_explanation, oracles_ui_rgba(NOTE, applied));
     for (int v = 0; v < 3; v++)
         option(draw, st, lk, &l.views[v], 0, oracles_display_view_names[v], t.view_sizes[v], v == nav->display.view,
@@ -339,6 +345,7 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         for (int c = 0; c < 2; c++) if (inside(&l.core[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_CORE; }
         for (int c = 0; c < 3; c++) if (inside(&l.vsync[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_VSYNC; }
         for (int c = 0; c < 3; c++) if (inside(&l.workers[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_WORKERS; }
+        for (int c = 0; c < 2; c++) if (inside(&l.scaling[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_SCALING; }
         for (int r = ORACLES_DISPLAY_CORE; r < ORACLES_DISPLAY_ROWS; r++) if (inside(&l.rows[r], x, y)) return r;
         return -1;
     }

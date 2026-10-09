@@ -11,8 +11,11 @@
  * with View highlighted, 10o from the pause menu, 10s on a 640x480 screen,
  * where the Window row comes to one size) and its Advanced rows (10h, 10p).
  * Display's Quality on High and on Custom, highlighted, in 16:9 (11a, 11b),
- * in 4:3 (11d, 11e) and on a 640x480 screen (11g).  A text is compared by its
- * left, its width and its baseline (in 4:3 its line box too). */
+ * in 4:3 (11d, 11e) and on a 640x480 screen (11g).  Advanced's Scaling, on
+ * Sharp in 16:9 (13a), on Fill in 4:3 on a 640x480 screen (13b) and from the
+ * pause menu (13d), and on Fill in Faithful fullscreen, the diagram filling
+ * the screen (13e); Window's one size on a 640x480 screen (13c).  A text is
+ * compared by its left, its width and its baseline (in 4:3 its line box too). */
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_controls_nav.h"
@@ -885,7 +888,7 @@ static void display_navigation(void)
     CHECK(oracles_display_row_shown(&nav, ORACLES_DISPLAY_WORKERS) && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_PROFILE)
           && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_ADVANCED));
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PROFILE, 0) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_WORKERS);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_SCALING);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
     /* The two cores by a key and by a click; from a game the core is the game's and does not change. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.core == 1);
@@ -910,6 +913,20 @@ static void display_navigation(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.workers == 1);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_WORKERS, 2) == ORACLES_HOME_STAY && nav.display.workers == 1);
     nav.in_game = 0;
+    /* The scaling last, Sharp then Fill, by a key and by a click; from a game too, where it applies at once. */
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == ORACLES_DISPLAY_SCALING && nav.display.scaling == 0 && !oracles_display_row_fixed(&nav, ORACLES_DISPLAY_SCALING));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.scaling == 1);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.display.scaling == 0);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_SCALING, 1) == ORACLES_HOME_STORE && nav.display.scaling == 1);
+    nav.in_game = 1;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.scaling == 0);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_SCALING, 1) == ORACLES_HOME_STORE && nav.display.scaling == 1);
+    CHECK(!oracles_display_row_fixed(&nav, ORACLES_DISPLAY_SCALING));
+    nav.in_game = 0;
+    nav.display.scaling = 0;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_CORE);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_SCALING);
     /* Back closes them on Advanced; a click on Advanced opens them again, Back closes them. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_DISPLAY && !nav.advanced
           && nav.row == ORACLES_DISPLAY_ADVANCED && !strcmp(oracles_display_section(&nav), "Display"));
@@ -1517,6 +1534,172 @@ static void display_quality_navigation(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STAY && oracles_display_quality(&nav) == 0);
 }
 
+/* The Scaling row of a frame in 16:9: its explanation on two lines and its note, Sharp and Fill each with the image's
+ * size in fullscreen. */
+static void display_scaling_16_9(const char *frame, const char *sharp, const char *fill, const OraclesUiDisplayTexts *t,
+                                 const OraclesUiDisplayLayout *l)
+{
+    CHECK(!strcmp(t->scaling_sizes[0], sharp) && !strcmp(t->scaling_sizes[1], fill));
+    layout_text(frame, "Scaling", &l->labels[ORACLES_DISPLAY_SCALING].lines[0]);
+    CHECK(l->explanations[5].count == 2);
+    layout_text(frame, "scaling explanation", &l->explanations[5].lines[0]);
+    layout_near(frame, "scaling explanation", "width", l->explanations[5].w);
+    layout_text(frame, "scaling note", &l->scaling_note);
+    static const char *const names[2] = { "Sharp", "Fill" };
+    for (int i = 0; i < 2; i++) {
+        char what[48];
+        snprintf(what, sizeof what, "scaling %s", names[i]); layout_box(frame, what, &l->scaling[i].box);
+        snprintf(what, sizeof what, "scaling %s box", names[i]); layout_box(frame, what, &l->scaling[i].box);
+        snprintf(what, sizeof what, "scaling %s name", names[i]); layout_text(frame, what, &l->scaling[i].name);
+        snprintf(what, sizeof what, "scaling %s size text", names[i]); layout_text(frame, what, &l->scaling[i].size);
+    }
+    layout_box(frame, "scaling row", &l->rows[ORACLES_DISPLAY_SCALING]);
+    layout_near(frame, "scaling grid", "y", l->rows[ORACLES_DISPLAY_SCALING].y);
+    layout_near(frame, "scaling grid", "h", l->rows[ORACLES_DISPLAY_SCALING].h);
+}
+
+/* The same in 4:3: the help under the rows says the row's short explanation and its note. */
+static void display_scaling_4_3(const char *frame, const char *sharp, const char *fill, const OraclesUiDisplayTexts *t,
+                                const OraclesUiDisplayLayout *l)
+{
+    CHECK(!strcmp(t->scaling_sizes[0], sharp) && !strcmp(t->scaling_sizes[1], fill));
+    layout_line(frame, "Scaling", &l->labels[ORACLES_DISPLAY_SCALING].lines[0]);
+    static const char *const names[2] = { "Sharp", "Fill" };
+    for (int i = 0; i < 2; i++) {
+        char what[48];
+        snprintf(what, sizeof what, "scaling %s", names[i]); layout_box(frame, what, &l->scaling[i].box);
+        snprintf(what, sizeof what, "scaling %s name", names[i]); layout_line(frame, what, &l->scaling[i].name);
+        snprintf(what, sizeof what, "scaling %s size text", names[i]); layout_line(frame, what, &l->scaling[i].size);
+    }
+    layout_box(frame, "scaling row", &l->rows[ORACLES_DISPLAY_SCALING]);
+    CHECK(!strcmp(t->help, "Sharp: exact pixels. Fill: the whole screen.") && !strcmp(t->help_note, "Fill applies in fullscreen."));
+    layout_near(frame, "help", "y", l->help.y);
+    layout_line(frame, "help text", &l->help);
+    layout_line(frame, "help note", &l->help_note);
+    layout_box(frame, "diagram", &l->diagram);
+    layout_box(frame, "diagram window", &l->diagram_window);
+}
+
+/* 13a, 13e, 13b, 13c, 13d: Advanced's Scaling. */
+static void display_scaling(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_1h(&nav.games[0]);
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.window = 1;
+    nav.display.cores = 8;
+    nav.advanced = 1;
+    nav.row = ORACLES_DISPLAY_SCALING;
+    OraclesUiDisplayTexts t;
+    OraclesUiDisplayLayout l;
+    /* 13a: the far view on a 1080p screen, where Sharp's 4x and Fill both make 1920x1080; the other rows each keep two
+     * lines for their explanations, Vsync's one line at the top of them. */
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    display_advanced_rows("13a", &t, &l);
+    display_scaling_16_9("13a", "1920\xc3\x97" "1080", "1920\xc3\x97" "1080", &t, &l);
+    layout_near("13a", "rows", "y", l.rows[ORACLES_DISPLAY_CORE].y);
+    layout_near("13a", "rows", "h", l.rows[ORACLES_DISPLAY_SCALING].y + l.rows[ORACLES_DISPLAY_SCALING].h - l.rows[ORACLES_DISPLAY_CORE].y);
+    layout_box("13a", "diagram window", &l.diagram_window);
+    layout_text("13a", "diagram label", &l.diagram_label);
+    /* Fill chosen in a window: the diagram keeps the window, Fill applying in fullscreen only. */
+    nav.display.scaling = 1;
+    oracles_ui_display_texts(&nav, &t);
+    CHECK(!strcmp(t.diagram_label, "1440\xc3\x97" "810 on a 1920\xc3\x97" "1080 screen"));
+
+    /* 13e: Faithful fullscreen on Fill: 7x makes 1120x1008, Fill 1200x1080, which the diagram draws. */
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    nav.display.window = 3;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    display_scaling_16_9("13e", "1120\xc3\x97" "1008", "1200\xc3\x97" "1080", &t, &l);
+    layout_box("13e", "diagram", &l.diagram);
+    layout_box("13e", "diagram window", &l.diagram_window);
+    layout_text("13e", "diagram label", &l.diagram_label);
+    CHECK(!strcmp(t.diagram_label, "1200\xc3\x97" "1080 on a 1920\xc3\x97" "1080 screen"));
+
+    /* 13b: 4:3 on a 640x480 screen, Fill chosen: the far view's 480x360 at 1x, or the whole screen. */
+    display_4_3_nav(&nav, 640, 480);
+    nav.display.window = 1;
+    nav.display.scaling = 1;
+    nav.advanced = 1;
+    nav.row = ORACLES_DISPLAY_SCALING;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    display_scaling_4_3("13b", "480\xc3\x97" "360", "640\xc3\x97" "480", &t, &l);
+    layout_box("13b", "core row", &l.rows[ORACLES_DISPLAY_CORE]);
+    layout_box("13b", "vsync row", &l.rows[ORACLES_DISPLAY_VSYNC]);
+    layout_box("13b", "workers row", &l.rows[ORACLES_DISPLAY_WORKERS]);
+    layout_line("13b", "section", &l.head.section);
+    for (unsigned r = ORACLES_DISPLAY_CORE; r < ORACLES_DISPLAY_ROWS; r++) CHECK(l.rows[r].h == 100.0f);
+
+    /* 13c: Display there, Window's one size saying that Scaling can fill the screen, italic, in the windows' place. */
+    nav.advanced = 0;
+    nav.row = ORACLES_DISPLAY_PROFILE;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(t.window_one && !strcmp(oracles_display_one_size_note, "One size only here; Scaling in Advanced can fill the screen."));
+    layout_line("13c", "Window", &l.labels[ORACLES_DISPLAY_WINDOW].lines[0]);
+    layout_box("13c", "Window row", &l.rows[ORACLES_DISPLAY_WINDOW]);
+    layout_line("13c", "one size", &l.window_one);
+    layout_box("13c", "View row", &l.rows[ORACLES_DISPLAY_VIEW]);
+    layout_box("13c", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
+    layout_near("13c", "help", "y", l.help.y);
+
+    /* 13d: from the pause menu on a 4:3 screen: the note says what applies at once; Scaling at 3x and Fill alike. */
+    display_4_3_nav(&nav, 1440, 1080);
+    nav.display.window = 1;
+    nav.in_game = 1;
+    nav.advanced = 1;
+    nav.row = ORACLES_DISPLAY_SCALING;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    display_scaling_4_3("13d", "1440\xc3\x97" "1080", "1440\xc3\x97" "1080", &t, &l);
+    layout_line("13d", "page note", &l.page_note);
+    layout_box("13d", "core row", &l.rows[ORACLES_DISPLAY_CORE]);
+    layout_box("13d", "vsync row", &l.rows[ORACLES_DISPLAY_VSYNC]);
+    layout_box("13d", "workers row", &l.rows[ORACLES_DISPLAY_WORKERS]);
+    CHECK(oracles_display_row_fixed(&nav, ORACLES_DISPLAY_CORE) && oracles_display_row_fixed(&nav, ORACLES_DISPLAY_WORKERS)
+          && !oracles_display_row_fixed(&nav, ORACLES_DISPLAY_VSYNC) && !oracles_display_row_fixed(&nav, ORACLES_DISPLAY_SCALING));
+}
+
+/* Advanced's rows and choices stay where they are whatever row is highlighted and whatever is chosen, in both layouts,
+ * from the home screen as from a game. */
+static void advanced_rows_stay(void)
+{
+    for (int wide = 0; wide < 2; wide++) {
+        const OraclesUiLayout layout = wide ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9;
+        OraclesHomeNav nav;
+        display_4_3_nav(&nav, 1920, 1080);
+        nav.layout = layout;
+        nav.advanced = 1;
+        nav.row = ORACLES_DISPLAY_CORE;
+        OraclesUiDisplayTexts t;
+        OraclesUiDisplayLayout first, other;
+        oracles_ui_display_texts(&nav, &t);
+        oracles_ui_layout_display(layout, &t, &first);
+        for (unsigned row = ORACLES_DISPLAY_CORE; row < ORACLES_DISPLAY_ROWS; row++)
+            for (int choice = 0; choice < 3; choice++)
+                for (int in_game = 0; in_game < 2; in_game++) {
+                    nav.row = row;
+                    nav.in_game = in_game;
+                    nav.display.core = choice % 2;
+                    nav.display.vsync = choice;
+                    nav.display.workers = 2 - choice;
+                    nav.display.scaling = choice % 2;
+                    oracles_ui_display_texts(&nav, &t);
+                    oracles_ui_layout_display(layout, &t, &other);
+                    for (unsigned r = ORACLES_DISPLAY_CORE; r < ORACLES_DISPLAY_ROWS; r++)
+                        CHECK(!memcmp(&first.rows[r], &other.rows[r], sizeof first.rows[r]));
+                    for (int c = 0; c < 2; c++) CHECK(!memcmp(&first.scaling[c].box, &other.scaling[c].box, sizeof first.scaling[c].box));
+                    for (int c = 0; c < 3; c++) CHECK(!memcmp(&first.vsync[c].box, &other.vsync[c].box, sizeof first.vsync[c].box));
+                    CHECK(!memcmp(&first.panel, &other.panel, sizeof first.panel));
+                }
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-page launcher_layout_reference.json\n"); return 2; }
@@ -1539,6 +1722,8 @@ int main(int argc, char **argv)
     one_size();
     display_quality();
     display_quality_navigation();
+    display_scaling();
+    advanced_rows_stay();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher pages: Cartridge and Display match the layout reference within %.1f px in both layouts, and their rows and options behave as expected\n",
            (double)LAYOUT_TOLERANCE);

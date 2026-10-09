@@ -64,12 +64,20 @@ int main(void)
     CHECK(wide.select.y + wide.select.h > wide.b.y);   /* where there is room, at the bottom as on the Game Boy */
 
     /* The frame where SDL's integer-scaled logical presentation puts it (the SDL backend's test compares it with SDL). */
-    OraclesTouchBox f = oracles_touch_frame(2400, 1080, 160, 144);
+    OraclesTouchBox f = oracles_touch_frame(2400, 1080, 160, 144, 0);
     CHECK(f.x == 640 && f.y == 36 && f.w == 1120 && f.h == 1008);
-    f = oracles_touch_frame(2400, 1080, 480, 270);
+    f = oracles_touch_frame(2400, 1080, 480, 270, 0);
     CHECK(f.x == 240 && f.y == 0 && f.w == 1920 && f.h == 1080);
-    f = oracles_touch_frame(100, 80, 160, 144);   /* smaller than the frame: scale 1 */
+    f = oracles_touch_frame(100, 80, 160, 144, 0);   /* smaller than the frame: scale 1 */
     CHECK(f.w == 160 && f.h == 144);
+    /* Scaling's Fill, where SDL's letterboxed presentation puts it: the whole height of a wide screen, the whole width of
+     * an upright one, the whole screen in its own shape. */
+    f = oracles_touch_frame(2400, 1080, 160, 144, 1);
+    CHECK(f.x == 600 && f.y == 0 && f.w == 1200 && f.h == 1080);
+    f = oracles_touch_frame(1080, 2400, 480, 270, 1);
+    CHECK(f.x == 0 && f.y == 896.5f && f.w == 1080 && f.h == 607);
+    f = oracles_touch_frame(640, 480, 480, 360, 1);
+    CHECK(f.x == 0 && f.y == 0 && f.w == 640 && f.h == 480);
 
     OraclesTouchLayout l;
     oracles_touch_layout(2400, 1080, &l);
