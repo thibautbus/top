@@ -217,9 +217,11 @@ static void view_and_savestate(void)
     uint8_t wire[1024];
     size_t written = 0;
     char why[256];
-    CHECK(oracles_enhanced_view_save_state(zoom, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 8u);
+    CHECK(oracles_enhanced_view_save_state(zoom, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 8u + 12u);
     CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) == 0);
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) == 0);
+    CHECK(oracles_enhanced_view_check_state(zoom, wire, written - 12u, why, sizeof why) == 0);   /* without the whole offsets: a state saved before them */
+    CHECK(oracles_enhanced_view_load_state(zoom, wire, written - 12u) == 0);
     /* It names both surfaces by the view's level, as Display does, and the screen's shape. */
     CHECK(oracles_enhanced_view_check_state(normal, wire, written, why, sizeof why) != 0);
     CHECK(!strcmp(why, "the savestate was taken on the far view, 480x270 in 16:9, "
@@ -235,7 +237,7 @@ static void view_and_savestate(void)
     CHECK(oracles_enhanced_view_save_state(far_4_3, wire_4_3, sizeof wire_4_3, &written_4_3) == 0);
     CHECK(oracles_enhanced_view_check_state(zoom, wire_4_3, written_4_3, why, sizeof why) != 0 && strstr(why, "aspect=4:3 in the settings"));
     CHECK(oracles_enhanced_view_check_state(far_4_3, wire_4_3, written_4_3, why, sizeof why) == 0);
-    CHECK(oracles_enhanced_view_save_state(normal, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u);
+    CHECK(oracles_enhanced_view_save_state(normal, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 12u);
     CHECK(oracles_enhanced_view_check_state(zoom, wire, written, why, sizeof why) != 0 && strstr(why, "the near view, 256x144 in 16:9, and this session shows the far view"));
     CHECK(oracles_enhanced_view_load_state(zoom, wire, written) != 0);
     CHECK(oracles_enhanced_view_load_state(zoom, wire, 2u * ORACLES_E11_STATE_WIRE_SIZE) != 0);   /* a state from before the size record: the normal surface's */
@@ -336,6 +338,66 @@ static void state_across_viewports(void)
     for (unsigned i = 0; i < 20u; i++, frame++) oracles_enhanced_camera_reduce(camera, frame, &in, &cam, &cam_y);
     oracles_enhanced_camera_set_state(camera, &state, &vertical);
     CHECK(oracles_enhanced_camera_reduce(camera, (uint32_t)state.last_ordinal + 1u, &out, &cam, &cam_y) == 1 && cam - saved <= 4 && saved - cam <= 4);
+    oracles_enhanced_camera_stop(camera);
+    rig_stop(&r);
+}
+
+/* A diagonal walk at the game's diagonal speed, 0xb5/256 of a pixel a frame
+ * each way: whole pixels on the frames the game's sub-pixel carries over.
+ * The camera steps with Link: once it follows him, his place on the screen
+ * never goes a pixel one way and back the next frame on either axis, and the
+ * camera stays within a pixel of the reducer's position.  A state saved on
+ * the way, its whole offsets with it, shows the next frame to the pixel the
+ * walk showed; without them (a state saved before them), within a pixel. */
+static void diagonal_walk(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *camera = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(camera != NULL);
+    if (!camera) { rig_stop(&r); return; }
+    oracles_enhanced_camera_set_profile(camera, 2);
+    oracles_enhanced_camera_set_band(camera, W, BAND_H);
+    OraclesEnhancedObservation walk[120];
+    memset(walk, 0, sizeof walk);
+    unsigned sub = 0;
+    int x = 40, y = 30;
+    for (unsigned f = 0; f < 120u; f++) {
+        walk[f].playing = 1; walk[f].grid = 1; walk[f].epoch = 8;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, x, y, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &walk[f].world) == 1);
+        if (f >= 10u) { sub += 0xb5u; x += (int)(sub >> 8); y += (int)(sub >> 8); sub &= 0xffu; }
+    }
+    int32_t cam[120][2], last_step[2] = { 0, 0 };
+    unsigned back_and_forth = 0, off_smooth = 0;
+    OraclesE11State state, vertical;
+    OraclesEnhancedShownOffset across, down;
+    for (unsigned f = 0; f < 120u; f++) {
+        CHECK(oracles_enhanced_camera_reduce(camera, f, &walk[f], &cam[f][0], &cam[f][1]) == 1);
+        const int64_t gap = (int64_t)cam[f][0] * 256 - oracles_enhanced_camera_state(camera)->camera_pos;
+        if (gap >= 256 || gap <= -256) off_smooth++;
+        if (f > 0u)
+            for (unsigned a = 0; a < 2u; a++) {
+                const int32_t link = a ? walk[f].world.link_y : walk[f].world.link_x, before = a ? walk[f - 1].world.link_y : walk[f - 1].world.link_x;
+                const int32_t step = (link - cam[f][a]) - (before - cam[f - 1][a]);
+                if (f >= 50u && step && step == -last_step[a]) back_and_forth++;
+                last_step[a] = step;
+            }
+        if (f == 80u) {
+            state = *oracles_enhanced_camera_state(camera); vertical = *oracles_enhanced_camera_state_vertical(camera);
+            oracles_enhanced_camera_shown_offsets(camera, &across, &down);
+        }
+    }
+    CHECK(walk[119].world.link_x - walk[50].world.link_x > 40);   /* he walked */
+    CHECK(back_and_forth == 0);
+    CHECK(off_smooth == 0);
+    int32_t again = 0, again_y = 0;
+    oracles_enhanced_camera_set_state(camera, &state, &vertical);
+    oracles_enhanced_camera_set_shown_offsets(camera, &across, &down);
+    CHECK(oracles_enhanced_camera_reduce(camera, 81u, &walk[81], &again, &again_y) == 1 && again == cam[81][0] && again_y == cam[81][1]);
+    oracles_enhanced_camera_set_state(camera, &state, &vertical);
+    CHECK(oracles_enhanced_camera_reduce(camera, 81u, &walk[81], &again, &again_y) == 1);
+    CHECK(again - cam[81][0] <= 1 && cam[81][0] - again <= 1 && again_y - cam[81][1] <= 1 && cam[81][1] - again_y <= 1);
     oracles_enhanced_camera_stop(camera);
     rig_stop(&r);
 }
@@ -610,6 +672,7 @@ int main(void)
     view_and_savestate();
     isolated_room_edges();
     state_across_viewports();
+    diagonal_walk();
     cutscenes();
     seasons_scenes();
     blank_captures();

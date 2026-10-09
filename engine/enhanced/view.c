@@ -641,6 +641,22 @@ static void size_record(OraclesEnhancedSize size, uint8_t out[SIZE_RECORD_SIZE])
     out[6] = (uint8_t)size.height; out[7] = (uint8_t)(size.height >> 8);
 }
 
+/* The records after the loops': the surface's size when it is not the normal
+ * one, then the camera's whole offsets (a state saved before them has none).
+ * 1 when the state ends with them, with their places, 0 for a record absent. */
+static int tail_records(const uint8_t *data, size_t size, size_t *size_at, size_t *offsets_at)
+{
+    size_t at = 2u * ORACLES_E11_STATE_WIRE_SIZE + LOOP_RECORD_SIZE;
+    *size_at = 0; *offsets_at = 0;
+    if (size < at) return 0;
+    if (size - at >= SIZE_RECORD_SIZE && memcmp(data + at, SIZE_RECORD_TAG, 4) == 0) { *size_at = at; at += SIZE_RECORD_SIZE; }
+    if (size - at >= OFFSET_RECORD_SIZE && memcmp(data + at, OFFSET_RECORD_TAG, 4) == 0) { *offsets_at = at; at += OFFSET_RECORD_SIZE; }
+    return size == at;
+}
+
+static void put32(uint8_t *out, int32_t value) { for (unsigned b = 0; b < 4u; b++) out[b] = (uint8_t)((uint32_t)value >> (8u * b)); }
+static int32_t get32(const uint8_t *in) { uint32_t value = 0; for (unsigned b = 0; b < 4u; b++) value |= (uint32_t)in[b] << (8u * b); return (int32_t)value; }
+
 static const char *const surface_aspects[ORACLES_ENHANCED_ASPECTS] = { "16:9", "4:3" };
 
 /* The view's level and the screen's shape that give a surface; 0 for a size of no level. */
@@ -666,8 +682,8 @@ static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
 int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_t *data, size_t size, char *why, size_t capacity)
 {
     OraclesEnhancedSize saved = oracles_enhanced_size(0);
-    const size_t at = 2u * ORACLES_E11_STATE_WIRE_SIZE + LOOP_RECORD_SIZE;
-    if (size == at + SIZE_RECORD_SIZE && memcmp(data + at, SIZE_RECORD_TAG, 4) == 0) {
+    size_t at, offsets_at;
+    if (tail_records(data, size, &at, &offsets_at) && at) {
         saved.width = data[at + 4] | (unsigned)data[at + 5] << 8;
         saved.height = data[at + 6] | (unsigned)data[at + 7] << 8;
     }
@@ -704,6 +720,14 @@ int oracles_enhanced_view_save_state(const OraclesEnhancedView *v, uint8_t *out,
         size_record(v->size, out + total);
         total += SIZE_RECORD_SIZE;
     }
+    /* The camera's whole offsets (camera.h): the camera loaded shows the pixel it showed. */
+    if (capacity - total < OFFSET_RECORD_SIZE) return -1;
+    OraclesEnhancedShownOffset across, down;
+    oracles_enhanced_camera_shown_offsets(v->camera, &across, &down);
+    memcpy(out + total, OFFSET_RECORD_TAG, 4);
+    put32(out + total + 4, across.valid ? across.offset : OFFSET_NONE);
+    put32(out + total + 8, down.valid ? down.offset : OFFSET_NONE);
+    total += OFFSET_RECORD_SIZE;
     if (written) *written = total;
     return 0;
 }
@@ -715,10 +739,11 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     OraclesE11State state, vertical;
     unsigned profile = oracles_enhanced_camera_profile(v->camera);
     /* One record (a state saved before the vertical reducer), two, or two and
-     * the loops, and the surface's size when it is not the normal one. */
+     * the loops, and the surface's size when it is not the normal one, and
+     * the camera's whole offsets. */
     if (oracles_enhanced_view_check_state(v, data, size, NULL, 0) != 0) return -1;
-    const size_t loops_end = 2u * ORACLES_E11_STATE_WIRE_SIZE + LOOP_RECORD_SIZE;
-    const int have_loops = (size == loops_end || size == loops_end + SIZE_RECORD_SIZE) && memcmp(data + 2u * ORACLES_E11_STATE_WIRE_SIZE, LOOP_RECORD_TAG, 4) == 0;
+    size_t size_at, offsets_at;
+    const int have_loops = tail_records(data, size, &size_at, &offsets_at) && memcmp(data + 2u * ORACLES_E11_STATE_WIRE_SIZE, LOOP_RECORD_TAG, 4) == 0;
     if (size != ORACLES_E11_STATE_WIRE_SIZE && size != 2u * ORACLES_E11_STATE_WIRE_SIZE && !have_loops) return -1;
     OraclesE11Config config = *oracles_enhanced_camera_config(v->camera);
     if (oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &config, &state) != ORACLES_E11_OK) {
@@ -730,6 +755,14 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     const int have_vertical = size >= 2u * ORACLES_E11_STATE_WIRE_SIZE
         && oracles_e11_state_restore(data + ORACLES_E11_STATE_WIRE_SIZE, ORACLES_E11_STATE_WIRE_SIZE, &config, &vertical) == ORACLES_E11_OK;
     oracles_enhanced_camera_set_state(v->camera, &state, have_vertical ? &vertical : NULL);
+    if (have_loops && offsets_at) {
+        /* For the reducers' epochs and segments restored; an axis without one takes it afresh. */
+        const int32_t saved[2] = { get32(data + offsets_at + 4), get32(data + offsets_at + 8) };
+        OraclesEnhancedShownOffset across = { saved[0] != OFFSET_NONE, saved[0], state.epoch, state.segment };
+        OraclesEnhancedShownOffset down = { 0, 0, 0, 0 };
+        if (have_vertical && saved[1] != OFFSET_NONE) { down.valid = 1; down.offset = saved[1]; down.epoch = vertical.epoch; down.segment = vertical.segment; }
+        oracles_enhanced_camera_set_shown_offsets(v->camera, &across, &down);
+    }
     /* The ordinals continue from the saved state: the camera goes on from
      * where it was, no re-bootstrap; the observer resumes at the saved epoch,
      * or the reducer would ignore every observation of a lower one, and its

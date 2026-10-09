@@ -37,6 +37,9 @@
 #define LOOP_RECORD_SIZE 12u         /* the tag, the loops' columns and rows (int32, little-endian) */
 #define SIZE_RECORD_TAG "SIZE"
 #define SIZE_RECORD_SIZE 8u          /* the tag, the surface's width and height (uint16, little-endian) */
+#define OFFSET_RECORD_TAG "SHOW"
+#define OFFSET_RECORD_SIZE 12u       /* the tag, the camera's whole offsets across and down (int32, little-endian; OFFSET_NONE: none) */
+#define OFFSET_NONE INT32_MIN
 #define INTERAC_ERA_OR_SEASON_INFO 0xe0u   /* constants/common/interactions.s: the blurb shown at the top of the screen on entering an area */
 #define GHOST_SETTLE_FRAMES 160u     /* a load (4 frames) and a scroll (about 45) with margin */
 #define GHOST_BLIND_SETTLE_FRAMES 320u   /* a pre-run primes as soon as play looks normal, while an arrival (the time travel's) still holds the transition back */

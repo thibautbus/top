@@ -472,9 +472,10 @@ int main(void)
             CHECK(oracles_enhanced_view_width(view) == NORMAL_W && oracles_enhanced_view_height(view) == 144u);
             uint8_t wire[1024];
             size_t written = 0;
-            CHECK(oracles_enhanced_view_save_state(view, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u);   /* both axes, then the loops' record */
+            CHECK(oracles_enhanced_view_save_state(view, wire, sizeof wire, &written) == 0 && written == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 12u);   /* both axes, the loops' record, the whole offsets' */
             CHECK(oracles_enhanced_view_load_state(view, wire, written) == 0);
             CHECK(oracles_enhanced_view_load_state(view, wire, written - 1) != 0);   /* a truncated state is refused */
+            CHECK(oracles_enhanced_view_load_state(view, wire, written - 12u) == 0);   /* without the whole offsets: a state saved before them */
             CHECK(oracles_enhanced_view_load_state(view, wire, 2u * ORACLES_E11_STATE_WIRE_SIZE) == 0);   /* both axes without the loops: a state saved before them */
             CHECK(oracles_enhanced_view_load_state(view, wire, ORACLES_E11_STATE_WIRE_SIZE) == 0);   /* the horizontal record alone: a state saved before the vertical reducer */
             /* A state saved under one camera profile loads under the other: the savestate's profile wins. */

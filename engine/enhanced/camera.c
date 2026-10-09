@@ -354,6 +354,7 @@ struct OraclesEnhancedCamera {
     unsigned overworld_stride;
     char session[ORACLES_E11_ID_CAP];
     char session_y[ORACLES_E11_ID_CAP];
+    OraclesEnhancedShownOffset shown_x, shown_y;   /* Link's place from the camera in whole pixels, each axis (shown_position) */
 };
 
 /* The vertical reducer sees the world turned on its side: Link's y as its x,
@@ -469,6 +470,36 @@ static void restart_on_domain_change(OraclesE11State *state, const OraclesE11Obs
         oracles_e11_state_initial(state, config);
 }
 
+/* x / 256 rounded to the nearest, a half up, negative values included. */
+static int32_t nearest_pixel(int64_t x)
+{
+    const int64_t shifted = x + ORACLES_E11_F256 / 2;
+    return (int32_t)(shifted >= 0 ? shifted / ORACLES_E11_F256 : -((-shifted + ORACLES_E11_F256 - 1) / ORACLES_E11_F256));
+}
+
+/* The camera in whole pixels on one axis.  The reducer's position is smooth,
+ * to the 256th of a pixel, and Link's comes in whole pixels.  Cut to the
+ * pixel on its own, the camera would step on frames of its own, which at a
+ * speed under a pixel a frame (a diagonal walk, about 0.7 a frame each way)
+ * are not Link's: he would shake a pixel back and forth on the screen, on one
+ * axis then the other.  The camera is Link's place less a whole offset, kept
+ * while the smooth one stays within a pixel of it, then moved by the whole
+ * pixels the smooth one has gained or lost: the band steps with Link, both
+ * axes on his frames, and he moves on the screen only as the camera gains or
+ * loses a pixel on him.  Within a pixel of the reducer's position, it stays
+ * inside the bounds that position does (both are whole pixels).  A new epoch
+ * or segment (a snap) takes the offset afresh, the smooth one rounded. */
+static int32_t shown_position(OraclesEnhancedShownOffset *s, const OraclesE11State *state, int32_t link)
+{
+    const int64_t smooth = (int64_t)link * ORACLES_E11_F256 - state->camera_pos;
+    if (!s->valid || s->epoch != state->epoch || s->segment != state->segment) {
+        s->valid = 1; s->epoch = state->epoch; s->segment = state->segment;
+        s->offset = nearest_pixel(smooth);
+    }
+    s->offset += (int32_t)((smooth - (int64_t)s->offset * ORACLES_E11_F256) / ORACLES_E11_F256);   /* toward zero: under a pixel left */
+    return link - s->offset;
+}
+
 int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, const OraclesEnhancedObservation *observation, int32_t *camera_x, int32_t *camera_y)
 {
     /* The band a reducer frames stands centred in the surface's world band:
@@ -534,6 +565,7 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, con
         if (camera_x) *camera_x = cx;
         if (camera_y) *camera_y = cy;
         c->vertical_tracking = 1;
+        c->shown_x.valid = 0; c->shown_y.valid = 0;
         return 1;
     }
     OraclesE11Observation obs;
@@ -542,14 +574,17 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, con
     const OraclesE11Result ry = oracles_e11_reduce(&c->state_y, &obs, config);
     c->state_y = ry.state;
     c->vertical_tracking = c->state_y.status == ORACLES_E11_TRACKING;
-    if (camera_y) *camera_y = c->vertical_tracking ? c->state_y.camera_pos / ORACLES_E11_F256 + vertical_margin(c, here) - inset_y : observation->window_top - window_inset;
+    if (!c->vertical_tracking) c->shown_y.valid = 0;
+    const int32_t shown_y = c->vertical_tracking ? shown_position(&c->shown_y, &c->state_y, here->link_y) : 0;
+    if (camera_y) *camera_y = c->vertical_tracking ? shown_y + vertical_margin(c, here) - inset_y : observation->window_top - window_inset;
 
     reducer_observation(c, frame, observation, 0, &obs);
     restart_on_domain_change(&c->state, &obs, config);
     const OraclesE11Result r = oracles_e11_reduce(&c->state, &obs, config);
     c->state = r.state;
-    if (c->state.status != ORACLES_E11_TRACKING) return 0;
-    if (camera_x) *camera_x = c->state.camera_pos / ORACLES_E11_F256 - inset_x;
+    if (c->state.status != ORACLES_E11_TRACKING) { c->shown_x.valid = 0; return 0; }
+    const int32_t shown_x = shown_position(&c->shown_x, &c->state, here->link_x);
+    if (camera_x) *camera_x = shown_x - inset_x;
     return 1;
 }
 
@@ -563,6 +598,7 @@ void oracles_enhanced_camera_set_band(OraclesEnhancedCamera *c, unsigned width, 
     oracles_e11_state_initial(&c->state, &c->config);
     oracles_e11_state_initial(&c->state_y, &c->config);
     c->vertical_tracking = 0;
+    c->shown_x.valid = 0; c->shown_y.valid = 0;
 }
 
 void oracles_enhanced_camera_shown(const OraclesEnhancedCamera *c, unsigned *width, unsigned *height)
@@ -581,6 +617,11 @@ int oracles_enhanced_camera_frame(OraclesEnhancedCamera *c, uint32_t frame, int3
 const OraclesE11State *oracles_enhanced_camera_state(const OraclesEnhancedCamera *c) { return &c->state; }
 const OraclesE11State *oracles_enhanced_camera_state_vertical(const OraclesEnhancedCamera *c) { return &c->state_y; }
 const OraclesE11Config *oracles_enhanced_camera_config(const OraclesEnhancedCamera *c) { return &c->config; }
+void oracles_enhanced_camera_shown_offsets(const OraclesEnhancedCamera *c, OraclesEnhancedShownOffset *x, OraclesEnhancedShownOffset *y) { *x = c->shown_x; *y = c->shown_y; }
+void oracles_enhanced_camera_set_shown_offsets(OraclesEnhancedCamera *c, const OraclesEnhancedShownOffset *x, const OraclesEnhancedShownOffset *y)
+{
+    c->shown_x = *x; c->shown_y = *y;
+}
 unsigned oracles_enhanced_camera_profile(const OraclesEnhancedCamera *c) { return c->profile; }
 
 void oracles_enhanced_camera_set_profile(OraclesEnhancedCamera *c, unsigned profile)
@@ -591,6 +632,7 @@ void oracles_enhanced_camera_set_profile(OraclesEnhancedCamera *c, unsigned prof
     oracles_e11_state_initial(&c->state, &c->config);
     oracles_e11_state_initial(&c->state_y, &c->config);
     c->vertical_tracking = 0;
+    c->shown_x.valid = 0; c->shown_y.valid = 0;
 }
 
 void oracles_enhanced_camera_set_state(OraclesEnhancedCamera *c, const OraclesE11State *state, const OraclesE11State *vertical)
@@ -601,6 +643,8 @@ void oracles_enhanced_camera_set_state(OraclesEnhancedCamera *c, const OraclesE1
     else oracles_e11_state_initial(&c->state_y, &c->config);
     c->vertical_tracking = 0;
     c->restored = 1;
+    /* The whole offsets: the savestate's, set after the states, else taken afresh at the next frame (shown_position). */
+    c->shown_x.valid = 0; c->shown_y.valid = 0;
     /* The reducer ignores observations of an epoch below its own: the
      * observer resumes at the restored epoch, its reference room rebuilt. */
     const unsigned map_width = c->observer.map_width, band_width = c->observer.band_width;

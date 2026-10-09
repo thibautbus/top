@@ -169,6 +169,15 @@ void oracles_enhanced_observation_rebound(const OraclesEnhancedObserver *observe
 
 typedef struct OraclesEnhancedCamera OraclesEnhancedCamera;
 
+/* An axis's camera in whole pixels: Link's place less `offset`, kept while the
+ * reducer's smooth position stays within a pixel of it (camera.c,
+ * shown_position), in the reducer's epoch and segment it was taken in. */
+typedef struct OraclesEnhancedShownOffset {
+    int valid;
+    int32_t offset;
+    uint64_t epoch, segment;
+} OraclesEnhancedShownOffset;
+
 /* The reducers advanced with an observation already made: the horizontal
  * one gives the world x of the surface's left edge and the return value (1
  * tracking, 0 fallback); the vertical one, a second instance of the same
@@ -210,6 +219,11 @@ int oracles_enhanced_camera_frame(OraclesEnhancedCamera *camera, uint32_t frame,
 const OraclesE11State *oracles_enhanced_camera_state(const OraclesEnhancedCamera *camera);
 const OraclesE11State *oracles_enhanced_camera_state_vertical(const OraclesEnhancedCamera *camera);
 void oracles_enhanced_camera_set_state(OraclesEnhancedCamera *camera, const OraclesE11State *state, const OraclesE11State *vertical);
+/* The whole offsets of the two axes, for the savestate too: set after the
+ * states (oracles_enhanced_camera_set_state forgets them), a loaded state
+ * shows the camera to the pixel it showed. */
+void oracles_enhanced_camera_shown_offsets(const OraclesEnhancedCamera *camera, OraclesEnhancedShownOffset *x, OraclesEnhancedShownOffset *y);
+void oracles_enhanced_camera_set_shown_offsets(OraclesEnhancedCamera *camera, const OraclesEnhancedShownOffset *x, const OraclesEnhancedShownOffset *y);
 const OraclesE11Config *oracles_enhanced_camera_config(const OraclesEnhancedCamera *camera);
 /* 1: the first pinned configuration (dead zone of sixteen pixels); 2: the
  * second (a continuous, gentler follow).  Restarts the reducer. */
