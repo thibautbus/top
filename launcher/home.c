@@ -8,6 +8,9 @@
 #include "ui_page_nav.h"
 
 #include <SDL3/SDL.h>
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 
 #include <math.h>
 
@@ -49,8 +52,34 @@ typedef struct home_app {
      * that stops shows when the loop stopped, and one that goes on shows a loop alive behind a frozen screen. */
     double watch_since_ms, watch_until_ms, watch_next_ms, watch_present_max_ms;
     unsigned watch_events, watch_inputs, watch_window, watch_frames, watch_presented;
+    Uint32 watch_type[6];    /* the second's events by type, the first six types seen */
+    unsigned watch_type_count[6];
     double presented_ms;
 } home_app;
+
+/* Android: what reached the activity since the last call (OraclesActivity.inputState), else nothing. */
+static void android_input_state(char *out, size_t capacity)
+{
+    out[0] = 0;
+#ifdef __ANDROID__
+    JNIEnv *env = SDL_GetAndroidJNIEnv();
+    jobject activity = SDL_GetAndroidActivity();
+    if (!env || !activity) return;
+    jclass class = (*env)->GetObjectClass(env, activity);
+    jmethodID method = (*env)->GetStaticMethodID(env, class, "inputState", "()Ljava/lang/String;");
+    jstring state = method ? (*env)->CallStaticObjectMethod(env, class, method) : NULL;
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+    if (state) {
+        const char *text = (*env)->GetStringUTFChars(env, state, NULL);
+        if (text) { snprintf(out, capacity, "%s", text); (*env)->ReleaseStringUTFChars(env, state, text); }
+        (*env)->DeleteLocalRef(env, state);
+    }
+    (*env)->DeleteLocalRef(env, class);
+    (*env)->DeleteLocalRef(env, activity);
+#else
+    (void)capacity;
+#endif
+}
 
 static double now_ms(void)
 {
@@ -121,7 +150,9 @@ static void start(home_app *app, OraclesHomeCommand game)
     oracles_ui_draw_freeze(app->draw, 0);   /* the pause held the rasters at the game's scale; the home screen redoes its own */
     if (closed) { app->running = 0; return; }
     restore_window(app);
-    /* The session had the controllers' plugs and unplugs: those unplugged are let go, those plugged in are taken. */
+    /* The session had the controllers' plugs and unplugs: every controller is opened again from scratch, so that one the
+     * session's handles left in a state of their own is taken as new. */
+    oracles_sdl_pads_close(&app->pads);
     oracles_sdl_pads_open(&app->pads);
     /* Back from the game to the home screen, on Start game, from the page's Play as from the menu. */
     app->nav.screen = ORACLES_SCREEN_HOME;
@@ -136,7 +167,10 @@ static void start(home_app *app, OraclesHomeCommand game)
     app->watch_until_ms = app->watch_since_ms + WATCH_MS;
     app->watch_next_ms = app->watch_since_ms + 1000.0;
     app->watch_events = app->watch_inputs = app->watch_window = app->watch_frames = 0;
+    memset(app->watch_type_count, 0, sizeof app->watch_type_count);
     app->watch_present_max_ms = 0.0;
+    char platform[256];
+    android_input_state(platform, sizeof platform);   /* its counts start now */
     refresh(app);
     changed(app);
     if (message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
@@ -289,6 +323,12 @@ static void handle(home_app *app, const SDL_Event *e)
     }
     if (app->watch_until_ms > 0.0) {
         app->watch_events++;
+        for (unsigned i = 0; i < 6u; i++) {
+            if (app->watch_type_count[i] && app->watch_type[i] != e->type) continue;
+            app->watch_type[i] = e->type;
+            app->watch_type_count[i]++;
+            break;
+        }
         if (e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e->type == SDL_EVENT_FINGER_DOWN) app->watch_inputs++;
         if (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST) app->watch_window++;
         /* The application's life (background, foreground, low memory) and any window event, by its number. */
@@ -433,9 +473,14 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
             const double now = now_ms();
             if (app.watch_until_ms > 0.0 && now >= app.watch_next_ms) {
                 const SDL_WindowFlags flags = SDL_GetWindowFlags(app.window);
-                fprintf(stderr, "oracles: home screen, %.0f s after the game: %u events (%u inputs, %u of the window), %u frames presented (at most %.1f ms), input focus %s%s\n",
-                        (now - app.watch_since_ms) / 1000.0, app.watch_events, app.watch_inputs, app.watch_window, app.watch_frames, app.watch_present_max_ms,
-                        (flags & SDL_WINDOW_INPUT_FOCUS) ? "yes" : "no", (flags & SDL_WINDOW_HIDDEN) ? ", hidden" : "");
+                char types[128] = "", platform[256] = "";
+                for (unsigned i = 0, used = 0; i < 6u && app.watch_type_count[i] && used < sizeof types; i++)
+                    used += (unsigned)snprintf(types + used, sizeof types - used, "%s0x%x x%u", i ? ", " : "; by type ", (unsigned)app.watch_type[i], app.watch_type_count[i]);
+                android_input_state(platform, sizeof platform);
+                fprintf(stderr, "oracles: home screen, %.0f s after the game: %u events (%u inputs, %u of the window%s), %u frames presented (at most %.1f ms), input focus %s%s%s%s\n",
+                        (now - app.watch_since_ms) / 1000.0, app.watch_events, app.watch_inputs, app.watch_window, types, app.watch_frames, app.watch_present_max_ms,
+                        (flags & SDL_WINDOW_INPUT_FOCUS) ? "yes" : "no", (flags & SDL_WINDOW_HIDDEN) ? ", hidden" : "", platform[0] ? "; " : "", platform);
+                memset(app.watch_type_count, 0, sizeof app.watch_type_count);
                 app.watch_events = app.watch_inputs = app.watch_window = app.watch_frames = 0;
                 app.watch_present_max_ms = 0.0;
                 app.watch_next_ms += 1000.0;
