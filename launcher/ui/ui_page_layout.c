@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Vsync's short help in the 4:3 layout (ui_page_nav.c has the long one). */
+#ifdef __ANDROID__
+#define VSYNC_SHORT "Auto: off on Android."
+#else
+#define VSYNC_SHORT "Auto: follows a display near 60 Hz."
+#endif
+
 /* The pages' text styles. */
 const OraclesUiTextStyle oracles_ui_page_section = { ORACLES_UI_FONT_SERIF, 26.0f, 0.2f, 1 };
 const OraclesUiTextStyle oracles_ui_page_over = { ORACLES_UI_FONT_SERIF, 44.0f, 0.0f, 0 };
@@ -1242,7 +1249,7 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
     static const char *const help_4_3[ORACLES_DISPLAY_ROWS] = {
         NULL, NULL, "Whole multiples of the picture: pixels stay sharp.", "How much of the world shows; farther asks more.",
         "On: as the Game Boy Color showed it. Also F2.", "Rooms scroll into one another, swimming too.", "Core, Vsync and neighbor workers.",
-        "Accurate: the reference. Fast: lighter.", "Auto: follows a display near 60 Hz.", "Two fill the view faster, on one more core.",
+        "Accurate: the reference. Fast: lighter.", VSYNC_SHORT, "Two fill the view faster, on one more core.",
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;
     t->help = help_4_3[row];

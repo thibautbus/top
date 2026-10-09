@@ -57,6 +57,11 @@ OraclesQuality oracles_settings_default_quality(int fullscreen_only, int process
     return processor_threads >= 8 && ram_mb >= 6 * 1024 - 512 ? ORACLES_QUALITY_HIGH : ORACLES_QUALITY_MEDIUM;   /* "6 GB" devices report a little less */
 }
 
+int oracles_settings_auto_vsync(unsigned display_hz, int android)
+{
+    return !android && display_hz >= 59u && display_hz <= 61u;
+}
+
 OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality)
 {
     return quality > ORACLES_QUALITY_LOW && quality < ORACLES_QUALITY_CUSTOM ? (OraclesQuality)(quality - 1) : ORACLES_QUALITY_CUSTOM;

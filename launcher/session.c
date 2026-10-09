@@ -21,7 +21,9 @@
  * pace, so a scroll has no periodic hiccup from the two clocks beating.  On
  * any other display the host paces, as with "off".  Under vsync the host
  * checks that the presentation waits for the display, and paces itself from
- * the first second it did not.  The launcher owns every file: the
+ * the first second it did not.  On Android "auto" is off: the system
+ * composes the frames, and presenting in step with the display there only
+ * added latency on a handheld.  The launcher owns every file: the
  * core and the host only see buffers. */
 #include "session_internal.h"
 
@@ -419,7 +421,11 @@ static void window_options(session *s, const OraclesSessionOptions *o)
     if (!o->no_window) {
         s->display_hz = oracles_sdl_display_refresh_hz();
         if (!strcmp(s->vsync, "on")) s->sdl.vsync = 1;
-        else if (!strcmp(s->vsync, "auto")) s->sdl.vsync = s->display_hz >= 59u && s->display_hz <= 61u;
+#ifdef __ANDROID__
+        else if (!strcmp(s->vsync, "auto")) s->sdl.vsync = oracles_settings_auto_vsync(s->display_hz, 1);
+#else
+        else if (!strcmp(s->vsync, "auto")) s->sdl.vsync = oracles_settings_auto_vsync(s->display_hz, 0);
+#endif
     }
     s->sdl.pause_menu = s->pause != NULL && !o->no_window;
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) s->sdl.key_names[i] = prefs->key_names[i];

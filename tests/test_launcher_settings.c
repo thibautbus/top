@@ -364,6 +364,8 @@ int main(int argc, char **argv)
     CHECK(oracles_settings_default_quality(0, 4, 8192) == ORACLES_QUALITY_MAX);
     CHECK(oracles_settings_default_quality(1, 4, 4096) == ORACLES_QUALITY_MEDIUM);    /* the RG DS */
     CHECK(oracles_settings_default_quality(1, 8, 5800) == ORACLES_QUALITY_HIGH);      /* a "6 GB" device */
+    CHECK(oracles_settings_auto_vsync(60u, 0) && oracles_settings_auto_vsync(59u, 0) && !oracles_settings_auto_vsync(120u, 0));
+    CHECK(!oracles_settings_auto_vsync(60u, 1) && !oracles_settings_auto_vsync(120u, 1));   /* Android: off */
     CHECK(oracles_settings_default_quality(1, 8, 4096) == ORACLES_QUALITY_MEDIUM);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MAX) == ORACLES_QUALITY_HIGH);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MEDIUM) == ORACLES_QUALITY_LOW);

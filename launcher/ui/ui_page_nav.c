@@ -422,7 +422,11 @@ const char *oracles_display_explanation(unsigned row)
         case ORACLES_DISPLAY_VIEW: return "How much of the world the Enhanced view shows; farther asks more of the device.";
         case ORACLES_DISPLAY_COLOUR: return "On: colors as the Game Boy Color screen showed them. Off: the raw palette. Also F2 in game.";
         case ORACLES_DISPLAY_TRANSITIONS: return "Rooms scroll into one another instead of stopping at each edge, Link swimming too.";
+#ifdef __ANDROID__
+        case ORACLES_DISPLAY_VSYNC: return "Auto: off on Android, which composes the frames itself.";
+#else
         case ORACLES_DISPLAY_VSYNC: return "Auto: follows your display when it is close to 60 Hz.";
+#endif
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         case ORACLES_DISPLAY_WORKERS:
             return "Rooms around you are prepared by background workers. Two fill the view faster after a warp or a load, using one more processor core.";

@@ -112,6 +112,10 @@ void oracles_settings_apply_quality(oracles_settings *settings, OraclesQuality q
 /* The profile a first opening takes: Max on a desktop; where the window is always fullscreen (Android), High on a
  * device of 8 processor threads and 6 GB or more (`ram_mb` as SDL_GetSystemRAM gives it), Medium otherwise. */
 OraclesQuality oracles_settings_default_quality(int fullscreen_only, int processor_threads, int ram_mb);
+/* Whether vsync=auto presents in step with the display: on a desktop when the display refreshes at 59 to 61 Hz, close
+ * enough to the Game Boy's 59.7275 Hz; never on Android (`android`), whose system composes the frames itself, where
+ * presenting in step with the display only adds latency. */
+int oracles_settings_auto_vsync(unsigned display_hz, int android);
 /* The profile just lighter than `quality`, the one a game that ran slowly is suggested: Custom for Low and Custom. */
 OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality);
 /* A game ran slowly when it played in Enhanced (`enhanced`) for a minute at least, ORACLES_SLOW_FRAMES of its `frames`,
