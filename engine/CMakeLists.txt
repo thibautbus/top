@@ -3,7 +3,7 @@
 # its headers.
 add_library(oracles_core STATIC
     core/core.c core/core_sameboy.c core/core_mgba.c core/colour.c core/state.c core/cgb_boot_rom.c core/cgb_boot_rom_mgba.c
-    rom/rom.c rom/sha1.c rom/bps.c)
+    rom/rom.c rom/sha1.c rom/bps.c rom/zip.c)
 target_include_directories(oracles_core PUBLIC core rom)
 string(SUBSTRING ${ORACLES_MGBA_COMMIT} 0 8 ORACLES_MGBA_VERSION)
 target_compile_definitions(oracles_core PRIVATE ORACLES_SAMEBOY_VERSION="${ORACLES_SAMEBOY_VERSION}" ORACLES_MGBA_VERSION="${ORACLES_MGBA_VERSION}")

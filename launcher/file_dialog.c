@@ -116,9 +116,9 @@ static const struct {
     const char *title;
     SDL_DialogFileFilter filters[2];
 } kinds[3] = {
-    { "Choose ROM", { { "Game Boy Color ROM", "gbc;gb" }, { "All files", "*" } } },
-    { "Choose patch", { { "BPS patch", "bps" }, { "All files", "*" } } },
-    { "Choose European ROM", { { "Game Boy Color ROM", "gbc;gb" }, { "All files", "*" } } },
+    { "Choose ROM", { { "Game Boy Color ROM", "gbc;gb;zip" }, { "All files", "*" } } },
+    { "Choose patch", { { "BPS patch", "bps;zip" }, { "All files", "*" } } },
+    { "Choose European ROM", { { "Game Boy Color ROM", "gbc;gb;zip" }, { "All files", "*" } } },
 };
 
 void oracles_choose_file(struct SDL_Window *window, OraclesDialogKind kind, const char *folder, int game)

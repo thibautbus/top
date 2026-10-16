@@ -46,7 +46,7 @@ The tree:
 
 | Directory | What it holds |
 | --- | --- |
-| `engine/core`, `engine/rom` | the core's interface (`core.h`: memory, registers, hooks), its SameBoy and mGBA implementations (`core_sameboy.c`, `core_mgba.c`, the only files that see each core), the free boot ROM and composite savestates; the ROM loader, SHA-1 identification and BPS patches |
+| `engine/core`, `engine/rom` | the core's interface (`core.h`: memory, registers, hooks), its SameBoy and mGBA implementations (`core_sameboy.c`, `core_mgba.c`, the only files that see each core), the free boot ROM and composite savestates; the ROM loader (a zipped file's inside, `zip.c`), SHA-1 identification and BPS patches |
 | `engine/game/guest` | the guest bus, the hooks, the register journal, the transactions, the fingerprints, the tables generated per game |
 | `engine/game/profiles` | the profiles of the recognised images, and each fan game's manifest and generated table |
 | `engine/game/data` | the ROM data readers and their oracle against the disassembly |

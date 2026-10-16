@@ -25,6 +25,7 @@ Most of this release answers what players asked for after 1.1.0, many of them on
 - **Display** now reads Profile, Quality, Window, View, HUD, Color correction; **Continuous transitions** moved to Display's Advanced page, with Core, Vsync, Neighbor workers, Scaling and Screen margin.
 - On a screen where every Window choice comes to the same size, choosing Fill now starts the game fullscreen, as Display's diagram shows it.
 - The neighbouring rooms fill in more reliably, under the sea in Ages in particular.
+- **Zipped ROMs.** Choose ROM, Choose patch and European ROM now take a `.zip` too, as most ROMs are kept: the one ROM or patch inside it is read, nothing is unpacked to disk, and the save goes beside the zip. A zip holding several ROMs, or compressed other than the usual way, is refused with the reason.
 
 ### Fixed
 
