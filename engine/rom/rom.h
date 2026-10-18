@@ -43,7 +43,7 @@ typedef struct OraclesRomInfo {
     size_t size;
 } OraclesRomInfo;
 
-/* Reads a whole file; the caller frees the buffer. Returns NULL and an error message on failure. */
+/* Reads a whole file, or the one ROM of a .zip file (zip.h); the caller frees the buffer. Returns NULL and an error message on failure. */
 uint8_t *oracles_rom_read_file(const char *path, size_t *size, char *error, size_t error_capacity);
 
 /* Identifies an image. Returns 0 when it can be played, -1 with an error message otherwise. */

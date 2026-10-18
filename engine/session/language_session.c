@@ -50,7 +50,7 @@ static uint8_t *find_rom(const char *path, OraclesGame game, int us, size_t *siz
     uint8_t *data = NULL;
     struct dirent *entry;
     while (!data && (entry = readdir(listing))) {
-        if (!has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb")) continue;
+        if (!has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb") && !has_extension(entry->d_name, ".zip")) continue;
         snprintf(found, capacity, "%s/%s", path, entry->d_name);
         data = rom_at(found, game, us, size);
     }

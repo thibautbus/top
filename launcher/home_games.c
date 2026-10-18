@@ -518,7 +518,7 @@ static void open_mods(void *opaque, char *message, size_t capacity)
 #endif
 }
 
-/* A patch rather than a ROM: its name ends in .bps, or it begins as one. */
+/* A patch rather than a ROM: its name ends in .bps, it begins as one, or it is a zip of one. */
 static int looks_like_patch(const char *path)
 {
     const size_t length = strlen(path);
@@ -529,6 +529,7 @@ static int looks_like_patch(const char *path)
     if (!f) return 0;
     const size_t read = fread(magic, 1, sizeof magic, f);
     fclose(f);
+    if (read == sizeof magic && !memcmp(magic, "PK\3\4", 4)) return oracles_bps_check_file(path, NULL, 0) == 0;
     return read == sizeof magic && !memcmp(magic, "BPS1", 4);
 }
 

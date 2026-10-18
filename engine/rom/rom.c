@@ -1,5 +1,6 @@
 #include "rom.h"
 #include "sha1.h"
+#include "zip.h"
 #include "../game/profiles/moonrise-regalia/identity.h"
 #include "../game/profiles/temple-of-seasons/identity.h"
 #include "../game/profiles/gifts-of-kinomi/identity.h"
@@ -52,7 +53,7 @@ uint8_t *oracles_rom_read_file(const char *path, size_t *size, char *error, size
     }
     fclose(f);
     *size = (size_t)length;
-    return data;
+    return oracles_zip_unwrap(data, size, MAX_ROM_SIZE, error, error_capacity);
 }
 
 const char *oracles_game_name(OraclesGame game)

@@ -1,5 +1,6 @@
 #include "bps.h"
 #include "rom.h"
+#include "zip.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,7 +159,7 @@ static uint8_t *read_patch(const char *path, size_t *size, char *error, size_t e
     }
     fclose(f);
     *size = (size_t)length;
-    return data;
+    return oracles_zip_unwrap(data, size, MAX_PATCH_SIZE, error, error_capacity);   /* a patch kept zipped */
 }
 
 int oracles_bps_check_file(const char *patch_path, char *error, size_t error_capacity)

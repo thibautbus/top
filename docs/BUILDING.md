@@ -76,7 +76,7 @@ The launcher's standard error, the session report included, goes to Android's lo
 
 ## Tests
 
-`ctest` runs the tests without a ROM: the core, the ROM loader and BPS patches, the guest bus and its transactions, the renderer, the ghost's key, the camera, the item hotkeys, the mods' sandbox, the routes' format, the launcher's layout and settings, and the fan games' tables against their manifests. Tests that need a ROM are skipped without one, never simulated; the route suite is one of them (`oracles-routes`, see [`ROUTES.md`](ROUTES.md)).
+`ctest` runs the tests without a ROM: the core, the ROM loader, its zips and BPS patches, the guest bus and its transactions, the renderer, the ghost's key, the camera, the item hotkeys, the mods' sandbox, the routes' format, the launcher's layout and settings, and the fan games' tables against their manifests. Tests that need a ROM are skipped without one, never simulated; the route suite is one of them (`oracles-routes`, see [`ROUTES.md`](ROUTES.md)).
 
 **The layout reference.** The launcher's layout tests compare what the launcher lays out with `tests/launcher_layout_reference.json`, the measures of every text and element of its screens in the scene's pixels at 1920x1080. It is a reference file: a failing probe names itself, its frame and its expected and actual values. When a change of layout is intended, update the values of the probes it moves in that file, and the review sees what moved.
 
