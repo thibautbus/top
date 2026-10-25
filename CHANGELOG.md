@@ -2,7 +2,7 @@
 
 What changed in each version of The Oracles Project, the newest first. The release page of each version on GitHub carries the same text, under the installation notes.
 
-## 1.3.0 (unreleased)
+## 1.3.0 (2026-10-25)
 
 ### New
 
