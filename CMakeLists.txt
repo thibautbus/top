@@ -53,6 +53,9 @@ function(oracles_set_warnings target)
         endif()
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+        # No multiply-add fused into one rounding where the processor has it (ARM64, the default of clang and GCC there):
+        # the same floats round the same on every platform, the launcher's layout and the camera's fractions included.
+        target_compile_options(${target} PRIVATE -ffp-contract=off)
         if(ORACLES_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE -Werror)
         endif()
