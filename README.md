@@ -1,8 +1,22 @@
+<div align="center">
+
 # The Oracles Project
 
-[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
+**Play Oracle of Ages and Oracle of Seasons in widescreen, on Windows, macOS, Linux and Android.**
 
-A faithful, moddable port of Oracle of Ages and Oracle of Seasons for PC, macOS and Android. Your own ROM runs in an emulator core, [SameBoy](https://sameboy.github.io/), unmodified, the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices (Display's Core); around it, a native host observes the game and presents it:
+Your own ROM, untouched · Item hotkeys · Five languages · Lua mods · Fan games
+
+[![Latest release](https://img.shields.io/github/v/release/thibautbus/top)](https://github.com/thibautbus/top/releases) [![Downloads](https://img.shields.io/github/downloads/thibautbus/top/total)](https://github.com/thibautbus/top/releases) [![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg)](#contributors-)
+
+**[Download](https://github.com/thibautbus/top/releases/latest)** · [Features](#features) · [Fan games](docs/PLAYING.md#fan-games) · [Manual](docs/PLAYING.md) · [Report a problem](https://github.com/thibautbus/top/issues) · [Building](docs/BUILDING.md)
+
+![The Oracles Project: play Oracle of Ages and Oracle of Seasons in widescreen, with your own ROM. An illustration of the original screen, and the rooms around it that the Enhanced view shows, between the cool side of Ages and the warm side of Seasons](docs/assets/banner.png)
+
+</div>
+
+## Features
+
+A faithful, moddable port of Oracle of Ages and Oracle of Seasons for Windows, macOS, Linux and Android. Your own ROM runs in an emulator core, [SameBoy](https://sameboy.github.io/), unmodified, the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices (Display's Core); around it, a native host observes the game and presents it:
 
 - **Faithful**: the original image, 160x144, exactly what the game draws;
 - **Enhanced**: a widescreen view with the neighbouring rooms, which the game itself computes in a second instance of the core, a smooth camera, and the status bar repositioned in a band of its own;
@@ -16,6 +30,17 @@ A faithful, moddable port of Oracle of Ages and Oracle of Seasons for PC, macOS 
   - Temple of Seasons 1.073, built on Oracle of Seasons.
 
 Nothing of the game's code is rewritten: the game runs as it is, and the host reads its state. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) says why.
+
+## Featured in
+
+- [icrewplay.com - Oracle of Ages e Seasons in widescreen](https://www.icrewplay.com/zelda-oracle-ages-seasons-widescreen-fan/) (Italian)
+- [gamingworld.uk - Two widescreen ports of the Oracle games arrive](https://gamingworld.uk/news/two-widescreen-ports-of-zeldas-oracle-games-arrive-one-rebuilt-in-c-and-one-built-around-an-emulator)
+
+The project is also listed on:
+
+- [quiverlauncher.com](https://quiverlauncher.com/apps/the-legend-of-zelda-oracle-of-seasons-oracle-of-ages-the-oracles-project)
+- [recomp.fyi](https://recomp.fyi/game/the-legend-of-zelda-oracle-of-ages-seasons-gbc)
+- [openportsgames.com](https://openportsgames.com/en/ports/the-oracles-project/)
 
 ## Download
 

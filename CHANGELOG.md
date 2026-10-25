@@ -39,6 +39,12 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - `settings.txt` keeps the settings this version does not know, which a newer version or a test build wrote there, instead of losing them at each launch. A setting it knows, written with a value it does not know, goes back to its default.
 - A setting written by hand with spaces or capitals in `settings.txt`, such as `update_check = OFF`, now applies, instead of being ignored and replaced by the default.
 
+### Notes
+
+- **Defaults.** Nothing changes until you change it: Text Classic, Text box Standard, Text size Normal and Text speed Classic play the game's own text, the status bar stays Full width, and Menus & scenes stays Large on Android and View on computers. On Android, the camera now moves by fractions of a pixel (Smooth) where the game is shown at three times its size or more, on most phones and on the larger handhelds' screens; **Display > Advanced > Camera** chooses.
+- **Settings that moved.** **Scaling** and **Screen margin** moved from Display's Advanced page, and **Color correction** from Display's first page, to **Display > Picture**.
+- **Saves, settings and savestates.** Installed over 1.2.0, 1.3.0 keeps your saves and `settings.txt`, on Android too. Savestates made with 1.2.0 load and resume where they were taken, as long as Display > Text keeps the Classic text and the Standard box; one taken with the Compact text or the Wide box loads only with the same.
+
 ## 1.2.0 (2026-10-18)
 
 Most of this release answers what players asked for after 1.1.0, many of them on Retroid, AYN and Anbernic handhelds. Thank you for every report, screenshot and log, and to everyone who tested the builds and posted feedback: they shaped this version.
