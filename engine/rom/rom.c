@@ -1,5 +1,6 @@
 #include "rom.h"
 #include "sha1.h"
+#include "zip.h"
 #include "../game/profiles/moonrise-regalia/identity.h"
 #include "../game/profiles/temple-of-seasons/identity.h"
 #include "../game/profiles/gifts-of-kinomi/identity.h"
@@ -38,21 +39,7 @@ static void set_error(char *error, size_t capacity, const char *message)
 
 uint8_t *oracles_rom_read_file(const char *path, size_t *size, char *error, size_t error_capacity)
 {
-    FILE *f = fopen(path, "rb");
-    if (!f) { set_error(error, error_capacity, "cannot open the ROM file"); return NULL; }
-    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); set_error(error, error_capacity, "cannot read the ROM file"); return NULL; }
-    const long length = ftell(f);
-    if (length <= 0 || (unsigned long)length > MAX_ROM_SIZE) { fclose(f); set_error(error, error_capacity, "the ROM file has an impossible size"); return NULL; }
-    rewind(f);
-    uint8_t *data = malloc((size_t)length);
-    if (!data || fread(data, 1, (size_t)length, f) != (size_t)length) {
-        fclose(f); free(data);
-        set_error(error, error_capacity, "cannot read the ROM file");
-        return NULL;
-    }
-    fclose(f);
-    *size = (size_t)length;
-    return data;
+    return oracles_zip_read_file(path, ORACLES_ZIP_ROM, MAX_ROM_SIZE, size, error, error_capacity);
 }
 
 const char *oracles_game_name(OraclesGame game)

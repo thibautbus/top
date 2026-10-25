@@ -14,6 +14,7 @@
 #define ORACLES_LAUNCHER_HOME_GAMES_H
 
 #include "home.h"
+#include "home_files.h"
 #include "save.h"
 #include "session.h"
 #include "settings.h"
@@ -55,6 +56,8 @@ typedef struct OraclesHomeGames {
      * Oracle's ROM (kept with that ROM, and forgotten with the patch). */
     OraclesHomeFound rom_found[ORACLES_SETTINGS_GAMES], eu_found[ORACLES_SETTINGS_GAMES];
     OraclesHomeFound patch_found[ORACLES_HOME_FAN_GAMES], image_found[ORACLES_HOME_FAN_GAMES];
+    /* The files a refresh, and the choice or the drop before it, read: each once, forgotten at its end. */
+    OraclesHomeFiles files;
     /* Each Oracle's text box font, read with its original ROM (rom_found), for Display › Text's preview. */
     OraclesHomeFont rom_font[ORACLES_SETTINGS_GAMES];
     /* A save chosen to import, read and checked, set to English for an Oracle: for the game whose page chose it, while

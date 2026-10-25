@@ -16,7 +16,6 @@
 #include <SDL3/SDL.h>
 #include <sys/stat.h>
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,17 +49,34 @@ static void read_font(const uint8_t *data, size_t size, const OraclesRomInfo *in
     out->read = 1;
 }
 
-/* Reads and identifies a ROM, and reads its font when it is an original (`font`, NULL: not). Returns 1 with *info, or 0
- * with the loader's reason. */
-static int identify(const char *path, OraclesRomInfo *info, OraclesHomeFont *font, char *error, size_t capacity)
+/* Reads (once, home_files.h) and identifies a ROM, and reads its font when it is an original (`font`, NULL: not).
+ * Returns 1 with *info, or 0 with the loader's reason. */
+static int identify(OraclesHomeGames *games, const char *path, OraclesRomInfo *info, OraclesHomeFont *font, char *error, size_t capacity)
 {
     size_t size = 0;
-    uint8_t *rom = oracles_rom_read_file(path, &size, error, capacity);
+    const uint8_t *rom = oracles_home_file(&games->files, path, ORACLES_ZIP_ROM, &size, error, capacity);
     if (!rom) return 0;
     const int ok = oracles_rom_identify(rom, size, info, error, capacity) == 0;
     if (ok && font) read_font(rom, size, info, font);
-    free(rom);
     return ok;
+}
+
+/* A patch's file checked as a BPS patch, read once: 0, or -1 with the reason. */
+static int check_patch(OraclesHomeGames *games, const char *path, char *error, size_t capacity)
+{
+    size_t size = 0;
+    const uint8_t *patch = oracles_home_file(&games->files, path, ORACLES_ZIP_PATCH, &size, error, capacity);
+    return patch ? oracles_bps_check(patch, size, error, capacity) : -1;
+}
+
+/* The image a patch makes of a base ROM, as a session builds it, the two files read once; the caller frees it.  NULL
+ * with the reason. */
+static uint8_t *build_image(OraclesHomeGames *games, const char *base_path, const char *patch_path, size_t *size, char *error, size_t capacity)
+{
+    size_t base_size = 0, patch_size = 0;
+    const uint8_t *base = oracles_home_file(&games->files, base_path, ORACLES_ZIP_ROM, &base_size, error, capacity);
+    const uint8_t *patch = base ? oracles_home_file(&games->files, patch_path, ORACLES_ZIP_PATCH, &patch_size, error, capacity) : NULL;
+    return patch ? oracles_bps_apply(base, base_size, patch, patch_size, size, error, capacity) : NULL;
 }
 
 static OraclesGame game_of(OraclesSettingsGame game) { return game == ORACLES_SETTINGS_AGES ? ORACLES_GAME_AGES : ORACLES_GAME_SEASONS; }
@@ -120,7 +136,7 @@ static OraclesRomState rom_found(OraclesHomeGames *games, OraclesSettingsGame g,
     if (!still_found(found, path, &file, &there)) {
         OraclesRomInfo info;
         OraclesRomState state = ORACLES_ROM_REFUSED;
-        if (identify(path, &info, &games->rom_font[g], reason, capacity)) {
+        if (identify(games, path, &info, &games->rom_font[g], reason, capacity)) {
             if (info.game == game_of(g)) state = oracles_rom_is_original(&info) ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
             /* A ROM of the other game, chosen under this one (or written so in settings.txt). */
             else snprintf(reason, capacity, "the header says %s, not %s", oracles_game_name(info.game), oracles_game_name(game_of(g)));
@@ -162,15 +178,14 @@ static void inspect(OraclesHomeGames *games, OraclesSettingsGame g, OraclesHomeG
 
 /* What a European ROM is for Oracle `game`: ORIGINAL when it is the game's own, UNRECOGNISED for another file, REFUSED
  * with the loader's reason when it cannot be read. */
-static OraclesRomState eu_state(const char *path, OraclesGame game, char *reason, size_t capacity)
+static OraclesRomState eu_state(OraclesHomeGames *games, const char *path, OraclesGame game, char *reason, size_t capacity)
 {
     size_t size = 0;
-    uint8_t *rom = oracles_rom_read_file(path, &size, reason, capacity);
+    const uint8_t *rom = oracles_home_file(&games->files, path, ORACLES_ZIP_ROM, &size, reason, capacity);
     if (!rom) return ORACLES_ROM_REFUSED;
     OraclesRomInfo info;
     char error[ORACLES_HOME_TEXT_LENGTH];
     const int own = oracles_rom_identify(rom, size, &info, error, sizeof error) == 0 && oracles_language_source_game(&info) == game;
-    free(rom);
     return own ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
 }
 
@@ -184,17 +199,17 @@ static OraclesRomState eu_found(OraclesHomeGames *games, OraclesSettingsGame g, 
         snprintf(reason, capacity, "%s", found->reason);
         return found->state;
     }
-    const OraclesRomState state = eu_state(path, game_of(g), reason, capacity);
+    const OraclesRomState state = eu_state(games, path, game_of(g), reason, capacity);
     keep_found(found, path, &file, there, state, reason);
     return state;
 }
 
 /* The game a file is the European ROM of, ORACLES_GAME_UNKNOWN when it is none. */
-static OraclesGame european_game(const char *path)
+static OraclesGame european_game(OraclesHomeGames *games, const char *path)
 {
     OraclesRomInfo info;
     char error[ORACLES_HOME_TEXT_LENGTH];
-    return identify(path, &info, NULL, error, sizeof error) ? oracles_language_source_game(&info) : ORACLES_GAME_UNKNOWN;
+    return identify(games, path, &info, NULL, error, sizeof error) ? oracles_language_source_game(&info) : ORACLES_GAME_UNKNOWN;
 }
 
 /* An Oracle's European ROM as settings.txt names it, and its language, English unless the ROM is recognized. */
@@ -244,7 +259,7 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     int there;
     OraclesHomeFound *found = &games->patch_found[f];
     if (!still_found(found, patch, &file, &there)) {
-        state->patch = oracles_bps_check_file(patch, state->patch_reason, sizeof state->patch_reason) == 0 ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_REFUSED;
+        state->patch = check_patch(games, patch, state->patch_reason, sizeof state->patch_reason) == 0 ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_REFUSED;
         keep_found(found, patch, &file, there, state->patch, state->patch == ORACLES_ROM_REFUSED ? state->patch_reason : "");
         games->image_found[f].path[0] = 0;
     } else {
@@ -257,7 +272,7 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     found = &games->image_found[f];
     if (!still_found(found, settings->rom[base], &file, &there)) {
         size_t size = 0;
-        uint8_t *image = oracles_bps_apply_files(settings->rom[base], patch, &size, state->image_reason, sizeof state->image_reason);
+        uint8_t *image = build_image(games, settings->rom[base], patch, &size, state->image_reason, sizeof state->image_reason);
         OraclesRomInfo info;
         state->image = ORACLES_ROM_REFUSED;
         if (image && oracles_rom_identify(image, size, &info, state->image_reason, sizeof state->image_reason) == 0)
@@ -346,6 +361,7 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
     }
     for (int g = 0; nav->cheats_fixed && g < ORACLES_SETTINGS_GAMES; g++) nav->games[g].cheats = games->options->cheats;
     read_mods(opaque, nav);
+    oracles_home_files_forget(&games->files);
 }
 
 static void store(void *opaque, const OraclesHomeNav *nav)
@@ -390,7 +406,7 @@ static int offer(OraclesHomeGames *games, OraclesSettingsGame g, const char *pat
 {
     OraclesRomInfo info;
     char error[ORACLES_HOME_TEXT_LENGTH];
-    int ok = identify(path, &info, NULL, error, sizeof error);
+    int ok = identify(games, path, &info, NULL, error, sizeof error);
     if (ok && info.game != game_of(g)) {
         snprintf(error, sizeof error, "the header says %s, not %s", oracles_game_name(info.game), oracles_game_name(game_of(g)));
         ok = 0;
@@ -427,7 +443,7 @@ static OraclesRomState offer_eu(OraclesHomeGames *games, OraclesSettingsGame g, 
 static int offer_patch(OraclesHomeGames *games, const OraclesHomeFanGame *fan, const char *path, char *error, size_t capacity)
 {
     const unsigned f = fan_index(fan);
-    if (oracles_bps_check_file(path, error, capacity) != 0) {
+    if (check_patch(games, path, error, capacity) != 0) {
         snprintf(games->refused_patch[f].path, sizeof games->refused_patch[f].path, "%s", path);
         snprintf(games->refused_patch[f].reason, sizeof games->refused_patch[f].reason, "%s", error);
         fprintf(stderr, "oracles: %s patch %s refused, not kept: %s\n", fan_title(fan), path, error);
@@ -442,14 +458,14 @@ static int offer_patch(OraclesHomeGames *games, const OraclesHomeFanGame *fan, c
 
 /* The fan game a patch dropped on the home screen is for: the one whose image it makes of its Oracle's ROM, as chosen;
  * NULL when it makes none (no base ROM chosen yet, another patch). */
-static const OraclesHomeFanGame *fan_of_patch(const OraclesHomeGames *games, const char *path)
+static const OraclesHomeFanGame *fan_of_patch(OraclesHomeGames *games, const char *path)
 {
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) {
         const char *base = games->settings->rom[rom_setting(oracles_home_fan_games[f].base)];
         if (!base[0]) continue;
         char error[ORACLES_HOME_TEXT_LENGTH];
         size_t size = 0;
-        uint8_t *image = oracles_bps_apply_files(base, path, &size, error, sizeof error);
+        uint8_t *image = build_image(games, base, path, &size, error, sizeof error);
         OraclesRomInfo info;
         const int made = image && oracles_rom_identify(image, size, &info, error, sizeof error) == 0 && info.revision == fan_revisions[f];
         free(image);
@@ -545,29 +561,17 @@ static void open_mods(void *opaque, char *message, size_t capacity)
 #endif
 }
 
-/* A patch rather than a ROM: its name ends in .bps, or it begins as one. */
-static int looks_like_patch(const char *path)
-{
-    const size_t length = strlen(path);
-    if (length >= 4 && path[length - 4] == '.' && tolower((unsigned char)path[length - 3]) == 'b'
-        && tolower((unsigned char)path[length - 2]) == 'p' && tolower((unsigned char)path[length - 1]) == 's') return 1;
-    char magic[4] = { 0 };
-    FILE *f = fopen(path, "rb");
-    if (!f) return 0;
-    const size_t read = fread(magic, 1, sizeof magic, f);
-    fclose(f);
-    return read == sizeof magic && !memcmp(magic, "BPS1", 4);
-}
-
 static int drop(void *opaque, const char *path, int page_game, char *message, size_t capacity)
 {
     OraclesHomeGames *games = opaque;
     char error[200];
-    /* A patch goes to the fan game whose page is open, which shows it; elsewhere to the fan game whose image it makes of
-     * its Oracle's ROM, a toast saying so, and the home screen then shows the list of fan games. */
-    if (looks_like_patch(path)) {
+    /* A patch (zip.h: a .bps, or a zip of one) goes to the fan game whose page is open, which shows it, and so does a zip
+     * whose directory cannot be read, there; elsewhere to the fan game whose image it makes of its Oracle's ROM, a toast
+     * saying so, and the home screen then shows the list of fan games. */
+    const int patch = oracles_zip_is_patch_file(path);
+    if (patch > 0 || (patch < 0 && oracles_home_fan_game(page_game))) {
         const OraclesHomeFanGame *fan = oracles_home_fan_game(page_game);
-        if (!fan && oracles_bps_check_file(path, error, sizeof error) != 0) {
+        if (!fan && check_patch(games, path, error, sizeof error) != 0) {
             snprintf(message, capacity, "Refused: %s.", error);
             return -1;
         }
@@ -584,7 +588,7 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
     }
     /* A European ROM is the European ROM of the Oracle whose page is open, which says whether it is its own; elsewhere,
      * of the game it is the European ROM of, a toast saying so. */
-    const OraclesGame eu_game = european_game(path);
+    const OraclesGame eu_game = european_game(games, path);
     if (eu_game != ORACLES_GAME_UNKNOWN) {
         const int oracle = page_game == ORACLES_HOME_GAME_AGES || page_game == ORACLES_HOME_GAME_SEASONS;
         const OraclesSettingsGame g = oracle ? rom_setting(page_game) : eu_game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS;
@@ -598,7 +602,7 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
     if (page_game >= 0) { offer(games, rom_setting(page_game), path); return -1; }
     /* On the home screen it goes under the game it is, or a toast says why it is none. */
     OraclesRomInfo info;
-    if (!identify(path, &info, NULL, error, sizeof error)) {
+    if (!identify(games, path, &info, NULL, error, sizeof error)) {
         fprintf(stderr, "oracles: %s refused: %s\n", path, error);
         snprintf(message, capacity, "Refused: %s.", error);
         return -1;
@@ -646,6 +650,7 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     char pack[ORACLES_SETTINGS_PATH_LENGTH], language_note[ORACLES_HOME_TEXT_LENGTH + 128] = "";
     OraclesHomeGame oracle = state;
     if (fan && games->fan_languages) inspect_eu(games, g, &oracle);
+    oracles_home_files_forget(&games->files);   /* the files read for the page: none kept through the session */
     const int language = !fan ? games->settings->language[g] : games->fan_languages ? games->settings->fan_language[fan_index(fan)] : 0;
     const int recognized = fan ? state.image == ORACLES_ROM_ORIGINAL : state.rom == ORACLES_ROM_ORIGINAL;
     const char *oracle_name = oracles_game_name(game_of(g));

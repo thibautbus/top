@@ -17,8 +17,14 @@
 extern "C" {
 #endif
 
+/* The largest patch file the reader takes, zipped or not. */
+#define ORACLES_BPS_MAX_PATCH_SIZE (16u * 1024u * 1024u)
+
 /* The CRC32 of zlib and of the format (reflected, polynomial 0xEDB88320). */
 uint32_t oracles_crc32(const uint8_t *data, size_t size);
+
+/* Reads a patch's file, or the one patch of a .zip file (zip.h); the caller frees it.  NULL with the reason. */
+uint8_t *oracles_bps_read_file(const char *path, size_t *size, char *error, size_t error_capacity);
 
 /* A BPS patch whose own checksum holds, whatever its base: 0, or -1 with the reason.  The launcher says so of the
  * patch chosen before it has a base to apply it to. */

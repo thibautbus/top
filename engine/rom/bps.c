@@ -1,12 +1,12 @@
 #include "bps.h"
 #include "rom.h"
+#include "zip.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define MAX_TARGET_SIZE (8u * 1024u * 1024u)   /* as the loader's largest ROM */
-#define MAX_PATCH_SIZE (16u * 1024u * 1024u)
 #define FOOTER 12u                               /* the three CRC32 */
 
 static void set_error(char *error, size_t capacity, const char *message)
@@ -139,32 +139,15 @@ bounds:
     return NULL;
 }
 
-static uint8_t *read_patch(const char *path, size_t *size, char *error, size_t error_capacity)
+uint8_t *oracles_bps_read_file(const char *path, size_t *size, char *error, size_t error_capacity)
 {
-    FILE *f = fopen(path, "rb");
-    if (!f) { set_error(error, error_capacity, "cannot open the patch file"); return NULL; }
-    long length = -1;
-    if (fseek(f, 0, SEEK_END) == 0) length = ftell(f);
-    if (length <= 0 || (unsigned long)length > MAX_PATCH_SIZE || fseek(f, 0, SEEK_SET) != 0) {
-        fclose(f);
-        set_error(error, error_capacity, "the patch file has an impossible size");
-        return NULL;
-    }
-    uint8_t *data = malloc((size_t)length);
-    if (!data || fread(data, 1, (size_t)length, f) != (size_t)length) {
-        fclose(f); free(data);
-        set_error(error, error_capacity, "cannot read the patch file");
-        return NULL;
-    }
-    fclose(f);
-    *size = (size_t)length;
-    return data;
+    return oracles_zip_read_file(path, ORACLES_ZIP_PATCH, ORACLES_BPS_MAX_PATCH_SIZE, size, error, error_capacity);   /* or a zip's */
 }
 
 int oracles_bps_check_file(const char *patch_path, char *error, size_t error_capacity)
 {
     size_t size = 0;
-    uint8_t *patch = read_patch(patch_path, &size, error, error_capacity);
+    uint8_t *patch = oracles_bps_read_file(patch_path, &size, error, error_capacity);
     if (!patch) return -1;
     const int status = oracles_bps_check(patch, size, error, error_capacity);
     free(patch);
@@ -176,7 +159,7 @@ uint8_t *oracles_bps_apply_files(const char *base_path, const char *patch_path, 
     size_t base_size = 0, patch_size = 0;
     uint8_t *base = oracles_rom_read_file(base_path, &base_size, error, error_capacity);
     if (!base) return NULL;
-    uint8_t *patch = read_patch(patch_path, &patch_size, error, error_capacity);
+    uint8_t *patch = oracles_bps_read_file(patch_path, &patch_size, error, error_capacity);
     if (!patch) { free(base); return NULL; }
     uint8_t *image = oracles_bps_apply(base, base_size, patch, patch_size, size, error, error_capacity);
     free(base);

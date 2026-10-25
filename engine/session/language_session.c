@@ -23,11 +23,13 @@ struct OraclesLanguageSession {
     OraclesLanguageReport composed;
 };
 
-/* The image of `path` when it is the European ROM of `game` (`us` 0) or its US ROM (`us` 1); NULL otherwise, quietly. */
-static uint8_t *rom_at(const char *path, OraclesGame game, int us, size_t *size)
+/* The image of `path` when it is the European ROM of `game` (`us` 0) or its US ROM (`us` 1); NULL otherwise, with the
+ * loader's reason in `refused` when it cannot read the file (a zip it refuses), empty for another ROM. */
+static uint8_t *rom_at(const char *path, OraclesGame game, int us, size_t *size, char *refused, size_t refused_capacity)
 {
     char error[128];
-    uint8_t *data = oracles_rom_read_file(path, size, error, sizeof error);
+    refused[0] = 0;
+    uint8_t *data = oracles_rom_read_file(path, size, refused, refused_capacity);
     OraclesRomInfo info;
     if (data && oracles_rom_identify(data, *size, &info, error, sizeof error) == 0
         && (us ? oracles_rom_is_original(&info) && info.game == game : oracles_language_source_game(&info) == game)) return data;
@@ -45,20 +47,27 @@ static int has_extension(const char *name, const char *extension)
     return 1;
 }
 
-/* The European ROM of `game` (or its US ROM): `path` itself, or the first file of the directory `path` that is it. */
-static uint8_t *find_rom(const char *path, OraclesGame game, int us, size_t *size, char *found, size_t capacity)
+/* The European ROM of `game` (or its US ROM): `path` itself, or the first file of the directory `path` that is it.
+ * Without it, `refused` says why the loader refused the file, or names each file of the directory it refused, and why. */
+static uint8_t *find_rom(const char *path, OraclesGame game, int us, size_t *size, char *found, size_t capacity, char *refused,
+                         size_t refused_capacity)
 {
     DIR *listing = opendir(path);
     if (!listing) {
         snprintf(found, capacity, "%s", path);
-        return rom_at(path, game, us, size);
+        return rom_at(path, game, us, size, refused, refused_capacity);
     }
     uint8_t *data = NULL;
     struct dirent *entry;
+    refused[0] = 0;
     while (!data && (entry = readdir(listing))) {
-        if (!has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb")) continue;
+        if (!has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb") && !has_extension(entry->d_name, ".zip")) continue;
         snprintf(found, capacity, "%s/%s", path, entry->d_name);
-        data = rom_at(found, game, us, size);
+        char why[256];
+        data = rom_at(found, game, us, size, why, sizeof why);
+        const size_t used = strlen(refused);
+        if (!data && why[0] && used < refused_capacity)
+            snprintf(refused + used, refused_capacity - used, "%s%s: %s", used ? "; " : "", entry->d_name, why);
     }
     closedir(listing);
     return data;
@@ -79,7 +88,8 @@ static uint8_t *find_us(const char *base, const char *european, OraclesGame game
         if (slash) *slash = 0;
         else snprintf(directory, sizeof directory, ".");
     }
-    uint8_t *data = find_rom(directory, game, 1, size, found, sizeof found);
+    char refused[512];
+    uint8_t *data = find_rom(directory, game, 1, size, found, sizeof found, refused, sizeof refused);
     if (!data) snprintf(error, capacity, "a fan game's language needs the US ROM of %s it is made on, with its patch (--patch) or beside its European ROM",
                         oracles_game_name(game));
     return data;
@@ -147,9 +157,11 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
         }
         char found[1100];
         size_t size = 0;
-        uint8_t *data = find_rom(european, info->game, 0, &size, found, sizeof found);
+        char refused[512];
+        uint8_t *data = find_rom(european, info->game, 0, &size, found, sizeof found, refused, sizeof refused);
         if (!data) {
-            snprintf(error, capacity, "--eu-rom %s: no European ROM of %s there", european, oracles_game_name(info->game));
+            snprintf(error, capacity, "--eu-rom %s: no European ROM of %s there%s%s", european, oracles_game_name(info->game), refused[0] ? ": " : "",
+                     refused);
             return refuse(session, error, capacity, NULL);
         }
         session->pack = extract(data, size, found, base_path, info, rom, rom_size, error, capacity);

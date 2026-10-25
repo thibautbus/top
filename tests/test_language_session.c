@@ -2,8 +2,9 @@
  * 77, without them): English gives no session; a pack is extracted from the European ROM found in a directory, whatever
  * the case of its extension, and written; read back; a pack of another fingerprint or of another game is extracted again
  * when the European ROM is given and refused without it; without the European ROM or its pack, or on another ROM, the
- * language is refused; a pack that cannot be written serves all the same, and the session says so.  The compact text's
- * layout: English (US) composed laid out, a language's identity with the layout's, the European ROM refused. */
+ * language is refused, with the loader's reason for a European ROM it refuses (a zip of two ROMs, a zip cut short); a
+ * pack that cannot be written serves all the same, and the session says so.  The compact text's layout: English (US)
+ * composed laid out, a language's identity with the layout's, the European ROM refused. */
 #include "language_internal.h"
 #include "language_session.h"
 
@@ -52,6 +53,33 @@ static int write_file(const char *path, const uint8_t *data, size_t size)
     if (!f) return 0;
     const int written = fwrite(data, 1, size, f) == size;
     return (fclose(f) == 0) & written;
+}
+
+/* A zip of two stored ROMs of one byte, as the loader refuses it. */
+static size_t two_rom_zip(uint8_t *out)
+{
+    static const char *const names[2] = { "a.gbc", "b.gbc" };
+    size_t at = 0, local[2];
+    const uint32_t crc = 0xe8b7be43u;   /* of "a" */
+#define U16(v) do { out[at++] = (uint8_t)(v); out[at++] = (uint8_t)((v) >> 8); } while (0)
+#define U32(v) do { U16((uint32_t)(v) & 0xffffu); U16((uint32_t)(v) >> 16); } while (0)
+    for (int i = 0; i < 2; i++) {
+        local[i] = at;
+        U32(0x04034b50u); U16(20); U16(0); U16(0); U16(0); U16(0); U32(crc); U32(1); U32(1); U16(5); U16(0);
+        memcpy(out + at, names[i], 5); at += 5;
+        out[at++] = 'a';
+    }
+    const size_t directory = at;
+    for (int i = 0; i < 2; i++) {
+        U32(0x02014b50u); U16(20); U16(20); U16(0); U16(0); U16(0); U16(0); U32(crc); U32(1); U32(1); U16(5); U16(0); U16(0); U16(0); U16(0);
+        U32(0); U32(local[i]);
+        memcpy(out + at, names[i], 5); at += 5;
+    }
+    const size_t directory_size = at - directory;
+    U32(0x06054b50u); U16(0); U16(0); U16(2); U16(2); U32(directory_size); U32(directory); U16(0);
+#undef U16
+#undef U32
+    return at;
 }
 
 /* The session's report, where it says where its pack came from. */
@@ -120,6 +148,22 @@ int main(int argc, char **argv)
     /* Neither the European ROM nor a pack; a directory without the European ROM; another ROM than the US one. */
     CHECK(start(&session, NULL, pack, &info, &ages, error, sizeof error) == -1 && session == NULL && strstr(error, "needs the European ROM"));
     CHECK(start(&session, empty, pack, &info, &ages, error, sizeof error) == -1 && strstr(error, "no European ROM"));
+    /* A European ROM the loader refuses, given or in the directory given: its reason, the file named in a directory. */
+    char refused_dir[1024], two_path[1100], cut_path[1100];
+    snprintf(refused_dir, sizeof refused_dir, "%s/language-session-refused", work);
+    snprintf(two_path, sizeof two_path, "%s/two.zip", refused_dir);
+    snprintf(cut_path, sizeof cut_path, "%s/cut.ZIP", refused_dir);
+    make_dir(refused_dir);
+    uint8_t two[256];
+    static const uint8_t cut[8] = { 'P', 'K', 3, 4 };
+    CHECK(write_file(two_path, two, two_rom_zip(two)) && write_file(cut_path, cut, sizeof cut));
+    CHECK(start(&session, two_path, pack, &info, &ages, error, sizeof error) == -1 && strstr(error, "no European ROM")
+          && strstr(error, "the zip file holds several ROMs"));
+    CHECK(start(&session, refused_dir, pack, &info, &ages, error, sizeof error) == -1
+          && strstr(error, "two.zip: the zip file holds several ROMs") && strstr(error, "cut.ZIP: the zip file is damaged (no directory)"));
+    remove(two_path);
+    remove(cut_path);
+    remove(refused_dir);
     CHECK(start(&session, eu_dir, pack, &eu_info, &ages_eu, error, sizeof error) == -1 && strstr(error, "US ROM of Ages or Seasons"));
 
     /* Extracted from the European ROM found in the directory (GBC in capitals), written; then read back. */
