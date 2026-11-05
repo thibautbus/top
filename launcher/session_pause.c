@@ -45,7 +45,7 @@ static int pause_settings_changed(void *opaque)
 {
     session *s = opaque;
     OraclesSessionApplied applied = { s->colour_setting, s->sdl.fill, s->view ? oracles_enhanced_view_hud(s->view) : -1, s->sdl.screen_margin,
-                                      s->view && oracles_compat_host_text_box(s->profile) ? (int)oracles_enhanced_view_text_size(s->view) : -1,
+                                      s->view && oracles_compat_text_size(s->profile) ? (int)oracles_enhanced_view_text_size(s->view) : -1,
                                       s->swim_setting, s->hotkeys_game, s->hotkeys_setting, s->text_speed_setting, s->vsync_setting,
                                       s->view ? s->menus_large : -1, s->view && !s->unvisited_option ? oracles_enhanced_view_unvisited_hidden(s->view) : -1 };
     const unsigned changed = oracles_session_settings_changed(s->settings, s->screen_margin_option, s->text_size_option, &applied);
@@ -138,7 +138,7 @@ static unsigned pause_cheats(const session *s) { return s->cheats_pending ? s->c
 static void pause_cheats_changed(void *opaque, unsigned cheats)
 {
     session *s = opaque;
-    if (s->cheats_game < 0) return;
+    if (!s->pause_cheats) return;
     s->cheats_next = cheats;
     s->cheats_pending = cheats != s->cheats;
 }
@@ -227,7 +227,7 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
     const int window_shown = window_now(s, window, &window_w, &window_h);
     const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, pause_cheats_changed,
                                            pause_window_chosen, (int)oracles_core_kind(s->core), s->ghosts, device, pause_cheats(s),
-                                           s->cheats_game >= 0, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
+                                           s->pause_cheats, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
                                            window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size,
                                            oracles_home_menu_by_key((int)source) };
     OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);

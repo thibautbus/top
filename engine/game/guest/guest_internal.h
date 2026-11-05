@@ -162,11 +162,12 @@ void oracles_guest_text_skip_point(OraclesGuest *guest, OraclesGuestEventType ty
 /* guest_text_box.c: at drawLineOfText's return, at dmaTextGfxBuffer's and vblankDmaFunction's entries; the line composed
  * from its characters laid out at the host's width and its tiles (`gfx`, the host's width's, the compact text's
  * transaction's); the compact text's reveal written in the VRAM's line `which` at the vblank, its first `whole` tile
- * columns and `pixels` of the next (8: none); the lines and the reveal as the frame just scanned showed them, at the
+ * columns and `pixels` of the next (8: none), but the columns of `skipped` (a choice's cursor places, which the game
+ * draws in the fan games); the lines and the reveal as the frame just scanned showed them, at the
  * vblank before its writes; and forgotten at a reset. */
 void oracles_guest_text_box_point(OraclesGuest *guest, OraclesGuestEventType type);
 void oracles_guest_text_box_compose(OraclesGuest *guest, const OraclesGuestCompactLine *line, const OraclesGuestCompactCharacter *characters, const uint8_t *gfx);
-void oracles_guest_text_box_reveal(OraclesGuest *guest, unsigned which, unsigned whole, unsigned pixels);
+void oracles_guest_text_box_reveal(OraclesGuest *guest, unsigned which, unsigned whole, unsigned pixels, uint32_t skipped);
 void oracles_guest_text_box_vblank(OraclesGuest *guest);
 void oracles_guest_text_box_reset(OraclesGuest *guest);
 

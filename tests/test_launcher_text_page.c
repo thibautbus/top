@@ -3,13 +3,15 @@
  * preview. The reference's frames are turn 26's: the page with Compact and Wide chosen, Text box highlighted, in 16:9
  * (26a), in 4:3 (26b) and at 640x480 on Android (26c), Text box's savestate note under it (the help's note line in
  * 4:3); Display with the link highlighted (26e, text link 4:3); from the pause (26g, 26g 4:3 on Text, turn 29's), Text
- * and Text box dimmed with their reason, Text size live; in Faithful (26h); and Moonrise Regalia's (26i), Text box and
- * Text size dimmed with their reason, where the canvas leaves the page out; each measured again from turn 31, which
+ * and Text box dimmed with their reason, Text size live; in Faithful (26h); and Moonrise Regalia's (26i), where the
+ * canvas leaves the page out (its rows live there since the fan games have the wide box and Text size, measured again);
+ * each measured again from turn 31, which
  * adds Text speed under Text size, in 4:3 under a smaller preview.  Turn 31's own: Instant chosen and highlighted in
  * 16:9 (31a), in 4:3 (31c), at 640x480 on Android (31d), in the pause (31g); in Faithful, Display's link live (31e) and
  * the page in 4:3, Text speed alone live (31e 4:3, 31e text 4:3 on Text); a fan game's page (31f); the link's summary
  * naming Instant (31h, 31h 4:3), left out with Text speed dimmed for an unrecognised ROM.  The canvas's Lines row is not
  * there: the engine draws two lines alone. */
+#include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -183,34 +185,47 @@ static void layouts(void)
     nav.playing = ORACLES_PROFILE_FAITHFUL;
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_SIZE, 0) == ORACLES_HOME_STAY && nav.display.text_size == 2);
 
-    /* 26i: Moonrise Regalia's page, its compact text live, Text box and Text size dimmed with their reason, the
-     * game's box in the preview; its title on two lines moves the preview down. */
+    /* 26i: Moonrise Regalia's page, its Text, Text box and Text size live as an Oracle's, the wide box in the preview; its
+     * title on two lines moves the preview down. */
     ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080);
     nav.games[ORACLES_HOME_GAME_MOONRISE] = nav.games[0];
+    nav.games[ORACLES_HOME_GAME_MOONRISE].refuses = FAN_REFUSES;
     nav.games[ORACLES_HOME_GAME_MOONRISE].fan = oracles_home_fan_game(ORACLES_HOME_GAME_MOONRISE);
     nav.entry = ORACLES_HOME_FAN;
     nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
     text_page(&nav, ORACLES_DISPLAY_TEXT_BOX);
     lay_out(&nav, &t, &l);
     page_probes("26i", &l, 0);
-    CHECK(!strcmp(t.preview.label, "Far view, 480\xc3\x97" "270 \xc2\xb7 box 144\xc3\x97" "40"));
+    CHECK(!strcmp(t.preview.label, "Far view, 480\xc3\x97" "270 \xc2\xb7 box 208\xc3\x97" "40"));
     layout_text("26i", "title", &l.head.title.lines[0]);
     layout_text("26i", "box note", &l.text_notes[1]);
-    layout_text("26i", "tsize note", &l.text_notes[2]);
-    CHECK(!strcmp(t.text_notes[1], "Ages and Seasons only for now.") && !strcmp(t.text_notes[0], "Savestates taken with Compact need Compact."));
-    CHECK(oracles_display_text_row_live(&nav, ORACLES_DISPLAY_LETTERS) && !oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_BOX)
-          && !oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SIZE));
-    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_SIZE, 1) == ORACLES_HOME_STAY && nav.display.text_size == 0);
+    CHECK(!strcmp(t.text_notes[1], "Savestates taken with Wide need Wide.") && !strcmp(t.text_notes[0], "Savestates taken with Compact need Compact.")
+          && !t.text_notes[2][0]);
+    CHECK(oracles_display_text_row_live(&nav, ORACLES_DISPLAY_LETTERS) && oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_BOX)
+          && oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SIZE));
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_LETTERS, 0) == ORACLES_HOME_STORE && nav.display.text == 0);
-    /* Its link sums up what applies: its text, whatever Text box and Text size say, and Instant once chosen. */
+    /* Its link sums up its text, its box and its size, and Instant once chosen. */
     nav.display.text_box = 1;
     nav.display.text_size = 2;
     char fan_summary[64];
     oracles_display_text_summary(&nav, fan_summary, sizeof fan_summary);
-    CHECK(!strcmp(fan_summary, "Classic"));
+    CHECK(!strcmp(fan_summary, "Classic \xc2\xb7 Wide \xc2\xb7 Very large"));
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_SPEED, 1) == ORACLES_HOME_STORE && nav.display.text_speed == 1);
     oracles_display_text_summary(&nav, fan_summary, sizeof fan_summary);
+    CHECK(!strcmp(fan_summary, "Classic \xc2\xb7 Wide \xc2\xb7 Very large \xc2\xb7 Instant"));
+    /* By its profile, not by its being a fan game: Text box and Text size refused are dimmed with the reason, inert, left
+     * out of the summary, and the preview shows the game's box. */
+    nav.games[ORACLES_HOME_GAME_MOONRISE].refuses |= ORACLES_HOME_REFUSES_TEXT_BOX | ORACLES_HOME_REFUSES_TEXT_SIZE;
+    CHECK(!oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_BOX) && !oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SIZE));
+    CHECK(!strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_BOX), "Ages and Seasons only for now.")
+          && !strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_SIZE), "Ages and Seasons only for now."));
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_BOX, 0) == ORACLES_HOME_STAY && nav.display.text_box == 1);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_SIZE, 1) == ORACLES_HOME_STAY && nav.display.text_size == 2);
+    oracles_display_text_summary(&nav, fan_summary, sizeof fan_summary);
     CHECK(!strcmp(fan_summary, "Classic \xc2\xb7 Instant"));
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.preview.label, "Far view, 480\xc3\x97" "270 \xc2\xb7 box 144\xc3\x97" "40"));
+    nav.games[ORACLES_HOME_GAME_MOONRISE].refuses = FAN_REFUSES;
     /* 31f: Text speed highlighted, Compact chosen. */
     nav.display.text = 1;
     nav.display.text_box = nav.display.text_size = 0;
@@ -218,7 +233,6 @@ static void layouts(void)
     lay_out(&nav, &t, &l);
     page_probes("31f", &l, 0);
     layout_text("31f", "box note", &l.text_notes[1]);
-    layout_text("31f", "tsize note", &l.text_notes[2]);
 
     /* 26b, 26c: in 4:3, the preview at the top of the rows, its label and note at its right; the highlighted row's
      * explanation in the header. */
@@ -349,6 +363,7 @@ static void link(void)
     /* A fan game's page by its image: one its patch does not give is refused alike, the one it gives has Instant. */
     nav.games[0].rom = ORACLES_ROM_ORIGINAL;
     nav.games[ORACLES_HOME_GAME_MOONRISE] = nav.games[0];
+    nav.games[ORACLES_HOME_GAME_MOONRISE].refuses = FAN_REFUSES;
     nav.games[ORACLES_HOME_GAME_MOONRISE].fan = oracles_home_fan_game(ORACLES_HOME_GAME_MOONRISE);
     nav.games[ORACLES_HOME_GAME_MOONRISE].image = ORACLES_ROM_UNRECOGNISED;
     nav.entry = ORACLES_HOME_FAN;

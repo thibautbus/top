@@ -129,8 +129,8 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
         if (!nav->narrow) {
             items[n++] = item(ORACLES_HOME_ITEM_CONTROLS, "Controls", NULL, 0, NULL);
             items[n++] = item(ORACLES_HOME_ITEM_DISPLAY, "Display", NULL, 0, NULL);
-            /* Cheats where they apply: not for a fan game, nor a game whose profile has none. */
-            if (!oracles_home_fan_game(oracles_home_game(nav)) && !nav->cheats_refused) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
+            /* Cheats where they apply: not for a game whose profile has none. */
+            if (!oracles_home_refuses(nav, ORACLES_HOME_REFUSES_CHEATS) && !nav->cheats_refused) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
         }
         items[n++] = item(ORACLES_HOME_ITEM_QUIT_GAME, "Quit to launcher", NULL, 0, NULL);
         return n;
@@ -167,9 +167,9 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
         snprintf(items[4].text, sizeof items[4].text, "%u active", active);
         items[4].note = items[4].text;
     }
-    /* Cheats, for an Oracle whose ROM has them: a fan game's menu, and an unrecognised ROM's, keep their six entries. */
+    /* Cheats, for a game whose profile has them: an unrecognised ROM's menu keeps its six entries. */
     unsigned n = 5;
-    if (!fan && game->rom != ORACLES_ROM_UNRECOGNISED) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
+    if (!(game->refuses & ORACLES_HOME_REFUSES_CHEATS) && game->rom != ORACLES_ROM_UNRECOGNISED) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
     items[n++] = item(ORACLES_HOME_ITEM_EXIT, "Exit", NULL, 0, NULL);
     return n;
 }
@@ -417,6 +417,12 @@ OraclesHomeCommand oracles_home_click(OraclesHomeNav *nav, unsigned item)
 }
 
 int oracles_home_game(const OraclesHomeNav *nav) { return hero_game(oracles_home_hero(nav)); }
+
+int oracles_home_refuses(const OraclesHomeNav *nav, unsigned feature)
+{
+    const int g = oracles_home_game(nav);
+    return g >= 0 && (nav->games[g].refuses & feature) != 0;
+}
 
 OraclesHomeCommand oracles_home_start_command(int game)
 {

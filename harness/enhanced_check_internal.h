@@ -289,6 +289,7 @@ struct OraclesEnhancedCheck {
     uint32_t scaled_sink;
     unsigned wide_centred_frames;            /* frames showing a line of a page the game laid out, centred */
     unsigned wide_cursor_centred, wide_cursor_pixels_wrong;   /* a choice's cursor drawn on such a line; its pixels not the game's tile where it goes */
+    unsigned wide_cursor_cells;   /* frames with a choice shown whose cursor's places the game draws in its line's tiles, compared */
     unsigned wide_absent, wide_absent_run, wide_absent_longest;
     uint32_t wide_absent_last, wide_last_drawn;
     unsigned wide_state;                     /* w7TextDisplayState at the last frame */

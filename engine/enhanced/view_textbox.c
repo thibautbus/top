@@ -181,7 +181,7 @@ static void keep_under_box(OraclesEnhancedView *v)
 {
     int32_t place[4];
     /* A game whose box keeps its size (oracles_enhanced_view_set_text_size) draws it at the game's size only. */
-    const unsigned largest = oracles_compat_host_text_box(oracles_guest_profile(v->guest)) ? ORACLES_ENHANCED_TEXT_XLARGE : ORACLES_ENHANCED_TEXT_NORMAL;
+    const unsigned largest = oracles_compat_text_size(oracles_guest_profile(v->guest)) ? ORACLES_ENHANCED_TEXT_XLARGE : ORACLES_ENHANCED_TEXT_NORMAL;
     box_place(v, box_scale_at(v, v->box_wide ? v->box_host.width : 8u * ORACLES_TEXT_BOX_GAME_COLUMNS, largest), place);
     int32_t x0 = place[0], y0 = place[1], x1 = place[0] + place[2], y1 = place[1] + place[3];
     if (x0 < 0) x0 = 0;
@@ -502,8 +502,8 @@ void ev_overlay_text_box_framed(OraclesEnhancedView *v)
 
 void oracles_enhanced_view_set_text_size(OraclesEnhancedView *v, unsigned size)
 {
-    /* The fan games keep the game's box at its size, as they keep it standard: the host's box is not qualified there. */
-    const int qualified = oracles_compat_host_text_box(oracles_guest_profile(v->guest));
+    /* A game whose profile does not qualify Text size keeps the game's box at its size. */
+    const int qualified = oracles_compat_text_size(oracles_guest_profile(v->guest));
     v->text_size = qualified && size <= ORACLES_ENHANCED_TEXT_XLARGE ? size : ORACLES_ENHANCED_TEXT_NORMAL;
 }
 

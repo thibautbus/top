@@ -9,6 +9,7 @@
  * the settings nearest to the player's that load it. */
 #include "compositor.h"
 #include "home_choices.h"
+#include "home_fixture.h"
 #include "session.h"
 #include "settings.h"
 #include "state_display.h"
@@ -602,10 +603,49 @@ static void display_options(void)
     CHECK(oracles_session_display_options(&o, &s, 1, NULL, &surface) == ORACLES_PROFILE_ENHANCED && o.enhanced && surface.width == 480u);
 }
 
+/* What the launcher's pages are told each game's profile does not qualify, from the profiles themselves: none for the
+ * Oracles, the fixture's for each fan game, so that the pages' tests stand on the real profiles. */
+static void profile_refusals(void)
+{
+    CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US) == 0u);
+    CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US) == 0u);
+    CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2) == FAN_REFUSES);
+    CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_MOONRISE_1_0_6) == FAN_REFUSES);
+    CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_TEMPLE_1_073) == FAN_REFUSES);
+}
+
+/* Each game's cheats in the settings, read for its page and its Play, and written back from the page: a fan game's its
+ * own key, its Oracle's untouched; only the games the page changed. */
+static void fan_cheats(void)
+{
+    oracles_settings s;
+    oracles_settings_defaults(&s);
+    s.cheats[ORACLES_SETTINGS_AGES] = ORACLES_CHEAT_RUPEES;
+    s.fan_cheats[ORACLES_HOME_FAN_KINOMI] = ORACLES_CHEAT_AMMO;
+    s.fan_cheats[ORACLES_HOME_FAN_TEMPLE] = ORACLES_CHEAT_NO_DAMAGE;
+    CHECK(oracles_home_cheats(&s, ORACLES_HOME_GAME_AGES) == ORACLES_CHEAT_RUPEES && oracles_home_cheats(&s, ORACLES_HOME_GAME_SEASONS) == 0);
+    CHECK(oracles_home_cheats(&s, ORACLES_HOME_GAME_KINOMI) == ORACLES_CHEAT_AMMO && oracles_home_cheats(&s, ORACLES_HOME_GAME_TEMPLE) == ORACLES_CHEAT_NO_DAMAGE);
+    CHECK(oracles_home_cheats(&s, ORACLES_HOME_GAME_MOONRISE) == 0);
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[ORACLES_HOME_GAME_AGES].cheats = ORACLES_CHEAT_AMMO;   /* not changed by the page: not written */
+    nav.games[ORACLES_HOME_GAME_KINOMI].cheats = ORACLES_CHEAT_RUPEES;
+    nav.games[ORACLES_HOME_GAME_TEMPLE].cheats = 0;
+    nav.cheats_changed = 1u << ORACLES_HOME_GAME_KINOMI | 1u << ORACLES_HOME_GAME_TEMPLE;
+    oracles_home_store_cheats(&nav, &s);
+    CHECK(s.cheats[ORACLES_SETTINGS_AGES] == ORACLES_CHEAT_RUPEES && s.cheats[ORACLES_SETTINGS_SEASONS] == 0);
+    CHECK(s.fan_cheats[ORACLES_HOME_FAN_KINOMI] == ORACLES_CHEAT_RUPEES && s.fan_cheats[ORACLES_HOME_FAN_TEMPLE] == 0 && s.fan_cheats[ORACLES_HOME_FAN_MOONRISE] == 0);
+    nav.cheats_changed = 1u << ORACLES_HOME_GAME_AGES;
+    oracles_home_store_cheats(&nav, &s);
+    CHECK(s.cheats[ORACLES_SETTINGS_AGES] == ORACLES_CHEAT_AMMO && s.fan_cheats[ORACLES_HOME_FAN_KINOMI] == ORACLES_CHEAT_RUPEES);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) { fprintf(stderr, "usage: oracles-test-launcher-settings TEMPORARY_FILE\n"); return 2; }
     const char *path = argv[1];
+    fan_cheats();
+    profile_refusals();
 
     oracles_settings_defaults(&written);
     CHECK(written.rom[ORACLES_SETTINGS_AGES][0] == 0 && written.rom[ORACLES_SETTINGS_SEASONS][0] == 0);
@@ -667,6 +707,7 @@ int main(int argc, char **argv)
     written.text_size = 2;
     written.text_instant = 1;
     written.cheats[ORACLES_SETTINGS_SEASONS] = ORACLES_CHEAT_NO_DAMAGE | ORACLES_CHEAT_RUPEES;
+    written.fan_cheats[ORACLES_HOME_FAN_TEMPLE] = ORACLES_CHEAT_AMMO;   /* its own, not Seasons' */
     written.item_hotkeys[ORACLES_SETTINGS_AGES] = ORACLES_HOTKEYS_EQUIP;
     written.item_hotkeys[ORACLES_SETTINGS_SEASONS] = ORACLES_HOTKEYS_USE;
     written.window_scale = 0;   /* fullscreen */
@@ -702,6 +743,7 @@ int main(int argc, char **argv)
     CHECK(read_back.transitions == 0 && read_back.swim_hold == 1 && read_back.update_check == 0 && read_back.compact_text == 1 && read_back.text_box_wide == 1 && read_back.text_size == 2);
     CHECK(read_back.text_instant == 1);
     CHECK(read_back.cheats[ORACLES_SETTINGS_AGES] == 0 && read_back.cheats[ORACLES_SETTINGS_SEASONS] == (ORACLES_CHEAT_NO_DAMAGE | ORACLES_CHEAT_RUPEES));
+    CHECK(read_back.fan_cheats[ORACLES_HOME_FAN_TEMPLE] == ORACLES_CHEAT_AMMO && read_back.fan_cheats[ORACLES_HOME_FAN_KINOMI] == 0);
     CHECK(read_back.item_hotkeys[ORACLES_SETTINGS_AGES] == ORACLES_HOTKEYS_EQUIP && read_back.item_hotkeys[ORACLES_SETTINGS_SEASONS] == ORACLES_HOTKEYS_USE);
     CHECK(read_back.window_scale == 0);
     CHECK(!strcmp(read_back.mods[ORACLES_SETTINGS_AGES], "claw-game,fortune-teller") && !strcmp(read_back.mods[ORACLES_SETTINGS_SEASONS], "claw-game"));
@@ -750,12 +792,14 @@ int main(int argc, char **argv)
         if (!strcmp(line, "cheats_ages=\n")) seen |= 1048576;
         if (!strcmp(line, "cheats_seasons=no-damage,rupees\n")) seen |= 2097152;
         if (!strcmp(line, "update_check=off\n")) seen |= 4194304;
+        if (!strcmp(line, "cheats_temple=ammo\n")) seen |= 67108864;
+        if (!strcmp(line, "cheats_kinomi=\n")) seen |= 134217728;
         if (!strcmp(line, "text=compact\n")) seen |= 8388608;
         if (!strcmp(line, "text_speed=instant\n")) seen |= 16777216;
     }
     if (f) fclose(f);
     CHECK(seen == (127 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768 | 65536 | 131072 | 262144 | 524288 | 1048576 | 2097152 | 4194304 | 8388608
-                   | 16777216 | 33554432));   /* and not 128: no per-game profile or transitions, nor 1.3's menu_toast= */
+                   | 16777216 | 33554432 | 67108864 | 134217728));   /* and not 128: no per-game profile or transitions, nor 1.3's menu_toast= */
 
     /* A file of an earlier version, without the keys: the defaults; the keys it has hold, colour correction off. */
     write_text(path, "colour_correction=0\nvsync=off\n");
@@ -766,7 +810,7 @@ int main(int argc, char **argv)
     CHECK(read_back.eu_rom[ORACLES_SETTINGS_AGES][0] == 0 && read_back.language[ORACLES_SETTINGS_AGES] == 0 && read_back.language[ORACLES_SETTINGS_SEASONS] == 0);
     CHECK(read_back.fan_language[ORACLES_HOME_FAN_MOONRISE] == 0 && read_back.fan_language[ORACLES_HOME_FAN_TEMPLE] == 0);
     CHECK(read_back.transitions == 1 && read_back.window_scale == 0 && read_back.swim_hold == 0 && read_back.compact_text == 0 && read_back.text_instant == 0);
-    CHECK(read_back.cheats[ORACLES_SETTINGS_AGES] == 0 && read_back.cheats[ORACLES_SETTINGS_SEASONS] == 0);
+    CHECK(read_back.cheats[ORACLES_SETTINGS_AGES] == 0 && read_back.cheats[ORACLES_SETTINGS_SEASONS] == 0 && read_back.fan_cheats[ORACLES_HOME_FAN_KINOMI] == 0);
     CHECK(read_back.launcher_width == 1280 && read_back.launcher_height == 720);
     CHECK(!strcmp(read_back.menu_pad, "leftstick") && read_back.menu_tip == 0 && read_back.hotkeys_tip == 0 && read_back.update_check == 1);
     /* 1.3's toast, shown once with a controller: dropped, and not kept as a key unknown; the reminder due again. */
@@ -870,7 +914,7 @@ int main(int argc, char **argv)
     /* Values it does not know leave the default; an empty ROM clears it. */
     write_text(path, "profile=widescreen\nlauncher_window=big\nrom_seasons=\ntransitions=yes\nswim_hold=1\nupdate_check=0\ntext=narrow\nitem_hotkeys_seasons=always\nwindow_scale=5\n"
                      "eu_rom_ages=\nlanguage_ages=ja\nlanguage_seasons=de\nlanguage_temple=xx\nlanguage_kinomi=it\nlanguage_moonrise=en-us\n"
-                     "cheats_ages=ammo,speed-150\ncheats_seasons=rupees,ammo\ntext_speed=fast\n");
+                     "cheats_ages=ammo,speed-150\ncheats_seasons=rupees,ammo\ncheats_kinomi=speed-150,no-damage\ntext_speed=fast\n");
     oracles_settings_defaults(&read_back);
     snprintf(read_back.rom[1], sizeof read_back.rom[1], "old.gbc");
     snprintf(read_back.eu_rom[0], sizeof read_back.eu_rom[0], "old.gbc");
@@ -882,6 +926,7 @@ int main(int argc, char **argv)
     CHECK(read_back.rom[ORACLES_SETTINGS_SEASONS][0] == 0);
     CHECK(read_back.transitions == 1 && read_back.swim_hold == 0 && read_back.update_check == 1 && read_back.compact_text == 0 && read_back.item_hotkeys[ORACLES_SETTINGS_SEASONS] == ORACLES_HOTKEYS_OFF);
     CHECK(read_back.cheats[ORACLES_SETTINGS_AGES] == ORACLES_CHEAT_AMMO && read_back.cheats[ORACLES_SETTINGS_SEASONS] == (ORACLES_CHEAT_AMMO | ORACLES_CHEAT_RUPEES));   /* a cheat unknown: dropped */
+    CHECK(read_back.fan_cheats[ORACLES_HOME_FAN_KINOMI] == ORACLES_CHEAT_NO_DAMAGE);
     CHECK(read_back.window_scale == 0);
     CHECK(read_back.text_instant == 0);   /* a later version's speed: the default */
     /* Display's View: far at the first opening, a level written and read by its name, an unknown name the default. */

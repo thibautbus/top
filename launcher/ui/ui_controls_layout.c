@@ -274,33 +274,36 @@ static void chips_4_3(const char *const *names, float right, float y, OraclesUiC
     }
 }
 
-/* From the pause, a fan game, which has neither the swim's hold nor the item hotkeys: Swimming and the Item hotkeys are
- * dimmed and inert there, and say why in place of the fan games' lines; in an Oracle they apply to the game, unless its
- * ROM has neither (an unrecognised one), where they are dimmed and say why.  The line under each, NULL for none. */
-static int fan_pause(const OraclesHomeNav *nav) { return nav->in_game && oracles_home_fan_game(oracles_home_game(nav)) != NULL; }
+/* From the pause of a game whose profile has no swim's hold, no item hotkeys (a fan game): Swimming and the Item hotkeys
+ * are dimmed and inert there, and say why in place of the fan games' lines; in an Oracle they apply to the game, unless
+ * its ROM has neither (an unrecognised one), where they are dimmed and say why.  The line under each, NULL for none. */
+static int pause_refuses(const OraclesHomeNav *nav, unsigned feature) { return nav->in_game && oracles_home_refuses(nav, feature); }
 static const char *swim_later(const OraclesHomeNav *nav)
 {
-    return nav->swim_refused ? oracles_ui_controls_original_only : fan_pause(nav) ? oracles_display_fan_reason : NULL;
+    return nav->swim_refused ? oracles_ui_controls_original_only : pause_refuses(nav, ORACLES_HOME_REFUSES_SWIM_HOLD) ? oracles_display_fan_reason : NULL;
 }
 static const char *mode_later(const OraclesHomeNav *nav)
 {
-    return nav->hotkeys_refused ? oracles_ui_controls_original_only : fan_pause(nav) ? oracles_display_fan_reason : NULL;
+    return nav->hotkeys_refused ? oracles_ui_controls_original_only : pause_refuses(nav, ORACLES_HOME_REFUSES_HOTKEYS) ? oracles_display_fan_reason : NULL;
 }
 
-/* The fan game shown from the home screen, whose hotkeys stay off: the line that says so, else empty. */
+/* The fan game shown from the home screen whose profile refuses the item hotkeys, which stay off: the line that says so,
+ * else empty. */
 static void fan_note(const OraclesHomeNav *nav, char *out, size_t capacity)
 {
     const OraclesHomeFanGame *fan = oracles_home_fan_game(oracles_home_game(nav));
-    if (fan && !fan_pause(nav)) snprintf(out, capacity, "Fan games refuse item hotkeys: they stay off for %s.", oracles_home_title(fan->hero));
+    if (fan && !nav->in_game && oracles_home_refuses(nav, ORACLES_HOME_REFUSES_HOTKEYS))
+        snprintf(out, capacity, "Fan games refuse item hotkeys: they stay off for %s.", oracles_home_title(fan->hero));
     else if (capacity) out[0] = 0;
 }
 
-/* Under Swimming's explanation from `bottom`: in 4:3 a fan game's line that it does not apply there (16:9's Item hotkeys
- * already say that fan games refuse them), or from a fan game's pause why it is dimmed; returns their bottom. */
+/* Under Swimming's explanation from `bottom`: in 4:3 the line of a fan game whose profile has no swim's hold, that it
+ * does not apply there (16:9's Item hotkeys already say that fan games refuse them), or from its pause why it is dimmed;
+ * returns their bottom. */
 static float swim_lines(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiControlsLayout *out, float x, float bottom)
 {
     const OraclesUiControlsStyles *st = oracles_ui_controls_styles(layout);
-    if (layout == ORACLES_UI_LAYOUT_4_3 && oracles_home_fan_game(oracles_home_game(nav)) && !fan_pause(nav)) {
+    if (layout == ORACLES_UI_LAYOUT_4_3 && !nav->in_game && oracles_home_refuses(nav, ORACLES_HOME_REFUSES_SWIM_HOLD)) {
         out->swim_fan = line_at(st->mode_text, oracles_ui_controls_swim_fan, x, bottom + MODE_LINE_GAP, 0.0f);
         bottom = out->swim_fan.y + out->swim_fan.h;
     }

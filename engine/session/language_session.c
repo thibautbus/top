@@ -203,10 +203,6 @@ int oracles_language_session_lay_out(OraclesLanguageSession **session, const Ora
         snprintf(error, capacity, "the compact text lays out a fan game's texts in its English alone, not in a language");
         return -1;
     }
-    if (!oracles_rom_is_original(info) && (layout->fixed || layout->width != 128u || (layout->lines && layout->lines != 2u))) {
-        snprintf(error, capacity, "a fan game's texts are laid out for the game's text box alone, not a wider one");
-        return -1;
-    }
     if (!*session) {
         if (!(*session = calloc(1, sizeof **session))) { snprintf(error, capacity, "out of memory"); return -1; }
         (*session)->language = ORACLES_LANGUAGE_ENGLISH;

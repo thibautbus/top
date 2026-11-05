@@ -124,7 +124,10 @@
     "load_equipped_item_gfx": null,
     "check_use_items": null,
     "initialize_parent_item": null,
-    "remove_rupee_value": null,
+    "remove_rupee_value": {
+      "bank": 0,
+      "address": "0x168f"
+    },
     "lose_treasure": null,
     "play_sound": null,
     "set_global_flag": null,
@@ -844,7 +847,11 @@
       "bank": 0,
       "address": "0xffa3"
     },
-    "num_rupees": null,
+    "num_rupees": {
+      "bank": 0,
+      "address": "0xc6a7",
+      "name": "wNumOreChunks"
+    },
     "link_health": null,
     "link_max_health": null,
     "num_gasha_seeds": null,
@@ -883,7 +890,10 @@
     "treasure_collection_behaviours": null,
     "treasure_object_data": null,
     "treasure_object_lists_end": null,
-    "rupee_values": null,
+    "rupee_values": {
+      "bank": 0,
+      "address": "0x16a8"
+    },
     "get_text_address": {
       "bank": 63,
       "address": "0x4fa0"
@@ -922,10 +932,22 @@
     "link_stroke_counter": null,
     "active_ring": null,
     "link_update_flippers_state0": null,
-    "link_apply_damage": null,
-    "link_damage_to_apply": null,
-    "dec_num_bombs": null,
-    "get_rupee_value": null,
+    "link_apply_damage": {
+      "bank": 6,
+      "address": "0x46bb"
+    },
+    "link_damage_to_apply": {
+      "bank": 1,
+      "address": "0xd025"
+    },
+    "dec_num_bombs": {
+      "bank": 0,
+      "address": "0x16d7"
+    },
+    "get_rupee_value": {
+      "bank": 0,
+      "address": "0x1698"
+    },
     "bomb_fairy_lose_all_bombs": null,
     "draw_line_of_text": {
       "bank": 63,
@@ -1003,11 +1025,26 @@
       "bank": 7,
       "address": "0xd478"
     },
-    "dma_text_gfx_buffer": null,
-    "vblank_dma_function": null,
-    "textbox_vram_pos": null,
-    "character_display_timer": null,
-    "text_address": null,
+    "dma_text_gfx_buffer": {
+      "bank": 63,
+      "address": "0x5113"
+    },
+    "vblank_dma_function": {
+      "bank": 0,
+      "address": "0x09eb"
+    },
+    "textbox_vram_pos": {
+      "bank": 7,
+      "address": "0xd0d8"
+    },
+    "character_display_timer": {
+      "bank": 7,
+      "address": "0xd0c6"
+    },
+    "text_address": {
+      "bank": 7,
+      "address": "0xd0d5"
+    },
     "update_character_display_timer": {
       "bank": 63,
       "address": "0x5200"
@@ -1026,7 +1063,6 @@
     "load_equipped_item_gfx": "item hotkeys not qualified for this revision",
     "check_use_items": "item hotkeys not qualified for this revision",
     "initialize_parent_item": "item hotkeys not qualified for this revision",
-    "remove_rupee_value": "mods not qualified for this revision: they play on the original ROMs only",
     "lose_treasure": "mods not qualified for this revision: they play on the original ROMs only",
     "play_sound": "mods not qualified for this revision: they play on the original ROMs only",
     "set_global_flag": "mods not qualified for this revision: they play on the original ROMs only",
@@ -1067,7 +1103,6 @@
     "spr_item_icons_1": "item hotkeys not qualified for this revision",
     "obtained_seasons": "item hotkeys not qualified for this revision",
     "magnet_glove_polarity": "item hotkeys not qualified for this revision",
-    "num_rupees": "mods not qualified for this revision: they play on the original ROMs only",
     "link_health": "mods not qualified for this revision: they play on the original ROMs only",
     "link_max_health": "mods not qualified for this revision: they play on the original ROMs only",
     "num_gasha_seeds": "mods not qualified for this revision: they play on the original ROMs only",
@@ -1082,7 +1117,6 @@
     "treasure_collection_behaviours": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_data": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_lists_end": "mods not qualified for this revision: they play on the original ROMs only",
-    "rupee_values": "mods not qualified for this revision: they play on the original ROMs only",
     "gfx_header_table": "the graphics that carry text keep their English in a fan game: no reader takes this table",
     "link_update_velocity_mermaid": "the swim's hold not qualified for this revision",
     "game_keys_pressed": "the swim's hold not qualified for this revision",
@@ -1093,17 +1127,8 @@
     "link_stroke_counter": "the swim's hold not qualified for this revision",
     "active_ring": "the continuous transitions' swim at the line not qualified for this revision",
     "link_update_flippers_state0": "the swim's hold not qualified for this revision",
-    "link_apply_damage": "the cheats play on the original ROMs alone",
-    "link_damage_to_apply": "the cheats play on the original ROMs alone",
-    "dec_num_bombs": "the cheats play on the original ROMs alone",
-    "get_rupee_value": "the cheats play on the original ROMs alone",
-    "bomb_fairy_lose_all_bombs": "the cheats play on the original ROMs alone",
-    "dma_text_gfx_buffer": "the host's text box not qualified for this revision",
-    "vblank_dma_function": "the host's text box not qualified for this revision",
-    "textbox_vram_pos": "the host's text box not qualified for this revision",
-    "character_display_timer": "the host's text box not qualified for this revision",
+    "bomb_fairy_lose_all_bombs": "an Ages symbol: Seasons' engine has none",
     "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
-    "text_address": "the host's text box not qualified for this revision",
     "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
     "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
@@ -1188,7 +1213,7 @@
     "treasure_seed_satchel": "0xff",
     "num_rings": "0xff",
     "swimmers_ring": "0xff",
-    "rupee_value_count": "0xff",
+    "rupee_value_count": "0x15",
     "treasure_collection_behaviour_count": "0x00",
     "treasure_object_count": "0x00",
     "text_offset_split_index": "0x4e"

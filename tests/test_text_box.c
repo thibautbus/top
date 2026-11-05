@@ -9,7 +9,8 @@
  *   dmaTextGfxBuffer:   add $94 ; ld d,a ; an entry of wVBlankFunctionQueue as queueDmaTransfer writes it, from
  *                       w7TextGfxBuffer to d:$00, VRAM bank 0, 512 bytes ; hVBlankFunctionQueueTail at 8 ; ret
  *   vblankDmaFunction:  pop hl ; SVBK, HDMA1, HDMA2, VBK, HDMA3, HDMA4 and HDMA5 from the entry ; the queue emptied
- * called from a loop as $c0f0 says (1 a line from $c100, 2 its copy to the top line, 3 to the bottom), and from the
+ * called from a loop as $c0f0 says (1 a line from $c100, 2 its copy to the top line, 3 to the bottom, 4 an entry of the
+ * queue the test wrote, a character's cell as the fan games' dmaTextCharacter queues it), and from the
  * vblank's handler with the queue's entry pushed, as runVBlankFunctions does. */
 #include "core.h"
 #include "guest.h"
@@ -525,6 +526,9 @@ static uint8_t *synthetic_rom(const OraclesGuestTables *t, OraclesGame game, siz
     at = emit16(at, 0xfa, 0xc0f0);                                                 /* loop: ld a,($c0f0) */
     *at++ = 0xb7; *at++ = 0x28; *at++ = 0xfa;                                      /* or a ; jr z,loop */
     *at++ = 0x47; *at++ = 0xaf; at = emit16(at, 0xea, 0xc0f0); *at++ = 0x78;       /* ld b,a ; xor a ; ld ($c0f0),a ; ld a,b */
+    *at++ = 0xfe; *at++ = 0x04; *at++ = 0x20; *at++ = 0x07;                        /* cp 4 ; jr nz,+7 */
+    *at++ = 0x3e; *at++ = 0x08; *at++ = 0xe0; *at++ = tail;                        /* ld a,8 ; ldh (<tail),a: the entry the test wrote */
+    at = emit16(at, 0xc3, loop);                                                   /* jp loop */
     *at++ = 0xfe; *at++ = 0x01; *at++ = 0x20; *at++ = 0x06;                        /* cp 1 ; jr nz,+6 */
     at = emit16(at, 0xcd, t->draw_line_of_text.addr);                             /* call drawLineOfText */
     at = emit16(at, 0xc3, loop);                                                   /* jp loop */
@@ -618,6 +622,22 @@ static int line_in_vram(OraclesCore *core, OraclesGuest *guest, unsigned which, 
     return vram && line && line->known && memcmp(vram + (which == ORACLES_GUEST_TEXT_BOX_TOP ? 0x1400u : 0x1600u), line->gfx, LINE_BYTES) == 0;
 }
 
+/* An entry of the vblank's queue as the fan games' dmaTextCharacter writes one, from w7d800 (`cell`'s 32 bytes) to
+ * `destination` in VRAM bank `vram_bank`, `blocks` of 16 bytes less one, run at the next vblank: the cells it kept. */
+static unsigned queue_cell(OraclesCore *core, OraclesGuest *guest, const OraclesGuestTables *t, const uint8_t cell[CELL_BYTES], unsigned vram_bank,
+                           uint16_t destination, uint8_t blocks)
+{
+    uint8_t *wram0 = oracles_guest_wram_writable(guest, 0), *wram7 = oracles_guest_wram_writable(guest, 7);
+    memcpy(wram7 + 0x800u, cell, CELL_BYTES);
+    const uint8_t entry[8] = { 0x00, 0x07, 0xd8, 0x00, (uint8_t)vram_bank, (uint8_t)(destination >> 8), (uint8_t)destination, blocks };
+    memcpy(wram0 + (t->vblank_function_queue.addr - 0xc000u), entry, sizeof entry);
+    command(core, guest, 4);
+    oracles_core_run_frame(core);
+    OraclesGuestTextBoxCounts counts;
+    oracles_guest_text_box_counts(guest, &counts);
+    return counts.cells;
+}
+
 static void test_program(OraclesCoreKind kind, OraclesGame game, int compact)
 {
     const OraclesGuestTables *t = game == ORACLES_GAME_AGES ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
@@ -639,6 +659,10 @@ static void test_program(OraclesCoreKind kind, OraclesGame game, int compact)
     if (compact) CHECK(oracles_guest_arm_compact_text(guest) == 0);
     for (unsigned f = 0; f < 200u; f++) oracles_core_run_frame(core);   /* the boot ROM */
     CHECK(!oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_TOP)->known);
+    {
+        static const uint8_t unknown[CELL_BYTES];
+        CHECK(queue_cell(core, guest, t, unknown, 0, 0x9600u, 0x01) == 0u);   /* a line the host does not know yet */
+    }
     /* A line composed, then copied to the top line: by the vblank's DMA, at the next vblank the main loop waits for. */
     draw_line(core, guest, t, "Hello, world!");
     OraclesGuestTextBoxCounts counts;
@@ -662,6 +686,24 @@ static void test_program(OraclesCoreKind kind, OraclesGame game, int compact)
     oracles_core_run_frame(core);
     CHECK(line_in_vram(core, guest, ORACLES_GUEST_TEXT_BOX_TOP, 1) && memcmp(oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_TOP)->gfx,
                                                                               oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_BOTTOM)->gfx, LINE_BYTES) == 0);
+    /* A character's cell DMAed into the top line's tiles by the game itself (a choice's cursor in the fan games): kept in
+     * the host's line at its column, as in the VRAM.  Not an entry to the other bank, to the map, off a cell's edge, of
+     * 16 bytes, or to a line the host does not know yet; those whose bytes the line's tiles take hold the host's own
+     * there, the VRAM and the host's line kept equal. */
+    {
+        uint8_t cell[CELL_BYTES];
+        for (unsigned i = 0; i < CELL_BYTES; i++) cell[i] = (uint8_t)(0x5au ^ i);
+        CHECK(queue_cell(core, guest, t, cell, 0, 0x9440u, 0x01) == 1u);   /* the top line's third cell */
+        const OraclesGuestTextBoxLine *line = oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_TOP);
+        CHECK(line_in_vram(core, guest, ORACLES_GUEST_TEXT_BOX_TOP, 1) && line->gfx[2u * CELL_BYTES] == 0x5au);
+        CHECK(queue_cell(core, guest, t, cell, 1, 0x9440u, 0x01) == 1u);   /* VRAM bank 1 */
+        CHECK(queue_cell(core, guest, t, cell, 0, 0x9840u, 0x01) == 1u);   /* the map */
+        memcpy(cell, line->gfx + 0x50u, CELL_BYTES);
+        CHECK(queue_cell(core, guest, t, cell, 0, 0x9450u, 0x01) == 1u);   /* off a cell's edge */
+        memcpy(cell, line->gfx + 0x60u, CELL_BYTES);
+        CHECK(queue_cell(core, guest, t, cell, 0, 0x9460u, 0x00) == 1u);   /* 16 bytes */
+        CHECK(line_in_vram(core, guest, ORACLES_GUEST_TEXT_BOX_TOP, 1));
+    }
     /* A savestate: the lines saved with it come back with it; a state without them leaves them unknown. */
     static uint8_t field[ORACLES_GUEST_TEXT_BOX_STATE_SIZE], core_state[1u << 20];
     const size_t field_size = oracles_guest_text_box_save_state(guest, field, sizeof field);
@@ -804,15 +846,26 @@ static void test_program_wide(OraclesCoreKind kind, OraclesGame game, int fixed)
     CHECK(kept->boundary[kept->steps - 1u] == 32u + 8u * 9u);
     oracles_guest_text_box_counts(guest, &counts);
     CHECK(counts.centred == 1);
+    /* Copied to the top line, a cell the game DMAs to its third goes to the host's column moved with the line. */
+    command(core, guest, 2);
+    oracles_core_run_frame(core);
+    {
+        uint8_t cell[CELL_BYTES];
+        for (unsigned i = 0; i < CELL_BYTES; i++) cell[i] = (uint8_t)(0xa5u ^ i);
+        const unsigned before = counts.cells;
+        CHECK(queue_cell(core, guest, t, cell, 0, 0x9440u, 0x01) == before + 1u);
+        const OraclesGuestTextBoxLine *top = oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_TOP);
+        CHECK(top->offset == 32u && !memcmp(top->gfx + 6u * CELL_BYTES, cell, CELL_BYTES) && memcmp(top->gfx + 2u * CELL_BYTES, cell, CELL_BYTES) != 0);
+    }
     field[1] = 16;   /* a state of another width */
     CHECK(oracles_guest_text_box_load_state(guest, field, field_size) == -1 && !oracles_guest_text_box_line(guest, ORACLES_GUEST_TEXT_BOX_TOP)->known);
     oracles_guest_detach(guest);
     oracles_core_destroy(core);
 }
 
-/* A fan game keeps the game's box: neither the host's box nor the wide one armed, and the Enhanced view's Text size
- * Normal whatever is asked, where Ages' keeps it; so too with its compact text qualified, the host's box qualified on
- * its own. */
+/* The fan games' profiles qualify the host's box and Text size, as Ages'.  A profile without the host's box has the wide
+ * one refused, the game's box armed for the harness's check alone, and Text size taken from the core's image as Ages
+ * takes it; a profile without Text size keeps Normal whatever is asked. */
 static void test_fan_game(OraclesCoreKind kind)
 {
     static const struct { OraclesGame game; OraclesRomRevision revision; } fans[3] = {
@@ -820,13 +873,15 @@ static void test_fan_game(OraclesCoreKind kind)
         { ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2 } };
     for (unsigned i = 0; i < 3u; i++) {
         const OraclesRomInfo info = { .game = fans[i].game, .revision = fans[i].revision, .known = 1 };
-        CHECK(oracles_compat_find(&info) && !oracles_compat_host_text_box(oracles_compat_find(&info)));
+        const OraclesCompatProfile *profile = oracles_compat_find(&info);
+        CHECK(profile && oracles_compat_host_text_box(profile) && oracles_compat_text_size(profile));
     }
     const OraclesRomInfo moonrise_info = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_MOONRISE_1_0_6, .known = 1 };
     const OraclesRomInfo ages_info = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_AGES_US, .known = 1 };
-    OraclesCompatProfile compact = *oracles_compat_find(&moonrise_info);
-    compact.compact_text = 1;
-    const OraclesCompatProfile *const profiles[3] = { oracles_compat_find(&moonrise_info), &compact, oracles_compat_find(&ages_info) };
+    OraclesCompatProfile unboxed = *oracles_compat_find(&moonrise_info), unsized = unboxed;
+    unboxed.host_text_box = 0;
+    unsized.host_text_box = unsized.text_size = 0;
+    const OraclesCompatProfile *const profiles[3] = { &unboxed, &unsized, oracles_compat_find(&ages_info) };
     const size_t size = 1024u * 1024u;
     for (unsigned r = 0; r < 3u; r++) {
         uint8_t *rom = synthetic_rom(&oracles_guest_tables_ages, ORACLES_GAME_AGES, size);
@@ -841,13 +896,13 @@ static void test_fan_game(OraclesCoreKind kind)
         OraclesEnhancedView *view = guest ? oracles_enhanced_view_start(core, guest, NULL, 0) : NULL;
         CHECK(view != NULL);
         if (view) {
-            const int fan = r < 2u;
-            CHECK((oracles_guest_arm_text_box(guest, 128) == -1) == fan);
+            const int fan = r < 2u, sized = r != 1u;
             if (fan) CHECK(oracles_guest_arm_wide_text_box(guest, 192, 0) == -1);
+            CHECK(oracles_guest_arm_text_box(guest, 128) == 0);
             oracles_enhanced_view_set_text_size(view, ORACLES_ENHANCED_TEXT_XLARGE);
-            CHECK(oracles_enhanced_view_text_size(view) == (fan ? ORACLES_ENHANCED_TEXT_NORMAL : ORACLES_ENHANCED_TEXT_XLARGE));
+            CHECK(oracles_enhanced_view_text_size(view) == (sized ? ORACLES_ENHANCED_TEXT_XLARGE : ORACLES_ENHANCED_TEXT_NORMAL));
             oracles_enhanced_view_set_text_size(view, ORACLES_ENHANCED_TEXT_LARGE);
-            CHECK(oracles_enhanced_view_text_size(view) == (fan ? ORACLES_ENHANCED_TEXT_NORMAL : ORACLES_ENHANCED_TEXT_LARGE));
+            CHECK(oracles_enhanced_view_text_size(view) == (sized ? ORACLES_ENHANCED_TEXT_LARGE : ORACLES_ENHANCED_TEXT_NORMAL));
             oracles_enhanced_view_stop(view);
         }
         if (guest) oracles_guest_detach(guest);

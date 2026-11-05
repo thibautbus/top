@@ -733,7 +733,7 @@ void oracles_ui_cheats_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Orac
     /* 4:3: the highlighted row's explanation and its note, under the rows. */
     const unsigned shown = row < ORACLES_CHEATS_ROWS ? row : 0u;
     text(draw, st->help, &l.help, oracles_cheats_texts[shown], oracles_ui_rgb(HELP));
-    text(draw, st->help_note, &l.help_note, oracles_cheats_notes[shown], oracles_ui_rgb(NOTE_ITALIC));
+    text(draw, st->help_note, &l.help_note, oracles_cheats_row_note(nav, shown), oracles_ui_rgb(NOTE_ITALIC));
 }
 
 int oracles_ui_cheats_hit(const OraclesHomeNav *nav, float x, float y, int *option)

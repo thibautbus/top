@@ -9,6 +9,7 @@
 #include "language.h"
 #include "mod_folder.h"
 #include "pause.h"
+#include "profile.h"
 #include "rom.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -157,6 +158,7 @@ static void inspect(OraclesHomeGames *games, OraclesSettingsGame g, OraclesHomeG
 {
     const oracles_settings *settings = games->settings;
     memset(state, 0, sizeof *state);
+    state->refuses = oracles_home_refusals(game_of(g), g == ORACLES_SETTINGS_AGES ? ORACLES_ROM_REVISION_AGES_US : ORACLES_ROM_REVISION_SEASONS_US);
     state->hotkeys = (int)settings->item_hotkeys[g];
     state->cheats = settings->cheats[g];
     if (games->refused[g].path[0]) {
@@ -244,7 +246,9 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     const int base_usable = state->usable;
     state->usable = 0;
     state->fan = fan;
-    state->hotkeys = state->hotkeys_failed = 0;   /* no fan game's profile allows the item hotkeys yet */
+    state->refuses = oracles_home_refusals(game_of(base), fan_revisions[f]);
+    if (state->refuses & ORACLES_HOME_REFUSES_HOTKEYS) state->hotkeys = state->hotkeys_failed = 0;   /* off where its profile refuses them */
+    state->cheats = oracles_home_cheats(settings, fan->game);   /* its own, not its Oracle's */
     state->save_file[0] = state->save_written[0] = state->last_session[0] = 0;
     const char *patch = games->refused_patch[f].path[0] ? games->refused_patch[f].path : settings->patch[f];
     if (!patch[0]) return;
@@ -370,7 +374,7 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
             fprintf(stderr, "oracles: %s patch %s refused: %s\n", fan_title(fan), games->settings->patch[f], state->patch_reason);
         if (state->image == ORACLES_ROM_REFUSED) fprintf(stderr, "oracles: %s does not build: %s\n", fan_title(fan), state->image_reason);
     }
-    for (int g = 0; nav->cheats_fixed && g < ORACLES_SETTINGS_GAMES; g++) nav->games[g].cheats = games->options->cheats;
+    for (int g = 0; nav->cheats_fixed && g < ORACLES_HOME_GAMES; g++) nav->games[g].cheats = games->options->cheats;
     read_mods(opaque, nav);
     oracles_home_files_forget(&games->files);
 }
@@ -381,8 +385,8 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     oracles_settings *prefs = games->settings;
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
         prefs->item_hotkeys[g] = (OraclesHotkeysMode)nav->games[g].hotkeys;
-        if (nav->cheats_changed & 1u << g) prefs->cheats[g] = nav->games[g].cheats;   /* the page's, never --cheats' */
     }
+    oracles_home_store_cheats(nav, prefs);   /* the page's, never --cheats' */
     oracles_home_store_controls(&nav->controls, prefs);
     oracles_home_store_display(&nav->display, nav->in_game, prefs);
     prefs->update_check = nav->update_check;   /* About's: the next launch asks, or not */
@@ -702,11 +706,12 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     o.swim_hold = o.swim_hold || games->settings->swim_hold;
     /* The text speed, in either profile, a fan game's too: the command line's, else settings.txt's text_speed=. */
     if (!o.text_instant) o.text_instant = games->settings->text_instant ? 2 : 1;
-    /* The cheats of the game's Oracle: the command line's, else settings.txt's cheats_<game>=; none for a fan game. */
-    if (fan) o.cheats = 0;
-    else if (!o.cheats_given) o.cheats = games->settings->cheats[g];
-    /* No fan game's profile allows the item hotkeys yet: off, whatever the command line gave for the Oracles. */
-    if (fan) o.hotkeys_option = hotkey_names[0];
+    /* The game's cheats: the command line's, else settings.txt's cheats_<game>= (a fan game's own); none where its
+     * profile refuses them (an unrecognised ROM's). */
+    if (state.refuses & ORACLES_HOME_REFUSES_CHEATS) o.cheats = 0;
+    else if (!o.cheats_given) o.cheats = oracles_home_cheats(games->settings, fan ? fan->game : (int)g);   /* an Oracle's index is its settings' */
+    /* The item hotkeys: off where the game's profile refuses them (a fan game's), whatever the command line gave. */
+    if (state.refuses & ORACLES_HOME_REFUSES_HOTKEYS) o.hotkeys_option = hotkey_names[0];
     else if (!o.hotkeys_option) o.hotkeys_option = hotkey_names[state.hotkeys];
     /* Display shows no camera: a game started here in Enhanced takes profile 2, the smooth camera. The camera key of
      * settings.txt stays for the command line and hand editing, and --camera given to the launcher still wins. */

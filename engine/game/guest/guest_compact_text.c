@@ -373,7 +373,8 @@ void oracles_guest_compact_vblank(OraclesGuest *guest)
     const uint8_t *gfx = bank7(guest, t->text_gfx_buffer);
     const size_t vram_line = (tiles == BOTTOM_LINE_TILES ? 0x1600u : 0x1400u);
     /* A choice shown keeps its cursor's tiles: blank in the line's graphics, an engine may draw the cursor there. */
-    write_columns(guest, vram_line, gfx, 0, whole, mode == 1u ? cursor_places(guest, tiles) : 0u);
+    const uint32_t cursors = mode == 1u ? cursor_places(guest, tiles) : 0u;
+    write_columns(guest, vram_line, gfx, 0, whole, cursors);
     if (visible > whole) {
         uint8_t partial[CELL_BYTES];
         oracles_guest_compact_mask(gfx + whole * CELL_BYTES, boundary % TILE_PIXELS, partial);
@@ -382,7 +383,7 @@ void oracles_guest_compact_vblank(OraclesGuest *guest)
     }
     if (guest->text_box_armed && guest->text_box_pixels == LINE_PIXELS)   /* a wider box's lines stay whole: its reveal is read from the state */
         oracles_guest_text_box_reveal(guest, tiles == BOTTOM_LINE_TILES ? ORACLES_GUEST_TEXT_BOX_BOTTOM : ORACLES_GUEST_TEXT_BOX_TOP, whole,
-                                      visible > whole ? boundary % TILE_PIXELS : TILE_PIXELS);
+                                      visible > whole ? boundary % TILE_PIXELS : TILE_PIXELS, cursors);
     if (!revealing) return;
     /* The check: the map the game copies at this vblank, the tiles now in the VRAM, the line's graphics. */
     size_t size = 0;

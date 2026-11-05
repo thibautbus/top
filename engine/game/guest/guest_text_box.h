@@ -57,8 +57,10 @@ typedef struct OraclesGuestTextBoxLine {
     OraclesGuestTextBoxCharacter character[ORACLES_GUEST_LINE_CHARACTERS];
 } OraclesGuestTextBoxLine;
 /* Arms the host's text box at `pixels` of text a line (a multiple of 8 from 128, the game's, to 256): the points of
- * drawLineOfText, dmaTextGfxBuffer and vblankDmaFunction, read-only.  -1 when the profile does not qualify the compact
- * text (Ages and Seasons, US code), a routine is missing, the width is out of range or the hook table is full. */
+ * drawLineOfText, dmaTextGfxBuffer and vblankDmaFunction, read-only.  -1 when the box is wider than the game's and the
+ * profile does not qualify the host's box (Ages', Seasons' and the fan games' do), a routine is missing, the width is
+ * out of range or the hook table is full; at the game's width, which the harness's check alone arms, the routines
+ * suffice. */
 int oracles_guest_arm_text_box(OraclesGuest *guest, unsigned pixels);
 int oracles_guest_text_box_armed(const OraclesGuest *guest);
 /* The host's width of text, 0 unarmed. */
@@ -117,6 +119,7 @@ typedef struct OraclesGuestTextBoxCounts {
     unsigned wide_lines;      /* lines composed whose drawn pixels go past the game's 128 */
     unsigned overflows;       /* characters past the host's width, not drawn */
     unsigned centred;         /* lines composed of a page the game laid out, centred in the wide box */
+    unsigned cells;           /* a character the game DMAed into a line's tiles itself, kept in the host's line (the fan games' cursor) */
 } OraclesGuestTextBoxCounts;
 void oracles_guest_text_box_counts(const OraclesGuest *guest, OraclesGuestTextBoxCounts *counts);
 /* Pure: the font of the fixed advance, each character a whole cell: laid out in it, a line is the game's own. */

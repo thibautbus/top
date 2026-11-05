@@ -227,7 +227,7 @@ static void test_transaction(OraclesCoreKind kind, OraclesGame game)
     oracles_core_destroy(core);
 }
 
-/* A fan game's profile does not qualify the cheats: refused, nothing armed. */
+/* A profile that does not qualify the cheats (Ages' without them): refused, nothing armed. */
 static void test_refused(void)
 {
     const size_t size = 1024u * 1024u;
@@ -237,9 +237,11 @@ static void test_refused(void)
     OraclesCore *core = oracles_core_create(rom, size, &options);
     free(rom);
     if (!core) { failures++; return; }
-    const OraclesRomInfo info = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_MOONRISE_1_0_6, .known = 1 };
-    OraclesGuest *guest = oracles_guest_attach(core, oracles_compat_find(&info));
-    CHECK(guest != NULL && !oracles_compat_cheats(oracles_compat_find(&info)));
+    const OraclesRomInfo info = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_AGES_US, .known = 1 };
+    OraclesCompatProfile without = *oracles_compat_find(&info);
+    without.cheats = 0;
+    OraclesGuest *guest = oracles_guest_attach(core, &without);
+    CHECK(guest != NULL && !oracles_compat_cheats(&without));
     if (guest) {
         CHECK(oracles_guest_set_cheats(guest, ORACLES_CHEAT_NO_DAMAGE) == -1 && oracles_guest_cheats(guest) == 0);
         CHECK(oracles_guest_set_cheats(guest, 0) == 0);

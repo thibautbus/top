@@ -7,8 +7,8 @@
  * Classic (letter by letter, at the file screen's speed) or Instant (each line whole), text_speed=classic|instant.  The
  * first three belong to Enhanced: in Faithful they are dimmed and inert, "Enhanced only."; Text speed changes the game's
  * pace, not its picture, and is live in either profile, for every game, so that Display's Text link is dimmed only
- * where none of the rows is.  A fan game has its compact text in the game's box: its Text is live, its Text box and
- * Text size dimmed and inert, "Ages and Seasons only for now.".  From the pause, a row acts at once or not at all: Text
+ * where none of the rows is.  Text box and Text size are live where the game's profile qualifies them (the Oracles
+ * and the fan games), else dimmed and inert, "Ages and Seasons only for now.", the summary leaving them out.  From the pause, a row acts at once or not at all: Text
  * and Text box, which a game lays its texts out for at its start, are dimmed and inert there, "Change it from the home
  * screen."; Text size applies at once, by the running game's profile, Text speed when the game resumes, dimmed for a
  * game whose profile has no instant text.  A row the command line gave for the run (--text, --text-box, --text-size)
@@ -50,8 +50,8 @@ int oracles_display_text_link_applies(const OraclesHomeNav *nav);
  * the command line gave; Text speed in either profile, but not for a game that has no instant text (the pause's, or
  * an unrecognised ROM's page), "Needs an original ROM.". */
 int oracles_display_text_row_live(const OraclesHomeNav *nav, unsigned row);
-/* Beside the link, what applies: "Compact · Wide · Normal", "Compact" for a fan game, "As the game" in Faithful, and
- * " · Instant" after it when Instant is chosen and the game has it. */
+/* Beside the link, what applies: "Compact · Wide · Normal", the box and the size left out where the game's profile does
+ * not qualify them, "As the game" in Faithful, and " · Instant" after it when Instant is chosen and the game has it. */
 void oracles_display_text_summary(const OraclesHomeNav *nav, char *out, size_t capacity);
 /* A Text row's explanation, 16:9's beside its choices or 4:3's shorter one in the header; the link's
  * ("Letters, box, size and speed, with a preview."). */

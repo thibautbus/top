@@ -491,7 +491,7 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
         return 1;
     }
     if (o->text_box_wide && (!oracles_compat_host_text_box(oracles_compat_find(&info)) || !o->enhanced_dir)) {   /* the host draws the box: Enhanced alone */
-        fprintf(stderr, "harness: the wide text box plays in Enhanced alone (--enhanced-check), on Ages and Seasons; refusing the request and route option\n");
+        fprintf(stderr, "harness: the wide text box plays in Enhanced alone (--enhanced-check), on a profile that qualifies the host's box; refusing the request and route option\n");
         free(rom);
         return 1;
     }
@@ -722,7 +722,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     }
     if (o->text_box_check) {
         if (!r->enhanced || (!o->text_box_wide && oracles_guest_arm_text_box(r->guest, ORACLES_TEXT_BOX_GAME_PIXELS) != 0)) {
-            fprintf(stderr, "harness: --text-box-check needs --enhanced-check, Ages or Seasons, and the text box's routines\n");
+            fprintf(stderr, "harness: --text-box-check needs --enhanced-check and the text box's routines\n");
             return 1;
         }
         oracles_enhanced_check_set_text_box(r->enhanced, 1);

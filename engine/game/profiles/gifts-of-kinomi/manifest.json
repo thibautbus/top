@@ -1021,7 +1021,10 @@
     "treasure_collection_behaviours": null,
     "treasure_object_data": null,
     "treasure_object_lists_end": null,
-    "rupee_values": null,
+    "rupee_values": {
+      "bank": 0,
+      "address": "0x1723"
+    },
     "get_text_address": {
       "bank": 63,
       "address": "0x4f7b"
@@ -1060,11 +1063,26 @@
     "link_stroke_counter": null,
     "active_ring": null,
     "link_update_flippers_state0": null,
-    "link_apply_damage": null,
-    "link_damage_to_apply": null,
-    "dec_num_bombs": null,
-    "get_rupee_value": null,
-    "bomb_fairy_lose_all_bombs": null,
+    "link_apply_damage": {
+      "bank": 6,
+      "address": "0x46f8"
+    },
+    "link_damage_to_apply": {
+      "bank": 1,
+      "address": "0xd025"
+    },
+    "dec_num_bombs": {
+      "bank": 0,
+      "address": "0x175c"
+    },
+    "get_rupee_value": {
+      "bank": 0,
+      "address": "0x1713"
+    },
+    "bomb_fairy_lose_all_bombs": {
+      "bank": 21,
+      "address": "0x623c"
+    },
     "draw_line_of_text": {
       "bank": 63,
       "address": "0x5077"
@@ -1141,11 +1159,26 @@
       "bank": 7,
       "address": "0xd478"
     },
-    "dma_text_gfx_buffer": null,
-    "vblank_dma_function": null,
-    "textbox_vram_pos": null,
-    "character_display_timer": null,
-    "text_address": null,
+    "dma_text_gfx_buffer": {
+      "bank": 63,
+      "address": "0x50ee"
+    },
+    "vblank_dma_function": {
+      "bank": 0,
+      "address": "0x0a0f"
+    },
+    "textbox_vram_pos": {
+      "bank": 7,
+      "address": "0xd0d8"
+    },
+    "character_display_timer": {
+      "bank": 7,
+      "address": "0xd0c6"
+    },
+    "text_address": {
+      "bank": 7,
+      "address": "0xd0d5"
+    },
     "update_character_display_timer": {
       "bank": 63,
       "address": "0x51db"
@@ -1234,7 +1267,7 @@
     "coarse_flag_moblins_keep": "0xff",
     "coarse_flag_pirate_ship": "0xff",
     "coarse_flag_intro_done": "0xff",
-    "rupee_value_count": "0xff",
+    "rupee_value_count": "0x16",
     "coarse_flag_intro_done_room": "0xff",
     "treasure_collection_behaviour_count": "0x00",
     "treasure_object_count": "0x00",
@@ -1328,7 +1361,6 @@
     "treasure_collection_behaviours": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_data": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_lists_end": "mods not qualified for this revision: they play on the original ROMs only",
-    "rupee_values": "mods not qualified for this revision: they play on the original ROMs only",
     "gfx_header_table": "the graphics that carry text keep their English in a fan game: no reader takes this table",
     "link_update_velocity_mermaid": "the swim's hold not qualified for this revision",
     "game_keys_pressed": "the swim's hold not qualified for this revision",
@@ -1339,17 +1371,7 @@
     "link_stroke_counter": "the swim's hold not qualified for this revision",
     "active_ring": "the continuous transitions' swim at the line not qualified for this revision",
     "link_update_flippers_state0": "the swim's hold not qualified for this revision",
-    "link_apply_damage": "the cheats play on the original ROMs alone",
-    "link_damage_to_apply": "the cheats play on the original ROMs alone",
-    "dec_num_bombs": "the cheats play on the original ROMs alone",
-    "get_rupee_value": "the cheats play on the original ROMs alone",
-    "bomb_fairy_lose_all_bombs": "the cheats play on the original ROMs alone",
-    "dma_text_gfx_buffer": "the host's text box not qualified for this revision",
-    "vblank_dma_function": "the host's text box not qualified for this revision",
-    "textbox_vram_pos": "the host's text box not qualified for this revision",
-    "character_display_timer": "the host's text box not qualified for this revision",
     "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
-    "text_address": "the host's text box not qualified for this revision",
     "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
     "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",

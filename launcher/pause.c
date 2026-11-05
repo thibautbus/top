@@ -496,16 +496,16 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     p.nav.cheats_fixed = 0;
     p.nav.cheats_refused = !session->has_cheats;
     p.nav.text_speed_refused = !session->has_text_instant;
-    if (pause->game == ORACLES_HOME_GAME_AGES || pause->game == ORACLES_HOME_GAME_SEASONS) {
-        p.nav.swim_refused = !session->has_swim;
-        p.nav.hotkeys_refused = !session->has_hotkeys;
-    }
+    /* The session's own refusals (an unrecognised ROM) where the game's profile has them; a profile that refuses them (a
+     * fan game's) says so itself (OraclesHomeGame's refuses). */
+    if (!oracles_home_refuses(&p.nav, ORACLES_HOME_REFUSES_SWIM_HOLD)) p.nav.swim_refused = !session->has_swim;
+    if (!oracles_home_refuses(&p.nav, ORACLES_HOME_REFUSES_HOTKEYS)) p.nav.hotkeys_refused = !session->has_hotkeys;
     /* Window shows the window the game has, and leaves alone those that would take Display from the pause. */
     if (session->window != -1) p.nav.display.window = session->window == -2 ? -1 : session->window ? session->window - 2 : 3;
     p.nav.display.window_w = session->window_w;
     p.nav.display.window_h = session->window_h;
     p.nav.display.windows_refused = session->windows_refused;
-    if (pause->game == ORACLES_HOME_GAME_AGES || pause->game == ORACLES_HOME_GAME_SEASONS) p.nav.games[pause->game].cheats = session->cheats;
+    if (!oracles_home_refuses(&p.nav, ORACLES_HOME_REFUSES_CHEATS)) p.nav.games[pause->game].cheats = session->cheats;
     /* The hints follow the device that opened the pause, else the one used last before. */
     oracles_pause_input(pause, &p.nav);
     if (session->device >= 0) oracles_home_input(&p.nav, (OraclesInputDevice)session->device);

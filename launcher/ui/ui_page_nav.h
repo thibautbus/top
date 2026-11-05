@@ -318,8 +318,8 @@ const char *oracles_display_section(const OraclesHomeNav *nav);
  * (oracles_display_pause_reason). */
 int oracles_display_pause_locked(const OraclesHomeNav *nav, unsigned row);
 extern const char oracles_display_pause_reason[];   /* "Change it from the home screen." */
-/* What a fan game has not yet (Display › Text's Text box and Text size, Controls' Swimming and Item hotkeys from its
- * pause): "Ages and Seasons only for now." */
+/* What a fan game's profile does not qualify yet (Display › Text's Text box and Text size, Controls' Swimming and Item
+ * hotkeys from its pause): "Ages and Seasons only for now." */
 extern const char oracles_display_fan_reason[];
 /* A row dimmed and inert: locked from the pause (oracles_display_pause_locked), or the screen margin --screen-margin
  * gives for the run, and the text, the text box and the text size --text, --text-box and --text-size give. */
@@ -394,8 +394,9 @@ OraclesHomeCommand oracles_mods_click(OraclesHomeNav *nav, unsigned row);
 
 /* ---- Cheats ----------------------------------------------------------------------
  *
- * Cheats, for an Oracle whose profile has them (a fan game's menu and pause do
- * not have it, nor an Oracle's on an unrecognised ROM): No damage,
+ * Cheats, for a game whose profile has them, each game's own, a fan game's
+ * too (an Oracle's menu and pause on an unrecognised ROM do not have it): No
+ * damage,
  * Ammo never runs out and Rupees never run out, each Off or On.  Up and down
  * move through the three rows and wrap; left, right and OK turn the
  * highlighted cheat off and on, a click on Off or On sets it.  Each change is kept in
@@ -413,8 +414,10 @@ extern const char *const oracles_cheats_labels[ORACLES_CHEATS_ROWS];
 extern const char *const oracles_cheats_texts[ORACLES_CHEATS_ROWS];
 extern const char *const oracles_cheats_notes[ORACLES_CHEATS_ROWS];
 extern const char oracles_cheats_note[];          /* under the title: "Cheats play with your usual save: ..." */
-/* A row's explanation and note as one text, 16:9's. */
-void oracles_cheats_explanation(unsigned row, char *out, size_t capacity);
+/* A row's note on the page's game: a fan game, which has no mods, none for Rupees never run out ("Mods still charge."). */
+const char *oracles_cheats_row_note(const OraclesHomeNav *nav, unsigned row);
+/* A row's explanation and that note as one text, 16:9's. */
+void oracles_cheats_explanation(const OraclesHomeNav *nav, unsigned row, char *out, size_t capacity);
 /* The row's cheat is on for the page's game. */
 int oracles_cheats_on(const OraclesHomeNav *nav, unsigned row);
 /* The row changes: every row, and none while --cheats holds them for the run (nav->cheats_fixed). */

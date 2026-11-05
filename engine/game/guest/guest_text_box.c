@@ -30,6 +30,7 @@
 #define TOP_LINE_PAGE 0x94u      /* $9400, the top line's tiles */
 #define BOTTOM_LINE_PAGE 0x96u   /* $9600, the bottom line's */
 #define LINE_DMA_BLOCKS 0x1fu    /* the line's 512 bytes, in blocks of 16 less one */
+#define CELL_DMA_BLOCKS 0x01u    /* a character's cell, 32 bytes */
 #define LCDC_ON 0x80u
 #define TOP_LINE_TILES 0x40u     /* w7d0d3 of the top line */
 #define BOTTOM_LINE_TILES 0x60u
@@ -59,7 +60,8 @@ static void forget(OraclesGuest *guest)
 int oracles_guest_arm_text_box(OraclesGuest *guest, unsigned pixels)
 {
     const OraclesGuestTables *t = guest->tables;
-    if (!oracles_compat_host_text_box(guest->profile) || pixels < GAME_PIXELS || pixels > ORACLES_GUEST_TEXT_BOX_COLUMNS_MAX * TILE_PIXELS
+    /* The game's width is the harness's check of the game's box alone; a wider box is the host's, which the profile qualifies. */
+    if ((pixels > GAME_PIXELS && !oracles_compat_host_text_box(guest->profile)) || pixels < GAME_PIXELS || pixels > ORACLES_GUEST_TEXT_BOX_COLUMNS_MAX * TILE_PIXELS
         || pixels % TILE_PIXELS || t->draw_line_of_text.bank == ORACLES_GUEST_ABSENT || t->dma_text_gfx_buffer.bank == ORACLES_GUEST_ABSENT
         || t->vblank_dma_function.bank == ORACLES_GUEST_ABSENT || t->character_display_timer.bank == ORACLES_GUEST_ABSENT) return -1;
     if (guest->text_box_armed) return guest->text_box_pixels == pixels ? 0 : -1;
@@ -243,6 +245,22 @@ static void copy_line(OraclesGuest *guest, unsigned which)
                                    || memcmp(composed->gfx + shift * CELL_BYTES, gfx, ORACLES_GUEST_LINE_GFX_BYTES) != 0)) guest->text_box_counts.copies_unlike++;
 }
 
+/* A character the game DMAs itself into a cell of a line's tiles, VRAM bank 0 (the fan games' engine draws a choice's
+ * cursor so, and the space that takes it off: dmaTextCharacter in the fan games' engine, where the US one puts its tile in the map):
+ * the cell kept in the host's top or bottom line, at its tile column there, the line's offset added. */
+static void copy_cell(OraclesGuest *guest, const uint8_t *e)
+{
+    if ((e[3] & 1u) || e[6] != CELL_DMA_BLOCKS || e[4] < TOP_LINE_PAGE || e[4] > BOTTOM_LINE_PAGE + 1u || e[5] % CELL_BYTES) return;
+    const OraclesGuestSym from = { e[0], (uint16_t)(e[1] << 8 | e[2]) };
+    const uint8_t *cell = oracles_guest_ptr(guest, from, CELL_BYTES);
+    OraclesGuestTextBoxLine *line = &guest->text_box[e[4] < BOTTOM_LINE_PAGE ? ORACLES_GUEST_TEXT_BOX_TOP : ORACLES_GUEST_TEXT_BOX_BOTTOM];
+    const unsigned column = ((e[4] & 1u) << 8 | e[5]) / CELL_BYTES + line->offset / TILE_PIXELS;
+    if (!cell || !line->known || column >= line->columns) return;
+    memcpy(line->gfx + column * CELL_BYTES, cell, CELL_BYTES);
+    guest->text_box_changed = 1;
+    guest->text_box_counts.cells++;
+}
+
 void oracles_guest_text_box_point(OraclesGuest *guest, OraclesGuestEventType type)
 {
     const OraclesGuestTables *t = guest->tables;
@@ -260,18 +278,20 @@ void oracles_guest_text_box_point(OraclesGuest *guest, OraclesGuestEventType typ
         if (!pushed) return;
         const OraclesGuestSym at = { 0, (uint16_t)(pushed[0] | pushed[1] << 8) };
         const uint8_t *e = oracles_guest_ptr(guest, at, 7);
-        if (!e || e[0] != t->text_gfx_buffer.bank || (unsigned)(e[1] << 8 | e[2]) != t->text_gfx_buffer.addr || (e[3] & 1u) || e[5] != 0
-            || e[6] != LINE_DMA_BLOCKS || (e[4] != TOP_LINE_PAGE && e[4] != BOTTOM_LINE_PAGE)) return;
-        copy_line(guest, e[4] == TOP_LINE_PAGE ? ORACLES_GUEST_TEXT_BOX_TOP : ORACLES_GUEST_TEXT_BOX_BOTTOM);
+        if (!e) return;
+        if (e[0] != t->text_gfx_buffer.bank || (unsigned)(e[1] << 8 | e[2]) != t->text_gfx_buffer.addr || (e[3] & 1u) || e[5] != 0
+            || e[6] != LINE_DMA_BLOCKS || (e[4] != TOP_LINE_PAGE && e[4] != BOTTOM_LINE_PAGE)) copy_cell(guest, e);
+        else copy_line(guest, e[4] == TOP_LINE_PAGE ? ORACLES_GUEST_TEXT_BOX_TOP : ORACLES_GUEST_TEXT_BOX_BOTTOM);
     }
 }
 
-void oracles_guest_text_box_reveal(OraclesGuest *guest, unsigned which, unsigned whole, unsigned pixels)
+void oracles_guest_text_box_reveal(OraclesGuest *guest, unsigned which, unsigned whole, unsigned pixels, uint32_t skipped)
 {
     const OraclesGuestTextBoxLine *composed = &guest->text_box[ORACLES_GUEST_TEXT_BOX_COMPOSED];
     OraclesGuestTextBoxLine *line = &guest->text_box[which];
     if (whole > line->columns) return;
-    memcpy(line->gfx, composed->gfx, whole * CELL_BYTES);
+    for (unsigned c = 0; c < whole; c++)
+        if (!(skipped & 1u << c)) memcpy(line->gfx + c * CELL_BYTES, composed->gfx + c * CELL_BYTES, CELL_BYTES);
     if (pixels < TILE_PIXELS && whole < line->columns) oracles_guest_compact_mask(composed->gfx + whole * CELL_BYTES, pixels, line->gfx + whole * CELL_BYTES);
     line->known = (uint8_t)(line->known && composed->known);
     guest->text_box_changed = 1;

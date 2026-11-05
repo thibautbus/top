@@ -7,6 +7,7 @@
  * line box and its baseline, an element by its box.  And the page's keys and
  * pointer, from the home screen and from the pause.  About, laid out as Cheats:
  * turn 32's 32g about in 16:9 and 32g about 4:3, 1.2.0 with 1.3.0 announced. */
+#include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -203,6 +204,48 @@ static void refused(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_QUIT_GAME);
 }
 
+/* The fan games, whose profiles have cheats, Gifts of Kinomi from its menu, Temple of Seasons and Moonrise Regalia from
+ * their pause: the page changes the game's own, not its Oracle's nor another fan game's of the same Oracle,
+ * and leaves the mods out of the rupees' note. */
+static void fan_games(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.games[ORACLES_HOME_GAME_AGES].cheats = 4u;
+    CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_AGES && !strcmp(oracles_cheats_row_note(&nav, 2), "Mods still charge."));
+    oracles_home_select(&nav, ORACLES_HOME_FAN);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && oracles_home_game(&nav) == ORACLES_HOME_GAME_KINOMI);
+    nav.focus = 5;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_CHEATS && !oracles_cheats_on(&nav, 2));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && oracles_cheats_on(&nav, 0));
+    CHECK(nav.games[ORACLES_HOME_GAME_KINOMI].cheats == 1u && nav.games[ORACLES_HOME_GAME_AGES].cheats == 4u);
+    CHECK(nav.cheats_changed == 1u << ORACLES_HOME_GAME_KINOMI);
+    /* A fan game has no mods: Rupees never run out says nothing of theirs; an Oracle's still does. */
+    char explanation[256];
+    oracles_cheats_explanation(&nav, 2, explanation, sizeof explanation);
+    CHECK(!strcmp(oracles_cheats_row_note(&nav, 2), "") && !strcmp(explanation, "Buying costs nothing."));
+    CHECK(!strcmp(oracles_cheats_row_note(&nav, 0), "Link is still knocked back."));
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_TEMPLE, ORACLES_PROFILE_ENHANCED, 0);
+    nav.games[ORACLES_HOME_GAME_TEMPLE].cheats = 2u;
+    OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
+    CHECK(oracles_home_items(&nav, items) == 7 && items[5].id == ORACLES_HOME_ITEM_CHEATS);
+    nav.focus = 5;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_CHEATS && oracles_cheats_on(&nav, 1));
+    nav.row = 2;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.games[ORACLES_HOME_GAME_TEMPLE].cheats == 6u);
+    CHECK(nav.games[ORACLES_HOME_GAME_SEASONS].cheats == 0 && nav.cheats_changed == 1u << ORACLES_HOME_GAME_TEMPLE);
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_MOONRISE, ORACLES_PROFILE_ENHANCED, 0);
+    nav.cheats_changed = 0;
+    CHECK(oracles_home_items(&nav, items) == 7 && items[5].id == ORACLES_HOME_ITEM_CHEATS);
+    nav.focus = 5;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_CHEATS && !oracles_cheats_on(&nav, 0));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.games[ORACLES_HOME_GAME_MOONRISE].cheats == 1u);
+    CHECK(nav.games[ORACLES_HOME_GAME_KINOMI].cheats == 0 && nav.cheats_changed == 1u << ORACLES_HOME_GAME_MOONRISE);
+}
+
 /* About from the version number of 1.2.0, 1.3.0 announced: "The Oracles" over "Project" (16:9) or the whole name on the
  * title's line (4:3), the version and the notice as the note, the row Update check, On chosen, always highlighted. */
 static void about(OraclesUiLayout layout, const char *frame)
@@ -269,6 +312,7 @@ int main(int argc, char **argv)
     hints_22j();
     keys();
     refused();
+    fan_games();
     about(ORACLES_UI_LAYOUT_16_9, "32g about");
     about(ORACLES_UI_LAYOUT_4_3, "32g about 4:3");
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }

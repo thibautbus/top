@@ -14,16 +14,24 @@ const char *const oracles_cheats_texts[ORACLES_CHEATS_ROWS] = {
 const char *const oracles_cheats_notes[ORACLES_CHEATS_ROWS] = { "Link is still knocked back.", "", "Mods still charge." };
 const char oracles_cheats_note[] = "Cheats play with your usual save: what you keep stays in it.";
 
-void oracles_cheats_explanation(unsigned row, char *out, size_t capacity)
+const char *oracles_cheats_row_note(const OraclesHomeNav *nav, unsigned row)
 {
-    if (row >= ORACLES_CHEATS_ROWS) { if (capacity) out[0] = 0; return; }
-    snprintf(out, capacity, "%s%s%s", oracles_cheats_texts[row], oracles_cheats_notes[row][0] ? " " : "", oracles_cheats_notes[row]);
+    if (row >= ORACLES_CHEATS_ROWS) return "";
+    return row == 2u && oracles_home_fan_game(oracles_home_game(nav)) ? "" : oracles_cheats_notes[row];
 }
 
-/* The page's game: an Oracle, the one the menu or the pause showed (a fan game's has no Cheats). */
+void oracles_cheats_explanation(const OraclesHomeNav *nav, unsigned row, char *out, size_t capacity)
+{
+    if (row >= ORACLES_CHEATS_ROWS) { if (capacity) out[0] = 0; return; }
+    const char *note = oracles_cheats_row_note(nav, row);
+    snprintf(out, capacity, "%s%s%s", oracles_cheats_texts[row], note[0] ? " " : "", note);
+}
+
+/* The page's game: the one the menu or the pause showed, whose profile has cheats (a fan game's too). */
 static int cheats_game(const OraclesHomeNav *nav)
 {
-    return oracles_home_game(nav) == ORACLES_HOME_GAME_SEASONS ? ORACLES_HOME_GAME_SEASONS : ORACLES_HOME_GAME_AGES;
+    const int g = oracles_home_game(nav);
+    return g >= 0 ? g : ORACLES_HOME_GAME_AGES;
 }
 
 int oracles_cheats_row_live(const OraclesHomeNav *nav, unsigned row) { return row < ORACLES_CHEATS_ROWS && !nav->cheats_fixed; }
@@ -310,10 +318,10 @@ void oracles_ui_layout_cheats(OraclesUiLayout layout, const OraclesHomeNav *nav,
     const OraclesHomeHero hero = oracles_home_hero(nav);
     const unsigned row = nav->row < ORACLES_CHEATS_ROWS ? nav->row : 0u;
     list_page page = { "Cheats", oracles_home_over(hero), oracles_home_title(hero), oracles_cheats_note, ORACLES_CHEATS_ROWS, { NULL }, { "" },
-                       choice_names, oracles_cheats_texts[row], oracles_cheats_notes[row] };
+                       choice_names, oracles_cheats_texts[row], oracles_cheats_row_note(nav, row) };
     for (unsigned r = 0; r < ORACLES_CHEATS_ROWS; r++) {
         page.labels[r] = oracles_cheats_labels[r];
-        oracles_cheats_explanation(r, page.explanations[r], sizeof page.explanations[r]);
+        oracles_cheats_explanation(nav, r, page.explanations[r], sizeof page.explanations[r]);
     }
     list_layout(layout, &page, out);
 }

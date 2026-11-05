@@ -85,7 +85,8 @@ int oracles_enhanced_view_text_box_shown(const OraclesEnhancedView *view, Oracle
  * draw. */
 void oracles_enhanced_view_text_box_counts(const OraclesEnhancedView *view, unsigned *world, unsigned *framed, unsigned *uncovered);
 /* Text size, presentation alone, applied at once, each size where the box enlarged fits the view, else the next size
- * down, the view's level changing in play; the fan games keep the game's box at its size (Normal whatever is asked):
+ * down, the view's level changing in play; a game whose profile does not qualify it keeps the game's box at its size
+ * (Normal whatever is asked):
  *   - Very large (ORACLES_ENHANCED_TEXT_XLARGE): the text box twice as large in the surface where the view holds it so
  *     across (the game's box, 288 pixels: Medium and Far; the host's wide box, 416: Far); the game's box enlarged from
  *     the core's image, without the host's lines (the classic text in the game's box still hooks nothing), the wide box

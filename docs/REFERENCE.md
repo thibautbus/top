@@ -35,11 +35,11 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" # the game straigh
 | `--continuous-diagonal` | the same, and a diagonal held carries Link across the transitions' axis too (implies `--continuous-transitions`); the home screen's choice turns it on |
 | `--continuous-steps` | the same, and Link takes a step a frame through them as the keys give it (implies `--continuous-transitions`); the home screen's choice turns it on; refused for the fan games ([continuous transitions](#continuous-transitions)) |
 | `--swim-hold` | swimming, a direction held swims at full speed where the game wants a button tapped: A with the flippers, the direction with Ages' mermaid suit (below); `swim_hold=on` in the settings |
-| `--cheats LIST` | Ages and Seasons: the cheats named, comma-separated, among `no-damage`, `ammo` and `rupees` (below); an empty list for none; `cheats_ages=` and `cheats_seasons=` in the settings |
+| `--cheats LIST` | Ages, Seasons and the three fan games: the cheats named, comma-separated, among `no-damage`, `ammo` and `rupees` (below); an empty list for none; `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` in the settings |
 | `--text classic\|compact` | Enhanced, Ages, Seasons and the fan games: the text box's lines in the font's own widths and the texts laid out again for them (below), or as the game draws and lays them out; `text=` in the settings |
 | `--text-size normal\|large\|xlarge` | Enhanced: the text box three halves as large, in whole screen pixels, or twice as large, where it fits (below); `text_size=` in the settings |
 | `--text-speed classic\|instant` | the text box's lines letter by letter at the speed chosen on the file screen, or each line whole, A still turning the page (below); `text_speed=` in the settings |
-| `--text-box standard\|wide` | Enhanced, Ages and Seasons: the game's text box, or a wider one the port draws, 192 pixels of text, the texts laid out again for it, classic or compact (below); `text_box=` in the settings |
+| `--text-box standard\|wide` | Enhanced, Ages, Seasons and the fan games: the game's text box, or a wider one the port draws, 192 pixels of text, the texts laid out again for it, classic or compact (below); `text_box=` in the settings |
 | `--unvisited-rooms shown\|hidden` | Enhanced: the rooms around Link that he has never entered, drawn (`shown`) or kept dark until he enters them, as on the game's map (`hidden`, below), for this run; `unvisited_rooms=` in the settings |
 | `--item-hotkeys=off\|use\|equip` | the item hotkeys for this run |
 | `--camera 1\|2` | the Enhanced camera's profile |
@@ -90,6 +90,9 @@ mods_ages=claw-game,fortune-teller
 mods_seasons=
 cheats_ages=
 cheats_seasons=no-damage,rupees
+cheats_kinomi=
+cheats_moonrise=
+cheats_temple=ammo
 profile=enhanced
 view=far
 core=sameboy
@@ -182,7 +185,7 @@ Edit `settings.txt` only while the launcher is closed. The launcher reads it whe
 | `language_ages`, `language_seasons` | `en`, `en-eu`, `fr`, `de`, `it`, `es` | `en` | Cartridge › Language | at the next Play |
 | `language_kinomi`, `language_moonrise`, `language_temple` | the same | `en` | none: read and written, not applied (the home screen plays the fan games in English) | never |
 | `mods_ages`, `mods_seasons` | the mods' folder names, comma-separated, eight at most | empty | the Mods page's switches | at the Mods page's Play |
-| `cheats_ages`, `cheats_seasons` | `no-damage`, `ammo`, `rupees`, comma-separated | empty | the Cheats page | at the next Play; from the pause when the game resumes |
+| `cheats_ages`, `cheats_seasons`, `cheats_kinomi`, `cheats_moonrise`, `cheats_temple` | `no-damage`, `ammo`, `rupees`, comma-separated | empty | the Cheats page | at the next Play; from the pause when the game resumes |
 | `item_hotkeys_ages`, `item_hotkeys_seasons` | `off`, `use`, `equip` | `off` | Controls › Item hotkeys (Off, On: `use`; `equip` only by hand) | at the next Play; from the pause when the game resumes |
 | `swim_hold` | `off`, `on` | `off` | Controls › Swimming (Tap, Hold) | at the next Play; from the pause when the game resumes |
 | `key_right`, `key_left`, `key_up`, `key_down`, `key_a`, `key_b`, `key_select`, `key_start` | an SDL key name, or empty for none | `Right`, `Left`, `Up`, `Down`, `X`, `Z`, `Backspace`, `Return` | Controls › Buttons, Keyboard | at once, from the pause too |
@@ -221,7 +224,7 @@ A key's name and its value may have spaces around them and capitals, as in `upda
 - `text=` (`classic` or `compact`) is the compact text for every game the home screen starts in Enhanced (below), `text_box=` (`standard` or `wide`) its text box (below); both apply at the next Play, the texts being laid out when the game starts, and change from the home screen only, the pause showing them greyed.
 - `text_size=` (`normal`, `large` or `xlarge`) is the text box's size (below), which applies at once, from the pause too.
 - `unvisited_rooms=` (`shown` or `hidden`) is Display › Picture's Unvisited rooms, the rooms around never entered kept dark in Enhanced (below), for every game, `--unvisited-rooms` overriding it for a run without changing it.
-- `cheats_ages=` and `cheats_seasons=` are each Oracle's Cheats page, the cheats it starts with from the home screen (below), a list of their names; a cheat the launcher does not know (a later version's) is dropped, with a line on the standard error, the others kept.
+- `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` are each game's Cheats page, the cheats it starts with from the home screen (below), a fan game's its own and not its Oracle's, a list of their names; a cheat the launcher does not know (a later version's) is dropped, with a line on the standard error, the others kept.
 - `core=sameboy` or `core=mgba` appears once the player chooses a core in Display's Advanced rows: without it, the application's default plays (Accurate on the desktops, Fast on Android), so that an update that changes the default reaches a player who never chose. A game's save (`.sav`, the cartridge's RAM) is the same file on both cores: a game saved on one opens on the other; a savestate does not.
 
 `update_check=` is the update check, `on` by default: when the home screen opens, the launcher asks GitHub once, in the background and never waiting for it, for the latest release of the port, and compares its version with its own.
@@ -406,7 +409,7 @@ The fan games made on the Oracles do not have the option yet: the home screen st
 
 ### Cheats
 
-**Cheats** (`--cheats`, `cheats_ages=` and `cheats_seasons=` in the settings, none by default, in Faithful and Enhanced, Ages and Seasons): each cheat is on when its name is in the list.
+**Cheats** (`--cheats`, `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` in the settings, none by default, in Faithful and Enhanced, Ages, Seasons and the three fan games): each cheat is on when its name is in the list.
 
 - `no-damage`: a hit still knocks Link back, with its sound, its red flash and the frames during which nothing hits him again, but he loses no heart, and so never dies of a hit; a fall into a hole, the water or the lava sends him back where the game sends him, at no cost. The hearts the story takes itself are taken (in Ages the fairy of the bombs' upgrade, who leaves Link one heart, and the Smog's penalty; in Seasons the scripted collapse in the Moblins' keep). With full hearts, a sword of level 2 or more throws its beam at every swing, as the game has it.
 - `ammo`: a seed, a bomb or a Bombchu used is not taken from its count; with none left there is still none, the cheat giving nothing, and Ages' bomb-upgrade fairy still takes every bomb from a Link who claims the silver bomb.
@@ -414,7 +417,9 @@ The fan games made on the Oracles do not have the option yet: the home screen st
 
 The game reads nothing else differently and nothing is written into it: what a cheat leaves (rupees kept, items bought, ammunition kept, fewer deaths) is in the game when it saves, in the same save as without cheats.
 
-The fan games made on the Oracles do not have them: the home screen starts them without, and `--rom` refuses `--cheats` for them. A route recorded with cheats replays with them (`cheat-no-damage`, `cheat-ammo` and `cheat-rupees` in its options), and one recorded without replays without them whatever the settings; a savestate does not count them.
+Gifts of Kinomi keeps Ages' routines for all three, its seeds, bombs, Bombchus and prices included (777 rupees among them), and Ages' bomb-upgrade fairy; so does Moonrise Regalia, with Ages' prices. Temple of Seasons keeps Seasons' for the hits and the bombs; its seeds and its Bombchus share one count, the Bombchus' of Seasons, which `ammo` keeps as it keeps the bombs; its prices are taken from the count Seasons keeps the ore chunks in, its shops' and the ore chunks' routines alike, and `rupees` makes them cost nothing.
+
+A route recorded with cheats replays with them (`cheat-no-damage`, `cheat-ammo` and `cheat-rupees` in its options), and one recorded without replays without them whatever the settings; a savestate does not count them.
 
 A cheat changed from the pause menu's Cheats, which starts from the cheats the game plays with, applies from the frame the game resumes on. In a game that ran without the hooks (Faithful with no other option that needs them), the first cheat turned on attaches them, and they stay until the game ends, every cheat off again or not: a check at each instruction, which a small device may feel. A route being recorded writes the change with its frame (`6120 cheat rupees on`, [`ROUTES.md`](ROUTES.md)) and replays it there.
 
@@ -438,7 +443,7 @@ It changes what the game draws and how many boxes it shows: never in Faithful, w
 
 ### The wide text box
 
-**The wide text box** (Display › Text's Text box, `--text-box wide`, `text_box=wide` in the settings, standard by default, in Enhanced alone, Ages and Seasons): the dialogues show in a box the port draws, 208 pixels wide instead of the game's 144, its lines 192 pixels of text instead of 128, the widest box every view of Enhanced holds (Near 4:3, 213 pixels across, keeps 2 on each side); still two lines a box, the game paging, pacing, sounding and choosing as it does.
+**The wide text box** (Display › Text's Text box, `--text-box wide`, `text_box=wide` in the settings, standard by default, in Enhanced alone, Ages, Seasons and the fan games): the dialogues show in a box the port draws, 208 pixels wide instead of the game's 144, its lines 192 pixels of text instead of 128, the widest box every view of Enhanced holds (Near 4:3, 213 pixels across, keeps 2 on each side); still two lines a box, the game paging, pacing, sounding and choosing as it does.
 
 The texts are laid out again for it, in either text:
 
@@ -449,7 +454,7 @@ In the world, the box goes where the game's would, centred across the view, the 
 
 A line shows character by character at the game's pace, whole letters only, whatever its width. The pages the game lays out itself (a choice, a song, a centred line, a text of a single box) keep their lines, centred in the wide box as in the game's, a choice's cursor and an item's icon with them.
 
-In Faithful, which shows the core's image as it is, there is no wide box: `--rom` refuses it and the home screen plays the game's. The fan games made on the Oracles do not have it, though they have the compact text: `--rom` refuses it for them and the home screen starts them with the game's box, their compact text laid out for it.
+In Faithful, which shows the core's image as it is, there is no wide box: `--rom` refuses it and the home screen plays the game's. The fan games made on the Oracles have it as the Oracles do, their own English laid out again for it, the pages they keep as their engine laid them out centred in it.
 
 A route recorded with it replays with it (`text-box-wide` in its options), one recorded without replays without it; a savestate taken with it loads with it only, the box's lines and its reveal kept in it.
 
@@ -472,7 +477,7 @@ Each applies where the box so enlarged fits the view, the next size down elsewhe
 
 With `menus=large`, the menus, the map and the cutscenes keep the scale they have with Normal: both sizes are drawn there by the presentation, the enlarged rectangle widened for the box only as far as that scale holds it, and a size whose box does not fit at that scale falls to the next one down (on 640x480, where the menus show three times as large, the box stays at that scale, 432 or 624 pixels wide).
 
-The fan games keep the game's box at its size: Text size does not apply to them.
+The fan games have Text size too, on the game's box and on the wide box.
 
 It is presentation alone: the game, its routes and its savestates do not change, nothing more is hooked (the classic text in the game's box stays the game's, its box's pixels enlarged), and a change applies at once, from the pause too, the image behind its menu included: to or from Very large where the view draws the box twice as large (the medium and far views), that image takes the box at its new size over the world as the frame showed it, the game not drawn again.
 
@@ -623,7 +628,7 @@ Each key keeps the width of its widest label, so that the hints stay in place wh
 - the window, 2x, 3x or 4x the profile's surface, or fullscreen at the screen's largest whole scale (a scale that does not fit the screen with the title bar is reduced at launch, and Display says so; where every choice comes to the same scale, as on a 640x480 screen, or on Android, which plays fullscreen, the row is greyed and does not change, and says the screen shows the game at one size only, which Scaling can make fill the screen);
 - the view in Enhanced, Near, Medium or Far, each with its size in the screen's shape, the one the game will take: Far's fitted to the screen where far fits it (below, `far=`), 426x320 on 1280x960 and 412x360 on 1240x1080, which Enhanced's size, the windows, Scaling and the diagram follow too, and in the 4:3 layout View's help adds "Far fits this screen: 426x320 at 3x."; greyed in Faithful;
 - the HUD in Enhanced, Original, Full width or Wide layout (`hud=`, below), greyed in Faithful, and from the pause in a game running in Faithful whatever the profile chosen;
-- Text, which opens Display › Text as Advanced opens its rows and sums up beside it what applies ("Compact · Wide · Normal", "Compact" for a fan game, "As the game" in Faithful, and " · Instant" after it when Text speed is Instant);
+- Text, which opens Display › Text as Advanced opens its rows and sums up beside it what applies ("Compact · Wide · Normal", "As the game" in Faithful, and " · Instant" after it when Text speed is Instant);
 - Picture, which opens Display › Picture likewise and sums up beside it its scaling, margin and colors ("Sharp · No margin · Color off", then " · Far fixed", " · Large menus" (" · View menus" on Android) and " · Rooms hidden" after it where they apply and differ from the platform's default, named while they hold on the line, else counted: " · 2 more").
 
 ### Display's defaults and the slow-game suggestion
@@ -641,7 +646,7 @@ Display › Text has four rows and a preview:
 - the text size, Normal, Large or Very large (`text_size=`, below);
 - the text speed, Classic, letter by letter at the speed chosen on the file screen, or Instant, each line whole (`text_speed=`, below).
 
-The first three belong to Enhanced and are greyed in Faithful, "Enhanced only."; the text speed changes the game's pace, not its picture, and applies in either profile and to every game, so that the page opens on it in Faithful; on a fan game's page, whose compact text is there, the text box and the text size are greyed, "Ages and Seasons only for now."; from the pause, the text and the text box, which a game lays its texts out for when it starts, are greyed, "Change it from the home screen.", the text size applies at once and the text speed when the game resumes.
+The first three belong to Enhanced and are greyed in Faithful, "Enhanced only."; the text speed changes the game's pace, not its picture, and applies in either profile and to every game, so that the page opens on it in Faithful; on a fan game's page the four rows apply as on an Oracle's, a row its profile did not qualify greyed, "Ages and Seasons only for now."; from the pause, the text and the text box, which a game lays its texts out for when it starts, are greyed, "Change it from the home screen.", the text size applies at once and the text speed when the game resumes.
 
 In the 4:3 layout the preview stands above the four rows, at most 314x236.
 
@@ -705,11 +710,11 @@ In the pause menu of Ages or Seasons on an original ROM with their item hotkeys 
 
 ### The Cheats page
 
-**Cheats**, in the menu of Ages and of Seasons after Mods, turns each Oracle's cheats on and off (`cheats_ages=` and `cheats_seasons=`, below): No damage, Ammo never runs out and Rupees never run out, each Off or On, with what it does beside it ("Buying costs nothing. Mods still charge."; in the 4:3 layout the highlighted row's, under the rows); under the title, "Cheats play with your usual save: what you keep stays in it.".
+**Cheats**, in the menu of Ages, Seasons and each fan game after Mods, turns each game's cheats on and off, a fan game's its own (`cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=`, below): No damage, Ammo never runs out and Rupees never run out, each Off or On, with what it does beside it ("Buying costs nothing. Mods still charge.", a fan game, which has no mods, saying the first sentence alone; in the 4:3 layout the highlighted row's, under the rows); under the title, "Cheats play with your usual save: what you keep stays in it.".
 
 With `--cheats`, which holds for the run, the page shows the cheats it gives, greyed, and changes nothing. From the pause, the page shows the cheats the game plays with, `--cheats`' included, and a change applies to it (below), the settings keeping the cheats the page shows.
 
-A fan game's menu and pause menu have no Cheats, nor have an Oracle's on a ROM that is not the original, whose profile has no cheats: their other entries are as they were.
+An Oracle's menu and pause menu on a ROM that is not the original have no Cheats, its profile having none: their other entries are as they were.
 
 ### A fan game's Cartridge
 

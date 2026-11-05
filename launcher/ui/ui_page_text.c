@@ -33,7 +33,9 @@ static const char original_reason[] = "Needs an original ROM.";
 /* The port's own words, never the game's. */
 static const char sample[] = "Link, the Maku Tree has been waiting for you. Nayru was taken, and time itself is coming undone.";
 
-static int fan_page(const OraclesHomeNav *nav) { return oracles_home_fan_game(oracles_home_game(nav)) != NULL; }
+/* The host's box (Wide) and Text size need the game's profile to qualify them, which a fan game's may not. */
+static int box_refused(const OraclesHomeNav *nav) { return oracles_home_refuses(nav, ORACLES_HOME_REFUSES_TEXT_BOX); }
+static int size_refused(const OraclesHomeNav *nav) { return oracles_home_refuses(nav, ORACLES_HOME_REFUSES_TEXT_SIZE); }
 
 /* The instant text needs the game's profile, which an unrecognised ROM (a hack, a randomizer seed) plays without: the
  * running game's in the pause, the page's image on the home screen, as Display plays it in Faithful. */
@@ -67,22 +69,25 @@ int oracles_display_text_row_live(const OraclesHomeNav *nav, unsigned row)
     switch (row) {
         case ORACLES_DISPLAY_TEXT_SPEED: return !text_speed_refused(nav);
         case ORACLES_DISPLAY_LETTERS: return oracles_display_text_applies(nav) && !oracles_display_row_fixed(nav, row);
-        case ORACLES_DISPLAY_TEXT_BOX: return oracles_display_text_applies(nav) && !fan_page(nav) && !oracles_display_row_fixed(nav, row);
-        case ORACLES_DISPLAY_TEXT_SIZE: return oracles_display_hud_applies(nav) && !fan_page(nav) && !nav->display.text_size_fixed;
+        case ORACLES_DISPLAY_TEXT_BOX: return oracles_display_text_applies(nav) && !box_refused(nav) && !oracles_display_row_fixed(nav, row);
+        case ORACLES_DISPLAY_TEXT_SIZE: return oracles_display_hud_applies(nav) && !size_refused(nav) && !nav->display.text_size_fixed;
         default: return 0;
     }
 }
 
 void oracles_display_text_summary(const OraclesHomeNav *nav, char *out, size_t capacity)
 {
-    /* What applies to the game shown: in Faithful the game's own text, a fan game's text in the game's box at its size;
-     * Instant where the game has it. */
+    /* What applies to the game shown: in Faithful the game's own text; the box and the size its profile qualifies (a fan
+     * game's text in the game's box at its size); Instant where the game has it. */
     const char *const instant = nav->display.text_speed && !text_speed_refused(nav) ? " \xc2\xb7 Instant" : "";
-    if (!oracles_display_text_applies(nav)) snprintf(out, capacity, "As the game%s", instant);
-    else if (fan_page(nav)) snprintf(out, capacity, "%s%s", oracles_display_text_choices[clamp(nav->display.text, 2)], instant);
-    else snprintf(out, capacity, "%s \xc2\xb7 %s \xc2\xb7 %s%s", oracles_display_text_choices[clamp(nav->display.text, 2)],
-                  oracles_display_text_box_choices[clamp(nav->display.text_box, 2)],
-                  oracles_display_text_size_choices[clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES)], instant);
+    if (!oracles_display_text_applies(nav)) {
+        snprintf(out, capacity, "As the game%s", instant);
+        return;
+    }
+    const char *const box = box_refused(nav) ? NULL : oracles_display_text_box_choices[clamp(nav->display.text_box, 2)];
+    const char *const size = size_refused(nav) ? NULL : oracles_display_text_size_choices[clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES)];
+    snprintf(out, capacity, "%s%s%s%s%s%s", oracles_display_text_choices[clamp(nav->display.text, 2)], box ? " \xc2\xb7 " : "", box ? box : "",
+             size ? " \xc2\xb7 " : "", size ? size : "", instant);
 }
 
 const char *oracles_display_text_explanation(unsigned row, int four_three)
@@ -105,7 +110,7 @@ const char *oracles_display_text_explanation(unsigned row, int four_three)
 /* The box the game will show: the wide one chosen in Enhanced, on an Oracle's page; the game's otherwise. */
 static int box_width(const OraclesHomeNav *nav, int enhanced, int *text_w)
 {
-    *text_w = enhanced && nav->display.text_box && !fan_page(nav) ? BOX_WIDE_TEXT : BOX_GAME_TEXT;
+    *text_w = enhanced && nav->display.text_box && !box_refused(nav) ? BOX_WIDE_TEXT : BOX_GAME_TEXT;
     return *text_w + 2 * BOX_MARGIN;
 }
 
@@ -114,7 +119,7 @@ static int box_width(const OraclesHomeNav *nav, int enhanced, int *text_w)
 static int size_shown(const OraclesHomeNav *nav, int view_w, int view_h, int box_w, unsigned *num, unsigned *den)
 {
     *num = *den = 1u;
-    int size = fan_page(nav) ? 0 : clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES);
+    int size = size_refused(nav) ? 0 : clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES);
     if (size == 2) {
         if (2 * box_w <= view_w) { *num = 2u; return 2; }
         size = 1;
@@ -160,7 +165,7 @@ const char *oracles_display_text_note(const OraclesHomeNav *nav, unsigned row)
 {
     if (row == ORACLES_DISPLAY_TEXT_SPEED) return oracles_display_text_row_live(nav, row) ? "" : original_reason;
     if (row == ORACLES_DISPLAY_TEXT_SIZE ? !oracles_display_hud_applies(nav) : !oracles_display_text_applies(nav)) return enhanced_reason;
-    if ((row == ORACLES_DISPLAY_TEXT_BOX || row == ORACLES_DISPLAY_TEXT_SIZE) && fan_page(nav)) return oracles_display_fan_reason;
+    if ((row == ORACLES_DISPLAY_TEXT_BOX && box_refused(nav)) || (row == ORACLES_DISPLAY_TEXT_SIZE && size_refused(nav))) return oracles_display_fan_reason;
     if (oracles_display_pause_locked(nav, row)) return oracles_display_pause_reason;
     if (row == ORACLES_DISPLAY_LETTERS) return "Savestates taken with Compact need Compact.";   /* as Continuous transitions says of its own */
     if (row == ORACLES_DISPLAY_TEXT_BOX) return "Savestates taken with Wide need Wide.";
@@ -200,7 +205,7 @@ void oracles_display_text_preview(const OraclesHomeNav *nav, OraclesDisplayTextP
         }
         snprintf(out->label, sizeof out->label, "%s view, %d\xc3\x97%d \xc2\xb7 box %d\xc3\x97%d%s", oracles_display_view_names[clamp(nav->display.view, 3)],
                  p.view_w, p.view_h, p.box_w, BOX_H, grown);
-        out->note = fallback(p.size, fan_page(nav) ? 0 : clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES));
+        out->note = fallback(p.size, size_refused(nav) ? 0 : clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES));
     }
     const OraclesHomeGame *game = oracles_page_game_const(nav);
     oracles_display_text_sample(&game->font, out->compact, (unsigned)p.text_w, out->sample);

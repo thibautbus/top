@@ -8,12 +8,13 @@
  * 16f; the reminder over a game started, 18d and 18e, and with each device and HUD, 37c to 37f; the pause menu's line on
  * the item hotkeys under its list, 37g and 37h; the help bar after a key or a
  * controller's button, at home (21a to 21d), in the pause menu (21e, 21f, its entries naming no key: 21y) and on
- * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it, 23g; the newer
+ * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it as the mockup draws it, 23g; the newer
  * version's notice by the version, 24a to 24d, and the version alone, 24e; the version number highlighted, 32g and
  * 32g 4:3: a text is
  * compared by its left edge, its width, the top and height of its line box,
  * and its baseline; an element by its box.  And the choice of the layout by the
  * window's shape. */
+#include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_controls_nav.h"
 #include "ui_home_layout.h"
@@ -107,6 +108,7 @@ static void frame_language(const char *frame, int game, int language, const char
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    mockup_fan_profiles(&nav);
     nav.fan_languages = 1;   /* the mockup's fanLang, for 16f */
     OraclesHomeGame *g = &nav.games[game];
     g->usable = 1;
@@ -120,7 +122,7 @@ static void frame_language(const char *frame, int game, int language, const char
     }
     nav.focus = 1;
     OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
-    const unsigned count = oracles_home_fan_game(game) ? 6u : 7u;   /* a fan game's menu has no Cheats */
+    const unsigned count = g->refuses & ORACLES_HOME_REFUSES_CHEATS ? 6u : 7u;   /* the mockup's fan game: no Cheats */
     if (menu(&nav, items) != count) { fprintf(stderr, "FAIL %s: %u items expected\n", frame, count); layout_fail(); return; }
     for (int i = 0; i < (int)count; i++) {
         char probe[32];
@@ -185,6 +187,7 @@ static void frame_1d(void)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    mockup_fan_profiles(&nav);
     nav.entry = ORACLES_HOME_FAN;
     nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
     OraclesHomeGame *g = &nav.games[ORACLES_HOME_GAME_MOONRISE];
@@ -220,11 +223,13 @@ static void frame_1d(void)
 }
 
 /* A fan game picked in the list, played on `date`: the same menu under its title (1m Temple of Seasons, 1p Gifts of
- * Kinomi). */
+ * Kinomi), the prototype's of six entries, drawn before their cheats; with their profiles' cheats, seven, the menu's
+ * own boxes, between its title and the hints. */
 static void frame_fan_pick(const char *frame, int game, OraclesHomeHero hero_id, const char *date)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    fan_profiles(&nav);
     nav.entry = ORACLES_HOME_FAN;
     nav.fan_pick = hero_id;
     OraclesHomeGame *g = &nav.games[game];
@@ -241,12 +246,21 @@ static void frame_fan_pick(const char *frame, int game, OraclesHomeHero hero_id,
     layout_line(frame, "hero state", &hero.state);
     layout_box(frame, "hero", &hero.box);
     OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    g->refuses = MOCKUP_FAN_REFUSES;
     if (menu(&nav, items) != 6) { fprintf(stderr, "FAIL %s: six items expected\n", frame); layout_fail(); return; }
     for (int i = 0; i < 6; i++) {
         char name[32];
         snprintf(name, sizeof name, "item %d", i); layout_box(frame, name, &items[i].box);
         snprintf(name, sizeof name, "item %d label", i); layout_line(frame, name, &items[i].label);
     }
+    g->refuses = FAN_REFUSES;
+    OraclesHomeItem it[ORACLES_HOME_MAX_ITEMS];
+    OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
+    OraclesUiHintLayout h[ORACLES_HOME_MAX_HINTS];
+    CHECK(menu(&nav, items) == 7 && oracles_home_items(&nav, it) == 7 && it[5].id == ORACLES_HOME_ITEM_CHEATS);
+    oracles_ui_layout_hints(ORACLES_UI_LAYOUT_16_9, hints, oracles_home_hints(&nav, hints), h);
+    CHECK(items[0].box.y >= hero.box.y + hero.box.h || items[0].box.x >= hero.box.x + hero.box.w);
+    CHECK(items[6].box.y + items[6].box.h <= h[0].box.y);
 }
 
 static void frame_1f(void)
@@ -274,6 +288,7 @@ static void frame_8e(void)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    mockup_fan_profiles(&nav);
     nav.entry = ORACLES_HOME_FAN;
     nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
     nav.focus = 4;
@@ -777,6 +792,7 @@ static void cheats_entry(void)
     CHECK(oracles_home_items(&nav, it) == 4);
 
     oracles_home_init(&nav);
+    mockup_fan_profiles(&nav);
     nav.entry = ORACLES_HOME_FAN;
     nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
     nav.focus = 5;
@@ -788,7 +804,7 @@ static void cheats_entry(void)
         snprintf(name, sizeof name, "item %d label", i); layout_line("23g", name, &items[i].label);
     }
     CHECK(oracles_home_items(&nav, it) == 6 && it[4].id == ORACLES_HOME_ITEM_MODS && it[5].id == ORACLES_HOME_ITEM_EXIT);
-    /* Nor has a fan game's pause: its profile has no cheats. */
+    /* Nor has its pause, where the profile has no cheats. */
     oracles_home_pause(&nav, ORACLES_HOME_GAME_MOONRISE, ORACLES_PROFILE_ENHANCED, 0);
     CHECK(oracles_home_items(&nav, it) == 6 && it[4].id == ORACLES_HOME_ITEM_DISPLAY && it[5].id == ORACLES_HOME_ITEM_QUIT_GAME);
 }

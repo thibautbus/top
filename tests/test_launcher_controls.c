@@ -17,6 +17,7 @@
  * pause 4:3); Menu's controller button, its moves,
  * its capture and its toast, highlighted in 16:9 (18a) and in 4:3's In game
  * (18b, 18c), and waiting (menu capture, menu capture 4:3). */
+#include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_controls_layout.h"
@@ -30,6 +31,7 @@
 static void controls_nav(OraclesHomeNav *nav)
 {
     oracles_home_init(nav);
+    fan_profiles(nav);
     nav->games[0].usable = 1;
     nav->games[0].hotkeys = 1;
     oracles_controls_open(nav);
@@ -565,10 +567,11 @@ static void pause_4_3(void)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    fan_profiles(&nav);
     nav.layout = ORACLES_UI_LAYOUT_4_3;
     oracles_home_pause(&nav, ORACLES_HOME_GAME_MOONRISE, ORACLES_PROFILE_ENHANCED, oracles_ui_layout_narrow(nav.layout, 640));
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
-    CHECK(oracles_home_items(&nav, items) == 6 && !strcmp(items[3].label, "Controls"));   /* a fan game's: no Cheats */
+    CHECK(oracles_home_items(&nav, items) == 7 && !strcmp(items[3].label, "Controls") && items[5].id == ORACLES_HOME_ITEM_CHEATS);
     CHECK(oracles_home_click(&nav, 3) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_CONTROLS);
     CHECK(oracles_controls_tab(&nav) == ORACLES_CONTROLS_TAB_BUTTONS && nav.controls.row == 0);
     oracles_home_act(&nav, ORACLES_HOME_UP);

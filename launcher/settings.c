@@ -184,6 +184,14 @@ static void join_mods(char list[ORACLES_SETTINGS_MODS_LENGTH], char names[][ORAC
     }
 }
 
+/* A cheats_<game>= list; a later version's (a cheat this one does not know): the cheats it knows. */
+static unsigned cheats_value(const char *name, const char *value, const char *word)
+{
+    unsigned cheats = 0;
+    if (oracles_cheats_parse(word, NULL, &cheats) != 0) fprintf(stderr, "oracles: %s=%s names a cheat this version does not know; it is dropped\n", name, value);
+    return cheats;
+}
+
 size_t oracles_settings_mod_names(const char *list, char names[][ORACLES_SETTINGS_MOD_NAME], size_t capacity)
 {
     char all[ORACLES_SETTINGS_MODS_MAX][ORACLES_SETTINGS_MOD_NAME];
@@ -273,6 +281,7 @@ void oracles_settings_defaults(oracles_settings *s)
     memset(s->mods, 0, sizeof s->mods);
     s->mods_path[0] = 0;   /* beside settings.txt, until Android's shared storage names it */
     memset(s->cheats, 0, sizeof s->cheats);   /* the game as it plays */
+    memset(s->fan_cheats, 0, sizeof s->fan_cheats);
     /* A first opening plays Enhanced, the view drawn back with the continuous transitions it carries, fullscreen. */
     s->profile = ORACLES_PROFILE_ENHANCED;
     s->transitions = 1;
@@ -308,7 +317,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
@@ -413,13 +422,7 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
             return 1;
         }
         snprintf(expected, sizeof expected, "cheats_%s", game_names[g]);
-        if (!strcmp(name, expected)) {
-            /* A later version's list (a cheat this one does not know): the cheats it knows. */
-            unsigned cheats = 0;
-            if (oracles_cheats_parse(word, NULL, &cheats) != 0) fprintf(stderr, "oracles: %s=%s names a cheat this version does not know; it is dropped\n", name, value);
-            s->cheats[g] = cheats;
-            return 1;
-        }
+        if (!strcmp(name, expected)) { s->cheats[g] = cheats_value(name, value, word); return 1; }
         snprintf(expected, sizeof expected, "item_hotkeys_%s", game_names[g]);
         if (!strcmp(name, expected)) {
             if (!strcmp(word, "off") || !strcmp(word, "use") || !strcmp(word, "equip")) s->item_hotkeys[g] = oracles_settings_hotkeys_mode(word);
@@ -435,6 +438,8 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
             for (int l = 0; l < ORACLES_SETTINGS_LANGUAGES; l++) if (!strcmp(word, oracles_settings_language_names[l])) s->fan_language[f] = l;
             return 1;
         }
+        snprintf(expected, sizeof expected, "cheats_%s", oracles_home_fan_games[f].key);
+        if (!strcmp(name, expected)) { s->fan_cheats[f] = cheats_value(name, value, word); return 1; }
     }
     if (!strcmp(name, "window_scale")) {
         if (!strcmp(word, "full")) s->window_scale = 0;
@@ -642,6 +647,11 @@ int oracles_settings_store(const oracles_settings *s)
         char names[64];
         put(&w, "cheats_%s=%s\n", game_names[g], oracles_cheats_format(s->cheats[g], NULL, names, sizeof names));
     }
+    put(&w, "# Each fan game's own cheats, not its Oracle's.\n");
+    for (unsigned g = 0; g < ORACLES_HOME_FAN_GAMES; g++) {
+        char names[64];
+        put(&w, "cheats_%s=%s\n", oracles_home_fan_games[g].key, oracles_cheats_format(s->fan_cheats[g], NULL, names, sizeof names));
+    }
     put(&w, "# Display, for the games the home screen starts: the profile (faithful or enhanced), the view in enhanced (near,\n"
                "# medium or far, how much of the world it shows, in the screen's shape), the continuous transitions (off|on, in\n"
                "# enhanced only), and the window, 2, 3 or 4 times its surface or full (the screen); enhanced, far, on and full at\n"
@@ -683,8 +693,8 @@ int oracles_settings_store(const oracles_settings *s)
                "# pace), in enhanced on Ages, Seasons and the fan games; from the home screen only, the pause showing it greyed.\n");
     put(&w, "text=%s\n", s->compact_text ? "compact" : "classic");
     put(&w, "# The text box: standard (the game's) or wide (192 pixels of text, drawn by the port, the texts laid out again\n"
-               "# for it, classic or compact), in enhanced on Ages and Seasons; from the home screen only, the pause showing it\n"
-               "# greyed.\n");
+               "# for it, classic or compact), in enhanced on Ages, Seasons and the fan games; from the home screen only, the\n"
+               "# pause showing it greyed.\n");
     put(&w, "text_box=%s\n", s->text_box_wide ? "wide" : "standard");
     put(&w, "# The text box's size: normal, large (three halves, in whole screen pixels) or xlarge (twice as large), where the\n"
                "# view holds it, else the next size down, in enhanced; at once, from the pause too.\n");

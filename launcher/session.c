@@ -466,7 +466,7 @@ static int check_profile(session *s, const OraclesSessionOptions *o, OraclesSess
         fprintf(stderr, "oracles: the instant text is not qualified for %s; this game plays with the classic text\n", s->profile ? oracles_compat_name(s->profile) : "this image");
         s->text_instant = 0;
     }
-    /* The cheats, a setting of each Oracle: the same, a fan game playing without them. */
+    /* The cheats, a setting of each game: the same, a game whose profile has none playing without them. */
     if (s->cheats && !oracles_compat_cheats(s->profile)) {
         if (!from_home) return failed(result, "%s does not support --cheats", s->profile ? oracles_compat_name(s->profile) : "this image");
         fprintf(stderr, "oracles: the cheats are not qualified for %s; this game plays without them\n", s->profile ? oracles_compat_name(s->profile) : "this image");
@@ -478,10 +478,10 @@ static int check_profile(session *s, const OraclesSessionOptions *o, OraclesSess
         fprintf(stderr, "oracles: the compact text is not qualified for %s; this game plays with the classic text\n", s->profile ? oracles_compat_name(s->profile) : "this image");
         s->compact_text = 0;
     }
-    /* The wide text box, which the host draws: never in Faithful either, nor where the host's box is not qualified (the
-     * fan games, which keep the game's box). */
+    /* The wide text box, which the host draws: never in Faithful either, nor where the host's box is not qualified (an
+     * unrecognised image, which keeps the game's box). */
     if (s->text_box_wide && (!oracles_compat_host_text_box(s->profile) || !s->enhanced)) {
-        if (!from_home) return failed(result, "--text-box wide plays in Enhanced alone, on Ages and Seasons");
+        if (!from_home) return failed(result, "--text-box wide plays in Enhanced alone, on Ages, Seasons and the fan games made on them");
         fprintf(stderr, "oracles: the wide text box is not qualified for %s; this game plays with the game's box\n", s->profile ? oracles_compat_name(s->profile) : "this image");
         s->text_box_wide = 0;
     }
@@ -618,7 +618,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
                     o->unvisited_hidden ? "--unvisited-rooms" : "unvisited_rooms= in the settings");
         if (s->text_box_wide) oracles_enhanced_view_set_text_box(s->view, ORACLES_TEXT_BOX_WIDE_PIXELS, ORACLES_TEXT_BOX_GAME_LINES);
         /* Text size: the command line's, else the settings'; presentation alone, which the pause changes at once.  A
-         * fan game keeps the game's box at its size, as it keeps the box standard. */
+         * game whose profile does not qualify it keeps the game's box at its size. */
         const int text_size = o->text_size ? o->text_size - 1 : s->settings->text_size;
         oracles_enhanced_view_set_text_size(s->view, (unsigned)text_size);
         if (text_size && !oracles_enhanced_view_text_size(s->view))
@@ -791,7 +791,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->text_instant = o->text_instant == 2;
     s->text_speed_setting = -1;
     s->cheats = o->cheats;
-    s->cheats_game = -1;
+    s->pause_cheats = 0;
     s->swim_setting = s->hotkeys_game = s->window_setting = s->window_line = -1;
     s->compact_text = o->compact_text == 2;
     s->text_box_wide = o->text_box_wide == 2;
@@ -804,11 +804,11 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     char why[1024];
     int ok = load_game(s, o, result) && (!o->play_path || oracles_session_replay_route(s, o, why, sizeof why) || failed(result, "%s", why))
           && check_profile(s, o, result) && (!o->record_path || oracles_session_record_route(s, o, why, sizeof why) || failed(result, "%s", why));
-    /* The pause's Cheats change the cheats of an Oracle the home screen started, from the next frame; Controls its
+    /* The pause's Cheats change the cheats of a game the home screen started whose profile has them, from the next frame; Controls its
      * swim's hold and item hotkeys, where its profile has them; Display, or a replayed route's `set window` lines, the
      * window of any game that has one. */
     const int settings_game = s->info.game == ORACLES_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES;
-    if (ok && s->pause && oracles_compat_cheats(s->profile)) s->cheats_game = settings_game;
+    if (ok && s->pause && oracles_compat_cheats(s->profile)) s->pause_cheats = 1;
     if (ok && s->pause && oracles_compat_swim_hold(s->profile)) s->swim_setting = settings->swim_hold;
     if (ok && s->pause && oracles_compat_text_instant(s->profile)) s->text_speed_setting = settings->text_instant;
     if (ok && s->pause && oracles_compat_item_hotkeys(s->profile) && s->info.game != ORACLES_GAME_UNKNOWN) {

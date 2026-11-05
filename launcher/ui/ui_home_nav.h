@@ -14,7 +14,8 @@
  * Oracle's European ROM and language; Play), with the language beside it when
  * it is not English, Display the profile and the window's choices, the same for every
  * game, Controls the keys and buttons, Mods the mods of an Oracle (ui_page_nav.h),
- * greyed for a fan game, and Cheats an Oracle's cheats, which a fan game's menu and an unrecognised ROM's do not have. */
+ * greyed for a fan game, and Cheats the game's cheats, which the menu of a game whose profile has none (an unrecognised
+ * ROM) does not have. */
 #ifndef ORACLES_UI_HOME_NAV_H
 #define ORACLES_UI_HOME_NAV_H
 
@@ -202,7 +203,7 @@ typedef struct OraclesHomeGame {
     char save_written[32];                       /* "21 Sep 2026, 22:14" */
     int hotkeys;                                 /* item hotkeys: 0 off, 1 use, 2 equip, as the policy numbers them */
     int hotkeys_failed;                          /* they could not attach to this ROM in a session: it plays without them */
-    unsigned cheats;                             /* an Oracle's cheats on, settings.txt's cheats_<game>= (ui_page_nav.h) */
+    unsigned cheats;                             /* the game's cheats on, settings.txt's cheats_<game>= (ui_page_nav.h) */
     /* An Oracle's European ROM, which its English and official translations come from: NONE, ORIGINAL when it is this
      * game's (recognized), UNRECOGNISED for another file, REFUSED with the loader's reason when it cannot be read; a fan
      * game's, its Oracle's (the state alone), NONE while the fan games' languages are off.  The language the game plays in, an index of oracles_page_language_names,
@@ -213,7 +214,19 @@ typedef struct OraclesHomeGame {
     char eu_reason[ORACLES_HOME_TEXT_LENGTH];
     int language;
     OraclesHomeFont font;                        /* its ROM's, a fan game's base ROM's */
+    /* What its profile does not qualify (ORACLES_HOME_REFUSES_*), which its pages dim, say or leave out: the profile of
+     * the image the game plays, a fan game's that its patch is made to give, built or not; the host reads it there. */
+    unsigned refuses;
 } OraclesHomeGame;
+
+/* The features a game's profile may not qualify, as the launcher's pages ask for them. */
+enum {
+    ORACLES_HOME_REFUSES_TEXT_BOX = 1u << 0,    /* the host's box: Text box's Wide */
+    ORACLES_HOME_REFUSES_TEXT_SIZE = 1u << 1,   /* Text size */
+    ORACLES_HOME_REFUSES_SWIM_HOLD = 1u << 2,   /* Swimming's Hold */
+    ORACLES_HOME_REFUSES_HOTKEYS = 1u << 3,     /* the item hotkeys */
+    ORACLES_HOME_REFUSES_CHEATS = 1u << 4
+};
 
 /* The choices of Display, the same for every game. */
 typedef struct OraclesHomeDisplay {
@@ -361,7 +374,7 @@ typedef struct OraclesHomeNav {
      * which alone the host writes. */
     int cheats_fixed;
     unsigned cheats_changed;
-    /* In a game: its profile has no cheats (an unrecognised ROM, a fan game): the pause has no Cheats.  An Oracle's
+    /* In a game: its profile has no cheats (an unrecognised ROM): the pause has no Cheats.  An Oracle's
      * whose profile has no swim's hold, no item hotkeys (an unrecognised ROM): Controls' Swimming, its Item hotkeys,
      * dimmed and inert, saying why; a game's whose profile has no instant text, Display › Text's Text speed (on the home
      * screen, a page whose ROM is unrecognised). */
@@ -448,6 +461,8 @@ int oracles_home_keys_shown(const OraclesHomeNav *nav);
 OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction action);
 /* The game of what the right half shows (ORACLES_HOME_GAME_*), or -1 for the list of fan games. */
 int oracles_home_game(const OraclesHomeNav *nav);
+/* Whether the profile of that game does not qualify `feature` (ORACLES_HOME_REFUSES_*); 0 for the list of fan games. */
+int oracles_home_refuses(const OraclesHomeNav *nav, unsigned feature);
 /* The game a session plays, from Start game or Play: ORACLES_HOME_START_AGES, _SEASONS or a fan game's. */
 OraclesHomeCommand oracles_home_start_command(int game);
 

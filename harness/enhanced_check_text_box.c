@@ -208,6 +208,45 @@ static unsigned cursor_wrong(const OraclesEnhancedCheck *c, const OraclesTextBox
     return wrong;
 }
 
+/* A choice's cursor places, where the fan games' engine draws the cursor in the line's tiles (and the space that takes
+ * it off): each place's cell as the host's box shows it, at its column moved with a line centred, against the game's
+ * cell in the VRAM ($9000 + 16 t, t the place's top tile), its two tiles in the line's attribute; a place where the box
+ * draws a cursor from the map (the US engine's) is left to cursor_wrong.  The pixels that differ. */
+static unsigned cursor_cells_wrong(OraclesEnhancedCheck *c, const OraclesTextBoxModel *model, const OraclesTextBoxSource *s, int32_t box_x, int32_t box_y,
+                                   unsigned zoom, const uint32_t *surface, unsigned height)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(c->guest);
+    if (oracles_guest_read8(c->guest, t->text_display_mode) != 1u) return 0;
+    const uint8_t *places = oracles_guest_ptr(c->guest, t->textbox_option_positions, 8u);
+    if (!places || !s->vram) return 0;
+    unsigned wrong = 0, compared = 0;
+    for (unsigned r = 0; r < 2u * ORACLES_TEXT_BOX_GAME_LINES; r++) {
+        const OraclesTextBoxRow *row = &model->row[r];
+        const OraclesGuestTextBoxLine *line = row->line ? s->lines[row->line] : NULL;
+        if (!line) continue;
+        const unsigned base = row->line == ORACLES_GUEST_TEXT_BOX_BOTTOM ? 0x60u : 0x40u;
+        for (unsigned i = 0; i < 8u && places[i]; i++) {
+            const unsigned tile = places[i] - 1u, column = (tile - base) / 2u + line->offset / 8u;
+            if (tile < base || tile >= base + 32u || column >= line->columns) continue;
+            int marked = 0;
+            for (unsigned m = 0; m < model->marks; m++)
+                marked |= model->mark[m].anchor == ORACLES_TEXT_BOX_TEXT && model->mark[m].row == r && model->mark[m].column + line->offset / 8u == column;
+            if (marked) continue;
+            const uint8_t *data = s->vram + 0x1000u + 16u * (tile + row->half);
+            for (unsigned y = 0; y < 8u; y++)
+                for (unsigned x = 0; x < 8u; x++) {
+                    const int32_t sx = box_x + (int32_t)(zoom * (8u + 8u * column + x)), sy = box_y + (int32_t)(zoom * (8u * r + y));
+                    if (sx < 0 || sx >= (int32_t)c->width || sy < 0 || sy >= (int32_t)height) continue;
+                    const unsigned index = ((data[2u * y] >> (7u - x)) & 1u) | ((data[2u * y + 1u] >> (7u - x)) & 1u) << 1;
+                    wrong += surface[(size_t)sy * c->width + (size_t)sx] != box_colour(s, line->attribute[column], index);
+                    compared++;
+                }
+        }
+    }
+    if (compared) c->wide_cursor_cells++;
+    return wrong;
+}
+
 static void note_reveal(OraclesEnhancedCheck *c, uint32_t frame, char kind)
 {
     const size_t used = strlen(c->wide_reveal_list);
@@ -280,6 +319,7 @@ void ec_check_wide_text_box(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, c
         if (offset) c->wide_cursor_centred++;
         c->wide_cursor_pixels_wrong += cursor_wrong(c, source, m, box_x + (int32_t)(zoom * (8u + 8u * m->column + offset)), box_y + (int32_t)(zoom * 8u * m->row), zoom, surface, height);
     }
+    if (mode == ORACLES_ENHANCED_WORLD || zoom > 1u) c->wide_cursor_pixels_wrong += cursor_cells_wrong(c, model, source, box_x, box_y, zoom, surface, height);
     {   /* The lines shown centred, a page the game laid out. */
         int centred = 0;
         for (unsigned r = 0; r < 2u * ORACLES_TEXT_BOX_GAME_LINES; r++)
@@ -472,6 +512,7 @@ static void wide_summary(const OraclesEnhancedCheck *c, FILE *out)
                  "text_box.centred_lines=%u\ntext_box.centred_frames=%u\ntext_box.cursor_centred=%u\ntext_box.cursor_pixels_wrong=%u\n",
             g.composed, g.wide_lines, g.overflows, g.copies, g.copies_unlike, g.symbols, c->wide_frames ? c->wide_us_total / c->wide_frames : 0.0, c->wide_us_max,
             c->wide_crop_frames, c->wide_crop_outside, g.centred, c->wide_centred_frames, c->wide_cursor_centred, c->wide_cursor_pixels_wrong);
+    fprintf(out, "text_box.cells=%u\ntext_box.cursor_cells=%u\n", g.cells, c->wide_cursor_cells);
 }
 
 static void wide_report(const OraclesEnhancedCheck *c, FILE *out)
@@ -554,8 +595,8 @@ void ec_host_text_box_summary(const OraclesEnhancedCheck *c, FILE *out)
             c->host_box_uncovered, c->host_box_unknown, c->host_box_unexpected, c->host_box_absent, c->host_box_absent_longest);
     fprintf(out, "text_box.host_drawn_frames=%u\ntext_box.host_us_mean=%.2f\ntext_box.host_us_max=%.1f\ntext_box.wide_us_mean=%.2f\n", c->host_box_drawn,
             c->host_box_drawn ? c->host_box_us_total / c->host_box_drawn : 0.0, c->host_box_us_max, c->host_box_drawn ? c->host_box_wide_us_total / c->host_box_drawn : 0.0);
-    fprintf(out, "text_box.lines_composed=%u\ntext_box.line_copies=%u\ntext_box.reveal_writes=%u\ntext_box.copies_unlike=%u\ntext_box.symbols=%u\n",
-            g.composed, g.copies, g.reveal_writes, g.copies_unlike, g.symbols);
+    fprintf(out, "text_box.lines_composed=%u\ntext_box.line_copies=%u\ntext_box.reveal_writes=%u\ntext_box.copies_unlike=%u\ntext_box.symbols=%u\ntext_box.cells=%u\n",
+            g.composed, g.copies, g.reveal_writes, g.copies_unlike, g.symbols, g.cells);
 }
 
 void ec_host_text_box_report(const OraclesEnhancedCheck *c, FILE *out)

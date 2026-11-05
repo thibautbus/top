@@ -113,10 +113,10 @@ static int usage(void)
                     "                           [--continuous-steps]   (the continuous transitions with Link taking a step a frame as the keys give it; implies --continuous-transitions)\n"
                     "                           [--continuous-line]   (a scroll starts at the line between two rooms, Link stands anywhere in a room and stops where the keys leave him; implies --continuous-steps)\n"
                     "                           [--swim-hold]   (swimming, a direction held swims at full speed where the game wants A tapped with the flippers, the direction with Ages' mermaid suit)\n"
-                    "                           [--cheats no-damage,ammo,rupees]   (Ages and Seasons: Link loses no heart, seeds and bombs are not used up, buying costs nothing;\n"
+                    "                           [--cheats no-damage,ammo,rupees]   (Ages, Seasons and their fan games: Link loses no heart, seeds and bombs are not used up, buying costs nothing;\n"
                     "                           a mod's prices still apply; an empty list for none)\n"
                     "                           [--text classic|compact]   (Enhanced, the Oracles and their fan games: the text box's lines in the font's own widths, at the game's pace)\n"
-                    "                           [--text-box standard|wide]   (Enhanced, Ages and Seasons: the game's box, or a wider one drawn by the port, 192 pixels of text)\n"
+                    "                           [--text-box standard|wide]   (Enhanced, Ages, Seasons and the fan games: the game's box, or a wider one drawn by the port, 192 pixels of text)\n"
                     "                           [--text-size normal|large|xlarge]   (Enhanced: the text box three halves as large, in whole screen pixels, or twice)\n"
                     "                           [--text-speed classic|instant]   (the text letter by letter at the file screen's speed, or each line whole; A still turns the page)\n");
     fprintf(stderr, "                           [--zoom-out]   (Enhanced drawn back, 480x270 or 480x360 in 4:3, three rooms across outdoors; --fullscreen --scale 4 fills 1920x1080; --view far)\n"

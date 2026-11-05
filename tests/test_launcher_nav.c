@@ -1,6 +1,7 @@
 /* The home screen's navigation (ui_home_nav.h): entries, the list of fan
  * games, disabled items and their reasons, going back, the pointer; Display's rows from the pause; the newer version's
  * notice. */
+#include "home_fixture.h"
 #include "ui_font.h"
 #include "ui_home_nav.h"
 #include "ui_page_layout.h"
@@ -254,6 +255,7 @@ static void fan_games(void)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    fan_profiles(&nav);
     nav.games[0].usable = nav.games[1].usable = 1;
     oracles_home_select(&nav, ORACLES_HOME_FAN);
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
@@ -286,8 +288,11 @@ static void fan_games(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY);
     CHECK(oracles_home_hero(&nav) == ORACLES_HOME_HERO_KINOMI && oracles_home_focus(&nav) == 0);
     CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_KINOMI);
-    CHECK(oracles_home_items(&nav, items) == 6 && items[0].disabled && !strcmp(items[0].reason, "Choose both files in Cartridge first") && !items[1].disabled);
-    CHECK(items[5].id == ORACLES_HOME_ITEM_EXIT);   /* no Cheats for a fan game */
+    CHECK(oracles_home_items(&nav, items) == 7 && items[0].disabled && !strcmp(items[0].reason, "Choose both files in Cartridge first") && !items[1].disabled);
+    CHECK(items[5].id == ORACLES_HOME_ITEM_CHEATS && items[6].id == ORACLES_HOME_ITEM_EXIT);   /* its profile has cheats */
+    nav.games[ORACLES_HOME_GAME_KINOMI].refuses = MOCKUP_FAN_REFUSES;   /* a profile that refuses them: no Cheats */
+    CHECK(oracles_home_items(&nav, items) == 6 && items[5].id == ORACLES_HOME_ITEM_EXIT);
+    nav.games[ORACLES_HOME_GAME_KINOMI].refuses = FAN_REFUSES;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY);
     CHECK(oracles_home_hints(&nav, hints) == 4 && hints[3].back && !strcmp(hints[3].label, "Fan games"));
     nav.games[ORACLES_HOME_GAME_KINOMI].usable = 1;

@@ -266,8 +266,15 @@ int main(int argc, char **argv)
     snprintf(identity, sizeof identity, "%s", oracles_language_session_identity(session));
     oracles_language_session_stop(session);
     session = NULL;
-    CHECK(oracles_language_session_lay_out(&session, &fan_info, &classic_wide, error, sizeof error) == -1 && strstr(error, "game's text box alone") && !session);
-    CHECK(oracles_language_session_lay_out(&session, &fan_info, &compact_wide, error, sizeof error) == -1 && !session);
+    /* And for the wide box, classic and compact, each layout its own identity. */
+    CHECK(oracles_language_session_lay_out(&session, &fan_info, &classic_wide, error, sizeof error) == 0 && session != NULL
+          && strstr(oracles_language_session_identity(session), "text-classic-192x2@") && strcmp(identity, oracles_language_session_identity(session)) != 0);
+    oracles_language_session_stop(session);
+    session = NULL;
+    CHECK(oracles_language_session_lay_out(&session, &fan_info, &compact_wide, error, sizeof error) == 0 && session != NULL
+          && strstr(oracles_language_session_identity(session), "text-compact-192x2@"));
+    oracles_language_session_stop(session);
+    session = NULL;
     CHECK(oracles_language_session_lay_out(&session, &info, &compact, error, sizeof error) == 0 && strcmp(identity, oracles_language_session_identity(session)) != 0);
     oracles_language_session_stop(session);
     CHECK(start(&session, NULL, pack, &info, &ages, error, sizeof error) == 0 && session != NULL);

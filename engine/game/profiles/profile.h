@@ -30,7 +30,8 @@ typedef struct OraclesCompatProfile {
     int continuous_line;             /* --continuous-line: the scroll at the line between two rooms, at screenTransitionState2's four comparisons */
     int cheats;                      /* --cheats: the cheats' answers at the instructions that read Link's damage, the ammunition used and the rupees taken */
     int compact_text;                /* --text compact: the text box's lines composed in the font's own widths (drawLineOfText, displayNextTextCharacter) */
-    int host_text_box;               /* the text box the host keeps and draws (dmaTextGfxBuffer, vblankDmaFunction): --text-box wide and Text size */
+    int host_text_box;               /* the text box the host keeps and draws (dmaTextGfxBuffer, vblankDmaFunction): --text-box wide */
+    int text_size;                   /* --text-size: the game's box enlarged from the core's image, where its variables place it (w7TextboxVramPos, w7d0cc), and the host's */
     int text_instant;                /* --text-speed instant: each line of the text box whole, at the reads of A and B that skip it (updateCharacterDisplayTimer, displayNextTextCharacter) */
     const OraclesGuestTables *guest_tables;
     const OraclesTables *data_tables;
@@ -77,6 +78,7 @@ int oracles_compat_room_code_replay(const OraclesCompatProfile *profile);
 int oracles_compat_cheats(const OraclesCompatProfile *profile);
 int oracles_compat_compact_text(const OraclesCompatProfile *profile);
 int oracles_compat_host_text_box(const OraclesCompatProfile *profile);
+int oracles_compat_text_size(const OraclesCompatProfile *profile);
 int oracles_compat_text_instant(const OraclesCompatProfile *profile);
 const OraclesGuestTables *oracles_compat_guest_tables(const OraclesCompatProfile *profile);
 const OraclesTables *oracles_compat_data_tables(const OraclesCompatProfile *profile);

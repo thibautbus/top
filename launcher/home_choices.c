@@ -1,6 +1,7 @@
 #include "home_choices.h"
 
 #include "backends.h"
+#include "guest.h"
 #include "guest_tables.h"
 #include "safe_area.h"
 #include "touch_controls.h"
@@ -11,6 +12,32 @@
 
 #include <stdio.h>
 #include <string.h>
+
+unsigned oracles_home_refusals(OraclesGame family, OraclesRomRevision revision)
+{
+    const OraclesRomInfo info = { .game = family, .revision = revision, .known = 1 };
+    const OraclesCompatProfile *profile = oracles_compat_find(&info);
+    return (oracles_compat_host_text_box(profile) ? 0u : ORACLES_HOME_REFUSES_TEXT_BOX) | (oracles_compat_text_size(profile) ? 0u : ORACLES_HOME_REFUSES_TEXT_SIZE)
+           | (oracles_compat_swim_hold(profile) ? 0u : ORACLES_HOME_REFUSES_SWIM_HOLD)
+           | (oracles_compat_item_hotkeys(profile) ? 0u : ORACLES_HOME_REFUSES_HOTKEYS) | (oracles_compat_cheats(profile) ? 0u : ORACLES_HOME_REFUSES_CHEATS);
+}
+
+unsigned oracles_home_cheats(const oracles_settings *settings, int game)
+{
+    const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    if (fan) return settings->fan_cheats[fan - oracles_home_fan_games];
+    return settings->cheats[game == ORACLES_HOME_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES];
+}
+
+void oracles_home_store_cheats(const OraclesHomeNav *nav, oracles_settings *prefs)
+{
+    for (int g = 0; g < ORACLES_HOME_GAMES; g++) {
+        if (!(nav->cheats_changed & 1u << g)) continue;
+        const OraclesHomeFanGame *fan = oracles_home_fan_game(g);
+        if (fan) prefs->fan_cheats[fan - oracles_home_fan_games] = nav->games[g].cheats;
+        else prefs->cheats[g == ORACLES_HOME_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES] = nav->games[g].cheats;
+    }
+}
 
 /* Room left on the display for the window's frame and title bar, which its usable area does not count. */
 #define WINDOW_FRAME 64

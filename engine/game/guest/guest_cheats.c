@@ -170,7 +170,9 @@ void oracles_guest_cheat_point(OraclesGuest *guest, OraclesGuestEventType type)
         if (!(guest->cheats & ORACLES_CHEAT_AMMO) || !count || *count == a) return;
         uint16_t bank = 0;
         oracles_core_memory(guest->core, ORACLES_CORE_ROM, NULL, &bank);
-        if (word && (uint16_t)(word[0] | word[1] << 8) == guest->ammo_scripted_return.addr && bank == guest->ammo_scripted_return.bank) return;
+        if (guest->ammo_scripted_return.bank != ORACLES_GUEST_ABSENT && word && (uint16_t)(word[0] | word[1] << 8) == guest->ammo_scripted_return.addr
+            && bank == guest->ammo_scripted_return.bank)
+            return;   /* the story's own loss (Ages' bomb-upgrade fairy); a game without it has nothing to leave */
         set_a(guest, &r, *count);
         guest->cheat_counts.ammo_kept++;
     } else if (type == ORACLES_EVENT_CHEAT_RUPEES) {

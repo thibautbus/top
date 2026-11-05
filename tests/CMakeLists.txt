@@ -69,6 +69,13 @@ if(BUILD_TESTING)
     target_link_libraries(oracles-test-cheats PRIVATE oracles_guest)
     oracles_set_warnings(oracles-test-cheats)
     add_test(NAME oracles-cheats COMMAND oracles-test-cheats)
+    # The cheats' answers in the games themselves, the game's own routines called in the core: skipped unless
+    # ORACLES_ROM_DIR names a directory with the ROMs and the fan games' patches.
+    add_executable(oracles-test-cheats-roms test_cheats_roms.c)
+    target_link_libraries(oracles-test-cheats-roms PRIVATE oracles_guest)
+    oracles_set_warnings(oracles-test-cheats-roms)
+    add_test(NAME oracles-cheats-roms COMMAND oracles-test-cheats-roms)
+    set_tests_properties(oracles-cheats-roms PROPERTIES SKIP_RETURN_CODE 77)
 
     add_executable(oracles-test-compact-text test_compact_text.c)
     target_link_libraries(oracles-test-compact-text PRIVATE oracles_guest)

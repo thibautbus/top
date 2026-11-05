@@ -45,7 +45,7 @@ The game starts in Enhanced, the wide view, in fullscreen; [Display](#display) c
 
 The home screen has three entries: **Oracle of Ages**, **Oracle of Seasons** and **Fan games**. The chosen entry shows its title, its state and its menu. The state is **Ready** (with the date of the last session), **ROM not found**, or for a fan game whose Oracle's ROM is chosen, **Patch not found**, or **Patch refused** when its patch is there but refused (not a BPS patch, or another fan game's).
 
-A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, **Cheats** (not for a fan game or an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods greyed and no Cheats. A greyed entry says why when it is highlighted.
+A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods greyed. A greyed entry says why when it is highlighted.
 
 Move with the arrows, Enter and Escape on the keyboard; with the d-pad, A and B on a controller, where the menu's button and Guide act as Escape; or with the mouse, or by touch. **F11** switches fullscreen on and off. The key hints at the bottom of each page, the pause menu's included, show the keys of the device you used last.
 
@@ -138,13 +138,13 @@ Smooth is the default on computers. On Android, it is the default where the game
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
 | **Text** | Classic, Compact | Classic | Classic: the game's fixed-width letters. Compact: each letter takes its own width, so more words fit on a line and a dialogue takes fewer boxes. A savestate taken with Compact needs Compact. | Enhanced; Ages, Seasons and the fan games | greyed |
-| **Text box** | Standard, Wide | Standard | Standard: the game's box. Wide: a longer box with longer lines, fewer boxes still with Compact. A savestate taken with Wide needs Wide. | Enhanced; Ages and Seasons | greyed |
-| **Text size** | Normal, Large, Very large | Normal | Draws the text box larger where the view has room for it, the next size down where it has not, for reading from a distance or on a small screen. | Enhanced; Ages and Seasons | at once |
+| **Text box** | Standard, Wide | Standard | Standard: the game's box. Wide: a longer box with longer lines, fewer boxes still with Compact. A savestate taken with Wide needs Wide. | Enhanced; Ages, Seasons and the fan games | greyed |
+| **Text size** | Normal, Large, Very large | Normal | Draws the text box larger where the view has room for it, the next size down where it has not, for reading from a distance or on a small screen. | Enhanced; Ages, Seasons and the fan games | at once |
 | **Text speed** | Classic, Instant | Classic | Classic: letter by letter, at the speed chosen on the game's file screen. Instant: each line appears whole; A still turns the page. | both; not on an unrecognised ROM | when the game resumes |
 
 The page shows a preview of the view the game will play in: the status bar at the top, and the text box at the bottom at the size it will take there, in the font of your ROM (bars stand in for the text without a ROM). Where the view has no room for the size chosen, the preview says which size it falls back to.
 
-**Text** and **Text box** are laid out when the game starts, so they change from the home screen only. A fan game has the compact text, but not yet the wide box or the larger sizes: its page greys them, "Ages and Seasons only for now.". **Text speed** changes the game's pace rather than its picture, so it plays in Faithful too. With Instant, A still turns the page: if you are used to pressing A twice, the second press turns the next page. A few texts the game shows slowly on purpose still begin letter by letter.
+**Text** and **Text box** are laid out when the game starts, so they change from the home screen only. **Text speed** changes the game's pace rather than its picture, so it plays in Faithful too. With Instant, A still turns the page: if you are used to pressing A twice, the second press turns the next page. A few texts the game shows slowly on purpose still begin letter by letter.
 
 Each option is detailed in [`REFERENCE.md`](REFERENCE.md#the-compact-text): the compact text, the wide text box, the text size and the text speed.
 
@@ -242,15 +242,15 @@ The keys hold for every game, and each game keeps its own slots. Loading a saves
 | --- | --- | --- |
 | **No damage** | Off, On | Enemies, spikes and falls no longer cost hearts. Link is still knocked back. |
 | **Ammo never runs out** | Off, On | Seeds, bombs and Bombchus are not used up. |
-| **Rupees never run out** | Off, On | Buying costs nothing. Mods still charge. |
+| **Rupees never run out** | Off, On | Buying costs nothing. Mods still charge. (A fan game, which has no mods, says the first sentence alone.) |
 
-The Cheats page is in the menu of Ages and of Seasons, after Mods. Under its title it says: "Cheats play with your usual save: what you keep stays in it.". Left, right and Enter turn the highlighted cheat off and on; each change is kept at once, for the next Play.
+The Cheats page is in the menu of Ages, Seasons and the fan games, after Mods; each game has its own cheats. Under its title it says: "Cheats play with your usual save: what you keep stays in it.". Left, right and Enter turn the highlighted cheat off and on; each change is kept at once, for the next Play.
 
 - **No damage**: a hit still knocks Link back, with its sound and its flash, but costs no heart, so a hit never ends the game. A fall into a hole, water or lava sends him back at no cost. The few moments where the story itself takes hearts still do.
 - **Ammo never runs out**: a seed, a bomb or a Bombchu used is not taken from its count. With none left there is still none.
 - **Rupees never run out**: a price is free, as long as the wallet holds it, which the game checks first. A mod's prices still apply.
 
-The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs; the fan games do not have them. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
+The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in the three fan games. In Temple of Seasons, **Ammo never runs out** keeps its seeds as it keeps its bombs, and **Rupees never run out** makes every purchase free. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
 
 ## Languages
 
@@ -299,13 +299,13 @@ Its Cartridge page asks for both files. **Base ROM** is the ROM of its Oracle, t
 
 The launcher refuses the patch of another of these fan games, and says which game it is for ("Refused: the patch of Moonrise Regalia, not of Gifts of Kinomi."); the patch chosen before stays. A patch dropped on a fan game's page becomes its patch; dropped elsewhere, it goes to the fan game it makes. The patch is applied in memory each time the game starts, and the patched game is never written. The save goes beside the patch, under its name (`Moonrise Regalia 1.0.6.sav`), not beside the base ROM, whose save is the Oracle's; **Open folder** opens the patch's folder.
 
-The three fan games play in Faithful and Enhanced, in every view, with continuous transitions, the compact text and the instant text. From the home screen they do not have hold to swim, the item hotkeys, the cheats, the wide text box, the larger text sizes, the languages or the mods yet.
+The three fan games play in Faithful and Enhanced, in every view, with continuous transitions, the compact text and the instant text. They have the cheats. From the home screen they do not have hold to swim, the item hotkeys, the languages or the mods yet.
 
 ## In game
 
 ### The pause menu
 
-Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or greyed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
+Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or greyed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs and the fan games, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
 
 From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are greyed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
 

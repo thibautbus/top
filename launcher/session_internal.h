@@ -43,10 +43,10 @@ typedef struct session {
     int text_box_wide;                        /* the host's wide text box: the same */
     int text_instant;                         /* the instant text: the option's, as a replayed route or the pause may change it */
     unsigned cheats;                          /* the cheats on (OraclesGuestCheat): the option's, as a replayed route or the profile may change them */
-    /* The pause's Cheats: the settings' game whose cheats the game plays with (an OraclesSettingsGame), -1 when its
-     * profile has none or no pause can change them; the cheats the next frame begins with, once the pause changed them;
-     * the cheats a replayed route's `cheat` lines change; and every cheat that was on, for the session's report. */
-    int cheats_game;
+    /* The pause's Cheats: 1 when the pause has them (a pause, and a profile with cheats), the home screen keeping each
+     * game's own, a fan game's too; the cheats the next frame begins with, once the pause changed them; the cheats a
+     * replayed route's `cheat` lines change; and every cheat that was on, for the session's report. */
+    int pause_cheats;
     unsigned cheats_next, cheats_route, cheats_used;
     int cheats_pending;
     /* The other settings the pause changes while the game runs (pause_settings_changed), each as the settings had it

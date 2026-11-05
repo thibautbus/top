@@ -42,9 +42,9 @@ int harness_usage(void)
     fprintf(stderr,
                     "                       [--reminder-check]   (the frames whose status bar is in play for the launcher's reminder, and those it is drawn in a menu or a\n"
                     "                                             dialogue, which are not; the frame the reminder would start at)\n"
-                    "                       [--text-box-check]   (with --enhanced-check, Ages and Seasons: the text box drawn by the host each frame, at the game's width, against the core's image; nothing shown changes;\n"
+                    "                       [--text-box-check]   (with --enhanced-check, where the text box's routines are bound: the text box drawn by the host each frame, at the game's width, against the core's image; nothing shown changes;\n"
                     "                                             with --text-box wide, the wide box against its layout)\n"
-                    "                       [--text-box standard|wide]   (with --enhanced-check, Ages and Seasons: the host's box of 192 pixels of text, the texts laid out again for it, classic or compact; on by itself for a route recorded with it)\n"
+                    "                       [--text-box standard|wide]   (with --enhanced-check, Ages, Seasons and the fan games: the host's box of 192 pixels of text, the texts laid out again for it, classic or compact; on by itself for a route recorded with it)\n"
                     "                       [--text-size normal|large|xlarge]   (with --enhanced-check: the text box three halves as large, the presenter's, or twice, where the view holds it)\n"
                     "                       [--surface-scale K]   (the surfaces of --surface-at K times as large, the text box with Large as the presenter shows it)\n"
                     "                       [--menus-large]   (with --enhanced-check: the framed core shown alone, as menus=large, its text box enlarged by the presenter at every Text size)\n");

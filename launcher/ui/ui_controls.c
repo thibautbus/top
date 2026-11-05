@@ -130,17 +130,17 @@ static void choice_line(OraclesUiDraw *draw, const OraclesUiBox *b, const Oracle
     }
 }
 
-/* From a fan game's pause, Swimming and the Item hotkeys, which it has not, are dimmed; from the pause of an Oracle whose
- * ROM has no item hotkeys, no swim's hold, their lines too, saying why. */
-static float fan_locked(const OraclesHomeNav *nav)
+/* From the pause of a game whose profile has no swim's hold, no item hotkeys (a fan game), Swimming and the Item hotkeys
+ * are dimmed; from the pause of an Oracle whose ROM has neither, their lines too, saying why. */
+static float pause_locked(const OraclesHomeNav *nav, unsigned feature)
 {
-    return nav->in_game && oracles_home_fan_game(oracles_home_game(nav)) ? ROW_NOT_APPLIED : 1.0f;
+    return nav->in_game && oracles_home_refuses(nav, feature) ? ROW_NOT_APPLIED : 1.0f;
 }
 
 static void mode_line(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiControlsLayout *l, const OraclesUiControlsStyles *st, const look *lk,
                       OraclesUiColor accent)
 {
-    const float opacity = nav->hotkeys_refused ? ROW_NOT_APPLIED : fan_locked(nav);
+    const float opacity = nav->hotkeys_refused ? ROW_NOT_APPLIED : pause_locked(nav, ORACLES_HOME_REFUSES_HOTKEYS);
     choice_line(draw, &l->mode, &l->mode_title, "Item hotkeys", l->mode_choices, oracles_ui_controls_mode_choices, oracles_controls_hotkeys_on(nav),
                 nav->controls.row == ORACLES_CONTROLS_ROW_MODE, st, lk, accent, opacity);
     text(draw, st->mode_text, &l->mode_text, oracles_ui_controls_mode_text, oracles_ui_rgba(TEXT, opacity));
@@ -154,7 +154,7 @@ static void mode_line(OraclesUiDraw *draw, const OraclesHomeNav *nav, const Orac
 static void swim(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiControlsLayout *l, const OraclesUiControlsStyles *st, const look *lk,
                  OraclesUiColor accent)
 {
-    const float opacity = nav->swim_refused ? ROW_NOT_APPLIED : fan_locked(nav);
+    const float opacity = nav->swim_refused ? ROW_NOT_APPLIED : pause_locked(nav, ORACLES_HOME_REFUSES_SWIM_HOLD);
     choice_line(draw, &l->swim, &l->swim_title, "Swimming", l->swim_choices, oracles_ui_controls_swim_choices, nav->controls.swim_hold != 0,
                 nav->controls.row == ORACLES_CONTROLS_ROW_SWIM, st, lk, accent, opacity);
     for (unsigned i = 0; i < l->swim_text.count; i++) text(draw, st->mode_text, &l->swim_text.lines[i], l->swim_text.text[i], oracles_ui_rgba(TEXT, opacity));
