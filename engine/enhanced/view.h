@@ -469,6 +469,11 @@ unsigned oracles_enhanced_routed_beyond(uint8_t ref, unsigned dir, uint8_t answe
  * their indices, the most shown first, then the nearest, then the normal
  * order. */
 void oracles_enhanced_band_order(const int32_t *shown, const int32_t *distance, unsigned count, unsigned *out);
+/* Whether the part of the band shown, `width` x `height` of the world from
+ * (`left`, `top`), moved by a room's height up or down or by a room's width
+ * left or right, as a scroll moves it, would show part of a room of the grid:
+ * the drawn-back band's corners so brought in are run before it shows them. */
+int oracles_enhanced_scroll_brings(int32_t left, int32_t top, int32_t width, int32_t height, uint8_t room);
 /* World frames where a neighbour drawn in the band holds a fade's palettes (oracles_enhanced_capture_blank): never, if its guard holds. */
 unsigned oracles_enhanced_view_plain_shown_frames(const OraclesEnhancedView *view);
 /* A scene's tint of the game's screen: `scene`, the palettes a cutscene

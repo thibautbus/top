@@ -16,6 +16,21 @@ static int room_in_view(const OraclesEnhancedView *v, uint8_t room, int32_t reac
     return ev_shown_meets(v, v->view_left, v->view_top, left, top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, reach);
 }
 
+int oracles_enhanced_scroll_brings(int32_t left, int32_t top, int32_t width, int32_t height, uint8_t room)
+{
+    const int32_t h = (int32_t)ORACLES_GHOST_AREA_HEIGHT, room_left = (int32_t)(room & 0x0fu) * SMALL_ROOM_W, room_top = (int32_t)(room >> 4u) * h;
+    const int column = room_left < left + width && room_left + SMALL_ROOM_W > left && room_top - h < top + height && room_top + 2 * h > top;
+    const int row = room_top < top + height && room_top + h > top && room_left - SMALL_ROOM_W < left + width && room_left + 2 * SMALL_ROOM_W > left;
+    return column || row;
+}
+
+/* Whether the band of the last composition, moved as a scroll moves it, would show part of a room of the grid. */
+static int room_a_scroll_away(const OraclesEnhancedView *v, uint8_t room)
+{
+    return v->have_view && oracles_enhanced_scroll_brings(v->view_left + (int32_t)(v->size.width - v->shown_width) / 2, v->view_top + (int32_t)(v->band_height - v->shown_height) / 2,
+                                                          (int32_t)v->shown_width, (int32_t)v->shown_height, room);
+}
+
 /* Whether an entry needs a run now: none, or failed long enough ago; a run
  * put off until Link walks on (a door under him, a text box on his way)
  * waits for him to be 16 px from where he stood. */
@@ -449,6 +464,17 @@ static int run_from_beside(OraclesEnhancedView *v, run_plan *p, entry *e, uint8_
     return 0;
 }
 
+/* A neighbour on the other side of the sea, from the room there under Link
+ * once delivered and holding, as a room beside it: a run from the live state
+ * plays the dive or the return to the surface first, three times as long. */
+static int run_from_sea_reference(OraclesEnhancedView *v, run_plan *p, entry *e, OraclesGhostDirection dir)
+{
+    if (!p->sea) return 0;
+    const entry *const beside[3] = { ev_find_entry(v, p->group, p->ref), NULL, NULL };
+    const OraclesGhostDirection ways[3] = { dir, dir, dir };
+    return run_from_beside(v, p, e, e->room, beside, ways);
+}
+
 /* Runs the step's room if it wants a run and its parent allows; returns 1 when a run was started. */
 static int run_step_now(OraclesEnhancedView *v, run_plan *p, const run_step *st)
 {
@@ -458,6 +484,7 @@ static int run_step_now(OraclesEnhancedView *v, run_plan *p, const run_step *st)
     case STEP_SIDE: {   /* left and right, from the live state, or from beside while it cannot prime */
         entry *e = ev_take_slot(v, group, p->first[plan_sides[s]], p->wanted, p->wanted_count);
         if (!entry_wanting(v, e)) return 0;
+        if (run_from_sea_reference(v, p, e, plan_sides[s])) return 1;
         if (p->live_primeable || !v->observation.cutscene) return run_from_live(v, e, plan_sides[s], p->live_primeable);
         const entry *const beside[3] = { p->have_diagonal[0][s] ? ev_find_entry(v, group, p->diagonal[0][s]) : NULL,
                                          p->have_diagonal[1][s] ? ev_find_entry(v, group, p->diagonal[1][s]) : NULL,
@@ -491,6 +518,7 @@ static int run_step_now(OraclesEnhancedView *v, run_plan *p, const run_step *st)
     case STEP_VERTICAL: {   /* above and below, from the live state, or from beside while it cannot prime */
         entry *e = ev_take_slot(v, group, p->first[plan_verticals[u]], p->wanted, p->wanted_count);
         if (!entry_wanting(v, e)) return 0;
+        if (run_from_sea_reference(v, p, e, plan_verticals[u])) return 1;
         if (p->live_primeable || !v->observation.cutscene) return run_from_live(v, e, plan_verticals[u], p->live_primeable);
         const entry *const beside[3] = { p->have_diagonal[u][0] ? ev_find_entry(v, group, p->diagonal[u][0]) : NULL,
                                          p->have_diagonal[u][1] ? ev_find_entry(v, group, p->diagonal[u][1]) : NULL,
@@ -593,30 +621,41 @@ static void add_step(const OraclesEnhancedView *v, run_step *out, unsigned *n, u
     st->distance = dx * dx + dy * dy;
 }
 
+/* The passes of the run order: the rooms the band shows or is about to, the
+ * rest, and the drawn-back band's corners a scroll would bring into it. */
+enum { PASS_SHOWN, PASS_REST, PASS_CORNERS };
+
 /* The steps of a pass, in the order of the normal band: left and right, the
  * rooms beyond them, the reference room back from a neighbour, above and
  * below, the diagonals, then the second ring outside the first pass.  The
  * drawn-back band outdoors shows up to five columns and three rows (four in
  * its 4:3 shape, 344 lines tall): its second ring is in the first pass too, and the steps go by how much of
- * their room the band shows, then by how near it stands to Link. */
-static unsigned list_steps(const OraclesEnhancedView *v, const run_plan *p, int visible_only, run_step out[28])
+ * their room the band shows, then by how near it stands to Link.  Its corners
+ * are in the first pass alone, and in a last pass of their own. */
+static unsigned list_steps(const OraclesEnhancedView *v, const run_plan *p, int pass, run_step out[28])
 {
-    const int by_band = ev_drawn_back(v);
+    const int by_band = ev_drawn_back(v), visible_only = pass == PASS_SHOWN;
     unsigned n = 0;
-    for (unsigned s = 0; s < SIDES && !p->routed_ask; s++) if (p->have_first[plan_sides[s]]) add_step(v, out, &n, STEP_SIDE, 0, s, p->first[plan_sides[s]]);
-    for (unsigned s = 0; s < SIDES; s++) if (p->have_second[s]) add_step(v, out, &n, STEP_SECOND, 0, s, p->second[s]);
-    if (p->overworld && !visible_only) add_step(v, out, &n, STEP_REF, 0, 0, p->ref);
-    for (unsigned u = 0; u < 2 && !p->routed_ask; u++) if (p->have_first[plan_verticals[u]]) add_step(v, out, &n, STEP_VERTICAL, u, 0, p->first[plan_verticals[u]]);
-    for (unsigned u = 0; u < 2; u++)
-        for (unsigned s = 0; s < SIDES; s++) if (p->have_diagonal[u][s]) add_step(v, out, &n, STEP_DIAGONAL, u, s, p->diagonal[u][s]);
-    if (!visible_only || by_band) {
-        for (unsigned u = 0; u < 2; u++) if (p->have_beyond[u]) add_step(v, out, &n, STEP_BEYOND, u, 0, p->beyond[u]);
+    if (pass == PASS_CORNERS) {
         for (unsigned u = 0; u < 2; u++)
-            for (unsigned s = 0; s < SIDES; s++) {
-                if (p->have_diagonal[u][s] && p->have_second_diagonal[u][s]) add_step(v, out, &n, STEP_SECOND_DIAGONAL, u, s, p->second_diagonal[u][s]);
-                if (p->have_diagonal[u][s] && p->have_beyond_diagonal[u][s]) add_step(v, out, &n, STEP_BEYOND_DIAGONAL, u, s, p->beyond_diagonal[u][s]);
-                if (p->have_corner[u][s] && visible_only) add_step(v, out, &n, STEP_CORNER, u, s, p->corner[u][s]);
-            }
+            for (unsigned s = 0; s < SIDES; s++) if (p->have_corner[u][s]) add_step(v, out, &n, STEP_CORNER, u, s, p->corner[u][s]);
+    }
+    else {
+        for (unsigned s = 0; s < SIDES && !p->routed_ask; s++) if (p->have_first[plan_sides[s]]) add_step(v, out, &n, STEP_SIDE, 0, s, p->first[plan_sides[s]]);
+        for (unsigned s = 0; s < SIDES; s++) if (p->have_second[s]) add_step(v, out, &n, STEP_SECOND, 0, s, p->second[s]);
+        if (p->overworld && !visible_only) add_step(v, out, &n, STEP_REF, 0, 0, p->ref);
+        for (unsigned u = 0; u < 2 && !p->routed_ask; u++) if (p->have_first[plan_verticals[u]]) add_step(v, out, &n, STEP_VERTICAL, u, 0, p->first[plan_verticals[u]]);
+        for (unsigned u = 0; u < 2; u++)
+            for (unsigned s = 0; s < SIDES; s++) if (p->have_diagonal[u][s]) add_step(v, out, &n, STEP_DIAGONAL, u, s, p->diagonal[u][s]);
+        if (!visible_only || by_band) {
+            for (unsigned u = 0; u < 2; u++) if (p->have_beyond[u]) add_step(v, out, &n, STEP_BEYOND, u, 0, p->beyond[u]);
+            for (unsigned u = 0; u < 2; u++)
+                for (unsigned s = 0; s < SIDES; s++) {
+                    if (p->have_diagonal[u][s] && p->have_second_diagonal[u][s]) add_step(v, out, &n, STEP_SECOND_DIAGONAL, u, s, p->second_diagonal[u][s]);
+                    if (p->have_diagonal[u][s] && p->have_beyond_diagonal[u][s]) add_step(v, out, &n, STEP_BEYOND_DIAGONAL, u, s, p->beyond_diagonal[u][s]);
+                    if (p->have_corner[u][s] && visible_only) add_step(v, out, &n, STEP_CORNER, u, s, p->corner[u][s]);
+                }
+        }
     }
     if (!by_band) return n;
     int32_t shown[28] = { 0 }, distance[28] = { 0 };
@@ -646,17 +685,30 @@ static int32_t soon_reach(OraclesEnhancedView *v, const run_plan *p)
     return ev_drawn_back(v) && near_ready(v, p) ? SOON_SHOWN_MARGIN : 0;
 }
 
-/* One pass of the run order; returns 1 when a run was started. */
-static int schedule_pass(OraclesEnhancedView *v, run_plan *p, int visible_only)
+/* Whether a room has its entry, or a free slot to take: a corner run while
+ * the ghost is idle never takes the place of a room the cache holds, which
+ * a return to it would have to wait for again. */
+static int slot_to_spare(OraclesEnhancedView *v, uint8_t group, uint8_t room)
 {
-    if (p->routed_ask && schedule_routed_pass(v, p, visible_only)) return 1;
-    if (p->routed && schedule_routed_beyond(v, p, visible_only)) return 1;
+    if (ev_find_entry(v, group, room)) return 1;
+    for (unsigned i = 0; i < v->slot_count; i++) if (!v->slots[i].used) return 1;
+    return 0;
+}
+
+/* One pass of the run order; returns 1 when a run was started. */
+static int schedule_pass(OraclesEnhancedView *v, run_plan *p, int pass)
+{
+    const int visible_only = pass == PASS_SHOWN;
+    if (pass != PASS_CORNERS && p->routed_ask && schedule_routed_pass(v, p, visible_only)) return 1;
+    if (pass != PASS_CORNERS && p->routed && schedule_routed_beyond(v, p, visible_only)) return 1;
     run_step steps[28];
-    const unsigned n = list_steps(v, p, visible_only, steps);
+    const unsigned n = list_steps(v, p, pass, steps);
     const int32_t reach = visible_only ? soon_reach(v, p) : 0;
     for (unsigned i = 0; i < n; i++) {
-        /* The first pass: only what the band shows (a black patch on screen) or is about to. */
+        /* The first pass: only what the band shows (a black patch on screen) or is about to.  The corners' pass: those
+         * a scroll would bring into the band, so that they are there before it does. */
         if (visible_only && !room_in_view(v, steps[i].room, reach)) continue;
+        if (pass == PASS_CORNERS && (!room_a_scroll_away(v, steps[i].room) || !slot_to_spare(v, p->group, steps[i].room))) continue;
         if (run_step_now(v, p, &steps[i])) return 1;
     }
     return 0;
@@ -681,7 +733,9 @@ static void keep_plan(OraclesEnhancedView *v, const run_plan *p)
  * settled states, so that a vertical transition finds its row ready.  Two
  * passes over the same order: first the rooms the world band shows right now
  * (a black patch on screen) or is about to show, then the rest, so that a room
- * Link walks toward after a warp comes before a room two away. */
+ * Link walks toward after a warp comes before a room two away; then the
+ * drawn-back band's corners a scroll would bring into it, while the ghost has
+ * nothing else to run. */
 static void schedule_idle(OraclesEnhancedView *v, run_plan *p, run_plan *q);
 
 void ev_update_neighbours(OraclesEnhancedView *v)
@@ -733,33 +787,44 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     ev_lane_serve(v, 0);
 }
 
+/* A pass of the other side of the sea's plan, which takes the key and the
+ * live state of the reference room's. */
+static int schedule_other_side(OraclesEnhancedView *v, run_plan *p, run_plan *q, int pass)
+{
+    memcpy(q->key, p->key, p->key_len);
+    q->key_len = p->key_len;
+    q->live_primeable = p->live_primeable;
+    keep_plan(v, p);
+    v->level_change = q->group;
+    const int started = schedule_pass(v, q, pass);
+    v->level_change = -1;
+    keep_plan(v, q);
+    return started;
+}
+
 /* The runs one idle ghost may start, in the order's passes: the band's
- * rooms, the rest, the rooms behind a routed one, the other side of the sea. */
+ * rooms, the rest, the rooms behind a routed one, the rooms the other side of
+ * the sea shows, the corners a scroll would bring into the band, the rest of
+ * the other side. */
 static void schedule_idle(OraclesEnhancedView *v, run_plan *p, run_plan *q)
 {
-    for (int visible_only = 1; visible_only >= 0; visible_only--)
-        if (schedule_pass(v, p, visible_only)) return;
+    if (schedule_pass(v, p, PASS_SHOWN) || schedule_pass(v, p, PASS_REST)) return;
     /* Nothing else to run: the drawn-back band tries the rooms whose
      * only parent is a room the game may route itself, Ages' forest seen from
      * outside it; a run that lands elsewhere teaches the routing, and costs
      * the ghost a run it had no other use for. */
     if (ev_drawn_back(v)) {
         v->chain_routed_idle = 1;
-        const int started = schedule_pass(v, p, 0);
+        const int started = schedule_pass(v, p, PASS_REST);
         v->chain_routed_idle = 0;
         if (started) return;
     }
-    if (!q) return;
     /* Then the other side of the sea, in the same order, the rooms the band
      * shows first: after a dive or a return to the surface where Link stands,
      * the band finds them there.  Its runs from the live state cross the
-     * surface first (ev_start_job); the rooms beyond are chained as on any map. */
-    memcpy(q->key, p->key, p->key_len);
-    q->key_len = p->key_len;
-    q->live_primeable = p->live_primeable;
-    keep_plan(v, p);
-    v->level_change = q->group;
-    for (int visible_only = 1; visible_only >= 0 && !v->pending; visible_only--) schedule_pass(v, q, visible_only);
-    v->level_change = -1;
-    keep_plan(v, q);
+     * surface first (ev_start_job); the rooms beyond are chained as on any map,
+     * and so are the room's neighbours once the room under Link is there. */
+    if (q && schedule_other_side(v, p, q, PASS_SHOWN)) return;
+    if (schedule_pass(v, p, PASS_CORNERS) || !q) return;
+    schedule_other_side(v, p, q, PASS_REST);
 }

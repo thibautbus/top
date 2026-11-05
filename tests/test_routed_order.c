@@ -2,7 +2,7 @@
  * asked of the ghost: the sides before up and down, the nearer of
  * each pair first, a place off the map last; and the grid beyond an answer
  * that is an ordinary room.  And the order of the drawn-back band's runs:
- * the most shown, then the nearest. */
+ * the most shown, then the nearest, and the corners a scroll brings in. */
 #include "camera.h"
 #include "view.h"
 
@@ -49,6 +49,25 @@ int main(void)
         unsigned out[6];
         oracles_enhanced_band_order(shown, distance, 6, out);
         CHECK(out[0] == 2 && out[1] == 5 && out[2] == 3 && out[3] == 0 && out[4] == 4 && out[5] == 1);
+    }
+    /* The corners a scroll brings into the band, Link in 0:57 (the world's
+     * 1120..1279 across, 640..767 down).  Far 16:9 shows 480x254: Link in the
+     * left half of his room, the band shows the column of 0:35 and 0:75, which
+     * a scroll up or down brings in, and not that of 0:39 and 0:79. */
+    {
+        CHECK(oracles_enhanced_scroll_brings(1150 - 240, 700 - 127, 480, 254, 0x35));
+        CHECK(oracles_enhanced_scroll_brings(1150 - 240, 700 - 127, 480, 254, 0x75));
+        CHECK(!oracles_enhanced_scroll_brings(1150 - 240, 700 - 127, 480, 254, 0x39));
+        CHECK(!oracles_enhanced_scroll_brings(1250 - 240, 700 - 127, 480, 254, 0x35));
+        CHECK(oracles_enhanced_scroll_brings(1250 - 240, 700 - 127, 480, 254, 0x79));
+        /* Far 4:3 shows 480x344: Link low in his room, the row of 0:75 and 0:79, which a scroll left or right brings in. */
+        CHECK(oracles_enhanced_scroll_brings(1200 - 240, 750 - 172, 480, 344, 0x79));
+        CHECK(!oracles_enhanced_scroll_brings(1200 - 240, 700 - 172, 480, 344, 0x79));
+        /* Medium 4:3 shows 320x224: no scroll brings a corner in, wherever Link stands in his room. */
+        static const uint8_t corners[4] = { 0x35, 0x39, 0x75, 0x79 };
+        static const int32_t places[4][2] = { { 1120, 640 }, { 1279, 640 }, { 1120, 767 }, { 1279, 767 } };
+        for (unsigned c = 0; c < 4; c++)
+            for (unsigned k = 0; k < 4; k++) CHECK(!oracles_enhanced_scroll_brings(places[k][0] - 160, places[k][1] - 112, 320, 224, corners[c]));
     }
     /* The grid beyond an answer of the Lost Woods (Seasons' map, 16 columns and 16 rows),
      * read through it: right of 0:40, 0:41, an ordinary room, has 0:42 beyond it,
