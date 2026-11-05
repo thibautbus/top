@@ -56,7 +56,7 @@ The [latest release](https://github.com/thibautbus/top/releases/latest) has a fi
 
 ## What you need
 
-Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on. A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Another image whose header is an Oracle's (a hack, a randomizer seed) plays in Faithful only.
+Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on. A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
 
 | File you provide | Expected SHA-1 |
 |---|---|
@@ -81,7 +81,7 @@ In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace 
 
 ## FAQ
 
-**Which ROM do I need?** Your own dump of the US cartridge of Oracle of Ages or Oracle of Seasons, which the port checks by its SHA-1 ([What you need](#what-you-need)); a `.zip` holding it works too, 7z and RAR do not. The European ROM is needed only for the languages, and is chosen on the game's **Cartridge** page beside the US one. A hack or a randomizer seed plays in Faithful only.
+**Which ROM do I need?** Your own dump of the US cartridge of Oracle of Ages or Oracle of Seasons, which the port checks by its SHA-1 ([What you need](#what-you-need)); a `.zip` holding it works too, 7z and RAR do not. The European ROM is needed only for the languages, and is chosen on the game's **Cartridge** page beside the US one. Any other ROM of an Oracle plays in Faithful only.
 
 **Which device can run it?** On a computer, **Display › Quality** starts on Max, the farthest view on the accurate core; on Android, on High or Medium, by the device's processor and memory. On any system, after a game that ran slowly, the home screen suggests a lighter quality. On a Steam Deck, run the Linux AppImage, added to Steam as a non-Steam game so that the Deck's controls reach the port.
 

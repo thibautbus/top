@@ -23,7 +23,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 ## What you need
 
 - Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge. The port recognises the original US ROMs by their SHA-1, which the [README](../README.md) lists, and plays them with every option.
-- Another ROM of an Oracle, such as a hack or a randomizer seed, plays too, in Faithful only: without the wide view and without the gameplay options.
+- Any other ROM of an Oracle plays too, in Faithful only: without the wide view and without the gameplay options.
 - A `.zip` that holds the ROM works as well as the ROM itself. 7z and RAR archives are not read.
 - For the languages, the European ROM of the same game ([Languages](#languages)).
 - For a fan game, its BPS patch in the version listed under [Fan games](#fan-games), and the ROM of the Oracle it is built on.
@@ -103,7 +103,7 @@ After a game in Enhanced that ran slowly, the home screen suggests the quality j
 
 A dungeon's large room shows whole, and an interior of one room is centred. The game's menus, map, cutscenes and file screen show framed in the middle, at the view's scale or larger with **Display › Picture › Menus & scenes**. **F3** switches between the wide view and the game's own screen, framed.
 
-An unrecognised ROM, such as a hack, plays in Faithful whatever the profile chosen, and Display says so.
+An unrecognised ROM plays in Faithful whatever the profile chosen, and Display says so.
 
 ### View
 
@@ -115,7 +115,7 @@ An unrecognised ROM, such as a hack, plays in Faithful whatever the profile chos
 | **Medium** | 384x216 | 320x240 | two rooms across or more |
 | **Far** | 480x270 | 480x360 | three rooms across and two down (nearly three in 4:3) |
 
-Far is the default. In Near on a 4:3 screen, which is narrower than a dungeon's large room, the view follows Link inside the room rather than showing it whole. The farther the view, the more work for the device: on a small handheld, Medium may play smoothly where Far does not.
+Far is the default on computers; on Android, the quality the device starts with chooses (Far at High, Medium at Medium). In Near on a 4:3 screen, which is narrower than a dungeon's large room, the view follows Link inside the room rather than showing it whole. The farther the view, the more work for the device: on a small handheld, Medium may play smoothly where Far does not.
 
 On a screen that Far's usual size fills badly, Far takes a size made for it, with as much of the world as the screen allows. That is 426x320 on a 1280x960 screen (a Retroid Pocket Nova, an Anbernic RG477M, a Retroid Pocket Mini) and 412x360 on 1240x1080 (a Retroid Pocket Mini V2 or Classic, an AYN Thor's bottom screen): a little less than three rooms across, but at a larger scale. On those screens only, **Display › Picture › Far size** chooses that size (Fitted) or Far's usual one (Fixed). The view's sizes and their rules are in [`REFERENCE.md`](REFERENCE.md#the-views-sizes).
 
@@ -378,7 +378,7 @@ The Android application is the same launcher, in landscape and fullscreen: F11 a
 - **The picture is cut off at the top or the bottom**, the status bar or the top of the inventory hidden while no system bar shows. Set **Display › Picture › Screen margin** to **Auto**, which keeps clear of a notch or a curved edge that Android reports. Where it is not enough, choose **Small**, or **Large** where the picture is still cut.
 - **Menus and texts are hard to read on a small screen.** Set **Display › Picture › Menus & scenes** to **Large**, and **Display › Text › Text size** to Large or Very large.
 - **A savestate is refused.** Its message names what loads it, such as a core, a profile, a view's size or a text: choose that from the home screen. The game's own save always loads.
-- **A ROM is refused, or plays in Faithful only.** The port needs the original US ROM; the README lists their SHA-1. A hack plays in Faithful only. A zip must hold one ROM, and 7z and RAR archives are not read.
+- **A ROM is refused, or plays in Faithful only.** The port needs the original US ROM; the README lists their SHA-1. Any other ROM of an Oracle plays in Faithful only. A zip must hold one ROM, and 7z and RAR archives are not read.
 - **The pause menu does not open with a controller.** L3, the left stick's click, opens it by default, and so does Guide where the system leaves it to the application. **Controls › In game › Menu** takes another free button or a trigger.
 - **The Linux AppImage does not start.** Take the `.tar.gz`, or run the AppImage with `--appimage-extract-and-run`: a system without FUSE cannot mount it.
 
