@@ -57,6 +57,8 @@ static void on_event(void *opaque, const OraclesGuestEvent *e)
         case ORACLES_EVENT_CHECK_ROOM_PACK:
         case ORACLES_EVENT_OBJECT_GFX_LOAD:
         case ORACLES_EVENT_OBJECT_GFX_LOAD_DONE:
+        case ORACLES_EVENT_ROOM_OBJECTS_CODE:
+        case ORACLES_EVENT_ROOM_OBJECTS_CODE_DONE:
             break;   /* ghost instance only */
         case ORACLES_EVENT_ANIMATIONS:
             break;   /* the Enhanced view's count of the game's animation steps */

@@ -314,6 +314,17 @@ struct OraclesEnhancedCheck {
     char different_list[512];            /* the different ones: "to:tiles" */
     int threaded;
     int paced;                    /* each frame held to the Game Boy's period, as played */
+    /* --beside-witness (enhanced_check_beside.c): once Link has stood in a
+     * room, each room drawn beside it from its capture against the game's own
+     * entry into it from there, run by a ghost of the check's own. */
+    OraclesGhost *witness;
+    OraclesGhostResult *witness_result;
+    uint8_t *witness_state;
+    int witness_have_room, witness_done;
+    uint8_t witness_group, witness_room;
+    unsigned witness_quiet;
+    unsigned beside_checked, beside_orphans;
+    char beside_list[256];
     double paced_start;
     unsigned width, band_height;  /* the surface's width and its world band's height (oracles_enhanced_band_height) */
     unsigned transitions_large;   /* horizontal transitions in large rooms: the room entered is shown during the scroll, not before */
@@ -405,6 +416,9 @@ void ec_host_text_box_summary(const OraclesEnhancedCheck *c, FILE *out);
 void ec_host_text_box_report(const OraclesEnhancedCheck *c, FILE *out);
 void ec_note_blurb_drawn(OraclesEnhancedCheck *c);
 void ec_check_blurb(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, uint32_t frame);
+
+/* The rooms drawn beside the room in play against the game's own entry into them (enhanced_check_beside.c). */
+void ec_check_beside(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, uint32_t frame);
 
 /* The rows and the figures written out (enhanced_check_report.c). */
 void ec_write_frame_row(OraclesEnhancedCheck *c, uint32_t frame, uint64_t hash, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y,

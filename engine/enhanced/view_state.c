@@ -221,7 +221,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     /* The objects' bookkeeping: the image of the room left,
      * the fade and the hand-off of an entry, the live numbering and tags,
      * a large room's drawings. */
-    v->left_valid = 0; v->vanish_active = 0;
+    v->left_valid = 0; v->vanish_active = 0; v->ref_entered_side = 0;
     v->appear_active = 0; v->appear_ready = 0; v->appear_ended = 0;
     v->handoff_count = 0; v->handoff_armed = 0;
     oracles_sprites_forget(v->live_sprites);

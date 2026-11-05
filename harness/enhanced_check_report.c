@@ -51,6 +51,8 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         unsigned shown = 0, jumps = 0, holes = 0, unseen = 0;
         oracles_enhanced_view_handoff_counts(c->view, &shown, &jumps, &holes, &unseen);
         fprintf(out, "enhanced.handoff_shown=%u\nenhanced.handoff_jumps=%u\nenhanced.handoff_hole_frames=%u\nenhanced.handoff_unseen=%u\n", shown, jumps, holes, unseen);
+        fprintf(out, "enhanced.handoff_orphans=%u\n", oracles_enhanced_view_handoff_orphans(c->view));
+        if (c->witness) fprintf(out, "enhanced.beside_checked=%u\nenhanced.beside_orphans=%u\n", c->beside_checked, c->beside_orphans);
     }
     fprintf(out, "enhanced.link_unshown_frames=%u\nenhanced.link_built_frames=%u\n", oracles_enhanced_view_link_unshown_frames(c->view),
             oracles_enhanced_view_link_built_frames(c->view));
@@ -168,6 +170,10 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         oracles_enhanced_view_large_object_counts(c->view, &drawn, &unmatched);
         fprintf(out, "enhanced.large_object_sprites_drawn=%u\nenhanced.large_object_frames_unmatched=%u\n", drawn, unmatched);
         fprintf(out, "enhanced.neighbour_objects_outdated=%u\nenhanced.refresh_given_up=%u\nenhanced.parents_run_for_kills=%u\n", oracles_enhanced_view_objects_outdated(c->view), oracles_enhanced_view_refresh_given_up(c->view), oracles_enhanced_view_parents_run_for_kills(c->view));
+        fprintf(out, "enhanced.objects_story_refreshes=%u\nenhanced.objects_story_dropped=%u\nenhanced.objects_stale_frames=%u\n", oracles_enhanced_view_objects_story_refreshes(c->view),
+                oracles_enhanced_view_objects_story_dropped(c->view), oracles_enhanced_view_objects_stale_frames(c->view));
+        fprintf(out, "enhanced.objects_side_refreshes=%u\nenhanced.objects_refresh_put_off=%u\n", oracles_enhanced_view_objects_side_refreshes(c->view),
+                oracles_enhanced_view_objects_refresh_put_off(c->view));
     }
     {
         unsigned own = 0, other = 0, in_step_tiles = 0;
@@ -200,6 +206,10 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     }
     /* The cached terrains thrown away because a byte of the cache key they read changed, and the times the coarse list threw the whole cache. */
     fprintf(out, "enhanced.drops=%u\n", oracles_enhanced_view_drop_log(c->view, NULL, 0));
+    fprintf(out, "enhanced.terrain_refreshes=%u\nenhanced.terrain_stale_frames=%u\nenhanced.terrain_given_up=%u\nenhanced.left_stale_frames=%u\n", oracles_enhanced_view_terrain_refreshes(c->view),
+            oracles_enhanced_view_terrain_stale_frames(c->view), oracles_enhanced_view_terrain_given_up(c->view), oracles_enhanced_view_left_stale_frames(c->view));   /* of those, the rooms run again drawn as they were, the frames the band met one, those dropped for staying out of date */
+    fprintf(out, "enhanced.side_stale_frames=%u\nenhanced.left_image_held_frames=%u\n", oracles_enhanced_view_side_stale_frames(c->view),
+            oracles_enhanced_view_left_image_held_frames(c->view));   /* a room drawn with the people of another side's entry; the room left frozen in its image */
     fprintf(out, "enhanced.sea_runs=%u\n", oracles_enhanced_view_sea_runs(c->view));   /* runs across the sea's surface, ahead of a dive or a return (Ages) */
     fprintf(out, "enhanced.uncovered_frames=%u\nenhanced.uncovered_max=%u\nenhanced.live_diff_max=%u\nenhanced.plain_renders=%u\nenhanced.stale_results=%u\nenhanced.season_rejected=%u\nenhanced.coarse_drops=%u\n",
             c->uncovered_frames, c->uncovered_max, oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_stale_results(c->view), oracles_enhanced_view_season_rejected(c->view),
@@ -314,6 +324,9 @@ static void report_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
             c->transitions, c->transitions_vertical, c->transitions_with_terrain, c->transitions_black, c->transitions_black ? ": " : "", c->black_list, c->transitions_dark,
             c->transitions_other_room, c->transitions_other_room ? ": " : "", c->other_room_list);
     fprintf(out, "  rooms entered while shown in their old state (the ghost running them again, not judged): %u\n", c->terrains_old);
+    if (c->witness)
+        fprintf(out, "  rooms beside the room in play judged against the game's own entry into them: %u; objects shown that it does not create: %u%s%s%s\n", c->beside_checked, c->beside_orphans,
+                c->beside_orphans ? " (" : "", c->beside_orphans ? c->beside_list : "", c->beside_orphans ? ")" : "");
     fprintf(out, "  shown terrain against the layout committed after the entry: equal %u, different %u (%u tiles)%s%s; stale ghost results dropped %u; ghost %s\n",
             c->terrains_equal, c->terrains_different, c->terrain_tiles_different, c->terrains_different ? ": " : "", c->different_list,
             oracles_enhanced_view_stale_results(c->view), c->threaded ? "in its thread, as played" : "synchronous");

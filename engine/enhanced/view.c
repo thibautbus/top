@@ -308,13 +308,43 @@ static void note_vram_background(OraclesEnhancedView *v, unsigned n, const uint8
 static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, int32_t camera_x, int32_t camera_y)
 {
     const int32_t reach = wave_reach(v);
-    int plain_shown = 0;
+    int plain_shown = 0, side_stale_shown = 0;
     memset(v->drawn_places, 0, sizeof v->drawn_places);
     ev_hidden_begin(v);
+    /* The image of the room left, drawn where no capture of that room is
+     * while it stays in the band (the first source of a place wins); dropped
+     * once it leaves the band, once Link is back in it (the game recreates
+     * its objects), or on a new epoch (a warp, a load). */
+    if (v->left_valid) {
+        const int back_in_it = !v->observation.in_transition && v->observer.ref_group == v->left_group && v->observer.ref_room == v->left_room;
+        const int out_of_band = !ev_shown_meets(v, camera_x, camera_y, v->left_left, v->left_top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, reach);
+        if (back_in_it || out_of_band || v->left_epoch != v->observation.epoch || v->left_pipeline != v->colours_pipeline || !ev_on_map(v)) v->left_valid = 0;
+    }
     for (unsigned i = 0; i < v->slot_count && ev_on_map(v); i++) {
         entry *e = &v->slots[i];
         OraclesGhostDirection dir = ORACLES_DIR_UP;
         if (!e->used || !ev_entry_drawable(v, e) || e->group != v->observer.ref_group || !ev_entry_connected(v, e, &dir)) continue;
+        /* Run again for a key byte its terrain read, the room left gives way
+         * to its image, as the game last drew it: its old terrain would hide
+         * what changed there (a chest opened, drawn closed again behind Link). */
+        if (e->refresh_terrain && v->left_valid && e->group == v->left_group && e->room == v->left_room) {
+            if (!e->routed) continue;
+            v->left_stale_frames++;   /* a routed answer stands for a direction, not for the room left: drawn first all the same */
+        }
+        /* So does it, through the scroll, to an entry that shows objects
+         * which read the side it was entered by, run from another side than
+         * the one the game entered it by: the game created other people there
+         * (Ages' 0:39 run from the Maku Tree's room has a Ralph, which Link
+         * coming from below never saw); then for as long as the room beside
+         * the room in play stays out of date for the side it would be entered
+         * by from there, until its run again comes. */
+        const int left_room = v->left_valid && !e->routed && e->group == v->left_group && e->room == v->left_room;
+        const int shows_objects = e->entry_side_read && ev_entry_shows_objects(e);
+        const int other_side = shows_objects && ev_entered_by_other_side(v, e);
+        if (left_room && oracles_enhanced_left_entry_yields(shows_objects, e->entered_side, (int)v->left_entered_side - 1, v->observation.in_transition, other_side)) {
+            if (!v->observation.in_transition && !other_side) v->left_image_held_frames++;
+            continue;
+        }
         const int32_t w = e->large ? (int32_t)LARGE_ROOM_W : SMALL_ROOM_W, h = e->large ? (int32_t)LARGE_ROOM_H : (int32_t)ORACLES_GHOST_AREA_HEIGHT;
         int32_t left, top;
         if (e->routed) {
@@ -333,6 +363,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         }
         if (!ev_shown_meets(v, camera_x, camera_y, left, top, w, h, reach)) continue;
         const uint32_t *pixels = ev_neighbour_pixels(v, e);
+        if (other_side) side_stale_shown = 1;
         note_entry_background(v, count, e, pixels);
         add_source(&nbs[count++], left, top, pixels, (unsigned)w, (unsigned)h, 1);
         nbs[count - 1u].veil = ev_room_veil(v, e->room);
@@ -341,6 +372,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         if (nbs[count - 1u].veil < 256u && oracles_enhanced_capture_blank(e->bg_palettes, e->base_bg_palettes, e->palette_offset, NULL, 0)) plain_shown = 1;
     }
     if (plain_shown) v->plain_shown_frames++;
+    if (side_stale_shown) v->side_stale_frames++;
     for (unsigned d = 0; d < 4; d++)
         if (v->shown_slot[d] < SLOTS && !ev_room_hidden(v, v->slots[v->shown_slot[d]].group, v->slots[v->shown_slot[d]].room)) v->shown[d] = 1;
     const entry *captured = ev_on_map(v) && v->source_valid ? ev_find_entry(v, v->source_group, v->source_room) : NULL;
@@ -349,18 +381,10 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         add_source(&nbs[count++], v->source_left, v->source_top, ev_scroll_capture(v, 0), 0, 0, 0);
         if (v->source_group == v->observer.ref_group && !v->observation.large_grid) v->drawn_places[v->source_room >> 5u] |= 1u << (v->source_room & 31u);
     }
-    /* The image of the room left, drawn over its capture of apparition while it
-     * stays in the band; dropped once it leaves the band, once Link is back in
-     * it (the game recreates its objects), or on a new epoch (a warp, a load). */
     if (v->left_valid) {
-        const int back_in_it = !v->observation.in_transition && v->observer.ref_group == v->left_group && v->observer.ref_room == v->left_room;
-        const int out_of_band = !ev_shown_meets(v, camera_x, camera_y, v->left_left, v->left_top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, reach);
-        if (back_in_it || out_of_band || v->left_epoch != v->observation.epoch || v->left_pipeline != v->colours_pipeline || !ev_on_map(v)) v->left_valid = 0;
-        else {
-            note_vram_background(v, count, v->left_vram, v->left_regs);
-            add_source(&nbs[count++], v->left_left, v->left_top, ev_scroll_capture(v, 1), 0, 0, 0);
-            if (v->left_group == v->observer.ref_group) v->drawn_places[v->left_room >> 5u] |= 1u << (v->left_room & 31u);
-        }
+        note_vram_background(v, count, v->left_vram, v->left_regs);
+        add_source(&nbs[count++], v->left_left, v->left_top, ev_scroll_capture(v, 1), 0, 0, 0);
+        if (v->left_group == v->observer.ref_group) v->drawn_places[v->left_room >> 5u] |= 1u << (v->left_room & 31u);
     }
     /* After the captures, which show their rooms where the grid's places would be dark. */
     if (ev_on_map(v)) count = ev_add_hidden_places(v, nbs, count, SLOTS, camera_x, camera_y, reach);
@@ -525,6 +549,13 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     if (!v->observation.in_transition && v->was_in_transition && v->scroll_from_valid && v->scroll_saw_scroll
         && v->scroll_from_group == v->observer.ref_group)
         ev_note_routing(v, v->observer.ref_group, v->scroll_from_room, (OraclesGhostDirection)v->scroll_dir_seen, v->observer.ref_room);
+    /* The side the game entered the room in play by: a scroll's direction; none after a warp or a load into another
+     * room; kept by a transition that loads the same room again without a scroll (a scene's). */
+    if (!v->observation.in_transition && v->was_in_transition) {
+        const int same_room = v->scroll_from_valid && v->scroll_from_group == v->observer.ref_group && v->scroll_from_room == v->observer.ref_room;
+        if (v->scroll_saw_scroll) v->ref_entered_side = (uint8_t)(v->scroll_dir_seen + 1u);
+        else if (!same_room) v->ref_entered_side = 0;
+    }
     if (v->observation.in_scroll) { v->scroll_saw_scroll = 1; v->scroll_dir_seen = (uint8_t)(v->observation.scroll_direction & 3u); }
     /* A transition changes what the game would load from a room it routes
      * itself (the Lost Woods counts the directions Link strings together):
@@ -782,6 +813,17 @@ unsigned oracles_enhanced_view_routed_delivered(const OraclesEnhancedView *v) { 
 unsigned oracles_enhanced_view_plain_shown_frames(const OraclesEnhancedView *v) { return v->plain_shown_frames; }
 
 unsigned oracles_enhanced_view_objects_outdated(const OraclesEnhancedView *v) { return v->objects_outdated; }
+unsigned oracles_enhanced_view_objects_story_refreshes(const OraclesEnhancedView *v) { return v->objects_story_refreshes; }
+unsigned oracles_enhanced_view_objects_story_dropped(const OraclesEnhancedView *v) { return v->objects_story_dropped; }
+unsigned oracles_enhanced_view_objects_stale_frames(const OraclesEnhancedView *v) { return v->objects_stale_frames; }
+unsigned oracles_enhanced_view_objects_side_refreshes(const OraclesEnhancedView *v) { return v->objects_side_refreshes; }
+unsigned oracles_enhanced_view_terrain_refreshes(const OraclesEnhancedView *v) { return v->terrain_refreshes; }
+unsigned oracles_enhanced_view_terrain_stale_frames(const OraclesEnhancedView *v) { return v->terrain_stale_frames; }
+unsigned oracles_enhanced_view_terrain_given_up(const OraclesEnhancedView *v) { return v->terrain_given_up; }
+unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *v) { return v->left_stale_frames; }
+unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *v) { return v->side_stale_frames; }
+unsigned oracles_enhanced_view_left_image_held_frames(const OraclesEnhancedView *v) { return v->left_image_held_frames; }
+unsigned oracles_enhanced_view_objects_refresh_put_off(const OraclesEnhancedView *v) { return v->objects_refresh_put_off; }
 unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *v) { return v->refresh_given_up; }
 unsigned oracles_enhanced_view_parents_run_for_kills(const OraclesEnhancedView *v) { return v->parents_run_for_kills; }
 
@@ -804,10 +846,11 @@ int oracles_enhanced_view_neighbour_layout(const OraclesEnhancedView *v, unsigne
     if (direction > 3u || !v->shown[direction] || v->shown_slot[direction] >= SLOTS) return 0;
     const entry *e = &v->slots[v->shown_slot[direction]];
     if (out) memcpy(out, e->layout, ORACLES_GHOST_LAYOUT_BYTES);
-    /* A room run again for a season change deliberately shows the old season
-     * until it is delivered, less abrupt than black; one run again for a killed
-     * enemy shows the terrain it must show. */
-    return e->refresh && e->refresh_season ? 2 : 1;
+    /* A room run again for a season change, or for a key byte its terrain
+     * read, deliberately shows the old terrain until it is delivered, less
+     * abrupt than black; one run again for a killed enemy shows the terrain it
+     * must show. */
+    return e->refresh && (e->refresh_season || e->refresh_terrain) ? 2 : 1;
 }
 
 OraclesEnhancedCamera *oracles_enhanced_view_camera(OraclesEnhancedView *v) { return v->camera; }

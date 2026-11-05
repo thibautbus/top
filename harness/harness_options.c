@@ -18,6 +18,7 @@ int harness_usage(void)
                     "                       [--render-check SAMPLES_DIR] [--render-expect CLASSES]   (native renderer against the core, samples written there; exit 1 on a mismatch, an empty expected class or a ceiling)\n"
                     "                       [--ghost-check DIR] [--ghost-lead FRAMES] [--ghost-threaded] [--ghost-trace] [--ghost-trace-load]   (ghost instance against every scrolling transition; the second trace counts the whole load's reads)\n"
                     "                       [--enhanced-check DIR] [--enhanced-ghost-budget FRAMES] [--enhanced-threaded] [--enhanced-ghosts 1|2 (with --enhanced-threaded)] [--enhanced-paced] [--enhanced-reload-at FRAME] [--enhanced-camera 1|2|2-v4] [--enhanced-link-phase] [--enhanced-subpixel] [--enhanced-subpixel-switch FRAME[,FRAME]...] [--enhanced-neighbours off|static (static)] [--neighbour-animation on|off (on; off as the Low quality: the neighbours' objects frozen, the rooms never visited cut straight)]   (the Enhanced surface of every frame composed and hashed)\n"
+                    "                       [--beside-witness]   (with --enhanced-check: each room drawn beside the room in play, once Link has stood there, against the game's own entry into it from there, run by a ghost of the check's own)\n"
                     "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, 480x360 with --aspect 4:3, as the launcher's --zoom-out; --view far)\n"
                     "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/REFERENCE.md)\n"
                     "                       [--screen WxH]   (with --enhanced-check: the screen's shape, unless --aspect names one, and the far view fitted to that screen, as the launcher's far=screen)\n"
@@ -156,6 +157,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             o->enhanced_camera = !strcmp(camera, "2-v4") ? 3u : (unsigned)strtoul(camera, NULL, 10);
         }
         else if (!strcmp(argv[i], "--enhanced-link-phase")) o->enhanced_link_phase = 1;
+        else if (!strcmp(argv[i], "--beside-witness")) o->beside_witness = 1;
         else if (!strcmp(argv[i], "--enhanced-subpixel")) o->enhanced_subpixel = 1;
         else if (!strcmp(argv[i], "--enhanced-subpixel-switch") && i + 1 < argc) {
             /* Up to eight frames, increasing: the camera switched off and on again at each, as Display's Camera from the pause. */

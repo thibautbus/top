@@ -420,6 +420,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         }
         oracles_enhanced_check_set_camera_profile(r->enhanced, o->enhanced_camera);
         oracles_enhanced_check_set_link_phase(r->enhanced, o->enhanced_link_phase);
+        if (o->beside_witness && oracles_enhanced_check_set_beside_witness(r->enhanced, rom, rom_size) != 0) fprintf(stderr, "harness: --beside-witness: no ghost\n");
         oracles_enhanced_check_set_subpixel(r->enhanced, o->enhanced_subpixel);
         oracles_enhanced_check_subpixel_switch_at(r->enhanced, o->enhanced_subpixel_switch, o->enhanced_subpixel_switches);
         oracles_enhanced_view_set_hud(oracles_enhanced_check_view(r->enhanced), o->enhanced_hud);

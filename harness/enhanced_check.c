@@ -146,6 +146,9 @@ void oracles_enhanced_check_stop(OraclesEnhancedCheck *c)
     free(c->saved_core);
     free(c->redraw_copy);
     oracles_sprites_destroy(c->link_sprites);
+    if (c->witness) oracles_ghost_destroy(c->witness);
+    free(c->witness_result);
+    free(c->witness_state);
     oracles_enhanced_view_stop(c->view);
     free(c);
 }
@@ -298,6 +301,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
         for (unsigned d = 0; d < 4; d++) c->last_shown[d] = 0;
 
     ec_check_blurb(c, mode, frame);
+    if (c->witness) ec_check_beside(c, ob, mode, frame);
     check_pixels_and_row(c, ob, mode, surface, camera_x, camera_y, frame, hash, shown, room, uncovered);
     if (c->paced) {   /* the frame's end at its time of play, waited for on the clock alone */
         if (!c->paced_start) c->paced_start = ec_monotonic_us() - (double)frame * 16742.706;

@@ -458,7 +458,7 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
 
 
 # Checks that only read the live instance: a faithful row with one of them is compared with its route's faithful row.
-READING_CHECKS = ("--object-animation-check",)
+READING_CHECKS = ("--object-animation-check", "--beside-witness")
 
 
 def view_free(options: list) -> list:

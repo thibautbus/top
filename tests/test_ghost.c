@@ -127,6 +127,26 @@ static void check_key_account(const OraclesCompatProfile *profile, const char *g
     CHECK(bytes <= ORACLES_GHOST_COARSE_BYTES);
 }
 
+/* The objects' watch: the story state an object of a room may test as it
+ * is created (the global flags, every room's flags, the treasures and the
+ * essences), all of it in the key, and not the bytes the room's own load
+ * writes before its objects run. */
+static void check_object_watch(const OraclesCompatProfile *profile)
+{
+    const OraclesGuestTables *t = oracles_compat_guest_tables(profile);
+    OraclesGhostKeyRange key[ORACLES_GHOST_KEY_RANGES], watch[ORACLES_GHOST_KEY_RANGES];
+    const unsigned nk = oracles_ghost_key_ranges(profile, key, ORACLES_GHOST_KEY_RANGES);
+    const unsigned nw = oracles_ghost_object_watch_ranges(profile, watch, ORACLES_GHOST_KEY_RANGES);
+    CHECK(nw > 0 && nw < nk);
+    CHECK(covered(watch, nw, t->global_flags.addr, t->global_flags_size));
+    CHECK(covered(watch, nw, t->group0_room_flags.addr, t->room_flags_size));
+    CHECK(covered(watch, nw, t->obtained_treasure_flags.addr, t->obtained_treasure_flags_size));
+    CHECK(covered(watch, nw, t->essences_obtained.addr, 1));
+    CHECK(!covered(watch, nw, t->active_group.addr, 1) && !covered(watch, nw, t->active_room.addr, 1));
+    CHECK(!covered(watch, nw, t->dungeon_index.addr, 1) && !covered(watch, nw, t->dungeon_floor.addr, 1));
+    for (unsigned w = 0; w < nw; w++) CHECK(covered(key, nk, watch[w].address, watch[w].length));
+}
+
 /* The comparison of the coarse list on a guest's WRAM: a byte of the list
  * changed throws the cache, a room's visited bit in it does not, nor does a
  * byte outside it. */
@@ -275,6 +295,8 @@ int main(void)
         CHECK(oracles_ghost_routing_key_ranges(original_profile(ORACLES_GAME_AGES), 0, r, ORACLES_GHOST_ROUTING_KEY_BYTES) == 0);
     }
 
+    check_object_watch(original_profile(ORACLES_GAME_AGES));
+    check_object_watch(original_profile(ORACLES_GAME_SEASONS));
     check_coarse_comparison(core);
     check_coarse_global_flags(core, ORACLES_GAME_AGES, oracles_guest_tables_ages.coarse_flag_finished_game);
     check_coarse_global_flags(core, ORACLES_GAME_SEASONS, oracles_guest_tables_seasons.coarse_flag_pirate_ship);

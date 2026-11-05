@@ -79,7 +79,7 @@ static int reject_other_season(OraclesEnhancedView *v, entry *e, const OraclesGh
     const long at = ev_key_offset(v, t->room_state_modifier.addr);
     e->failed = !(at >= 0 && (size_t)at < r->key_len && r->key[at] == r->room_state_modifier); e->failed_at = v->frame;
     /* A room run again whose runs keep coming back in another season gives up like one whose runs fail. */
-    if (e->refresh && ++e->refresh_failures >= 2u) { e->refresh = 0; e->valid = 0; v->refresh_given_up++; }
+    ev_refresh_failed(v, e);
     v->failed++;
     v->failure_reasons[4]++;
     v->season_rejected++;
@@ -157,10 +157,14 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
     e->align_key = 0;
     e->image_count = v->rom ? oracles_animation_images(&e->animation, oracles_guest_tables(v->guest), v->rom, v->rom_size, e->image_tiles, e->image_sources, ENTRY_ANIMATION_IMAGES) : 0u;
     record_entry_reads(v, e, r);
+    ev_record_object_reads(v, e, r);
+    e->entry_side_read = r->entry_side_read;
+    e->entered_side = (uint8_t)v->pending_dir;
     if (!e->settled_state) e->settled_state = malloc(v->state_size);
     e->settled_size = e->settled_state ? oracles_ghost_settled_state(v->ghost, e->settled_state, v->state_size) : 0;
     e->settled_primeable = r->settled_primeable;
-    e->valid = 1; e->failed = 0; e->not_a_start = 0; e->waits_start = 0; e->strict_parent = 0; e->live_valid = 0; e->refresh = 0; e->refresh_season = 0; e->refresh_failures = 0; e->rerun = 0;
+    e->valid = 1; e->failed = 0; e->not_a_start = 0; e->not_a_start_apart = 0; e->waits_start = 0; e->strict_parent = 0; e->live_valid = 0; e->refresh = 0; e->refresh_season = 0; e->refresh_failures = 0; e->rerun = 0;
+    e->refresh_objects = 0; e->refresh_terrain = 0;
     e->accepted_at = v->frame;
     e->render_wanted_at = 0;
     ev_poses_deliver(v, e);
@@ -176,6 +180,8 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
  * game's own loop (Seasons' eye statue puzzle, the Lost Woods, Ages' forest
  * scrambler: screenTransitionEyePuzzle and its kind), not a door: it is
  * tried again at the pace of a failure. */
+static void record_not_a_start(OraclesEnhancedView *v, entry *e, unsigned parent_slot, int while_apart);
+
 static void record_wrong_room(OraclesEnhancedView *v, entry *e, const OraclesGhostResult *r)
 {
     const int loop = r->group == r->from_group && r->room == r->from_room;
@@ -189,9 +195,18 @@ static void record_wrong_room(OraclesEnhancedView *v, entry *e, const OraclesGho
          * before the run could prime): the parent is run again from the
          * live state, still drawn, and this room right after. */
         entry *parent = &v->slots[v->pending_parent];
-        if (parent->used && parent->valid && parent->group == v->pending_group && parent->room == v->pending_parent_room
-            && (!parent->rerun_at || v->frame - parent->rerun_at >= FAILED_RETRY_FRAMES)) {   /* once a retry period: the live state may give the same */
-            parent->rerun = 1; parent->rerun_at = v->frame; e->failed = 0;
+        /* Not beside the room in play, in its group, the parent would be run
+         * again from its own parent, as it was, and give the same state: no
+         * start, the room waits for another parent, until the parent comes
+         * beside the room in play and can be run from the live state (Ages'
+         * 0:27, run from 0:28 with Link in 0:38, whose state takes Link back
+         * into 0:28). */
+        const int apart = parent->group == v->observer.ref_group && !ev_beside_ref(v, parent->group, parent->room);
+        if (parent->used && parent->valid && parent->group == v->pending_group && parent->room == v->pending_parent_room) {
+            if (apart) record_not_a_start(v, e, v->pending_parent, 1);
+            else if (!parent->rerun_at || v->frame - parent->rerun_at >= FAILED_RETRY_FRAMES) {   /* once a retry period: the live state may give the same */
+                parent->rerun = 1; parent->rerun_at = v->frame; e->failed = 0;
+            }
         }
     }
     if (!v->pending_chained && !loop) {
@@ -214,12 +229,13 @@ static void record_failure(OraclesEnhancedView *v, entry *e, const OraclesGhostR
     /* A room run again deliberately keeps its old terrain for one failed
      * attempt, so that a single failure does not flash black; past that, black, as any room the
      * ghost has not delivered, rather than a season or objects that may stay
-     * wrong for as long as the runs fail.  A room still valid, run again
+     * wrong for as long as the runs fail; a room run again for the story its
+     * objects read loses its objects alone (ev_refresh_failed).  A room still valid, run again
      * only for its settled state (run_from_parent: the key moved on in
      * another room's bytes, which its own reads do not hold), keeps its
      * terrain: the reads checked every frame stand for it (Seasons' 0:a6,
      * run from 0:a7 while the intro's script holds Link, never settling). */
-    if (e->refresh && ++e->refresh_failures >= 2u) { e->refresh = 0; e->valid = 0; v->refresh_given_up++; }
+    ev_refresh_failed(v, e);
     if (!e->refresh && !(e->valid && !e->rerun)) e->valid = 0;
     e->failed = 1; e->failed_at = v->frame; e->waits_start = 0;
     v->failed++;
@@ -257,9 +273,10 @@ static void record_failure(OraclesEnhancedView *v, entry *e, const OraclesGhostR
  * drawn and is marked until it is delivered again; the room asked is not at
  * fault, and goes to another parent without waiting for the clock, settled
  * for the band's fill meanwhile as a failed room is (ev_wait_for_start). */
-static void record_not_a_start(OraclesEnhancedView *v, entry *e, unsigned parent_slot)
+static void record_not_a_start(OraclesEnhancedView *v, entry *e, unsigned parent_slot, int while_apart)
 {
     v->slots[parent_slot].not_a_start = 1;
+    v->slots[parent_slot].not_a_start_apart = while_apart != 0;
     e->failed = 0;
     ev_wait_for_start(v, e, &v->slots[parent_slot]);
 }
@@ -385,7 +402,7 @@ static void finish_routed_job(OraclesEnhancedView *v, entry *e, const OraclesGho
  * served before stored back. */
 #define LANE_FIELDS(X) X(ghost) X(job) X(pending) X(pending_slot) X(pending_group) X(pending_room) X(pending_generation) X(pending_pipeline) \
     X(pending_chained) X(pending_beside) X(pending_visits) X(pending_parent) X(pending_parent_room) X(pending_parent_accepted) X(pending_serial) X(pending_blind) \
-    X(pending_routed) X(pending_routed_from) X(pending_dir)
+    X(pending_routed) X(pending_routed_from) X(pending_dir) X(pending_key_len)
 void ev_lane_serve(OraclesEnhancedView *v, unsigned lane)
 {
     if (lane == v->lane_now || lane >= v->lane_count) return;
@@ -394,11 +411,28 @@ void ev_lane_serve(OraclesEnhancedView *v, unsigned lane)
 #define LOAD(f) v->f = in->f;
     LANE_FIELDS(STORE)
     memcpy(out->pending_killed_list, v->pending_killed_list, sizeof out->pending_killed_list);
+    memcpy(out->pending_key, v->pending_key, v->pending_key_len);
     LANE_FIELDS(LOAD)
     memcpy(v->pending_killed_list, in->pending_killed_list, sizeof v->pending_killed_list);
+    memcpy(v->pending_key, in->pending_key, v->pending_key_len);
 #undef STORE
 #undef LOAD
     v->lane_now = lane;
+}
+
+/* A room run again for its objects, still drawn, whose run comes back while
+ * a text box, a menu or a scene holds the live game: not taken and not a
+ * failure, the room run again once the game is back in play and a failure's
+ * wait is over, its old picture kept meanwhile.  A run interrupted on its way
+ * or blank is a failure as any other: its second drops the objects
+ * (ev_refresh_failed). */
+static int put_off_objects_refresh(OraclesEnhancedView *v, entry *e)
+{
+    if (!e->valid || !e->refresh || !e->refresh_objects || e->refresh_season) return 0;
+    if (!oracles_enhanced_objects_refresh_put_off(v->observation.playing && oracles_ghost_primeable(v->guest, NULL))) return 0;
+    e->failed = 1; e->failed_at = v->frame; e->waits_start = 0;
+    v->objects_refresh_put_off++;
+    return 1;
 }
 
 /* The run in flight is over: its result goes to the slot it was started for,
@@ -429,6 +463,7 @@ static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int 
             || parent->accepted_at != v->pending_parent_accepted) { v->stale++; return; }   /* delivered again meanwhile, by another ghost */
     }
     const int delivered = rc == 1 && r->status == ORACLES_GHOST_OK && r->settled;
+    if (put_off_objects_refresh(v, e)) return;
     if (delivered && !v->pending_chained && r->group == v->pending_group && r->room != v->pending_room
         && r->group == r->from_group && r->room == r->from_room) {
         e = loop_return_entry(v, e, r);
@@ -453,7 +488,7 @@ static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int 
         accept_result(v, e, r);
     } else {
         record_failure(v, e, r);
-        if (v->pending_chained && r->status == ORACLES_GHOST_NOT_PRIMEABLE) record_not_a_start(v, e, v->pending_parent);
+        if (v->pending_chained && r->status == ORACLES_GHOST_NOT_PRIMEABLE) record_not_a_start(v, e, v->pending_parent, 0);
     }
 }
 
@@ -489,6 +524,15 @@ static void note_live_killed_list(OraclesEnhancedView *v)
     if (killed) memcpy(v->pending_killed_list, killed, sizeof v->pending_killed_list); else memset(v->pending_killed_list, 0, sizeof v->pending_killed_list);
 }
 
+/* The live key a run stands for, from the live state or a parent's (a parent
+ * is chained from only while its key holds for the live one): the values its
+ * objects are checked against once delivered, never the ghost's own, which
+ * its runs write into (the visited bits, what a parent's objects set). */
+static void note_live_key(OraclesEnhancedView *v)
+{
+    v->pending_key_len = ev_read_key(v, v->pending_key);
+}
+
 int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t size, OraclesGhostDirection dir, const entry *parent)
 {
     if (e->in_flight) return 0;   /* the other ghost runs it (a parent run again for a room beyond): not a failure */
@@ -509,7 +553,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
         e->failed = 1; e->failed_at = v->frame; e->waits_start = 0;
         e->queued = !v->sync_budget;
         if (v->sync_budget && v->job->status == ORACLES_GHOST_NOT_PRIMEABLE) {
-            if (chained) record_not_a_start(v, e, (unsigned)(parent - v->slots));
+            if (chained) record_not_a_start(v, e, (unsigned)(parent - v->slots), 0);
             v->failure_reasons[0]++;
             const size_t used = strlen(v->failure_log);
             if (used + 40 < sizeof v->failure_log)
@@ -526,6 +570,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     if (e->routed) e->routing_key_len = (uint8_t)oracles_ghost_routing_key_snapshot(v->guest, oracles_ghost_room_routine(v->ghost, e->group, e->routed_from), e->routing_key, sizeof e->routing_key);
     if (chained) memcpy(v->pending_killed_list, parent->killed_list, sizeof v->pending_killed_list);
     else note_live_killed_list(v);
+    note_live_key(v);
     v->pending = 1;
     v->pending_slot = (unsigned)(e - v->slots);
     v->pending_group = e->group;
@@ -583,6 +628,7 @@ void ev_blind_prerun(OraclesEnhancedView *v)
         v->requested++;
         if (!started) { v->failed++; v->failure_reasons[4]++; return; }
         note_live_killed_list(v);
+        note_live_key(v);
         v->pending = 1;
         v->pending_blind = 1;
         v->pending_routed = 0;

@@ -69,6 +69,8 @@ typedef enum OraclesGuestEventType {
     ORACLES_EVENT_CHECK_ROOM_PACK,         /* entry of checkRoomPack (ghost instance, Seasons: the area a scroll enters) */
     ORACLES_EVENT_OBJECT_GFX_LOAD,         /* entry of loadObjectGfxHeaderToSlot4 (ghost instance: Seasons' substitutions load Subrosia's object graphics, no tile state read) */
     ORACLES_EVENT_OBJECT_GFX_LOAD_DONE,    /* its return */
+    ORACLES_EVENT_ROOM_OBJECTS_CODE,       /* entry of the code of a room's own objects (ghost instance): updateEnemies, updateParts, updateInteractions, parseObjectData, runRoomSpecificCode */
+    ORACLES_EVENT_ROOM_OBJECTS_CODE_DONE,  /* its return */
     ORACLES_EVENT_ANIMATIONS,              /* entry of updateAnimations: one step of the room's tile animation */
     ORACLES_EVENT_OBJECTS_UPDATED,         /* return of updateAllObjects: the objects of the room have run their own code once more */
     ORACLES_EVENT_STATUS_BAR_CHECKED,      /* return of checkReloadStatusBarGraphics; from its one call in mainThreadStart, the inventory transaction runs here */

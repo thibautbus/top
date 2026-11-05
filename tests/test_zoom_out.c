@@ -1628,6 +1628,92 @@ static void beside_reads(void)
     CHECK(oracles_enhanced_reads_hold(0, addresses, seen, live, 0xc797, 0x10));    /* nothing read */
 }
 
+/* A neighbour's objects, run again when a byte they read moved in the live
+ * game since its run: the visited bit of any room's flags aside, which an
+ * entry sets (Ages' intro: GLOBALFLAG_INTRO_DONE, bit 2 of $c6d1, clears 0:39
+ * of Nayru and the animals). */
+static void object_reads(void)
+{
+    const uint16_t addresses[3] = { 0xc6d1, 0xc739, 0xc749 };   /* a global flags' byte, the room's own flags, a neighbour's */
+    const uint8_t values[3] = { 0x00, 0xc8, 0x00 };
+    uint8_t live[3] = { 0x00, 0xc8, 0x00 };
+    CHECK(oracles_enhanced_object_reads_hold(3, addresses, values, live, 0xc700, 0x400, 0x10));
+    live[0] = 0x04;
+    CHECK(!oracles_enhanced_object_reads_hold(3, addresses, values, live, 0xc700, 0x400, 0x10));   /* the flag set: run again */
+    live[0] = 0x00; live[1] = 0xd8; live[2] = 0x10;
+    CHECK(oracles_enhanced_object_reads_hold(3, addresses, values, live, 0xc700, 0x400, 0x10));    /* visited bits, its own and another room's: hold */
+    live[2] = 0x30;
+    CHECK(!oracles_enhanced_object_reads_hold(3, addresses, values, live, 0xc700, 0x400, 0x10));   /* another flag of a room: run again */
+    live[2] = 0x10; live[0] = 0x10;
+    CHECK(!oracles_enhanced_object_reads_hold(3, addresses, values, live, 0xc700, 0x400, 0x10));   /* bit 4 outside the rooms' flags: run again */
+    CHECK(oracles_enhanced_object_reads_hold(0, addresses, values, live, 0xc700, 0x400, 0x10));    /* nothing read */
+}
+
+/* A neighbour whose objects read the side they were entered by holds beside
+ * the room in play only when its run scrolled the way the game would (Ages'
+ * 0:39: its Ralph is created only from the Maku Tree's room, on its left). */
+static void entry_side(void)
+{
+    CHECK(oracles_enhanced_entry_side_holds(0, ORACLES_DIR_RIGHT, ORACLES_DIR_UP));    /* the side not read */
+    CHECK(oracles_enhanced_entry_side_holds(1, ORACLES_DIR_RIGHT, -1));                /* not beside: entered from more than one side */
+    CHECK(oracles_enhanced_entry_side_holds(1, ORACLES_DIR_RIGHT, ORACLES_DIR_RIGHT)); /* run from the room in play's side */
+    CHECK(!oracles_enhanced_entry_side_holds(1, ORACLES_DIR_RIGHT, ORACLES_DIR_UP));   /* run from the left, drawn above: run again */
+}
+
+/* The room a scroll left is drawn from its entry only when its objects did not
+ * read the side, or its run entered it the way the game did; else from the
+ * image of it the game last drew (Ages' 0:39 run from the Maku Tree's room,
+ * left downward by Link who came in from below: no Ralph). */
+static void left_entry_side(void)
+{
+    CHECK(oracles_enhanced_left_entry_side_holds(0, ORACLES_DIR_RIGHT, ORACLES_DIR_UP));    /* the side not read */
+    CHECK(oracles_enhanced_left_entry_side_holds(1, ORACLES_DIR_UP, ORACLES_DIR_UP));       /* run as the game entered it */
+    CHECK(!oracles_enhanced_left_entry_side_holds(1, ORACLES_DIR_RIGHT, ORACLES_DIR_UP));   /* run from the left, entered from below */
+    CHECK(!oracles_enhanced_left_entry_side_holds(1, ORACLES_DIR_UP, -1));                  /* entered by a warp or a load: no side to match */
+    CHECK(oracles_enhanced_left_entry_yields(1, ORACLES_DIR_RIGHT, ORACLES_DIR_UP, 1, 0));   /* through the scroll */
+    CHECK(oracles_enhanced_left_entry_yields(1, ORACLES_DIR_RIGHT, ORACLES_DIR_UP, 0, 1));   /* after it, beside Link and out of date */
+    CHECK(!oracles_enhanced_left_entry_yields(1, ORACLES_DIR_UP, -1, 0, 0));                 /* run again from below: drawn, animated */
+    CHECK(!oracles_enhanced_left_entry_yields(1, ORACLES_DIR_UP, ORACLES_DIR_UP, 1, 0));     /* run as the game entered it */
+    CHECK(!oracles_enhanced_left_entry_yields(0, ORACLES_DIR_RIGHT, ORACLES_DIR_UP, 1, 1));  /* no objects that read the side */
+}
+
+/* A room run again for its objects starts only with the live game in play:
+ * at once for the side it is entered by, a second after for its story (a
+ * treasure's text follows the flag it sets); a run that comes back with the
+ * game held is put off, not failed, one interrupted or blank fails. */
+static void objects_refresh_pace(void)
+{
+    CHECK(!oracles_enhanced_objects_refresh_may_start(0, 0));     /* a text box, a menu or a scene holds the game */
+    CHECK(oracles_enhanced_objects_refresh_may_start(0, 1));      /* the side: as soon as the game is in play */
+    CHECK(!oracles_enhanced_objects_refresh_may_start(1, 1));     /* the story: not at the frame of the change */
+    CHECK(!oracles_enhanced_objects_refresh_may_start(1, 59));
+    CHECK(oracles_enhanced_objects_refresh_may_start(1, 60));
+    CHECK(!oracles_enhanced_objects_refresh_put_off(1));          /* in play: taken, or failed if interrupted or blank */
+    CHECK(oracles_enhanced_objects_refresh_put_off(0));           /* the game held as it came back */
+}
+
+/* A parent found no start from a run beyond it that came back elsewhere,
+ * while it was not beside the room in play, is run again once it is; one
+ * that refused to start (a scene) stays marked. */
+static void parent_marks(void)
+{
+    CHECK(oracles_enhanced_parent_mark_lifts(1, 1));
+    CHECK(!oracles_enhanced_parent_mark_lifts(1, 0));   /* still apart: its own parent would give the same state */
+    CHECK(!oracles_enhanced_parent_mark_lifts(0, 1));   /* a refused start */
+}
+
+/* A room run again for its terrain more than three times in a row, each
+ * within five seconds of the one before, waits for the end of the five
+ * seconds (a byte that keeps moving in a parent's state). */
+static void terrain_refresh_pace(void)
+{
+    CHECK(!oracles_enhanced_terrain_refresh_waits(1, 0));
+    CHECK(!oracles_enhanced_terrain_refresh_waits(3, 10));
+    CHECK(oracles_enhanced_terrain_refresh_waits(4, 10));
+    CHECK(oracles_enhanced_terrain_refresh_waits(4, 299));
+    CHECK(!oracles_enhanced_terrain_refresh_waits(4, 300));
+}
+
 /* A room whose run was refused for its parent's state, no start (Ages' 1:37
  * beyond the Maku sapling's grove at the first arrival in the past): settled
  * for the band's fill as a failed room is, though it waits on no clock, and
@@ -1900,6 +1986,12 @@ int main(void)
     parent_keys();
     parent_visits();
     beside_reads();
+    object_reads();
+    entry_side();
+    left_entry_side();
+    objects_refresh_pace();
+    parent_marks();
+    terrain_refresh_pace();
     waiting_on_a_start();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_zoom_out: ok\n");

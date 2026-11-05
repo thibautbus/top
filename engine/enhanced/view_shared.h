@@ -14,6 +14,13 @@ void ev_wait_for_start(OraclesEnhancedView *v, entry *e, const entry *parent);
 void ev_invalidate_all(OraclesEnhancedView *v);
 uint16_t ev_room_flags_address(const OraclesEnhancedView *v, uint8_t group, uint8_t room);
 void ev_invalidate_by_reads(OraclesEnhancedView *v);
+int ev_beside_ref(const OraclesEnhancedView *v, uint8_t group, uint8_t room);   /* the room is beside the room in play, in its group */
+int ev_entered_by_other_side(const OraclesEnhancedView *v, const entry *e);   /* beside the room in play, its objects run for another side than the game's */
+int ev_entry_shows_objects(const entry *e);   /* its capture draws objects a neighbour shows (numbered, not placed at random) */
+void ev_lift_parent_marks(OraclesEnhancedView *v);
+int ev_room_in_view(const OraclesEnhancedView *v, uint8_t room, int32_t reach);   /* the band of the last composition shows part of the room, or `reach` px wider would */
+void ev_record_object_reads(OraclesEnhancedView *v, entry *e, const OraclesGhostResult *r);
+void ev_refresh_failed(OraclesEnhancedView *v, entry *e);
 void ev_refresh_colours(OraclesEnhancedView *v);
 entry *ev_find_entry(OraclesEnhancedView *v, uint8_t group, uint8_t room);
 entry *ev_take_slot(OraclesEnhancedView *v, uint8_t group, uint8_t room, const uint8_t *wanted, unsigned wanted_count);

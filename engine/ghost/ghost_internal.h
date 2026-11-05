@@ -89,6 +89,11 @@ struct OraclesGhost {
     uint16_t trace_stack_start, trace_stack_top;   /* the stack of the thread that entered the substitutions (0: any) */
     int in_substitutions;                          /* between the entry and the return of applyAllTileSubstitutions */
     int in_object_gfx;                             /* inside its load of object graphics (Subrosia), which reads no tile state */
+    int in_object_window;                          /* from the entry of the room's initializeRoom to the capture: the objects' reads */
+    unsigned object_code_depth;                    /* inside the code of the room's own objects (ORACLES_EVENT_ROOM_OBJECTS_CODE), nested calls counted */
+    uint8_t object_watch[65536u / 8u];             /* the addresses of the objects' watch, a bit each */
+    uint16_t entry_side_address;                   /* wScreenTransitionDirection, 0 when the profile has none in WRAM bank 0 */
+    int in_random_placement;                       /* inside the room list's opcode that places enemies at random (ORACLES_EVENT_RANDOM_PLACEMENT) */
     /* worker */
     pthread_t thread;
     pthread_mutex_t mutex;

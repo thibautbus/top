@@ -31,6 +31,9 @@ typedef struct OraclesGuestTables {
         object_create_interaction, get_free_interaction_slot, get_free_enemy_slot, enemy_standard_update,
         screen_transition_state2, apply_warp_dest, show_text, give_treasure, open_menu, save_file, poll_input,
         main_thread_start, apply_all_tile_substitutions, check_room_pack, load_object_gfx_header_to_slot4,
+        /* The code of a room's own objects (ghost instance): the three object updates, the room's object list and
+         * Ages' room-specific code. */
+        update_enemies, update_parts, update_interactions, parse_object_data, run_room_specific_code,
         /* Every enemy created (parseObjectData allocates through the uncounted
          * variant alone for obj_SpecificEnemyB and obj_ItemDrop), the parts, and the
          * sprites of wOam tagged by the object that wrote them. */

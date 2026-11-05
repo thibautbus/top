@@ -57,6 +57,11 @@ FUNCTIONS = [
     ("apply_all_tile_substitutions", "applyAllTileSubstitutions"),   # ghost instance: read trace window
     ("check_room_pack", "checkRoomPack"),   # ghost instance: the area a scroll enters (Enhanced, Seasons: one season for the band)
     ("load_object_gfx_header_to_slot4", "loadObjectGfxHeaderToSlot4"),   # ghost instance: the object graphics load inside Seasons' substitutions, outside the read trace
+    # Ghost instance: the code of a room's own objects, whose reads of the story state its neighbour's objects hold
+    # for: the three object updates updateAllObjects calls (not Link's, his items', the camera's), the room's object
+    # list and Ages' room-specific code, both run by initializeRoom.
+    ("update_enemies", "updateEnemies"), ("update_parts", "updateParts"), ("update_interactions", "updateInteractions"),
+    ("parse_object_data", "parseObjectData"), ("run_room_specific_code", "runRoomSpecificCode"),
     # Item hotkeys: the write point is the return of the one call of checkReloadStatusBarGraphics in mainThreadStart;
     # loadEquippedItemGfx proves the status bar followed an exchange.
     ("check_reload_status_bar_graphics", "checkReloadStatusBarGraphics"), ("load_equipped_item_gfx", "loadEquippedItemGfx"),
@@ -297,7 +302,7 @@ DEFINES = [("game_state", "wGameState"), ("cutscene_index", "wCutsceneIndex")]
 # offset; absent from the game that has no such room.
 ROOM_FLAG_BYTES = [("maku_tree_tileset_room_flags", "wGroup1RoomFlags", "ROOM_AGES_148"),   # Ages: bit 0, the Maku Tree saved, 0:38's tileset
                    ("veran_room_flags", "wGroup4RoomFlags", "ROOM_AGES_4fc")]              # Ages: bit 7, Veran beaten, 0:38's staircase
-OPTIONAL = {"linkUpdateVelocity@mermaidSuit", "bombUpgradeFairy_loseAllBombs", "wPortalGroup", "wPortalRoom", "wLinkTimeWarpTile", "wJabuWaterLevel", "wLinkRaisedFloorOffset", "wSelectedHarpSong",   # Ages only
+OPTIONAL = {"linkUpdateVelocity@mermaidSuit", "runRoomSpecificCode", "bombUpgradeFairy_loseAllBombs", "wPortalGroup", "wPortalRoom", "wLinkTimeWarpTile", "wJabuWaterLevel", "wLinkRaisedFloorOffset", "wSelectedHarpSong",   # Ages only
             "wInBoxingMatch", "wSlingshotLevel", "wObtainedSeasons", "wMagnetGlovePolarity",   # Seasons only
             "wNumPlacedSlates"}   # neither original: a fan game's (Gifts of Kinomi)
 STRUCT_FIELDS = ["enabled", "id", "subid", "var03", "state", "substate", "counter1", "counter2", "direction",

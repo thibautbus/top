@@ -294,6 +294,16 @@ void oracles_enhanced_view_fade_out_counts(const OraclesEnhancedView *view, unsi
  * live twins that appeared elsewhere (jumps), frames an object overlapped the
  * game's window before its twin was visible (holes), objects never seen. */
 void oracles_enhanced_view_handoff_counts(const OraclesEnhancedView *view, unsigned *shown, unsigned *jumps, unsigned *hole_frames, unsigned *unseen);
+/* The objects a room's capture showed that the room, entered by a scroll, had
+ * none of once its objects settled: people its neighbour showed out of date. */
+unsigned oracles_enhanced_view_handoff_orphans(const OraclesEnhancedView *view);
+struct OraclesGhostResult;
+/* The objects the room drawn beside the room in play, `direction` of it,
+ * shows from its capture that `witness` does not show: the game's own entry
+ * into it from where Link is, run apart (the harness's).  -1 when no capture
+ * of that room is drawn there, the view runs it again already, or the witness
+ * entered another room. */
+int oracles_enhanced_view_beside_orphans(const OraclesEnhancedView *view, unsigned direction, const struct OraclesGhostResult *witness);
 
 /* The wide world, or the framed core for every frame (F3): a switch between
  * the two looks of the profile without a restart. */
@@ -542,6 +552,50 @@ int oracles_enhanced_capture_blank(const uint8_t bg_palettes[64], const uint8_t 
  * on screen matched none of the game's drawings kept. */
 /* Cached rooms whose captured objects were dropped because the enemies counted killed in them changed. */
 unsigned oracles_enhanced_view_objects_outdated(const OraclesEnhancedView *view);
+/* Cached rooms run again because a byte of the key their objects read
+ * changed in the live game (a global flag that decides whether an object
+ * creates its people), and of those, the rooms whose objects were dropped
+ * after two failed runs, their terrain kept. */
+unsigned oracles_enhanced_view_objects_story_refreshes(const OraclesEnhancedView *view);
+unsigned oracles_enhanced_view_objects_story_dropped(const OraclesEnhancedView *view);
+/* The frames the band met a neighbour drawn with such objects, before its
+ * run again delivered (the room in play aside). */
+unsigned oracles_enhanced_view_objects_stale_frames(const OraclesEnhancedView *view);
+/* Cached rooms run again because their objects read the side they were
+ * entered by, and they were run from another side than the one the game
+ * would enter them by from the room in play, beside it. */
+unsigned oracles_enhanced_view_objects_side_refreshes(const OraclesEnhancedView *view);
+/* Cached rooms run again, drawn as they were meanwhile, because a byte of the
+ * key their terrain read changed (Impa's door in Ages' 0:3a, opened by
+ * GLOBALFLAG_INTRO_DONE). */
+unsigned oracles_enhanced_view_terrain_refreshes(const OraclesEnhancedView *view);
+/* The frames the band met a neighbour so drawn before its run delivered (the
+ * room in play aside), and the rooms dropped to black after TERRAIN_STALE_FRAMES
+ * of it. */
+unsigned oracles_enhanced_view_terrain_stale_frames(const OraclesEnhancedView *view);
+unsigned oracles_enhanced_view_terrain_given_up(const OraclesEnhancedView *view);
+/* The frames the room a scroll left was drawn from its cache entry run again
+ * for its terrain, over the image of it the game last drew: none, the room in
+ * play's entry dropped when its terrain moves. */
+unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *view);
+/* The frames the band drew a room from a cache entry that shows objects which
+ * read the side it was entered by, beside the room in play, run from another
+ * side than the one the game would enter it by from there (its old image kept
+ * until its run again comes). */
+unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *view);
+/* The frames the room a scroll left gave way to its image out of a scroll for the side its entry was run from, that
+ * entry holding for the side the game would enter it by from the room in play: none, the image is only for the
+ * scroll and for an entry out of date beside the room in play. */
+unsigned oracles_enhanced_view_left_image_held_frames(const OraclesEnhancedView *view);
+/* Whether a room run again for its terrain `burst` times in a row, each within
+ * FAILED_RETRY_FRAMES of the one before, the last `since_last` frames ago,
+ * waits for the end of that period before its next run (more than
+ * OBJECT_REFRESH_BURST: a byte that keeps moving). */
+int oracles_enhanced_terrain_refresh_waits(unsigned burst, uint32_t since_last);
+/* Runs of a room run again for its objects whose result was not taken, nor
+ * counted failed: they came back while a text box, a menu or a scene held the
+ * live game; the room is run again later. */
+unsigned oracles_enhanced_view_objects_refresh_put_off(const OraclesEnhancedView *view);
 /* Rooms run again (a season change, a killed enemy) whose old terrain was dropped after two failed runs. */
 unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *view);
 /* Parents run again from the live state before a room was chained from them: an enemy of that room killed since their run. */
@@ -652,6 +706,43 @@ int oracles_enhanced_parent_key_current(const uint8_t *parent_key, const uint8_t
  * flags (`own_flags`) aside, which the entry into it sets and no load reads.
  * A room run from beside is kept only if they are. */
 int oracles_enhanced_reads_hold(unsigned count, const uint16_t *addresses, const uint8_t *seen, const uint8_t *live, uint16_t own_flags, uint8_t visited);
+/* Whether the `count` bytes a neighbour's objects read, at `addresses`, keep
+ * the live values its run stood for (`values`, now `live`): the visited bit
+ * (`visited`) of every room's flags (`flags_length` bytes from `flags_start`)
+ * aside, which an entry sets.  A room whose objects no longer hold is run
+ * again, still drawn. */
+int oracles_enhanced_object_reads_hold(unsigned count, const uint16_t *addresses, const uint8_t *values, const uint8_t *live, uint16_t flags_start,
+                                       uint16_t flags_length, uint8_t visited);
+/* Whether a neighbour's objects hold for the side the game would enter it by:
+ * they did not read the side (`side_read`), the room is not beside the room
+ * in play (`beside` -1; else the direction of it, which the game would scroll
+ * in), or its run scrolled that way too (`entered_side`).  A room further
+ * away may be entered from more than one side, and is kept. */
+int oracles_enhanced_entry_side_holds(int side_read, unsigned entered_side, int beside);
+/* Whether the cache entry of the room a scroll left may stand for it, over
+ * the image of it the game last drew: its objects did not read the side
+ * (`side_read`), or its run entered it by the side the game did
+ * (`entered_side`, `live_side`; -1 when the game did not scroll into it, a
+ * warp or a load). */
+int oracles_enhanced_left_entry_side_holds(int side_read, unsigned entered_side, int live_side);
+/* Whether that entry gives way to the image: it shows objects which read the side (`side_objects`) and does not hold
+ * so, through the scroll (`in_transition`), and after it while the room, beside the room in play, is out of date for
+ * the side the game would enter it by from there (`out_of_date_beside`), until its run again comes. */
+int oracles_enhanced_left_entry_yields(int side_objects, unsigned entered_side, int live_side, int in_transition, int out_of_date_beside);
+/* Whether a run again for a room's objects may start: the live game in play
+ * for `live_quiet` frames in a row, one for the side it is entered by, a
+ * moment for its story (a byte that changed with an event, its text and
+ * scene to come). */
+int oracles_enhanced_objects_refresh_may_start(int story, unsigned live_quiet);
+/* Whether a parent's mark of no start goes: found while it was not beside the
+ * room in play (`marked_apart`), from a run of a room beyond it that came back
+ * elsewhere, and now beside it (`beside_ref`), where the live state can run it
+ * again.  A mark from a refused start (a scene) stays. */
+int oracles_enhanced_parent_mark_lifts(int marked_apart, int beside_ref);
+/* Whether such a run's result is put off, neither taken nor a failure: the
+ * live game not in play as it comes back.  A run interrupted or blank is a
+ * failure. */
+int oracles_enhanced_objects_refresh_put_off(int live_in_play);
 /* Whether a room around the reference room `ref` is settled for the band's
  * fill: delivered, under way, failed, or waiting for another parent than one
  * whose state is no start (`waits_start`, marked around `waits_ref`), which

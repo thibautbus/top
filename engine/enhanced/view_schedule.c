@@ -16,6 +16,8 @@ static int room_in_view(const OraclesEnhancedView *v, uint8_t room, int32_t reac
     return ev_shown_meets(v, v->view_left, v->view_top, left, top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, reach);
 }
 
+int ev_room_in_view(const OraclesEnhancedView *v, uint8_t room, int32_t reach) { return room_in_view(v, room, reach); }
+
 int oracles_enhanced_scroll_brings(int32_t left, int32_t top, int32_t width, int32_t height, uint8_t room)
 {
     const int32_t h = (int32_t)ORACLES_GHOST_AREA_HEIGHT, room_left = (int32_t)(room & 0x0fu) * SMALL_ROOM_W, room_top = (int32_t)(room >> 4u) * h;
@@ -34,9 +36,19 @@ static int room_a_scroll_away(const OraclesEnhancedView *v, uint8_t room)
 /* Whether an entry needs a run now: none, or failed long enough ago; a run
  * put off until Link walks on (a door under him, a text box on his way)
  * waits for him to be 16 px from where he stood. */
-static int entry_wanting(const OraclesEnhancedView *v, entry *e)
+static int entry_wanting(OraclesEnhancedView *v, entry *e)
 {
     if (!e || (e->valid && !e->refresh && !e->rerun) || e->in_flight) return 0;   /* in flight: in another ghost */
+    /* A room still drawn, run again for its objects alone, waits for the
+     * rooms of the band still black. */
+    if (v->defer_objects_refresh && e->valid && e->refresh_objects && !e->rerun) { v->objects_refresh_deferred = 1; return 0; }
+    /* Nor while a text box, a menu or a scene holds the live game, which a
+     * run from it would play (a treasure's text): it starts once the game is
+     * back in play, for the story a moment after, the event's own text and
+     * scene come and gone. */
+    if (e->valid && e->refresh_objects && !e->rerun && !oracles_enhanced_objects_refresh_may_start(e->refresh_story, v->live_quiet)) return 0;
+    /* A terrain run again so often that a byte keeps moving: the end of the period first, still drawn. */
+    if (e->valid && e->refresh_terrain && !e->rerun && oracles_enhanced_terrain_refresh_waits(e->terrain_refresh_burst, v->frame - e->terrain_refresh_at)) return 0;
     if (e->retry_when_link_moves && e->retry_after_fade && v->fade_effective == 0) { e->retry_when_link_moves = 0; e->retry_after_fade = 0; }
     if (e->retry_when_link_moves) {
         const int dx = v->observation.world.link_x - e->link_x, dy = v->observation.world.link_y - e->link_y;
@@ -148,6 +160,7 @@ static int run_from_parent_as(OraclesEnhancedView *v, entry *e, entry *parent, O
         /* A parent whose run for its state failed stays drawn (record_failure): tried again at the pace of a failure,
          * as is one whose state was no start for this room (waits_start). */
         if (parent->failed && v->frame - parent->failed_at < FAILED_RETRY_FRAMES) return 0;
+        if (parent->refresh_terrain && oracles_enhanced_terrain_refresh_waits(parent->terrain_refresh_burst, v->frame - parent->terrain_refresh_at)) return 0;   /* its terrain's burst first, as its own step waits */
         if (!oracles_enhanced_parent_rerun_due(e->waits_start, e->waits_parent, e->waits_ref, e->waits_since,
                                                (unsigned)parent->group << 8 | parent->room, (unsigned)v->observer.ref_group << 8 | v->observer.ref_room, v->frame)) return 0;
         /* A parent two steps away is run again from `via` alone, which must
@@ -748,6 +761,7 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     run_plan *const p = v->run_plan;
     p->key_len = ev_read_key(v, p->key);
     ev_invalidate_by_reads(v);
+    ev_lift_parent_marks(v);
     ev_check_routing_keys(v);
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *e = &v->slots[i];
@@ -758,7 +772,7 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     for (unsigned d = 0; d < 4; d++) v->shown_slot[d] = SLOTS;
     for (unsigned l = 0; l < v->lane_count; l++) { ev_lane_serve(v, l); ev_blind_prerun(v); }
     ev_lane_serve(v, 0);
-    if (!ev_on_map(v)) { v->keep_count = 0; return; }
+    if (!ev_on_map(v)) { v->keep_count = 0; v->live_quiet = 0; return; }   /* a house's text and menu count as the game held */
     plan_runs(v, p, v->observer.ref_group, 0);
     /* Ages: the same place on the other side of the sea, planned too, so that
      * neither plan takes the other's slots. */
@@ -778,6 +792,7 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     }
     mark_shown_sides(v, p);
     p->live_primeable = v->observation.playing && oracles_ghost_primeable(v->guest, NULL);
+    v->live_quiet = p->live_primeable ? (v->live_quiet < OBJECT_REFRESH_QUIET ? v->live_quiet + 1u : v->live_quiet) : 0u;
     /* Each idle ghost takes the next run of the order; the one in flight in
      * another ghost is not wanted again (entry_wanting). */
     for (unsigned l = 0; l < v->lane_count; l++) {
@@ -808,7 +823,13 @@ static int schedule_other_side(OraclesEnhancedView *v, run_plan *p, run_plan *q,
  * the other side. */
 static void schedule_idle(OraclesEnhancedView *v, run_plan *p, run_plan *q)
 {
-    if (schedule_pass(v, p, PASS_SHOWN) || schedule_pass(v, p, PASS_REST)) return;
+    /* The band's rooms, those still black before those run again for their
+     * objects (still drawn, their people out of date), then the rest. */
+    v->objects_refresh_deferred = 0;
+    v->defer_objects_refresh = 1;
+    const int shown = schedule_pass(v, p, PASS_SHOWN);
+    v->defer_objects_refresh = 0;
+    if (shown || (v->objects_refresh_deferred && schedule_pass(v, p, PASS_SHOWN)) || schedule_pass(v, p, PASS_REST)) return;
     /* Nothing else to run: the drawn-back band tries the rooms whose
      * only parent is a room the game may route itself, Ages' forest seen from
      * outside it; a run that lands elsewhere teaches the routing, and costs

@@ -115,6 +115,11 @@
       "bank": 0,
       "address": "0x15d6"
     },
+    "update_enemies": null,
+    "update_parts": null,
+    "update_interactions": null,
+    "parse_object_data": null,
+    "run_room_specific_code": null,
     "check_reload_status_bar_graphics": {
       "bank": 0,
       "address": "0x1a0d"
@@ -1346,6 +1351,11 @@
     "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
     "text_address": "the host's text box not qualified for this revision",
     "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision"
+    "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
+    "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "update_parts": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "update_interactions": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "parse_object_data": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "run_room_specific_code": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read"
   }
 }

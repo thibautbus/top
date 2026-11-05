@@ -17,7 +17,27 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
     oracles_objects_event(g->objects, event);
     oracles_sprites_event(g->sprites, event);
     switch (event->type) {
+    case ORACLES_EVENT_ROOM_OBJECTS_CODE:
+        g->object_code_depth++;
+        if (g->tracing && g->in_object_window) oracles_guest_enable_read_trace(g->guest, 1);
+        break;
+    case ORACLES_EVENT_ROOM_OBJECTS_CODE_DONE:
+        if (g->object_code_depth && --g->object_code_depth == 0 && g->in_object_window)
+            oracles_guest_enable_read_trace(g->guest, (g->load_counts && g->primed) || (g->tracing && g->in_substitutions && !g->in_object_gfx));
+        break;
+    /* The enemies the room's list places at random read the side Link comes
+     * from, to keep off it (checkPositionValidForEnemySpawn): where they land
+     * is the RNG's whatever the side, and says nothing of who is in the room. */
+    case ORACLES_EVENT_RANDOM_PLACEMENT:
+        g->in_random_placement = 1;
+        break;
+    case ORACLES_EVENT_RANDOM_PLACEMENT_DONE:
+        g->in_random_placement = 0;
+        break;
     case ORACLES_EVENT_OBJECTS_UPDATED:
+        /* Every object update is over: a return the game left unmatched (a frame unwound) does not keep the trace on. */
+        if (g->object_code_depth && g->in_object_window) oracles_guest_enable_read_trace(g->guest, (g->load_counts && g->primed) || (g->tracing && g->in_substitutions && !g->in_object_gfx));
+        g->object_code_depth = 0;
         if (g->probing) oracles_ghost_probe_update(g);
         break;
     case ORACLES_EVENT_TILE_SUBSTITUTIONS:
@@ -26,7 +46,7 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
         break;
     case ORACLES_EVENT_TILE_SUBSTITUTIONS_DONE:
         g->in_substitutions = 0;
-        oracles_guest_enable_read_trace(g->guest, g->load_counts && g->primed);   /* the load's trace goes on */
+        oracles_guest_enable_read_trace(g->guest, (g->load_counts && g->primed) || (g->tracing && g->in_object_window && g->object_code_depth));   /* the load's trace goes on */
         break;
     /* Seasons' applyAllTileSubstitutions loads Subrosia's object graphics on
      * its way (loadSubrosiaObjectGfxHeader): refreshObjectGfx scans the object
@@ -34,7 +54,7 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
      * state.  The trace pauses for it and resumes at its return. */
     case ORACLES_EVENT_OBJECT_GFX_LOAD:
         g->in_object_gfx = 1;   /* the load's trace, when on, counts these reads as the load's */
-        if (g->tracing && !g->load_counts) oracles_guest_enable_read_trace(g->guest, 0);
+        if (g->tracing && !g->load_counts && !(g->in_object_window && g->object_code_depth)) oracles_guest_enable_read_trace(g->guest, 0);
         break;
     case ORACLES_EVENT_OBJECT_GFX_LOAD_DONE:
         g->in_object_gfx = 0;
@@ -57,6 +77,20 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
         wram[t->room_pack.addr - WRAM_BANK0_BASE] = wram[t->loading_room_pack.addr - WRAM_BANK0_BASE];
         break;
     }
+    case ORACLES_EVENT_ROOM_ENTER:
+        /* The room entered creates its objects from here, and they run until
+         * the capture: their own code's reads of the objects' watch, the
+         * trace on inside that code alone (the room's object list, Ages'
+         * room-specific code, the updates of its enemies, parts and
+         * interactions), are noted until then (oracles_ghost_object_watch_ranges).
+         * The game's own code around them (the scroll's, the load's, Link's,
+         * his items', the camera's) reads some of those bytes in every room
+         * and says nothing of its objects: Link's update tests the mermaid
+         * suit at every frame. */
+        if (!g->active || !g->primed || g->initialized || !g->result) break;
+        g->in_object_window = 1;
+        g->in_random_placement = 0;
+        break;
     case ORACLES_EVENT_ROOM_INITIALIZED:
         if (!g->active || !g->primed || g->initialized || !g->result) break;   /* a pre-run loads the live room first */
         if (g->capture) freeze_objects(g);
@@ -100,6 +134,14 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
     if (oracles_compat_seasons_rules(oracles_guest_profile(g->guest)))
         hooks_full |= oracles_guest_add_hook(g->guest, t->check_room_pack, ORACLES_EVENT_CHECK_ROOM_PACK, 0) != 0;
     hooks_full |= oracles_guest_add_hook(g->guest, t->load_object_gfx_header_to_slot4, ORACLES_EVENT_OBJECT_GFX_LOAD, ORACLES_EVENT_OBJECT_GFX_LOAD_DONE) != 0;
+    /* The code of the room's own objects.  A profile without those symbols
+     * bound follows nothing of it: its neighbours' objects hold as captured,
+     * for their enemies killed alone (updateAllObjects whole would take Link's
+     * update with them, which reads a treasure and the side in every room). */
+    if (t->update_interactions.bank != ORACLES_GUEST_ABSENT) {
+        const OraclesGuestSym code[5] = { t->update_enemies, t->update_parts, t->update_interactions, t->parse_object_data, t->run_room_specific_code };
+        for (unsigned i = 0; i < 5u; i++) hooks_full |= oracles_guest_add_hook(g->guest, code[i], ORACLES_EVENT_ROOM_OBJECTS_CODE, ORACLES_EVENT_ROOM_OBJECTS_CODE_DONE) != 0;
+    }
     /* A language composed into the image is the game the ghost runs too: its texts served as the live instance's. */
     hooks_full |= oracles_guest_arm_language(g->guest) != 0;
     g->objects = oracles_objects_create(g->guest);
@@ -124,6 +166,14 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
     g->layout_end = (uint16_t)(t->room_layout.addr + 0x100u);   /* the search loops of the substitutions run over the whole page, past wRoomLayoutEnd into wTmpcfc0 */
     g->stacks_start = t->main_stack.addr;
     g->stacks_end = t->thread3_stack_top.addr;
+    OraclesGhostKeyRange watch[ORACLES_GHOST_KEY_RANGES];
+    const unsigned watched = oracles_ghost_object_watch_ranges(profile, watch, ORACLES_GHOST_KEY_RANGES);
+    for (unsigned k = 0; k < watched; k++)
+        for (unsigned b = 0; b < watch[k].length; b++) {
+            const uint16_t a = (uint16_t)(watch[k].address + b);
+            g->object_watch[a >> 3] |= (uint8_t)(1u << (a & 7u));
+        }
+    if (oracles_ghost_bank0_symbol(t->screen_transition_direction)) g->entry_side_address = t->screen_transition_direction.addr;   /* the side a room is entered by, as its own objects read it */
     pthread_mutex_init(&g->mutex, NULL);
     pthread_cond_init(&g->cond, NULL);
     return g;
@@ -405,6 +455,8 @@ static int run_finished(const OraclesGhost *g) { return g->initialized && (!g->s
 /* What the host needs besides the pixels: the map, the registers, the tileset, the state. */
 static void capture_settled(OraclesGhost *g, OraclesGhostResult *result)
 {
+    g->in_object_window = 0;
+    oracles_guest_enable_read_trace(g->guest, g->load_counts && g->primed);
     restore_warp_tiles(g);
     if (g->capture) {
         const uint8_t *oam = oracles_guest_oam(g->guest);
@@ -509,6 +561,9 @@ int oracles_ghost_begin_ex(OraclesGhost *g, const uint8_t *state, size_t size, O
      * turn the trace back on with its stack filter. */
     g->in_substitutions = 0;
     g->in_object_gfx = 0;
+    g->in_object_window = 0;
+    g->object_code_depth = 0;
+    g->in_random_placement = 0;
     g->trace_stack_start = g->trace_stack_top = 0;
     const char *reason = NULL;
     g->last_reason = "";

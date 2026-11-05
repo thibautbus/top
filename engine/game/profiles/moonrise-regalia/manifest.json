@@ -478,6 +478,11 @@
     "apply_all_tile_substitutions": "sites.apply_all_tile_substitutions",
     "check_room_pack": null,
     "load_object_gfx_header_to_slot4": null,
+    "update_enemies": null,
+    "update_parts": null,
+    "update_interactions": null,
+    "parse_object_data": null,
+    "run_room_specific_code": null,
     "active_group": "fields.active_group",
     "active_room": "fields.active_room",
     "loading_room": {
@@ -1392,7 +1397,12 @@
     "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
     "text_address": "the host's text box not qualified for this revision",
     "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision"
+    "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
+    "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "update_parts": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "update_interactions": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "parse_object_data": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "run_room_specific_code": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read"
   },
   "guest_table_sizes": {
     "global_flags_size": 16,

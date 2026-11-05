@@ -43,7 +43,8 @@ long ev_key_offset(const OraclesEnhancedView *v, uint16_t a)
 
 void ev_drop_entry(entry *e)
 {
-    e->valid = 0; e->failed = 0; e->not_a_start = 0; e->waits_start = 0; e->strict_parent = 0; e->retry_when_link_moves = 0; e->retry_after_fade = 0; e->live_valid = 0; e->settled_size = 0; e->refresh = 0; e->refresh_season = 0; e->refresh_failures = 0; e->rerun = 0;
+    e->valid = 0; e->failed = 0; e->not_a_start = 0; e->not_a_start_apart = 0; e->waits_start = 0; e->strict_parent = 0; e->retry_when_link_moves = 0; e->retry_after_fade = 0; e->live_valid = 0; e->settled_size = 0; e->refresh = 0; e->refresh_season = 0; e->refresh_failures = 0; e->rerun = 0;
+    e->refresh_objects = 0; e->refresh_terrain = 0; e->terrain_stale_since = 0; e->object_read_count = 0; e->entry_side_read = 0;
 }
 
 void ev_invalidate_all(OraclesEnhancedView *v)
@@ -145,14 +146,142 @@ int ev_key_byte_exempt(const OraclesEnhancedView *v, long i, const uint8_t *snap
     return 0;
 }
 
+int oracles_enhanced_object_reads_hold(unsigned count, const uint16_t *addresses, const uint8_t *values, const uint8_t *live, uint16_t flags_start,
+                                       uint16_t flags_length, uint8_t visited)
+{
+    for (unsigned i = 0; i < count; i++) {
+        uint8_t differs = (uint8_t)(values[i] ^ live[i]);
+        if (addresses[i] >= flags_start && addresses[i] - flags_start < flags_length) differs &= (uint8_t)~visited;
+        if (differs) return 0;
+    }
+    return 1;
+}
+
+/* The bytes of the key a delivered room's objects read, with the values of
+ * the live key its run started under.  A byte that moved in the live game
+ * while the run was in flight is seen at the next frame, and the room is run
+ * again.  A trace past the capacity keeps the bytes it listed first (the
+ * room's own objects read a handful). */
+void ev_record_object_reads(OraclesEnhancedView *v, entry *e, const OraclesGhostResult *r)
+{
+    e->object_read_count = 0;
+    for (unsigned i = 0; i < r->object_read_count && e->object_read_count < ENTRY_OBJECT_READS; i++) {
+        const long at = ev_key_offset(v, r->object_reads[i]);
+        if (at < 0 || (size_t)at >= v->pending_key_len) continue;
+        e->object_read_addr[e->object_read_count] = r->object_reads[i];
+        e->object_read_value[e->object_read_count] = v->pending_key[at];
+        e->object_read_count++;
+    }
+}
+
+/* Whether a room's objects hold for the live game: the bytes they read keep
+ * their values, the visited bits of the rooms' flags aside. */
+static int objects_hold(OraclesEnhancedView *v, const entry *e)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    uint8_t live[ENTRY_OBJECT_READS];
+    for (unsigned i = 0; i < e->object_read_count; i++) live[i] = ev_live_byte(v, e->object_read_addr[i]);
+    return oracles_enhanced_object_reads_hold(e->object_read_count, e->object_read_addr, e->object_read_value, live, t->group0_room_flags.addr,
+                                              (uint16_t)t->room_flags_size, t->roomflag_visited);
+}
+
+int oracles_enhanced_entry_side_holds(int side_read, unsigned entered_side, int beside)
+{
+    return !side_read || beside < 0 || (unsigned)beside == entered_side;
+}
+
+int oracles_enhanced_left_entry_side_holds(int side_read, unsigned entered_side, int live_side)
+{
+    return !side_read || (live_side >= 0 && (unsigned)live_side == entered_side);
+}
+
+int oracles_enhanced_left_entry_yields(int side_objects, unsigned entered_side, int live_side, int in_transition, int out_of_date_beside)
+{
+    return !oracles_enhanced_left_entry_side_holds(side_objects, entered_side, live_side) && (in_transition || out_of_date_beside);
+}
+
+int ev_beside_ref(const OraclesEnhancedView *v, uint8_t group, uint8_t room)
+{
+    if (group != v->observer.ref_group) return 0;
+    for (unsigned d = 0; d < 4u; d++) {
+        uint8_t beside;
+        if (ev_room_toward(v, v->observer.ref_room, (OraclesGhostDirection)d, &beside) && beside == room) return 1;
+    }
+    return 0;
+}
+
+int oracles_enhanced_parent_mark_lifts(int marked_apart, int beside_ref)
+{
+    return marked_apart && beside_ref;
+}
+
+/* A parent found no start while it was not beside the room in play
+ * (record_wrong_room), now beside it: the mark goes, and the parent is run
+ * again from the live state, which may give another state. */
+void ev_lift_parent_marks(OraclesEnhancedView *v)
+{
+    for (unsigned i = 0; i < v->slot_count; i++) {
+        entry *e = &v->slots[i];
+        if (!e->used || !e->valid || !e->not_a_start || e->routed) continue;
+        if (!oracles_enhanced_parent_mark_lifts(e->not_a_start_apart, ev_beside_ref(v, e->group, e->room))) continue;
+        e->not_a_start = 0; e->not_a_start_apart = 0;
+        e->rerun = 1; e->rerun_at = v->frame;
+    }
+}
+
+int oracles_enhanced_objects_refresh_may_start(int story, unsigned live_quiet)
+{
+    return live_quiet >= (story ? OBJECT_REFRESH_QUIET : 1u);
+}
+
+int oracles_enhanced_objects_refresh_put_off(int live_in_play)
+{
+    return !live_in_play;
+}
+
+/* Whether a room whose objects read the side it was entered by was run from
+ * another side than the one the game would enter it by from the room in play,
+ * beside it in the same group (Ages' 0:39 run from the Maku Tree's room, with
+ * its Ralph, and drawn above 0:49, from where the game creates none). */
+int ev_entered_by_other_side(const OraclesEnhancedView *v, const entry *e)
+{
+    if (!e->entry_side_read || e->routed || e->group != v->observer.ref_group) return 0;
+    int beside = -1;
+    for (unsigned d = 0; d < 4u && beside < 0; d++) {
+        uint8_t room;
+        if (ev_room_toward(v, v->observer.ref_room, (OraclesGhostDirection)d, &room) && room == e->room) beside = (int)d;
+    }
+    return !oracles_enhanced_entry_side_holds(e->entry_side_read, e->entered_side, beside);
+}
+
+/* A room run again whose runs keep failing: at the second, a refresh for
+ * its objects drops them and keeps its terrain, which its own reads still
+ * hold, and takes the live values as those they stand for (no people rather
+ * than the wrong ones, and no run again until the story moves on); any other
+ * drops its terrain too, black until the ghost delivers it. */
+void ev_refresh_failed(OraclesEnhancedView *v, entry *e)
+{
+    if (!e->refresh || ++e->refresh_failures < 2u) return;
+    if (e->refresh_objects && !e->refresh_season) {
+        e->tag_count = 0; e->tag_count_before = 0; e->object_count = 0;
+        for (unsigned i = 0; i < e->object_read_count; i++) e->object_read_value[i] = ev_live_byte(v, e->object_read_addr[i]);
+        e->entry_side_read = 0;
+        e->refresh = 0; e->refresh_objects = 0; e->refresh_failures = 0;
+        v->objects_story_dropped++;
+        return;
+    }
+    e->refresh = 0; e->refresh_terrain = 0; e->valid = 0; v->refresh_given_up++;
+}
+
 void ev_invalidate_by_reads(OraclesEnhancedView *v)
 {
     invalidate_by_coarse_list(v);
+    int stale_shown = 0, terrain_stale_shown = 0;
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *e = &v->slots[i];
         if (!e->used || !e->valid || e->read_count > ENTRY_READS) continue;
         /* In normal play only: across an area's edge the game sets the new area before its season (the fade between them). */
-        if (e->season_dependent && !e->refresh && v->observation.playing && !v->observation.in_transition) {
+        if (e->season_dependent && (!e->refresh || e->refresh_objects) && v->observation.playing && !v->observation.in_transition) {
             const OraclesGuestTables *t = oracles_guest_tables(v->guest);
             /* The band is in the live season (the ghost holds it across areas):
              * the rod of seasons, or the flash into an area of another season,
@@ -160,7 +289,7 @@ void ev_invalidate_by_reads(OraclesEnhancedView *v)
              * while the flash lasts, whitening with the screen, while the ghost
              * runs it again (ev_entry_drawable). */
             if ((oracles_guest_read8(v->guest, t->active_group) & 7u) == (e->group & 7u)
-                && oracles_guest_read8(v->guest, t->room_state_modifier) != e->season) { log_drop(v, t->room_state_modifier.addr); e->refresh = 1; e->refresh_season = 1; continue; }
+                && oracles_guest_read8(v->guest, t->room_state_modifier) != e->season) { log_drop(v, t->room_state_modifier.addr); e->refresh = 1; e->refresh_season = 1; e->refresh_objects = 0; continue; }
         }
         /* Its objects hold for the enemies counted killed in its room then: one
          * killed since (in the live room, which is cached too), or back after
@@ -172,27 +301,100 @@ void ev_invalidate_by_reads(OraclesEnhancedView *v)
             v->objects_outdated++;
             continue;
         }
-        const uint16_t own_flags = ev_room_flags_address(v, e->group, e->room);
-        for (unsigned r = 0; r < e->read_count; r++) {
+        /* A terrain kept out of date, its run again not delivered (no start
+         * for it, the burst's wait) or delivered out of date again each time,
+         * for TERRAIN_STALE_FRAMES: black, until the ghost delivers it. */
+        if (e->terrain_stale_since && v->frame - e->terrain_stale_since >= TERRAIN_STALE_FRAMES) {
+            ev_drop_entry(e);
+            v->terrain_given_up++;
+            continue;
+        }
+        const OraclesGuestTables *tables = oracles_guest_tables(v->guest);
+        int terrain_holds = 1;
+        for (unsigned r = 0; r < e->read_count && !e->refresh_terrain; r++) {
             uint8_t differs = (uint8_t)(ev_live_byte(v, e->read_addr[r]) ^ e->read_value[r]);
-            /* The visited bit of the room's own flags: the transition that
-             * enters the room sets it (updateActiveRoom, setVisitedRoomFlag,
-             * before the substitutions; the special transitions, the Lost
-             * Woods or the eye statue puzzle, later in cutscene00), and no
-             * tile substitution reads it; the live game sets it only when
-             * Link enters, and a room computed ahead of a first visit was
-             * thrown at that very frame. */
-            if (e->read_addr[r] == own_flags) differs &= (uint8_t)~oracles_guest_tables(v->guest)->roomflag_visited;
+            /* The visited bit of a room's flags: the transition that enters
+             * the room sets it (updateActiveRoom, setVisitedRoomFlag, before
+             * the substitutions; the special transitions, the Lost Woods or
+             * the eye statue puzzle, later in cutscene00), and no tile
+             * substitution reads it.  The live game sets it only when Link
+             * enters: a room computed ahead of a first visit was thrown at
+             * that very frame, and so was a room run from a parent's state
+             * whose own visit the ghost had made (Ages' 0:27 run from 0:28,
+             * Link in 0:38 below it, thrown and run again every few frames). */
+            if (e->read_addr[r] >= tables->group0_room_flags.addr && e->read_addr[r] - tables->group0_room_flags.addr < tables->room_flags_size)
+                differs &= (uint8_t)~tables->roomflag_visited;
             if (differs && portal_elsewhere(v, e, e->read_addr[r])) differs = 0;
             /* The spot of a time warp's arrival (Ages): set while Link arrives
              * and cleared as he gets his control back, it changes the room he
              * arrives in alone; a neighbour computed with none is the room he
              * will scroll into once it is cleared. */
-            const OraclesGuestSym warp_tile = oracles_guest_tables(v->guest)->link_time_warp_tile;
+            const OraclesGuestSym warp_tile = tables->link_time_warp_tile;
             if (differs && warp_tile.bank != ORACLES_GUEST_ABSENT && e->read_addr[r] == warp_tile.addr && e->read_value[r] == 0) differs = 0;
-            if (differs) { log_drop(v, e->read_addr[r]); ev_drop_entry(e); break; }
+            /* Drawn as it was until the ghost delivers it again, as a room
+             * run again for its season or its story is: rather than black.  A
+             * room so run again OBJECT_REFRESH_BURST times within
+             * FAILED_RETRY_FRAMES waits for the end of that period
+             * (entry_wanting), still drawn, black past TERRAIN_STALE_FRAMES.
+             * Not the room in play's: the live game draws it, then the image
+             * of the room left, which its old terrain would hide (a chest
+             * opened there drawn closed again behind Link). */
+            if (differs && e->group == v->observer.ref_group && e->room == v->observer.ref_room) {
+                log_drop(v, e->read_addr[r]);
+                ev_drop_entry(e);
+                break;
+            }
+            if (differs) {
+                log_drop(v, e->read_addr[r]);
+                const int recent = v->frame - e->terrain_refresh_at < FAILED_RETRY_FRAMES;
+                e->terrain_refresh_burst = recent ? e->terrain_refresh_burst + 1u : 1u;
+                e->terrain_refresh_at = v->frame;
+                if (!e->terrain_stale_since) e->terrain_stale_since = v->frame ? v->frame : 1u;
+                e->refresh = 1; e->refresh_terrain = 1; e->refresh_objects = 0;
+                v->terrain_refreshes++;
+                terrain_holds = 0;
+                break;
+            }
         }
+        if (terrain_holds && !e->refresh_terrain) e->terrain_stale_since = 0;
+        if (e->refresh_terrain && e->group == v->observer.ref_group && e->room != v->observer.ref_room && ev_room_in_view(v, e->room, 0)
+            && !(v->left_valid && e->group == v->left_group && e->room == v->left_room)) terrain_stale_shown = 1;   /* the room left shows its image */
+        if (!e->valid || e->refresh_terrain) continue;
+        /* Its objects hold for the story state they read as the room created
+         * them: a global flag, a room's flags, a treasure (Ages' intro: the
+         * object of 0:39 that creates Nayru and the animals until Impa sets
+         * GLOBALFLAG_INTRO_DONE).  One changed since, and the room is run
+         * again; its terrain and objects stay drawn until the new ones come.
+         * Compared in normal play only, as the season is: during a load, a
+         * warp or a fade the live state is half way.  A room run again so
+         * OBJECT_REFRESH_BURST times within FAILED_RETRY_FRAMES waits for the
+         * end of that period: a byte that keeps toggling does not hold the
+         * ghost. */
+        /* So are they for the side the room was entered by, when they read it:
+         * beside the room in play, the side the game would enter it by. */
+        const int compared = v->observation.playing && !v->observation.in_transition;
+        const int other_side = compared && !e->refresh && ev_entered_by_other_side(v, e);
+        const int objects_stale = v->neighbour_objects && (e->refresh_objects || (compared && !e->refresh && (other_side || !objects_hold(v, e))));
+        if (objects_stale && !e->refresh) {
+            const int recent = v->frame - e->objects_refresh_at < FAILED_RETRY_FRAMES;
+            if (!recent || e->objects_refresh_burst < OBJECT_REFRESH_BURST) {
+                e->objects_refresh_burst = recent ? e->objects_refresh_burst + 1u : 1u;
+                e->objects_refresh_at = v->frame;
+                e->refresh = 1;
+                e->refresh_objects = 1;
+                e->refresh_story = !other_side;
+                if (other_side) v->objects_side_refreshes++; else v->objects_story_refreshes++;
+            }
+        }
+        if (objects_stale && e->object_count && e->group == v->observer.ref_group && e->room != v->observer.ref_room && ev_room_in_view(v, e->room, 0)) stale_shown = 1;
     }
+    if (stale_shown) v->objects_stale_frames++;
+    if (terrain_stale_shown) v->terrain_stale_frames++;
+}
+
+int oracles_enhanced_terrain_refresh_waits(unsigned burst, uint32_t since_last)
+{
+    return burst > OBJECT_REFRESH_BURST && since_last < FAILED_RETRY_FRAMES;
 }
 
 /* ---- the colour table ------------------------------------------------------------------ */

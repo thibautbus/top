@@ -68,6 +68,10 @@
 #define SEA_LEVEL_GROUPS 2u          /* the sea under a group of the surface is two groups on (checkForUnderwaterTransition) */
 #define FAILED_RETRY_FRAMES 300u     /* a run that failed is tried again after five seconds */
 #define ENTRY_READS 64u
+#define ENTRY_OBJECT_READS ORACLES_GHOST_OBJECT_READS
+#define OBJECT_REFRESH_QUIET 60u     /* frames of the live game in play before a room is run again for its story */
+#define OBJECT_REFRESH_BURST 3u      /* refreshes for a room's objects (and terrains) in a row before it waits FAILED_RETRY_FRAMES */
+#define TERRAIN_STALE_FRAMES (2u * FAILED_RETRY_FRAMES)   /* a terrain kept out of date longer than this goes black until delivered */
 #define DROP_LOG 16u
 #define TILE_DATA_BYTES 0x1800u      /* $8000-$97ff of a VRAM bank: the tiles */
 #define MAP_OFFSET 0x1800u           /* $9800-$9fff: the maps */
@@ -97,6 +101,8 @@ typedef struct EvScrollClock {
  * animated while the ghost settled), and the pose the entry's last render drew. */
 typedef struct ev_pose {
     uint8_t kind, slot, record, lower, own[2];
+    uint8_t hidden[2];                   /* the frame kept, the one before: the object hidden there, its entries kept */
+    uint8_t flicker;                     /* one frame kept: the object drawn one frame in two all the same */
     OraclesObjectAnimation captured, now;
     uint16_t shown[2];
     uint16_t drawn;
@@ -209,6 +215,23 @@ typedef struct entry {
     unsigned read_count;
     uint8_t key_snapshot[ORACLES_GHOST_KEY_BYTES]; /* the whole key when it was requested: a room beyond is chained from it only while unchanged */
     size_t key_len;
+    /* The bytes of the key its objects read (the result's object_reads), with
+     * the live values the run stood for: its objects hold while they keep
+     * them, its terrain stays drawn while they are run again. */
+    uint16_t object_read_addr[ENTRY_OBJECT_READS];
+    uint8_t object_read_value[ENTRY_OBJECT_READS];
+    unsigned object_read_count;
+    int refresh_objects;                /* the refresh is its objects': two failed runs drop them, never its terrain */
+    int not_a_start_apart;              /* that mark was found while it was not beside the room in play: lifted once it is (ev_lift_parent_marks) */
+    int refresh_terrain;                /* the refresh is for a key byte its terrain read: drawn as it was until the run delivers */
+    uint32_t terrain_refresh_at;        /* the view's frame its last such refresh was asked */
+    unsigned terrain_refresh_burst;     /* those asked within FAILED_RETRY_FRAMES of the one before, in a row */
+    uint32_t terrain_stale_since;       /* the frame its terrain first went out of date since it last held, 0: it holds */
+    uint32_t objects_refresh_at;        /* the view's frame its last such refresh started */
+    unsigned objects_refresh_burst;     /* those started within FAILED_RETRY_FRAMES of the one before, in a row */
+    int refresh_story;                  /* that refresh is for a byte its objects read, not for the side it was entered by */
+    int entry_side_read;                /* its objects read the side it was entered by (the result's entry_side_read)... */
+    uint8_t entered_side;               /* ...which was this direction of its run */
     /* the view's own render of the room from its map, tiles and palettes: the whole room (240x176 for a large one) */
     uint32_t live_area[LARGE_ROOM_W * LARGE_ROOM_H];
     uint64_t live_tiles_hash;
@@ -285,6 +308,8 @@ struct OraclesEnhancedView {
     unsigned band_height;            /* its world band's, oracles_enhanced_band_height of the size */
     unsigned shown_width, shown_height;   /* the part of the band the last composition showed, centred (oracles_enhanced_camera_shown) */
     int chain_routed_idle;           /* the run order's last pass, with nothing else to run: a room the game routes itself may be a parent (drawn-back view) */
+    int objects_refresh_deferred;    /* the band's pass left a room run again for its objects alone for after its black rooms */
+    int defer_objects_refresh;       /* while that pass runs */
     uint32_t *surface;               /* size.width by size.height, allocated for the view's size */
     /* the ghost and its jobs */
     OraclesGhost *ghost;
@@ -302,6 +327,18 @@ struct OraclesEnhancedView {
     uint8_t appear_group, appear_room;
     unsigned fade_frames, faded_objects;   /* frames that drew a fade, objects that started one */
     unsigned objects_outdated;       /* cached rooms whose objects were dropped: an enemy of theirs killed, or back, since the capture */
+    unsigned objects_story_refreshes;   /* cached rooms run again for their objects: a byte of the key they read changed in the live game */
+    unsigned objects_story_dropped;     /* of those, the rooms whose objects were dropped after two failed runs, their terrain kept */
+    unsigned objects_stale_frames;      /* frames the band met a neighbour whose objects no longer held for the story, until run again */
+    unsigned terrain_refreshes;         /* cached rooms run again, still drawn, for a byte of the key their terrain read */
+    unsigned terrain_stale_frames;      /* frames the band met such a room before its run again delivered (the room in play aside) */
+    unsigned left_stale_frames;         /* frames the room a scroll left was drawn from an entry run again for its terrain, over its image */
+    unsigned side_stale_frames;         /* frames the band drew a room's people as the game creates them for Link coming from another side */
+    unsigned left_image_held_frames;    /* frames the room left kept its image out of a scroll, its entry holding for the side beside the room in play */
+    unsigned terrain_given_up;          /* of those, rooms dropped to black, their terrain kept out of date for TERRAIN_STALE_FRAMES */
+    unsigned objects_side_refreshes;    /* cached rooms run again for their objects: entered by another side than the room in play would */
+    unsigned objects_refresh_put_off;   /* such runs whose result was not taken, not counted failed: the live game held as they came back */
+    unsigned live_quiet;                /* frames in a row the live game was in play, a run able to start from it (no text, menu or scene) */
     unsigned refresh_given_up;       /* rooms run again whose old terrain was dropped after two failed runs */
     unsigned parents_run_for_kills;  /* parents run again from the live state before chaining: an enemy killed since their run */
     /* The hand-off, measured on the data rather than on the composed pixels:
@@ -311,12 +348,16 @@ struct OraclesEnhancedView {
     unsigned handoff_count;
     int handoff_armed;
     unsigned handoff_shown, handoff_jumps, handoff_hole_frames, handoff_unseen;
+    unsigned handoff_orphans;        /* objects a room's capture showed that the room, entered, had none of (view_objects.c) */
     /* The image of the room a scroll left (design, 6.2.2): its terrain and its
      * objects as the game last drew them in normal play, shown frozen while the
      * room stays in the band, instead of its capture of apparition. */
     uint32_t left_area[ORACLES_GHOST_AREA_WIDTH * ORACLES_GHOST_AREA_HEIGHT];
     int left_valid;
     uint8_t left_group, left_room;
+    /* The side the game entered the room in play by, its scroll's direction
+     * plus one (0: not by a scroll, a warp or a load); and the room left's. */
+    uint8_t ref_entered_side, left_entered_side;
     int32_t left_left, left_top;
     uint64_t left_epoch;
     int left_pipeline;
@@ -351,6 +392,8 @@ struct OraclesEnhancedView {
     int pending_beside;              /* from a room beside it, a cutscene holding the game (view_schedule.c, run_from_beside), or from a parent judged with other rooms' visited bits aside: its reads checked on delivery */
     int pending_visits;              /* that parent judged so (view_schedule.c, run_from_parent) */
     uint8_t pending_killed_list[16]; /* the live wEnemiesKilledList the pending run stands for */
+    uint8_t pending_key[ORACLES_GHOST_KEY_BYTES];   /* the live key when the pending run started: the values its objects stand for */
+    size_t pending_key_len;
     unsigned pending_parent;
     uint8_t pending_parent_room;
     int pending_blind;               /* a pre-run while a room loads: the result lands beside the room the ghost primed in */
@@ -378,6 +421,8 @@ struct OraclesEnhancedView {
         int pending_pipeline;
         int pending_chained, pending_beside, pending_visits;
         uint8_t pending_killed_list[16];
+        uint8_t pending_key[ORACLES_GHOST_KEY_BYTES];
+        size_t pending_key_len;
         unsigned pending_parent;
         uint8_t pending_parent_room;
         uint32_t pending_parent_accepted, pending_serial;

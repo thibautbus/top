@@ -44,6 +44,7 @@ typedef enum OraclesGhostStatus {
 } OraclesGhostStatus;
 
 #define ORACLES_GHOST_RUN_READS 256u
+#define ORACLES_GHOST_OBJECT_READS 32u
 #define ORACLES_GHOST_AREA_WIDTH 160u
 #define ORACLES_GHOST_AREA_HEIGHT 128u
 #define ORACLES_GHOST_MAP_BYTES 0x1000u   /* $9800-$9fff of bank 0 (tiles) then of bank 1 (attributes) */
@@ -99,6 +100,18 @@ typedef struct OraclesGhostResult {
     OraclesObjectRecord objects[ORACLES_OBJECT_RECORDS];
     unsigned object_count;
     uint8_t killed_enemies;                       /* the room's enemies counted killed in the run's own list once it entered the room: what its objects hold for */
+    /* When tracing: the distinct addresses of the objects' watch
+     * (oracles_ghost_object_watch_ranges) the code of the room's own objects
+     * read, from the room's initialisation to the capture: the
+     * story state they hold for (a global flag that decides whether an object of the room
+     * creates its people). */
+    uint16_t object_reads[ORACLES_GHOST_OBJECT_READS];
+    unsigned object_read_count;
+    unsigned object_reads_dropped;                /* distinct addresses beyond the capacity */
+    /* That code read the side the room was entered by (wScreenTransitionDirection):
+     * its objects hold for that side alone (Ages' 0:39, Ralph created only
+     * when Link comes from the Maku Tree's room). */
+    uint8_t entry_side_read;
     /* With the capture (oracles_ghost_set_capture): the room's objects frozen
      * where the game creates them, their sprites tagged by object, and what is
      * needed to draw them: the OAM of the settled frame, the sprite palettes
@@ -142,6 +155,12 @@ unsigned oracles_ghost_key_exempt_ranges(const OraclesCompatProfile *profile, Or
 unsigned oracles_ghost_key_coarse_ranges(const OraclesGuestTables *t, OraclesGhostKeyRange out[], unsigned max);
 size_t oracles_ghost_coarse_snapshot(OraclesGuest *guest, uint8_t *out, size_t capacity);
 int oracles_ghost_coarse_changed(const OraclesGuestTables *t, const uint8_t *before, const uint8_t *after, size_t len, uint16_t *address, int *room);
+
+/* The objects' watch: the key's ranges less the bytes a room's own load
+ * writes before its objects read them (the active group and room, the
+ * dungeon's index and floor).  What the objects read of these is the story
+ * state they were created under (ghost_key.c). */
+unsigned oracles_ghost_object_watch_ranges(const OraclesCompatProfile *profile, OraclesGhostKeyRange out[], unsigned max);
 
 /* Tiles whose state depends on the entry itself, shown as they stand before
  * it: the shutters replaceShutterForLinkEntering opens under Link. */

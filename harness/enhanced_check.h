@@ -70,6 +70,11 @@ void oracles_enhanced_check_set_surface_scale(OraclesEnhancedCheck *check, unsig
 /* --menus-large (oracles_enhanced_view_set_large_menus): over the framed core the box at its size, for the presenter, at
  * every Text size; the frames it is published at Very large counted. */
 void oracles_enhanced_check_set_large_menus(OraclesEnhancedCheck *check, int large);
+/* --beside-witness: once Link has stood half a second in a room, each
+ * room drawn beside it with objects is entered by a ghost of the check's own
+ * from the live state, and what the band shows of its objects is judged
+ * against what that entry creates (enhanced.beside_orphans). */
+int oracles_enhanced_check_set_beside_witness(OraclesEnhancedCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_enhanced_check_event(OraclesEnhancedCheck *check, const OraclesGuestEvent *event);
 void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *check, uint32_t frame);
 void oracles_enhanced_check_report(OraclesEnhancedCheck *check, FILE *out);

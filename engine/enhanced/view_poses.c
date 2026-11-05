@@ -31,6 +31,13 @@ static const OraclesObjectRecord *record_of(const entry *e, const OraclesSpriteT
     return NULL;
 }
 
+int ev_entry_shows_objects(const entry *e)
+{
+    for (unsigned i = 0; i < e->tag_count; i++)
+        if (e->tags[i].kind && e->tags[i].count && shown(record_of(e, &e->tags[i]))) return 1;
+    return 0;
+}
+
 /* The tag of an object's own drawing (its grass or puddle, then its sprites) in a frame's tags. */
 static const OraclesSpriteTag *own_tag(const OraclesSpriteTag *tags, unsigned count, uint8_t kind, uint8_t slot)
 {
@@ -43,6 +50,17 @@ static ev_pose *pose_of(entry *e, uint8_t kind, uint8_t slot)
 {
     for (unsigned k = 0; k < e->pose_count; k++) if (e->poses[k].kind == kind && e->poses[k].slot == slot) return &e->poses[k];
     return NULL;
+}
+
+/* Whether a tag's entries put a sprite on the screen: an object the game hides on a frame may leave its entries
+ * below it. */
+static int on_screen(const uint8_t *oam, const OraclesSpriteTag *tag)
+{
+    for (unsigned n = 0; n < tag->count && tag->first + n < OAM_ENTRIES; n++) {
+        const uint8_t *o = oam + (tag->first + n) * 4u;
+        if (o[0] > 0 && o[0] < 160u && o[1] > 0 && o[1] < 168u) return 1;
+    }
+    return 0;
 }
 
 /* The object's own sprites in that pose, where the frame its capture keeps draws it (`r` as drawn,
@@ -100,8 +118,12 @@ void ev_poses_deliver(OraclesEnhancedView *v, entry *e)
     for (unsigned k = 0; k < e->object_count; k++) {
         const OraclesObjectRecord drawn = oracles_objects_as_drawn(&e->objects[k]), *r = &drawn;
         const OraclesSpriteTag *tag = own_tag(e->tags, e->tag_count, r->kind, r->slot);
-        /* Drawn: its own sprites in the frame kept, and visible on that frame. */
-        if (!shown(r) || !tag || !(r->visible & 0x80u) || r->kind < ORACLES_OBJECT_KIND_INTERACTION || r->kind > ORACLES_OBJECT_KIND_PART) continue;
+        /* Drawn: its own sprites on the screen in a frame kept.  Its record's look is the frame just drawn's, a frame
+         * after the OAM kept (ghost.c): an object the game shows one frame in two (Ages' time portal) reads hidden on
+         * the frame it shows, and may be hidden on the frame kept, its entries below the screen. */
+        const OraclesSpriteTag *before = e->tag_count_before ? own_tag(e->tags_before, e->tag_count_before, r->kind, r->slot) : NULL;
+        const int kept_on = tag && on_screen(e->oam, tag), before_on = before && on_screen(e->oam_before, before);
+        if (!shown(r) || !(kept_on || before_on) || r->kind < ORACLES_OBJECT_KIND_INTERACTION || r->kind > ORACLES_OBJECT_KIND_PART) continue;
         OraclesObjectAnimation a;
         oracles_object_animation_from_record(&a, r);
         uint16_t poses[ORACLES_OBJECT_ANIMATION_POSES];
@@ -110,16 +132,17 @@ void ev_poses_deliver(OraclesEnhancedView *v, entry *e)
         if (count < 2u) continue;   /* one pose, or its tables unknown */
         if (r->kind == ORACLES_OBJECT_KIND_ENEMY) { v->poses.frozen_enemies++; continue; }
         if (!oracles_object_animation_animated(t, r)) { v->poses.frozen_code++; continue; }
-        /* Its place: a pose of its loop built there must be what the capture drew, in the frame kept and in the one
-         * before when it is drawn there too; a puddle lowers it by a pixel. */
-        const OraclesSpriteTag *before = e->tag_count_before ? own_tag(e->tags_before, e->tag_count_before, r->kind, r->slot) : NULL;
+        /* Its place: a pose of its loop built there must be what the capture drew, in each frame kept that shows
+         * it; a puddle lowers it by a pixel.  A frame that hides it keeps its entries as captured. */
         int own = -1, own_before = 0;
         unsigned lower = 0;
         uint16_t shown[2] = { a.oam_data_address, a.oam_data_address };
         for (; lower < 2u && own < 0; lower++) {
-            own = placed(v, e, r, lower, e->oam, tag, poses, count, &shown[0]);
+            own = kept_on ? placed(v, e, r, lower, e->oam, tag, poses, count, &shown[0]) : 0;
             shown[1] = shown[0];
-            if (own >= 0 && before) own_before = placed(v, e, r, lower, e->oam_before, before, poses, count, &shown[1]);
+            own_before = 0;
+            if (own >= 0 && before_on) own_before = placed(v, e, r, lower, e->oam_before, before, poses, count, &shown[1]);
+            if (!kept_on) shown[0] = shown[1];
             if (own_before < 0) own = -1;
         }
         if (own < 0) { v->poses.frozen_unplaced++; continue; }
@@ -132,6 +155,11 @@ void ev_poses_deliver(OraclesEnhancedView *v, entry *e)
         p->lower = (uint8_t)(lower - 1u);
         p->own[0] = (uint8_t)own;
         p->own[1] = (uint8_t)own_before;
+        p->hidden[0] = (uint8_t)!kept_on;
+        p->hidden[1] = (uint8_t)(before && !before_on);
+        /* One frame kept, which shows it, and its record (the frame after) hides it: the game shows it one frame in
+         * two, and so does the neighbour. */
+        p->flicker = (uint8_t)(!e->tag_count_before && kept_on && !(r->visible & 0x80u));
         p->captured = p->now = a;
         p->shown[0] = shown[0];
         p->shown[1] = shown[1];
@@ -188,10 +216,17 @@ void ev_poses_reset(OraclesEnhancedView *v, entry *e)
     if (e->poses_reset) v->animation_renders++;
 }
 
+/* Whether an object the game shows one frame in two is off on this frame (`off`: an odd one). */
+static int flickered_off(entry *e, const OraclesSpriteTag *tag, int off)
+{
+    const ev_pose *p = off ? pose_of(e, tag->kind, tag->slot) : NULL;
+    return p && p->flicker;
+}
+
 /* One frame's OAM with the objects' poses: each tag's entries in order, an animated object's own sprites built for
  * its pose after its grass or puddle, the entries after them moved by the difference, forty at most.  `at` and
  * `count` receive where each pose's sprites went (count 0: not in this frame). */
-static void compose(OraclesEnhancedView *v, entry *e, const uint8_t *oam, const OraclesSpriteTag *tags, unsigned tag_count, int before,
+static void compose(OraclesEnhancedView *v, entry *e, const uint8_t *oam, const OraclesSpriteTag *tags, unsigned tag_count, int before, int off,
                     uint8_t out[160], uint8_t at[ORACLES_OBJECT_RECORDS], uint8_t count[ORACLES_OBJECT_RECORDS])
 {
     memset(out, 0, 160);
@@ -201,11 +236,11 @@ static void compose(OraclesEnhancedView *v, entry *e, const uint8_t *oam, const 
         const OraclesSpriteTag *tag = &tags[i];
         if (tag->kind == 0) continue;
         const OraclesObjectRecord *object = record_of(e, tag);
-        if (!shown(object)) continue;
+        if (!shown(object) || flickered_off(e, tag, off)) continue;
         ev_pose *p = tag->terrain_effect ? NULL : pose_of(e, tag->kind, tag->slot);
         OraclesObjectSprite s[ORACLES_OBJECT_SPRITES_MAX];
         int built = -1;
-        if (p && p->now.oam_data_address != p->shown[before]) {
+        if (p && !p->hidden[before] && p->now.oam_data_address != p->shown[before]) {
             const OraclesObjectRecord drawn = oracles_objects_as_drawn(&e->objects[p->record]);
             built = pose_sprites(v, e, &drawn, p->lower, p->now.oam_data_address, s);
         }
@@ -235,7 +270,7 @@ int ev_neighbour_oam(OraclesEnhancedView *v, entry *e, uint8_t captured[160], ui
      * one frame in two (a fountain's spurt) flickers in the neighbour as it
      * does in the room, instead of being there or not depending on the frame
      * the capture fell on.  The others are the same in both. */
-    const int before = e->tag_count_before && (v->frame & 1u);
+    const int before = e->tag_count_before && (v->frame & 1u), off = !e->tag_count_before && (v->frame & 1u);
     const uint8_t *oam = before ? e->oam_before : e->oam;
     const OraclesSpriteTag *tags = before ? e->tags_before : e->tags;
     const unsigned tag_count = before ? e->tag_count_before : e->tag_count;
@@ -243,6 +278,7 @@ int ev_neighbour_oam(OraclesEnhancedView *v, entry *e, uint8_t captured[160], ui
     for (unsigned i = 0; i < tag_count; i++) {
         const OraclesSpriteTag *tag = &tags[i];
         if (tag->kind == 0 || !shown(record_of(e, tag))) continue;   /* Link, the companion, an item; what a neighbour does not show */
+        if (flickered_off(e, tag, off)) continue;
         for (unsigned n = 0; n < tag->count; n++) {
             const unsigned index = (unsigned)tag->first + n;
             if (index >= OAM_ENTRIES) break;
@@ -252,8 +288,8 @@ int ev_neighbour_oam(OraclesEnhancedView *v, entry *e, uint8_t captured[160], ui
     }
     memcpy(posed, captured, 160);
     unsigned moved = 0;
-    for (unsigned k = 0; k < e->pose_count; k++) moved += e->poses[k].now.oam_data_address != e->poses[k].shown[before];
-    if (any && moved) compose(v, e, oam, tags, tag_count, before, posed, v->pose_at, v->pose_count_at);
+    for (unsigned k = 0; k < e->pose_count; k++) moved += !e->poses[k].hidden[before] && e->poses[k].now.oam_data_address != e->poses[k].shown[before];
+    if (any && moved) compose(v, e, oam, tags, tag_count, before, off, posed, v->pose_at, v->pose_count_at);
     else for (unsigned k = 0; k < e->pose_count; k++) v->pose_count_at[k] = 0;
     return any;
 }

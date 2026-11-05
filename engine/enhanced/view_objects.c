@@ -72,7 +72,9 @@ static int shown_by_capture(const entry *e, const OraclesObjectRecord *live, con
 
 /* The box of an object's sprites in the capture, in room pixels: the ghost's
  * camera is at 0 in a small room, so an OAM entry at (y, x) covers the room's
- * pixels from (y - 16, x - 8).  Read from the ghost's own OAM and tags. */
+ * pixels from (y - 16, x - 8).  Read from the ghost's own OAM and tags, an
+ * entry off the screen left out: the capture does not show it there (Ages'
+ * time portal flickers, and its hidden frame's entry is below the screen). */
 static int capture_box(const entry *e, const OraclesObjectRecord *c, int32_t *left, int32_t *top, int32_t *right, int32_t *bottom)
 {
     int any = 0;
@@ -81,7 +83,7 @@ static int capture_box(const entry *e, const OraclesObjectRecord *c, int32_t *le
         if (tag->kind != c->kind || tag->slot != c->slot) continue;
         for (unsigned n = 0; n < tag->count && tag->first + n < 40u; n++) {
             const uint8_t *o = e->oam + (tag->first + n) * 4u;
-            if (o[0] == 0 || o[1] == 0) continue;
+            if (o[0] == 0 || o[1] == 0 || o[0] >= 160u || o[1] >= 168u) continue;
             const int32_t x = (int32_t)o[1] - 8, y = (int32_t)o[0] - 16;
             if (!any || x < *left) *left = x;
             if (!any || y < *top) *top = y;
@@ -143,6 +145,29 @@ static void measure_handoff(OraclesEnhancedView *v, const entry *captured, const
     }
 }
 
+/* The objects the capture of the room just entered showed that the live room
+ * has none of, read as the fade's window closes, its objects settled: people
+ * the neighbour showed that were not there (a capture older than the story
+ * that decides them).  An object gone in the meantime counts too. */
+static void count_orphans(OraclesEnhancedView *v)
+{
+    const entry *captured = ev_find_entry(v, v->appear_group, v->appear_room);
+    if (!captured || !ev_entry_drawable(v, captured)) return;
+    OraclesObjectRecord live[ORACLES_OBJECT_RECORDS];
+    const unsigned live_count = oracles_objects_snapshot(v->live_objects, live, ORACLES_OBJECT_RECORDS);
+    uint8_t twin[ORACLES_OBJECT_RECORDS] = { 0 };
+    for (unsigned k = 0; k < live_count; k++) {
+        const OraclesObjectRecord *c = (live[k].enabled & 3u) == 1u ? paired_shown(captured, &live[k], live, live_count) : NULL;
+        if (c) twin[c - captured->objects] = 1;
+    }
+    for (unsigned k = 0; k < captured->object_count; k++) {
+        const OraclesObjectRecord *c = &captured->objects[k];
+        if (twin[k] || !c->number || c->randomly_placed) continue;
+        for (unsigned j = 0; j < captured->tag_count; j++)
+            if (!captured->tags[j].terrain_effect && captured->tags[j].kind == c->kind && captured->tags[j].slot == c->slot) { v->handoff_orphans++; break; }
+    }
+}
+
 void ev_fade_appearing(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y)
 {
     if (!v->neighbour_objects || !v->appear_active || !v->appear_ready || !v->live_sprites || !v->live_objects) return;
@@ -151,7 +176,7 @@ void ev_fade_appearing(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_
      * be fading after it: the window closes FADE_FRAMES frames after the end. */
     if (!ob->in_transition) {
         if (!v->appear_ended) { v->appear_ended = 1; v->appear_end_frame = v->frame; }
-        else if (v->frame > v->appear_end_frame + FADE_FRAMES) { v->appear_active = 0; return; }
+        else if (v->frame > v->appear_end_frame + FADE_FRAMES) { v->appear_active = 0; count_orphans(v); return; }
     }
     const uint8_t *oam = oracles_guest_oam(v->guest), *io = oracles_guest_io(v->guest), *palettes = oracles_guest_obj_palettes(v->guest);
     const uint8_t *vram0 = oracles_guest_vram(v->guest, 0), *vram1 = oracles_guest_vram(v->guest, 1);
@@ -306,6 +331,7 @@ void ev_keep_left_image(OraclesEnhancedView *v, int32_t camera_x, int32_t camera
     memcpy(v->left_area, ev_source_area(v), sizeof v->left_area);
     v->left_group = v->source_group;
     v->left_room = v->source_room;
+    v->left_entered_side = v->ref_entered_side;
     v->left_left = v->source_left;
     v->left_top = v->source_top;
     v->left_epoch = v->source_epoch;
@@ -383,4 +409,30 @@ void oracles_enhanced_view_handoff_counts(const OraclesEnhancedView *v, unsigned
     if (jumps) *jumps = v->handoff_jumps;
     if (hole_frames) *hole_frames = v->handoff_hole_frames;
     if (unseen) *unseen = v->handoff_unseen;
+}
+
+unsigned oracles_enhanced_view_handoff_orphans(const OraclesEnhancedView *v) { return v->handoff_orphans; }
+
+int oracles_enhanced_view_beside_orphans(const OraclesEnhancedView *v, unsigned direction, const struct OraclesGhostResult *witness)
+{
+    if (direction > 3u || !v->shown[direction] || v->shown_slot[direction] >= v->slot_count || !witness) return -1;
+    const entry *e = &v->slots[v->shown_slot[direction]];
+    if (!ev_entry_drawable(v, e) || e->refresh || e->rerun || witness->group != e->group || witness->room != e->room) return -1;   /* run again already: judged once delivered */
+    uint8_t twin[ORACLES_OBJECT_RECORDS] = { 0 };
+    for (unsigned k = 0; k < witness->object_count; k++) {
+        const OraclesObjectRecord *w = &witness->objects[k];
+        int drawn = 0;
+        for (unsigned j = 0; j < witness->tag_count && !drawn; j++)
+            drawn = !witness->tags[j].terrain_effect && witness->tags[j].kind == w->kind && witness->tags[j].slot == w->slot;
+        const OraclesObjectRecord *c = drawn ? paired_shown(e, w, witness->objects, witness->object_count) : NULL;
+        if (c) twin[c - e->objects] = 1;
+    }
+    int orphans = 0;
+    for (unsigned k = 0; k < e->object_count; k++) {
+        const OraclesObjectRecord *c = &e->objects[k];
+        if (twin[k] || !c->number || c->randomly_placed) continue;
+        for (unsigned j = 0; j < e->tag_count; j++)
+            if (!e->tags[j].terrain_effect && e->tags[j].kind == c->kind && e->tags[j].slot == c->slot) { orphans++; break; }
+    }
+    return orphans;
 }

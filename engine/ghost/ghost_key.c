@@ -2,11 +2,27 @@
  * and the read trace that measured the key. */
 #include "ghost_internal.h"
 
+/* A read of the objects' watch by the room's objects, from their creation to
+ * the capture: listed once per run. */
+static void note_object_read(OraclesGhost *g, uint16_t address)
+{
+    OraclesGhostResult *r = g->result;
+    if (!r) return;
+    for (unsigned i = 0; i < r->object_read_count; i++) if (r->object_reads[i] == address) return;
+    if (r->object_read_count < ORACLES_GHOST_OBJECT_READS) r->object_reads[r->object_read_count++] = address;
+    else r->object_reads_dropped++;
+}
+
 void oracles_ghost_on_read(void *opaque, uint16_t address, uint16_t sp)
 {
     OraclesGhost *g = opaque;
+    if (g->in_object_window && g->object_code_depth && !g->in_substitutions) {
+        if (g->object_watch[address >> 3] & (1u << (address & 7u))) note_object_read(g, address);
+        else if (address == g->entry_side_address && g->entry_side_address && !g->in_random_placement && g->result) g->result->entry_side_read = 1;
+    }
     /* The load's reads outside the substitutions, any thread, counted apart: the trace below stays the substitutions'. */
     if (g->load_counts && (!g->in_substitutions || g->in_object_gfx)) { g->load_counts[address]++; return; }
+    if (!g->in_substitutions || g->in_object_gfx) return;   /* the objects' window alone */
     /* applyAllTileSubstitutions can wait for the vblank (Seasons: the object
      * graphics of Subrosia load over several frames) and the other threads
      * run meanwhile, on their own stacks: their reads are not the
@@ -140,6 +156,35 @@ unsigned oracles_ghost_key_ranges(const OraclesCompatProfile *profile, OraclesGh
      * rupees of the hidden rooms of dungeons 2 and 6 (Seasons:
      * wSubrosiaRoomFlags+$f0 and $f8). */
     n = add_range(out, n, max, t->group0_room_flags, t->room_flags_size);
+    return n;
+}
+
+/* What the objects of a room read when it is created and settles (their
+ * initialisation, a spawner's test, a script's first opcodes) is a closed
+ * account no more than the terrain's: checkGlobalFlag, getThisRoomFlags,
+ * checkTreasureObtained, wEssencesObtained and the like, in every object's
+ * own code, the room's object list (parseObjectData: the room's flags) and
+ * Ages' room-specific code (runRoomSpecificCode: the spinner of dungeon 3
+ * by its crystals, 4:60 and 4:52).  The key holds those bytes already, and a
+ * run's reads of them in that code, from the room's initializeRoom to the
+ * capture, say which ones a room's objects depend on (Ages' intro:
+ * interaction $6b in 0:39 creates Nayru, Ralph and the animals while
+ * GLOBALFLAG_INTRO_DONE is clear).  The rest of initializeRoom is not that
+ * code: the time portal, the remembered companion and Maple are tested in
+ * every room, and a neighbour shows them as its run found them.  Left
+ * out, the bytes the room's own load writes before its objects run: the
+ * room's identity, and the dungeon's index and floor (loadTilesetData). */
+unsigned oracles_ghost_object_watch_ranges(const OraclesCompatProfile *profile, OraclesGhostKeyRange out[], unsigned max)
+{
+    const OraclesGuestTables *t = oracles_compat_guest_tables(profile);
+    OraclesGhostKeyRange key[ORACLES_GHOST_KEY_RANGES];
+    const unsigned count = oracles_ghost_key_ranges(profile, key, ORACLES_GHOST_KEY_RANGES);
+    unsigned n = 0;
+    for (unsigned k = 0; k < count && n < max; k++) {
+        const uint16_t a = key[k].address;
+        if (a == t->active_group.addr || a == t->active_room.addr || a == t->dungeon_index.addr || a == t->dungeon_floor.addr) continue;
+        out[n++] = key[k];
+    }
     return n;
 }
 
