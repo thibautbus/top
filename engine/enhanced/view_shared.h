@@ -39,6 +39,11 @@ unsigned ev_map_height(const OraclesEnhancedView *v, uint8_t group);
 int ev_sea_other_side(const OraclesEnhancedView *v, uint8_t *group);
 int ev_room_beside(const OraclesEnhancedView *v, uint8_t room, unsigned side, uint8_t *out);
 int ev_isolated_room(const OraclesEnhancedView *v);
+/* An arrival that is not a scroll into the Maku tree's screen, the screen still closed, the tree's interaction not
+ * yet updated, for at most ORACLES_ENHANCED_MAKU_WAIT frames: whether the screen stands alone is not known yet, the
+ * frame is the load's. */
+int ev_maku_pending(const OraclesEnhancedView *v);
+#define ORACLES_ENHANCED_MAKU_WAIT 8u
 int ev_room_whole(const OraclesEnhancedView *v);
 int ev_on_grid(const OraclesEnhancedView *v);
 int ev_on_map(const OraclesEnhancedView *v);
@@ -86,6 +91,10 @@ void ev_advance_neighbour_animations(OraclesEnhancedView *v);
 /* The live room's animation handed to its entry as it becomes a neighbour. */
 void ev_hand_live_animation(OraclesEnhancedView *v, entry *e);
 void ev_track_fade(OraclesEnhancedView *v);
+/* The fade ev_track_fade read at its full or nearly (ev_displayed_fade's 31 white, -32 black), the sprites' colours
+ * as washed out: nothing shows. */
+int ev_washed_out(const OraclesEnhancedView *v);
+int ev_washed_out_whole(const OraclesEnhancedView *v);
 /* A scene's tint on the live room's base palettes, after ev_track_fade. */
 void ev_track_scene_tint(OraclesEnhancedView *v);
 /* view_poses.c: a delivery's objects that animate, the live updates that step them, a step per update at each

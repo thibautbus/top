@@ -123,11 +123,14 @@ void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, c
  * the camera's jumps on both axes, and outside cutscenes the feel of the
  * follow (steps, stillness while Link walks, step changes, Link's offset
  * from the centre). */
+#define RETURN_GLIDE_WINDOW 60   /* frames seen after a stretch not seen in which the camera, Link still, must not move */
+
 void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank)
 {
     if (mode != ORACLES_ENHANCED_WORLD) {
         c->framed_frames++;
         c->have_camera_delta = 0;
+        c->returning = 1;
         if (!c->have_mode || c->last_mode != ORACLES_ENHANCED_FRAMED) c->fallback_runs++;
         c->last_mode = mode;
         c->have_mode = 1;
@@ -142,7 +145,8 @@ void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
         const int32_t delta = camera_x - c->last_camera;
         const int32_t magnitude = delta < 0 ? -delta : delta;
         /* a large room's scroll slides the band with the game's window; a move to or from a screen of one colour (a
-         * fade's end, where a band narrower than a room takes the window the game sets as it fades in) is not seen */
+         * fade's end, where a band narrower than a room takes the window the game sets as it fades in) or washed out
+         * by a fade is not seen */
         const int unseen = (ob->large_grid && ob->in_scroll) || blank || c->last_blank;
         if (magnitude > MAX_CAMERA_STEP && !unseen) { c->camera_jumps++; if (magnitude > c->largest_jump) c->largest_jump = magnitude; }
         const int32_t delta_y = camera_y - c->last_camera_y;
@@ -158,6 +162,42 @@ void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
             c->have_camera_delta = 1;
         }
     } else c->have_camera_delta = 0;
+    /* The band's fraction of a pixel (the sub-pixel camera's; none in whole pixels) and the camera's own. */
+    int32_t sx = 0, sy = 0, fx = 0, fy = 0;
+    {
+        int32_t lx = 0, ly = 0, lfx = 0, lfy = 0;
+        uint32_t top = 0, height = 0, lw = 0, lh = 0;
+        const uint32_t *layer = NULL;
+        oracles_enhanced_view_subpixel(c->view, &sx, &sy, &top, &height, &layer, &lx, &ly, &lw, &lh, &lfx, &lfy);
+        oracles_enhanced_view_subpixel_camera(c->view, &fx, &fy);
+    }
+    /* Back from a stretch not seen, the camera ends where it settles there: it moves after it only with Link, as
+     * shown, its fraction of a pixel with it, over the RETURN_GLIDE_WINDOW frames seen after it while he stands still
+     * (a camera that waits a few frames, then glides, is counted).  With the sub-pixel camera, which follows his
+     * fraction of a pixel, a frame where that alone moves is left out, the window going on. */
+    if (blank) { c->returning = 1; c->return_seen = 0; }
+    else if (c->returning && !c->last_blank && c->have_camera && c->have_mode && c->last_mode == ORACLES_ENHANCED_WORLD && ob->epoch == c->epochs
+             && !ob->large_grid) {
+        const int32_t dx = (camera_x - c->last_camera) * 256 + sx - c->still_band[0], dy = (camera_y - c->last_camera_y) * 256 + sy - c->still_band[1];
+        const int still = ob->world.link_x == c->return_link_x && ob->world.link_y == c->return_link_y;
+        const int fraction_moved = oracles_enhanced_view_subpixel_on(c->view) && (ob->link_sub_x != c->return_sub_x || ob->link_sub_y != c->return_sub_y);
+        if (!still || ++c->return_seen > RETURN_GLIDE_WINDOW) c->returning = 0;
+        else if ((dx || dy) && !fraction_moved) {
+            c->return_glide_frames++;
+            c->return_glide_256ths += (uint64_t)((dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy));
+            c->return_glide_pixels = (unsigned)((c->return_glide_256ths + 128u) / 256u);
+        }
+    }
+    c->return_link_x = ob->world.link_x;
+    c->return_link_y = ob->world.link_y;
+    c->return_sub_x = ob->link_sub_x; c->return_sub_y = ob->link_sub_y;
+    /* The camera standing, its whole pixels and its own fraction those of the frame before: the band moving by its
+     * fraction then moves the whole picture by itself (the end of a cutscene, the fraction taken up again). */
+    if (c->have_camera && c->have_mode && c->last_mode == ORACLES_ENHANCED_WORLD && ob->epoch == c->epochs && camera_x == c->last_camera
+        && camera_y == c->last_camera_y && fx == c->still_raw[0] && fy == c->still_raw[1] && (sx != c->still_band[0] || sy != c->still_band[1]))
+        c->band_still_glide_frames++;
+    c->still_band[0] = sx; c->still_band[1] = sy;
+    c->still_raw[0] = fx; c->still_raw[1] = fy;
     if (!ob->cutscene) {
         const int32_t offset = ob->world.link_x - (shown_left + (int32_t)shown_w / 2);
         const int32_t magnitude = offset < 0 ? -offset : offset;

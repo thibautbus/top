@@ -186,7 +186,8 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking)
     const int room_load = ob->in_transition && !ob->in_scroll;
     const int loading = (room_load
         && !(lcd_on && ev_on_grid(v) && v->observer.ref_group == ob->group && v->observer.ref_room == ob->room))
-        || ob->cell_pending;   /* a dungeon room not yet placed on its floor's map */
+        || ob->cell_pending   /* a dungeon room not yet placed on its floor's map */
+        || ev_maku_pending(v);
     const int menus = framed_frame_menus(v);
     v->have_wave = ob->playing && !loading && !menus && line_scroll_shifts(v, v->line_shift, v->line_shift_y);
     v->shake_history = (v->shake_history << 1) | (unsigned)shaking(v);

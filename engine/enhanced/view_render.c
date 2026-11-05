@@ -349,6 +349,51 @@ void ev_track_fade(OraclesEnhancedView *v)
     v->fade_effective = live && base ? ev_displayed_fade(live, base) : 0;
 }
 
+#define WASHED_OUT_STEPS 2   /* a fade this close to white or black shows the faintest outlines at most */
+
+/* Every colour the sprites can show (colour 0 is transparent) as close to white, or to black, every channel: the
+ * scenes that fade the background alone (the time portal, a voice from afar) keep the sprites lit over it. */
+static int sprites_washed(OraclesGuest *guest, int white)
+{
+    const uint8_t *obj = oracles_guest_obj_palettes(guest);
+    if (!obj) return 0;
+    for (unsigned p = 0; p < 8u; p++)
+        for (unsigned c = 1; c < 4u; c++) {
+            const unsigned colour = (unsigned)(obj[p * 8u + c * 2u] | (obj[p * 8u + c * 2u + 1u] << 8));
+            for (unsigned shift = 0; shift < 15u; shift += 5u) {
+                const unsigned ch = (colour >> shift) & 31u;
+                if (white ? ch < 31u - WASHED_OUT_STEPS : ch > WASHED_OUT_STEPS) return 0;
+            }
+        }
+    return 1;
+}
+
+int ev_washed_out(const OraclesEnhancedView *v)
+{
+    if (v->fade_effective >= 31 - WASHED_OUT_STEPS) return sprites_washed(v->guest, 1);
+    if (v->fade_effective <= -32 + WASHED_OUT_STEPS) return sprites_washed(v->guest, 0);
+    return 0;
+}
+int oracles_enhanced_view_washed_out(const OraclesEnhancedView *v) { return ev_washed_out(v); }
+
+/* Washed out with every background palette too (ev_washed_out lets a fade spare two, the Maku Tree's remote voice
+ * putting its text box's back): nothing of the world shows, its tiles of any palette. */
+int ev_washed_out_whole(const OraclesEnhancedView *v)
+{
+    if (!ev_washed_out(v)) return 0;
+    const uint8_t *bg = oracles_guest_bg_palettes(v->guest);
+    if (!bg) return 0;
+    const int white = v->fade_effective > 0;
+    for (unsigned i = 0; i < 32u; i++) {
+        const unsigned colour = (unsigned)(bg[i * 2u] | (bg[i * 2u + 1u] << 8));
+        for (unsigned shift = 0; shift < 15u; shift += 5u) {
+            const unsigned ch = (colour >> shift) & 31u;
+            if (white ? ch < 31u - WASHED_OUT_STEPS : ch > WASHED_OUT_STEPS) return 0;
+        }
+    }
+    return 1;
+}
+
 /* A palette set with the displayed fade applied, as the palette thread does it. */
 static void faded_palettes(const uint8_t *own, int fade, uint8_t *out)
 {

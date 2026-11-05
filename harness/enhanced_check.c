@@ -237,7 +237,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
     int blank = surface != NULL;   /* one colour: the screen faded out, where a camera that moves shows nothing moving */
     for (size_t i = 1, n = (size_t)c->width * oracles_enhanced_view_height(c->view); blank && i < n; i++) blank = surface[i] == surface[0];
-    ec_measure_camera(c, ob, mode, camera_x, camera_y, blank);
+    ec_measure_camera(c, ob, mode, camera_x, camera_y, blank || oracles_enhanced_view_washed_out(c->view));
     ec_measure_window_darker(c, ob, mode, surface, camera_x, camera_y, blank, frame);
     ec_measure_whole_room(c, ob, mode, surface, camera_x, camera_y);
     ec_measure_alone_rows(c, ob, mode, camera_y);

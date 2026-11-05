@@ -334,7 +334,7 @@ struct OraclesEnhancedView {
     unsigned terrain_stale_frames;      /* frames the band met such a room before its run again delivered (the room in play aside) */
     unsigned left_stale_frames;         /* frames the room a scroll left was drawn from an entry run again for its terrain, over its image */
     unsigned side_stale_frames;         /* frames the band drew a room's people as the game creates them for Link coming from another side */
-    unsigned left_image_held_frames;    /* frames the room left kept its image out of a scroll, its entry holding for the side beside the room in play */
+    unsigned left_image_frames, left_image_run, left_image_longest;   /* frames the room left was drawn from its image out of a transition in place of an entry the cache could draw; the run under way, the longest */
     unsigned terrain_given_up;          /* of those, rooms dropped to black, their terrain kept out of date for TERRAIN_STALE_FRAMES */
     unsigned objects_side_refreshes;    /* cached rooms run again for their objects: entered by another side than the room in play would */
     unsigned objects_refresh_put_off;   /* such runs whose result was not taken, not counted failed: the live game held as they came back */
@@ -631,10 +631,14 @@ struct OraclesEnhancedView {
     OraclesEnhancedBarLayout hud_layout;
     int hud_tight_known, hud_tight;
     unsigned hud_wide_frames, hud_wide_centred, hud_wide_one_row;
-    /* The Maku tree stands in the reference room (an INTERAC_MAKU_TREE, $87, both games), sampled in normal play. */
-    int ref_maku;
+    /* The Maku tree stands in the reference room (an INTERAC_MAKU_TREE, $87, both games), sampled in normal play
+     * and in an arrival that is not a scroll; ref_maku_arrival: set by that arrival, which may still undo it. */
+    int ref_maku, ref_maku_arrival;
+    int maku_pending;            /* the frame waits for the tree's first update, shown as the load's (ev_maku_pending) */
+    unsigned maku_pending_run;   /* the frames of that wait so far, counted up to ORACLES_ENHANCED_MAKU_WAIT + 1 */
     uint8_t ref_maku_group, ref_maku_room;
     int have_view;
+    unsigned faded_run;   /* the frames washed out by a fade running up to the last one composed, counted up to ORACLES_ENHANCED_SETTLE_RUN (oracles_enhanced_camera_unseen) */
     int framed_load;                 /* the last composition framed a room's load: not enlarged with the large menus */
     int enlarged_before;             /* the composition before it was framed and not a load's: enlarged with the large menus */
     /* A room's load under the world's HUD band (view_mode.c): whether the last composition drew one, the place of the
@@ -819,6 +823,7 @@ struct OraclesEnhancedView {
     uint64_t sub_last_epoch;
     int sub_have_last, sub_live;
     int32_t sub_last_x, sub_last_y, sub_raw_x, sub_raw_y;   /* the last frame's fraction shown, and the camera's */
+    int32_t sub_camera_x, sub_camera_y;   /* the last frame's camera, whole pixels */
     unsigned sub_shake_hold;         /* frames left before the band takes a fraction again after a shake of the screen */
     /* The camera held where it stood at a scroll's start that opens an interior's room (ev_hold_camera), and what the
      * last frame composed in the world left for it (ev_hold_note). */

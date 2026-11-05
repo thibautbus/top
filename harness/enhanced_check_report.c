@@ -68,6 +68,8 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.sprite_hidden_pixels=%u\nenhanced.sprite_hidden_frames=%u\n", pixels, frames);
     }
     fprintf(out, "enhanced.camera_jumps=%u\nenhanced.largest_jump=%" PRId32 "\nenhanced.camera_jumps_y=%u\nenhanced.largest_jump_y=%" PRId32 "\n", c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
+    fprintf(out, "enhanced.return_glide_frames=%u\nenhanced.return_glide_pixels=%u\n", c->return_glide_frames, c->return_glide_pixels);
+    fprintf(out, "enhanced.band_still_glide_frames=%u\n", c->band_still_glide_frames);
     fprintf(out, "enhanced.link_jumps=%u\nenhanced.link_jumps_y=%u\nenhanced.window_jumps=%u\n", c->link_jumps, c->link_jumps_y, c->window_jumps);
     fprintf(out, "enhanced.link_drawn_steps=%u\nenhanced.link_backsteps=%u\nenhanced.link_backsteps_y=%u\n", c->link_drawn_steps, c->link_backsteps, c->link_backsteps_y);
     {
@@ -208,8 +210,12 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.drops=%u\n", oracles_enhanced_view_drop_log(c->view, NULL, 0));
     fprintf(out, "enhanced.terrain_refreshes=%u\nenhanced.terrain_stale_frames=%u\nenhanced.terrain_given_up=%u\nenhanced.left_stale_frames=%u\n", oracles_enhanced_view_terrain_refreshes(c->view),
             oracles_enhanced_view_terrain_stale_frames(c->view), oracles_enhanced_view_terrain_given_up(c->view), oracles_enhanced_view_left_stale_frames(c->view));   /* of those, the rooms run again drawn as they were, the frames the band met one, those dropped for staying out of date */
-    fprintf(out, "enhanced.side_stale_frames=%u\nenhanced.left_image_held_frames=%u\n", oracles_enhanced_view_side_stale_frames(c->view),
-            oracles_enhanced_view_left_image_held_frames(c->view));   /* a room drawn with the people of another side's entry; the room left frozen in its image */
+    {
+        unsigned image_frames = 0, image_longest = 0;
+        oracles_enhanced_view_left_image_counts(c->view, &image_frames, &image_longest);
+        fprintf(out, "enhanced.side_stale_frames=%u\nenhanced.left_image_frames=%u\nenhanced.left_image_longest=%u\n", oracles_enhanced_view_side_stale_frames(c->view),
+                image_frames, image_longest);   /* a room drawn with the people of another side's entry; the room left drawn from its frozen image */
+    }
     fprintf(out, "enhanced.sea_runs=%u\n", oracles_enhanced_view_sea_runs(c->view));   /* runs across the sea's surface, ahead of a dive or a return (Ages) */
     fprintf(out, "enhanced.uncovered_frames=%u\nenhanced.uncovered_max=%u\nenhanced.live_diff_max=%u\nenhanced.plain_renders=%u\nenhanced.stale_results=%u\nenhanced.season_rejected=%u\nenhanced.coarse_drops=%u\n",
             c->uncovered_frames, c->uncovered_max, oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_stale_results(c->view), oracles_enhanced_view_season_rejected(c->view),
@@ -252,6 +258,9 @@ static void report_the_band(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "  world frames showing the normal band centred in a wider one (an interior in the drawn-back view): %u\n", c->normal_band_frames);
     fprintf(out, "  camera jumps over %d px between consecutive world frames: %u (largest %" PRId32 " px); vertical: %u (largest %" PRId32 " px)\n",
             MAX_CAMERA_STEP, c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
+    fprintf(out, "  camera gliding after a stretch not seen (framed, blank or washed out) while Link stood still: %u frames, %u px\n",
+            c->return_glide_frames, c->return_glide_pixels);
+    fprintf(out, "  the band moved by its fraction while the camera stood, its pixels and its own fraction as on the frame before: %u frames\n", c->band_still_glide_frames);
     fprintf(out, "  camera profile %u, motion over world frames outside cutscenes: steps of 0 px %u, 1 px %u, 2 px %u, 3 px %u, 4 px and more %u; still while Link moves (not at the row's edge) %u frames; step changes %u; Link's offset from the centre %.1f px on average, %" PRId32 " px at most\n",
             c->camera_profile ? c->camera_profile : 1u, c->camera_steps[0], c->camera_steps[1], c->camera_steps[2], c->camera_steps[3], c->camera_steps[4],
             c->camera_still_link_moving, c->camera_step_changes,

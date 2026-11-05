@@ -223,6 +223,35 @@ void oracles_enhanced_camera_fraction(const OraclesEnhancedCamera *camera, int32
  * ghost is running beside it, past which the follow that settles goes only as far as Link framed without its
  * look-ahead, taking it up again once the terrain is there. */
 void oracles_enhanced_camera_limit(OraclesEnhancedCamera *camera, const int32_t limits[4]);
+/* The frame of the last reduction was not seen (the core framed, the screen washed out by a fade), the `faded`th
+ * frame running washed out by a fade (oracles_enhanced_faded_run, 0 when it is not): with the follow that settles, a
+ * re-centre on Link put elsewhere still under way ends there, and so does the camera moving on to him from where it
+ * started afresh, he not moved since, the reducer taking him up afresh at the next reduction.  From the
+ * ORACLES_ENHANCED_SETTLE_RUNth frame of a fade, the next reduction also brings the follow to rest at once where it
+ * would stop with Link standing where that reduction has him (oracles_enhanced_camera_settle), its look-ahead let go,
+ * its whole pixels taken afresh (oracles_enhanced_rest_whole): the first frame seen shows the camera where it stays,
+ * the game putting Link elsewhere at the fade's last frame or its first one back included, rather than gliding there.
+ * A shorter fade (a flash) leaves the follow's own move as it goes, and so does a menu's, which opens and closes
+ * through a fade to white, and the core framed without a fade: the picture comes back as it was. */
+#define ORACLES_ENHANCED_SETTLE_RUN 8u
+#define ORACLES_ENHANCED_SETTLE_FRAMES 600u   /* the most frames the follow is run on to come to rest */
+void oracles_enhanced_camera_unseen(OraclesEnhancedCamera *camera, unsigned faded);
+/* The frames running washed out by a fade after one more (`run` before it, counted up to ORACLES_ENHANCED_SETTLE_RUN):
+ * `washed_out`, every palette of the world and of the sprites within two steps of white or black; 0 for a frame that
+ * is not, and while a menu is open (`menu`), whose fades are not a scene's end. */
+unsigned oracles_enhanced_faded_run(unsigned run, int washed_out, int menu);
+/* The whole pixel the camera at rest (`pos`, in 256ths of a pixel) is shown on, Link's sprite still to step by
+ * `pending` pixels to his place (drawn a frame late): above it for a step forward, below it for a step back, the
+ * nearest for none, so that the step at the next frame leaves the whole camera where it is. */
+int32_t oracles_enhanced_rest_whole(int64_t pos, int32_t pending);
+/* One reducer brought to rest over the observation it last took (`last`), Link standing there: the follow run on
+ * (a re-centre under way to its end) until it moves no more, at most ORACLES_ENHANCED_SETTLE_FRAMES frames; 1 when the
+ * camera moves for it, the state then the one at rest, its last observation's ordinal and digest kept.  The follow
+ * that settles only, tracking. */
+int oracles_enhanced_camera_settle(OraclesE11State *state, const OraclesE11Observation *last, const OraclesE11Config *config);
+/* Whether a frame not seen ends one reducer's move (its state, its config, `fresh`: started afresh, Link not moved
+ * since): with the follow that settles, tracking, a re-centre under way or a fresh reducer still moving. */
+int oracles_enhanced_camera_unseen_ends(const OraclesE11State *state, const OraclesE11Config *config, int fresh);
 /* The reducers fed Link's place to the 256th of a pixel (the sub-pixel camera), or in whole pixels (0, as always). */
 void oracles_enhanced_camera_set_exact(OraclesEnhancedCamera *camera, int exact);
 /* 1 when the vertical reducer tracked at the last reduction. */

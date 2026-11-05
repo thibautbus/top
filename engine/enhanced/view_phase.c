@@ -206,6 +206,7 @@ void oracles_enhanced_view_switch_subpixel(OraclesEnhancedView *v, int enabled)
     v->sub_have_last = v->have_view; v->sub_last_frame = v->frame; v->sub_last_epoch = ob->epoch;
     v->sub_live = 0; v->sub_last_x = v->sub_last_y = 0; v->sub_ease_x = v->sub_ease_y = 0;
     oracles_enhanced_camera_fraction(v->camera, &v->sub_raw_x, &v->sub_raw_y);
+    v->sub_camera_x = v->view_left; v->sub_camera_y = v->view_top;
     v->sub_link_live = 0; v->sub_link_last_x = v->sub_link_last_y = 0; v->sub_link_ease_x = v->sub_link_ease_y = 0;
     v->sub_link_raw_x = ob->drawn_sub_x; v->sub_link_raw_y = ob->drawn_sub_y;
 }
@@ -225,6 +226,7 @@ int oracles_enhanced_view_subpixel(const OraclesEnhancedView *v, int32_t *x, int
     return v->sub_x || v->sub_y || has;
 }
 
+void oracles_enhanced_view_subpixel_camera(const OraclesEnhancedView *v, int32_t *x, int32_t *y) { *x = v->sub_raw_x; *y = v->sub_raw_y; }
 const uint32_t *oracles_enhanced_view_subpixel_patch(const OraclesEnhancedView *v) { return v->sub_layer_w && v->sub_layer_h ? v->sub_patch : NULL; }
 
 unsigned oracles_enhanced_view_subpixel_fixed(const OraclesEnhancedView *v, const uint32_t (**rects)[4])
@@ -276,13 +278,13 @@ void ev_subpixel_fixed(OraclesEnhancedView *v, int32_t x, int32_t y, int32_t w, 
 
 /* One axis of the fraction the band is moved by: the camera's (`raw`) while it is `live`, else none; where that
  * changes, the band goes on from the place it stood the frame before at the new target's speed, and reaches the
- * target by SUB_EASE a frame. */
-static int32_t band_fraction(int continuous, int live, int was_live, int32_t raw, int32_t last_raw, int32_t last_shown, int32_t *ease)
+ * target by SUB_EASE a frame, only on the frames the camera moves (`still` 0): standing, it holds where it stood. */
+int32_t oracles_enhanced_band_fraction(int continuous, int still, int live, int was_live, int32_t raw, int32_t last_raw, int32_t last_shown, int32_t *ease)
 {
     const int32_t target = live ? raw : 0;
     int32_t d = continuous ? *ease : 0;
     if (continuous && live != was_live) d = last_shown - (live ? last_raw : 0);
-    d = d > SUB_EASE ? d - SUB_EASE : d < -SUB_EASE ? d + SUB_EASE : 0;
+    if (!still) d = d > SUB_EASE ? d - SUB_EASE : d < -SUB_EASE ? d + SUB_EASE : 0;
     int32_t shown = target + d;
     if (shown > 255) shown = 255;
     if (shown < -255) shown = -255;
@@ -345,10 +347,14 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
     const int held = v->camera_held;
     if (held) { fx = v->sub_last_x; fy = v->sub_last_y; }
     const int live = (tracking || held) && apart && !v->sub_shake_hold;
-    v->sub_x = band_fraction(continuous, live, v->sub_live, fx, v->sub_raw_x, v->sub_last_x, &v->sub_ease_x);
-    v->sub_y = band_fraction(continuous, live, v->sub_live, fy, v->sub_raw_y, v->sub_last_y, &v->sub_ease_y);
+    /* The camera standing, its whole pixels and its fraction those of the frame before: the band does not take up or
+     * give back a fraction then, which would move the whole picture under a Link standing still (the end of a
+     * cutscene, the band taking the camera's fraction up again: Ages' intro, Impa's sword). */
+    const int still = continuous && !v->sub_leaving && camera_x == v->sub_camera_x && camera_y == v->sub_camera_y && fx == v->sub_raw_x && fy == v->sub_raw_y;
+    v->sub_x = oracles_enhanced_band_fraction(continuous, still, live, v->sub_live, fx, v->sub_raw_x, v->sub_last_x, &v->sub_ease_x);
+    v->sub_y = oracles_enhanced_band_fraction(continuous, still, live, v->sub_live, fy, v->sub_raw_y, v->sub_last_y, &v->sub_ease_y);
     v->sub_have_last = 1; v->sub_last_frame = v->frame; v->sub_last_epoch = ob->epoch;
-    v->sub_live = live; v->sub_raw_x = fx; v->sub_raw_y = fy;
+    v->sub_live = live; v->sub_raw_x = fx; v->sub_raw_y = fy; v->sub_camera_x = camera_x; v->sub_camera_y = camera_y;
     v->sub_last_x = v->sub_x; v->sub_last_y = v->sub_y;
     if (v->sub_x || v->sub_y) v->sub_frames++;
     /* Link drawn apart: in play or in a scroll, outdoors, his sprites wholly inside the game's window, at his own
@@ -356,8 +362,8 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
      * following him past a scroll), his fraction is given back the same way, by SUB_EASE a frame, his layer kept until
      * it is: he never jumps by it against the ground, from his exact place to his whole one. */
     const int loading = ob->in_transition && !ob->in_scroll, own = tracking && apart && !loading && !v->sub_shake_hold;
-    v->sub_link_x = band_fraction(continuous, own, v->sub_link_live, ob->drawn_sub_x, v->sub_link_raw_x, v->sub_link_last_x, &v->sub_link_ease_x);
-    v->sub_link_y = band_fraction(continuous, own, v->sub_link_live, ob->drawn_sub_y, v->sub_link_raw_y, v->sub_link_last_y, &v->sub_link_ease_y);
+    v->sub_link_x = oracles_enhanced_band_fraction(continuous, 0, own, v->sub_link_live, ob->drawn_sub_x, v->sub_link_raw_x, v->sub_link_last_x, &v->sub_link_ease_x);
+    v->sub_link_y = oracles_enhanced_band_fraction(continuous, 0, own, v->sub_link_live, ob->drawn_sub_y, v->sub_link_raw_y, v->sub_link_last_y, &v->sub_link_ease_y);
     v->sub_link_live = own; v->sub_link_raw_x = ob->drawn_sub_x; v->sub_link_raw_y = ob->drawn_sub_y;
     v->sub_link_last_x = v->sub_link_x; v->sub_link_last_y = v->sub_link_y;
     if (v->sub_leaving && !v->sub_x && !v->sub_y && !v->sub_link_x && !v->sub_link_y) {   /* given back: off */

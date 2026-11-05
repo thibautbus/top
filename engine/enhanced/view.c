@@ -308,7 +308,7 @@ static void note_vram_background(OraclesEnhancedView *v, unsigned n, const uint8
 static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, int32_t camera_x, int32_t camera_y)
 {
     const int32_t reach = wave_reach(v);
-    int plain_shown = 0, side_stale_shown = 0;
+    int plain_shown = 0, side_stale_shown = 0, left_entry_held = 0;   /* the room left's entry, drawable, given way to its image */
     memset(v->drawn_places, 0, sizeof v->drawn_places);
     ev_hidden_begin(v);
     /* The image of the room left, drawn where no capture of that room is
@@ -328,7 +328,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
          * to its image, as the game last drew it: its old terrain would hide
          * what changed there (a chest opened, drawn closed again behind Link). */
         if (e->refresh_terrain && v->left_valid && e->group == v->left_group && e->room == v->left_room) {
-            if (!e->routed) continue;
+            if (!e->routed) { left_entry_held = 1; continue; }
             v->left_stale_frames++;   /* a routed answer stands for a direction, not for the room left: drawn first all the same */
         }
         /* So does it, through the scroll, to an entry that shows objects
@@ -342,7 +342,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         const int shows_objects = e->entry_side_read && ev_entry_shows_objects(e);
         const int other_side = shows_objects && ev_entered_by_other_side(v, e);
         if (left_room && oracles_enhanced_left_entry_yields(shows_objects, e->entered_side, (int)v->left_entered_side - 1, v->observation.in_transition, other_side)) {
-            if (!v->observation.in_transition && !other_side) v->left_image_held_frames++;
+            left_entry_held = 1;
             continue;
         }
         const int32_t w = e->large ? (int32_t)LARGE_ROOM_W : SMALL_ROOM_W, h = e->large ? (int32_t)LARGE_ROOM_H : (int32_t)ORACLES_GHOST_AREA_HEIGHT;
@@ -381,6 +381,14 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         add_source(&nbs[count++], v->source_left, v->source_top, ev_scroll_capture(v, 0), 0, 0, 0);
         if (v->source_group == v->observer.ref_group && !v->observation.large_grid) v->drawn_places[v->source_room >> 5u] |= 1u << (v->source_room & 31u);
     }
+    /* The image of the room left drawn out of a transition in place of an entry the cache could draw, for whatever
+     * reason (its terrain or its side out of date): the frames, and the longest run of them. */
+    const int image_held = v->left_valid && left_entry_held && !v->observation.in_transition;
+    if (image_held) {
+        v->left_image_frames++;
+        v->left_image_run++;
+        if (v->left_image_run > v->left_image_longest) v->left_image_longest = v->left_image_run;
+    } else v->left_image_run = 0;
     if (v->left_valid) {
         note_vram_background(v, count, v->left_vram, v->left_regs);
         add_source(&nbs[count++], v->left_left, v->left_top, ev_scroll_capture(v, 1), 0, 0, 0);
@@ -713,6 +721,11 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     v->hotbar_framed = in.mode == ORACLES_ENHANCED_FRAMED && !load_band;
     ev_draw_hotbar(v);
     ev_measure_black(v, in.mode, camera_x, camera_y);
+    /* A menu opens and closes through a fade to white (fastFadeoutToWhite): not a scene's end, the world comes back
+     * as it was. */
+    const int menu = oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->opened_menu_type) != 0;
+    v->faded_run = oracles_enhanced_faded_run(v->faded_run, ev_washed_out_whole(v), menu);
+    if (in.mode != ORACLES_ENHANCED_WORLD || ev_washed_out(v)) oracles_enhanced_camera_unseen(v->camera, v->faded_run);
     v->have_view = in.mode == ORACLES_ENHANCED_WORLD;
     v->view_left = camera_x; v->view_top = camera_y;
     if (mode_out) *mode_out = in.mode;
@@ -822,7 +835,7 @@ unsigned oracles_enhanced_view_terrain_stale_frames(const OraclesEnhancedView *v
 unsigned oracles_enhanced_view_terrain_given_up(const OraclesEnhancedView *v) { return v->terrain_given_up; }
 unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *v) { return v->left_stale_frames; }
 unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *v) { return v->side_stale_frames; }
-unsigned oracles_enhanced_view_left_image_held_frames(const OraclesEnhancedView *v) { return v->left_image_held_frames; }
+void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *v, unsigned *frames, unsigned *longest) { *frames = v->left_image_frames; *longest = v->left_image_longest; }
 unsigned oracles_enhanced_view_objects_refresh_put_off(const OraclesEnhancedView *v) { return v->objects_refresh_put_off; }
 unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *v) { return v->refresh_given_up; }
 unsigned oracles_enhanced_view_parents_run_for_kills(const OraclesEnhancedView *v) { return v->parents_run_for_kills; }

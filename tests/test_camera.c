@@ -7,6 +7,7 @@
 #include "ppu.h"
 #include "view.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -106,6 +107,167 @@ static void walk_with(unsigned profile, int exact, const int32_t *steps, const b
         cameras[f] = state.camera_pos;
         if (lookaheads) lookaheads[f] = state.lookahead;
     }
+}
+
+/* A frame not seen ends a reducer's move with the follow that settles: a re-centre under way, or a reducer started
+ * afresh (held short of a room still being prepared) still moving on to a Link who has not moved since; never the
+ * follow's own braking or look-ahead, nor the first profile's moves. */
+static void unseen_ends(void)
+{
+    OraclesE11Config config, first;
+    OraclesE11State state;
+    oracles_e11_config_profile(&config, 2);
+    oracles_e11_config_profile(&first, 1);
+    oracles_e11_state_initial(&state, &config);
+    state.status = ORACLES_E11_TRACKING;
+    state.follow_recenter = ORACLES_E11_FOLLOW;
+    state.applied_velocity = 0;
+    CHECK(!oracles_enhanced_camera_unseen_ends(&state, &config, 1));   /* fresh, standing: nothing under way */
+    state.applied_velocity = 300;
+    CHECK(oracles_enhanced_camera_unseen_ends(&state, &config, 1));    /* fresh, gliding over to Link */
+    CHECK(!oracles_enhanced_camera_unseen_ends(&state, &config, 0));   /* the follow's own move: kept */
+    CHECK(!oracles_enhanced_camera_unseen_ends(&state, &first, 1));    /* the first profile */
+    state.follow_recenter = ORACLES_E11_RECENTER;
+    CHECK(oracles_enhanced_camera_unseen_ends(&state, &config, 0));    /* a re-centre */
+    state.status = ORACLES_E11_DESYNCHRONIZED;
+    CHECK(!oracles_enhanced_camera_unseen_ends(&state, &config, 1));   /* not tracking */
+}
+
+/* Link walked `walked` frames at `speed` 256ths of a pixel a frame (whole pixels unless `exact`), then put `placed`
+ * pixels further: the reducer's state and the observation it last took. */
+static void walked_then(unsigned profile, int exact, int32_t speed, unsigned walked, int32_t placed, OraclesE11State *state, OraclesE11Observation *last)
+{
+    OraclesE11Config config;
+    oracles_e11_config_profile(&config, profile);
+    oracles_e11_state_initial(state, &config);
+    int32_t link = 3000 * ORACLES_E11_F256;
+    for (unsigned f = 0; f <= walked; f++) {
+        if (f) link += speed;
+        if (f == walked) link += placed * ORACLES_E11_F256;
+        *last = obs_at("ages", f + 1u, 0, 40 * 160);
+        last->link_x = exact ? link : link / ORACLES_E11_F256 * ORACLES_E11_F256;
+        last->subpixel = exact != 0;
+        const OraclesE11Result r = oracles_e11_reduce(state, last, &config);
+        CHECK(r.error == ORACLES_E11_OK && r.state.status == ORACLES_E11_TRACKING);
+        *state = r.state;
+    }
+}
+
+/* A stretch not seen brings the follow that settles to rest at once, where the frames to come would bring it with
+ * Link standing still, its look-ahead let go, a re-centre under way to its end: after it the camera moves no more,
+ * and the reducer goes on taking the next frame's observation.  Already at rest, after another observation or with
+ * the first profile, nothing moves. */
+static void settle_at_rest(void)
+{
+    OraclesE11Config config, first;
+    oracles_e11_config_profile(&config, 2);
+    oracles_e11_config_profile(&first, 1);
+    const struct { int exact; int32_t speed; unsigned walked; int32_t placed; } cases[] = {
+        { 1, 384, 90, 0 },    /* Smooth: a walk at a pixel and a half a frame, then a stop */
+        { 0, 256, 90, 0 },    /* Pixel: a walk at a pixel a frame */
+        { 1, 0, 120, -8 },    /* standing, then put eight pixels back (a scene's end, under its white) */
+        { 0, 170, 60, 0 },    /* Pixel: under a pixel a frame, still frames between the steps */
+        { 0, 0, 120, 23 },    /* standing, then put 23 pixels on: a re-centre */
+    };
+    for (size_t k = 0; k < sizeof cases / sizeof cases[0]; k++) {
+        OraclesE11State state, settled;
+        OraclesE11Observation last;
+        walked_then(2, cases[k].exact, cases[k].speed, cases[k].walked, cases[k].placed, &state, &last);
+        CHECK(state.applied_velocity != 0);
+        CHECK((state.follow_recenter == ORACLES_E11_RECENTER) == (cases[k].placed > 8));
+        /* The camera left to the frames to come, Link standing. */
+        OraclesE11State glide = state;
+        OraclesE11Observation o = last;
+        for (unsigned f = 0; f < 600; f++) {
+            o.ordinal = o.tick = glide.last_ordinal + 1u;
+            snprintf(o.snapshot_identity, sizeof o.snapshot_identity, "g%u", f);
+            glide = oracles_e11_reduce(&glide, &o, &config).state;
+        }
+        settled = state;
+        CHECK(oracles_enhanced_camera_settle(&settled, &last, &config) == 1);
+        CHECK(settled.status == ORACLES_E11_TRACKING && settled.applied_velocity == 0);
+        CHECK(settled.last_ordinal == state.last_ordinal && strcmp(settled.last_observation_digest, state.last_observation_digest) == 0);
+        const int64_t gap = (int64_t)settled.camera_pos - glide.camera_pos;
+        CHECK(gap >= -1 && gap <= 1);   /* where the glide ends */
+        /* The frames after: accepted, the camera standing. */
+        o = last;
+        for (unsigned f = 0; f < 120; f++) {
+            o.ordinal = o.tick = last.ordinal + 1u + f;
+            snprintf(o.snapshot_identity, sizeof o.snapshot_identity, "n%u", f);
+            const OraclesE11Result r = oracles_e11_reduce(&settled, &o, &config);
+            CHECK(r.error == ORACLES_E11_OK && r.state.status == ORACLES_E11_TRACKING && r.state.camera_pos == settled.camera_pos);
+            settled = r.state;
+        }
+        /* At rest: nothing to do. */
+        CHECK(oracles_enhanced_camera_settle(&settled, &o, &config) == 0);
+    }
+    OraclesE11State state, kept;
+    OraclesE11Observation last;
+    walked_then(2, 1, 384, 90, 0, &state, &last);
+    kept = state;
+    last.ordinal++;   /* not the observation it took last */
+    CHECK(oracles_enhanced_camera_settle(&kept, &last, &config) == 0 && kept.camera_pos == state.camera_pos);
+    walked_then(1, 0, 256, 90, 0, &state, &last);
+    kept = state;
+    CHECK(oracles_enhanced_camera_settle(&kept, &last, &first) == 0 && kept.camera_pos == state.camera_pos);
+}
+
+/* The whole pixel the camera at rest is shown on: Link's sprite, drawn a frame late, stepping by the pixels still
+ * pending at the next frame, the whole pixels the camera then gains (toward zero, as shown_correction takes them) are
+ * his step, the whole camera standing; with no step pending, the nearest.  Then the frames washed out by a fade that
+ * bring the follow to rest: the eighth running, not the seventh, never while a menu is open, counted afresh after a
+ * frame that is not. */
+static void rest_whole_and_fade(void)
+{
+    const int64_t places[] = { 0, 1, 33, 128, 129, 255, 256, 290202, -1, -128, -129, -223, -256, -26496 };
+    const int32_t steps[] = { 1, -1, 2, -2, 9, -9, 6 };
+    for (size_t i = 0; i < sizeof places / sizeof places[0]; i++) {
+        const int64_t pos = places[i];
+        for (size_t k = 0; k < sizeof steps / sizeof steps[0]; k++) {
+            const int32_t whole = oracles_enhanced_rest_whole(pos, steps[k]);
+            const int64_t left = (int64_t)whole * ORACLES_E11_F256 - pos;   /* the gap the frame at rest shows */
+            CHECK(left > -ORACLES_E11_F256 && left < ORACLES_E11_F256);
+            CHECK((int64_t)(left / ORACLES_E11_F256) == 0);               /* that frame keeps its whole pixel */
+            const int64_t next = (int64_t)steps[k] * ORACLES_E11_F256 + left;
+            CHECK(next / ORACLES_E11_F256 == steps[k]);                   /* the step's: the whole camera stands */
+        }
+        const int32_t nearest = oracles_enhanced_rest_whole(pos, 0);
+        const int64_t gap = (int64_t)nearest * ORACLES_E11_F256 - pos;
+        CHECK(gap >= -ORACLES_E11_F256 / 2 && gap <= ORACLES_E11_F256 / 2);
+    }
+    unsigned run = 0;
+    for (unsigned f = 1; f < ORACLES_ENHANCED_SETTLE_RUN; f++) run = oracles_enhanced_faded_run(run, 1, 0);
+    CHECK(run == ORACLES_ENHANCED_SETTLE_RUN - 1u);                       /* seven frames: no rest yet */
+    run = oracles_enhanced_faded_run(run, 1, 0);
+    CHECK(run == ORACLES_ENHANCED_SETTLE_RUN);                            /* the eighth */
+    CHECK(oracles_enhanced_faded_run(run, 1, 0) == ORACLES_ENHANCED_SETTLE_RUN);
+    CHECK(oracles_enhanced_faded_run(run, 0, 0) == 0);                    /* a frame seen */
+    run = 0;
+    for (unsigned f = 0; f < 20u; f++) run = oracles_enhanced_faded_run(run, 1, 1);
+    CHECK(run == 0);                                                      /* a menu's fade, however long */
+    run = oracles_enhanced_faded_run(ORACLES_ENHANCED_SETTLE_RUN, 1, 1);
+    CHECK(run == 0);                                                      /* a menu opening in a fade */
+}
+
+/* The band's fraction taken up or given back by a sixteenth of a pixel a frame, only while the camera moves:
+ * standing, it holds where it stood. */
+static void band_fraction_still(void)
+{
+    int32_t ease = 0;
+    /* The fraction comes back (a scene's end), the camera standing: the band holds at none. */
+    CHECK(oracles_enhanced_band_fraction(1, 1, 1, 0, 192, 192, 0, &ease) == 0 && ease == -192);
+    CHECK(oracles_enhanced_band_fraction(1, 1, 1, 1, 192, 192, 0, &ease) == 0 && ease == -192);
+    /* The camera moves: the band goes by SUB_EASE toward it. */
+    CHECK(oracles_enhanced_band_fraction(1, 0, 1, 1, 192, 192, 0, &ease) == 16 && ease == -176);
+    /* The same comeback with the camera moving: eased from the first frame. */
+    ease = 0;
+    CHECK(oracles_enhanced_band_fraction(1, 0, 1, 0, 192, 192, 0, &ease) == 16);
+    /* Given back, standing: held at the fraction it showed. */
+    ease = 0;
+    CHECK(oracles_enhanced_band_fraction(1, 1, 0, 1, 192, 192, 192, &ease) == 192 && ease == 192);
+    /* No frame before: the target at once. */
+    ease = 50;
+    CHECK(oracles_enhanced_band_fraction(0, 1, 1, 0, 100, 0, 0, &ease) == 100 && ease == 0);
 }
 
 static void exact_walk(unsigned profile, const int32_t *steps, unsigned frames, int32_t *cameras)
@@ -786,6 +948,69 @@ int main(void)
                 W0(t->opened_menu_type) = 0;
                 oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
                 CHECK(mode == ORACLES_ENHANCED_WORLD);
+                /* Link put elsewhere while the core is framed (a menu, a cutscene's picture): the first frame of the
+                 * world shows the camera where it settles, not on its way there. */
+                {
+                    for (unsigned i = 0; i < 60; i++) { oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y); }
+                    const int32_t before = cam;
+                    W0(t->opened_menu_type) = 1; link[ORACLES_OBJ_XH] = 140;
+                    oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                    CHECK(mode == ORACLES_ENHANCED_FRAMED);
+                    W0(t->opened_menu_type) = 0;
+                    oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                    CHECK(mode == ORACLES_ENHANCED_WORLD);
+                    const int32_t first = cam;
+                    for (unsigned i = 0; i < 60; i++) { oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y); }
+                    CHECK(cam - before == 60 && first == cam);
+                    /* His object made anew by a cutscene, at its first state in the room's corner: his place holds. */
+                    const int32_t held_x = oracles_enhanced_view_observation(view)->world.link_x;
+                    link[ORACLES_OBJ_STATE] = 0; link[ORACLES_OBJ_XH] = 0; link[ORACLES_OBJ_YH] = 0;
+                    oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                    CHECK(oracles_enhanced_view_observation(view)->world.link_x == held_x && cam == first);
+                    link[ORACLES_OBJ_STATE] = 1; link[ORACLES_OBJ_XH] = 80; link[ORACLES_OBJ_YH] = 64;
+                }
+                /* The same under a fade at white, the background and the sprites washed out; with a sprite's colour
+                 * still lit over it (the time portal's black), the frame is seen and the camera pans as ever. */
+                {
+                    uint8_t *bg = (uint8_t *)(uintptr_t)oracles_guest_bg_palettes(guest), *obj = (uint8_t *)(uintptr_t)oracles_guest_obj_palettes(guest);
+                    uint8_t *base = oracles_guest_wram_writable(guest, 2) + (t->tileset_bg_palettes.addr - 0xd000u);
+                    CHECK(bg != NULL && obj != NULL);
+                    if (bg && obj) {
+                        uint8_t bg_kept[64], obj_kept[64];
+                        memcpy(bg_kept, bg, sizeof bg_kept); memcpy(obj_kept, obj, sizeof obj_kept);
+                        for (unsigned i = 0; i < 64u; i += 2u) { base[i] = 0x08; base[i + 1u] = 0x21; }
+                        for (unsigned lit = 0; lit < 2u; lit++) {
+                            for (unsigned i = 0; i < 60; i++) { oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y); }
+                            const int32_t before = cam;
+                            for (unsigned i = 0; i < 64u; i += 2u) { bg[i] = 0xff; bg[i + 1u] = 0x7f; obj[i] = 0xff; obj[i + 1u] = 0x7f; }
+                            if (lit) { obj[2] = 0x1f; obj[3] = 0x00; }
+                            link[ORACLES_OBJ_XH] = lit ? 80 : 140;
+                            oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                            CHECK(mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_washed_out(view) == !lit);
+                            memcpy(bg, base, 64u); memcpy(obj, obj_kept, sizeof obj_kept);
+                            oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                            const int32_t first = cam;
+                            for (unsigned i = 0; i < 60; i++) { oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y); }
+                            CHECK(cam - before == (lit ? -60 : 60));
+                            CHECK(lit ? first != cam : first == cam);
+                        }
+                        memcpy(bg, bg_kept, sizeof bg_kept);
+                    }
+                }
+                /* The follow, Link walking, keeps its speed and its look-ahead through a menu: no step back. */
+                {
+                    for (unsigned i = 0; i < 60; i++) { oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y); }
+                    int32_t last = cam, step = 0;
+                    for (unsigned i = 0; i < 40; i++) {
+                        link[ORACLES_OBJ_XH] = (uint8_t)(80 + i);
+                        W0(t->opened_menu_type) = i == 30u;
+                        oracles_core_run_frame(core); oracles_enhanced_view_compose(view, &mode, &cam, &cam_y);
+                        if (i == 29u) step = cam - last;
+                        if (i == 31u) CHECK(step > 0 && cam - last >= 2 * step - 1 && cam - last <= 2 * step + 1);
+                        if (i != 30u) last = cam;
+                    }
+                    link[ORACLES_OBJ_XH] = 80;
+                }
             }
             #undef W0
             oracles_enhanced_view_stop(view);
@@ -849,6 +1074,11 @@ int main(void)
         free(band); free(area); free(img);
         #undef WORLD_PIXEL
     }
+
+    unseen_ends();
+    settle_at_rest();
+    rest_whole_and_fade();
+    band_fraction_still();
 
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_camera: ok\n");

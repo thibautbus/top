@@ -188,6 +188,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
         memcpy(vertical.config_digest, config.digest, sizeof vertical.config_digest);
     }
     oracles_enhanced_camera_set_state(v->camera, &state, have_vertical ? &vertical : NULL);
+    v->faded_run = 0;   /* the fade the camera comes to rest behind counted from the state alone */
     if (have_loops && offsets_at) {
         /* For the reducers' epochs and segments restored; an axis without one takes it afresh. */
         const int32_t saved[2] = { get32(data + offsets_at + 4), get32(data + offsets_at + 8) };
@@ -212,7 +213,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
      * object, the place and the pre-runs of a load, the sprite bookkeeping. */
     v->have_last_ref = 0; v->have_came_from = 0; v->have_last_scroll_dir = 0;
     v->source_valid = 0; v->large_capture_valid = 0; v->large_prev_valid = 0; v->large_was_in_scroll = 0;
-    v->have_ref_collisions = 0; v->ref_maku = 0; v->load_area_held = 0;
+    v->have_ref_collisions = 0; v->ref_maku = 0; v->ref_maku_arrival = 0; v->maku_pending = 0; v->maku_pending_run = 0; v->load_area_held = 0;
     v->blind_mask = 0; v->blind_epoch = 0;
     v->have_live_tiles_prev = 0; v->have_wave = 0; v->shake_history = 0; v->blurb_shown = 0; v->blurb_mask = 0;
     memset(v->blurb_drawings, 0, sizeof v->blurb_drawings);   /* drawings of another moment */

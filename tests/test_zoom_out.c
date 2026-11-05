@@ -654,6 +654,170 @@ static void isolated_room_edges(void)
     rig_stop(&r);
 }
 
+/* The Maku tree's screen (Ages 0:38, Link low in it) reached by a loaded game: six frames of the room loaded under
+ * the closed curtain (scroll mode 2, transition state 0), the tree's interaction still at its state 0, which its first
+ * update, on the sixth, leaves (the tree itself), deletes (Ages' present while it is gone) or turns into a scene's
+ * (another subid); then the opening, the screen opening from its middle (transition state 1, 40 frames); then normal
+ * play.  Until that update the frames are the load's (framed); from it the room stands alone exactly when the tree
+ * stays, the first world frame showing the game's window where the last frame of the wait did, and from the first
+ * world frame the camera does not move, through the opening and normal play (it glided back to Link when the room
+ * was isolated on the tree not yet updated, and jumped when isolated later in the world). */
+enum { MAKU_TREE_STAYS, MAKU_TREE_DELETED, MAKU_TREE_SCENE };
+typedef struct maku_rig { rig r; OraclesEnhancedView *view; uint8_t *w0, *link, *tree; } maku_rig;
+static int maku_start(maku_rig *m, unsigned size)
+{
+    memset(m, 0, sizeof *m);
+    CHECK(rig_start(&m->r));
+    m->view = m->r.guest ? oracles_enhanced_view_start(m->r.core, m->r.guest, NULL, 0) : NULL;
+    CHECK(m->view != NULL);
+    if (!m->view) { rig_stop(&m->r); return 0; }
+    if (size) oracles_enhanced_view_set_zoom_out(m->view, 1);
+    m->w0 = oracles_guest_wram_writable(m->r.guest, 0);
+    m->link = oracles_guest_wram_writable(m->r.guest, 1) + (ORACLES_OBJECTS_BASE - 0xd000u);
+    m->tree = m->link + 0x100u + ORACLES_OBJECT_SIZE;
+    return 1;
+}
+static void maku_stop(maku_rig *m)
+{
+    oracles_enhanced_view_stop(m->view);
+    rig_stop(&m->r);
+}
+#define MW0(m, sym) (m)->w0[(sym).addr - 0xc000u]
+static void maku_set(maku_rig *m, uint8_t group, uint8_t room, uint8_t scroll_mode, uint8_t transition_state)
+{
+    const OraclesGuestTables *t = &oracles_guest_tables_ages;
+    MW0(m, t->game_state) = 2; MW0(m, t->cutscene_index) = 1; MW0(m, t->scroll_mode) = scroll_mode; MW0(m, t->screen_transition_state) = transition_state;
+    MW0(m, t->active_group) = group; MW0(m, t->active_room) = room; MW0(m, t->room_is_large) = 0;
+    m->w0[t->camera_x.addr - 0xc000u] = 0; m->w0[t->camera_x.addr + 1u - 0xc000u] = 0;
+    m->w0[t->camera_y.addr - 0xc000u] = 0; m->w0[t->camera_y.addr + 1u - 0xc000u] = 0;
+    MW0(m, t->screen_offset_x) = 0; MW0(m, t->screen_offset_y) = 0;
+}
+/* Where the frame shows the game's window: in the world, at its place in the band; framed, where the load draws it
+ * (its band held at the last world frame's place, or centred under the HUD). */
+static void maku_window_place(const maku_rig *m, OraclesEnhancedMode mode, int32_t cam, int32_t cam_y, int32_t *x, int32_t *y)
+{
+    const OraclesEnhancedView *v = m->view;
+    if (mode == ORACLES_ENHANCED_WORLD) {
+        *x = v->observation.window_left - cam;
+        *y = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + v->observation.window_top - cam_y;
+    } else if (v->load_area_held) {
+        *x = v->load_area_left; *y = v->load_area_top;
+    } else {
+        *x = (int32_t)oracles_enhanced_hud_x(v->size);
+        *y = (int32_t)((v->size.height - ORACLES_PPU_HEIGHT) / 2u + ORACLES_ENHANCED_HUD_HEIGHT);
+    }
+}
+static void maku_tree_place(maku_rig *m)
+{
+    m->tree[ORACLES_OBJ_ENABLED] = 1; m->tree[ORACLES_OBJ_ID] = 0x87; m->tree[ORACLES_OBJ_SUBID] = 0; m->tree[ORACLES_OBJ_STATE] = 0;
+}
+static int32_t maku_distance(int32_t a, int32_t b) { return a > b ? a - b : b - a; }
+
+static void maku_tree_arrival(void)
+{
+    for (unsigned size = 0; size < 2u; size++) {
+        for (unsigned fate = MAKU_TREE_STAYS; fate <= MAKU_TREE_SCENE; fate++) {
+            maku_rig m;
+            if (!maku_start(&m, size)) return;
+            maku_set(&m, 0, 0x38, 2, 0);
+            m.link[ORACLES_OBJ_ENABLED] = 1; m.link[ORACLES_OBJ_STATE] = 1; m.link[ORACLES_OBJ_XH] = 80; m.link[ORACLES_OBJ_YH] = 101;
+            maku_tree_place(&m);
+            OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+            int32_t cam = 0, cam_y = 0, first_x = 0, first_y = 0, worst = 0, waited_x = 0, waited_y = 0, shown_x = 0, shown_y = 0;
+            unsigned pending_framed = 0, as_decided = 0, world = 0;
+            for (unsigned i = 0; i < 86u; i++) {
+                if (i == 5u) {
+                    if (fate == MAKU_TREE_DELETED) memset(m.tree, 0, ORACLES_OBJECT_SIZE);
+                    else { m.tree[ORACLES_OBJ_ENABLED] = 0x81; m.tree[ORACLES_OBJ_STATE] = 1; if (fate == MAKU_TREE_SCENE) m.tree[ORACLES_OBJ_SUBID] = 1; }
+                }
+                if (i == 6u) maku_set(&m, 0, 0x38, 2, 1);
+                if (i == 46u) maku_set(&m, 0, 0x38, 1, 2);
+                frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+                if (i < 5u && mode == ORACLES_ENHANCED_FRAMED) pending_framed++;
+                if (i == 4u) maku_window_place(&m, mode, cam, cam_y, &waited_x, &waited_y);
+                if (oracles_enhanced_view_isolated(m.view) == (fate == MAKU_TREE_STAYS && i >= 5u)) as_decided++;
+                if (mode != ORACLES_ENHANCED_WORLD) continue;
+                if (!world++) { first_x = cam; first_y = cam_y; maku_window_place(&m, mode, cam, cam_y, &shown_x, &shown_y); }
+                const int32_t d = maku_distance(cam, first_x) + maku_distance(cam_y, first_y);
+                if (d > worst) worst = d;
+            }
+            CHECK(pending_framed == 5u && as_decided == 86u);
+            CHECK(world >= 40u + 30u && worst == 0);
+            CHECK(fate != MAKU_TREE_STAYS || (shown_x == waited_x && shown_y == waited_y));
+            maku_stop(&m);
+        }
+    }
+}
+
+/* The wait is held to ORACLES_ENHANCED_MAKU_WAIT frames: a scene showing the tree's screen without running its objects
+ * (the tree left at its state 0, the screen closed) is shown in the world, the room not isolated until the tree is
+ * updated. */
+static void maku_tree_wait_held(void)
+{
+    maku_rig m;
+    if (!maku_start(&m, 0)) return;
+    maku_set(&m, 0, 0x38, 2, 0);
+    m.link[ORACLES_OBJ_ENABLED] = 1; m.link[ORACLES_OBJ_STATE] = 1; m.link[ORACLES_OBJ_XH] = 80; m.link[ORACLES_OBJ_YH] = 101;
+    maku_tree_place(&m);
+    OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+    int32_t cam = 0, cam_y = 0;
+    unsigned waited = 0, alone = 0;
+    for (unsigned i = 0; i < 30u; i++) {
+        frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+        if (ev_maku_pending(m.view)) waited++;
+        if (oracles_enhanced_view_isolated(m.view)) alone++;
+    }
+    CHECK(waited == ORACLES_ENHANCED_MAKU_WAIT && alone == 0 && mode == ORACLES_ENHANCED_WORLD);
+    m.tree[ORACLES_OBJ_ENABLED] = 0x81; m.tree[ORACLES_OBJ_STATE] = 1;
+    frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+    CHECK(!ev_maku_pending(m.view) && oracles_enhanced_view_isolated(m.view));
+    maku_stop(&m);
+}
+
+/* Arrivals that leave the screen's isolation to normal play: a scroll into the tree's screen (from 0:48 below), and a
+ * warp out of it (to 0:48, the objects cleared), after which no room is isolated. */
+static void maku_tree_other_arrivals(void)
+{
+    const OraclesGuestTables *t = &oracles_guest_tables_ages;
+    for (unsigned size = 0; size < 2u; size++) {
+        maku_rig m;
+        if (!maku_start(&m, size)) return;
+        OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+        int32_t cam = 0, cam_y = 0;
+        unsigned alone = 0;
+        maku_set(&m, 0, 0x48, 1, 2);
+        m.link[ORACLES_OBJ_ENABLED] = 1; m.link[ORACLES_OBJ_STATE] = 1; m.link[ORACLES_OBJ_XH] = 80; m.link[ORACLES_OBJ_YH] = 20;
+        frames(&m.r, m.view, 20, &mode, &cam, &cam_y);
+        CHECK(mode == ORACLES_ENHANCED_WORLD && !oracles_enhanced_view_isolated(m.view));
+        maku_set(&m, 0, 0x38, ORACLES_SCROLL_MODE_TRANSITION, 3);
+        MW0(&m, t->screen_transition_direction) = 0;
+        maku_tree_place(&m);
+        m.tree[ORACLES_OBJ_ENABLED] = 0x81; m.tree[ORACLES_OBJ_STATE] = 1;
+        for (unsigned i = 0; i < 30u; i++) {
+            m.link[ORACLES_OBJ_YH] = (uint8_t)(i < 20u ? 20u - i : 120u);
+            frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+            if (oracles_enhanced_view_isolated(m.view)) alone++;
+        }
+        CHECK(alone == 0);
+        maku_set(&m, 0, 0x38, 1, 2);
+        frames(&m.r, m.view, 20, &mode, &cam, &cam_y);
+        CHECK(mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_isolated(m.view));
+        maku_set(&m, 0, 0x48, 2, 0);
+        memset(m.tree, 0, ORACLES_OBJECT_SIZE);
+        alone = 0;
+        for (unsigned i = 0; i < 46u; i++) {
+            if (i == 6u) maku_set(&m, 0, 0x48, 2, 1);
+            frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+            if (oracles_enhanced_view_isolated(m.view)) alone++;
+        }
+        maku_set(&m, 0, 0x48, 1, 2);
+        frames(&m.r, m.view, 20, &mode, &cam, &cam_y);
+        CHECK(alone == 0 && mode == ORACLES_ENHANCED_WORLD && !oracles_enhanced_view_isolated(m.view));
+        maku_stop(&m);
+    }
+}
+#undef MW0
+
 /* A dungeon's large room in the near band (256x128), the sub-pixel camera on: Link walking down at 0.71 of a pixel a
  * frame, the game's window following him a pixel at a time, the band takes his fraction with the window's whole
  * pixels, to the 256th of a pixel, never back nor by more than a pixel a frame, and stops on the window's last place
@@ -1964,6 +2128,9 @@ int main(void)
     ripple(2);
     view_and_savestate();
     isolated_room_edges();
+    maku_tree_arrival();
+    maku_tree_wait_held();
+    maku_tree_other_arrivals();
     dungeon_diagonal_band();
     dungeon_diagonal_band_4_3();
     state_across_viewports();

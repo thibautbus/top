@@ -179,6 +179,14 @@ void oracles_enhanced_view_set_subpixel(OraclesEnhancedView *view, int enabled);
  * the camera's whole pixels coming back once they have.  On (1) or off (0) as it will be. */
 void oracles_enhanced_view_switch_subpixel(OraclesEnhancedView *view, int enabled);
 int oracles_enhanced_view_subpixel_on(const OraclesEnhancedView *view);
+/* This frame's (the frame just composed): the camera's own fraction of a pixel, in 256ths, the target the band's
+ * fraction goes to while the camera moves; 0 where it does not track Link. */
+void oracles_enhanced_view_subpixel_camera(const OraclesEnhancedView *view, int32_t *x, int32_t *y);
+/* One axis of the fraction the band (or Link's layer) is moved by, in 256ths of a pixel: the camera's (`raw`) while it
+ * is `live`, else none; where that changes, it goes on from where it stood (`last_shown`, `last_raw`) and reaches the
+ * target by a sixteenth of a pixel a frame, only on the frames the camera moves (`still` 0).  `ease` carries the
+ * difference from frame to frame (`continuous`: the frame before was composed). */
+int32_t oracles_enhanced_band_fraction(int continuous, int still, int live, int was_live, int32_t raw, int32_t last_raw, int32_t last_shown, int32_t *ease);
 /* This frame's (the frame just composed): 1 when the band is to be moved, by `x` and `y` 256ths of a pixel left and
  * up (negative: right and down), its lines `band_top` to `band_top + band_height` of the surface, or Link drawn apart;
  * Link's layer (0 alpha where it shows nothing) at `layer_x`, `layer_y` of the surface moved `layer_fx`, `layer_fy`
@@ -285,6 +293,9 @@ void oracles_enhanced_view_hud_wide_counts(const OraclesEnhancedView *view, unsi
  * (the LCD off, a full fade). */
 int oracles_enhanced_view_load_band(const OraclesEnhancedView *view, int32_t *area_left, int32_t *area_top);
 void oracles_enhanced_view_load_counts(const OraclesEnhancedView *view, unsigned *band_frames, unsigned *blank_frames);
+/* The last composition's screen washed out by the game's fade, at its full or nearly (white or black), the background
+ * and the sprites alike: nothing of the world shows, a move of the camera neither. */
+int oracles_enhanced_view_washed_out(const OraclesEnhancedView *view);
 /* Frames composed under a scene's tint of the game's screen, which the other rooms took, and the first and last of them. */
 void oracles_enhanced_view_scene_tint_counts(const OraclesEnhancedView *view, unsigned *frames, uint32_t *first, uint32_t *last);
 /* Frames that drew the fade of objects appearing on entry, and objects that started one. */
@@ -584,10 +595,9 @@ unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *view
  * side than the one the game would enter it by from there (its old image kept
  * until its run again comes). */
 unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *view);
-/* The frames the room a scroll left gave way to its image out of a scroll for the side its entry was run from, that
- * entry holding for the side the game would enter it by from the room in play: none, the image is only for the
- * scroll and for an entry out of date beside the room in play. */
-unsigned oracles_enhanced_view_left_image_held_frames(const OraclesEnhancedView *view);
+/* The frames the room a scroll left was drawn from its image, out of a transition, in place of an entry the cache
+ * could draw (its terrain or its side out of date, waiting for its run again), and the longest run of them. */
+void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *longest);
 /* Whether a room run again for its terrain `burst` times in a row, each within
  * FAILED_RETRY_FRAMES of the one before, the last `since_last` frames ago,
  * waits for the end of that period before its next run (more than

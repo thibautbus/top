@@ -65,7 +65,17 @@ struct OraclesEnhancedCheck {
     int32_t largest_jump;
     unsigned camera_jumps_y;          /* the same, on the vertical camera */
     int32_t largest_jump_y, last_camera_y;
-    int last_blank;                          /* the last world frame's surface was of one colour */
+    int last_blank;                          /* the last world frame's surface was of one colour, or washed out by a fade */
+    /* The camera moving on its own after a stretch not seen (the core framed, a screen blank or washed out): frames
+     * seen, one after the other, on which it moved while Link stood still, and their pixels, both axes. */
+    int returning;
+    int32_t return_link_x, return_link_y;
+    int return_sub_x, return_sub_y;   /* and his fraction of a pixel, which the sub-pixel camera follows */
+    unsigned return_glide_frames, return_glide_pixels;
+    uint64_t return_glide_256ths;   /* their moves as shown, the band's fraction with the camera */
+    unsigned return_seen;           /* frames seen since the stretch not seen */
+    unsigned band_still_glide_frames;   /* world frames the band moved by its fraction, the camera standing (its pixels and its fraction) */
+    int32_t still_band[2], still_raw[2];   /* the last world frame's band fraction and the camera's own */
     /* the feel of the camera, over consecutive world frames of one epoch, outside cutscenes */
     unsigned camera_steps[5];         /* frames by |delta|: 0, 1, 2, 3, 4 px and more */
     unsigned camera_still_link_moving;/* frames with the camera still while Link's world x changed */

@@ -128,16 +128,21 @@ int ev_room_whole(const OraclesEnhancedView *v)
     return (ob->large_grid || ob->world.alone) && ob->world.bounds_width <= (int32_t)v->shown_width && ob->world.bounds_height <= (int32_t)v->shown_height;
 }
 
-static int maku_tree_here(OraclesEnhancedView *v)
+/* The tree's interaction in the reference room: 0 none, 1 the tree, 2 not yet updated (its state 0: created by
+ * initializeRoom, its first update still to decide whether it is the tree, a scene's or nothing). */
+static int maku_tree_slot(const OraclesEnhancedView *v)
 {
     if (!oracles_compat_maku_tree_rules(oracles_guest_profile(v->guest))) return 0;
     for (unsigned i = 0; i < 16u; i++) {
         const uint8_t *obj = oracles_guest_object(v->guest, i, 1);   /* the interaction of slot i */
         /* Subid 0 is the tree itself (both games); the other subids are its parts elsewhere (the gate south of it in Seasons). */
-        if (obj && obj[ORACLES_OBJ_ENABLED] != 0 && obj[ORACLES_OBJ_ID] == 0x87u && obj[ORACLES_OBJ_SUBID] == 0u) return 1;
+        if (obj && obj[ORACLES_OBJ_ENABLED] != 0 && obj[ORACLES_OBJ_ID] == 0x87u && obj[ORACLES_OBJ_SUBID] == 0u)
+            return obj[ORACLES_OBJ_STATE] == 0u ? 2 : 1;
     }
     return 0;
 }
+
+int ev_maku_pending(const OraclesEnhancedView *v) { return v->maku_pending; }
 
 /* A room of the grid, small or large, shown in the world (alone or with neighbours). */
 int ev_on_grid(const OraclesEnhancedView *v)
@@ -412,7 +417,9 @@ static int interior_area(const OraclesEnhancedView *v)
 void ev_update_reference_edges(OraclesEnhancedView *v)
 {
     const OraclesEnhancedObservation *ob = &v->observation;
-    if (!ob->in_transition && ob->group == v->observer.ref_group && ob->room == v->observer.ref_room) {
+    const int in_reference = ob->group == v->observer.ref_group && ob->room == v->observer.ref_room;
+    int pending = 0;
+    if (!ob->in_transition && in_reference) {
         const OraclesGuestTables *t = oracles_guest_tables(v->guest);
         const uint8_t *collisions = oracles_guest_ptr(v->guest, t->room_collisions, ORACLES_GHOST_LAYOUT_BYTES);
         if (collisions) {
@@ -420,9 +427,35 @@ void ev_update_reference_edges(OraclesEnhancedView *v)
             v->have_ref_collisions = 1;
             v->ref_collisions_group = ob->group; v->ref_collisions_room = ob->room;
         }
-        v->ref_maku = maku_tree_here(v);
+        v->ref_maku = maku_tree_slot(v) != 0;
+        v->ref_maku_arrival = 0;
         v->ref_maku_group = ob->group; v->ref_maku_room = ob->room;
+    } else if (ob->in_transition && !ob->in_scroll && in_reference) {
+        /* An arrival that is not a scroll (a loaded game's opening, the screen opening from its middle; a warp): the
+         * screen stands alone from its first frame shown, not from the first of normal play, where the camera
+         * framed on Link and the neighbours shown would jump to the room alone.  Taken once the tree's first update
+         * has kept it the tree: that update may delete it (Ages' present while it is gone) or make it a scene's
+         * (another subid), and until then the frames are the load's (ev_maku_pending), the camera placed where the
+         * decision puts it at the first frame shown.  Undone if the tree goes while the arrival still runs, when
+         * the arrival decided it; one carried from normal play is kept (a scene reloading the room and clearing
+         * its objects).  A scroll leaves ref_maku as it is; the room left by a warp keeps it, but ev_isolated_room
+         * compares it to the reference, which has moved on. */
+        const int same = v->ref_maku && v->ref_maku_group == ob->group && v->ref_maku_room == ob->room;
+        const int tree = maku_tree_slot(v);
+        if (tree == 1) {
+            if (!same) v->ref_maku_arrival = 1;
+            v->ref_maku = 1;
+            v->ref_maku_group = ob->group; v->ref_maku_room = ob->room;
+        } else if (tree == 0 && same && v->ref_maku_arrival) {
+            v->ref_maku = 0; v->ref_maku_arrival = 0;
+        }
+        /* The wait for that update, while the screen is still closed (transition state 0, before it opens from its
+         * middle), at most ORACLES_ENHANCED_MAKU_WAIT frames: a scene showing the room without running its objects
+         * is shown in the world, the room not isolated until the tree is updated. */
+        pending = tree == 2 && oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->screen_transition_state) == 0u;
     }
+    v->maku_pending_run = pending ? (v->maku_pending_run < ORACLES_ENHANCED_MAKU_WAIT + 1u ? v->maku_pending_run + 1u : v->maku_pending_run) : 0u;
+    v->maku_pending = pending && v->maku_pending_run <= ORACLES_ENHANCED_MAKU_WAIT;
     /* A change of reference within an epoch is a scrolling transition (a
      * warp opens a new epoch): the room left lies opposite to the scroll's
      * direction (a dungeon's rooms are not laid out by their index). */
