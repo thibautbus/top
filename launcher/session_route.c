@@ -195,8 +195,8 @@ int oracles_session_record_route(session *s, const OraclesSessionOptions *o, cha
     else
         snprintf(header.core, sizeof header.core, "%s", o->play_path && oracles_route_joypad_bouncing(&s->play.header) ? "" : ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF);
     /* A session whose pause may change a setting, or that extends a route that changes some, may write `cheat` and `set`
-     * lines: its header says the format they need from the start. */
-    const int changes = s->pause || (o->play_path && (s->play.cheat_count || s->play.setting_count));
+     * lines, and one with the item hotkeys on `sound` lines: its header says the format they need from the start. */
+    const int changes = s->pause || (o->play_path && (s->play.cheat_count || s->play.setting_count)) || s->hotkeys_mode != ORACLES_HOTKEYS_OFF;
     if (oracles_route_writer_open_format(&s->record, o->record_path, &header, changes ? ORACLES_ROUTE_FORMAT_LATEST : 0) != 0)
         return refuse(error, capacity, "cannot write %s", o->record_path);
     if (s->mod) {

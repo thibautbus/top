@@ -484,6 +484,12 @@ oracles_sdl_menu_source oracles_sdl_backend_menu_source(const oracles_host_backe
     return state->menu_source;
 }
 
+oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backend *backend)
+{
+    const sdl_backend *state = backend->opaque;
+    return state->last_input;
+}
+
 void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend)
 {
     sdl_backend *state = backend->opaque;

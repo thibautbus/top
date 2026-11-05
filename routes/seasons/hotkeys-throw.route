@@ -1,0 +1,21 @@
+oracles-route 2
+game seasons
+rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+sram_sha1 ad06a39053f0627a0456f1f9dc270e909c8ba40d
+core joypad-bouncing-off
+# shop.route's inputs to frame 1163, Link standing in Horon Village (0:e9) with bombs, the power bracelet and Roc's
+# feather in the inventory, then nothing: written by hand for the item hotkeys' scripted keys (the harness's
+# --hotkeys-live), which lift and throw a bomb there.
+inputs
+0 keys 00
+586 keys 80
+595 keys 00
+615 keys 80
+624 keys 00
+681 keys 80
+690 keys 00
+707 keys 80
+716 keys 00
+811 keys 08
+1163 keys 00
+1800 keys 00

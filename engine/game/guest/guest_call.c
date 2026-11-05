@@ -38,7 +38,7 @@ static int named(const char *const *names, unsigned count, uint8_t value)
 static int bcd(uint8_t value) { return (value >> 4) <= 9u && (value & 0x0fu) <= 9u; }
 
 /* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000. */
-static const uint8_t *rom_at(const OraclesGuestRom *rom, OraclesGuestSym sym, size_t length)
+const uint8_t *oracles_guest_rom_at(const OraclesGuestRom *rom, OraclesGuestSym sym, size_t length)
 {
     if (!rom || !rom->data || sym.bank == ORACLES_GUEST_ABSENT) return NULL;
     size_t at;
@@ -56,7 +56,7 @@ int oracles_guest_treasure_mode(const OraclesGuestTables *t, const OraclesGuestR
 {
     if (treasure >= t->treasure_collection_behaviour_count) return -1;
     const OraclesGuestSym entry = { t->treasure_collection_behaviours.bank, (uint16_t)(t->treasure_collection_behaviours.addr + 3u * treasure) };
-    const uint8_t *bytes = rom_at(rom, entry, 3u);
+    const uint8_t *bytes = oracles_guest_rom_at(rom, entry, 3u);
     return bytes ? bytes[1] & 0x0f : -1;
 }
 
@@ -66,7 +66,7 @@ int oracles_guest_treasure_mode(const OraclesGuestTables *t, const OraclesGuestR
 static int game_gives(const OraclesGuestTables *t, const OraclesGuestRom *rom, uint8_t treasure, uint8_t parameter)
 {
     const OraclesGuestSym table = t->treasure_object_data;
-    const uint8_t *entries = rom_at(rom, table, 4u * t->treasure_object_count);
+    const uint8_t *entries = oracles_guest_rom_at(rom, table, 4u * t->treasure_object_count);
     if (!entries || treasure >= t->treasure_object_count) return 0;
     const uint8_t *entry = entries + 4u * treasure;
     if (!(entry[0] & 0x80u)) return entry[1] == parameter;
@@ -78,7 +78,7 @@ static int game_gives(const OraclesGuestTables *t, const OraclesGuestRom *rom, u
         const uint16_t next = (uint16_t)(other[1] | other[2] << 8);
         if ((other[0] & 0x80u) && next > start && next < end) end = next;
     }
-    const uint8_t *list = rom_at(rom, (OraclesGuestSym){ table.bank, start }, (size_t)(end - start));
+    const uint8_t *list = oracles_guest_rom_at(rom, (OraclesGuestSym){ table.bank, start }, (size_t)(end - start));
     for (uint16_t at = 0; list && at + 4u <= (uint16_t)(end - start); at = (uint16_t)(at + 4u))
         if (list[at + 1u] == parameter) return 1;
     return 0;
@@ -87,7 +87,7 @@ static int game_gives(const OraclesGuestTables *t, const OraclesGuestRom *rom, u
 int oracles_guest_rupee_amount(const OraclesGuestTables *t, const OraclesGuestRom *rom, uint8_t value)
 {
     if (value >= t->rupee_value_count) return -1;
-    const uint8_t *word = rom_at(rom, (OraclesGuestSym){ t->rupee_values.bank, (uint16_t)(t->rupee_values.addr + 2u * value) }, 2u);
+    const uint8_t *word = oracles_guest_rom_at(rom, (OraclesGuestSym){ t->rupee_values.bank, (uint16_t)(t->rupee_values.addr + 2u * value) }, 2u);
     if (!word) return -1;
     const unsigned bcd_word = word[0] | word[1] << 8;
     unsigned amount = 0;
@@ -210,6 +210,16 @@ int oracles_guest_queue_call(OraclesGuest *guest, const OraclesGuestCall *call, 
 unsigned oracles_guest_calls_pending(const OraclesGuest *guest) { return guest ? guest->call_count : 0; }
 unsigned oracles_guest_calls_done(const OraclesGuest *guest) { return guest ? guest->calls_done : 0; }
 
+int oracles_guest_call_may_run(const OraclesGuestInventoryState *state, const OraclesGuestCall *next)
+{
+    /* The call waits for a safe state; a sound asked for the inventory plays there, where the menu plays its own from the
+     * same thread (bank2.s, @finalizeEquip), mainThreadStart going on calling checkReloadStatusBarGraphics under it. */
+    const OraclesGuestInventoryVerdict refusal = oracles_guest_inventory_refusal(state);
+    if (refusal == ORACLES_INVENTORY_APPLIED) return 1;
+    return refusal == ORACLES_INVENTORY_REFUSED_MENU_OPEN && next->routine == ORACLES_ROUTINE_PLAY_SOUND && next->in_inventory
+           && state->opened_menu_type == state->menu_inventory;
+}
+
 void oracles_guest_call_point(OraclesGuest *guest, uint16_t sp)
 {
     if (!guest->calls_armed || !guest->call_count || guest->call_watch_sp) return;
@@ -218,7 +228,7 @@ void oracles_guest_call_point(OraclesGuest *guest, uint16_t sp)
     if (!word || (uint16_t)(word[0] | (word[1] << 8)) != guest->inventory_write_pc) return;   /* not the call of mainThreadStart */
     OraclesGuestInventoryState state;
     oracles_guest_inventory_state(guest, &state);
-    if (oracles_guest_inventory_refusal(&state) != ORACLES_INVENTORY_APPLIED) return;   /* the call waits for a safe state */
+    if (!oracles_guest_call_may_run(&state, &guest->calls[0])) return;
     guest->call_watch_sp = sp;
 }
 

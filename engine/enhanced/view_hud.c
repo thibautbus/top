@@ -8,20 +8,47 @@
 
 /* The status bar as the game keeps it: the maps of its bar, the LCDC it gives those lines, the VRAM and the palettes on
  * screen (oracles_enhanced_bar_pixel). */
-int ev_status_bar(OraclesEnhancedView *v, OraclesEnhancedBar *bar)
+static int status_bar(OraclesGuest *guest, OraclesEnhancedBar *bar)
 {
-    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
-    const uint8_t *regs = oracles_guest_ptr(v->guest, t->gfx_regs1, 1u);
-    bar->tiles = oracles_guest_ptr(v->guest, t->status_bar_tile_map, 0x40u);
-    bar->attributes = oracles_guest_ptr(v->guest, t->status_bar_attribute_map, 0x40u);
-    bar->vram0 = oracles_guest_vram(v->guest, 0);
-    bar->vram1 = oracles_guest_vram(v->guest, 1);
-    bar->palettes = oracles_guest_bg_palettes(v->guest);
+    const OraclesGuestTables *t = oracles_guest_tables(guest);
+    const uint8_t *regs = oracles_guest_ptr(guest, t->gfx_regs1, 1u);
+    bar->tiles = oracles_guest_ptr(guest, t->status_bar_tile_map, 0x40u);
+    bar->attributes = oracles_guest_ptr(guest, t->status_bar_attribute_map, 0x40u);
+    bar->vram0 = oracles_guest_vram(guest, 0);
+    bar->vram1 = oracles_guest_vram(guest, 1);
+    bar->palettes = oracles_guest_bg_palettes(guest);
     bar->lcdc = regs ? regs[0] : 0u;
     return regs && bar->tiles && bar->attributes && bar->vram0 && bar->vram1 && bar->palettes;
 }
 
+int ev_status_bar(OraclesEnhancedView *v, OraclesEnhancedBar *bar) { return status_bar(v->guest, bar); }
+
 static uint32_t core_colour(void *opaque, uint16_t rgb555) { return oracles_core_convert_rgb555(((OraclesEnhancedView *)opaque)->core, rgb555); }
+static uint32_t core_colour_of(void *opaque, uint16_t rgb555) { return oracles_core_convert_rgb555(opaque, rgb555); }
+
+int oracles_enhanced_bar_drawn(OraclesGuest *guest, OraclesCore *core)
+{
+    OraclesEnhancedBar bar;
+    const uint32_t *pixels = oracles_core_pixels(core);
+    if (!guest || !pixels || !status_bar(guest, &bar)) return 0;
+    const OraclesEnhancedBarLayout layout = oracles_enhanced_bar_layout(&bar);
+    if (layout == ORACLES_ENHANCED_BAR_NONE || !oracles_enhanced_bar_layout_shown(&bar, layout, core_colour_of, core, pixels)) return 0;
+    /* Neither the bar nor the area under it one colour: the blank between two rooms, a screen faded out. */
+    const unsigned bar_end = ORACLES_ENHANCED_HUD_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH, end = ORACLES_PPU_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH;
+    unsigned i = 1, j = bar_end + 1;
+    while (i < bar_end && pixels[i] == pixels[0]) i++;
+    while (j < end && pixels[j] == pixels[bar_end]) j++;
+    return i < bar_end && j < end;
+}
+
+int oracles_enhanced_bar_in_play(OraclesGuest *guest, OraclesCore *core)
+{
+    if (!oracles_enhanced_bar_drawn(guest, core)) return 0;
+    /* Not in a cutscene, a menu (the inventory keeps the bar at its top) nor a dialogue. */
+    const OraclesGuestTables *t = oracles_guest_tables(guest);
+    return oracles_guest_read8(guest, t->cutscene_index) <= 1u && !oracles_guest_read8(guest, t->opened_menu_type)
+           && !oracles_guest_read8(guest, t->text_is_active);
+}
 
 /* The game's status bar on screen in the core's image: a layout its map signs that the image shows, or the one last
  * shown while its map still signs it (the palettes changed since the frame was drawn, in a fade or a flash; a sprite
@@ -78,8 +105,17 @@ const OraclesEnhancedHudPlace *ev_hud_place(OraclesEnhancedView *v, OraclesEnhan
         if (max_health) { v->hud_tight = *max_health >= 14u * 4u + 1u; v->hud_tight_known = 1; }
     }
     const int laid = layout != ORACLES_ENHANCED_BAR_NONE && v->hud_tight_known;
-    if (laid) v->hud_place = oracles_enhanced_hud_place(v->size.width, v->hud_tight ? ORACLES_ENHANCED_BAR_BUTTONS_TIGHT : ORACLES_ENHANCED_BAR_BUTTONS,
-                                                        ORACLES_HOTBAR_SLOTS * ORACLES_HOTBAR_SLOT_WIDTH);
+    /* The hotbar in the game's look where the band holds it beside the bar's blocks; else, and without a hotbar shown,
+     * the compact look's width, the layout a player without the hotkeys has always had. */
+    if (laid) {
+        const unsigned buttons = v->hud_tight ? ORACLES_ENHANCED_BAR_BUTTONS_TIGHT : ORACLES_ENHANCED_BAR_BUTTONS;
+        v->hud_place = oracles_enhanced_hud_place(v->size.width, buttons, oracles_hotbar_width(ORACLES_HOTBAR_GAME));
+        v->hotbar_look = ORACLES_HOTBAR_GAME;
+        if (!v->hotbar_shown || !v->hud_place.hotbar) {
+            v->hud_place = oracles_enhanced_hud_place(v->size.width, buttons, oracles_hotbar_width(ORACLES_HOTBAR_COMPACT));
+            v->hotbar_look = ORACLES_HOTBAR_COMPACT;
+        }
+    }
     if (counted && !v->load_band) {
         if (laid) v->hud_wide_frames++;
         else v->hud_wide_centred++;

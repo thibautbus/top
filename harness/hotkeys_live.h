@@ -19,6 +19,7 @@ typedef struct OraclesHotkeysLiveOptions {
     struct { uint32_t frame, frames; unsigned slot; } presses[HOTKEYS_LIVE_MAX_PRESSES];
     unsigned press_count;
     const char *record_path;             /* the route of the session, written in format 2 */
+    int pad_labels;                      /* the hotbar's keys as a controller's (X, Y, LB, RB), not the keyboard's */
 } OraclesHotkeysLiveOptions;
 
 typedef struct OraclesHotkeysLive OraclesHotkeysLive;

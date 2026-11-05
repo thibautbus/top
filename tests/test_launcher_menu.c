@@ -128,6 +128,14 @@ static void menu_inputs(SDL_Window *window, SDL_Renderer *renderer)
         CHECK(nothing(pull(&backend, pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 100)));
         CHECK(nothing(pull(&backend, pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 0)));
         CHECK(press(&backend, pad, SDL_GAMEPAD_BUTTON_SOUTH).pressed == ORACLES_KEY_A);
+        /* The device of the last input in play, which the reminder over the game names the key of. */
+        CHECK(oracles_sdl_backend_last_input(&backend) == ORACLES_SDL_MENU_FROM_PAD);
+        SDL_Event key;
+        SDL_zero(key);
+        key.type = SDL_EVENT_KEY_DOWN;
+        key.key.key = SDLK_M;
+        SDL_PushEvent(&key);
+        CHECK(nothing(polled(&backend)) && oracles_sdl_backend_last_input(&backend) == ORACLES_SDL_MENU_FROM_KEY);
         menu_end(&backend);
     } else CHECK(0);
     /* Where there is no pause menu (--rom): neither the button, nor Guide, nor a trigger end the session, as before
@@ -227,12 +235,18 @@ static void menu_device(SDL_Window *window, SDL_Renderer *renderer)
     CHECK(oracles_home_menu_device(ORACLES_SDL_MENU_FROM_PAD) == ORACLES_INPUT_GAMEPAD);
     CHECK(oracles_home_menu_device(ORACLES_SDL_MENU_FROM_TOUCH) == ORACLES_INPUT_POINTER);
     CHECK(oracles_home_menu_device(ORACLES_SDL_MENU_FROM_NONE) == -1);
+    CHECK(oracles_home_menu_device(ORACLES_SDL_MENU_FROM_BACK) == -1);   /* Android's Back: a finger's or a controller's */
+    /* Opened by its key, Android's Back included; not by a suspension, which no device asked. */
+    CHECK(oracles_home_menu_by_key(ORACLES_SDL_MENU_FROM_KEY) && oracles_home_menu_by_key(ORACLES_SDL_MENU_FROM_PAD)
+          && oracles_home_menu_by_key(ORACLES_SDL_MENU_FROM_TOUCH) && oracles_home_menu_by_key(ORACLES_SDL_MENU_FROM_BACK));
+    CHECK(!oracles_home_menu_by_key(ORACLES_SDL_MENU_FROM_NONE));
     const SDL_JoystickID pad = attach_gamepad();
     oracles_host_backend backend;
     if (pad && menu_session(&backend, window, renderer, 1, NULL, NULL)) {
         int stores = 0;
         backend.watch_suspend(backend.opaque, suspended, &stores);
-        CHECK(one_pause(press(&backend, pad, SDL_GAMEPAD_BUTTON_LEFT_STICK)) && oracles_sdl_backend_menu_source(&backend) == ORACLES_SDL_MENU_FROM_PAD);
+        CHECK(one_pause(press(&backend, pad, SDL_GAMEPAD_BUTTON_LEFT_STICK)) && oracles_sdl_backend_menu_source(&backend) == ORACLES_SDL_MENU_FROM_PAD
+              && oracles_home_menu_by_key((int)oracles_sdl_backend_menu_source(&backend)));
         SDL_Event e;
         SDL_zero(e);
         e.type = SDL_EVENT_WILL_ENTER_BACKGROUND;
@@ -240,7 +254,7 @@ static void menu_device(SDL_Window *window, SDL_Renderer *renderer)
         oracles_host_event event;
         int has_event = 0;
         CHECK(backend.poll_event(backend.opaque, &event, &has_event) && has_event && event.type == ORACLES_HOST_EVENT_SUSPEND && stores == 1);
-        CHECK(oracles_sdl_backend_menu_source(&backend) == ORACLES_SDL_MENU_FROM_NONE);
+        CHECK(oracles_sdl_backend_menu_source(&backend) == ORACLES_SDL_MENU_FROM_NONE && !oracles_home_menu_by_key((int)oracles_sdl_backend_menu_source(&backend)));
         polled(&backend);
         backend.watch_suspend(backend.opaque, NULL, NULL);
         menu_end(&backend);
@@ -424,33 +438,57 @@ static void device_kept(SDL_Renderer *renderer)
     oracles_ui_draw_destroy(draw);
 }
 
-/* The first game started with a controller names the menu's button over its first frames, once: due with the
- * controller used last, a button opening the menu and the toast not shown yet; marked shown once drawn. */
-static void first_toast(SDL_Renderer *renderer)
+/* Each game started names the key that opens the menu on the device used last, until the player opened it by its key,
+ * ten games at most: from the first frame that shows the status bar in play, counted once drawn. */
+static void reminder(SDL_Renderer *renderer)
 {
     char text[64];
-    CHECK(oracles_controls_menu_toast_due(ORACLES_INPUT_GAMEPAD, 0, "leftstick", text, sizeof text) && !strcmp(text, "Press L3 for the menu."));
-    CHECK(!oracles_controls_menu_toast_due(ORACLES_INPUT_KEYBOARD, 0, "leftstick", text, sizeof text));
-    CHECK(!oracles_controls_menu_toast_due(ORACLES_INPUT_POINTER, 0, "leftstick", text, sizeof text));
-    CHECK(!oracles_controls_menu_toast_due(ORACLES_INPUT_GAMEPAD, 1, "leftstick", text, sizeof text));
-    CHECK(!oracles_controls_menu_toast_due(ORACLES_INPUT_GAMEPAD, 0, "", text, sizeof text));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, "leftstick", text, sizeof text);
+    CHECK(!strcmp(text, "L3 opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 1, "leftstick", text, sizeof text);
+    CHECK(!strcmp(text, "L3 or Back opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, "righttrigger", text, sizeof text);
+    CHECK(!strcmp(text, "RT opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_KEYBOARD, 0, "leftstick", text, sizeof text);
+    CHECK(!strcmp(text, "Esc opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_KEYBOARD, 1, "leftstick", text, sizeof text);   /* a handheld's buttons as keys */
+    CHECK(!strcmp(text, "Back opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, "", text, sizeof text);   /* no button: Guide alone */
+    CHECK(!strcmp(text, "Guide opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 1, "", text, sizeof text);
+    CHECK(!strcmp(text, "Back opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_POINTER, 1, "leftstick", text, sizeof text);
+    CHECK(!strcmp(text, "The pause button opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_POINTER, 0, "leftstick", text, sizeof text);   /* a mouse: the keyboard's */
+    CHECK(!strcmp(text, "Esc opens the menu"));
+    /* Due at each game until shown ten times or dismissed. */
+    int count = 0, games = 0;
+    while (oracles_controls_menu_tip_due(count) && games < 20) { count = oracles_controls_tip_shown(count, ORACLES_MENU_TIPS); games++; }
+    CHECK(games == ORACLES_MENU_TIPS && count == ORACLES_TIP_OFF);
+    CHECK(!oracles_controls_menu_tip_due(ORACLES_TIP_OFF) && oracles_controls_tip_shown(ORACLES_TIP_OFF, ORACLES_MENU_TIPS) == ORACLES_TIP_OFF);
+    CHECK(oracles_controls_tip_shown(0, ORACLES_HOTKEYS_TIPS) == 1 && oracles_controls_tip_shown(2, ORACLES_HOTKEYS_TIPS) == ORACLES_TIP_OFF);
     /* A text longer than its field loses its end on a character's boundary, never half a character. */
     oracles_ui_copy_whole(text, 8, "Menu \xc2\xb7 L3");
     CHECK(!strcmp(text, "Menu \xc2\xb7"));
     oracles_ui_copy_whole(text, 7, "Menu \xc2\xb7 L3");
     CHECK(!strcmp(text, "Menu "));
-    oracles_controls_menu_toast("\xc3\xa9\xc3\xa9", text, 10);
-    CHECK(!strcmp(text, "Press \xc3\xa9"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, "\xc3\xa9\xc3\xa9", text, 4);
+    CHECK(!strcmp(text, "\xc3\xa9"));
     OraclesUiDraw *draw = oracles_ui_draw_create(renderer);
     OraclesHomeNav nav;
     oracles_home_init(&nav);
     OraclesPause *pause = draw ? oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0, 0, &nav) : NULL;
     CHECK(pause != NULL);
     if (pause) {
-        CHECK(!oracles_pause_overlay(pause, renderer) && !oracles_pause_toast_drawn(pause));
-        oracles_pause_toast(pause, "Press L3 for the menu.");
-        CHECK(!oracles_pause_toast_drawn(pause));
-        CHECK(oracles_pause_overlay(pause, renderer) && oracles_pause_toast_drawn(pause));
+        const OraclesPauseFrame title = { 0, ORACLES_INPUT_GAMEPAD, 480, 270, 0 }, play = { 1, ORACLES_INPUT_GAMEPAD, 480, 270, 0 };
+        CHECK(!oracles_pause_overlay(pause, renderer, &play) && !oracles_pause_reminder_drawn(pause) && !oracles_pause_reminder_pending(pause));
+        oracles_pause_reminder(pause, "leftstick");
+        CHECK(oracles_pause_reminder_pending(pause) && !oracles_pause_reminder_drawn(pause));
+        /* A title, a menu or a cutscene: it waits, drawing nothing. */
+        CHECK(oracles_pause_overlay(pause, renderer, &title) && !oracles_pause_reminder_drawn(pause));
+        CHECK(oracles_pause_overlay(pause, renderer, &play) && oracles_pause_reminder_drawn(pause));
+        /* Shown, it stays its time whatever follows. */
+        CHECK(oracles_pause_overlay(pause, renderer, &title) && oracles_pause_reminder_pending(pause));
     }
     oracles_pause_destroy(pause);
     oracles_ui_draw_destroy(draw);
@@ -470,7 +508,7 @@ int main(void)
     menu_in_launcher();
     input_devices();
     device_kept(renderer);
-    first_toast(renderer);
+    reminder(renderer);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

@@ -135,23 +135,24 @@ static int menu_pad_is(const char *name, const char *select, const char *hotkey,
     OraclesHomeControls controls;
     oracles_home_inspect_controls(&s, &controls);
     char text[64];
-    oracles_controls_menu_toast(s.menu_pad, text, sizeof text);
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, s.menu_pad, text, sizeof text);
     return !strcmp(s.menu_pad, wanted) && !strcmp(controls.menu_pad, wanted) && !strcmp(text, toast);
 }
 
 /* The menu's button is the one the session plays with: a 1.1.0 player's left stick's click, which an item hotkey slot
- * or the game's Select may have, leaves the menu to Guide alone, without a toast promising L3; an unknown name is the
- * default, a trigger stays. */
+ * or the game's Select may have, leaves the menu to Guide alone, without a reminder promising L3; an unknown name is
+ * the default, a trigger stays. */
 static void menu_pad_resolved(void)
 {
-    CHECK(menu_pad_is("leftstick", "back", "x", "leftstick", "Press L3 for the menu."));
-    CHECK(menu_pad_is("righttrigger", "back", "x", "righttrigger", "Press RT for the menu."));
-    CHECK(menu_pad_is("leftstick", "back", "leftstick", "", ""));
-    CHECK(menu_pad_is("leftstick", "leftstick", "x", "", ""));
-    CHECK(menu_pad_is("nosuchbutton", "back", "x", "leftstick", "Press L3 for the menu."));
-    CHECK(menu_pad_is("nosuchbutton", "back", "leftstick", "", ""));
-    CHECK(menu_pad_is("dpup", "back", "x", "", "") && menu_pad_is("guide", "back", "x", "", "") && menu_pad_is("a", "back", "x", "", ""));
-    CHECK(menu_pad_is("", "back", "x", "", ""));
+    CHECK(menu_pad_is("leftstick", "back", "x", "leftstick", "L3 opens the menu"));
+    CHECK(menu_pad_is("righttrigger", "back", "x", "righttrigger", "RT opens the menu"));
+    CHECK(menu_pad_is("leftstick", "back", "leftstick", "", "Guide opens the menu"));
+    CHECK(menu_pad_is("leftstick", "leftstick", "x", "", "Guide opens the menu"));
+    CHECK(menu_pad_is("nosuchbutton", "back", "x", "leftstick", "L3 opens the menu"));
+    CHECK(menu_pad_is("nosuchbutton", "back", "leftstick", "", "Guide opens the menu"));
+    CHECK(menu_pad_is("dpup", "back", "x", "", "Guide opens the menu") && menu_pad_is("guide", "back", "x", "", "Guide opens the menu")
+          && menu_pad_is("a", "back", "x", "", "Guide opens the menu"));
+    CHECK(menu_pad_is("", "back", "x", "", "Guide opens the menu"));
 }
 
 /* Display's choices written back: from the pause, the running game's core and workers are not; a margin
@@ -444,7 +445,7 @@ int main(int argc, char **argv)
     CHECK(!written.cheats[ORACLES_SETTINGS_AGES] && !written.cheats[ORACLES_SETTINGS_SEASONS]);   /* the games as they play */
     CHECK(!strcmp(written.vsync, "auto"));
     CHECK(!strcmp(written.menu_pad, "leftstick"));   /* the left stick's click opens the pause menu */
-    CHECK(!written.menu_toast_shown);   /* the toast that names it, due over the first game started with a controller */
+    CHECK(written.menu_tip == 0 && written.hotkeys_tip == 0);   /* the reminder that names it and the pause menu's line on the hotkeys, due */
     CHECK(written.update_check);   /* the home screen asks GitHub for the latest release */
 
     /* Paths as players have them: spaces, an equals sign, backslashes, and as long as the field holds. */
@@ -478,7 +479,8 @@ int main(int argc, char **argv)
     snprintf(written.pad_names[0], sizeof written.pad_names[0], "x");
     written.hotkey_pad_names[0][0] = 0;
     snprintf(written.menu_pad, sizeof written.menu_pad, "righttrigger");
-    written.menu_toast_shown = 1;
+    written.menu_tip = 3;
+    written.hotkeys_tip = ORACLES_TIP_OFF;
     snprintf(written.hotkey_bind_b, sizeof written.hotkey_bind_b, "Right Shift");
     written.transitions = 0;
     written.swim_hold = 1;
@@ -518,7 +520,7 @@ int main(int argc, char **argv)
     CHECK(read_back.camera == 1);   /* the keys around them still read */
     CHECK(!strcmp(read_back.key_names[0], "D") && read_back.key_names[5][0] == 0 && !strcmp(read_back.key_names[1], "Left"));
     CHECK(!strcmp(read_back.pad_names[0], "x") && read_back.hotkey_pad_names[0][0] == 0 && !strcmp(read_back.hotkey_pad_names[1], "y"));
-    CHECK(!strcmp(read_back.menu_pad, "righttrigger") && read_back.menu_toast_shown);
+    CHECK(!strcmp(read_back.menu_pad, "righttrigger") && read_back.menu_tip == 3 && read_back.hotkeys_tip == ORACLES_TIP_OFF);
     CHECK(!strcmp(read_back.hotkey_bind_b, "Right Shift") && !strcmp(read_back.hotkey_bind_a, "Left Ctrl"));
     CHECK(read_back.transitions == 0 && read_back.swim_hold == 1 && read_back.update_check == 0 && read_back.compact_text == 1 && read_back.text_box_wide == 1 && read_back.text_size == 2);
     CHECK(read_back.text_instant == 1);
@@ -565,7 +567,9 @@ int main(int argc, char **argv)
         if (!strcmp(line, "language_kinomi=en-eu\n")) seen |= 65536;
         if (!strcmp(line, "swim_hold=on\n")) seen |= 131072;
         if (!strcmp(line, "menu_pad=righttrigger\n")) seen |= 262144;
-        if (!strcmp(line, "menu_toast=shown\n")) seen |= 524288;
+        if (!strcmp(line, "menu_tip=3\n")) seen |= 524288;
+        if (!strcmp(line, "hotkeys_tip=off\n")) seen |= 33554432;
+        if (!strncmp(line, "menu_toast=", 11)) seen |= 128;   /* 1.3's, no longer written */
         if (!strcmp(line, "cheats_ages=\n")) seen |= 1048576;
         if (!strcmp(line, "cheats_seasons=no-damage,rupees\n")) seen |= 2097152;
         if (!strcmp(line, "update_check=off\n")) seen |= 4194304;
@@ -574,7 +578,7 @@ int main(int argc, char **argv)
     }
     if (f) fclose(f);
     CHECK(seen == (127 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768 | 65536 | 131072 | 262144 | 524288 | 1048576 | 2097152 | 4194304 | 8388608
-                   | 16777216));   /* and not 128: no per-game profile or transitions */
+                   | 16777216 | 33554432));   /* and not 128: no per-game profile or transitions, nor 1.3's menu_toast= */
 
     /* A file of an earlier version, without the keys: the defaults; the keys it has hold, colour correction off. */
     write_text(path, "colour_correction=0\nvsync=off\n");
@@ -587,7 +591,24 @@ int main(int argc, char **argv)
     CHECK(read_back.transitions == 1 && read_back.window_scale == 0 && read_back.swim_hold == 0 && read_back.compact_text == 0 && read_back.text_instant == 0);
     CHECK(read_back.cheats[ORACLES_SETTINGS_AGES] == 0 && read_back.cheats[ORACLES_SETTINGS_SEASONS] == 0);
     CHECK(read_back.launcher_width == 1280 && read_back.launcher_height == 720);
-    CHECK(!strcmp(read_back.menu_pad, "leftstick") && !read_back.menu_toast_shown && read_back.update_check == 1);
+    CHECK(!strcmp(read_back.menu_pad, "leftstick") && read_back.menu_tip == 0 && read_back.hotkeys_tip == 0 && read_back.update_check == 1);
+    /* 1.3's toast, shown once with a controller: dropped, and not kept as a key unknown; the reminder due again. */
+    write_text(path, "menu_pad=leftstick\nmenu_toast=shown\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menu_tip == 0 && !strstr(read_back.unknown, "menu_toast"));
+    /* The counts: on is 0, a count as far as its most is off, a word the launcher does not know leaves the default. */
+    write_text(path, "menu_tip=on\nhotkeys_tip=2\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menu_tip == 0 && read_back.hotkeys_tip == 2);
+    write_text(path, "menu_tip=10\nhotkeys_tip=3\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menu_tip == ORACLES_TIP_OFF && read_back.hotkeys_tip == ORACLES_TIP_OFF);
+    write_text(path, "menu_tip=9\nhotkeys_tip=often\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.menu_tip == 9 && read_back.hotkeys_tip == 0);
     /* An empty menu_pad= is none: Guide alone. */
     write_text(path, "menu_pad=\n");
     oracles_settings_defaults(&read_back);

@@ -37,6 +37,8 @@ typedef struct harness_options {
     uint32_t enhanced_subpixel_switch[8];   /* --enhanced-subpixel-switch: the frames the sub-pixel camera switches at, as from the pause */
     unsigned enhanced_subpixel_switches;
     uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
+    uint32_t framed_toggle[8];               /* --framed-toggle-at: the frames F3 switches between the wide world and the framed core */
+    unsigned framed_toggles;
     unsigned enhanced_ghosts;                 /* --enhanced-ghosts: ghosts working at once, threaded (1 by default) */
     int object_animation;                  /* --object-animation-check: the objects' animation from the game's data against the live game */
     int enhanced_frozen;                   /* --neighbour-animation off: a neighbour's objects frozen and the rooms never visited cut straight, as the Low quality has them */
@@ -46,6 +48,7 @@ typedef struct harness_options {
     unsigned cheats;                       /* --cheats: a mask of OraclesGuestCheat */
     int compact_text;                      /* --text compact: the text box's lines in the font's own widths */
     int text_box_check;                    /* --text-box-check: the text box drawn by the host, against the core's image */
+    int reminder_check;                    /* --reminder-check: the frames the launcher's reminder over a game counts as in play */
     int text_box_wide;                     /* --text-box wide: the host's wide box, 192 pixels of text, classic or compact */
     int text_size;                         /* --text-size: 0 normal, 1 large (three halves, the presenter's), 2 xlarge (twice, in the band) */
     int menus_large;                       /* --menus-large: the framed core shown alone, its box the presenter's at every Text size */

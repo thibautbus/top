@@ -55,6 +55,8 @@ int oracles_home_menu_device(int source)
     }
 }
 
+int oracles_home_menu_by_key(int source) { return source != ORACLES_SDL_MENU_FROM_NONE; }
+
 int oracles_home_trigger_held(const OraclesHomeNav *nav)
 {
     int menu_button, menu_trigger;

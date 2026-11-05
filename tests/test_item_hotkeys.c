@@ -51,6 +51,7 @@ static void test_conditions(OraclesGame game)
     VERDICT(s.link_death_trigger = 1, ORACLES_INVENTORY_REFUSED_DEATH);
     VERDICT(s.intro_done = 0, ORACLES_INVENTORY_REFUSED_INTRO);
     VERDICT(s.use_simulated_input = 1, ORACLES_INVENTORY_REFUSED_SIMULATED_INPUT);
+    VERDICT(s.use_simulated_input = 0xff, ORACLES_INVENTORY_REFUSED_SIMULATED_INPUT);   /* read to its end: still the game's */
     VERDICT(s.use_simulated_input = 2, ORACLES_INVENTORY_APPLIED);           /* the inverted directions against Ganon are play */
     VERDICT(s.minigame_controller = 1, ORACLES_INVENTORY_REFUSED_MINIGAME);
     VERDICT(s.in_boxing_match = 1, ORACLES_INVENTORY_REFUSED_BOXING);

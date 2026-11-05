@@ -938,6 +938,13 @@
       "bank": 0,
       "address": "0xcbd0"
     },
+    "treasure_display_data1": null,
+    "treasure_display_data2": null,
+    "c600_block": null,
+    "slingshot_level": null,
+    "spr_item_icons_1": null,
+    "obtained_seasons": null,
+    "magnet_glove_polarity": null,
     "vblank_function_queue": {
       "bank": 0,
       "address": "0xc400"
@@ -1163,6 +1170,9 @@
     "shutter_tile_first": "0x78",
     "shutter_tile_last": "0x83",
     "num_inventory_items": "0x20",
+    "first_upgrade_treasure": "0x00",
+    "item_bomb": "0x00",
+    "item_bracelet": "0x00",
     "item_biggoron_sword": "0x0c",
     "item_seed_satchel": "0x19",
     "item_shooter": "0x0f",
@@ -1296,6 +1306,13 @@
     "timewarp_return_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load"
   },
   "guest_table_absent": {
+    "treasure_display_data1": "the hotbar's icons not qualified for this revision",
+    "treasure_display_data2": "the hotbar's icons not qualified for this revision",
+    "c600_block": "the hotbar's icons not qualified for this revision",
+    "slingshot_level": "the hotbar's icons not qualified for this revision",
+    "spr_item_icons_1": "the hotbar's icons not qualified for this revision",
+    "obtained_seasons": "the hotbar's icons not qualified for this revision",
+    "magnet_glove_polarity": "the hotbar's icons not qualified for this revision",
     "in_boxing_match": "a Seasons symbol: Ages' engine has none",
     "tile_types_table": "continuous swim not qualified for this revision",
     "screen_transition_delay": "continuous swim not qualified for this revision",

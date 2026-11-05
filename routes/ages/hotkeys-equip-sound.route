@@ -1,0 +1,32 @@
+oracles-route 14
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 bab1d15f1c77a404c05860ff6fb2e67f6c0ebd9e
+core joypad-bouncing-off
+# hotkeys-throw.route's session with the item hotkeys in `equip` mode, as the harness records it (--hotkeys-live
+# equip, --hotkeys-record): bombs equipped on B at 1950, the power bracelet on A at 2000, and the bombs' key again
+# brings the seed shooter back to B at 2050, each with the inventory's equip sound (snd_selectitem, $56) handed to the game at
+# the next frame's start; then two seconds of nothing, written by hand.
+inputs
+0 keys 00
+537 keys 80
+545 keys 00
+573 keys 80
+581 keys 00
+1327 keys 80
+1334 keys 00
+1350 keys 80
+1358 keys 00
+1463 keys 08
+1762 keys 00
+1782 keys 02
+1808 keys 0a
+1815 keys 08
+1843 keys 00
+1950 equip b=0f s11=03
+1951 sound 56
+2000 equip a=05 s2=16
+2001 sound 56
+2050 equip b=03 s11=0f
+2051 sound 56
+2170 keys 00

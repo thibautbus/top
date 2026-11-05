@@ -37,6 +37,7 @@ typedef struct OraclesUiControlsLayout {
     OraclesUiLine hotkey_names[ORACLES_HOME_HOTKEY_ROWS];
     OraclesUiLine items[ORACLES_HOME_SLOTS];
     OraclesUiLine slots_note;
+    OraclesUiLine hotkeys_off;                  /* under the grid while the hotkeys are off (oracles_controls_hotkeys_off_line), else zero */
     OraclesUiLine shortcuts_label;
     const char *shortcuts_text;                 /* the label's: "In game", 4:3's "Fixed keys in game" */
     /* The fixed keys, framed, and their meanings, F2 to F11 then Esc, whose Menu comes first, after Esc's frame and
@@ -80,7 +81,7 @@ extern const OraclesUiTextStyle oracles_ui_controls_cell_locked_4_3, oracles_ui_
 /* Menu's controller cell, smaller than the grids' (20 px in 16:9, 30 in 4:3), italic while it waits. */
 extern const OraclesUiTextStyle oracles_ui_controls_menu_cell, oracles_ui_controls_menu_cell_waiting;
 extern const OraclesUiTextStyle oracles_ui_controls_menu_cell_4_3, oracles_ui_controls_menu_cell_waiting_4_3;
-extern const char oracles_ui_controls_mode_text[], oracles_ui_controls_mode_note[], oracles_ui_controls_slots[];
+extern const char oracles_ui_controls_mode_text[], oracles_ui_controls_mode_note[], oracles_ui_controls_slots[], oracles_ui_controls_hotkeys_off[];
 extern const char *const oracles_ui_controls_mode_choices[2];
 extern const char oracles_ui_controls_swim_text[], oracles_ui_controls_swim_fan[];
 extern const char oracles_ui_controls_original_only[];   /* "Needs an original ROM.": Swimming's, the Item hotkeys' reason */

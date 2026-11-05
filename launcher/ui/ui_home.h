@@ -28,9 +28,9 @@ void oracles_ui_home_follow(OraclesUiHome *home, const OraclesHomeNav *nav, doub
 /* A message shown for a few seconds above the help bar. */
 void oracles_ui_home_toast(OraclesUiHome *home, const char *text, double now_ms);
 
-/* The toast over the first game started with a controller ("Press L3 for the menu."), in the scene of `scene`, at
- * `opacity`. */
-void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float opacity);
+/* The reminder over a game started ("L3 opens the menu"), in the scene of `scene`, under the game's status bar whose
+ * bottom is at `bar_bottom` there, at `opacity`. */
+void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float bar_bottom, float opacity);
 
 /* The layout the screen of `nav` is drawn in, which the caller sets on the drawing before the frame begins
  * (oracles_ui_draw_layout): the window's, nav->layout, for every screen. */

@@ -59,6 +59,8 @@ struct OraclesItemHotkeysReplay {
     OraclesGuest *guest;
     OraclesItemHotkeysEffect *effects;
     size_t count, next;
+    OraclesItemHotkeysSound *sounds;
+    size_t sound_count, sound_next;
     int stopped;
     OraclesItemHotkeysStats stats;
 };
@@ -109,6 +111,31 @@ OraclesItemHotkeysReplay *oracles_item_hotkeys_replay_start(OraclesGuest *guest,
     return r;
 }
 
+int oracles_item_hotkeys_replay_sounds(OraclesItemHotkeysReplay *r, const OraclesItemHotkeysSound *sounds, size_t count)
+{
+    if (!r || !count) return 0;
+    if (!sounds || oracles_guest_arm_calls(r->guest) != 0) return -1;
+    OraclesItemHotkeysSound *copy = malloc(count * sizeof *copy);
+    if (!copy) return -1;
+    memcpy(copy, sounds, count * sizeof *copy);
+    free(r->sounds);
+    r->sounds = copy;
+    r->sound_count = count;
+    r->sound_next = 0;
+    return 0;
+}
+
+void oracles_item_hotkeys_replay_frame(OraclesItemHotkeysReplay *r, uint32_t frame)
+{
+    if (!r) return;
+    while (r->sound_next < r->sound_count && r->sounds[r->sound_next].frame <= frame) {
+        const OraclesItemHotkeysSound *sound = &r->sounds[r->sound_next++];
+        const OraclesGuestCall call = { ORACLES_ROUTINE_PLAY_SOUND, sound->sound, 0, 1 };
+        if (!r->stopped && sound->frame == frame && oracles_guest_queue_call(r->guest, &call, NULL) == 0) r->stats.sounds++;
+        else if (!r->stopped) { r->stats.sounds_refused++; mismatch(r, sound->frame, ORACLES_INVENTORY_NOTHING); }
+    }
+}
+
 void oracles_item_hotkeys_replay_stop_applying(OraclesItemHotkeysReplay *r) { if (r) r->stopped = 1; }
 
 void oracles_item_hotkeys_replay_stats(const OraclesItemHotkeysReplay *r, OraclesItemHotkeysStats *out)
@@ -116,6 +143,7 @@ void oracles_item_hotkeys_replay_stats(const OraclesItemHotkeysReplay *r, Oracle
     if (!out) return;
     if (r) *out = r->stats; else memset(out, 0, sizeof *out);
     if (r && !r->stopped) out->missed_write_point += (unsigned)(r->count - r->next), out->replay_mismatch += (unsigned)(r->count - r->next);
+    if (r && !r->stopped) out->sounds_refused += (unsigned)(r->sound_count - r->sound_next), out->replay_mismatch += (unsigned)(r->sound_count - r->sound_next);
 }
 
 void oracles_item_hotkeys_replay_stop(OraclesItemHotkeysReplay *r)
@@ -123,5 +151,6 @@ void oracles_item_hotkeys_replay_stop(OraclesItemHotkeysReplay *r)
     if (!r) return;
     oracles_guest_set_inventory_policy(r->guest, NULL, NULL, NULL, NULL);
     free(r->effects);
+    free(r->sounds);
     free(r);
 }

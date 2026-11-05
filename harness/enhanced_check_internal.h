@@ -92,6 +92,7 @@ struct OraclesEnhancedCheck {
     EcRipple whole, water;            /* a room shown whole under the waves; any frame under the waves */
     unsigned whole_last_waves;
     unsigned hotbar_cutscene_frames;  /* frames the hotbar was drawn over a framed image or in a cutscene */
+    unsigned hotbar_framed_only_frames, framed_only_frames;   /* F3's framed core: its frames, and those with the hotbar drawn */
     /* a scroll's start that opens a room shown alone, the game's window still: the band as shown must stand still */
     unsigned alone_scroll_frames, alone_scroll_band_moves, alone_scroll_cut_frames;
     int alone_have, alone_whole;   /* the last frame in play showed the room whole */

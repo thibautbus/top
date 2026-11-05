@@ -34,17 +34,25 @@ uint32_t oracles_enhanced_faded_pixel(const uint32_t *colours, uint32_t rgb555, 
 
 static uint32_t faded(const OraclesEnhancedCompose *in, uint32_t rgb555, int fade) { return oracles_enhanced_faded_pixel(in->colours, rgb555, fade); }
 
-uint16_t oracles_enhanced_bar_pixel(const OraclesEnhancedBar *bar, unsigned x, unsigned y, int *hides_sprite)
+uint16_t oracles_enhanced_bar_tile_pixel(const OraclesEnhancedBar *bar, uint8_t tile_number, uint8_t attr, unsigned x, unsigned y, unsigned *index_out)
 {
-    const unsigned cell = (y / 8u) * 32u + x / 8u;
-    const uint8_t attr = bar->attributes[cell];
-    const unsigned tile = (bar->lcdc & 0x10u) ? bar->tiles[cell] : 256u + (uint8_t)(bar->tiles[cell] + 128u) - 128u;
+    const unsigned tile = (bar->lcdc & 0x10u) ? tile_number : 256u + (uint8_t)(tile_number + 128u) - 128u;
     const unsigned line = (attr & 0x40u) ? 7u - y % 8u : y % 8u, bit = (attr & 0x20u) ? x % 8u : 7u - x % 8u;
     const uint8_t *data = ((attr & 0x08u) ? bar->vram1 : bar->vram0) + tile * 16u + line * 2u;
     const unsigned index = ((data[0] >> bit) & 1u) | (((data[1] >> bit) & 1u) << 1);
     const uint8_t *colour = bar->palettes + ((attr & 7u) * 4u + index) * 2u;
-    if (hides_sprite) *hides_sprite = (bar->lcdc & 0x01u) && (attr & 0x80u) && index;
+    if (index_out) *index_out = index;
     return (uint16_t)((colour[0] | (colour[1] << 8)) & 0x7fffu);
+}
+
+uint16_t oracles_enhanced_bar_pixel(const OraclesEnhancedBar *bar, unsigned x, unsigned y, int *hides_sprite)
+{
+    const unsigned cell = (y / 8u) * 32u + x / 8u;
+    const uint8_t attr = bar->attributes[cell];
+    unsigned index = 0;
+    const uint16_t colour = oracles_enhanced_bar_tile_pixel(bar, bar->tiles[cell], attr, x, y, &index);
+    if (hides_sprite) *hides_sprite = (bar->lcdc & 0x01u) && (attr & 0x80u) && index;
+    return colour;
 }
 
 unsigned oracles_enhanced_hud_fill(const OraclesEnhancedBar *bar, uint32_t (*pixel)(void *opaque, uint16_t rgb555), void *opaque,

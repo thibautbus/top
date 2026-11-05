@@ -65,6 +65,7 @@ struct OraclesGuest {
     uint8_t transition_last_state;                   /* wScreenTransitionState when the policy was last asked, or as a savestate's load found it */
     hook hooks[32];                                  /* the table of section 15 plus the hooks a consumer adds (tags, object updates) */
     unsigned hook_count;
+    int reader;                                      /* oracles_guest_reader's: no hook, no callback of the core's */
     uint8_t hooked_pc[0x10000u / 8u];                 /* a bit per address some hook enters at: the others skip the table */
     pending_return pending[PENDING_RETURNS];
     unsigned pending_count;

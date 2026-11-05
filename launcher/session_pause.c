@@ -212,14 +212,16 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
     oracles_sdl_backend_pause_view(&s->backend, &window, &renderer, &frame, &width, &height);
     oracles_sdl_backend_suspend_audio(&s->backend);
     oracles_sdl_backend_hold(&s->backend, 1);
-    const int device = oracles_home_menu_device((int)oracles_sdl_backend_menu_source(&s->backend));
+    const oracles_sdl_menu_source source = oracles_sdl_backend_menu_source(&s->backend);
+    const int device = oracles_home_menu_device((int)source);
     /* F11 and --fullscreen change the window without the settings: the pause's Window shows the window the game has. */
     int window_w, window_h;
     const int window_shown = window_now(s, window, &window_w, &window_h);
     const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, pause_cheats_changed,
                                            pause_window_chosen, (int)oracles_core_kind(s->core), s->ghosts, device, pause_cheats(s),
                                            s->cheats_game >= 0, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
-                                           window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size };
+                                           window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size,
+                                           oracles_home_menu_by_key((int)source) };
     const OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
     if (result == ORACLES_PAUSE_RESUME) oracles_sdl_backend_hold(&s->backend, 0);   /* a pause that ends the session is past the last present */
     if (result == ORACLES_PAUSE_WINDOW_CLOSED) oracles_sdl_backend_set_window_closed(&s->backend);

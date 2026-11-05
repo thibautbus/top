@@ -17,6 +17,9 @@ int oracles_home_button_action(const OraclesHomeNav *nav, const SDL_Event *event
 /* The device that asked for the pause menu (an oracles_sdl_menu_source) as the key hints name it, an
  * OraclesInputDevice; -1 when none did (Android's Back, a suspension): the hints keep the device used last. */
 int oracles_home_menu_device(int source);
+/* The player opened the pause menu by its key (an oracles_sdl_menu_source): Escape, the controller's menu button or
+ * Guide, the touch controls' pause, Android's Back; not a suspension (Android's background), which no device asked. */
+int oracles_home_menu_by_key(int source);
 /* Where *trigger_held starts on a screen that opens, a game's pause or the home screen back from a game: the menu's
  * trigger held now (a press that opened the pause is not one that closes it). */
 int oracles_home_trigger_held(const OraclesHomeNav *nav);

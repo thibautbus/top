@@ -78,7 +78,8 @@ OraclesGuestInventoryVerdict oracles_guest_inventory_refusal(const OraclesGuestI
     if (s->text_is_active) return ORACLES_INVENTORY_REFUSED_TEXT;
     if (s->link_death_trigger) return ORACLES_INVENTORY_REFUSED_DEATH;
     if (!s->intro_done) return ORACLES_INVENTORY_REFUSED_INTRO;
-    if (s->use_simulated_input == 1u) return ORACLES_INVENTORY_REFUSED_SIMULATED_INPUT;   /* 2 inverts the directions against Ganon: play */
+    /* The game's own keys, read ($01) or held at their last value once read ($ff); 2 inverts the directions against Ganon: play. */
+    if (s->use_simulated_input != 0u && s->use_simulated_input != 2u) return ORACLES_INVENTORY_REFUSED_SIMULATED_INPUT;
     if (s->minigame_controller) return ORACLES_INVENTORY_REFUSED_MINIGAME;
     if (s->in_boxing_match) return ORACLES_INVENTORY_REFUSED_BOXING;
     if (s->slots[ORACLES_INVENTORY_SLOT_B] == s->item_biggoron_sword || s->slots[ORACLES_INVENTORY_SLOT_A] == s->item_biggoron_sword) return ORACLES_INVENTORY_REFUSED_BIGGORON;
@@ -180,12 +181,14 @@ void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventorySta
     s->status_bar_needs_refresh = oracles_guest_read8(guest, t->status_bar_needs_refresh);
     const OraclesGuestSym parents[5] = { t->parent_item2_enabled, t->parent_item3_enabled, t->parent_item4_enabled, t->parent_item5_enabled, t->weapon_item_enabled };
     for (unsigned i = 0; i < 5u; i++) {
-        const uint8_t *item = oracles_guest_ptr(guest, parents[i], ORACLES_OBJ_VAR03 + 1u);
+        const uint8_t *item = oracles_guest_ptr(guest, parents[i], ORACLES_OBJ_STATE + 1u);
         if (!item) continue;
         s->parents[i].enabled = item[ORACLES_OBJ_ENABLED]; s->parents[i].id = item[ORACLES_OBJ_ID]; s->parents[i].button = item[ORACLES_OBJ_VAR03];
+        s->parents[i].state = item[ORACLES_OBJ_STATE];
     }
     s->num_inventory_items = t->num_inventory_items; s->item_biggoron_sword = t->item_biggoron_sword;
     s->item_seed_satchel = t->item_seed_satchel; s->item_harp = t->item_harp;
+    s->item_bomb = t->item_bomb; s->item_bracelet = t->item_bracelet;
     s->item_seed_shooter = s->game == ORACLES_GAME_AGES ? t->item_shooter : t->item_slingshot;
     s->cutscene_ingame = t->cutscene_ingame; s->cutscene_onox_final_form = t->cutscene_onox_final_form;
     s->cutscene_loading_room = t->cutscene_loading_room;

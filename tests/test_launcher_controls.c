@@ -790,18 +790,22 @@ static void menu(void)
     CHECK(!oracles_controls_menu_free(c, "b") && oracles_controls_menu_free(c, "lefttrigger") && oracles_controls_menu_free(c, "rightstick"));
     CHECK(oracles_controls_capture_button(&nav, "righttrigger") == ORACLES_HOME_STORE && !c->capturing && !strcmp(c->menu_pad, "righttrigger"));
     CHECK(!strcmp(oracles_controls_cell_text(&nav, 2, ORACLES_CONTROLS_ROW_MENU), "RT"));
-    char toast[64];
-    oracles_controls_menu_toast(c->menu_pad, toast, sizeof toast);
-    CHECK(!strcmp(toast, "Press RT for the menu."));
-    /* None: Guide alone, and no toast. */
+    char tip[64];
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, c->menu_pad, tip, sizeof tip);
+    CHECK(!strcmp(tip, "RT opens the menu"));
+    /* None: Guide alone, which the reminder names (Back on Android). */
     c->menu_pad[0] = 0;
     CHECK(!strcmp(oracles_controls_cell_text(&nav, 2, ORACLES_CONTROLS_ROW_MENU), "\xe2\x80\x94"));
-    oracles_controls_menu_toast(c->menu_pad, toast, sizeof toast);
-    CHECK(!toast[0]);
-    /* Reset to defaults: L3 again. */
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, c->menu_pad, tip, sizeof tip);
+    CHECK(!strcmp(tip, "Guide opens the menu"));
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 1, c->menu_pad, tip, sizeof tip);
+    CHECK(!strcmp(tip, "Back opens the menu"));
+    /* Reset to defaults: L3 again, and the reminder and the pause menu's line due again. */
+    c->menu_tip = c->hotkeys_tip = ORACLES_TIP_OFF;
     CHECK(oracles_controls_click(&nav, 0, ORACLES_CONTROLS_ROW_RESET, -1) == ORACLES_HOME_STORE && !strcmp(c->menu_pad, "leftstick"));
-    oracles_controls_menu_toast(c->menu_pad, toast, sizeof toast);
-    CHECK(!strcmp(toast, "Press L3 for the menu."));
+    CHECK(c->menu_tip == 0 && c->hotkeys_tip == 0);
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, c->menu_pad, tip, sizeof tip);
+    CHECK(!strcmp(tip, "L3 opens the menu"));
 
     /* 18a: Menu's button highlighted, first of the fixed keys under the item hotkeys' panel. */
     OraclesUiControlsLayout l;
@@ -847,6 +851,57 @@ static void menu(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && !c->capturing);
 }
 
+/* Hotkeys with Ages' item hotkeys off (37i, 37i 4:3): under the grid, dimmed, the sentence that says what On does,
+ * the right panel growing by it in 16:9; on, neither (37j, 37j 4:3).  Never for a fan game, nor where they are refused. */
+static void hotkeys_off(void)
+{
+    OraclesHomeNav nav;
+    controls_nav(&nav);
+    nav.games[0].hotkeys = 0;
+    nav.controls.column = 2;
+    nav.controls.row = ORACLES_CONTROLS_ROW_MODE;
+    OraclesUiControlsLayout l;
+    for (int on = 0; on < 2; on++) {
+        const char *frame = on ? "37j" : "37i", *frame_4_3 = on ? "37j 4:3" : "37i 4:3";
+        nav.games[0].hotkeys = on;
+        CHECK(oracles_controls_hotkeys_off_line(&nav) == !on);
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        layout_box(frame, "right panel", &l.right_panel);
+        layout_box(frame, "Item hotkeys", &l.mode);
+        layout_line_top(frame, "note", &l.mode_note);
+        for (int row = 0; row < 6; row++) {
+            char what[32];
+            snprintf(what, sizeof what, "slot %d key", row); layout_box(frame, what, &l.cells[2][row]);
+        }
+        layout_line_top(frame, "slots note", &l.slots_note);
+        if (!on) {
+            layout_line(frame, "off text", &l.hotkeys_off);
+            layout_near(frame, "off line", "y", l.hotkeys_off.y);
+        } else CHECK(l.hotkeys_off.h == 0.0f);
+        nav.controls.tab = ORACLES_CONTROLS_TAB_HOTKEYS;
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+        layout_box(frame_4_3, "Item hotkeys", &l.mode);
+        layout_line(frame_4_3, "note", &l.mode_note);
+        for (int row = 0; row < 6; row++) {
+            char what[32];
+            snprintf(what, sizeof what, "slot %d key", row); layout_box(frame_4_3, what, &l.cells[2][row]);
+            snprintf(what, sizeof what, "slot %d name", row); layout_line(frame_4_3, what, &l.hotkey_names[row]);
+        }
+        if (!on) {
+            layout_line(frame_4_3, "off text", &l.hotkeys_off);
+            layout_near(frame_4_3, "off line", "y", l.hotkeys_off.y - 10.0f);
+        } else CHECK(l.hotkeys_off.h == 0.0f);
+        nav.controls.tab = ORACLES_CONTROLS_TAB_BUTTONS;
+    }
+    nav.games[0].hotkeys = 0;
+    nav.hotkeys_refused = 1;   /* an unrecognised ROM's pause: they cannot be turned on */
+    CHECK(!oracles_controls_hotkeys_off_line(&nav));
+    nav.hotkeys_refused = 0;
+    oracles_home_select(&nav, ORACLES_HOME_FAN);
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    CHECK(!oracles_controls_hotkeys_off_line(&nav));
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-controls launcher_layout_reference.json\n"); return 2; }
@@ -862,6 +917,7 @@ int main(int argc, char **argv)
     capture_4_3();
     pause_4_3();
     layout_4_3();
+    hotkeys_off();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher controls: the capture, the moves, Swimming, the 4:3 tabs and the pause menu behave as expected, and Controls matches the layout reference in both layouts within %.1f px\n", (double)LAYOUT_TOLERANCE);
     return 0;

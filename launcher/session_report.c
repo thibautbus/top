@@ -140,6 +140,7 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o)
     if (s->ran) oracles_language_session_report(s->language, s->guest, "oracles: ", stderr);
     oracles_language_session_stop(s->language);
     if (s->guest) oracles_guest_detach(s->guest);
+    oracles_guest_detach(s->bar_reader);
     if (s->ran && !o->no_window) {
         unsigned underruns = 0, drops = 0, peak_ms = 0, average_ms = 0;
         oracles_sdl_backend_audio_report(&s->backend, &underruns, &drops, &peak_ms, &average_ms);

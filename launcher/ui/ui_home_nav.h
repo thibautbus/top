@@ -281,6 +281,9 @@ typedef struct OraclesHomeControls {
     char menu_pad[ORACLES_HOME_NAME_LENGTH];   /* the controller's Escape: the pause menu in a game, Back here (settings.txt's menu_pad=) */
     char items[2][ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];   /* the item in each slot, empty when none */
     int swim_hold;               /* Swimming, for every game: 0 Tap, 1 Hold (settings.txt's swim_hold=) */
+    /* The reminder naming the menu's key and the pause menu's line on the item hotkeys, as settings.txt counts them
+     * (menu_tip=, hotkeys_tip=; ORACLES_TIP_OFF when done): Reset to defaults brings them back. */
+    int menu_tip, hotkeys_tip;
     int column, row;             /* the highlighted cell (ui_controls_nav.h) */
     int capturing;               /* the highlighted cell waits for a key or a button */
     int tab;                     /* 4:3: the tab shown while the highlight is on the tabs (ORACLES_CONTROLS_TAB_*) */
@@ -367,6 +370,9 @@ typedef struct OraclesHomeNav {
     int in_game, narrow;
     OraclesProfile playing;
     char load_note[ORACLES_HOME_NAME_LENGTH];
+    /* The pause menu's line on the item hotkeys under its list, due as the pause opened (oracles_controls_hotkeys_tip_due):
+     * shown there while they stay off (oracles_home_hotkeys_line). */
+    int hotkeys_line;
     /* After a game that ran slowly, the home screen's toast that suggests something lighter (oracles_home_slow_text),
      * until the first input. */
     int slow;

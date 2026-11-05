@@ -241,8 +241,30 @@ static uint8_t *at(OraclesGuestSym sym, unsigned offset)
 
 static int gives(const OraclesGuestTables *t, const OraclesGuestRom *rom, uint8_t treasure, uint8_t parameter)
 {
-    const OraclesGuestCall call = { ORACLES_ROUTINE_GIVE_TREASURE, treasure, parameter };
+    const OraclesGuestCall call = { ORACLES_ROUTINE_GIVE_TREASURE, treasure, parameter, 0 };
     return oracles_guest_call_allowed(t, rom, &call);
+}
+
+/* The inventory open: a mod's playSound waits for it to close, a hotkey's sound marked for it runs there, and nothing else
+ * marked does; in play every call runs; another menu, nothing. */
+static void calls_in_inventory(void)
+{
+    OraclesGuestInventoryState s;
+    memset(&s, 0, sizeof s);
+    s.game = ORACLES_GAME_AGES;
+    s.game_state = 2; s.cutscene_index = 1; s.cutscene_ingame = 1; s.intro_done = 1; s.menu_inventory = 1;
+    s.num_inventory_items = 0x20; s.item_biggoron_sword = 0x0c;
+    const OraclesGuestCall mod_sound = { ORACLES_ROUTINE_PLAY_SOUND, 0x56, 0, 0 }, hotkey_sound = { ORACLES_ROUTINE_PLAY_SOUND, 0x56, 0, 1 };
+    const OraclesGuestCall marked_treasure = { ORACLES_ROUTINE_GIVE_TREASURE, 0x05, 0, 1 };
+    CHECK(oracles_guest_call_may_run(&s, &mod_sound) && oracles_guest_call_may_run(&s, &hotkey_sound) && oracles_guest_call_may_run(&s, &marked_treasure));
+    s.opened_menu_type = 1;
+    CHECK(!oracles_guest_call_may_run(&s, &mod_sound) && oracles_guest_call_may_run(&s, &hotkey_sound) && !oracles_guest_call_may_run(&s, &marked_treasure));
+    s.opened_menu_type = 2;   /* another menu */
+    CHECK(!oracles_guest_call_may_run(&s, &mod_sound) && !oracles_guest_call_may_run(&s, &hotkey_sound));
+    s.opened_menu_type = 1; s.text_is_active = 1;
+    CHECK(oracles_guest_call_may_run(&s, &hotkey_sound));   /* the menu's own refusal comes first */
+    s.opened_menu_type = 0;
+    CHECK(!oracles_guest_call_may_run(&s, &hotkey_sound) && !oracles_guest_call_may_run(&s, &mod_sound));   /* a text in play: both wait */
 }
 
 static void calls(void)
@@ -270,7 +292,7 @@ static void calls(void)
             fprintf(stderr, "FAIL mode $%x with $%02x: expected %s\n", modes[i].mode, modes[i].parameter, modes[i].allowed ? "allowed" : "refused");
         }
     }
-    const OraclesGuestCall lose = { ORACLES_ROUTINE_LOSE_TREASURE, sword, 0 };
+    const OraclesGuestCall lose = { ORACLES_ROUTINE_LOSE_TREASURE, sword, 0, 0 };
     CHECK(oracles_guest_call_allowed(t, &rom, &lose));
     at(t->treasure_collection_behaviours, 3u * sword)[1] = 0x06;   /* a dungeon's treasure is never lost by a mod either */
     CHECK(!oracles_guest_call_allowed(t, &rom, &lose) && oracles_guest_treasure_mode(t, &rom, sword) == 6);
@@ -297,9 +319,9 @@ static void calls(void)
     at(t->rupee_values, 2u * 6u)[0] = 0x0a;
     CHECK(oracles_guest_rupee_amount(t, &rom, 4) == 10 && oracles_guest_rupee_amount(t, &rom, 5) == 999 && oracles_guest_rupee_amount(t, &rom, 6) < 0);
     CHECK(oracles_guest_rupee_amount(t, &rom, t->rupee_value_count) < 0);
-    const OraclesGuestCall rupees = { ORACLES_ROUTINE_REMOVE_RUPEES, t->rupee_value_count, 0 };
-    const OraclesGuestCall silence = { ORACLES_ROUTINE_PLAY_SOUND, 0, 0 };
-    const OraclesGuestCall unknown = { (OraclesGuestRoutine)99, 0, 0 };
+    const OraclesGuestCall rupees = { ORACLES_ROUTINE_REMOVE_RUPEES, t->rupee_value_count, 0, 0 };
+    const OraclesGuestCall silence = { ORACLES_ROUTINE_PLAY_SOUND, 0, 0, 0 };
+    const OraclesGuestCall unknown = { (OraclesGuestRoutine)99, 0, 0, 0 };
     CHECK(!oracles_guest_call_allowed(t, &rom, &rupees) && !oracles_guest_call_allowed(t, &rom, &silence) && !oracles_guest_call_allowed(t, &rom, &unknown));
     /* Without an image, or a treasure past the table, no treasure is given. */
     at(t->treasure_collection_behaviours, 3u * sword)[1] = 0x00;
@@ -458,6 +480,7 @@ int main(int argc, char **argv)
 
     /* The catalogue of the game's routines (the call transaction): a treasure only with a parameter the game bounds. */
     calls();
+    calls_in_inventory();
     const OraclesGuestTables *t = &oracles_guest_tables_ages;
     CHECK(!strcmp(t->ring_names[1], "power_ring_l1") && !t->treasure_names[0x10][0]);
 

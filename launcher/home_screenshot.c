@@ -4,6 +4,8 @@
 
 #include "backends.h"
 #include "pause.h"
+#include "touch_controls.h"
+#include "ui_controls_nav.h"
 #include "ui_home.h"
 #include "ui_page_nav.h"
 #include "update_check.h"
@@ -87,13 +89,15 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     oracles_update_check_status(&update);
     if (update.state == ORACLES_UPDATE_NEWER) snprintf(nav.update, sizeof nav.update, "%s", update.version);
     if (frame) pause(&nav, ORACLES_HOME_GAME_AGES, width);
+    int reminder = 0;
     /* The inputs move the navigation only: a game is not started, the launcher does not exit.  `slow` is the return
      * from a game that ran slowly, its toast shown until the next input; `key` and `pad`, a key or a controller's
      * button as the device used last, which the hints follow; `android`, the screens as Android has them; `moonrise`,
      * over a game's frame, the pause of Moonrise Regalia rather than Ages'; `import`, on a game's page, the import's
      * confirmation as the page's own save chosen would open it; `imported`, there, the row's status after an import
      * that kept the save and its savestate in Backups and set the language to English; `mods` before either, the game
-     * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too. */
+     * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too; `reminder`,
+     * over a game's frame, the game in play with the reminder over it that names the menu's key, in place of the pause. */
     int mods = 0;
     for (const char *p = inputs; p && *p;) {
         const size_t length = strcspn(p, ",");
@@ -104,6 +108,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         else if (length == 7 && !strncmp(p, "android", 7)) nav.android = nav.display.fullscreen_only = 1;
         else if (length == 8 && !strncmp(p, "moonrise", 8) && frame) pause(&nav, ORACLES_HOME_GAME_MOONRISE, width);
         else if (length == 4 && !strncmp(p, "mods", 4)) mods = 1;
+        else if (length == 8 && !strncmp(p, "reminder", 8) && frame) reminder = 1;
         else if (length == 6 && !strncmp(p, "import", 6) && nav.screen == ORACLES_SCREEN_GAME) {
             const OraclesHomeGame *game = oracles_page_game_const(&nav);
             nav.save_flow.state = ORACLES_SAVE_FLOW_CONFIRM;
@@ -122,7 +127,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
                                      nav.save_flow.text, nav.save_flow.text2);
         }
         else if (!parse_action(p, length, &action)) {
-            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, mods, import, imported)",
+            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, mods, import, imported, reminder)",
                      (int)length, p);
             return 1;
         }
@@ -139,12 +144,30 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         snprintf(error, capacity, "cannot draw offscreen: %s", SDL_GetError());
     } else if (frame && !image) {
         snprintf(error, capacity, "cannot read the game's image %s (a binary PPM, as --screenshot writes)", frame);
+    } else if (frame && reminder) {
+        /* The game's image at its whole scale, centred, as a game in play shows it, and the reminder over it. */
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        const OraclesTouchBox box = oracles_touch_frame(width, height, frame_width, frame_height, 0);
+        const SDL_FRect at = { box.x, box.y, box.w, box.h };
+        SDL_RenderTexture(renderer, image, NULL, &at);
+        OraclesPause *over = oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, nav.display.aspect, 0, &nav);
+        const OraclesPauseFrame shown = { 1, -1, frame_width, frame_height, 0 };
+        if (over) {
+            oracles_pause_reminder(over, nav.controls.menu_pad);
+            oracles_pause_overlay(over, renderer, &shown);
+        }
+        oracles_pause_destroy(over);
+        SDL_RenderPresent(renderer);
+        if (over && write_ppm(path, surface)) status = 0;
+        else snprintf(error, capacity, "cannot write %s", path);
     } else if (frame) {
         /* The game fullscreen when Display says so, Scaling's Fill then filling the capture as it fills the screen. */
         int presentation, scale_mode;
         oracles_sdl_presentation(oracles_display_fullscreen(&nav), nav.display.scaling, &presentation, &scale_mode);
         SDL_SetTextureScaleMode(image, (SDL_ScaleMode)scale_mode);
         OraclesUiHome view;
+        oracles_controls_tips_opened(&nav, 0);   /* the pause as it opens, its line on the item hotkeys when due */
         oracles_ui_home_start(&view, &nav);
         oracles_pause_paint(draw, renderer, image, frame_width, frame_height, presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX, width, height,
                             &view, &nav, 0.0, NULL);

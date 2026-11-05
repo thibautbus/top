@@ -53,6 +53,7 @@ typedef struct OraclesPauseSession {
     /* The size of that image, in the game's pixels: its part shown alone (the game's menus enlarged, which Display may
      * change here), or the whole frame; NULL: the frame's. */
     void (*game_size)(void *opaque, int *width, int *height);
+    int by_key;   /* the player opened it by its key (Escape, the controller's, the touch controls' pause, Android's Back) */
 } OraclesPauseSession;
 
 typedef enum OraclesPauseResult {
@@ -79,15 +80,29 @@ void oracles_pause_prepare(OraclesPause *pause, SDL_Renderer *renderer);
 /* The pause, until the player resumes or leaves; `frame` holds the game's last image, `width` x `height`. */
 OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *frame,
                                      int width, int height, const OraclesPauseSession *session);
-/* The first game started with a controller: `text` ("Press L3 for the menu.") shown over the game from its first frame
- * for about 4 s, whatever the player presses, then faded out over 0.6 s; it never takes an input.  Its glyphs are the
- * pause's, prepared beforehand. */
-void oracles_pause_toast(OraclesPause *pause, const char *text);
-/* That toast was drawn over a frame of the game: settings.txt then keeps that it was shown. */
-int oracles_pause_toast_drawn(const OraclesPause *pause);
-/* Draws that toast over the frame about to be presented (the SDL backend's overlay, `opaque` the pause): 1 while it
- * shows, 0 once it is gone. */
-int oracles_pause_overlay(void *opaque, SDL_Renderer *renderer);
+/* The reminder over this game, as settings.txt's menu_tip= has it due: from the first frame that shows the status bar in
+ * play, centred under it, the key that opens the menu on the device used last ("L3 opens the menu",
+ * oracles_controls_menu_tip, `menu_pad` settings.txt's menu_pad=) for about 4 s whatever the player presses, then
+ * faded out over 0.6 s; it goes as the pause opens over it, and never takes an input.  Its glyphs are the pause's,
+ * prepared beforehand. */
+void oracles_pause_reminder(OraclesPause *pause, const char *menu_pad);
+/* It waits for its first frame, or shows. */
+int oracles_pause_reminder_pending(const OraclesPause *pause);
+/* It was drawn over a frame of the game: settings.txt counts it. */
+int oracles_pause_reminder_drawn(const OraclesPause *pause);
+/* The frame about to be presented, for the reminder: whether it shows the status bar in play (the session says so once
+ * the bar has been in play for two seconds of frames in a row, not for a flash of it before a cutscene), the device used
+ * last in the game (an OraclesInputDevice; -1 none yet: the one the pause knows), and the game's image as the session
+ * presents it, its size in the game's pixels and Fill. */
+typedef struct OraclesPauseFrame {
+    int in_play;
+    int device;
+    int width, height;
+    int fill;
+} OraclesPauseFrame;
+/* Draws the reminder over that frame (the SDL backend's overlay, through the session): 1 while it waits or shows, 0 once
+ * it is gone. */
+int oracles_pause_overlay(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame);
 /* Glyphs rasterised during the session's pauses (none when prepared beforehand), for the session's report. */
 unsigned oracles_pause_late_glyphs(const OraclesPause *pause);
 

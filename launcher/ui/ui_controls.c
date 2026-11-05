@@ -27,7 +27,7 @@
 #define CHOICE_OFF 0x8a8793u
 #define ITEM 0xd6d3dcu
 #define ITEM_EMPTY 0x8f8c98u
-#define GRID_OFF_OPACITY 0.4f          /* the grid while the item hotkeys are off */
+#define GRID_OFF_OPACITY 0.5f          /* the grid while the item hotkeys are off */
 #define ROW_NOT_APPLIED 0.4f           /* a line that does not change here */
 #define KEY_TEXT 0xd6d3dcu
 #define KEY_BORDER 0x4a4752u
@@ -181,6 +181,7 @@ static void hotkeys(OraclesUiDraw *draw, const OraclesHomeNav *nav, const Oracle
         text(draw, empty ? st->item_empty : st->item, &l->items[row], oracles_ui_controls_item_text(nav, row), oracles_ui_rgba(empty ? ITEM_EMPTY : ITEM, grid));
     }
     if (st->slots_note) text(draw, st->slots_note, &l->slots_note, oracles_ui_controls_slots, oracles_ui_rgba(TEXT, grid));
+    if (l->hotkeys_off.h > 0.0f) text(draw, st->mode_text, &l->hotkeys_off, oracles_ui_controls_hotkeys_off, oracles_ui_rgb(TEXT));
 }
 
 /* The fixed shortcuts, and Menu's controller cell, framed as a cell is. */

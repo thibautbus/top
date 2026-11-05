@@ -39,11 +39,35 @@ static void on_use_started(void *opaque, uint32_t frame, unsigned button_slot, u
     oracles_route_writer_action(s->writer, &action);
 }
 
+static void on_sound(void *opaque, uint32_t frame, uint8_t sound)
+{
+    OraclesHotkeysSession *s = opaque;
+    if (!s->writer) return;
+    OraclesRouteAction action;
+    memset(&action, 0, sizeof action);
+    action.frame = frame;
+    action.verb = ORACLES_ROUTE_SOUND;
+    action.item = sound;
+    oracles_route_writer_action(s->writer, &action);
+}
+
+static void on_throw_started(void *opaque, uint32_t frame, unsigned button_slot)
+{
+    OraclesHotkeysSession *s = opaque;
+    if (!s->writer) return;
+    OraclesRouteAction action;
+    memset(&action, 0, sizeof action);
+    action.frame = frame;
+    action.verb = ORACLES_ROUTE_THROW;
+    action.button = (uint8_t)button_slot;
+    oracles_route_writer_action(s->writer, &action);
+}
+
 static int start_live(OraclesHotkeysSession *s)
 {
     s->live = oracles_item_hotkeys_start(s->guest, s->mode);
     if (!s->live) return 0;
-    const OraclesItemHotkeysSink sink = { on_applied, on_use_started, s };
+    const OraclesItemHotkeysSink sink = { on_applied, on_use_started, on_sound, on_throw_started, s };
     oracles_item_hotkeys_set_sink(s->live, &sink);
     for (unsigned n = 0; n < ORACLES_HOTKEY_SLOTS; n++) oracles_item_hotkeys_set_slot(s->live, n, &s->settings->hotkeys[s->game][n]);
     return 1;
@@ -64,6 +88,11 @@ OraclesHotkeysSession *oracles_hotkeys_session_start(OraclesGuest *guest, Oracle
         s->replay = oracles_item_hotkeys_replay_start(guest, effects, count);
         free(effects);
         if (!s->replay) { free(s); return NULL; }
+        OraclesItemHotkeysSound *sounds = NULL;
+        const size_t sound_count = oracles_route_sounds(route, &sounds);
+        const int armed = oracles_item_hotkeys_replay_sounds(s->replay, sounds, sound_count);
+        free(sounds);
+        if (armed != 0) { oracles_item_hotkeys_replay_stop(s->replay); free(s); return NULL; }
     } else if (!start_live(s)) { free(s); return NULL; }
     return s;
 }
@@ -72,8 +101,8 @@ static void end_replay(OraclesHotkeysSession *s)
 {
     OraclesItemHotkeysStats stats;
     oracles_item_hotkeys_replay_stats(s->replay, &stats);
-    if (stats.applied || stats.replay_mismatch)
-        fprintf(stderr, "oracles: item hotkeys: %u exchanges of the route applied, %u not applied as noted\n", stats.applied, stats.replay_mismatch);
+    if (stats.applied || stats.sounds || stats.replay_mismatch)
+        fprintf(stderr, "oracles: item hotkeys: %u exchanges and %u sounds of the route applied, %u not applied as noted\n", stats.applied, stats.sounds, stats.replay_mismatch);
     oracles_item_hotkeys_replay_stop(s->replay);
     s->replay = NULL;
 }
@@ -124,6 +153,7 @@ void oracles_hotkeys_session_frame(OraclesHotkeysSession *s, struct OraclesEnhan
 unsigned oracles_hotkeys_session_filter(void *opaque, uint32_t frame, unsigned mask)
 {
     OraclesHotkeysSession *s = opaque;
+    if (s && s->replay) oracles_item_hotkeys_replay_frame(s->replay, frame);
     return s && s->live ? oracles_item_hotkeys_filter_keys(s->live, frame, mask) : mask;
 }
 
@@ -133,8 +163,8 @@ static void stop_live(OraclesHotkeysSession *s, FILE *report)
     unsigned applied = 0, violations = 0;
     oracles_item_hotkeys_live_stats(s->live, &stats);
     oracles_guest_inventory_counts(s->guest, &applied, &violations);
-    if (report) fprintf(report, "oracles: item hotkeys: %u key presses, %u exchanges applied, %u uses, %u returns (%u given up, %u still waiting at the end, the latest %u write points after its quiet spell), %u requests dropped after waiting, %u refused; inventory violations %u\n",
-                        stats.requests, stats.applied, stats.uses, stats.returns, stats.returns_abandoned, stats.returns_pending, stats.return_longest_delay, stats.dropped_postponed, stats.dropped_refused, violations);
+    if (report) fprintf(report, "oracles: item hotkeys: %u key presses, %u exchanges applied, %u uses, %u returns (%u given up, %u still waiting at the end, the latest %u write points after its quiet spell), %u requests dropped after waiting, %u refused, %u equip sounds; inventory violations %u\n",
+                        stats.requests, stats.applied, stats.uses, stats.returns, stats.returns_abandoned, stats.returns_pending, stats.return_longest_delay, stats.dropped_postponed, stats.dropped_refused, stats.sounds, violations);
     oracles_item_hotkeys_stop(s->live);
     s->live = NULL;
 }

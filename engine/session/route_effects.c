@@ -25,6 +25,21 @@ size_t oracles_route_effects(const OraclesRoute *route, OraclesItemHotkeysEffect
     return count;
 }
 
+size_t oracles_route_sounds(const OraclesRoute *route, OraclesItemHotkeysSound **out)
+{
+    *out = NULL;
+    size_t count = 0;
+    for (size_t i = 0; i < route->action_count; i++) if (route->actions[i].verb == ORACLES_ROUTE_SOUND) count++;
+    if (!count) return 0;
+    OraclesItemHotkeysSound *sounds = calloc(count, sizeof *sounds);
+    if (!sounds) return 0;
+    size_t n = 0;
+    for (size_t i = 0; i < route->action_count; i++)
+        if (route->actions[i].verb == ORACLES_ROUTE_SOUND) { sounds[n].frame = route->actions[i].frame; sounds[n].sound = route->actions[i].item; n++; }
+    *out = sounds;
+    return count;
+}
+
 void oracles_route_action_of_exchange(const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op, OraclesRouteAction *out)
 {
     memset(out, 0, sizeof *out);

@@ -30,12 +30,15 @@ struct OraclesItemHotkeys {
     unsigned asked_button;
     struct {
         int active, released, in_mask, polled, used, announced;
+        int thrown;                                              /* the press throws what Link holds: over once the game has read it */
         unsigned slot, button, gap, polls_released;
         uint8_t item;
     } press;                                                     /* the simulated press of the `use` mode */
     struct { int waiting; uint8_t used, original, variant; unsigned quiet, overdue; } returns[2];   /* by button slot; overdue: write points past its quiet spell */
     struct { int valid; uint8_t item; } previous[2];             /* `equip`: what the target held before the last exchange */
     unsigned player_mask, sent_mask;                             /* the player's keys, and what went to the core, at the last frame */
+    uint8_t sound;                                               /* SND_SELECTITEM, which the inventory plays as it equips; 0: none */
+    int sound_pending;                                           /* an item was equipped or taken: the sound goes at the next frame's start */
     OraclesItemHotkeysLiveStats stats;
 };
 
@@ -132,6 +135,15 @@ static void ask_use(OraclesItemHotkeys *h, const OraclesGuestInventoryState *s, 
     const OraclesHotkeySlot *slot = &h->slots[h->request.slot];
     const OraclesGuestInventoryVerdict refusal = slot->set ? oracles_guest_inventory_refusal(s) : ORACLES_INVENTORY_REFUSED_OPERATION;
     if (refusal != ORACLES_INVENTORY_APPLIED) { drop_request(h, 1, refusal); return; }
+    /* Link holds a bomb or what the bracelet lifted: any item button throws it, as B would, and no item is used while
+     * he holds it.  The press goes to the button the holding item answers to, nothing exchanged. */
+    const unsigned throw_button = oracles_guest_item_throw(s);
+    if (throw_button) {
+        const unsigned carrier = throw_button == ORACLES_BUTTON_B ? ORACLES_INVENTORY_SLOT_B : ORACLES_INVENTORY_SLOT_A;
+        begin_press(h, h->request.slot, carrier, s->slots[carrier]);
+        h->press.thrown = 1;
+        return;
+    }
     const unsigned read = oracles_guest_item_buttons(s);
     if (!read) { postpone_request(h, ORACLES_INVENTORY_POSTPONED_NO_BUTTON); return; }
     static const unsigned order[2] = { ORACLES_INVENTORY_SLOT_B, ORACLES_INVENTORY_SLOT_A };
@@ -248,6 +260,7 @@ void oracles_item_hotkeys_on_result(OraclesItemHotkeys *h, const OraclesGuestInv
             begin_press(h, h->request.slot, h->asked_button, slot->item);
         } else {
             if (applied && op->swap) { h->previous[h->asked_button].valid = 1; h->previous[h->asked_button].item = before->slots[h->asked_button]; }
+            if (applied) h->sound_pending = 1;   /* the `equip` mode equips as the inventory does, with its sound */
             h->request.active = 0;
         }
     } else if (oracles_guest_inventory_verdict_postpones(verdict)) postpone_request(h, verdict);
@@ -266,17 +279,38 @@ void oracles_item_hotkeys_on_event(OraclesItemHotkeys *h, const OraclesGuestEven
     } else if (event->type == ORACLES_EVENT_USE_ITEMS && h->press.polled) h->press.used = 1;
 }
 
+/* The sound goes through playSound, which the call transaction runs at the frame's write point once the state allows
+ * it: a route notes it at the frame it was handed over, and its replay hands it over at the same frame. */
+static void hand_the_sound(OraclesItemHotkeys *h, uint32_t frame)
+{
+    if (!h->sound_pending) return;
+    h->sound_pending = 0;
+    const OraclesGuestCall call = { ORACLES_ROUTINE_PLAY_SOUND, h->sound, 0, 1 };
+    if (h->guest && (!h->sound || oracles_guest_queue_call(h->guest, &call, NULL) != 0)) return;
+    h->stats.sounds++;
+    if (h->sink.sound) h->sink.sound(h->sink.opaque, frame, h->sound);
+}
+
 static unsigned filtered(OraclesItemHotkeys *h, uint32_t frame, unsigned mask)
 {
+    hand_the_sound(h, frame);
     if (!h->press.active) return mask;
     const unsigned bit = key_bit(h->press.button);
     if (h->press.gap) { h->press.in_mask = 0; return mask & ~bit; }
     /* Released, and the game has read the press where it uses items (or never will in this state): the press is over. */
     if (h->press.released && (h->press.used || h->press.polls_released > ORACLES_HOTKEY_PATIENCE)) { h->press.active = 0; give_the_button_back(h, h->press.slot); return mask; }
+    /* A throw is one new press: once the game has read it, the button comes up even with the key still held, so that
+     * an item listening to the button held (the shield, the bracelet) does not start. */
+    if (h->press.thrown && h->press.used) { h->press.active = 0; return mask; }
     if (!h->press.announced) {
         h->press.announced = 1;
-        h->stats.uses++;
-        if (h->sink.use_started) h->sink.use_started(h->sink.opaque, frame, h->press.button, h->press.item);
+        if (h->press.thrown) {
+            h->stats.throws++;
+            if (h->sink.throw_started) h->sink.throw_started(h->sink.opaque, frame, h->press.button);
+        } else {
+            h->stats.uses++;
+            if (h->sink.use_started) h->sink.use_started(h->sink.opaque, frame, h->press.button, h->press.item);
+        }
     }
     h->press.in_mask = 1;
     return mask | bit;
@@ -319,6 +353,8 @@ OraclesHotkeyOutcome oracles_item_hotkeys_key(OraclesItemHotkeys *h, unsigned n,
             const unsigned from = in_menu ? cursor : modifier == ORACLES_HOTKEY_BIND_A ? ORACLES_INVENTORY_SLOT_A : ORACLES_INVENTORY_SLOT_B;
             const uint8_t item = s.slots[from] < s.num_inventory_items && s.slots[from] != s.item_biggoron_sword ? s.slots[from] : 0u;
             assign(h, n, &s, item, modifier == ORACLES_HOTKEY_BIND_A ? ORACLES_INVENTORY_SLOT_A : ORACLES_INVENTORY_SLOT_B);
+            /* A key that takes an item sounds as the inventory equipping it, in play and in the inventory alike. */
+            if (item && h->mode != ORACLES_HOTKEYS_OFF) h->sound_pending = 1;
             return item ? ORACLES_HOTKEY_ASSIGNED : ORACLES_HOTKEY_EMPTIED;
         }
     } else if (modifier != ORACLES_HOTKEY_PLAIN) return ORACLES_HOTKEY_IGNORED;
@@ -344,16 +380,18 @@ void oracles_item_hotkeys_reset(OraclesItemHotkeys *h)
     memset(h->key_down, 0, sizeof h->key_down);   /* a key still held triggers nothing until it is pressed again */
     memset(h->key_order, 0, sizeof h->key_order);
     h->asked = ASKED_NOTHING;
+    h->sound_pending = 0;
 }
 
 int oracles_item_hotkeys_idle(const OraclesItemHotkeys *h)
 {
-    return !h->request.active && !h->press.active && !h->returns[0].waiting && !h->returns[1].waiting && !h->previous[0].valid && !h->previous[1].valid;
+    return !h->request.active && !h->press.active && !h->returns[0].waiting && !h->returns[1].waiting && !h->previous[0].valid && !h->previous[1].valid
+           && !h->sound_pending;
 }
 
 int oracles_item_hotkeys_at_rest(const OraclesItemHotkeys *h)
 {
-    return !h->request.active && !h->press.active && !h->returns[0].waiting && !h->returns[1].waiting && h->asked == ASKED_NOTHING;
+    return !h->request.active && !h->press.active && !h->returns[0].waiting && !h->returns[1].waiting && h->asked == ASKED_NOTHING && !h->sound_pending;
 }
 
 /* ---- on a guest ----------------------------------------------------------------------------- */
@@ -376,6 +414,10 @@ OraclesItemHotkeys *oracles_item_hotkeys_start(OraclesGuest *guest, OraclesHotke
     if (!guest) return h;
     if (oracles_guest_set_inventory_policy(guest, guest_policy, guest_result, guest_reset, h) != 0) { free(h); return NULL; }
     if (oracles_guest_add_event_listener(guest, guest_event, h) != 0) { oracles_guest_set_inventory_policy(guest, NULL, NULL, NULL, NULL); free(h); return NULL; }
+    /* The game's own sound through its own routine; without the call transaction the hotkeys go on, silent. */
+    const OraclesGuestTables *t = oracles_guest_tables(guest);
+    for (unsigned i = 1; i < ORACLES_GUEST_SOUNDS && !h->sound; i++) if (t->sound_names[i] && !strcmp(t->sound_names[i], "snd_selectitem")) h->sound = (uint8_t)i;
+    if (h->sound && oracles_guest_arm_calls(guest) != 0) h->sound = 0;
     return h;
 }
 

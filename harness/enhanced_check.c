@@ -240,6 +240,10 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
         int32_t left = 0, top = 0;
         if (oracles_enhanced_view_hotbar_drawn(c->view) && !oracles_enhanced_view_load_band(c->view, &left, &top) && (mode != ORACLES_ENHANCED_WORLD || ob->cutscene)
             && !(ob->in_transition && !ob->in_scroll)) c->hotbar_cutscene_frames++;
+        if (oracles_enhanced_view_framed_only(c->view)) {   /* F3: the core framed as in Faithful, which has no hotbar */
+            c->framed_only_frames++;
+            if (oracles_enhanced_view_hotbar_drawn(c->view)) c->hotbar_framed_only_frames++;
+        }
     }
     {   /* each run is a jump to the large menus' scale and back */
         uint32_t crop[4];
@@ -285,7 +289,8 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
             c->last_layout_valid[d] = oracles_enhanced_view_neighbour_layout(c->view, d, c->last_layout[d]);
         }
         c->last_play_room = ob->room;
-    }
+    } else if (oracles_enhanced_view_framed_only(c->view))   /* F3: the core framed for as long as the player keeps it, no neighbour shown */
+        for (unsigned d = 0; d < 4; d++) c->last_shown[d] = 0;
 
     ec_check_blurb(c, mode, frame);
     check_pixels_and_row(c, ob, mode, surface, camera_x, camera_y, frame, hash, shown, room, uncovered);

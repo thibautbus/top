@@ -19,6 +19,7 @@ static int input_source(void *opaque, uint32_t frame, unsigned *mask)
 {
     run *r = opaque;
     const int have = oracles_route_mask_at(&r->route, frame, mask);
+    if (r->hotkeys) oracles_hotkeys_check_frame_begin(r->hotkeys, frame);
     if (!r->hotkeys_live) return have;
     *mask = oracles_hotkeys_live_keys(r->hotkeys_live, frame, have ? *mask : 0u);   /* the scripted keys play over the route's inputs */
     return 1;
@@ -42,6 +43,8 @@ static void on_frame_begin(void *opaque, uint32_t frame)
     if (r->hotkeys_live && r->enhanced) oracles_hotkeys_live_hotbar(r->hotkeys_live, oracles_enhanced_check_view(r->enhanced));
     if (r->guest) oracles_guest_set_frame(r->guest, frame);
     if (r->colour_toggle_at && frame == r->colour_toggle_at) oracles_core_set_colour_correction(r->core, !oracles_core_colour_correction(r->core));
+    for (unsigned i = 0; r->enhanced && i < r->framed_toggles; i++)
+        if (frame == r->framed_toggle[i]) oracles_enhanced_view_toggle(oracles_enhanced_check_view(r->enhanced));   /* F3, before the frame runs */
     size_t first;
     for (size_t n = oracles_route_cheats_at(&r->route, frame, &first), i = first; i < first + n; i++) {   /* the route's cheats changed at this frame */
         unsigned bit = 0, cheats = oracles_guest_cheats(r->guest);
@@ -55,6 +58,21 @@ static void on_frame_begin(void *opaque, uint32_t frame)
         if (r->route.settings[i].name == ORACLES_ROUTE_SET_TEXT_SPEED) oracles_guest_set_text_instant(r->guest, r->route.settings[i].value);   /* the same */
     }
     if (r->check) oracles_frame_check_frame_begin(r->check, frame);
+}
+
+/* --reminder-check: the frame's status bar for the launcher's reminder. */
+static void reminder_frame(run *r, OraclesGuest *bus, uint32_t frame)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(bus);
+    const int drawn = oracles_enhanced_bar_drawn(bus, r->core), in_play = drawn && oracles_enhanced_bar_in_play(bus, r->core);
+    const int menu = drawn && oracles_guest_read8(bus, t->opened_menu_type), text = drawn && oracles_guest_read8(bus, t->text_is_active);
+    r->reminder_in_play += (unsigned)in_play;
+    r->reminder_menu += (unsigned)menu;
+    r->reminder_in_play_menu += (unsigned)(menu && in_play);
+    r->reminder_text += (unsigned)text;
+    r->reminder_in_play_text += (unsigned)(text && in_play);
+    r->reminder_run = in_play ? r->reminder_run + 1u : 0u;
+    if (!r->reminder_start && r->reminder_run == ORACLES_ENHANCED_BAR_SETTLE) r->reminder_start = frame;
 }
 
 static void on_frame_end(void *opaque, uint32_t frame)
@@ -75,6 +93,7 @@ static void on_frame_end(void *opaque, uint32_t frame)
         uint8_t *byte = (uint8_t *)oracles_guest_ptr(bus, sym, 1);
         if (byte) *byte ^= 0x01;
     }
+    if (r->reminder_check) reminder_frame(r, bus, frame);
     if (r->out) oracles_guest_write_fingerprint(bus, r->core, frame, r->out);
     if (r->guest && oracles_guest_text_instant_armed(r->guest)) oracles_text_speed_check_frame_end(&r->text_speed, r->guest);
     if (r->transition) {
@@ -638,6 +657,9 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     if (o->enhanced_dir && !r->enhanced) { fprintf(stderr, "harness: --enhanced-check needs the hooks on\n"); return 1; }
     r->corrupt_at = o->corrupt_at;
     r->colour_toggle_at = o->colour_toggle_at;
+    memcpy(r->framed_toggle, o->framed_toggle, sizeof r->framed_toggle);
+    r->framed_toggles = o->framed_toggles;
+    r->reminder_check = o->reminder_check;
     r->dumps = o->dumps; memcpy(r->dump_at, o->dump_at, sizeof r->dump_at); memcpy(r->dump_path, o->dump_path, sizeof r->dump_path);
     r->poke_count = o->poke_count; memcpy(r->pokes, o->pokes, sizeof r->pokes);
     if (o->out_path) { r->out = fopen(o->out_path, "wb"); if (!r->out) { fprintf(stderr, "harness: cannot write %s\n", o->out_path); return 1; } }
@@ -694,6 +716,9 @@ int main(int argc, char **argv)
     const int verdict_failed = harness_report_hotkeys(&r, summary) || renderer_failed;
     harness_report_checks(&r, &o, summary, rom);
     harness_report_language(&r, summary);
+    if (r.reminder_check && summary)
+        fprintf(summary, "reminder.in_play_frames=%u\nreminder.menu_frames=%u\nreminder.in_play_in_menu=%u\nreminder.text_frames=%u\nreminder.in_play_in_text=%u\nreminder.start=%u\n",
+                r.reminder_in_play, r.reminder_menu, r.reminder_in_play_menu, r.reminder_text, r.reminder_in_play_text, r.reminder_start);
     oracles_mod_session_stop(r.mod, summary);
     if (summary) fclose(summary);
     if (r.guest) oracles_guest_detach(r.guest);

@@ -29,8 +29,9 @@
 #define PAGE_SHADE 0x09080cu
 #define PAGE_SHADE_ALPHA 0.86f
 #define NARROW_MIN_SCALE 0.5f   /* the reduced menu's smallest scale: 27 px labels, a menu 360 px wide */
-#define PAD_TOAST_SHOWN_MS 4000.0   /* the first game's toast, whatever the player presses, then its fade */
+#define PAD_TOAST_SHOWN_MS 4000.0   /* the reminder over a game, whatever the player presses, then its fade */
 #define PAD_TOAST_FADE_MS 600.0
+#define STATUS_BAR_LINES 16.0f   /* the status bar's, at the top of the game's image */
 
 struct OraclesPause {
     OraclesUiDraw *draw;
@@ -41,16 +42,18 @@ struct OraclesPause {
     OraclesTouchEdges edges;    /* the screen margin and what it was read from (oracles_safe_area_edges): the menu keeps to its band */
     int prepared_width, prepared_height, prepared_top, prepared_band;   /* the output and the band the glyphs were rasterised for */
     unsigned late_glyphs;
-    char toast[64];             /* over the game's first frames (oracles_pause_toast); empty: none */
-    double toast_since_ms;      /* its first frame's time, 0 before it */
-    int toast_drawn;            /* it was drawn over a frame */
+    int reminder;               /* the reminder over the game, waiting for the status bar or shown (oracles_pause_reminder) */
+    char menu_pad[ORACLES_HOME_NAME_LENGTH];   /* the controller's input it names */
+    double reminder_since_ms;   /* its first frame's time, 0 before it */
+    int reminder_drawn;         /* it was drawn over a frame */
     OraclesInputDevice device;  /* used last, from the home screen to the session's last pause; a key pressed there */
     int keyboard_used;
+    int android;
 };
 
 /* Every glyph a screen of the pause may draw: the printable ASCII and the launcher's signs, and each character after an
  * f and after two, the runs whose glyphs the fonts' ligatures and Alegreya's contextual f change. */
-static const char glyph_signs[] = "\xc3\x97\xc2\xb7\xe2\x80\xa6\xe2\x80\x94\xe2\x86\x90\xe2\x86\x91\xe2\x86\x92\xe2\x86\x93\xe2\x80\x99";
+static const char glyph_signs[] = "\xc3\x97\xc2\xb7\xe2\x80\xa6\xe2\x80\x94\xe2\x86\x90\xe2\x86\x91\xe2\x86\x92\xe2\x86\x93\xe2\x80\x99\xe2\x80\xba";
 
 static void glyph_text(char *out, size_t capacity)
 {
@@ -81,6 +84,7 @@ OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *h
     pause->edges.margin = margin;
     pause->device = input->device;
     pause->keyboard_used = input->keyboard_used;
+    pause->android = input->android;
     return pause;
 }
 
@@ -92,14 +96,17 @@ void oracles_pause_input(const OraclesPause *pause, OraclesHomeNav *nav)
 
 void oracles_pause_destroy(OraclesPause *pause) { free(pause); }
 
-void oracles_pause_toast(OraclesPause *pause, const char *text)
+void oracles_pause_reminder(OraclesPause *pause, const char *menu_pad)
 {
-    oracles_ui_copy_whole(pause->toast, sizeof pause->toast, text);
-    pause->toast_since_ms = 0.0;
-    pause->toast_drawn = 0;
+    pause->reminder = 1;
+    snprintf(pause->menu_pad, sizeof pause->menu_pad, "%s", menu_pad ? menu_pad : "");
+    pause->reminder_since_ms = 0.0;
+    pause->reminder_drawn = 0;
 }
 
-int oracles_pause_toast_drawn(const OraclesPause *pause) { return pause && pause->toast_drawn; }
+int oracles_pause_reminder_pending(const OraclesPause *pause) { return pause && pause->reminder; }
+
+int oracles_pause_reminder_drawn(const OraclesPause *pause) { return pause && pause->reminder_drawn; }
 
 unsigned oracles_pause_late_glyphs(const OraclesPause *pause) { return pause ? pause->late_glyphs : 0; }
 
@@ -202,15 +209,19 @@ int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture
     return moving;
 }
 
-int oracles_pause_overlay(void *opaque, SDL_Renderer *renderer)
+int oracles_pause_overlay(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame)
 {
-    OraclesPause *pause = opaque;
-    if (!pause->toast[0]) return 0;
+    if (!pause->reminder) return 0;
     const double now = now_ms();
-    if (pause->toast_since_ms <= 0.0) pause->toast_since_ms = now;
-    const double shown = now - pause->toast_since_ms;
-    if (shown >= PAD_TOAST_SHOWN_MS + PAD_TOAST_FADE_MS) { pause->toast[0] = 0; return 0; }
+    if (pause->reminder_since_ms <= 0.0) {
+        if (!frame->in_play) return 1;   /* a title, a menu, a cutscene: it waits for the status bar */
+        pause->reminder_since_ms = now;
+    }
+    const double shown = now - pause->reminder_since_ms;
+    if (shown >= PAD_TOAST_SHOWN_MS + PAD_TOAST_FADE_MS) { pause->reminder = 0; return 0; }
     const float opacity = shown < PAD_TOAST_SHOWN_MS ? 1.0f : 1.0f - oracles_ui_curve_at(&oracles_ui_ease, (float)((shown - PAD_TOAST_SHOWN_MS) / PAD_TOAST_FADE_MS));
+    char text[ORACLES_HOME_NAME_LENGTH + 32];
+    oracles_controls_menu_tip(frame->device >= 0 ? frame->device : (int)pause->device, pause->android, pause->menu_pad, text, sizeof text);
     /* In the window's pixels, as the pause draws: the game's logical size lifted, then set back. */
     int logical_w = 0, logical_h = 0, w = 0, h = 0;
     SDL_RendererLogicalPresentation presentation = SDL_LOGICAL_PRESENTATION_DISABLED;
@@ -222,9 +233,18 @@ int oracles_pause_overlay(void *opaque, SDL_Renderer *renderer)
     oracles_ui_draw_layout(pause->draw, layout);
     if (oracles_ui_draw_begin_over(pause->draw, w, h, min_scale(oracles_ui_layout_narrow(layout, w)), now)) {
         oracles_ui_draw_anchor(pause->draw, 0.5f, 0.0f);
-        oracles_ui_home_pad_toast(pause->draw, layout, pause->toast, opacity);
+        /* Under the status bar, the image's first sixteen lines, where the session shows the image (as the pause does). */
+        int band_top = 0, band_height = h;
+        oracles_ui_draw_band_of(pause->draw, h, &band_top, &band_height);
+        float bar_bottom = 0.0f, x = 0.0f;
+        if (frame->width > 0 && frame->height > 0) {
+            const OraclesTouchBox image = oracles_touch_frame(w, band_height, frame->width, frame->height, frame->fill);
+            oracles_ui_draw_to_scene_anchored(pause->draw, 0.0f, (float)band_top + image.y + image.h * STATUS_BAR_LINES / (float)frame->height,
+                                              0.5f, 0.0f, &x, &bar_bottom);
+        }
+        oracles_ui_home_pad_toast(pause->draw, layout, text, bar_bottom, opacity);
         oracles_ui_draw_end(pause->draw);
-        pause->toast_drawn = 1;
+        pause->reminder_drawn = 1;
     }
     SDL_SetRenderClipRect(renderer, NULL);
     SDL_SetRenderLogicalPresentation(renderer, logical_w, logical_h, presentation);
@@ -283,6 +303,14 @@ static void window_changed(pause_loop *p)
     prepare(p->pause, w, h, "at the pause (the window changed)");
     p->glyphs_before += oracles_ui_draw_glyphs_rasterised(p->pause->draw) - before;
     p->dirty = 1;
+}
+
+/* As the pause opens: the reminder over the game goes once shown, or when the player opened the menu by its key; the
+ * tips' counts change (oracles_controls_tips_opened), and settings.txt keeps them. */
+static void tips(pause_loop *p, int by_key)
+{
+    if (p->pause->reminder_since_ms > 0.0 || by_key) p->pause->reminder = 0;
+    if (oracles_controls_tips_opened(&p->nav, by_key) && p->pause->host && p->pause->host->store) p->pause->host->store(p->pause->host->opaque, &p->nav);
 }
 
 static void command(pause_loop *p, OraclesHomeCommand c)
@@ -444,6 +472,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     oracles_pause_input(pause, &p.nav);
     if (session->device >= 0) oracles_home_input(&p.nav, (OraclesInputDevice)session->device);
     load_note(&p);
+    tips(&p, session->by_key);
     p.trigger_held = oracles_home_trigger_held(&p.nav);
     oracles_ui_home_start(&p.view, &p.nav);
     p.dirty = 1;

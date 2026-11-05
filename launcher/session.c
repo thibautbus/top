@@ -366,6 +366,31 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
     return 1;
 }
 
+/* The frame shows the game's status bar in play (oracles_enhanced_bar_in_play), in the wide world in Enhanced, not a
+ * framed screen; a ROM without a profile, whose bar is not known, from its first frame. */
+static int bar_in_play(session *s)
+{
+    OraclesGuest *reader = s->guest ? s->guest : s->bar_reader;
+    uint32_t framed[4];
+    if (!s->profile) return 1;
+    if (s->view && (oracles_enhanced_view_framed_only(s->view) || oracles_enhanced_view_framed_crop(s->view, framed))) return 0;
+    return oracles_enhanced_bar_in_play(reader, s->core);
+}
+
+/* The backend's overlay: the pause's reminder over the frame about to be presented, once the status bar has been in play
+ * for two seconds of frames in a row (a flash of it before a cutscene does not start it), the device of the last input
+ * in the game naming its key, under the bar of the image as the session presents it. */
+static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
+{
+    session *s = opaque;
+    s->bar_frames = bar_in_play(s) ? s->bar_frames + 1u : 0u;
+    OraclesPauseFrame frame = { s->bar_frames >= ORACLES_ENHANCED_BAR_SETTLE, oracles_home_menu_device((int)oracles_sdl_backend_last_input(&s->backend)), 0, 0, 0 };
+    oracles_sdl_backend_pause_size(&s->backend, &frame.width, &frame.height);
+    SDL_Window *window = SDL_GetRenderWindow(renderer);
+    frame.fill = s->sdl.fill && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
+    return oracles_pause_overlay(s->pause, renderer, &frame);
+}
+
 /* The window's options from the settings: vsync (unless --vsync gave it), keys, buttons, and the hotkeys' when they are on. */
 static void window_options(session *s, const OraclesSessionOptions *o)
 {
@@ -376,9 +401,10 @@ static void window_options(session *s, const OraclesSessionOptions *o)
         if (oracles_session_vsync_on(s->vsync, s->display_hz)) s->sdl.vsync = 1;
     }
     s->sdl.pause_menu = s->pause != NULL && !o->no_window;
-    /* Over the first frames, the pause's toast when one is due (oracles_pause_toast); dropped at once when none is. */
-    s->sdl.overlay = s->sdl.pause_menu ? oracles_pause_overlay : NULL;
-    s->sdl.overlay_opaque = s->pause;
+    /* Over the first frames in play, the pause's reminder when one is due (oracles_pause_reminder); dropped at once when
+     * none is. */
+    s->sdl.overlay = s->sdl.pause_menu ? reminder_overlay : NULL;
+    s->sdl.overlay_opaque = s;
     s->sdl.fill = prefs->scaling_fill;
     s->sdl.screen_margin = oracles_session_screen_margin(o->screen_margin, prefs);
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) s->sdl.key_names[i] = prefs->key_names[i];
@@ -484,6 +510,8 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         if (!s->guest && from_home && for_hotkeys_alone) drop_hotkeys(s, result, "the hooks cannot be armed in this ROM");
         else if (!s->guest) return failed(result, "cannot arm the hooks for this game");
     }
+    /* A reminder over the game waits for its status bar, read without hooks where no guest is attached. */
+    if (!s->guest && s->sdl.pause_menu && oracles_pause_reminder_pending(s->pause)) s->bar_reader = oracles_guest_reader(s->core, s->profile);
     if (o->diagnostics) s->diag = oracles_diagnostics_start(s->guest, stderr);
     if (o->native_renderer) {
         s->check = oracles_frame_check_start(s->guest, s->core, NULL, 0);

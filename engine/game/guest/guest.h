@@ -255,12 +255,13 @@ typedef struct OraclesGuestInventoryState {
     uint8_t game_state, cutscene_index, opened_menu_type, text_is_active, link_death_trigger, intro_done,
             use_simulated_input, in_boxing_match, minigame_controller, scroll_mode, menu_disabled,
             disable_link_collisions_and_menu, link_playing_instrument, dont_update_status_bar, status_bar_needs_refresh;
-    struct { uint8_t enabled, id, button; } parents[5];   /* w1ParentItem2 to 5, then w1WeaponItem: the items in use and the button each answers to */
+    struct { uint8_t enabled, id, button, state; } parents[5];   /* w1ParentItem2 to 5, then w1WeaponItem: the items in use, the button each answers to, and its state */
     /* what checkUseItems reads to decide which of A and B use an item in this state (fact 10) */
     uint8_t items_disabled, in_shop, link_in_air, link_in_spinner, link_grabbed, link_grab_state, link_climbing_vine,
             tileset_flags, link_swimming_state, link_var2f, disabled_objects, link_object_index, companion_id, palette_thread_mode;
     /* constants of the game, for the policies (generated tables) */
     uint8_t num_inventory_items, item_biggoron_sword, item_seed_satchel, item_seed_shooter, item_harp, cutscene_ingame, cutscene_onox_final_form,
+            item_bomb, item_bracelet,   /* the two items that lift an object over Link's head */
             tilesetflag_bit_sidescroll, tilesetflag_bit_underwater,   /* the second 0xff in Seasons, which has no underwater tileset */
             menu_inventory, specialobject_minecart, specialobject_raft, cutscene_loading_room;
 } OraclesGuestInventoryState;
@@ -301,6 +302,11 @@ OraclesGuestInventoryVerdict oracles_guest_inventory_check(const OraclesGuestInv
 unsigned oracles_guest_item_buttons(const OraclesGuestInventoryState *state);
 /* The variant an item carries now (seeds 0 to 4, song 1 to 3), or 0xff when it has none.  Pure. */
 uint8_t oracles_guest_item_variant(const OraclesGuestInventoryState *state, uint8_t item);
+/* The item button whose new press throws what Link holds over his head (ORACLES_BUTTON_A or ORACLES_BUTTON_B), or 0 when
+ * he holds nothing or his update stops before the items: a bomb or an object the bracelet lifted waits for a new press
+ * of A or B, whatever their items (bombsBraceletParent.s, the bracelet's state 3), which checkUseItems leaves to the
+ * item in use while Link grabs.  The button the holding item answers to, B when it answers to none.  Pure. */
+unsigned oracles_guest_item_throw(const OraclesGuestInventoryState *state);
 /* Whether every non-empty identifier of the eighteen slots stands once. */
 int oracles_guest_inventory_consistent(const uint8_t slots[ORACLES_INVENTORY_SLOTS]);
 
@@ -318,6 +324,27 @@ void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventorySta
 /* The inventory open on its item submenu and waiting for an input (point 7): 1 with the storage slot under the cursor
  * (2 to 17), 0 otherwise — the seed and song submenus included, whose ranks are the game's own computation. */
 int oracles_guest_inventory_cursor(OraclesGuest *guest, unsigned *slot);
+/* The sprites the status bar draws an item with on a button, found as loadEquippedItemSpriteData and loadItemIconGfx find
+ * them (bank2.s): treasureDisplayData's entry for the item at its level (the variable the first table names, read
+ * live, or `variant` in its place when it is the item's seeds or song; 0xff: the live one), then one or two 8 x 16
+ * sprites, each its 32 bytes of graphics in spr_item_icons_1's bank of the player's ROM and its attribute as the bar
+ * writes it (palette, flips), the second eight pixels right of the first.  0 when the tables or the ROM cannot say, or
+ * the entry draws nothing. */
+typedef struct OraclesGuestItemSprites {
+    unsigned count;
+    const uint8_t *graphics[2];
+    uint8_t attributes[2];
+    uint8_t shift;                         /* columns the bar moves the sprites right: 8 for Ages' harp, else 0 */
+    uint8_t display_mode, display_treasure;   /* the entry's b5 and b0: what drawTreasureExtraTiles draws beside them, and from which treasure */
+} OraclesGuestItemSprites;
+int oracles_guest_item_sprites(OraclesGuest *guest, uint8_t item, uint8_t variant, OraclesGuestItemSprites *out);
+/* What drawTreasureExtraTiles (bank2.s) writes on the bar's map beside an item on a button, for the item `sprites` came
+ * from, the game's state read now: a count of two digits (bombs, seeds), a level after "L-", a digit after "x", Ages'
+ * harp's notes, Seasons' seasons of the rod, the gloves' polarity.  Each tile with its attribute and its cell in the
+ * button's block, the left sprite in column 1 (row 0 the top line).  The value is checkTreasureObtained's: none for a
+ * treasure not obtained.  Up to four; returns how many. */
+typedef struct OraclesGuestBarTile { uint8_t tile, attribute, column, row; } OraclesGuestBarTile;
+unsigned oracles_guest_item_extra_tiles(OraclesGuest *guest, const OraclesGuestItemSprites *sprites, OraclesGuestBarTile out[4]);
 /* Exchanges applied, and violations of the inventory's consistency seen after one (none expected). */
 void oracles_guest_inventory_counts(const OraclesGuest *guest, unsigned *applied, unsigned *violations);
 
@@ -349,6 +376,7 @@ typedef enum OraclesGuestRoutine {
 typedef struct OraclesGuestCall {
     OraclesGuestRoutine routine;
     uint8_t a, c;
+    uint8_t in_inventory;                  /* playSound alone: runs with the inventory open too, as the menu's own sounds do */
 } OraclesGuestCall;
 
 #define ORACLES_GUEST_CALLS 16u
@@ -363,6 +391,8 @@ typedef struct OraclesGuestRom {
     size_t size;
 } OraclesGuestRom;
 OraclesGuestRom oracles_guest_rom(OraclesGuest *guest);
+/* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000. */
+const uint8_t *oracles_guest_rom_at(const OraclesGuestRom *rom, OraclesGuestSym sym, size_t length);
 /* Pure: how giveTreasure applies `treasure`'s parameter, read in `rom` (the low nibble of the second byte of its
  * treasureCollectionBehaviourTable entry); -1 when the treasure or the table is out of the image. */
 int oracles_guest_treasure_mode(const OraclesGuestTables *tables, const OraclesGuestRom *rom, uint8_t treasure);
@@ -374,6 +404,10 @@ int oracles_guest_call_allowed(const OraclesGuestTables *tables, const OraclesGu
 /* Queues a call; -1 when the transaction is not armed, the queue is full, or the call is not allowed.  *serial, when
  * given, numbers the call: it has run once oracles_guest_calls_done is past it. */
 int oracles_guest_queue_call(OraclesGuest *guest, const OraclesGuestCall *call, unsigned *serial);
+/* Pure: whether the call at the head of the queue runs in `state`: in a state without a lasting refusal of the
+ * inventory, and a playSound marked in_inventory with the inventory open too.  The queue runs in its order: a call
+ * behind one that waits waits with it (a hotkey's sound behind a mod's, the inventory open). */
+int oracles_guest_call_may_run(const OraclesGuestInventoryState *state, const OraclesGuestCall *next);
 /* Calls queued and not yet run; calls run since the attach. */
 unsigned oracles_guest_calls_pending(const OraclesGuest *guest);
 unsigned oracles_guest_calls_done(const OraclesGuest *guest);
@@ -656,6 +690,9 @@ typedef struct OraclesGuestRegWrite {
 
 /* Installs the core callbacks. Only one guest per core. */
 OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile *profile);
+/* The reads alone, without a hook or a callback (beside an attached guest or none): NULL for a profile without
+ * tables.  Detached as a guest is, the core's callbacks left as they are. */
+OraclesGuest *oracles_guest_reader(OraclesCore *core, const OraclesCompatProfile *profile);
 void oracles_guest_detach(OraclesGuest *guest);
 const OraclesGuestTables *oracles_guest_tables(const OraclesGuest *guest);
 const OraclesCompatProfile *oracles_guest_profile(const OraclesGuest *guest);

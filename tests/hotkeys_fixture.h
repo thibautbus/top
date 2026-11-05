@@ -13,6 +13,7 @@ static inline OraclesGuestInventoryState playable(OraclesGame game)
     s.game = game;
     s.game_state = 2; s.cutscene_index = 1; s.cutscene_ingame = 1; s.cutscene_loading_room = 0; s.cutscene_onox_final_form = 0x13; s.intro_done = 1;
     s.num_inventory_items = 0x20; s.item_biggoron_sword = 0x0c; s.item_seed_satchel = 0x19; s.item_harp = 0x11;
+    s.item_bomb = 0x03; s.item_bracelet = 0x16;
     s.item_seed_shooter = game == ORACLES_GAME_AGES ? 0x0f : 0x13;
     s.harp_song = game == ORACLES_GAME_AGES ? 1 : 0xff;
     s.obtained_seeds = 0x03; s.obtained_songs = 0x03;

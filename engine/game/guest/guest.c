@@ -532,10 +532,23 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     return guest;
 }
 
+OraclesGuest *oracles_guest_reader(OraclesCore *core, const OraclesCompatProfile *profile)
+{
+    const OraclesGuestTables *tables = oracles_compat_guest_tables(profile);
+    if (!tables) return NULL;
+    OraclesGuest *guest = calloc(1, sizeof *guest);
+    if (!guest) return NULL;
+    guest->core = core;
+    guest->profile = profile;
+    guest->tables = tables;
+    guest->reader = 1;
+    return guest;
+}
+
 void oracles_guest_detach(OraclesGuest *guest)
 {
     if (!guest) return;
-    oracles_core_set_hooks(guest->core, NULL, NULL);
+    if (!guest->reader) oracles_core_set_hooks(guest->core, NULL, NULL);
     free(guest->text_box_pages);
     free(guest);
 }

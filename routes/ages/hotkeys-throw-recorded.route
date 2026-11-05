@@ -1,0 +1,49 @@
+oracles-route 14
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 bab1d15f1c77a404c05860ff6fb2e67f6c0ebd9e
+core joypad-bouncing-off
+# hotkeys-throw.route's session with the item hotkeys in `use` mode, as the harness records it (--hotkeys-live use,
+# --hotkeys-record): the bombs' key lifts a bomb and, held twenty frames, throws it; the bracelet's key picks it up
+# and throws it; the bombs' key lifts another and the feather's throws it.  Each throw is a `throw` line, not a
+# `use` of the item on the button it pressed, and its press ends once the game has read it; then nothing.
+inputs
+0 keys 00
+537 keys 80
+545 keys 00
+573 keys 80
+581 keys 00
+1327 keys 80
+1334 keys 00
+1350 keys 80
+1358 keys 00
+1463 keys 08
+1762 keys 00
+1782 keys 02
+1808 keys 0a
+1815 keys 08
+1843 keys 00
+1950 equip b=0f s11=03
+1951 use b 03
+1951 keys 20
+1958 keys 00
+1996 throw b
+1996 keys 20
+1997 keys 00
+2018 equip b=03 s2=16
+2019 use b 16
+2019 keys 20
+2024 keys 00
+2049 throw b
+2049 keys 20
+2050 keys 00
+2087 equip b=16 s11=0f
+2200 equip b=0f s2=03
+2201 use b 03
+2201 keys 20
+2208 keys 00
+2241 throw b
+2241 keys 20
+2242 keys 00
+2279 equip b=03 s2=0f
+2400 keys 00

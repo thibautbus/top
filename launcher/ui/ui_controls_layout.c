@@ -55,8 +55,9 @@ static const OraclesUiControlsStyles styles_4_3 = {
 const OraclesUiControlsStyles *oracles_ui_controls_styles(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &styles_4_3 : &styles_16_9; }
 
 const char oracles_ui_controls_mode_text[] = "A hotkey uses its item at once, without opening the menu.";
-const char oracles_ui_controls_mode_note[] = "After loading a savestate, hotkeys stop acting until the next session.";
+const char oracles_ui_controls_mode_note[] = "Loading a savestate drops an exchange under way; hotkeys keep working.";
 const char oracles_ui_controls_slots[] = "Slots fill in game; the item column is read-only.";
+const char oracles_ui_controls_hotkeys_off[] = "Off: turn it on to use an item with one key, without opening the inventory.";
 const char *const oracles_ui_controls_mode_choices[2] = { "Off", "On" };
 const char oracles_ui_controls_swim_text[] =
     "Hold a direction to swim at full speed, instead of tapping A with the flippers or the direction with the mermaid suit.";
@@ -128,6 +129,7 @@ const char *const oracles_ui_controls_swim_choices[2] = { "Tap", "Hold" };
 #define GRID_GAP_4_3 16.0f
 #define HEADING_PAD_4_3 4.0f
 #define CELL_H_4_3 90.0f           /* its border, 2 px while it waits, within */
+#define HOTKEYS_OFF_PAD_4_3 10.0f  /* above the sentence under the hotkeys' grid while they are off */
 #define BUTTON_CELL_W_4_3 340.0f
 #define HOTKEY_NAME_W_4_3 220.0f
 #define HOTKEY_CELL_W_4_3 260.0f
@@ -402,7 +404,13 @@ static void layout_hotkeys(const OraclesHomeNav *nav, OraclesUiControlsLayout *o
         y += height + PANEL_GAP;
     }
     out->slots_note = line_at(&oracles_ui_controls_slots_note, oracles_ui_controls_slots, left, y + SLOTS_MARGIN, 0.0f);   /* y is under the last row and its gap */
-    out->right_panel = box(RIGHT_X, PANEL_Y, RIGHT_W, out->slots_note.y + out->slots_note.h + PANEL_PAD_Y + BORDER - PANEL_Y);
+    bottom = out->slots_note.y + out->slots_note.h;
+    memset(&out->hotkeys_off, 0, sizeof out->hotkeys_off);
+    if (oracles_controls_hotkeys_off_line(nav)) {
+        out->hotkeys_off = line_at(&oracles_ui_controls_mode_text_style, oracles_ui_controls_hotkeys_off, left, bottom + PANEL_GAP, 0.0f);
+        bottom = out->hotkeys_off.y + out->hotkeys_off.h;
+    }
+    out->right_panel = box(RIGHT_X, PANEL_Y, RIGHT_W, bottom + PANEL_PAD_Y + BORDER - PANEL_Y);
 }
 
 /* Menu's controller cell, `min_w` wide at least and `h` tall, its border 2 px while it waits (within its box): its box
@@ -610,6 +618,9 @@ static void hotkeys_4_3(const OraclesHomeNav *nav, OraclesUiControlsLayout *out)
         out->items[row] = line_at(empty ? &oracles_ui_row_note_4_3 : &oracles_ui_row_text_4_3, oracles_ui_controls_item_text(nav, row), x[3], 0.0f, 0.0f);
         move_line(&out->items[row], x[3], y + (CELL_H_4_3 - out->items[row].h) * 0.5f);
     }
+    memset(&out->hotkeys_off, 0, sizeof out->hotkeys_off);
+    if (oracles_controls_hotkeys_off_line(nav))   /* y is under the last row */
+        out->hotkeys_off = line_at(&oracles_ui_row_text_4_3, oracles_ui_controls_hotkeys_off, left, y + HOTKEYS_OFF_PAD_4_3, 0.0f);
 }
 
 /* In game: "Fixed keys in game", then Menu's row of 90, Esc framed, Menu's controller cell and its meaning, then a

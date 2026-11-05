@@ -257,6 +257,13 @@ VARIABLES = [
     # The assignment in the inventory (point 7): the item submenu waiting for an input, and its cursor.
     ("menu_load_state", "wMenuLoadState"), ("menu_active_state", "wMenuActiveState"), ("inventory_submenu", "wInventorySubmenu"),
     ("inventory_submenu0_cursor_pos", "wInventorySubmenu0CursorPos"),   # wPaletteThread_mode is above
+    # The hotbar's icons, as loadEquippedItemSpriteData and loadItemIconGfx find a button's (bank2.s): the two tables of
+    # treasureDisplayData, the level variables they name in wc600Block's page, Seasons' slingshot level, and the icons'
+    # graphics.
+    ("treasure_display_data1", "treasureDisplayData1"), ("treasure_display_data2", "treasureDisplayData2"),
+    ("c600_block", "wc600Block"), ("slingshot_level", "wSlingshotLevel"), ("spr_item_icons_1", "spr_item_icons_1"),
+    # and what drawTreasureExtraTiles draws beside them in Seasons: the seasons the rod has, the gloves' polarity.
+    ("obtained_seasons", "wObtainedSeasons"), ("magnet_glove_polarity", "wMagnetGlovePolarity"),
     # The harness's live-state dump: the vblank function queue, whose entries past its tail are already consumed.
     ("vblank_function_queue", "wVBlankFunctionQueue"), ("vblank_function_queue_tail", "hVBlankFunctionQueueTail"),
     # and the scratch the game documents as such: hFF8A to hFF93 (hram.s, "General-purpose variables"), wTmpcec0 to $ceff (wram.s, "several different uses depending on context").
@@ -289,7 +296,7 @@ DEFINES = [("game_state", "wGameState"), ("cutscene_index", "wCutsceneIndex")]
 ROOM_FLAG_BYTES = [("maku_tree_tileset_room_flags", "wGroup1RoomFlags", "ROOM_AGES_148"),   # Ages: bit 0, the Maku Tree saved, 0:38's tileset
                    ("veran_room_flags", "wGroup4RoomFlags", "ROOM_AGES_4fc")]              # Ages: bit 7, Veran beaten, 0:38's staircase
 OPTIONAL = {"linkUpdateVelocity@mermaidSuit", "bombUpgradeFairy_loseAllBombs", "wPortalGroup", "wPortalRoom", "wLinkTimeWarpTile", "wJabuWaterLevel", "wLinkRaisedFloorOffset", "wSelectedHarpSong",   # Ages only
-            "wInBoxingMatch",   # Seasons only
+            "wInBoxingMatch", "wSlingshotLevel", "wObtainedSeasons", "wMagnetGlovePolarity",   # Seasons only
             "wNumPlacedSlates"}   # neither original: a fan game's (Gifts of Kinomi)
 STRUCT_FIELDS = ["enabled", "id", "subid", "var03", "state", "substate", "counter1", "counter2", "direction",
                  "angle", "y", "yh", "x", "xh", "z", "zh", "speed", "speedZ", "relatedObj1", "relatedObj2",
@@ -333,8 +340,9 @@ CONSTANTS = [("oam_data_bank", "BASE_OAM_DATA_BANK")]
 # cutscene indices of both games share one file).
 # Item hotkeys.
 DISASM_CONSTANTS = [
-    ("num_inventory_items", "common/treasure.s", "NUM_INVENTORY_ITEMS"),
+    ("num_inventory_items", "common/treasure.s", "NUM_INVENTORY_ITEMS"), ("first_upgrade_treasure", "common/treasure.s", "FIRST_UPGRADE_TREASURE"),
     ("item_biggoron_sword", "common/items.s", "ITEM_BIGGORON_SWORD"), ("item_seed_satchel", "common/items.s", "ITEM_SEED_SATCHEL"),
+    ("item_bomb", "common/items.s", "ITEM_BOMB"), ("item_bracelet", "common/items.s", "ITEM_BRACELET"),
     ("item_shooter", "common/items.s", "ITEM_SHOOTER"), ("item_slingshot", "common/items.s", "ITEM_SLINGSHOT"), ("item_harp", "common/items.s", "ITEM_HARP"),
     ("treasure_ember_seeds", "common/treasure.s", "TREASURE_EMBER_SEEDS"), ("treasure_tune_of_echoes", "common/treasure.s", "TREASURE_TUNE_OF_ECHOES"),
     ("globalflag_intro_done", "common/globalFlags.s", "GLOBALFLAG_INTRO_DONE"),

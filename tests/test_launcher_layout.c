@@ -5,7 +5,8 @@
  * greyed), and a toast; in the 4:3 layout, 10a (Ages), 10b (Fan games), 10c
  * (Seasons, no ROM), a toast, and the pause menu, 10n, and 10t in a 640x480
  * window; the toast after a game that ran slowly, 11c, 11f and 11h; the language beside Cartridge, 14f, 15d and
- * 16f; the toast over the first game started with a controller, 18d and 18e; the help bar after a key or a
+ * 16f; the reminder over a game started, 18d and 18e, and with each device and HUD, 37c to 37f; the pause menu's line on
+ * the item hotkeys under its list, 37g and 37h; the help bar after a key or a
  * controller's button, at home (21a to 21d), in the pause menu (21e, 21f, its entries naming no key: 21y) and on
  * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it, 23g; the newer
  * version's notice by the version, 24a to 24d, and the version alone, 24e; the version number highlighted, 32g and
@@ -14,6 +15,7 @@
  * and its baseline; an element by its box.  And the choice of the layout by the
  * window's shape. */
 #include "layout_reference.h"
+#include "ui_controls_nav.h"
 #include "ui_home_layout.h"
 #include "ui_home_nav.h"
 #include "ui_layout.h"
@@ -23,8 +25,9 @@
 
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #condition); layout_fail(); } } while (0)
 
-/* The menu as the home screen lays it out: a disabled item shows its reason while highlighted, on a background. */
-static unsigned menu(const OraclesHomeNav *nav, OraclesUiItemLayout *out)
+/* The menu as the home screen lays it out: a disabled item shows its reason while highlighted, on a background; the
+ * pause menu's line on the item hotkeys under it while it shows, into `line`. */
+static unsigned menu_with(const OraclesHomeNav *nav, OraclesUiItemLayout *out, OraclesUiMenuLineLayout *line)
 {
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const char *notes[ORACLES_HOME_MAX_ITEMS], *labels[ORACLES_HOME_MAX_ITEMS];
@@ -35,8 +38,14 @@ static unsigned menu(const OraclesHomeNav *nav, OraclesUiItemLayout *out)
         notes[i] = items[i].note ? items[i].note : reasons[i] ? items[i].reason : NULL;
         labels[i] = items[i].label;
     }
-    oracles_ui_layout_menu(nav->layout, notes, reasons, labels, count, out);
+    oracles_ui_layout_menu(nav->layout, notes, reasons, labels, count, oracles_controls_hotkeys_line(nav) ? line : NULL, out);
     return count;
+}
+
+static unsigned menu(const OraclesHomeNav *nav, OraclesUiItemLayout *out)
+{
+    OraclesUiMenuLineLayout line;
+    return menu_with(nav, out, &line);
 }
 
 static void frame_1a(void)
@@ -284,13 +293,129 @@ static void toast(void)
     oracles_ui_layout_toast(ORACLES_UI_LAYOUT_4_3, "Refused: not an Oracle of Ages or Seasons ROM", &t);
     layout_box("toast 4:3", "toast", &t.box);
     layout_line("toast 4:3", "toast text", &t.text);
-    /* Over the first game started with a controller, at the top (18d, 18e). */
-    oracles_ui_layout_pad_toast(ORACLES_UI_LAYOUT_16_9, "Press L3 for the menu.", &t);
-    layout_box("18d", "toast", &t.box);
-    layout_line("18d", "toast text", &t.text);
-    oracles_ui_layout_pad_toast(ORACLES_UI_LAYOUT_4_3, "Press L3 for the menu.", &t);
-    layout_box("18e", "toast", &t.box);
-    layout_line("18e", "toast text", &t.text);
+}
+
+/* The reminder over a game started, centred under the status bar: the far view's, 480x270 at 4x in 16:9 (its bar 64
+ * high), 480x360 at 3x in 4:3 (48), and at 640x480 at 1x, 60 px down (the scene's 171).  With a controller (18d, 18e,
+ * 37c, its HUD Original in 16:9 and Wide in 4:3, where the bar keeps its sixteen lines), the keyboard (37d), a finger on
+ * Android (37e, clear of the pause button in the top right corner) and a controller there (37f). */
+static void hints_of(const char *frame, const OraclesHomeNav *nav, OraclesUiLayout layout, unsigned expected);
+
+static void reminder_frame(const char *frame, OraclesUiLayout layout, const char *text, float bar_bottom)
+{
+    OraclesUiToastLayout t;
+    oracles_ui_layout_pad_toast(layout, text, bar_bottom, &t);
+    layout_box(frame, "toast", &t.box);
+    layout_line(frame, "toast text", &t.text);
+    if (!strncmp(text, "The pause", 9))
+        CHECK(t.box.x + t.box.w < layout_reference(frame, "pause button", "x") && t.box.y >= layout_reference(frame, "pause button", "y"));
+}
+
+static void reminders(void)
+{
+    char text[64];
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 0, "leftstick", text, sizeof text);
+    reminder_frame("18d", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+    reminder_frame("18e", ORACLES_UI_LAYOUT_4_3, text, 48.0f);
+    reminder_frame("37c", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+    reminder_frame("37c 4:3", ORACLES_UI_LAYOUT_4_3, text, 48.0f);
+    oracles_controls_menu_tip(ORACLES_INPUT_KEYBOARD, 0, "leftstick", text, sizeof text);
+    reminder_frame("37d", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+    reminder_frame("37d 4:3", ORACLES_UI_LAYOUT_4_3, text, 48.0f);
+    oracles_controls_menu_tip(ORACLES_INPUT_POINTER, 1, "leftstick", text, sizeof text);
+    reminder_frame("37e", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+    reminder_frame("37e 640x480", ORACLES_UI_LAYOUT_4_3, text, 171.0f);
+    oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 1, "leftstick", text, sizeof text);
+    reminder_frame("37f", ORACLES_UI_LAYOUT_4_3, text, 171.0f);
+    reminder_frame("37f 16:9", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+}
+
+/* Ages' pause with its item hotkeys off, in 16:9 from a key (37g) and at 640x480 from a controller (37h): the line under
+ * the list, which moves up by it.  Due where the pause has Controls, three openings at most; not for a fan game, nor a
+ * ROM refusing the hotkeys; gone once they are on. */
+static void hotkeys_line(const char *frame, int width, int height, OraclesInputDevice device)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.layout = oracles_ui_layout_choose(width, height, 0);
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, oracles_ui_layout_narrow(nav.layout, width));
+    oracles_home_input(&nav, device);
+    CHECK(!nav.games[ORACLES_HOME_GAME_AGES].hotkeys && oracles_controls_hotkeys_tip_due(&nav));
+    nav.hotkeys_line = 1;
+    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    OraclesUiMenuLineLayout line;
+    if (menu_with(&nav, items, &line) != 7) { fprintf(stderr, "FAIL %s: seven items expected\n", frame); layout_fail(); return; }
+    for (int i = 0; i < 7; i++) {
+        char name[32];
+        snprintf(name, sizeof name, "item %d", i); layout_box(frame, name, &items[i].box);
+        snprintf(name, sizeof name, "item %d label", i); layout_line(frame, name, &items[i].label);
+    }
+    layout_box(frame, "line", &line.box);
+    layout_line(frame, "line text", &line.lead);
+    layout_line(frame, "line path", &line.path);
+    hints_of(frame, &nav, nav.layout, 3);
+    nav.games[ORACLES_HOME_GAME_AGES].hotkeys = 1;
+    CHECK(!oracles_controls_hotkeys_line(&nav) && !oracles_controls_hotkeys_tip_due(&nav));
+}
+
+static void hotkeys_line_rules(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_SEASONS, ORACLES_PROFILE_FAITHFUL, 0);
+    CHECK(oracles_controls_hotkeys_tip_due(&nav));
+    nav.controls.hotkeys_tip = ORACLES_HOTKEYS_TIPS - 1;
+    CHECK(oracles_controls_hotkeys_tip_due(&nav));
+    nav.controls.hotkeys_tip = ORACLES_TIP_OFF;
+    CHECK(!oracles_controls_hotkeys_tip_due(&nav));
+    nav.controls.hotkeys_tip = 0;
+    nav.hotkeys_refused = 1;   /* an unrecognised ROM */
+    CHECK(!oracles_controls_hotkeys_tip_due(&nav));
+    nav.hotkeys_refused = 0;
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_SEASONS, ORACLES_PROFILE_ENHANCED, 1);   /* a 16:9 window under 960 pixels */
+    CHECK(!oracles_controls_hotkeys_tip_due(&nav));
+    nav.hotkeys_line = 1;
+    CHECK(!oracles_controls_hotkeys_line(&nav));
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_MOONRISE, ORACLES_PROFILE_ENHANCED, 0);
+    CHECK(!oracles_controls_hotkeys_tip_due(&nav));
+    nav.screen = ORACLES_SCREEN_HOME;
+    nav.in_game = 0;
+    oracles_home_select(&nav, ORACLES_HOME_AGES);
+    CHECK(!oracles_controls_hotkeys_tip_due(&nav) && !oracles_controls_hotkeys_line(&nav));   /* the home screen's menu */
+    /* Three pause menus opened by its key show it, a fourth not; the pause Android's background brings (`by_key` 0) shows
+     * it without counting it, nor ends the reminder.  Opened by its key, Back on Android included, the menu is done with
+     * the reminder. */
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0);
+    nav.controls.hotkeys_tip = 0;
+    nav.controls.menu_tip = 4;
+    CHECK(!oracles_controls_tips_opened(&nav, 0) && nav.hotkeys_line && nav.controls.hotkeys_tip == 0 && nav.controls.menu_tip == 4);
+    CHECK(oracles_controls_tips_opened(&nav, 1) && nav.controls.menu_tip == ORACLES_TIP_OFF && nav.controls.hotkeys_tip == 1);
+    int shown = 1;
+    for (int opening = 0; opening < 4; opening++) {
+        const int changed = oracles_controls_tips_opened(&nav, 1);
+        shown += nav.hotkeys_line;
+        CHECK(changed == nav.hotkeys_line);
+    }
+    CHECK(shown == ORACLES_HOTKEYS_TIPS && nav.controls.hotkeys_tip == ORACLES_TIP_OFF);
+    CHECK(!oracles_controls_tips_opened(&nav, 1) && !nav.hotkeys_line);
+    /* Turning them on in Controls is done with the line. */
+    nav.controls.hotkeys_tip = 0;
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0);
+    oracles_controls_open(&nav);
+    nav.controls.row = ORACLES_CONTROLS_ROW_MODE;
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_MODE, 1) == ORACLES_HOME_STORE && nav.games[ORACLES_HOME_GAME_AGES].hotkeys == 1);
+    CHECK(nav.controls.hotkeys_tip == ORACLES_TIP_OFF);
+    /* In the same pause, on then Off again: the line stays gone. */
+    nav.controls.hotkeys_tip = 0;
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0);
+    nav.games[ORACLES_HOME_GAME_AGES].hotkeys = 0;
+    oracles_controls_tips_opened(&nav, 1);
+    CHECK(oracles_controls_hotkeys_line(&nav));
+    oracles_controls_open(&nav);
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_MODE, 1) == ORACLES_HOME_STORE);
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_MODE, 0) == ORACLES_HOME_STORE && !nav.games[ORACLES_HOME_GAME_AGES].hotkeys);
+    nav.screen = ORACLES_SCREEN_PAUSE;
+    CHECK(!oracles_controls_hotkeys_line(&nav));
 }
 
 /* The toast after a game that ran slowly at High, at the bottom left (11c), in 4:3 on two lines (11f), and in a 640x480
@@ -763,6 +888,10 @@ int main(int argc, char **argv)
     frame_1f();
     frame_8e();
     toast();
+    reminders();
+    hotkeys_line("37g", 1920, 1080, ORACLES_INPUT_KEYBOARD);
+    hotkeys_line("37h", 640, 480, ORACLES_INPUT_GAMEPAD);
+    hotkeys_line_rules();
     slow_toast("11c", 1920, 1080, 1);
     frame_10a();
     frame_10b();

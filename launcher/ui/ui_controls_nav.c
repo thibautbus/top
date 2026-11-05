@@ -56,6 +56,7 @@ void oracles_controls_defaults(OraclesHomeControls *controls)
     copy_name(controls->menu_pad, oracles_controls_default_menu_pad);
     memset(controls->items, 0, sizeof controls->items);
     controls->swim_hold = 0;
+    controls->menu_tip = controls->hotkeys_tip = 0;
     controls->column = controls->row = 0;
     controls->capturing = 0;
     controls->tab = ORACLES_CONTROLS_TAB_BUTTONS;
@@ -128,17 +129,47 @@ const char *oracles_controls_button_label(const char *name)
     return name ? name : "";
 }
 
-void oracles_controls_menu_toast(const char *menu_pad, char *out, size_t capacity)
+void oracles_controls_menu_tip(int device, int android, const char *menu_pad, char *out, size_t capacity)
 {
-    char text[ORACLES_HOME_NAME_LENGTH + 32] = "";
-    if (menu_pad && menu_pad[0]) snprintf(text, sizeof text, "Press %s for the menu.", oracles_controls_button_label(menu_pad));
+    char text[ORACLES_HOME_NAME_LENGTH + 32] = "Esc opens the menu";
+    const char *button = menu_pad && menu_pad[0] ? oracles_controls_button_label(menu_pad) : NULL;
+    if (device == ORACLES_INPUT_GAMEPAD && button) snprintf(text, sizeof text, "%s%s opens the menu", button, android ? " or Back" : "");
+    else if (device == ORACLES_INPUT_GAMEPAD && !android) snprintf(text, sizeof text, "Guide opens the menu");   /* menu_pad= empty: Guide alone */
+    else if (device == ORACLES_INPUT_POINTER && android) snprintf(text, sizeof text, "The pause button opens the menu");
+    else if (android) snprintf(text, sizeof text, "Back opens the menu");   /* a handheld's buttons that come as keys: no Escape there */
     oracles_ui_copy_whole(out, capacity, text);
 }
 
-int oracles_controls_menu_toast_due(int device, int shown, const char *menu_pad, char *out, size_t capacity)
+int oracles_controls_tip_shown(int count, int most) { return count < 0 || count + 1 >= most ? ORACLES_TIP_OFF : count + 1; }
+
+int oracles_controls_menu_tip_due(int count) { return count >= 0 && count < ORACLES_MENU_TIPS; }
+
+int oracles_controls_hotkeys_tip_due(const OraclesHomeNav *nav)
 {
-    oracles_controls_menu_toast(menu_pad, out, capacity);
-    return device == ORACLES_INPUT_GAMEPAD && !shown && capacity && out[0];
+    const int game = oracles_home_game(nav);
+    return nav->screen == ORACLES_SCREEN_PAUSE && nav->in_game && (game == ORACLES_HOME_GAME_AGES || game == ORACLES_HOME_GAME_SEASONS)
+           && !nav->hotkeys_refused && !nav->games[game].hotkeys && !nav->narrow
+           && nav->controls.hotkeys_tip >= 0 && nav->controls.hotkeys_tip < ORACLES_HOTKEYS_TIPS;
+}
+
+int oracles_controls_tips_opened(OraclesHomeNav *nav, int by_key)
+{
+    int changed = 0;
+    if (by_key && nav->controls.menu_tip != ORACLES_TIP_OFF) {
+        nav->controls.menu_tip = ORACLES_TIP_OFF;
+        changed = 1;
+    }
+    nav->hotkeys_line = oracles_controls_hotkeys_tip_due(nav);
+    if (nav->hotkeys_line && by_key) {
+        nav->controls.hotkeys_tip = oracles_controls_tip_shown(nav->controls.hotkeys_tip, ORACLES_HOTKEYS_TIPS);
+        changed = 1;
+    }
+    return changed;
+}
+
+int oracles_controls_hotkeys_line(const OraclesHomeNav *nav)
+{
+    return nav->screen == ORACLES_SCREEN_PAUSE && nav->hotkeys_line && !oracles_controls_hotkeys_on(nav) && !nav->narrow;
 }
 
 const char *oracles_controls_prompt(const OraclesHomeNav *nav)
@@ -161,6 +192,8 @@ int oracles_controls_hotkeys_on(const OraclesHomeNav *nav)
     const int g = hotkey_game(nav);
     return g >= 0 && nav->games[g].hotkeys != 0;
 }
+
+int oracles_controls_hotkeys_off_line(const OraclesHomeNav *nav) { return hotkey_game(nav) >= 0 && !nav->hotkeys_refused && !oracles_controls_hotkeys_on(nav); }
 
 const char *oracles_controls_item_heading(const OraclesHomeNav *nav)
 {
@@ -291,6 +324,10 @@ static OraclesHomeCommand toggle_hotkeys(OraclesHomeNav *nav, int on)
     const int now = nav->games[g].hotkeys != 0;
     if (now == on) return ORACLES_HOME_STAY;
     nav->games[g].hotkeys = on ? 1 : 0;   /* On is the use mode; equip stays the command line's */
+    if (on) {   /* found: the pause menu's line on them is done, Off again or not */
+        nav->controls.hotkeys_tip = ORACLES_TIP_OFF;
+        nav->hotkeys_line = 0;
+    }
     return ORACLES_HOME_STORE;
 }
 
@@ -303,7 +340,7 @@ static OraclesHomeCommand set_swim(OraclesHomeNav *nav, int hold)
     return ORACLES_HOME_STORE;
 }
 
-/* The keys and buttons, the slots' items and Swimming kept. */
+/* The keys and buttons, and the reminder and the pause menu's line due again; the slots' items and Swimming kept. */
 static OraclesHomeCommand reset(OraclesHomeNav *nav)
 {
     OraclesHomeControls *c = &nav->controls;

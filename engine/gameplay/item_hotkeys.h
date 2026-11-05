@@ -45,6 +45,7 @@ typedef struct OraclesItemHotkeysEffect {
 
 typedef struct OraclesItemHotkeysStats {
     unsigned applied;                      /* exchanges applied */
+    unsigned sounds, sounds_refused;       /* the route's sounds handed to the game at their frame, and those it refused */
     unsigned replay_mismatch;              /* noted exchanges the guest did not apply at their frame, whatever the reason */
     unsigned missed_write_point;           /* noted exchanges whose frame had no write point */
     unsigned verdicts[ORACLES_INVENTORY_VERDICTS];
@@ -56,6 +57,16 @@ typedef struct OraclesItemHotkeysReplay OraclesItemHotkeysReplay;
 /* Installs the replay on the guest; `effects` (sorted by frame, at most one a
  * frame) is copied.  NULL when the write point cannot be armed on this ROM. */
 OraclesItemHotkeysReplay *oracles_item_hotkeys_replay_start(OraclesGuest *guest, const OraclesItemHotkeysEffect *effects, size_t count);
+/* A sound a route noted, which the game is asked to play from the start of `frame` (its `sound` line). */
+typedef struct OraclesItemHotkeysSound {
+    uint32_t frame;
+    uint8_t sound;
+} OraclesItemHotkeysSound;
+/* The route's sounds (sorted by frame), copied; -1 when the game's routines cannot be called on this ROM. */
+int oracles_item_hotkeys_replay_sounds(OraclesItemHotkeysReplay *replay, const OraclesItemHotkeysSound *sounds, size_t count);
+/* The start of `frame`, before the core runs it: the sounds of that frame are handed to the game, as the live policy
+ * hands them. */
+void oracles_item_hotkeys_replay_frame(OraclesItemHotkeysReplay *replay, uint32_t frame);
 /* After a savestate load the route has diverged: nothing more is applied. */
 void oracles_item_hotkeys_replay_stop_applying(OraclesItemHotkeysReplay *replay);
 void oracles_item_hotkeys_replay_stats(const OraclesItemHotkeysReplay *replay, OraclesItemHotkeysStats *out);
@@ -78,15 +89,19 @@ typedef struct OraclesHotkeySlot {
     uint8_t target;                        /* ORACLES_INVENTORY_SLOT_B or _A: the `equip` mode's button */
 } OraclesHotkeySlot;
 
-/* What a session records of the policy (the route's `equip` and `use` lines). */
+/* What a session records of the policy (the route's `equip`, `use`, `sound` and `throw` lines). */
 typedef struct OraclesItemHotkeysSink {
     void (*applied)(void *opaque, const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op);
     void (*use_started)(void *opaque, uint32_t frame, unsigned button_slot, uint8_t item);
+    void (*sound)(void *opaque, uint32_t frame, uint8_t sound);   /* handed to the game at the start of `frame` */
+    void (*throw_started)(void *opaque, uint32_t frame, unsigned button_slot);   /* a press that throws what Link holds */
     void *opaque;
 } OraclesItemHotkeysSink;
 
 typedef struct OraclesItemHotkeysLiveStats {
     unsigned requests, applied, uses, returns, returns_abandoned, dropped_postponed, dropped_refused;
+    unsigned sounds;                   /* the game's equip sound, played for an item the `equip` mode equipped or a key took */
+    unsigned throws;                   /* presses of the `use` mode that threw what Link held, apart from the uses */
     unsigned returns_pending;          /* still waiting when the figures are read */
     unsigned return_longest_delay;     /* write points the latest return came after its quiet spell was over */
     unsigned dropped_by[ORACLES_INVENTORY_VERDICTS];   /* the condition that refused a request, or the last one that postponed it */
@@ -105,7 +120,8 @@ void oracles_item_hotkeys_slot(const OraclesItemHotkeys *hotkeys, unsigned n, Or
  * (target A with BIND_A, B otherwise).  In play with a modifier: it assigns the item of that button.  Otherwise it
  * triggers the slot.  Needs the guest for the two assignments. */
 OraclesHotkeyOutcome oracles_item_hotkeys_key(OraclesItemHotkeys *hotkeys, unsigned n, int pressed, OraclesHotkeyModifier modifier);
-/* The joypad mask handed to the core for this frame: the player's, with the simulated press of the `use` mode. */
+/* The joypad mask handed to the core for this frame: the player's, with the simulated press of the `use` mode.  At the
+ * start of the frame, before the core runs it: a sound due is handed to the game here. */
 unsigned oracles_item_hotkeys_filter_keys(OraclesItemHotkeys *hotkeys, uint32_t frame, unsigned mask);
 /* A savestate was loaded: the pending request, the simulated press, the returns and the memory of the previous item go. */
 void oracles_item_hotkeys_reset(OraclesItemHotkeys *hotkeys);

@@ -6,7 +6,7 @@
  * Far size with its note on the help's note line (34f); from the pause, every row live (34g); in Faithful, Menus &
  * scenes dimmed, "Enhanced only." (34h); and Advanced's five rows, Camera highlighted (34i, 34i 4:3).  Turn 35's: the
  * page's last row, Unvisited rooms, Shown and Hidden (35a, 35b), in 4:3 (35c), at 640x480 on Android (35d), from the
- * pause (35e), in Faithful (35f), and Picture's summary naming the rooms hidden, or counting the extras (35g). */
+ * pause (35e), in Faithful (35f), and Picture's summary naming the rooms hidden, or counting the extras (35g, 37a). */
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -276,7 +276,8 @@ static void layouts(void)
     rows("35f", &t, &l, 0);
     layout_text("35f", "menus note", &l.size_notes[0]);
     layout_text("35f", "unvisited note", &l.size_notes[2]);
-    /* 35g: Picture's summary with the rooms hidden; with Large menus too, counted; the 1280x960 handheld's worst case. */
+    /* 35g: Picture's summary with the rooms hidden; with Large menus too, counted; on a 1280x960 handheld with Far fixed
+     * and Large menus, Android's default, two; with View menus, its extra there, three (37a). */
     ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
     nav.display.unvisited = 1;
     nav.row = ORACLES_DISPLAY_PICTURE;
@@ -295,14 +296,21 @@ static void layouts(void)
     nav.android = 1;
     nav.display.fullscreen_only = 1;
     nav.display.far_fixed = 1;
-    nav.display.menus = 0;   /* View: away from Android's Large */
+    nav.display.menus = 1;   /* Large, Android's default: no extra */
     nav.display.unvisited = 1;
     nav.row = ORACLES_DISPLAY_PICTURE;
     lay_out(&nav, &t, &l);
-    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 3 more"));
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 2 more"));
     layout_box("35g 4:3", "picture row", &l.rows[ORACLES_DISPLAY_PICTURE]);
     layout_box("35g 4:3", "picture link", &l.picture_link);
     layout_line("35g 4:3", "picture summary text", &l.picture_summary);
+    /* 37a: View, away from Android's Large, its extra: three. */
+    nav.display.menus = 0;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 3 more"));
+    layout_box("37a", "picture row", &l.rows[ORACLES_DISPLAY_PICTURE]);
+    layout_box("37a", "picture link", &l.picture_link);
+    layout_line("37a", "picture summary text", &l.picture_summary);
     /* In 4:3 two still hold on the line, as turn 34 named them. */
     nav.display.unvisited = 0;
     oracles_display_picture_summary(&nav, t.picture_summary, sizeof t.picture_summary);

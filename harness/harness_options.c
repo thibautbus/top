@@ -10,7 +10,7 @@
 
 int harness_usage(void)
 {
-    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--colour-toggle-at FRAME] [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
+    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--colour-toggle-at FRAME] [--framed-toggle-at FRAME]... [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
                     "                       [--frame-times FILE]   (each frame's phases in microseconds: core with its hooks, source, presentation, end with the Enhanced check)\n"
                     "                       [--sram-out FILE]   (the cartridge RAM at the end of the replay, raw, as a .sav: a save the game made on one core read on the other)\n"
                     "                       [--positions FILE]   (group, room and Link's position after every frame: tools/compare_positions.py compares the rooms of two of them, from two cores, to find where they part)\n"
@@ -38,6 +38,8 @@ int harness_usage(void)
                     "                       [--text classic|compact]   (the text box's lines in the font's own widths, Oracles, fan games, with --enhanced-check alone; on by itself for a route recorded with it)\n"
                     "                       [--text-speed classic|instant]   (each line of the text box whole, as a press of A at its start shows it, Oracles, fan games, Faithful and Enhanced; on by itself for a route recorded with it)\n");
     fprintf(stderr,
+                    "                       [--reminder-check]   (the frames whose status bar is in play for the launcher's reminder, and those it is drawn in a menu or a\n"
+                    "                                             dialogue, which are not; the frame the reminder would start at)\n"
                     "                       [--text-box-check]   (with --enhanced-check, Ages and Seasons: the text box drawn by the host each frame, at the game's width, against the core's image; nothing shown changes;\n"
                     "                                             with --text-box wide, the wide box against its layout)\n"
                     "                       [--text-box standard|wide]   (with --enhanced-check, Ages and Seasons: the host's box of 192 pixels of text, the texts laid out again for it, classic or compact; on by itself for a route recorded with it)\n"
@@ -48,7 +50,7 @@ int harness_usage(void)
                     "                       [--neighbour-objects-check DIR] [--neighbour-objects-lead FRAMES] [--neighbour-capture]   (the objects of every neighbour, ghost against the real entry)\n"
                     "                       [--object-animation-check]   (the objects' animation stepped from the game's data against the live game, each room entered captured as a neighbour: its poses' tiles; in DIR of --neighbour-objects-check if given)\n"
                     "                       [--hotkeys-check DIR]   (item hotkeys: the inventory frame by frame in DIR; a route's exchanges are applied either way)\n"
-                    "                       [--hotkeys-live use|equip] [--hotkey-slot N=<b|a>:<item>:<variant or -->]... [--hotkey-press FRAME:SLOT:FRAMES]... [--hotkeys-record ROUTE]\n"
+                    "                       [--hotkeys-live use|equip] [--hotkey-slot N=<b|a>:<item>:<variant or -->]... [--hotkey-press FRAME:SLOT:FRAMES]... [--hotkeys-record ROUTE] [--hotkey-labels keys|pad]\n"
                     "                                                (the live policy with scripted keys over the route's inputs, and the format 2 route of that session)\n"
                     "                       [--surface-at FRAME FILE.ppm]...   (with --enhanced-check: the surface composed at that frame, to look at)\n"
                     "                       [--poke-at FRAME BANK:ADDR=VALUE]...   (a byte of WRAM written at the end of that frame, in hexadecimal (0:cc04=08): a test's way into a scene no route reaches, the variables the game's own caller sets)\n"
@@ -90,6 +92,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             else return harness_usage();
         }
         else if (!strcmp(argv[i], "--colour-toggle-at") && i + 1 < argc) o->colour_toggle_at = (uint32_t)strtoul(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--framed-toggle-at") && i + 1 < argc) { if (o->framed_toggles >= 8u) return -1; o->framed_toggle[o->framed_toggles++] = (uint32_t)strtoul(argv[++i], NULL, 10); }
         else if (!strcmp(argv[i], "--corrupt-thread1-at") && i + 1 < argc) o->corrupt_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--compare") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; }
         else if (!strcmp(argv[i], "--compare-session") && i + 2 < argc) { o->compare_a = argv[++i]; o->compare_b = argv[++i]; o->compare_session = 1; }
@@ -180,6 +183,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             o->text_instant = !strcmp(v, "instant");
         }
         else if (!strcmp(argv[i], "--text-box-check")) o->text_box_check = 1;
+        else if (!strcmp(argv[i], "--reminder-check")) o->reminder_check = 1;
         else if (!strcmp(argv[i], "--text-size") && i + 1 < argc) {
             const char *v = argv[++i];
             if (strcmp(v, "normal") != 0 && strcmp(v, "large") != 0 && strcmp(v, "xlarge") != 0) { fprintf(stderr, "harness: --text-size is normal, large or xlarge, not %s\n", v); return -1; }
@@ -200,6 +204,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--hotkey-slot") && i + 1 < argc) { const char *v = argv[++i]; if (v[0] < '1' || v[0] > '4' || v[1] != '=') return -1; o->hotkeys_live.slots[v[0] - '1'] = v + 2; }
         else if (!strcmp(argv[i], "--hotkey-press") && i + 1 < argc) { if (!oracles_hotkeys_live_parse_press(&o->hotkeys_live, argv[++i])) return -1; }
         else if (!strcmp(argv[i], "--hotkeys-record") && i + 1 < argc) o->hotkeys_live.record_path = argv[++i];
+        else if (!strcmp(argv[i], "--hotkey-labels") && i + 1 < argc) { const char *v = argv[++i]; if (strcmp(v, "keys") != 0 && strcmp(v, "pad") != 0) return -1; o->hotkeys_live.pad_labels = !strcmp(v, "pad"); }
         else if (!strcmp(argv[i], "--dump-at") && i + 2 < argc && o->dumps < HARNESS_MAX_DUMPS) { o->dump_at[o->dumps] = (uint32_t)strtoul(argv[++i], NULL, 10); o->dump_path[o->dumps++] = argv[++i]; }
         else if (!strcmp(argv[i], "--poke-at") && i + 2 < argc && o->poke_count < HARNESS_MAX_POKES) {
             harness_poke *p = &o->pokes[o->poke_count];

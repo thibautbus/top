@@ -26,6 +26,7 @@
 #include "sha1.h"
 #include "text_box.h"
 #include "text_speed_check.h"
+#include "view.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -67,6 +68,8 @@ typedef struct run {
     uint32_t keys_polls;      /* the game's input polls counted by the guest at the last frame's end */
     uint32_t corrupt_at;      /* 0: never */
     uint32_t colour_toggle_at; /* --colour-toggle-at, F2 in the launcher; 0: never */
+    uint32_t framed_toggle[8]; /* --framed-toggle-at, F3 in the launcher */
+    unsigned framed_toggles;
     unsigned events;
     size_t journal_writes;
     const uint8_t *rom;       /* the ROM the transitions read, with them */
@@ -78,6 +81,12 @@ typedef struct run {
     unsigned landing_direction;
     unsigned swim_dropped;    /* transitions he swam into and came out of on land where the straight path stays in water */
     unsigned cheats_changed;  /* the cheats the route's `cheat` lines change, their points armed from the start */
+    /* --reminder-check: the frames the status bar is in play (oracles_enhanced_bar_in_play), and those it is drawn with a
+     * menu open or a dialogue under way, and of them in play (none expected); the run of frames in play, and the frame the
+     * launcher's reminder would start at (ORACLES_ENHANCED_BAR_SETTLE in a row), 0 for none. */
+    int reminder_check;
+    unsigned reminder_in_play, reminder_menu, reminder_in_play_menu, reminder_text, reminder_in_play_text, reminder_run;
+    uint32_t reminder_start;
     int swim_changed;         /* the route's `set swim-hold` lines change the swim's hold, its tests armed from the start */
     int text_speed_changed;   /* the route's `set text-speed` lines change the instant text, its points armed from the start */
     OraclesTextSpeedCheck text_speed;   /* with the instant text armed: its lines and pages */

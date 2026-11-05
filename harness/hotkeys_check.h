@@ -17,6 +17,8 @@ typedef struct OraclesHotkeysCheck OraclesHotkeysCheck;
 
 /* `dir` may be NULL (no table).  NULL when the write point cannot be armed on this ROM. */
 OraclesHotkeysCheck *oracles_hotkeys_check_start(OraclesGuest *guest, const OraclesRoute *route, const char *dir);
+/* The start of a frame, before the core runs it: the route's sounds of that frame go to the game. */
+void oracles_hotkeys_check_frame_begin(OraclesHotkeysCheck *check, uint32_t frame);
 void oracles_hotkeys_check_event(OraclesHotkeysCheck *check, const OraclesGuestEvent *event);
 void oracles_hotkeys_check_frame_end(OraclesHotkeysCheck *check, uint32_t frame, unsigned keys);
 void oracles_hotkeys_check_summary(OraclesHotkeysCheck *check, FILE *out);

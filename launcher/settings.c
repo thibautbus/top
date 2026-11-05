@@ -303,16 +303,28 @@ void oracles_settings_defaults(oracles_settings *s)
     s->scaling_fill = 0;   /* sharp, Android included */
     s->screen_margin = ORACLES_SCREEN_MARGIN_OFF;
     s->quality_hint = -1;
-    s->menu_toast_shown = 0;
+    s->menu_tip = s->hotkeys_tip = 0;
     s->update_check = 1;
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
 static const char *const text_size_names[3] = { "normal", "large", "xlarge" };
+
+/* A tip's count (menu_tip=, hotkeys_tip=): off, or the times it was shown, under `most`; on reads as 0, and a count
+ * that reaches `most` as off. */
+static int load_tip(const char *word, int most, int *out)
+{
+    char *end = NULL;
+    const long count = strtol(word, &end, 10);
+    if (!strcmp(word, "off")) *out = ORACLES_TIP_OFF;
+    else if (!strcmp(word, "on")) *out = 0;
+    else if (end != word && !*end && count >= 0) *out = count < most ? (int)count : ORACLES_TIP_OFF;
+    return 1;
+}
 
 static int load_launcher(oracles_settings *s, const char *name, const char *value, const char *word)
 {
@@ -360,10 +372,9 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
         for (int i = 0; i < 3; i++) if (!strcmp(word, oracles_settings_hud_names[i])) s->hud = i;
         return 1;
     }
-    if (!strcmp(name, "menu_toast")) {
-        if (!strcmp(word, "due") || !strcmp(word, "shown")) s->menu_toast_shown = !strcmp(word, "shown");
-        return 1;
-    }
+    if (!strcmp(name, "menu_tip")) return load_tip(word, ORACLES_MENU_TIPS, &s->menu_tip);
+    if (!strcmp(name, "hotkeys_tip")) return load_tip(word, ORACLES_HOTKEYS_TIPS, &s->hotkeys_tip);
+    if (!strcmp(name, "menu_toast")) return 1;   /* 1.3's toast, shown once: dropped, the reminder due again */
     if (!strcmp(name, "update_check")) {
         if (!strcmp(word, "on") || !strcmp(word, "off")) s->update_check = !strcmp(word, "on");
         return 1;
@@ -578,6 +589,12 @@ static void put(writer *w, const char *format, ...)
     }
 }
 
+static void put_tip(writer *w, const char *name, int count)
+{
+    if (count < 0) put(w, "%s=off\n", name);
+    else put(w, "%s=%d\n", name, count);
+}
+
 int oracles_settings_store(const oracles_settings *s)
 {
     if (!s->path[0]) return 0;
@@ -692,8 +709,12 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The controller's Escape in a game, the pause menu, as Guide is too: a button, or lefttrigger or righttrigger;\n"
                "# one the game's buttons or the item hotkeys have stays theirs; empty: Guide alone.\n");
     put(&w, "menu_pad=%s\n", s->menu_pad);
-    put(&w, "# The toast that names that button, over the first game started with a controller: due, or shown already.\n");
-    put(&w, "menu_toast=%s\n", s->menu_toast_shown ? "shown" : "due");
+    put(&w, "# The reminder over each game started that names the key opening the menu: the games it was shown over (0 to 9),\n"
+               "# or off once the menu was opened by its key; Controls' Reset to defaults brings it back.\n");
+    put_tip(&w, "menu_tip", s->menu_tip);
+    put(&w, "# The line under the pause menu of Ages or Seasons while their item hotkeys are off: the pause menus it was shown\n"
+               "# in (0 to 2), or off once they were turned on; Reset to defaults brings it back.\n");
+    put_tip(&w, "hotkeys_tip", s->hotkeys_tip);
     put(&w, "# Item hotkeys (--item-hotkeys=use|equip, for the run that asks): a key per slot; held with the bind keys it takes the item of B or of A,\n"
                "# and in the inventory it takes the item under the cursor. A slot is <b|a>:<item>:<variant or -->, in the ROM's own identifiers.\n");
     for (unsigned i = 0; i < ORACLES_HOTKEY_SLOTS; i++) put(&w, "key_hotkey%u=%s\n", i + 1u, s->hotkey_key_names[i]);

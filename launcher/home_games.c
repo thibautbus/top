@@ -747,15 +747,14 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     OraclesPause *pause = draw ? oracles_pause_create(draw, &pause_host, home_game, profile, games->settings->aspect,
                                                                 oracles_session_screen_margin(o.screen_margin, games->settings), nav) : NULL;
     o.pause = pause;
-    /* The first game started with a controller says, once, which of its buttons opens the menu: shown once it was
-     * drawn over the game, not when a session that failed to start never showed it. */
-    char toast[64];
-    const int toast_due = pause && oracles_controls_menu_toast_due(nav->device, games->settings->menu_toast_shown, games->settings->menu_pad, toast, sizeof toast);
-    if (toast_due) oracles_pause_toast(pause, toast);
+    /* Each game started says which key opens the menu, until the player opened it by its key, ten games at most: counted
+     * once it was drawn over the game, not when a session that failed to start, or ended before its status bar showed,
+     * never showed it.  The pause opened by its key marks it done (pause.c). */
+    if (pause && oracles_controls_menu_tip_due(games->settings->menu_tip)) oracles_pause_reminder(pause, games->settings->menu_pad);
     OraclesSessionResult result;
     oracles_session_run(&o, games->settings, &result);
-    if (toast_due && oracles_pause_toast_drawn(pause)) {
-        games->settings->menu_toast_shown = 1;
+    if (oracles_pause_reminder_drawn(pause) && games->settings->menu_tip != ORACLES_TIP_OFF) {
+        games->settings->menu_tip = oracles_controls_tip_shown(games->settings->menu_tip, ORACLES_MENU_TIPS);
         oracles_settings_store(games->settings);
     }
     if (pause) oracles_pause_input(pause, nav);

@@ -197,8 +197,8 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
     char line[1100];
     unsigned number = 0;
     int in_inputs = 0, format_seen = 0;
-    uint32_t last_frame = 0, last_any = 0, last_of_verb[3] = { 0, 0, 0 };
-    int seen_any = 0, seen_verb[3] = { 0, 0, 0 };
+    uint32_t last_frame = 0, last_any = 0, last_of_verb[8] = { 0 };
+    int seen_any = 0, seen_verb[8] = { 0 };
     while (fgets(line, sizeof line, f)) {
         number++;
         line[strcspn(line, "\r\n")] = 0;
@@ -295,13 +295,13 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
         int consumed = 0;
         if (sscanf(line, "%lu %15s %n", &frame, verb, &consumed) < 2) { set_error(error, error_capacity, "expected '<frame> <verb> ...'", number); goto fail; }
         const unsigned which = strcmp(verb, "keys") == 0 ? 0u : strcmp(verb, "equip") == 0 ? 1u : strcmp(verb, "use") == 0 ? 2u
-                             : strcmp(verb, "cheat") == 0 ? 3u : strcmp(verb, "set") == 0 ? 5u : 4u;
+                             : strcmp(verb, "cheat") == 0 ? 3u : strcmp(verb, "set") == 0 ? 5u : strcmp(verb, "sound") == 0 ? 6u : strcmp(verb, "throw") == 0 ? 7u : 4u;
         if (which == 4u || (which != 0u && route->format < 2u) || (which == 3u && route->format < ORACLES_ROUTE_FORMAT_CHEAT_VERB)
-            || (which == 5u && route->format < ORACLES_ROUTE_FORMAT_SET)) {
+            || (which == 5u && route->format < ORACLES_ROUTE_FORMAT_SET) || (which >= 6u && route->format < ORACLES_ROUTE_FORMAT_SOUND)) {
             set_error(error, error_capacity, "unknown verb for this route format", number);
             goto fail;
         }
-        if ((seen_any && frame < last_any) || (which < 3u && seen_verb[which] && frame <= last_of_verb[which])) { set_error(error, error_capacity, "frames must increase", number); goto fail; }
+        if ((seen_any && frame < last_any) || ((which < 3u || which >= 6u) && seen_verb[which] && frame <= last_of_verb[which])) { set_error(error, error_capacity, "frames must increase", number); goto fail; }
         char *rest = line + consumed;
         if (which == 5u) {
             OraclesRouteSetting setting;
@@ -331,8 +331,16 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
         OraclesRouteAction action;
         memset(&action, 0, sizeof action);
         action.frame = (uint32_t)frame;
-        action.verb = which == 1u ? ORACLES_ROUTE_EQUIP : ORACLES_ROUTE_USE;
-        if (which == 1u) {
+        action.verb = which == 1u ? ORACLES_ROUTE_EQUIP : which == 6u ? ORACLES_ROUTE_SOUND : which == 7u ? ORACLES_ROUTE_THROW : ORACLES_ROUTE_USE;
+        if (which == 7u) {
+            char button[8];
+            const int slot = sscanf(rest, "%7s", button) == 1 ? slot_from_name(button) : -1;
+            if (slot < 0 || slot > 1) { set_error(error, error_capacity, "expected '<frame> throw <b|a>'", number); goto fail; }
+            action.button = (uint8_t)slot;
+        } else if (which == 6u) {
+            char sound[8];
+            if (sscanf(rest, "%7s", sound) != 1 || !hex_byte(sound, &action.item) || !action.item) { set_error(error, error_capacity, "expected '<frame> sound <hex sound>'", number); goto fail; }
+        } else if (which == 1u) {
             if (!parse_equip(rest, &action)) { set_error(error, error_capacity, "expected '<frame> equip <slot>=<item> <slot>=<item> [<variant>=<value>]'", number); goto fail; }
         } else {
             char button[8], item[8];
@@ -531,6 +539,16 @@ void oracles_route_writer_record(OraclesRouteWriter *writer, uint32_t frame, uns
 int oracles_route_writer_action(OraclesRouteWriter *writer, const OraclesRouteAction *action)
 {
     if (!writer->file) return 0;
+    if (action->verb == ORACLES_ROUTE_THROW) {
+        if (action->button > 1u || writer->format < ORACLES_ROUTE_FORMAT_SOUND) return -1;
+        fprintf(writer->file, "%u throw %s\n", action->frame, action->button ? "a" : "b");
+        return 0;
+    }
+    if (action->verb == ORACLES_ROUTE_SOUND) {
+        if (!action->item || writer->format < ORACLES_ROUTE_FORMAT_SOUND) return -1;   /* the header says the format: one before the verb's cannot carry it */
+        fprintf(writer->file, "%u sound %02x\n", action->frame, action->item);
+        return 0;
+    }
     if (action->verb == ORACLES_ROUTE_USE) {
         if (action->button > 1u) return -1;
         fprintf(writer->file, "%u use %s %02x\n", action->frame, action->button ? "a" : "b", action->item);

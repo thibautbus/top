@@ -57,6 +57,8 @@
 #define TOAST_TEXT 0xefedf2u
 #define TAB_CHOSEN 0xf3f1f5u
 #define TAB_OTHER 0x8a8793u
+#define MENU_LINE 0xa19eaau
+#define MENU_LINE_PATH 0xd6d3dcu
 
 /* What differs between the layouts in the drawing: corners, the help bar's background, the pause's notes. */
 typedef struct look {
@@ -198,15 +200,20 @@ static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const Ora
     return moving;
 }
 
-/* The menu's texts: a disabled item shows its reason while highlighted. */
-static unsigned menu_texts(const OraclesHomeNav *nav, OraclesHomeItem *items, const char **notes, int *reasons, const char **labels)
+/* The menu laid out: a disabled item shows its reason while highlighted; under the pause menu's, its line on the item
+ * hotkeys while it shows (*shown). */
+static unsigned menu_layout(const OraclesHomeNav *nav, OraclesHomeItem *items, const char **notes, const char **labels, OraclesUiItemLayout *layout,
+                            OraclesUiMenuLineLayout *line, int *shown)
 {
+    int reasons[ORACLES_HOME_MAX_ITEMS];
     const unsigned count = oracles_home_items(nav, items), focus = oracles_home_focus(nav);
     for (unsigned i = 0; i < count; i++) {
         reasons[i] = !items[i].note && i == focus && items[i].disabled;
         notes[i] = items[i].note ? items[i].note : reasons[i] ? items[i].reason : NULL;
         labels[i] = items[i].label;
     }
+    *shown = oracles_controls_hotkeys_line(nav);
+    oracles_ui_layout_menu(oracles_ui_home_scene(nav), notes, reasons, labels, count, *shown ? line : NULL, layout);
     return count;
 }
 
@@ -214,10 +221,10 @@ static int draw_menu(OraclesUiDraw *draw, const OraclesUiHome *home, const Oracl
 {
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const char *notes[ORACLES_HOME_MAX_ITEMS], *labels[ORACLES_HOME_MAX_ITEMS];
-    int reasons[ORACLES_HOME_MAX_ITEMS];
-    const unsigned count = menu_texts(nav, items, notes, reasons, labels);
     OraclesUiItemLayout layout[ORACLES_HOME_MAX_ITEMS];
-    oracles_ui_layout_menu(scene, notes, reasons, labels, count, layout);
+    OraclesUiMenuLineLayout line;
+    int line_shown;
+    const unsigned count = menu_layout(nav, items, notes, labels, layout, &line, &line_shown);
     const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
     const look *lk = look_of(scene);
     const OraclesUiColor accent = oracles_ui_rgb(accents[motif_of(oracles_home_hero(nav))]);
@@ -235,6 +242,10 @@ static int draw_menu(OraclesUiDraw *draw, const OraclesUiHome *home, const Oracl
         draw_line(draw, st->item_note, &l->note, notes[i], 0.0f, oracles_ui_rgb(nav->in_game ? lk->paused_note : ITEM_NOTE));
         draw_line(draw, st->item_label, &l->label, labels[i], 0.0f, color);
         draw_line(draw, st->item_label, &l->dot, oracles_ui_item_dot, 0.0f, color);
+    }
+    if (line_shown) {
+        draw_line(draw, st->menu_line, &line.lead, oracles_ui_hotkeys_line_lead, 0.0f, oracles_ui_rgb(MENU_LINE));
+        draw_line(draw, st->menu_line, &line.path, oracles_ui_hotkeys_line_path, 0.0f, oracles_ui_rgb(MENU_LINE_PATH));
     }
     return moving;
 }
@@ -303,10 +314,10 @@ static int draw_toast(OraclesUiDraw *draw, OraclesUiHome *home, OraclesUiLayout 
     return oracles_ui_tween_running(&home->toast, now_ms);
 }
 
-void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float opacity)
+void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float bar_bottom, float opacity)
 {
     OraclesUiToastLayout l;
-    oracles_ui_layout_pad_toast(scene, text, &l);
+    oracles_ui_layout_pad_toast(scene, text, bar_bottom, &l);
     const float radius = look_of(scene)->toast_radius;
     oracles_ui_fill_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, oracles_ui_rgba(TOAST_BACKGROUND, opacity));
     oracles_ui_stroke_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, 1.0f, oracles_ui_rgba(TOAST_BORDER, TOAST_BORDER_OPACITY * opacity));
@@ -465,10 +476,10 @@ OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y
     }
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const char *notes[ORACLES_HOME_MAX_ITEMS], *labels[ORACLES_HOME_MAX_ITEMS];
-    int reasons[ORACLES_HOME_MAX_ITEMS];
-    const unsigned count = menu_texts(nav, items, notes, reasons, labels);
     OraclesUiItemLayout menu[ORACLES_HOME_MAX_ITEMS];
-    oracles_ui_layout_menu(oracles_ui_home_scene(nav), notes, reasons, labels, count, menu);
+    OraclesUiMenuLineLayout line;
+    int line_shown;
+    const unsigned count = menu_layout(nav, items, notes, labels, menu, &line, &line_shown);
     for (unsigned i = 0; i < count; i++)
         if (inside(&menu[i].box, x, y)) { hit.kind = ORACLES_UI_HIT_ITEM; hit.index = i; return hit; }
     if (nav->screen == ORACLES_SCREEN_PAUSE) return hit;   /* the pause has no left stack, no tabs */

@@ -9,6 +9,9 @@
 /* The `equip` lines of the route, in its order, each expecting the items the route noted; the caller frees `*out`.
  * Returns their count, 0 with *out NULL when the route has none or memory is short. */
 size_t oracles_route_effects(const OraclesRoute *route, OraclesItemHotkeysEffect **out);
+/* The `sound` lines of the route, in its order; the caller frees `*out`.  Returns their count, 0 with *out NULL when
+ * the route has none or memory is short. */
+size_t oracles_route_sounds(const OraclesRoute *route, OraclesItemHotkeysSound **out);
 /* The `equip` line of an exchange the guest applied, from the state before it. */
 void oracles_route_action_of_exchange(const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op, OraclesRouteAction *out);
 

@@ -80,6 +80,8 @@ typedef struct session {
     OraclesStateInfo state_info;
     char state_path[PATH_MAX_LENGTH];
     OraclesGuest *guest;
+    OraclesGuest *bar_reader;   /* without a guest, the reminder over the game reads the status bar through it */
+    unsigned bar_frames;        /* the frames presented in a row with the status bar in play, which the reminder waits for */
     OraclesDiagnostics *diag;
     OraclesFrameCheck *check;
     OraclesEnhancedView *view;

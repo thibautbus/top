@@ -87,6 +87,10 @@ typedef struct OraclesGuestTables {
     /* The `use` mode: where the game reads the item buttons, what it reads to choose them (fact 10), and the inventory's cursor (point 7). */
     OraclesGuestSym check_use_items, initialize_parent_item, items_disabled, in_shop, link_in_spinner, link_grabbed, link_climbing_vine,
         menu_load_state, menu_active_state, inventory_submenu, inventory_submenu0_cursor_pos;
+    /* The hotbar's icons: treasureDisplayData's two tables, the page of the level variables they name, Seasons' slingshot
+     * level, and the icons' graphics (bank2.s, loadEquippedItemSpriteData and loadItemIconGfx). */
+    OraclesGuestSym treasure_display_data1, treasure_display_data2, c600_block, slingshot_level, spr_item_icons_1,
+        obtained_seasons, magnet_glove_polarity;   /* and drawTreasureExtraTiles' Seasons-only variables */
     /* The call transaction (a mod's host scene): the game's routine that takes rupees away (giveTreasure is above), the
      * counts a mod reads before it pays or gives, and the font of the text box (ROM: character c at font_start + 16 c). */
     OraclesGuestSym remove_rupee_value, lose_treasure, play_sound, set_global_flag, unset_global_flag, num_rupees, link_health, link_max_health, num_gasha_seeds, seed_satchel_level, num_ember_seeds,
@@ -141,7 +145,7 @@ typedef struct OraclesGuestTables {
     uint8_t grass_tile_last_other_groups;           /* the last of them outside group 0: hack-base's Seasons takes $f9 there for the
                                                        Cane of Somaria's block and draws no grass on it */
     /* Constants of the disassembly's constants/ files; 0xff when the game has none. */
-    uint8_t num_inventory_items, item_biggoron_sword, item_seed_satchel, item_shooter, item_slingshot, item_harp,
+    uint8_t num_inventory_items, first_upgrade_treasure, item_bomb, item_bracelet, item_biggoron_sword, item_seed_satchel, item_shooter, item_slingshot, item_harp,
         treasure_ember_seeds, treasure_tune_of_echoes, globalflag_intro_done, cutscene_ingame, cutscene_loading_room, cutscene_onox_final_form, cutscene_pregame_intro,
         cutscene_din_imprisoned, cutscene_temple_sinking, cutscene_onox_taunting,
         cutscene_black_tower_explanation, cutscene_black_tower_escape, cutscene_flame_of_sorrow, cutscene_flame_of_despair,

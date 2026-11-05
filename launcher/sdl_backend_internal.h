@@ -89,6 +89,7 @@ typedef struct sdl_backend {
     int renderer_vsync;
     unsigned axis_buttons;  /* ORACLES_KEY_* currently held through the left stick */
     oracles_sdl_menu_source menu_source;   /* what asked for the pause menu last */
+    oracles_sdl_menu_source last_input;    /* the device of the last input in the game (oracles_sdl_backend_last_input) */
     oracles_host_event pending[PENDING_EVENTS];
     unsigned pending_count;
     const oracles_host_video_frame *presenting;   /* the frame being presented, for the box drawn over it */

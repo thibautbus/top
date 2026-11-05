@@ -68,7 +68,7 @@ static int queue(lua_State *L, const char *what, OraclesGuestRoutine routine, in
 {
     OraclesMod *mod = mod_of(L);
     OraclesGuest *guest = guest_of(L, what);
-    const OraclesGuestCall call = { routine, (uint8_t)a, (uint8_t)c };
+    const OraclesGuestCall call = { routine, (uint8_t)a, (uint8_t)c, 0 };
     const OraclesGuestTables *t = oracles_guest_tables(guest);
     const OraclesGuestRom rom = oracles_guest_rom(guest);
     if (!oracles_guest_call_allowed(t, &rom, &call)) {

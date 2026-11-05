@@ -240,7 +240,9 @@ static int touch_event(sdl_backend *backend, const SDL_Event *e)
 static void handle_event(sdl_backend *backend, const SDL_Event *e)
 {
     unsigned button;
-    if (touch_event(backend, e)) return;
+    if (touch_event(backend, e)) { backend->last_input = ORACLES_SDL_MENU_FROM_TOUCH; return; }
+    if (e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || (e->type == SDL_EVENT_GAMEPAD_AXIS_MOTION && (e->gaxis.value > AXIS_THRESHOLD || e->gaxis.value < -AXIS_THRESHOLD)))
+        backend->last_input = ORACLES_SDL_MENU_FROM_PAD;
     /* The window's focus and screen changes, said on the standard error: on a device of two screens, the input follows
      * the screen that has the focus. */
     oracles_safe_area_event(backend->window, "game", e, &backend->touch.edges);
@@ -251,7 +253,8 @@ static void handle_event(sdl_backend *backend, const SDL_Event *e)
         case SDL_EVENT_QUIT: backend->window_closed = 1; sb_push_quit(backend); break;
         case SDL_EVENT_KEY_DOWN:
             if (e->key.repeat) break;
-            if (ANDROID_BACK(e->key.key)) { backend->menu_source = ORACLES_SDL_MENU_FROM_NONE; push_android_back(backend); break; }
+            if (ANDROID_BACK(e->key.key)) { backend->menu_source = ORACLES_SDL_MENU_FROM_BACK; push_android_back(backend); break; }
+            backend->last_input = ORACLES_SDL_MENU_FROM_KEY;
             if (e->key.key == SDLK_ESCAPE) {
                 backend->menu_source = ORACLES_SDL_MENU_FROM_KEY;
                 sb_push_event(backend, backend->pause_menu ? ORACLES_HOST_EVENT_PAUSE : ORACLES_HOST_EVENT_QUIT);

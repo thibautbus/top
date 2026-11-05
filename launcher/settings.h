@@ -148,8 +148,12 @@ typedef struct oracles_settings {
     int screen_margin;            /* an OraclesScreenMargin: screen_margin=off|auto|small|large, the band of the screen the game, the
                                    * touch controls and the launcher's pages keep to (oracles_touch_band); off, the whole screen, by
                                    * default; a value the launcher does not know is off */
-    int menu_toast_shown;         /* menu_toast=due|shown: the toast over the first game started with a controller, which names the
-                                   * button that opens the menu, was shown (once, whatever the game); due by default */
+    /* menu_tip=, the reminder over each game started that names the key opening the menu: the games it was shown over, 0
+     * to 9 (0 by default), or off (ORACLES_TIP_OFF) once the menu was opened by its key or after ten.  hotkeys_tip=, the
+     * line under the pause menu of Ages or Seasons while their item hotkeys are off: the pause menus it was shown in, 0 to
+     * 2, or off once they were turned on or after three.  Controls' Reset to defaults brings both back.  The 1.3 versions'
+     * menu_toast= is read and dropped: the reminder shows again to those who saw its toast. */
+    int menu_tip, hotkeys_tip;
     int update_check;             /* update_check=on|off: when the home screen opens, one request to GitHub for the latest release
                                    * (update_check.h); on by default, off asks nothing */
     int quality_hint;             /* quality_hint=low|medium|high|max|custom: the quality a game that ran slowly was last suggested to leave,

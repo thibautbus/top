@@ -245,6 +245,7 @@ typedef struct blurb_drawing {
 } blurb_drawing;
 
 #define HOTBAR_ICON_VARIANTS 8u   /* no variant, then the seeds 0 to 4 or the songs 1 to 3 */
+#define HOTBAR_PICTURE_W ORACLES_HOTBAR_GAME_PICTURE_WIDTH   /* an item in the game's look: its sprites and the tiles beside them */
 
 struct OraclesEnhancedView {
     OraclesCore *core;
@@ -520,19 +521,28 @@ struct OraclesEnhancedView {
     uint32_t scene_tint_first, scene_tint_last;
     /* The hotbar of the item hotkeys (view_hotbar.c). */
     int hotbar_shown;
+    int hotbar_hooked;               /* the bar's reload of its icons hooked for the hotbar */
+    int hotbar_look;                 /* OraclesHotbarLook laid out with the bar, this frame */
     unsigned hud_top;                /* the surface's line where the status bar stands this frame: 0, or the framed drawn-back surface's centred image's */
     OraclesEnhancedHotbar hotbar;
     unsigned hotbar_refusals_seen[ORACLES_ENHANCED_HOTBAR_SLOTS];
     uint32_t hotbar_refused_until[ORACLES_ENHANCED_HOTBAR_SLOTS];
-    struct { uint8_t item, variant; unsigned frames; int verified; } hotbar_on_button[2];   /* how long B and A have held the same item */
+    struct { uint8_t item, variant; unsigned frames; int verified, pictured; } hotbar_on_button[2];   /* how long B and A have held the same item */
     uint16_t (*hotbar_icons)[HOTBAR_ICON_VARIANTS][256];                      /* by item and variant (0: none); NULL until the first capture */
     uint8_t hotbar_have_icon[ORACLES_GUEST_ITEM_LABELS][HOTBAR_ICON_VARIANTS];
+    uint8_t hotbar_icon_sought[ORACLES_GUEST_ITEM_LABELS][HOTBAR_ICON_VARIANTS];   /* looked for in the ROM's tables since the last change */
+    uint8_t hotbar_icon_found_once[ORACLES_GUEST_ITEM_LABELS][HOTBAR_ICON_VARIANTS];   /* found there at least once: the distinct icons counted */
     int hotbar_icons_stale;                                                   /* giveTreasure ran: an item may have changed level, and icon */
-    unsigned hotbar_icons_captured, hotbar_icons_shown;
+    unsigned hotbar_icons_captured, hotbar_icons_shown, hotbar_icons_decoded;   /* decoded: distinct icons found in the ROM's tables */
+    unsigned hotbar_icons_refound;   /* icons found again after the bar reloaded its icons or a treasure was given */
     /* What the harness checks: each icon against the core's own image, and the surface
      * outside the four slots before and after they are drawn. */
     int hotbar_verify;
     int8_t hotbar_icon_origin[ORACLES_GUEST_ITEM_LABELS][HOTBAR_ICON_VARIANTS][2];   /* where the icon's corner stands from the sprites' left edge, and from the top line */
+    /* found in the ROM's tables: the columns the bar moves the sprites, and what it draws beside them (mode, treasure);
+     * a captured icon has mode $ff, nothing beside it */
+    uint8_t hotbar_icon_display[ORACLES_GUEST_ITEM_LABELS][HOTBAR_ICON_VARIANTS][3];
+    unsigned hotbar_pictures_checked, hotbar_picture_wrong;   /* the game's look against the bar's B or A, item on it */
     unsigned hotbar_icons_checked, hotbar_icon_wrong, hotbar_outside_gutters;
     int hotbar_drawn;                /* the frame just composed drew it */
     int hotbar_framed;               /* this frame shows the core's image framed (a menu, a cutscene), a room's load apart */

@@ -28,6 +28,10 @@ The routes recorded before SameBoy's joypad bouncing was cut (`ages/advanced`, `
 | `ages/underwater.route` | under water | faithful, faithful-cc, enhanced, enhanced-threaded, enhanced-zoom, enhanced-zoom-threaded |
 | `ages/intro.route` | Ages' introduction and cutscenes in the drawn-back view | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `ages/hotkeys-use.route` | item hotkeys in `use` mode, a session equal to its replay | faithful, enhanced, enhanced-threaded, enhanced-zoom |
+| `ages/hotkeys-throw.route` | `ages/advanced.route`'s keys to Lynna City, then nothing, written by hand for the item hotkeys' scripted keys: a bomb lifted and thrown by its key, picked up and thrown by the bracelet's, thrown by the feather's; in `equip`, three items equipped with the equip sound | faithful |
+| `ages/hotkeys-throw-recorded.route` | `ages/hotkeys-throw.route`'s session in `use` mode recorded: its throws as `throw` lines | faithful |
+| `ages/hotkeys-equip-sound.route` | that `equip` session recorded, its `sound` lines handed to the game on replay (format 14) | faithful |
+| `ages/hotkeys-inventory-sound.route` | `ages/hotkeys-throw.route`'s keys, the inventory opened and a hotkey's key pressed on the item under its cursor, recorded: the equip sound plays with the menu open | faithful |
 | `ages/hotkeys-use-set.route` | `ages/hotkeys-use.route` with the item hotkeys turned off and on again by `set item-hotkeys` lines, written by hand: notes, the game and the Enhanced run unchanged | faithful, enhanced, enhanced-threaded |
 | `ages/zoom-out.route` | the drawn-back view on Ages: dialogues, time travel, interiors | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `ages/mods-claw-game.route` | Lua mods: a house, its characters, a minigame, `mod.storage`, the save | faithful, enhanced |
@@ -36,6 +40,7 @@ The routes recorded before SameBoy's joypad bouncing was cut (`ages/advanced`, `
 | `ages/mermaid-hold-set.route`, `ages/mermaid-hold-window.route` | `ages/mermaid-hold.route` with `set` lines, as the pause menu writes them, written by hand: the swim's hold off at 3060 and on again at 3140, no stroke started between; the window at 3x, fullscreen and 2x, the game and the Enhanced run unchanged | faithful, enhanced, enhanced-threaded |
 | `ages/seafloor-diagonal.route` | the transitions' diagonal on the sea floor with the mermaid suit, tapped and held with the swim's hold, across the edges of 2:b7, 2:b6, 2:a6 and 2:a7, written by hand | faithful, enhanced |
 | `ages/diagonal-crossings.route` | the transitions' diagonal on foot: the edges of 0:6c, 0:6b and 0:5c crossed diagonally, walls across included, written by hand | faithful, enhanced, enhanced-threaded, enhanced-zoom |
+| `ages/line-edges.route`, `ages/line-corner.route` | the transitions at the line (`--continuous-line`, format 15), written by hand: taps at a room's edge that leave Link in the room, stops and walks back through a scroll and across the line; diagonals through a corner, carried to the rooms' side edges | faithful, enhanced |
 | `ages/swim-diagonal.route` | the transitions' diagonal swimming with the mermaid suit across the edge between 0:c4 and 0:b4, written by hand | faithful, enhanced, enhanced-threaded, enhanced-zoom |
 | `ages/stairs-diagonal.route` | Link's sprite steady on the screen on stairs and walking diagonally, at every size of the view and with both camera profiles, written by hand | faithful, enhanced, enhanced-threaded, enhanced-zoom |
 | `ages/save.route`, `ages/load.route` | the game's own save, written by hand after `ages/overworld.route`'s keys: the same cartridge RAM on both cores, and the file opened the same on both | faithful |
@@ -47,6 +52,7 @@ The routes recorded before SameBoy's joypad bouncing was cut (`ages/advanced`, `
 | `seasons/neighbour-objects.route` | the neighbouring rooms' objects handed over to the live room | faithful, enhanced |
 | `seasons/lost-woods.route` | rooms whose transitions the game routes itself | faithful, enhanced, enhanced-threaded, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/hotkeys-equip.route` | item hotkeys in `equip` mode, the A target and its variants | faithful, enhanced, enhanced-threaded |
+| `seasons/hotkeys-throw.route` | `seasons/shop.route`'s keys to Horon Village, then nothing, written by hand for the item hotkeys' scripted keys, as `ages/hotkeys-throw.route` | faithful |
 | `seasons/scroll-animation.route` | animated tiles during a scroll | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/intro.route` | Seasons' introduction and cutscenes in the drawn-back view | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/dungeon.route` | a dungeon in the drawn-back view, large rooms whole | faithful, enhanced-zoom, enhanced-zoom-threaded |

@@ -31,6 +31,12 @@ typedef struct OraclesUiItemLayout {
     OraclesUiBox note_box;      /* a reason's background (zero for another note) */
 } OraclesUiItemLayout;
 
+/* The pause menu's line under its list: what it says, then where ("Controls › Item hotkeys"), brighter, in its box. */
+typedef struct OraclesUiMenuLineLayout {
+    OraclesUiBox box;
+    OraclesUiLine lead, path;
+} OraclesUiMenuLineLayout;
+
 typedef struct OraclesUiHintLayout {
     OraclesUiBox box, key_box;
     OraclesUiLine key, label;
@@ -77,13 +83,17 @@ extern const OraclesUiTextStyle oracles_ui_tab_4_3, oracles_ui_hero_over_4_3, or
 extern const OraclesUiTextStyle oracles_ui_item_note_4_3, oracles_ui_item_label_4_3, oracles_ui_hint_key_4_3, oracles_ui_hint_label_4_3;
 extern const OraclesUiTextStyle oracles_ui_version_4_3, oracles_ui_toast_4_3, oracles_ui_pad_toast_4_3;
 extern const OraclesUiTextStyle oracles_ui_slow_path, oracles_ui_slow_path_4_3;
+extern const OraclesUiTextStyle oracles_ui_menu_line, oracles_ui_menu_line_4_3;
+/* The pause menu's line on the item hotkeys: "Item hotkeys are off · ", "Controls › Item hotkeys". */
+extern const char oracles_ui_hotkeys_line_lead[], oracles_ui_hotkeys_line_path[];
 
 /* The styles a layout draws the home screen's pieces in. */
 typedef struct OraclesUiHomeStyles {
     const OraclesUiTextStyle *hero_over, *hero_title, *hero_state, *item_note, *item_label, *hint_key, *hint_label, *version, *toast;
     const OraclesUiTextStyle *tab;   /* the games' tabs: 4:3's only, NULL in 16:9 */
     const OraclesUiTextStyle *slow_path;   /* the slow game's toast: its text in `toast`'s style, the row it leads to in this one */
-    const OraclesUiTextStyle *pad_toast;   /* the first game's with a controller, over the game */
+    const OraclesUiTextStyle *pad_toast;   /* the reminder over a game started, which names the menu's key */
+    const OraclesUiTextStyle *menu_line;   /* the pause menu's line under its list */
 } OraclesUiHomeStyles;
 const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout);
 
@@ -95,8 +105,10 @@ void oracles_ui_layout_others(const char *const over[2], const char *const title
 /* 4:3: the three entries as tabs from the top left, in their order (one row: the three fit the 1312 px a row has). */
 void oracles_ui_layout_tabs(const char *const labels[ORACLES_HOME_ENTRIES], OraclesUiTabLayout out[ORACLES_HOME_ENTRIES]);
 /* The menu at the bottom right; a NULL or empty note takes no width.  A note that is a disabled item's reason
- * (`reasons[i]`, NULL for none) sits on a padded background, readable over the motif. */
-void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count, OraclesUiItemLayout *out);
+ * (`reasons[i]`, NULL for none) sits on a padded background, readable over the motif.  With `line` (NULL: none), the
+ * pause menu's line on the item hotkeys under the items, right-aligned as they are, the items a line higher. */
+void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count,
+                            OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out);
 /* The help bar, centred at the bottom. */
 void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out);
 void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, OraclesUiLine *out);
@@ -107,8 +119,9 @@ void oracles_ui_layout_update(OraclesUiLayout layout, const OraclesUiLine *versi
  * outline `*outline` wide drawn inside it, so that the number does not move. */
 void oracles_ui_layout_version_link(OraclesUiLayout layout, const OraclesUiLine *version, OraclesUiBox *box, float *outline);
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out);
-/* Over the first game started with a controller, at the top, centred: "Press L3 for the menu." */
-void oracles_ui_layout_pad_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out);
+/* The reminder over a game started ("L3 opens the menu"), centred, under the game's status bar, whose bottom is at
+ * `bar_bottom` in the scene. */
+void oracles_ui_layout_pad_toast(OraclesUiLayout layout, const char *text, float bar_bottom, OraclesUiToastLayout *out);
 /* The slow game's toast (oracles_home_slow_text): its text and the row it leads to ("Display › Quality"). */
 void oracles_ui_layout_slow(OraclesUiLayout layout, const char *text, const char *path, OraclesUiSlowLayout *out);
 

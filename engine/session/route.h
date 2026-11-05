@@ -21,7 +21,8 @@
 #define ORACLES_ROUTE_FORMAT_TEXT_BOX_WIDE 11  /* written with the wide text box among the options: a reader before it would replay with the game's box */
 #define ORACLES_ROUTE_FORMAT_TEXT_INSTANT 12  /* written with the instant text among the options, or a `set text-speed` line: a reader before it would replay the game's pace */
 #define ORACLES_ROUTE_FORMAT_STEPS 13      /* written with the transitions' steps among the options: a reader before it would replay without */
-#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_STEPS
+#define ORACLES_ROUTE_FORMAT_SOUND 14      /* written by a session that may write a `sound` line (the item hotkeys on, or a pause that turns them on): a verb a reader before it does not know */
+#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_SOUND
 #define ORACLES_ROUTE_MAX_EVENTS 200000u
 
 typedef struct OraclesRouteHeader {
@@ -71,14 +72,18 @@ typedef struct OraclesRouteEvent {
  * exchange of two inventory slots as the write point applied it, each slot
  * with the item it held before, and a variant written; `use`: the start of a
  * simulated button press of the `use` mode, a note for the harness (the
- * press itself is in the `keys` mask). */
-typedef enum OraclesRouteVerb { ORACLES_ROUTE_EQUIP = 1, ORACLES_ROUTE_USE } OraclesRouteVerb;
+ * press itself is in the `keys` mask).  Format 14, `sound`: a sound the game
+ * was asked to play through playSound from the start of that frame (the
+ * inventory's equip sound, for an item the hotkeys equipped); `throw`: the start
+ * of a press of the `use` mode that throws what Link holds, a note as `use`
+ * is (the press is in the `keys` mask), on its button. */
+typedef enum OraclesRouteVerb { ORACLES_ROUTE_EQUIP = 1, ORACLES_ROUTE_USE, ORACLES_ROUTE_SOUND, ORACLES_ROUTE_THROW } OraclesRouteVerb;
 typedef struct OraclesRouteAction {
     uint32_t frame;
     OraclesRouteVerb verb;
     uint8_t swap, slot_a, item_a, slot_b, item_b;   /* slots: 0 B, 1 A, 2 to 17 the storage (s0 to s15) */
     uint8_t variant, variant_value;                 /* 0 none, 1 satchel, 2 shooter, 3 harp */
-    uint8_t button, item;                           /* use: the carrier slot (0 B, 1 A) and the item */
+    uint8_t button, item;                           /* use: the carrier slot (0 B, 1 A) and the item; throw: the button; sound: the sound in `item` */
 } OraclesRouteAction;
 
 /* Format 8, `cheat <name> on|off`: a cheat changed at the start of that frame (from the pause menu), its name as the
@@ -153,7 +158,8 @@ typedef struct OraclesRouteWriter {
 int oracles_route_writer_open(OraclesRouteWriter *writer, const char *path, const OraclesRouteHeader *header);
 int oracles_route_writer_open_format(OraclesRouteWriter *writer, const char *path, const OraclesRouteHeader *header, int at_least);
 void oracles_route_writer_record(OraclesRouteWriter *writer, uint32_t frame, unsigned mask);
-/* An `equip` or `use` line; 0, or -1 when the action cannot be written (a slot or a variant out of range). */
+/* An `equip`, `use`, `sound` or `throw` line; 0, or -1 when the action cannot be written (a slot or a variant out of
+ * range, a sound 0, or a sound or a throw in a route opened in a format before 14). */
 int oracles_route_writer_action(OraclesRouteWriter *writer, const OraclesRouteAction *action);
 /* A `cheat` line; 0, or -1 for a name the line cannot carry or a route opened in a format before 8. */
 int oracles_route_writer_cheat(OraclesRouteWriter *writer, uint32_t frame, const char *name, int on);

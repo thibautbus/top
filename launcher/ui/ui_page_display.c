@@ -16,7 +16,7 @@ void oracles_profile_size(const OraclesHomeNav *nav, int profile, char *out, siz
     else snprintf(out, capacity, "160\xc3\x97" "144");
 }
 static const char *const profile_notes[ORACLES_PROFILES] = {
-    "The core alone, as an unrecognized ROM sees it.", "The wide world, drawn back, with continuous transitions and the smooth camera."
+    "The core alone, as an unrecognized ROM sees it.", "The wide world, drawn back, with the rooms around and continuous transitions."
 };
 
 const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Quality", "Window", "View", "HUD", "Text", "Color correction", "Advanced", "Core",

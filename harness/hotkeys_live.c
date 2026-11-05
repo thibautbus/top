@@ -18,6 +18,10 @@ struct OraclesHotkeysLive {
     /* a use is effective when the item of the slot is in use within a second of its press */
     struct { int waiting; uint8_t item; uint32_t until; } watch;
     unsigned uses_effective;
+    /* what Link held over his head: lifted (wLinkGrabState to $83), and thrown (from $83 to 0, the lifting item in its state 4) */
+    uint8_t grab_before;
+    unsigned lifts, throws;
+    unsigned calls_seen, sounds_in_inventory;   /* the game's routines run, and those run with the inventory open */
 };
 
 int oracles_hotkeys_live_parse_press(OraclesHotkeysLiveOptions *o, const char *text)
@@ -57,6 +61,26 @@ static void on_use_started(void *opaque, uint32_t frame, unsigned button_slot, u
     if (oracles_route_writer_action(&l->writer, &action) != 0) l->write_failed = 1;
 }
 
+static void on_sound(void *opaque, uint32_t frame, uint8_t sound)
+{
+    OraclesHotkeysLive *l = opaque;
+    if (!l->recording) return;
+    OraclesRouteAction action;
+    memset(&action, 0, sizeof action);
+    action.frame = frame; action.verb = ORACLES_ROUTE_SOUND; action.item = sound;
+    if (oracles_route_writer_action(&l->writer, &action) != 0) l->write_failed = 1;
+}
+
+static void on_throw_started(void *opaque, uint32_t frame, unsigned button_slot)
+{
+    OraclesHotkeysLive *l = opaque;
+    if (!l->recording) return;
+    OraclesRouteAction action;
+    memset(&action, 0, sizeof action);
+    action.frame = frame; action.verb = ORACLES_ROUTE_THROW; action.button = (uint8_t)button_slot;
+    if (oracles_route_writer_action(&l->writer, &action) != 0) l->write_failed = 1;
+}
+
 OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const OraclesHotkeysLiveOptions *options, const OraclesRouteHeader *header)
 {
     OraclesHotkeysLive *l = calloc(1, sizeof *l);
@@ -74,10 +98,10 @@ OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const Oracle
         if (!oracles_hotkey_line_parse(name, options->slots[n], &game, &slot, &l->slots[n])) { fprintf(stderr, "harness: --hotkey-slot %u: '%s' is not <b|a>:<item>:<variant or -->\n", n + 1u, options->slots[n]); oracles_item_hotkeys_stop(l->policy); free(l); return NULL; }
         oracles_item_hotkeys_set_slot(l->policy, n, &l->slots[n]);
     }
-    const OraclesItemHotkeysSink sink = { on_applied, on_use_started, l };
+    const OraclesItemHotkeysSink sink = { on_applied, on_use_started, on_sound, on_throw_started, l };
     oracles_item_hotkeys_set_sink(l->policy, &sink);
     if (options->record_path) {
-        if (oracles_route_writer_open(&l->writer, options->record_path, header) != 0) { fprintf(stderr, "harness: cannot write %s\n", options->record_path); oracles_item_hotkeys_stop(l->policy); free(l); return NULL; }
+        if (oracles_route_writer_open_format(&l->writer, options->record_path, header, ORACLES_ROUTE_FORMAT_SOUND) != 0) { fprintf(stderr, "harness: cannot write %s\n", options->record_path); oracles_item_hotkeys_stop(l->policy); free(l); return NULL; }
         l->recording = 1;
     }
     return l;
@@ -96,11 +120,11 @@ unsigned oracles_hotkeys_live_keys(OraclesHotkeysLive *l, uint32_t frame, unsign
 
 int oracles_hotkeys_slots_hotbar(const OraclesHotkeysLiveOptions *options, struct OraclesEnhancedView *view)
 {
-    static const char keys[ORACLES_HOTKEY_SLOTS] = { 'A', 'S', 'Q', 'W' };
+    static const char *const keys[ORACLES_HOTKEY_SLOTS] = { "A", "S", "Q", "W" }, *const pad[ORACLES_HOTKEY_SLOTS] = { "X", "Y", "LB", "RB" };
     OraclesEnhancedHotbar hotbar;
     memset(&hotbar, 0, sizeof hotbar);
     for (unsigned n = 0; n < ORACLES_HOTKEY_SLOTS; n++) {
-        hotbar.slots[n].key[0] = keys[n];
+        snprintf(hotbar.slots[n].key, sizeof hotbar.slots[n].key, "%s", options->pad_labels ? pad[n] : keys[n]);
         hotbar.slots[n].variant = ORACLES_HOTKEY_NO_VARIANT;
         if (!options->slots[n]) continue;
         unsigned game = 0, slot = 0;
@@ -118,18 +142,25 @@ int oracles_hotkeys_slots_hotbar(const OraclesHotkeysLiveOptions *options, struc
 void oracles_hotkeys_live_hotbar(OraclesHotkeysLive *l, struct OraclesEnhancedView *view)
 {
     if (!view) return;
-    static const char *const names[ORACLES_HOTKEY_SLOTS] = { "A", "S", "Q", "W" };
+    static const char *const names[ORACLES_HOTKEY_SLOTS] = { "A", "S", "Q", "W" }, *const pad[ORACLES_HOTKEY_SLOTS] = { "X", "Y", "LB", "RB" };
     OraclesEnhancedHotbar hotbar;
-    oracles_hotbar_model(l->policy, names, 0, &hotbar);
+    oracles_hotbar_model(l->policy, l->options.pad_labels ? pad : names, l->options.pad_labels, &hotbar);
     oracles_enhanced_view_set_hotbar((OraclesEnhancedView *)view, &hotbar);
     oracles_enhanced_view_hotbar_verify((OraclesEnhancedView *)view, 1);
 }
 
 void oracles_hotkeys_live_frame_end(OraclesHotkeysLive *l, uint32_t frame)
 {
-    if (!l->watch.waiting) return;
     OraclesGuestInventoryState s;
     oracles_guest_inventory_state(l->guest, &s);
+    if (s.link_grab_state == 0x83u && l->grab_before != 0x83u) l->lifts++;
+    if (!s.link_grab_state && l->grab_before == 0x83u)
+        for (unsigned i = 0; i < 4u; i++) if (s.parents[i].enabled && s.parents[i].state == 4u) { l->throws++; break; }
+    l->grab_before = s.link_grab_state;
+    const unsigned calls = oracles_guest_calls_done(l->guest);
+    if (calls != l->calls_seen && s.opened_menu_type && s.opened_menu_type == s.menu_inventory) l->sounds_in_inventory += calls - l->calls_seen;
+    l->calls_seen = calls;
+    if (!l->watch.waiting) return;
     for (unsigned i = 0; i < 5u; i++) if (s.parents[i].enabled && s.parents[i].id == l->watch.item) { l->uses_effective++; l->watch.waiting = 0; return; }
     if (frame >= l->watch.until) l->watch.waiting = 0;
 }
@@ -142,9 +173,9 @@ void oracles_hotkeys_live_summary(OraclesHotkeysLive *l, FILE *out)
     oracles_guest_inventory_counts(l->guest, &applied, &violations);
     fprintf(out, "hotkeys.live.requests=%u\nhotkeys.live.applied=%u\nhotkeys.live.uses=%u\nhotkeys.live.uses_effective=%u\nhotkeys.live.returns=%u\n"
                  "hotkeys.live.returns_given_up=%u\nhotkeys.live.dropped_postponed=%u\nhotkeys.live.dropped_refused=%u\nhotkeys.live.inventory_violations=%u\n"
-                 "hotkeys.live.returns_pending_at_end=%u\nhotkeys.live.return_longest_delay=%u\n",
+                 "hotkeys.live.returns_pending_at_end=%u\nhotkeys.live.return_longest_delay=%u\nhotkeys.live.lifts=%u\nhotkeys.live.throws=%u\nhotkeys.live.sounds=%u\nhotkeys.live.sounds_in_inventory=%u\nhotkeys.live.throw_presses=%u\n",
             stats.requests, stats.applied, stats.uses, l->uses_effective, stats.returns, stats.returns_abandoned, stats.dropped_postponed, stats.dropped_refused, violations,
-            stats.returns_pending, stats.return_longest_delay);
+            stats.returns_pending, stats.return_longest_delay, l->lifts, l->throws, stats.sounds, l->sounds_in_inventory, stats.throws);
     for (unsigned v = 0; v < ORACLES_INVENTORY_VERDICTS; v++)
         if (stats.dropped_by[v]) fprintf(out, "hotkeys.live.dropped.%s=%u\n", oracles_guest_inventory_verdict_name((OraclesGuestInventoryVerdict)v), stats.dropped_by[v]);
 }

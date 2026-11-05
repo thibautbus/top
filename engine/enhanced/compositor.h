@@ -228,6 +228,8 @@ typedef struct OraclesEnhancedBar {
  * palette and colour index there, and, when `hides_sprite` is not NULL, whether it hides a sprite (the tile's priority
  * bit and the LCDC's set, its colour index not 0). */
 uint16_t oracles_enhanced_bar_pixel(const OraclesEnhancedBar *bar, unsigned x, unsigned y, int *hides_sprite);
+/* The pixel (x % 8, y % 8) of tile `tile` drawn with `attr`, as the bar's background draws its cells, and its colour index. */
+uint16_t oracles_enhanced_bar_tile_pixel(const OraclesEnhancedBar *bar, uint8_t tile, uint8_t attr, unsigned x, unsigned y, unsigned *index);
 /* What the gutters beside the status bar take with the bar drawn full width (`fill`: its sixteen lines on the left,
  * then on the right): on each line the bar's own pixel at its edge, column 0 or 159, its palette's colour on screen
  * (`pixel`, the core's conversion of an RGB555 colour, colour correction included; NULL: a plain expansion), where
@@ -262,9 +264,12 @@ int oracles_enhanced_bar_layout_shown(const OraclesEnhancedBar *bar, OraclesEnha
  * money after them, B and A against the right edge, the hotbar's slots against B where they fit; the rest of the band
  * the bar's background, as full width paints it.  The hearts' two rows stand side by side on the band's middle eight
  * lines, the game's cells as they are, where the band holds them with the hotbar's width (`hotbar`) beside, whether the
- * hotbar is drawn or not.  The blocks keep a margin from the band's edges, eight pixels each side, or what the band
- * leaves beside them and the hotbar's width where it fits: none in near 16:9, four in medium 4:3, none there with the
- * hearts tightened.  Each block is the core's own pixels: icons, counts, fades and a sprite over them follow. */
+ * hotbar is drawn or not, the compact look's width without the hotbar, its look's with it.  The blocks keep a margin
+ * from the band's edges, eight pixels each side, or what the band leaves beside them: without the hotbar none in near
+ * 16:9, four in medium 4:3, none there with the hearts tightened; with the hotbar in the game's look two in medium 4:3,
+ * six in medium 16:9 and two there with the hearts tightened.  That look keeps four blank columns from the money and
+ * from B, as the bar leaves between its B and its A.  Each block is the core's own pixels: icons, counts, fades and a
+ * sprite over them follow. */
 #define ORACLES_ENHANCED_HUD_MARGIN 8u
 typedef struct OraclesEnhancedHudPlace {
     unsigned buttons;                  /* B and A's width, the bar's columns from 0: 80, or 72 tightened */

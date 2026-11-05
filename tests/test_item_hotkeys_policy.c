@@ -27,6 +27,7 @@ typedef struct sim {
     unsigned presses[2];                   /* new presses of B and of A the game saw where it uses items */
     uint8_t pressed_item[2];               /* the item that button held at the last of them */
     unsigned exchanges, held_frames;
+    unsigned throws[2];                    /* new presses of B and of A the item Link holds over his head saw */
     int lag;                               /* this frame the game's loop does not come round: no reading, no write point */
 } sim;
 
@@ -51,6 +52,10 @@ static void turn(sim *m, unsigned player_mask)
             event(m, ORACLES_EVENT_USE_ITEMS, 0);
             if (just & ORACLES_KEY_B) { m->presses[0]++; m->pressed_item[0] = m->s.slots[0]; }
             if (just & ORACLES_KEY_A) { m->presses[1]++; m->pressed_item[1] = m->s.slots[1]; }
+        } else if (oracles_guest_item_throw(&m->s)) {
+            event(m, ORACLES_EVENT_USE_ITEMS, 0);
+            if (just & ORACLES_KEY_B) m->throws[0]++;
+            if (just & ORACLES_KEY_A) m->throws[1]++;
         }
         OraclesGuestInventoryOp op;
         memset(&op, 0, sizeof op);
@@ -113,6 +118,7 @@ static void test_use_tap_and_return(void)
     CHECK(m.exchanges == 2 && m.s.slots[0] == SWORD && m.s.slots[5] == FEATHER);
     oracles_item_hotkeys_live_stats(m.h, &stats);
     CHECK(stats.returns_pending == 0 && stats.return_longest_delay <= 1);          /* a due return comes at the next write point */
+    CHECK(stats.sounds == 0);                                                      /* a use borrows the button, silently */
     CHECK(oracles_item_hotkeys_idle(m.h));
     oracles_item_hotkeys_stop(m.h);
 }
@@ -461,6 +467,43 @@ static void test_use_variant_and_returns_given_up(void)
     oracles_item_hotkeys_stop(m.h);
 }
 
+static void test_use_throw(void)
+{
+    /* a bomb held over Link's head, lifted with B: the feather's key presses B, nothing exchanged, and the bomb goes */
+    sim m = start(ORACLES_GAME_SEASONS, ORACLES_HOTKEYS_USE);
+    m.s.slots[0] = 0x03; m.s.slots[6] = SWORD;
+    m.s.link_grab_state = 0x83;
+    m.s.parents[0].enabled = 1; m.s.parents[0].id = 0x03; m.s.parents[0].button = ORACLES_BUTTON_B; m.s.parents[0].state = 3;
+    CHECK(oracles_item_hotkeys_key(m.h, 0, 1, ORACLES_HOTKEY_PLAIN) == ORACLES_HOTKEY_TRIGGERED);   /* the key held on */
+    turns(&m, 3, 0);
+    CHECK(m.exchanges == 0 && m.throws[0] == 1 && m.throws[1] == 0 && m.presses[0] == 0);
+    CHECK(m.held_frames <= 2u);                                                    /* B up once the throw is read, the key still down */
+    oracles_item_hotkeys_key(m.h, 0, 0, ORACLES_HOTKEY_PLAIN);
+    OraclesItemHotkeysLiveStats thrown;
+    oracles_item_hotkeys_live_stats(m.h, &thrown);
+    CHECK(thrown.throws == 1 && thrown.uses == 0);                                 /* a throw, not a use of B's item */
+    m.s.link_grab_state = 0; m.s.parents[0].enabled = 0;
+    turns(&m, 2u * ORACLES_HOTKEY_PATIENCE, 0);
+    CHECK(m.exchanges == 0 && m.s.slots[0] == 0x03 && oracles_item_hotkeys_idle(m.h));
+    oracles_item_hotkeys_stop(m.h);
+    /* what the bracelet lifted with A: the press goes to A */
+    m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_USE);
+    m.s.link_grab_state = 0x83;
+    m.s.parents[1].enabled = 1; m.s.parents[1].id = 0x16; m.s.parents[1].button = ORACLES_BUTTON_A; m.s.parents[1].state = 3;
+    tap(&m, 2);
+    turns(&m, 3, 0);
+    CHECK(m.exchanges == 0 && m.throws[1] == 1 && m.throws[0] == 0);
+    oracles_item_hotkeys_stop(m.h);
+    /* a lever pulled ($83 too, the bracelet in its state 5): no press, the request waits and goes */
+    m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_USE);
+    m.s.link_grab_state = 0x83;
+    m.s.parents[1].enabled = 1; m.s.parents[1].id = 0x16; m.s.parents[1].button = ORACLES_BUTTON_B; m.s.parents[1].state = 5;
+    tap(&m, 0);
+    turns(&m, ORACLES_HOTKEY_PATIENCE + 5u, 0);
+    CHECK(m.exchanges == 0 && m.held_frames == 0 && m.throws[0] == 0 && oracles_item_hotkeys_idle(m.h));
+    oracles_item_hotkeys_stop(m.h);
+}
+
 static void test_reset(void)
 {
     sim m = start(ORACLES_GAME_SEASONS, ORACLES_HOTKEYS_USE);
@@ -493,6 +536,9 @@ static void test_equip_mode(void)
     tap(&m, 1);                                                                    /* the memory of the previous item goes with a load */
     turns(&m, 3, 0);
     CHECK(m.s.slots[1] == SATCHEL && m.exchanges == 3);
+    OraclesItemHotkeysLiveStats stats;
+    oracles_item_hotkeys_live_stats(m.h, &stats);
+    CHECK(stats.sounds == 3);                                                      /* the inventory's sound for each item equipped, none for nothing */
     oracles_item_hotkeys_stop(m.h);
     /* off: a key does nothing */
     m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_OFF);
@@ -504,7 +550,7 @@ static void test_equip_mode(void)
 
 /* At rest, where the pause's Off stops the policy: in `use`, not from the key's press to the return of the button's own
  * item, the key let go at once as the launcher lets it go; the first frame at rest, B holds the sword again.  In
- * `equip`, at rest once the exchange is applied, the memory of the previous item kept. */
+ * `equip`, at rest once the exchange is applied and its sound handed over, the memory of the previous item kept. */
 static void test_at_rest(void)
 {
     sim m = start(ORACLES_GAME_SEASONS, ORACLES_HOTKEYS_USE);
@@ -523,7 +569,9 @@ static void test_at_rest(void)
     oracles_item_hotkeys_stop(m.h);
     m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_EQUIP);
     tap(&m, 0);
-    CHECK(m.s.slots[0] == FEATHER && oracles_item_hotkeys_at_rest(m.h) && !oracles_item_hotkeys_idle(m.h));
+    CHECK(m.s.slots[0] == FEATHER && !oracles_item_hotkeys_at_rest(m.h));          /* its sound goes at the next frame's start */
+    turn(&m, 0);
+    CHECK(oracles_item_hotkeys_at_rest(m.h) && !oracles_item_hotkeys_idle(m.h));
     oracles_item_hotkeys_stop(m.h);
 }
 
@@ -558,6 +606,24 @@ static void test_item_buttons(void)
         BUTTONS((s.tileset_flags = 1u << 5, s.link_swimming_state = 1, s.link_var2f = 0x80), game == ORACLES_GAME_AGES ? both : ORACLES_BUTTON_B);
         BUTTONS(s.tileset_flags = 1u << 6, game == ORACLES_GAME_AGES ? ORACLES_BUTTON_A : both);   /* under water, Ages alone */
 #undef BUTTONS
+#define THROW(change, expected) do { s = base; s.link_grab_state = 0x83; s.parents[2].enabled = 1; s.parents[2].id = 0x03; s.parents[2].state = 3; s.parents[2].button = ORACLES_BUTTON_B; change; \
+                                     CHECK(oracles_guest_item_throw(&s) == (expected)); } while (0)
+        THROW((void)0, ORACLES_BUTTON_B);
+        THROW(s.parents[2].button = ORACLES_BUTTON_A, ORACLES_BUTTON_A);
+        THROW(s.parents[2].button = 0, ORACLES_BUTTON_B);                           /* answering to no button: B */
+        THROW(s.parents[2].state = 5, 0u);                                          /* a lever */
+        THROW(s.parents[2].id = 0x16, ORACLES_BUTTON_B);                            /* what the bracelet lifted */
+        THROW((s.parents[2].state = 5, s.parents[2].id = 0x16, s.parents[1].enabled = 1, s.parents[1].id = 0x05, s.parents[1].state = 3), 0u);   /* a lever, and the sword in its state 3: nothing held */
+        THROW(s.parents[2].state = 2, 0u);                                          /* still lifting */
+        THROW(s.link_grab_state = 0x41, 0u);                                        /* grabbing a wall */
+        THROW((s.parents[2].enabled = 0, s.parents[4].enabled = 1, s.parents[4].state = 3), 0u);   /* w1WeaponItem is no parent item */
+        THROW(s.items_disabled = 0x80, ORACLES_BUTTON_B);                           /* the parent items still update */
+        THROW(s.in_shop = 1, 0u);
+        THROW(s.link_in_air = 0x80, 0u);
+        THROW(s.disabled_objects = 0x01, 0u);
+        THROW(s.link_object_index = 0xd1, 0u);
+        CHECK(oracles_guest_item_buttons(&base) && !oracles_guest_item_throw(&base));
+#undef THROW
     }
 }
 
@@ -576,6 +642,7 @@ int main(void)
     test_use_two_keys_held_in_a_text();
     test_use_two_slots_of_one_item();
     test_use_variant_and_returns_given_up();
+    test_use_throw();
     test_reset();
     test_equip_mode();
     test_at_rest();

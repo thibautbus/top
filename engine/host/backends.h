@@ -184,16 +184,20 @@ void oracles_sdl_backend_pause_box(const oracles_host_backend *backend, const ui
 /* The last frame's pixels drawn again (the frame's size, its crop, box and sub-pixel move kept): the pause changing a
  * setting that the frame's own pixels show (the status bar's layout) shows it in the image at once. */
 void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const uint32_t *pixels);
-/* What asked for the pause menu last: a key (Escape), a controller (Guide, the menu's button or trigger) or a finger
- * (the touch controls' pause); NONE before any, for Android's Back, which a finger or a controller gives too, and for
- * a suspension (Android's background), which no device asked. */
+/* What asked for the pause menu last: a key (Escape), a controller (Guide, the menu's button or trigger), a finger
+ * (the touch controls' pause) or Android's Back, which a finger or a controller gives too; NONE before any, and for a
+ * suspension (Android's background), which no device asked. */
 typedef enum oracles_sdl_menu_source {
     ORACLES_SDL_MENU_FROM_NONE,
     ORACLES_SDL_MENU_FROM_KEY,
     ORACLES_SDL_MENU_FROM_PAD,
-    ORACLES_SDL_MENU_FROM_TOUCH
+    ORACLES_SDL_MENU_FROM_TOUCH,
+    ORACLES_SDL_MENU_FROM_BACK
 } oracles_sdl_menu_source;
 oracles_sdl_menu_source oracles_sdl_backend_menu_source(const oracles_host_backend *backend);
+/* The device of the last input in the game, a key (Android's Back apart), a controller's button or its stick, or a
+ * finger, named as a menu's source; NONE before any. */
+oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backend *backend);
 /* The sound stops and its queue empties; it starts again with the next frames, from its prebuffer. */
 void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend);
 /* The pause menu holds the session from a call with 1 to a call with 0, at its resume: that time is no

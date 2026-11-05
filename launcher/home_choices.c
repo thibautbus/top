@@ -87,6 +87,8 @@ void oracles_home_inspect_controls(const oracles_settings *settings, OraclesHome
     snprintf(c->hotkey_keys[ORACLES_HOME_SLOTS], sizeof c->hotkey_keys[0], "%s", settings->hotkey_bind_b);
     snprintf(c->hotkey_keys[ORACLES_HOME_SLOTS + 1], sizeof c->hotkey_keys[0], "%s", settings->hotkey_bind_a);
     c->swim_hold = settings->swim_hold;
+    c->menu_tip = settings->menu_tip;
+    c->hotkeys_tip = settings->hotkeys_tip;
     for (int g = 0; g < 2; g++) {
         const OraclesGuestTables *tables = g == 0 ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
         for (int i = 0; i < ORACLES_HOME_SLOTS; i++) {
@@ -125,6 +127,8 @@ void oracles_home_store_controls(const OraclesHomeControls *c, oracles_settings 
     snprintf(settings->hotkey_bind_b, sizeof settings->hotkey_bind_b, "%s", c->hotkey_keys[ORACLES_HOME_SLOTS]);
     snprintf(settings->hotkey_bind_a, sizeof settings->hotkey_bind_a, "%s", c->hotkey_keys[ORACLES_HOME_SLOTS + 1]);
     settings->swim_hold = c->swim_hold;   /* a game started next takes it; a running one keeps its own */
+    settings->menu_tip = c->menu_tip;
+    settings->hotkeys_tip = c->hotkeys_tip;
 }
 
 void oracles_home_store_display(const OraclesHomeDisplay *display, int in_game, oracles_settings *prefs)

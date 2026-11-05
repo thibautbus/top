@@ -26,6 +26,9 @@ struct OraclesHotkeysCheck {
     unsigned read_at_write_point;      /* the item buttons the game read, as the policy sees them at the write point; 0xff: none this frame */
     uint32_t uses_started_to;          /* the frames whose `use` lines have been taken up, this one excluded */
     char not_fired_list[256];
+    unsigned calls_seen, sounds_in_inventory;   /* the route's sounds run, and those run with the inventory open */
+    struct { int active; uint32_t since; } throw_watch;   /* a `throw` line: Link must let go of what he holds within the grace */
+    unsigned throws, throws_not_thrown;
 };
 
 static void start_uses(OraclesHotkeysCheck *c, uint32_t frame);
@@ -43,6 +46,11 @@ OraclesHotkeysCheck *oracles_hotkeys_check_start(OraclesGuest *guest, const Orac
     c->replay = oracles_item_hotkeys_replay_start(guest, effects, count);
     free(effects);
     if (!c->replay) { free(c); return NULL; }
+    OraclesItemHotkeysSound *sounds = NULL;
+    const size_t sound_count = oracles_route_sounds(route, &sounds);
+    const int armed = oracles_item_hotkeys_replay_sounds(c->replay, sounds, sound_count);
+    free(sounds);
+    if (armed != 0) { oracles_item_hotkeys_replay_stop(c->replay); free(c); return NULL; }
     if (dir) {
         char path[4096];
         snprintf(path, sizeof path, "%s/inventory.tsv", dir);
@@ -51,6 +59,8 @@ OraclesHotkeysCheck *oracles_hotkeys_check_start(OraclesGuest *guest, const Orac
     }
     return c;
 }
+
+void oracles_hotkeys_check_frame_begin(OraclesHotkeysCheck *c, uint32_t frame) { oracles_item_hotkeys_replay_frame(c->replay, frame); }
 
 void oracles_hotkeys_check_event(OraclesHotkeysCheck *c, const OraclesGuestEvent *event)
 {
@@ -104,6 +114,7 @@ static void start_uses(OraclesHotkeysCheck *c, uint32_t frame)
     const size_t count = oracles_route_actions_at(c->route, frame, &first);
     for (size_t i = 0; i < count; i++) {
         const OraclesRouteAction *a = &c->route->actions[first + i];
+        if (a->verb == ORACLES_ROUTE_THROW) { c->throws++; c->throw_watch.active = 1; c->throw_watch.since = frame; continue; }
         if (a->verb != ORACLES_ROUTE_USE) continue;
         close_use(c);
         c->uses++;
@@ -138,6 +149,11 @@ void oracles_hotkeys_check_frame_end(OraclesHotkeysCheck *c, uint32_t frame, uns
     OraclesGuestInventoryState s;
     oracles_guest_inventory_state(c->guest, &s);
     follow_uses(c, frame, keys);
+    if (c->throw_watch.active && s.link_grab_state != 0x83u) c->throw_watch.active = 0;
+    else if (c->throw_watch.active && frame >= c->throw_watch.since + USE_GRACE) { c->throw_watch.active = 0; c->throws_not_thrown++; }
+    const unsigned calls = oracles_guest_calls_done(c->guest);
+    if (calls != c->calls_seen && s.opened_menu_type && s.opened_menu_type == s.menu_inventory) c->sounds_in_inventory += calls - c->calls_seen;
+    c->calls_seen = calls;
     if (!c->tsv) return;
     unsigned storage = ORACLES_INVENTORY_SLOTS;
     for (unsigned i = 2; i < ORACLES_INVENTORY_SLOTS && storage == ORACLES_INVENTORY_SLOTS; i++) if (s.slots[i] && s.slots[i] < s.num_inventory_items && s.slots[i] != s.item_biggoron_sword) storage = i;   /* the Biggoron sword takes both buttons: never exchanged */
@@ -169,6 +185,8 @@ void oracles_hotkeys_check_summary(OraclesHotkeysCheck *c, FILE *out)
     oracles_guest_inventory_counts(c->guest, &applied, &violations);
     close_use(c);
     fprintf(out, "hotkeys.uses=%u\nhotkeys.use_not_fired=%u\nhotkeys.use_already_in_use=%u\nhotkeys.uses_side_view=%u\nhotkeys.uses_underwater=%u\n", c->uses, c->uses_not_fired, c->uses_already_in_use, c->uses_side_view, c->uses_underwater);
+    fprintf(out, "hotkeys.sounds=%u\nhotkeys.sounds_refused=%u\nhotkeys.sounds_in_inventory=%u\n", stats.sounds, stats.sounds_refused, c->sounds_in_inventory);
+    fprintf(out, "hotkeys.throws=%u\nhotkeys.throw_not_thrown=%u\n", c->throws, c->throws_not_thrown);
     fprintf(out, "hotkeys.applied=%u\nhotkeys.replay_mismatch=%u\nhotkeys.missed_write_point=%u\nhotkeys.inventory_violations=%u\nhotkeys.refresh_missed=%u\nhotkeys.refreshes=%u\nhotkeys.write_points=%u\n",
             stats.applied, stats.replay_mismatch, stats.missed_write_point, violations, c->refresh_missed, c->refreshes_seen, c->write_points);
     for (unsigned v = ORACLES_INVENTORY_NOTHING; v < ORACLES_INVENTORY_VERDICTS; v++)

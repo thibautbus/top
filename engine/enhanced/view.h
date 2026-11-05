@@ -225,6 +225,12 @@ typedef struct OraclesEnhancedHotbar { OraclesEnhancedHotbarSlot slots[ORACLES_E
 void oracles_enhanced_view_set_hotbar(OraclesEnhancedView *view, const OraclesEnhancedHotbar *hotbar);
 /* Icons captured from the game's status bar so far, and slots drawn with an icon at the last composition. */
 void oracles_enhanced_view_hotbar_counts(const OraclesEnhancedView *view, unsigned *icons_captured, unsigned *icons_shown);
+/* The distinct icons found in the ROM's tables, as the status bar would draw them on a button, before any was on one,
+ * and the times one was found again, its variables possibly changed (the bar reloading its icons, a treasure given). */
+unsigned oracles_enhanced_view_hotbar_decoded(const OraclesEnhancedView *view);
+unsigned oracles_enhanced_view_hotbar_refound(const OraclesEnhancedView *view);
+/* The items in the game's look checked against the bar's own B or A while there, once a stay, and those that differed. */
+void oracles_enhanced_view_hotbar_pictures(const OraclesEnhancedView *view, unsigned *checked, unsigned *wrong);
 /* What the harness checks of the hotbar: at each sound vblank the icon of an item sitting on a button is set against the
  * core's own image where the status bar draws it, opaque pixel for opaque pixel, and the surface outside the four
  * slots is hashed before and after they are drawn.  `checked` icons, of which `wrong` differ; `outside` frames where
@@ -235,6 +241,15 @@ void oracles_enhanced_view_hotbar_proof(const OraclesEnhancedView *view, unsigne
 unsigned oracles_enhanced_view_hotbar_fade_checked(const OraclesEnhancedView *view);
 /* The frame just composed drew the hotbar. */
 int oracles_enhanced_view_hotbar_drawn(const OraclesEnhancedView *view);
+/* The core's image shows the game's status bar: a layout its map signs, drawn as it signs it, neither it nor the area
+ * under it one colour; read through `guest`, an attached one or a reader (oracles_guest_reader), whatever the profile
+ * shows. */
+int oracles_enhanced_bar_drawn(OraclesGuest *guest, OraclesCore *core);
+/* And in play: outside the game's cutscenes (its cutscene index past 1), its menus (the inventory keeps the bar) and its
+ * dialogues.  The launcher's reminder over a game waits for it, ORACLES_ENHANCED_BAR_SETTLE frames in a row: a flash of
+ * the bar before a cutscene does not start it. */
+#define ORACLES_ENHANCED_BAR_SETTLE 120u
+int oracles_enhanced_bar_in_play(OraclesGuest *guest, OraclesCore *core);
 /* The status bar in the HUD band (`hud=`).  Drawn full width, the gutters beside it, on its sixteen lines, take the
  * bar's own background, its palette's colour at its edge as the game shows it (fades, its own changes and the colour
  * correction follow), in the world band and a room's load drawn under it; the framed core keeps the border.  Laid out,

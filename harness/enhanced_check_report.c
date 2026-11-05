@@ -123,6 +123,11 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         oracles_enhanced_view_hotbar_proof(c->view, &checked, &wrong, &outside);
         fprintf(out, "enhanced.hotbar_icons_captured=%u\nenhanced.hotbar_icons_checked=%u\nenhanced.hotbar_icon_wrong=%u\nenhanced.hotbar_outside_gutters=%u\n", captured, checked, wrong, outside);
         fprintf(out, "enhanced.hotbar_fade_checked=%u\nenhanced.hotbar_cutscene_frames=%u\n", oracles_enhanced_view_hotbar_fade_checked(c->view), c->hotbar_cutscene_frames);
+        fprintf(out, "enhanced.framed_only_frames=%u\nenhanced.hotbar_framed_only_frames=%u\n", c->framed_only_frames, c->hotbar_framed_only_frames);
+        fprintf(out, "enhanced.hotbar_icons_decoded=%u\nenhanced.hotbar_icons_refound=%u\n", oracles_enhanced_view_hotbar_decoded(c->view), oracles_enhanced_view_hotbar_refound(c->view));
+        unsigned pictures = 0, pictures_wrong = 0;
+        oracles_enhanced_view_hotbar_pictures(c->view, &pictures, &pictures_wrong);
+        fprintf(out, "enhanced.hotbar_pictures_checked=%u\nenhanced.hotbar_picture_wrong=%u\n", pictures, pictures_wrong);
     }
     {   /* the status bar drawn full width, when the run asks it */
         unsigned frames = 0, kept = 0;

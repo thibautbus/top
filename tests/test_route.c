@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         if (older) { fprintf(older, "oracles-route 4\ngame ages\noptions swim-hold\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1 && strstr(error, "format 5"));
         older = fopen(path, "w");
-        if (older) { fprintf(older, "oracles-route 14\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
+        if (older) { fprintf(older, "oracles-route 15\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1);   /* a later format */
     }
     {
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
             "oracles-route 10\ninputs\n10 set item-hotkeys on\n",
             "oracles-route 10\ninputs\n10 set view far\n",                                /* a setting this reader does not know */
             "oracles-route 10\ninputs\n10 set swim-hold on now\n",
-            "oracles-route 14\ninputs\n0 keys 00\n",                                      /* a later format */
+            "oracles-route 15\ninputs\n0 keys 00\n",                                      /* a later format */
         };
         for (unsigned i = 0; i < sizeof malformed / sizeof malformed[0]; i++) {
             FILE *bad = fopen(path, "w");
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     CHECK(strstr(error, "line 5") != NULL);
     f = fopen(path, "w");
-    fprintf(f, "oracles-route 14\ninputs\n");
+    fprintf(f, "oracles-route 15\ninputs\n");
     fclose(f);
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     /* Format 2: the verbs that change the game's state, written and read back.  Two verbs may share a
@@ -394,6 +394,27 @@ int main(int argc, char **argv)
         CHECK(oracles_route_mask_at(&route, 1900, &held) == 1 && held == 0x02 && oracles_route_mask_at(&route, 1901, &held) == 0);
         oracles_route_free(&route);
     }
+    /* Format 14, the `sound` line: written in a route opened in it alone, read back among the actions. */
+    {
+        OraclesRouteWriter w14;
+        const OraclesRouteAction sound = { 1841, ORACLES_ROUTE_SOUND, 0, 0, 0, 0, 0, 0, 0, 0, 0x56 };
+        const OraclesRouteAction silent = { 1842, ORACLES_ROUTE_SOUND, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        const OraclesRouteAction thrown = { 1843, ORACLES_ROUTE_THROW, 0, 0, 0, 0, 0, 0, 0, 1, 0 };
+        CHECK(oracles_route_writer_open(&w14, path, &header) == 0);
+        CHECK(oracles_route_writer_action(&w14, &sound) == -1);
+        CHECK(oracles_route_writer_close(&w14) == 0);
+        CHECK(oracles_route_writer_open_format(&w14, path, &header, ORACLES_ROUTE_FORMAT_SOUND) == 0);
+        oracles_route_writer_record(&w14, 0, 0x00);
+        CHECK(oracles_route_writer_action(&w14, &sound) == 0);
+        CHECK(oracles_route_writer_action(&w14, &silent) == -1);
+        CHECK(oracles_route_writer_action(&w14, &thrown) == 0);
+        CHECK(oracles_route_writer_close(&w14) == 0);
+        CHECK(oracles_route_read(path, &route, error, sizeof error) == 0);
+        CHECK(route.format == ORACLES_ROUTE_FORMAT_SOUND && route.action_count == 2 && route.actions[0].verb == ORACLES_ROUTE_SOUND
+              && route.actions[0].frame == 1841 && route.actions[0].item == 0x56);
+        CHECK(route.actions[1].verb == ORACLES_ROUTE_THROW && route.actions[1].frame == 1843 && route.actions[1].button == 1);
+        oracles_route_free(&route);
+    }
     static const char *const refused[] = {
         "oracles-route 2\ninputs\n10 equip b=05 s3=0a\n10 equip b=0a s3=05\n",   /* a same verb twice at a frame */
         "oracles-route 2\ninputs\n10 equip b=05 s3=0a\n9 keys 01\n",             /* a frame going back */
@@ -404,7 +425,12 @@ int main(int argc, char **argv)
         "oracles-route 2\ninputs\n10 equip\n",
         "oracles-route 2\ninputs\n10 use s3 0a\n",                               /* a use is carried by a button */
         "oracles-route 2\nmods claw-game@2fd4e1c67a2d28fced849ee1bb76e7391b93eb12\ninputs\n0 keys 00\n",   /* mods need format 3 */
-        "oracles-route 14\ninputs\n0 keys 00\n",                                /* a format to come */
+        "oracles-route 15\ninputs\n0 keys 00\n",                                /* a format to come */
+        "oracles-route 13\ninputs\n10 sound 56\n",                             /* the sound needs format 14 */
+        "oracles-route 13\ninputs\n10 throw b\n",                              /* and the throw */
+        "oracles-route 14\ninputs\n10 throw s3\n",                             /* a throw is on a button */
+        "oracles-route 14\ninputs\n10 sound 00\n",                             /* no sound 0 */
+        "oracles-route 14\ninputs\n10 sound 56\n10 sound 56\n",               /* a same verb twice at a frame */
     };
     for (unsigned i = 0; i < sizeof refused / sizeof refused[0]; i++) {
         f = fopen(path, "w"); fputs(refused[i], f); fclose(f);
