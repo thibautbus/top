@@ -119,7 +119,13 @@ void oracles_session_follow_subpixel(session *s)
     const unsigned scale = oracles_sdl_backend_whole_scale(&s->backend);
     if (!scale) return;
     const int on = oracles_settings_subpixel_camera(s->settings, scale);
-    if (on == oracles_enhanced_view_subpixel_on(s->view)) return;
-    oracles_enhanced_view_switch_subpixel(s->view, on);
-    fprintf(stderr, "oracles: camera %s, the view at %ux on the screen\n", on ? "smooth" : "pixel", scale);
+    const int said = s->subpixel_said;
+    s->subpixel_said = 1;
+    if (on != oracles_enhanced_view_subpixel_on(s->view)) oracles_enhanced_view_switch_subpixel(s->view, on);
+    else if (said) return;
+    /* The first frame says the camera and why; a change after it, the scale it came with. */
+    if (!said)
+        fprintf(stderr, "oracles: camera %s (%s), the view at %ux on the screen\n", on ? "smooth" : "pixel",
+                s->settings->subpixel_camera >= 0 ? "subpixel_camera= in the settings" : "the platform's default", scale);
+    else fprintf(stderr, "oracles: camera %s, the view at %ux on the screen\n", on ? "smooth" : "pixel", scale);
 }

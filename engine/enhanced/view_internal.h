@@ -219,6 +219,7 @@ typedef struct entry {
     uint8_t rendered_oam[160];         /* and its objects' OAM: an entry changed since, a pose, draws its lines again */
     int live_valid;
     int in_flight;                     /* a run of its room is under way in one of the ghosts (ev_lane) */
+    int queued;                        /* or waits for the thread's ghost, busy when it was asked */
     uint32_t run_serial;               /* that run's: its result is this entry's only while the serials agree */
 } entry;
 
@@ -661,6 +662,7 @@ struct OraclesEnhancedView {
     uint64_t source_epoch;
     int source_pipeline;
     unsigned uncovered;              /* world-band pixels without a source in the last composed frame */
+    unsigned uncovered_edges;        /* and the sides of the part shown whose edge had some (OraclesEnhancedCompose) */
     unsigned off_camera_frames;      /* frames the game drew its area elsewhere than its camera: framed */
     unsigned world_off_camera_frames;   /* world frames a cutscene drew elsewhere than its camera (oracles_enhanced_view_world_off_camera_frames) */
     unsigned wave_frames;            /* frames the game scrolled its area line by line (under water, the strange force): shown in the band, waves and all */

@@ -175,6 +175,7 @@ typedef struct OraclesEnhancedObservation {
     int cutscene;                            /* cutscene index above 1: the game may move Link itself */
     int parked_unknown;                      /* Link parked at the game's placeholder, or absent, in a room he has had no real position in yet: the reducers wait for him */
     int cell_pending;                        /* a dungeon room whose map position the game has not set yet: its place on the grid is not known (the view frames) */
+    uint8_t keys;                            /* wKeysPressed, the buttons the player holds this frame (the game's BTN_ bits) */
     uint64_t epoch;                          /* teleports and domain changes: the camera snaps across epochs, never pans */
 } OraclesEnhancedObservation;
 
@@ -195,6 +196,8 @@ typedef struct OraclesEnhancedShownOffset {
     int valid;
     int32_t offset;
     uint64_t epoch, segment;
+    int turn;            /* the way Link last stepped, -1 or 1, 0 none yet: in whole pixels the offset waits to set him back */
+    int32_t last_link;   /* Link's place the last reduction drew him at, INT32_MIN not known: in whole pixels the offset moves with his steps */
 } OraclesEnhancedShownOffset;
 
 /* The reducers advanced with an observation already made: the horizontal
@@ -209,6 +212,11 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *camera, uint32_t frame
 /* The last reduction's smooth camera past its whole pixels, in 256ths of a pixel each way (-255 to 255): the view's
  * sub-pixel camera. */
 void oracles_enhanced_camera_fraction(const OraclesEnhancedCamera *camera, int32_t *x, int32_t *y);
+/* The reach of the band's left edge and top line for the next reduction (the least and the most of each, in the world,
+ * INT32_MIN and INT32_MAX for none): where it stands on a side whose edge the view showed black, or the edge of a room a
+ * ghost is running beside it, past which the follow that settles goes only as far as Link framed without its
+ * look-ahead, taking it up again once the terrain is there. */
+void oracles_enhanced_camera_limit(OraclesEnhancedCamera *camera, const int32_t limits[4]);
 /* The reducers fed Link's place to the 256th of a pixel (the sub-pixel camera), or in whole pixels (0, as always). */
 void oracles_enhanced_camera_set_exact(OraclesEnhancedCamera *camera, int exact);
 /* 1 when the vertical reducer tracked at the last reduction. */
@@ -250,7 +258,9 @@ void oracles_enhanced_camera_shown_offsets(const OraclesEnhancedCamera *camera, 
 void oracles_enhanced_camera_set_shown_offsets(OraclesEnhancedCamera *camera, const OraclesEnhancedShownOffset *x, const OraclesEnhancedShownOffset *y);
 const OraclesE11Config *oracles_enhanced_camera_config(const OraclesEnhancedCamera *camera);
 /* 1: the first pinned configuration (dead zone of sixteen pixels); 2: the
- * second (a continuous, gentler follow).  Restarts the reducer. */
+ * second (a continuous, gentler follow that settles on Link's speed); 3: the
+ * second as it followed before it settled (v4), which only the harness asks
+ * for, to compare.  Restarts the reducer. */
 void oracles_enhanced_camera_set_profile(OraclesEnhancedCamera *camera, unsigned profile);
 unsigned oracles_enhanced_camera_profile(const OraclesEnhancedCamera *camera);
 

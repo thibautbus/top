@@ -67,6 +67,7 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.band_stops=%u\nenhanced.band_wobble=%u\nenhanced.straight_frames=%u\nenhanced.straight_band_stops=%u\nenhanced.link_screen_moves=%u\nenhanced.link_screen_backsteps=%u\n"
                      "enhanced.subpixel_frames=%u\nenhanced.subpixel_layer_frames=%u\nenhanced.subpixel_refused_frames=%u\nenhanced.subpixel_left_pixels=%u\nenhanced.subpixel_wrong_pixels=%u\nenhanced.subpixel_alike_pixels=%u\n",
                 c->band_stops, c->band_wobble, c->straight_frames, c->straight_band_stops, c->link_screen_moves, c->link_screen_backsteps, sub, layered, refused, left_pixels, wrong_pixels, alike_pixels);
+        fprintf(out, "enhanced.link_wobble=%u\n", c->link_wobble);
         fprintf(out, "enhanced.subpixel_covered_pixels=%u\nenhanced.subpixel_unexplained_frames=%u\n", oracles_enhanced_view_subpixel_covered_pixels(c->view),
                 oracles_enhanced_view_subpixel_unexplained_frames(c->view));
         fprintf(out, "enhanced.subpixel_objects=%u\nenhanced.subpixel_objects_off=%u\nenhanced.subpixel_objects_left=%u\n", c->layer_objects, c->layer_objects_off,

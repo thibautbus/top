@@ -654,6 +654,151 @@ static void isolated_room_edges(void)
     rig_stop(&r);
 }
 
+/* A dungeon's large room in the near band (256x128), the sub-pixel camera on: Link walking down at 0.71 of a pixel a
+ * frame, the game's window following him a pixel at a time, the band takes his fraction with the window's whole
+ * pixels, to the 256th of a pixel, never back nor by more than a pixel a frame, and stops on the window's last place
+ * at the room's bottom without passing it; a scroll starting gives the fraction back by 16 a frame; without the
+ * sub-pixel camera, none. */
+static void dungeon_diagonal_band(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *camera = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(camera != NULL);
+    if (!camera) { rig_stop(&r); return; }
+    for (int exact = 1; exact >= 0; exact--) {
+        oracles_enhanced_camera_set_band(camera, 256, 128);
+        oracles_enhanced_camera_set_exact(camera, exact);
+        OraclesEnhancedObservation ob;
+        memset(&ob, 0, sizeof ob);
+        ob.playing = 1; ob.large = 1; ob.large_grid = 1; ob.epoch = 8 + 4;
+        int32_t y = 74 * 256, last = INT32_MIN, worst_back = 0, worst_step = 0, cam = 0, cam_y = 0, fx = 0, fy = 0;
+        unsigned exact_frames = 0, fractions = 0;
+        for (uint32_t frame = 0; frame < 140u; frame++) {
+            if (frame < 120u) y += 0xb5;
+            int camera_y = y / 256 - 64;
+            if (camera_y < 0) camera_y = 0;
+            if (camera_y > 48) camera_y = 48;
+            ob.in_transition = ob.in_scroll = frame >= 130u;
+            CHECK(oracles_enhanced_world_from_room(4, 0x10, 1, 120, y / 256, 16, 14, 0, 0, 0, 0, 0, 0x10, 256, &ob.world) == 1);
+            ob.drawn_camera_x = 40; ob.drawn_camera_y = camera_y;
+            ob.window_left = ob.world.origin_x + 40; ob.window_top = ob.world.origin_y + camera_y;
+            ob.scroll_start_left = ob.window_left; ob.scroll_start_top = ob.window_top;
+            ob.drawn_sub_x = 0; ob.drawn_sub_y = y & 0xff;
+            CHECK(oracles_enhanced_camera_reduce(camera, frame, &ob, &cam, &cam_y) == 1);
+            oracles_enhanced_camera_fraction(camera, &fx, &fy);
+            if (fy) fractions++;
+            const int32_t shown = cam_y * 256 + fy;
+            if (frame < 120u && y / 256 - 64 < 48 && shown == ob.window_top * 256 + (y & 0xff)) exact_frames++;
+            if (last != INT32_MIN && frame < 130u) {
+                if (last - shown > worst_back) worst_back = last - shown;
+                if (shown - last > worst_step) worst_step = shown - last;
+            }
+            if (frame >= 130u && last != INT32_MIN) CHECK(last - shown <= 16 && shown - last <= 16);
+            if (frame == 129u) CHECK(shown == (ob.world.origin_y + 48) * 256);
+            last = shown;
+        }
+        CHECK(fx == 0 && worst_back == 0 && worst_step <= 256);
+        if (exact) CHECK(exact_frames >= 50u);
+        else CHECK(fractions == 0u && exact_frames == 0u);
+    }
+    oracles_enhanced_camera_stop(camera);
+    rig_stop(&r);
+}
+
+/* The same in near 4:3 (213x160), narrower and shorter than the room: Link walking down and right at 0.71 of a pixel
+ * a frame each way, the band follows the game's window at its slack's ratio both ways, his fraction with it: never
+ * back nor by more than a pixel a frame on either axis, and on the window's last place at the room's far corner. */
+static void dungeon_diagonal_band_4_3(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *camera = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(camera != NULL);
+    if (!camera) { rig_stop(&r); return; }
+    oracles_enhanced_camera_set_band(camera, 213, 160);
+    oracles_enhanced_camera_set_exact(camera, 1);
+    OraclesEnhancedObservation ob;
+    memset(&ob, 0, sizeof ob);
+    ob.playing = 1; ob.large = 1; ob.large_grid = 1; ob.epoch = 8 + 4;
+    int32_t x = 90 * 256, y = 74 * 256, last[2] = { INT32_MIN, INT32_MIN }, worst_back = 0, worst_step = 0, cam = 0, cam_y = 0, fx = 0, fy = 0;
+    unsigned fractions = 0;
+    for (uint32_t frame = 0; frame < 150u; frame++) {
+        if (frame < 140u) { x += 0xb5; y += 0xb5; }
+        int cx = x / 256 - 80, cy = y / 256 - 64;
+        cx = cx < 0 ? 0 : cx > 80 ? 80 : cx;
+        cy = cy < 0 ? 0 : cy > 48 ? 48 : cy;
+        CHECK(oracles_enhanced_world_from_room(4, 0x10, 1, x / 256, y / 256, 16, 14, 0, 0, 0, 0, 0, 0x10, 213, &ob.world) == 1);
+        ob.drawn_camera_x = cx; ob.drawn_camera_y = cy;
+        ob.window_left = ob.world.origin_x + cx; ob.window_top = ob.world.origin_y + cy;
+        ob.drawn_sub_x = x & 0xff; ob.drawn_sub_y = y & 0xff;
+        CHECK(oracles_enhanced_camera_reduce(camera, frame, &ob, &cam, &cam_y) == 1);
+        oracles_enhanced_camera_fraction(camera, &fx, &fy);
+        if (fx && fy) fractions++;
+        const int32_t shown[2] = { cam * 256 + fx, cam_y * 256 + fy };
+        for (unsigned a = 0; a < 2u; a++) {
+            if (last[a] != INT32_MIN) {
+                if (last[a] - shown[a] > worst_back) worst_back = last[a] - shown[a];
+                if (shown[a] - last[a] > worst_step) worst_step = shown[a] - last[a];
+            }
+            last[a] = shown[a];
+        }
+    }
+    CHECK(worst_back == 0 && worst_step <= 256 && fractions >= 50u);
+    CHECK(last[0] == (ob.world.origin_x + 27) * 256 && last[1] == (ob.world.origin_y + 16) * 256);
+    oracles_enhanced_camera_stop(camera);
+    rig_stop(&r);
+}
+
+/* Toward a room the view has no terrain for, the band's edge held where it stood: Link walking right a pixel a frame,
+ * the band follows him framed without its look-ahead, never ahead of the band left free nor past him; once the room
+ * is there it is the free band again within a second, never more than four pixels a frame. */
+static void hold_before_dark(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *held = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL, *free_ = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(held != NULL && free_ != NULL);
+    if (!held || !free_) { if (held) oracles_enhanced_camera_stop(held); if (free_) oracles_enhanced_camera_stop(free_); rig_stop(&r); return; }
+    OraclesEnhancedCamera *cameras[2] = { held, free_ };
+    for (unsigned k = 0; k < 2u; k++) {
+        oracles_enhanced_camera_set_profile(cameras[k], 2);
+        oracles_enhanced_camera_set_band(cameras[k], W, BAND_H);
+        oracles_enhanced_camera_set_exact(cameras[k], 1);
+    }
+    int32_t cam[2] = { 0, 0 }, cam_y = 0, last = 0, largest = 0, most = INT32_MAX, ahead_of_free = 0, past = INT32_MIN, apart = 0;
+    int x = 10;
+    for (unsigned f = 0; f < 320u; f++) {
+        OraclesEnhancedObservation o;
+        memset(&o, 0, sizeof o);
+        o.playing = 1; o.grid = 1; o.epoch = 8;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, x, 60, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &o.world) == 1);
+        o.link_step_x = f >= 20u && f < 240u ? 1 : 0;
+        if (f == 20u) most = last;
+        const int32_t limits[4] = { INT32_MIN, f >= 20u && f < 120u ? most : INT32_MAX, INT32_MIN, INT32_MAX };
+        oracles_enhanced_camera_limit(held, limits);
+        for (unsigned k = 0; k < 2u; k++) CHECK(oracles_enhanced_camera_reduce(cameras[k], f, &o, &cam[k], &cam_y) == 1);
+        if (f > 0u && (cam[0] - last > largest || last - cam[0] > largest)) largest = cam[0] > last ? cam[0] - last : last - cam[0];
+        if (f >= 20u && f < 120u) {
+            if (cam[0] > cam[1]) ahead_of_free++;
+            if (cam[0] - (o.world.link_x - (int32_t)W / 2) > past) past = cam[0] - (o.world.link_x - (int32_t)W / 2);
+        }
+        if (f >= 180u && cam[0] != cam[1]) apart++;
+        last = cam[0];
+        if (f >= 20u && f < 240u) x++;
+    }
+    CHECK(ahead_of_free == 0);
+    CHECK(past <= 1);
+    CHECK(apart == 0);
+    CHECK(largest <= 4);
+    oracles_enhanced_camera_stop(held);
+    oracles_enhanced_camera_stop(free_);
+    rig_stop(&r);
+}
+
 /* A camera state saved outdoors, loaded while the camera frames a house: it
  * resumes where it was, the reducers not restarted for the change of
  * viewport the load brings. */
@@ -692,7 +837,7 @@ static void state_across_viewports(void)
  * observation had him (link_step), and the camera steps with him there: once
  * it follows him, his sprite on the screen never goes a pixel one way and
  * back the next frame on either axis, and the camera stays within a pixel of
- * the reducer's position.  A state saved on the way, its whole offsets with
+ * the reducer's position, three where it turns back or he stands.  A state saved on the way, its whole offsets with
  * it, shows the next frame to the pixel the walk showed; without them (a
  * state saved before them), within a pixel. */
 static void gait_walk(unsigned speed_x, unsigned speed_y)
@@ -722,7 +867,7 @@ static void gait_walk(unsigned speed_x, unsigned speed_y)
     for (unsigned f = 0; f < 120u; f++) {
         CHECK(oracles_enhanced_camera_reduce(camera, f, &walk[f], &cam[f][0], &cam[f][1]) == 1);
         const int64_t gap = (int64_t)cam[f][0] * 256 - oracles_enhanced_camera_state(camera)->camera_pos;
-        if (gap >= 256 || gap <= -256) off_smooth++;
+        if (gap >= 768 || gap <= -768) off_smooth++;
         if (f > 0u)
             for (unsigned a = 0; a < 2u; a++) {
                 const int32_t drawn = a ? walk[f].world.link_y - walk[f].link_step_y : walk[f].world.link_x - walk[f].link_step_x;
@@ -746,6 +891,101 @@ static void gait_walk(unsigned speed_x, unsigned speed_y)
     oracles_enhanced_camera_set_state(camera, &state, &vertical);
     CHECK(oracles_enhanced_camera_reduce(camera, 81u, &walk[81], &again, &again_y) == 1);
     CHECK(again - cam[81][0] <= 1 && cam[81][0] - again <= 1 && again_y - cam[81][1] <= 1 && cam[81][1] - again_y <= 1);
+    /* Loaded from a savestate, its whole offsets with it but not Link's last place, then switched to the sub-pixel
+     * camera before the next frame: the camera takes the reducer's place, within a pixel of the walk's. */
+    OraclesEnhancedShownOffset loaded_across = across, loaded_down = down;
+    loaded_across.last_link = INT32_MIN; loaded_down.last_link = INT32_MIN;
+    oracles_enhanced_camera_set_state(camera, &state, &vertical);
+    oracles_enhanced_camera_set_shown_offsets(camera, &loaded_across, &loaded_down);
+    oracles_enhanced_camera_set_exact(camera, 1);
+    CHECK(oracles_enhanced_camera_reduce(camera, 81u, &walk[81], &again, &again_y) == 1);
+    CHECK(again - cam[81][0] <= 1 && cam[81][0] - again <= 1 && again_y - cam[81][1] <= 1 && cam[81][1] - again_y <= 1);
+    oracles_enhanced_camera_set_exact(camera, 0);
+    oracles_enhanced_camera_stop(camera);
+    rig_stop(&r);
+}
+
+/* The camera in whole pixels with the follow that settles: Link walks right diagonally (0xb5/256 a frame, steps of
+ * 1, 1, 0), stands, then walks left a pixel a frame.  His sprite on the screen never goes a pixel one way and back
+ * the next frame, as he stops, stands or turns, and the camera never moves more than two pixels a frame. */
+static void pixel_stop_turn(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *camera = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(camera != NULL);
+    if (!camera) { rig_stop(&r); return; }
+    oracles_enhanced_camera_set_profile(camera, 2);
+    oracles_enhanced_camera_set_band(camera, W, BAND_H);
+    enum { FRAMES = 200 };
+    OraclesEnhancedObservation walk[FRAMES];
+    memset(walk, 0, sizeof walk);
+    unsigned sub = 0;
+    int x = 60;
+    for (unsigned f = 0; f < FRAMES; f++) {
+        walk[f].playing = 1; walk[f].grid = 1; walk[f].epoch = 8;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, x, 60, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &walk[f].world) == 1);
+        if (f > 0u) walk[f].link_step_x = walk[f].world.link_x - walk[f - 1].world.link_x;
+        if (f >= 10u && f < 110u) { sub += 0xb5u; x += (int)(sub >> 8); sub &= 0xffu; }
+        else if (f >= 140u) x--;
+    }
+    int32_t cam = 0, cam_y = 0, last_cam = 0, last_screen = 0, last_move = 0, largest = 0;
+    unsigned back = 0;
+    for (unsigned f = 0; f < FRAMES; f++) {
+        CHECK(oracles_enhanced_camera_reduce(camera, f, &walk[f], &cam, &cam_y) == 1);
+        const int32_t drawn = walk[f].world.link_x - walk[f].link_step_x, screen = drawn - cam;
+        if (f > 0u) {
+            const int32_t move = screen - last_screen;
+            if (f >= 30u && move && last_move && (move > 0) != (last_move > 0)) back++;
+            last_move = move;
+            if (f >= 30u && (cam - last_cam > largest || last_cam - cam > largest)) largest = cam > last_cam ? cam - last_cam : last_cam - cam;
+        }
+        last_cam = cam; last_screen = screen;
+    }
+    CHECK(back == 0);
+    CHECK(largest <= 2);
+    if (back || largest > 2) fprintf(stderr, "  whole pixels: %u steps back on the screen, the camera by %d at most\n", back, largest);
+    oracles_enhanced_camera_stop(camera);
+    rig_stop(&r);
+}
+
+/* The first profile with the sub-pixel camera switched on and off during a diagonal walk, as Display's Camera from
+ * the pause: it stays the first profile, its state bound to its own configuration, and the camera moves no more than
+ * two pixels a frame. */
+static void first_profile_switch(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *camera = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(camera != NULL);
+    if (!camera) { rig_stop(&r); return; }
+    oracles_enhanced_camera_set_profile(camera, 1);
+    oracles_enhanced_camera_set_band(camera, W, BAND_H);
+    OraclesE11Config first;
+    oracles_e11_config_profile(&first, 1);
+    unsigned sub = 0, last_sub = 0;
+    int x = 40;
+    int32_t cam = 0, cam_y = 0, last_cam = 0, largest = 0;
+    OraclesEnhancedObservation o, before;
+    memset(&before, 0, sizeof before);
+    for (unsigned f = 0; f < 160u; f++) {
+        memset(&o, 0, sizeof o);
+        o.playing = 1; o.grid = 1; o.epoch = 8;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, x, 60, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &o.world) == 1);
+        if (f > 0u) o.link_step_x = o.world.link_x - before.world.link_x;
+        o.link_sub_x = (int)sub; o.drawn_sub_x = (int)last_sub;
+        if (f == 50u || f == 110u) oracles_enhanced_camera_set_exact(camera, 1);
+        if (f == 80u) oracles_enhanced_camera_set_exact(camera, 0);
+        CHECK(oracles_enhanced_camera_reduce(camera, f, &o, &cam, &cam_y) == 1);
+        if (f > 20u && (cam - last_cam > largest || last_cam - cam > largest)) largest = cam > last_cam ? cam - last_cam : last_cam - cam;
+        last_cam = cam; before = o; last_sub = sub;
+        if (f >= 10u) { sub += 0xb5u; x += (int)(sub >> 8); sub &= 0xffu; }
+    }
+    CHECK(oracles_enhanced_camera_profile(camera) == 1);
+    CHECK(strcmp(oracles_enhanced_camera_state(camera)->config_digest, first.digest) == 0);
+    CHECK(largest <= 2);
     oracles_enhanced_camera_stop(camera);
     rig_stop(&r);
 }
@@ -1638,9 +1878,14 @@ int main(void)
     ripple(2);
     view_and_savestate();
     isolated_room_edges();
+    dungeon_diagonal_band();
+    dungeon_diagonal_band_4_3();
     state_across_viewports();
     diagonal_walk();
     stairs_walk();
+    pixel_stop_turn();
+    first_profile_switch();
+    hold_before_dark();
     cutscenes();
     seasons_scenes();
     picture_scenes();

@@ -12,8 +12,9 @@
  * only its observation source changed, to the guest bus.  The
  * struct layouts are wire contracts, not serialisation formats.  Vendored
  * from the pre-SameBoy tree; the edits since are the second pinned
- * configuration (`oracles_e11_config_profile`), with its own digest, and the
- * way that configuration alone comes to rest (`oracles_e11_braking_offset`). */
+ * configuration (`oracles_e11_config_profile`), with its own digest, the
+ * way that configuration alone comes to rest (`oracles_e11_braking_offset`),
+ * and its follow that settles (`oracles_e11_follow_settling`). */
 #ifndef ORACLES_ENHANCED_WORLD_SMOOTH_CAMERA_E11_H
 #define ORACLES_ENHANCED_WORLD_SMOOTH_CAMERA_E11_H
 
@@ -64,6 +65,38 @@ static inline bool oracles_e11_viewport_valid(int32_t viewport_width, int32_t fr
 #define ORACLES_E11_CONFIG_SCHEMA_V4 "camera-smooth-horizontal-v4"
 #define ORACLES_E11_CONFIG_DIGEST_V4 \
     "de4d24170ef03e38465c12767cc3ef7902cf8a94a32a00d9f13b72192c87194f"
+/* The second configuration's values with a follow that settles (v5).  v4
+ * asks for the speed that brings the camera to its target and stops it there,
+ * and for none inside the dead zone: behind a Link walking steadily slower
+ * than the camera gains speed in a few frames (stairs, 90/256 of a pixel a
+ * frame), it brakes in the zone, falls behind, leaves it and overtakes him
+ * again, a cycle of ten frames around his speed, and it lags him on average.
+ * v5 moves the camera at Link's filtered speed and adds to it, past the dead
+ * zone only, an eighth of the distance beyond the zone, never more than it
+ * can shed before reaching it: inside the zone the camera keeps his speed and
+ * settles there, its look-ahead half v4's (a horizon of four ticks), v4
+ * lagging behind its own on average.  It never moves against Link's
+ * filtered motion, and when he stops it lets the look-ahead go and sheds its
+ * speed at ORACLES_E11_SETTLING_BRAKING times the rate it gains it, from the
+ * first still frame of an observation to the 256th of a pixel (`subpixel`),
+ * where a still frame is a stop unless the player holds the pad along the
+ * axis (`held`: the game holding Link a frame), after
+ * ORACLES_E11_REST_FRAMES in whole pixels or held.  v4 stays the
+ * configuration `oracles_e11_config_profile` gives profile 3, for
+ * comparison. */
+#define ORACLES_E11_CONFIG_SCHEMA_V5 "camera-smooth-horizontal-v5"
+#define ORACLES_E11_CONFIG_DIGEST_V5 \
+    "87ad7abb3616740790dad9715f4f0c05282a056dad6a54bf5bb8621d1895300d"
+#define ORACLES_E11_SETTLING_BRAKING 2
+#define ORACLES_E11_SETTLING_CATCH_UP 8
+#define ORACLES_E11_SETTLING_HORIZON 4
+/* A step of Link's longer than this in a frame is no walk but the game
+ * putting him elsewhere (a respawn, the woods' loop): the follow that settles
+ * re-centres on him at up to ORACLES_E11_RECENTRE_SPEED a frame, gaining and
+ * shedding ORACLES_E11_RECENTRE_ACCEL, instead of smoothing it as motion. */
+#define ORACLES_E11_DISPLACEMENT (8 * ORACLES_E11_F256)
+#define ORACLES_E11_RECENTRE_SPEED (7 * ORACLES_E11_F256 / 2)
+#define ORACLES_E11_RECENTRE_ACCEL (ORACLES_E11_F256 / 2)
 
 /* Link's position arrives in whole pixels, so a speed under one pixel a frame
  * reaches the reducer as a step of one followed by still frames: at a quarter
@@ -173,6 +206,14 @@ typedef struct OraclesE11Observation {
     OraclesE11Domain domain;
     OraclesE11Availability availability;
     OraclesE11Event event;
+    /* Link's place to the 256th of a pixel, not in whole pixels: a frame
+     * without a step is then a stop (`oracles_e11_follow_settling`). */
+    bool subpixel;
+    /* The player holds the pad along the axis, or a transition goes on: a
+     * frame without a step is the game holding Link (a scroll's start or
+     * end, a swim's stroke) or a wall, not a stop, until
+     * ORACLES_E11_REST_FRAMES say so. */
+    bool held;
     /* Empty means “derive the canonical authenticated digest”.  A non-empty
      * value is checked against that digest, preventing a caller from making a
      * contradictory duplicate look identical merely by changing its hash. */
@@ -466,10 +507,12 @@ static inline bool oracles_e11_observation_digest(const OraclesE11Observation *o
     event = oracles_e11_event_name(observation->event);
     if (domain == NULL || availability == NULL || event == NULL) return false;
     length = snprintf(json, sizeof(json),
-        "{\"availability\":\"%s\",\"bounds\":{\"height\":%" PRId64 ",\"origin\":{\"x\":%" PRId32 ",\"y\":%" PRId32 "},\"width\":%" PRId64 "},\"domain\":\"%s\",\"epoch\":%" PRIu64 ",\"event\":\"%s\",\"link\":{\"x\":%" PRId32 ",\"y\":%" PRId32 "},\"ordinal\":%" PRIu64 ",\"session\":\"%s\",\"snapshot_identity\":\"%s\",\"tick\":%" PRIu64 "}",
+        "{\"availability\":\"%s\",\"bounds\":{\"height\":%" PRId64 ",\"origin\":{\"x\":%" PRId32 ",\"y\":%" PRId32 "},\"width\":%" PRId64 "},\"domain\":\"%s\",\"epoch\":%" PRIu64 ",\"event\":\"%s\",%s\"link\":{\"x\":%" PRId32 ",\"y\":%" PRId32 "},\"ordinal\":%" PRIu64 ",\"session\":\"%s\",\"snapshot_identity\":\"%s\",%s\"tick\":%" PRIu64 "}",
         availability, observation->bounds_height, observation->bounds_origin_x, observation->bounds_origin_y,
-        observation->bounds_width, domain, observation->epoch, event, observation->link_x, observation->link_y,
-        observation->ordinal, observation->session, observation->snapshot_identity, observation->tick);
+        observation->bounds_width, domain, observation->epoch, event, observation->held ? "\"held\":true," : "",
+        observation->link_x, observation->link_y,
+        observation->ordinal, observation->session, observation->snapshot_identity,
+        observation->subpixel ? "\"subpixel\":true," : "", observation->tick);
     if (length < 0 || (size_t)length >= sizeof(json)) return false;
     oracles_e11_sha_init(&sha);
     oracles_e11_sha_update(&sha, json, (size_t)length);
@@ -499,28 +542,39 @@ static inline void oracles_e11_config_default(OraclesE11Config *config) {
     (void)oracles_e11_copy_text(config->digest, sizeof(config->digest), ORACLES_E11_CONFIG_DIGEST);
 }
 
+/* Profile 1, the first configuration; 2, the second's values with the follow
+ * that settles (v5); 3, the second as it was before it (v4). */
 static inline void oracles_e11_config_profile(OraclesE11Config *config, unsigned profile) {
     if (config == NULL) return;
     oracles_e11_config_default(config);
-    if (profile != 2u) return;
-    (void)oracles_e11_copy_text(config->schema, sizeof(config->schema), ORACLES_E11_CONFIG_SCHEMA_V4);
+    if (profile != 2u && profile != 3u) return;
+    (void)oracles_e11_copy_text(config->schema, sizeof(config->schema), profile == 2u ? ORACLES_E11_CONFIG_SCHEMA_V5 : ORACLES_E11_CONFIG_SCHEMA_V4);
     config->dead_half_width = 2 * ORACLES_E11_F256;
     config->lookahead_max = 24 * ORACLES_E11_F256;
     config->max_speed = 2 * ORACLES_E11_F256;
     config->max_accel = ORACLES_E11_F256 / 8;
-    (void)oracles_e11_copy_text(config->digest, sizeof(config->digest), ORACLES_E11_CONFIG_DIGEST_V4);
+    if (profile == 2u) config->horizon_ticks = ORACLES_E11_SETTLING_HORIZON;
+    (void)oracles_e11_copy_text(config->digest, sizeof(config->digest), profile == 2u ? ORACLES_E11_CONFIG_DIGEST_V5 : ORACLES_E11_CONFIG_DIGEST_V4);
 }
 
-static inline bool oracles_e11_config_valid_v4(const OraclesE11Config *config) {
-    return strncmp(config->schema, ORACLES_E11_CONFIG_SCHEMA_V4, sizeof(config->schema)) == 0 &&
+static inline bool oracles_e11_config_valid_second(const OraclesE11Config *config, const char *schema, int32_t horizon_ticks, const char *digest) {
+    return strncmp(config->schema, schema, sizeof(config->schema)) == 0 &&
         oracles_e11_viewport_valid(config->viewport_width, config->framing) && config->viewport_height == 128 * ORACLES_E11_F256 &&
         config->dead_half_width == 2 * ORACLES_E11_F256 &&
-        config->lookahead_max == 24 * ORACLES_E11_F256 && config->horizon_ticks == 8 &&
+        config->lookahead_max == 24 * ORACLES_E11_F256 && config->horizon_ticks == horizon_ticks &&
         config->velocity_filter_divisor == 4 && config->lookahead_step == ORACLES_E11_F256 / 2 &&
         config->max_speed == 2 * ORACLES_E11_F256 && config->max_accel == ORACLES_E11_F256 / 8 &&
         config->idle_delay == 30 && config->rest_tolerance == ORACLES_E11_F256 / 16 &&
         config->convergence_bound == 180 && oracles_e11_digest_valid(config->digest) &&
-        strncmp(config->digest, ORACLES_E11_CONFIG_DIGEST_V4, sizeof(config->digest)) == 0;
+        strncmp(config->digest, digest, sizeof(config->digest)) == 0;
+}
+
+static inline bool oracles_e11_config_valid_v4(const OraclesE11Config *config) {
+    return oracles_e11_config_valid_second(config, ORACLES_E11_CONFIG_SCHEMA_V4, 8, ORACLES_E11_CONFIG_DIGEST_V4);
+}
+
+static inline bool oracles_e11_config_settles(const OraclesE11Config *config) {
+    return strncmp(config->schema, ORACLES_E11_CONFIG_SCHEMA_V5, sizeof(config->schema)) == 0;
 }
 
 static inline bool oracles_e11_config_rests_where_it_brakes(const OraclesE11Config *config) {
@@ -529,7 +583,8 @@ static inline bool oracles_e11_config_rests_where_it_brakes(const OraclesE11Conf
 
 static inline bool oracles_e11_config_valid(const OraclesE11Config *config) {
     if (config == NULL) return false;
-    if (oracles_e11_config_valid_v4(config)) return true;
+    if (oracles_e11_config_valid_v4(config) ||
+        oracles_e11_config_valid_second(config, ORACLES_E11_CONFIG_SCHEMA_V5, ORACLES_E11_SETTLING_HORIZON, ORACLES_E11_CONFIG_DIGEST_V5)) return true;
     return strncmp(config->schema, ORACLES_E11_CONFIG_SCHEMA, sizeof(config->schema)) == 0 &&
         oracles_e11_viewport_valid(config->viewport_width, config->framing) && config->viewport_height == 128 * ORACLES_E11_F256 &&
         config->dead_half_width == 16 * ORACLES_E11_F256 &&
@@ -661,14 +716,14 @@ static inline OraclesE11Error oracles_e11_state_restore(const uint8_t *buffer, s
 /* Distance the camera still travels when it sheds one acceleration step per
  * frame from `velocity` to zero: the sum of the velocities to come, not of
  * the current one (with v=256 and a=32 the next frame moves 224 units). */
-static inline bool oracles_e11_braking_offset(int64_t velocity, const OraclesE11Config *config, int64_t *offset) {
+static inline bool oracles_e11_braking_offset_at(int64_t velocity, int64_t braking, const OraclesE11Config *config, int64_t *offset) {
     int64_t remaining, magnitude, distance = 0;
     const int64_t direction = velocity < 0 ? -1 : 1;
-    if (config == NULL || offset == NULL || config->max_accel <= 0 ||
+    if (config == NULL || offset == NULL || braking <= 0 ||
         !oracles_e11_i64_abs(velocity, &magnitude) || magnitude > config->max_speed) return false;
     remaining = magnitude;
     while (remaining != 0) {
-        const int64_t deceleration = remaining < config->max_accel ? remaining : config->max_accel;
+        const int64_t deceleration = remaining < braking ? remaining : braking;
         int64_t step;
         if (!oracles_e11_i64_sub(remaining, deceleration, &remaining) ||
             !oracles_e11_i64_mul(remaining, direction, &step) ||
@@ -676,6 +731,10 @@ static inline bool oracles_e11_braking_offset(int64_t velocity, const OraclesE11
     }
     *offset = distance;
     return true;
+}
+
+static inline bool oracles_e11_braking_offset(int64_t velocity, const OraclesE11Config *config, int64_t *offset) {
+    return config != NULL && oracles_e11_braking_offset_at(velocity, config->max_accel, config, offset);
 }
 
 static inline bool oracles_e11_bounds(const OraclesE11Observation *observation,
@@ -742,22 +801,202 @@ static inline OraclesE11Error oracles_e11_bootstrap(const OraclesE11State *old,
     return ORACLES_E11_OK;
 }
 
-static inline int64_t oracles_e11_stopping_speed(int64_t distance, const OraclesE11Config *config) {
+/* The largest speed from which shedding `braking` a frame stops within `distance`. */
+static inline int64_t oracles_e11_stopping_speed_at(int64_t distance, int64_t braking, const OraclesE11Config *config) {
     int64_t low = 0, high = config->max_speed;
     while (low < high) {
         int64_t span, span_plus_one, middle;
         int64_t steps;
-        int64_t first, triangular, deceleration, braking;
+        int64_t first, triangular, deceleration, travel;
         if (!oracles_e11_i64_sub(high, low, &span) ||
             !oracles_e11_i64_add(span, 1, &span_plus_one) ||
             !oracles_e11_i64_add(low, span_plus_one / 2, &middle)) return -1;
-        steps = (middle + config->max_accel - 1) / config->max_accel;
+        steps = (middle + braking - 1) / braking;
         if (!oracles_e11_i64_mul(steps, middle, &first) || !oracles_e11_i64_mul(steps, steps - 1, &triangular)) return -1;
         triangular /= 2;
-        if (!oracles_e11_i64_mul(config->max_accel, triangular, &deceleration) || !oracles_e11_i64_sub(first, deceleration, &braking)) return -1;
-        if (braking <= distance) low = middle; else high = middle - 1;
+        if (!oracles_e11_i64_mul(braking, triangular, &deceleration) || !oracles_e11_i64_sub(first, deceleration, &travel)) return -1;
+        if (travel <= distance) low = middle; else high = middle - 1;
     }
     return low;
+}
+
+static inline int64_t oracles_e11_stopping_speed(int64_t distance, const OraclesE11Config *config) {
+    return oracles_e11_stopping_speed_at(distance, config->max_accel, config);
+}
+
+/* The tracking step of the follow that settles (v5), once the observation is
+ * accepted and Link's step, his filtered speed and the look-ahead it gives
+ * are known. */
+static inline OraclesE11Result oracles_e11_follow_settling(const OraclesE11State *current,
+                                                           const OraclesE11Observation *observation,
+                                                           const OraclesE11Config *config,
+                                                           const char digest[ORACLES_E11_DIGEST_CAP],
+                                                           int64_t low, int64_t high, int64_t measured,
+                                                           int64_t filtered, int64_t lookahead) {
+    OraclesE11Result result;
+    const int64_t braking = (int64_t)config->max_accel * ORACLES_E11_SETTLING_BRAKING;
+    /* Link's speed to the 256th of a pixel is his own, smooth: the camera
+     * takes it up and lets it go at the braking's rate.  In whole pixels it
+     * is a filtered 1, 1, 0 that wavers from frame to frame: the camera
+     * changes speed at max_accel, as before. */
+    const int64_t matching = observation->subpixel ? braking : config->max_accel;
+    int64_t shedding;
+    const uint64_t rest_frames = observation->subpixel && !observation->held ? 1u : (uint64_t)ORACLES_E11_REST_FRAMES;
+    const bool at_rest = measured >= -config->rest_tolerance && measured <= config->rest_tolerance;
+    uint64_t idle_ticks = 0u;
+    int64_t target, desired, error, excess, catch_up, desired_velocity, available, safe, change, applied, candidate;
+    int64_t braking_offset, stop_target, nominal_target;
+    bool domain_constraint, resting;
+    result.error = ORACLES_E11_OK;
+    if (measured > ORACLES_E11_DISPLACEMENT || measured < -ORACLES_E11_DISPLACEMENT || current->follow_recenter == ORACLES_E11_RECENTER) {
+        /* Re-centring on Link put elsewhere: his framing, no look-ahead, his
+         * jump no speed of his; back to the follow once there, slow again. */
+        int64_t distance, speed;
+        if (!oracles_e11_i64_sub(observation->link_x, config->framing, &target) ||
+            !oracles_e11_clamp(target, low, high, &desired) ||
+            !oracles_e11_i64_sub(desired, current->camera_pos, &error) || !oracles_e11_i64_abs(error, &distance)) {
+            result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result;
+        }
+        /* The speed it can shed before the distance, its steps summed. */
+        {
+            int64_t travel = 0;
+            speed = 0;
+            while (speed < ORACLES_E11_RECENTRE_SPEED && travel + speed + ORACLES_E11_RECENTRE_ACCEL <= distance) {
+                speed += ORACLES_E11_RECENTRE_ACCEL;
+                travel += speed;
+            }
+        }
+        desired_velocity = error < 0 ? -speed : speed;
+        change = desired_velocity - current->applied_velocity;
+        if (change > ORACLES_E11_RECENTRE_ACCEL) change = ORACLES_E11_RECENTRE_ACCEL;
+        if (change < -ORACLES_E11_RECENTRE_ACCEL) change = -ORACLES_E11_RECENTRE_ACCEL;
+        applied = current->applied_velocity + change;
+        if (!oracles_e11_i64_add(current->camera_pos, applied, &candidate) || candidate < low || candidate > high ||
+            candidate < INT32_MIN || candidate > INT32_MAX) {
+            result.state = oracles_e11_desync(current, ORACLES_E11_DOMAIN_BOUND); return result;
+        }
+        if (!oracles_e11_visible(candidate, observation->link_x, config)) {
+            result.state = oracles_e11_desync(current, ORACLES_E11_VISIBILITY_FALLBACK); return result;
+        }
+        result.state = *current; result.state.status = ORACLES_E11_TRACKING; result.state.camera_pos = (int32_t)candidate;
+        result.state.applied_velocity = applied; result.state.filtered_link_velocity = 0; result.state.lookahead = 0;
+        result.state.last_link_x = observation->link_x; result.state.last_link_y = observation->link_y; result.state.last_ordinal = observation->ordinal;
+        memcpy(result.state.last_observation_digest, digest, sizeof(result.state.last_observation_digest)); result.state.idle_ticks = 0u;
+        result.state.follow_recenter = distance <= config->dead_half_width &&
+            applied >= -config->max_accel * ORACLES_E11_SETTLING_BRAKING && applied <= config->max_accel * ORACLES_E11_SETTLING_BRAKING
+            ? ORACLES_E11_FOLLOW : ORACLES_E11_RECENTER;
+        result.state.last_constraint = desired != target ? ORACLES_E11_DOMAIN_BOUND : ORACLES_E11_CONSTRAINT_NONE;
+        result.state.forced_displacement = false;
+        return result;
+    }
+    if (at_rest && !oracles_e11_u64_inc(current->idle_ticks, &idle_ticks)) {
+        result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result;
+    }
+    resting = at_rest && idle_ticks >= rest_frames;
+    /* Link going the other way than the camera is a stop of the way it
+     * went, in whole pixels too.  So are two still frames running in whole
+     * pixels, a stop until four of them say otherwise: a camera gliding on
+     * after a stop stops soon, and a walk under a pixel a frame, a still
+     * frame between its steps (1, 1, 0 on a diagonal), keeps its speed. */
+    shedding = idle_ticks >= 2u || (filtered > 0 && current->applied_velocity < 0) || (filtered < 0 && current->applied_velocity > 0) ? braking : matching;
+    if (at_rest) {
+        if (idle_ticks == rest_frames) {
+            /* Link has stopped: the look-ahead is let go at once, the target
+             * Link framed without it, or where the camera's braking ends if
+             * it cannot stop before passing him: it never steps back. */
+            if (!oracles_e11_braking_offset_at(current->applied_velocity, braking, config, &braking_offset) ||
+                !oracles_e11_i64_add(current->camera_pos, braking_offset, &stop_target) ||
+                !oracles_e11_i64_sub(observation->link_x, config->framing, &nominal_target)) {
+                result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result;
+            }
+            if ((filtered > 0 && stop_target > nominal_target) || (filtered < 0 && stop_target < nominal_target) ||
+                (filtered == 0 && stop_target != current->camera_pos)) lookahead = stop_target - nominal_target;
+            else lookahead = 0;
+        } else {
+            lookahead = current->lookahead;
+        }
+    }
+    if (!oracles_e11_i64_sub(observation->link_x, config->framing, &target) ||
+        !oracles_e11_i64_add(target, lookahead, &target) ||
+        !oracles_e11_clamp(target, low, high, &desired) ||
+        !oracles_e11_i64_sub(desired, current->camera_pos, &error)) {
+        result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result;
+    }
+    domain_constraint = desired != target;
+    {
+        /* Link's speed, none at rest or where Link himself stands past the
+         * edge of the bounds (the target held there), and past the dead
+         * zone an eighth of the distance beyond it. */
+        const int64_t framed = (int64_t)observation->link_x - config->framing;
+        desired_velocity = resting || (domain_constraint && (framed < low || framed > high)) ? 0 : filtered;
+        /* The game holding him a frame, the pad held, is no change of his
+         * speed: the camera keeps its own. */
+        if (observation->subpixel && observation->held && idle_ticks == 1u && desired_velocity != 0) desired_velocity = current->applied_velocity;
+        excess = (error < 0 ? -error : error) - config->dead_half_width;
+        if (excess > 0) {
+            catch_up = oracles_e11_stopping_speed_at(excess, shedding, config);
+            if (catch_up < 0) { result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result; }
+            if (excess / ORACLES_E11_SETTLING_CATCH_UP < catch_up) catch_up = excess / ORACLES_E11_SETTLING_CATCH_UP;
+            /* In whole pixels the camera catches up at most twice its
+             * acceleration faster than Link while he walks, so that it does
+             * not run on past him when he stops, but where he is further from
+             * it than the look-ahead ever takes it. */
+            if (!observation->subpixel && !resting && excess <= config->lookahead_max && catch_up > 2 * config->max_accel) catch_up = 2 * config->max_accel;
+            desired_velocity += error < 0 ? -catch_up : catch_up;
+        }
+        if (!oracles_e11_clamp(desired_velocity, -config->max_speed, config->max_speed, &desired_velocity)) {
+            result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result;
+        }
+        /* Never against Link's motion: a camera ahead of him waits for him,
+         * unless the edge of the bounds sends it back or he is further from
+         * it than the look-ahead ever takes it (the world shifted under him,
+         * a loop of the woods). */
+        if (!domain_constraint && excess <= config->lookahead_max &&
+            ((filtered > 0 && desired_velocity < 0) || (filtered < 0 && desired_velocity > 0))) desired_velocity = 0;
+    }
+    /* Never faster than it can stop before the edge of the bounds. */
+    if (desired_velocity != 0) {
+        available = desired_velocity > 0 ? high - current->camera_pos : current->camera_pos - low;
+        if (available < 0) available = 0;
+        /* At the rate it is sure to shed on the frames to come, whatever
+         * Link does: in whole pixels a still frame's braking may not last. */
+        safe = oracles_e11_stopping_speed_at(available, shedding < matching ? shedding : matching, config);
+        if (safe < 0) { result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(current, ORACLES_E11_CONSTRAINT_NONE); return result; }
+        if (desired_velocity > safe) desired_velocity = safe;
+        if (desired_velocity < -safe) desired_velocity = -safe;
+    }
+    /* Speed shed down to a stop and no further in the same frame; gained up
+     * to Link's own at the matching rate, past it at max_accel. */
+    change = desired_velocity - current->applied_velocity;
+    if ((current->applied_velocity > 0 && change < 0) || (current->applied_velocity < 0 && change > 0)) {
+        if (change > shedding) change = shedding;
+        if (change < -shedding) change = -shedding;
+        applied = current->applied_velocity + change;
+        if ((current->applied_velocity > 0 && applied < 0) || (current->applied_velocity < 0 && applied > 0))
+            applied = applied < -config->max_accel ? -config->max_accel : (applied > config->max_accel ? config->max_accel : applied);
+    } else {
+        int64_t own = 0, gaining = config->max_accel;
+        if ((filtered > 0 && change > 0) || (filtered < 0 && change < 0)) own = filtered > 0 ? filtered - current->applied_velocity : current->applied_velocity - filtered;
+        if (own > gaining) gaining = own < matching ? own : matching;
+        if (change > gaining) change = gaining;
+        if (change < -gaining) change = -gaining;
+        applied = current->applied_velocity + change;
+    }
+    if (!oracles_e11_clamp(applied, -config->max_speed, config->max_speed, &applied) ||
+        !oracles_e11_i64_add(current->camera_pos, applied, &candidate) || candidate < low || candidate > high ||
+        candidate < INT32_MIN || candidate > INT32_MAX) {
+        result.state = oracles_e11_desync(current, ORACLES_E11_DOMAIN_BOUND); return result;
+    }
+    if (!oracles_e11_visible(candidate, observation->link_x, config)) {
+        result.state = oracles_e11_desync(current, ORACLES_E11_VISIBILITY_FALLBACK); return result;
+    }
+    result.state = *current; result.state.status = ORACLES_E11_TRACKING; result.state.camera_pos = (int32_t)candidate;
+    result.state.applied_velocity = applied; result.state.filtered_link_velocity = filtered; result.state.lookahead = lookahead;
+    result.state.last_link_x = observation->link_x; result.state.last_link_y = observation->link_y; result.state.last_ordinal = observation->ordinal;
+    memcpy(result.state.last_observation_digest, digest, sizeof(result.state.last_observation_digest)); result.state.idle_ticks = idle_ticks;
+    result.state.follow_recenter = ORACLES_E11_FOLLOW; result.state.last_constraint = domain_constraint ? ORACLES_E11_DOMAIN_BOUND : ORACLES_E11_CONSTRAINT_NONE;
+    result.state.forced_displacement = measured != 0 && domain_constraint;
+    return result;
 }
 
 static inline OraclesE11Result oracles_e11_reduce(const OraclesE11State *state,
@@ -852,6 +1091,8 @@ static inline OraclesE11Result oracles_e11_reduce(const OraclesE11State *state,
         !oracles_e11_clamp(lookahead, -config->lookahead_max, config->lookahead_max, &lookahead)) {
         result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(&current, ORACLES_E11_CONSTRAINT_NONE); return result;
     }
+    if (oracles_e11_config_settles(config))
+        return oracles_e11_follow_settling(&current, observation, config, digest, low, high, measured, filtered, lookahead);
     at_rest = measured >= -config->rest_tolerance && measured <= config->rest_tolerance;
     if (at_rest) { if (!oracles_e11_u64_inc(current.idle_ticks, &idle_ticks)) { result.error = ORACLES_E11_OVERFLOW; result.state = oracles_e11_desync(&current, ORACLES_E11_CONSTRAINT_NONE); return result; } }
     else idle_ticks = 0u;

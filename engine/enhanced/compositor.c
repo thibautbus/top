@@ -400,7 +400,7 @@ __attribute__((noinline)) static void edge_span(const OraclesEnhancedCompose *in
  * with the room, and the window, drawn with that scroll, stays in place.
  * `row` holds the band's columns x0 to x1. */
 static unsigned compose_row(const OraclesEnhancedCompose *in, const edge_set *edges, const uint32_t *core, uint32_t *row, unsigned x0, unsigned x1,
-                            int32_t world_y, int32_t shift_x, int32_t shift_y, uint32_t black)
+                            int32_t world_y, int32_t shift_x, int32_t shift_y, uint32_t black, unsigned *sides)
 {
     uint8_t painted[ORACLES_ENHANCED_MAX_WIDTH];
     memset(painted + x0, 0, x1 - x0);
@@ -446,7 +446,11 @@ static unsigned compose_row(const OraclesEnhancedCompose *in, const edge_set *ed
         if (painted[x]) continue;
         row[x] = black;
         const int32_t wx = left + (int32_t)x;
-        if (counted_row && (!in->counted_width || (wx >= in->counted_left && wx < in->counted_left + (int32_t)in->counted_width))) uncovered++;
+        if (counted_row && (!in->counted_width || (wx >= in->counted_left && wx < in->counted_left + (int32_t)in->counted_width))) {
+            uncovered++;
+            if (x == x0) *sides |= 1u;
+            if (x == x1 - 1u) *sides |= 2u;
+        }
     }
     return uncovered;
 }
@@ -505,6 +509,7 @@ static unsigned compose_world(const uint32_t *core, const OraclesEnhancedCompose
     const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
     const unsigned x0 = (W - shown_w) / 2u, y0 = (band_h - shown_h) / 2u;
     const uint32_t black = gutter_pixel(in, 0xff000000u);
+    unsigned sides = 0;
     edge_set edges;
     int edged = 0;
     for (unsigned n = 0; n < in->neighbour_count && in->soft_edges && !edged; n++) edged = in->neighbours[n].veil != 0u;
@@ -516,8 +521,14 @@ static unsigned compose_world(const uint32_t *core, const OraclesEnhancedCompose
         const int32_t world_y = row_shift(in, y, &shift_x, &shift_y);
         for (unsigned x = 0; x < x0; x++) row[x] = black;
         for (unsigned x = x0 + shown_w; x < W; x++) row[x] = black;
-        uncovered += compose_row(in, edged ? &edges : NULL, core, row, x0, x0 + shown_w, world_y, shift_x, shift_y, black);
+        unsigned row_sides = 0;
+        const unsigned row_uncovered = compose_row(in, edged ? &edges : NULL, core, row, x0, x0 + shown_w, world_y, shift_x, shift_y, black, &row_sides);
+        uncovered += row_uncovered;
+        sides |= row_sides;
+        if (row_uncovered && y == y0) sides |= 4u;
+        if (row_uncovered && y == y0 + shown_h - 1u) sides |= 8u;
     }
+    if (in->uncovered_edges) *in->uncovered_edges = sides;
     return uncovered;
 }
 

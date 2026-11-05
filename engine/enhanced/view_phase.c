@@ -329,14 +329,17 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
     oracles_enhanced_camera_fraction(v->camera, &fx, &fy);
     if (!tracking) fx = fy = 0;
     if (!oracles_enhanced_camera_vertical_tracking(v->camera)) fy = 0;
-    /* Where Link cannot be drawn apart for a stretch (a cutscene, a large room, a shake of the screen and the frames
-     * after it), the band takes no fraction either, so that he keeps his place against it as without the sub-pixel
-     * camera.  The waves (the sea floor's, the strange force's) draw each line at its own scroll: the window rendered
-     * again without him takes each line's, and he is drawn apart there as elsewhere. */
+    /* Where Link cannot be drawn apart for a stretch (a cutscene, a shake of the screen and the frames after it),
+     * the band takes no fraction either, so that he keeps his place against it as without the sub-pixel camera.  A
+     * dungeon's large room's band is the game's window, or the room still: he is drawn apart there too, the band
+     * taking the fraction the camera gives it there (camera.c), but under the waves of a dungeon under the sea,
+     * whose lines the band holds to the room's rows; not in the side views, where the game's camera lags his jumps.
+     * The waves (the sea floor's, the strange force's) draw each line at its own scroll: the window rendered again
+     * without him takes each line's, and he is drawn apart there as elsewhere. */
     const int ripple = v->have_wave && v->wave_lines;
     if (v->have_wave && !ripple) v->sub_shake_hold = SUB_SHAKE_HOLD;
     else if (v->sub_shake_hold) v->sub_shake_hold--;
-    const int apart = ob->playing && !ob->cutscene && ob->grid && !ob->large && (!v->have_wave || ripple) && !v->sub_leaving;
+    const int apart = ob->playing && !ob->cutscene && ((ob->grid && !ob->large && (!v->have_wave || ripple)) || (ob->large_grid && ob->world.domain == ORACLES_E11_DUNGEON && !v->have_wave)) && !v->sub_leaving;
     const int continuous = v->sub_have_last && v->sub_last_frame + 1u == v->frame && v->sub_last_epoch == ob->epoch;
     /* The band held through a scroll's start out of an interior's room (ev_hold_camera): its fraction kept. */
     const int held = v->camera_held;

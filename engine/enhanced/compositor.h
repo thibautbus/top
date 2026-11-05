@@ -214,6 +214,7 @@ typedef struct OraclesEnhancedCompose {
     const struct OraclesEnhancedHudPlace *hud_place;             /* world mode: the status bar cut into its blocks and laid out (oracles_enhanced_hud_place); NULL: centred */
     int soft_edges;                                              /* world mode: a source kept dark or fading in takes the edge toward the sources drawn in clear beside it; 0: its veil alone */
     uint32_t edge_seed;                                          /* the world its waves are drawn in (the rooms' group) */
+    unsigned *uncovered_edges;                                   /* world mode, not NULL: set to the sides of the part shown whose edge column or line has uncovered pixels counted, bits 0 to 3 left, right, top, bottom */
 } OraclesEnhancedCompose;
 
 /* The game's status bar as it keeps it: its map (two rows of 32 cells, tiles and attributes), the LCDC of its lines

@@ -507,6 +507,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
          * cannot be primed); threaded: the worker is busy.  Tried again later. */
         v->failed++;
         e->failed = 1; e->failed_at = v->frame; e->waits_start = 0;
+        e->queued = !v->sync_budget;
         if (v->sync_budget && v->job->status == ORACLES_GHOST_NOT_PRIMEABLE) {
             if (chained) record_not_a_start(v, e, (unsigned)(parent - v->slots));
             v->failure_reasons[0]++;
@@ -539,6 +540,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     v->pending_parent_accepted = chained ? parent->accepted_at : 0;
     v->pending_blind = 0;
     e->in_flight = 1;
+    e->queued = 0;
     e->run_serial = v->pending_serial = ++v->run_serials;
     v->pending_routed = e->routed;
     v->pending_routed_from = e->routed_from;

@@ -124,20 +124,38 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     const int have_loops = tail_records(data, size, &size_at, &offsets_at) && memcmp(data + 2u * ORACLES_E11_STATE_WIRE_SIZE, LOOP_RECORD_TAG, 4) == 0;
     if (size != ORACLES_E11_STATE_WIRE_SIZE && size != 2u * ORACLES_E11_STATE_WIRE_SIZE && !have_loops) return -1;
     OraclesE11Config config = *oracles_enhanced_camera_config(v->camera);
+    /* A state of the second profile as it followed before it settled (v4, a
+     * savestate taken before it) holds the same fields with the same meaning:
+     * it resumes under the profile, its configuration renamed. */
+    OraclesE11Config earlier;
+    oracles_e11_config_profile(&earlier, 3u);
+    const int settles = oracles_e11_config_settles(&config);
+    int renamed = 0;
     if (oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &config, &state) != ORACLES_E11_OK) {
-        profile = profile == 2u ? 1u : 2u;
-        oracles_e11_config_profile(&config, profile);
-        if (oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &config, &state) != ORACLES_E11_OK) return -1;
-        oracles_enhanced_camera_set_profile(v->camera, profile);
+        if (settles && oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &earlier, &state) == ORACLES_E11_OK) renamed = 1;
+        else {
+            /* The other profile's state: the savestate wins, the second's as it followed before too. */
+            profile = profile == 2u ? 1u : 2u;
+            oracles_e11_config_profile(&config, profile);
+            if (oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &config, &state) != ORACLES_E11_OK) {
+                if (profile != 2u || oracles_e11_state_restore(data, ORACLES_E11_STATE_WIRE_SIZE, &earlier, &state) != ORACLES_E11_OK) return -1;
+                renamed = 1;
+            }
+            oracles_enhanced_camera_set_profile(v->camera, profile);
+        }
     }
     const int have_vertical = size >= 2u * ORACLES_E11_STATE_WIRE_SIZE
-        && oracles_e11_state_restore(data + ORACLES_E11_STATE_WIRE_SIZE, ORACLES_E11_STATE_WIRE_SIZE, &config, &vertical) == ORACLES_E11_OK;
+        && oracles_e11_state_restore(data + ORACLES_E11_STATE_WIRE_SIZE, ORACLES_E11_STATE_WIRE_SIZE, renamed ? &earlier : &config, &vertical) == ORACLES_E11_OK;
+    if (renamed) {
+        memcpy(state.config_digest, config.digest, sizeof state.config_digest);
+        memcpy(vertical.config_digest, config.digest, sizeof vertical.config_digest);
+    }
     oracles_enhanced_camera_set_state(v->camera, &state, have_vertical ? &vertical : NULL);
     if (have_loops && offsets_at) {
         /* For the reducers' epochs and segments restored; an axis without one takes it afresh. */
         const int32_t saved[2] = { get32(data + offsets_at + 4), get32(data + offsets_at + 8) };
-        OraclesEnhancedShownOffset across = { saved[0] != OFFSET_NONE, saved[0], state.epoch, state.segment };
-        OraclesEnhancedShownOffset down = { 0, 0, 0, 0 };
+        OraclesEnhancedShownOffset across = { saved[0] != OFFSET_NONE, saved[0], state.epoch, state.segment, 0, INT32_MIN };
+        OraclesEnhancedShownOffset down = { 0, 0, 0, 0, 0, INT32_MIN };
         if (have_vertical && saved[1] != OFFSET_NONE) { down.valid = 1; down.offset = saved[1]; down.epoch = vertical.epoch; down.segment = vertical.segment; }
         oracles_enhanced_camera_set_shown_offsets(v->camera, &across, &down);
     }

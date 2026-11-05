@@ -50,6 +50,7 @@ The routes recorded before SameBoy's joypad bouncing was cut (`ages/advanced`, `
 | `seasons/scroll-animation.route` | animated tiles during a scroll | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/intro.route` | Seasons' introduction and cutscenes in the drawn-back view | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/dungeon.route` | a dungeon in the drawn-back view, large rooms whole | faithful, enhanced-zoom, enhanced-zoom-threaded |
+| `seasons/dungeon-diagonal.route` | `seasons/dungeon.route`'s keys into 4:57, then six diagonals across the large room, written by hand: Link drawn at his exact place there with the sub-pixel camera | faithful, enhanced, enhanced-zoom |
 | `seasons/swim.route` | the continuous transitions through a swim with the flippers, strokes carrying Link across an edge | faithful, enhanced-zoom, enhanced-zoom-threaded |
 | `seasons/swim-hold.route` | the swim's hold with the flippers: `seasons/swim.route`'s start, Link entering the water, then a direction held alone, with A, and nothing, written by hand (SameBoy only) | faithful, enhanced-zoom |
 | `seasons/shop.route` | a purchase: `seasons/overworld.route`'s keys to Horon's shop, then a bomb dropped and its blast taken outside, and ten bombs bought for 20 rupees, written by hand; with the cheats the blast costs no heart, the purchase nothing, and the bomb is kept; with `--text compact`, its price and its choice drawn in the font's own widths, which keep their layout | faithful; enhanced with `--text compact` |

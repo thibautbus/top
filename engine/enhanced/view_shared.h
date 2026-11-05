@@ -195,6 +195,10 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking);
 int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int tracking, int32_t camera_x, int32_t camera_y);
 /* view_black.c: the black of the composed frame counted, once a frame. */
 void ev_measure_black(OraclesEnhancedView *v, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
+/* How far the band may go, from where it stood the frame before, past an edge it showed black or toward a room of its
+ * grid a ghost is running beside it: the least and the most of its left edge, then of its top line, in the world
+ * (INT32_MIN and INT32_MAX where none holds it). */
+void ev_dark_limits(OraclesEnhancedView *v, int32_t limits[4]);
 /* The rooms never visited: whether a room of the reference's group is kept dark, the reference room and the active one
  * never; a composition's sources begun, the veil of a room drawn (256 kept dark, less while it fades in, 0 shown), the
  * places of the grid in view that no source covers and that are kept dark added, and the composition's count closed;

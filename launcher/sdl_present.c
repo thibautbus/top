@@ -8,7 +8,9 @@
  * uncovers filled with its edge column or line; the lines above it (the status bar) and below it unmoved, over it;
  * then the patch moved with the band and the layer, moved by Link's own fraction, cut to the band; then the fixed
  * rectangles unmoved.  Link's own fraction is rounded down: against the band he stays less than a pixel of the frame
- * off the game's drawing of him.  Under twice the frame's size the screen has no pixel between two of the frame's to
+ * off the game's drawing of him.  At the band's own fraction (the band taking his, in a dungeon's large room) he takes
+ * the band's pixel: rounded down against the band rounded to the nearest, he would go a pixel of the screen back and
+ * forth on it.  Under twice the frame's size the screen has no pixel between two of the frame's to
  * show: the frame is drawn as it is, whole. */
 static float screen_fraction(int32_t fraction, float scale)
 {
@@ -72,7 +74,8 @@ int sb_draw_subpixel(sdl_backend *backend, const oracles_host_video_subpixel *sp
         /* The patch where the band puts the place he stands, then him at his own place; cut to the band: none of
          * him over the status bar or below the band. */
         const int half = (int)sp->layer_pitch;
-        const float lx = screen_fraction_down(sp->layer_fx + sp->x, scale) - fx, ly = screen_fraction_down(sp->layer_fy + sp->y, scale) - fy;
+        const float lx = sp->layer_fx ? screen_fraction_down(sp->layer_fx + sp->x, scale) - fx : 0.0f;
+        const float ly = sp->layer_fy ? screen_fraction_down(sp->layer_fy + sp->y, scale) - fy : 0.0f;
         for (int pass = 0; pass < 2; pass++) {
             const float x0 = (float)sp->layer_x + (pass ? lx : -fx), y0 = (float)sp->layer_y + (pass ? ly : -fy);
             const float cut = top > y0 ? top - y0 : 0.0f;

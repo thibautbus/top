@@ -438,6 +438,9 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     ev_track_fade(v);
     ev_track_scene_tint(v);
     ev_phase_observe(v);
+    int32_t dark[4];
+    ev_dark_limits(v, dark);
+    oracles_enhanced_camera_limit(v->camera, dark);
     int tracking = oracles_enhanced_camera_reduce(v->camera, v->frame, &v->observation, &camera_x, &camera_y);
     const int reducer_tracking = tracking;   /* the camera the reducer's own, its fraction the sub-pixel camera's */
     /* A scroll out of a room the game routes itself toward a side off the map
@@ -577,11 +580,13 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     v->sub_x = v->sub_y = 0;
     v->sub_layer_w = v->sub_layer_h = 0;
     v->sub_fixed_count = 0;
+    v->uncovered_edges = 0;
+    in.uncovered_edges = &v->uncovered_edges;
     v->uncovered = oracles_enhanced_compose(in.mode == ORACLES_ENHANCED_WORLD && v->wave_held ? ev_sway_window(v, ev_scroll_window(v)) : ev_scroll_window(v), &in, v->surface);
     const int dark_read = v->dark_check && v->hidden_count && in.mode == ORACLES_ENHANCED_WORLD && !load_band;
     v->dark_lit = dark_read ? oracles_enhanced_dark_lit(&in, v->surface) : 0u;
     v->dark_stray = dark_read ? oracles_enhanced_dark_stray(&in, v->surface) : 0u;
-    if (load_band) { in.mode = ORACLES_ENHANCED_FRAMED; v->uncovered = 0; }
+    if (load_band) { in.mode = ORACLES_ENHANCED_FRAMED; v->uncovered = 0; v->uncovered_edges = 0; }
     v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;
     ev_find_area_blurb(v);
     if (in.mode == ORACLES_ENHANCED_WORLD) {

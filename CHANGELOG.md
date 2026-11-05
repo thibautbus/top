@@ -11,10 +11,12 @@ What changed in each version of The Oracles Project, the newest first. The relea
 ### Improved
 
 - **Smoother room changes.** With **Continuous transitions**, Link no longer stops for a moment as the scroll to the next room ends, walking or swimming, crossing an edge diagonally no longer gives him a double step as the scroll starts, and at a room's corner the next scroll no longer pulls him back. On foot, he also walks through the scroll as you hold the pad, as he would in the open: a tap at a room's edge takes him only as far as the game itself does, and letting go during the scroll leaves him where the game would, without walking; holding a direction across the scroll turns him and walks him that way, slowing near a corner instead of stopping short on one side. Swimming, he keeps the momentum he had as the scroll began, as before. A whirlpool, a hole or deep water just past a room's edge now brings him back where the game would, not right next to it again. It works in Ages and Seasons; the fan games keep the previous behaviour for now.
+- **Camera.** In Enhanced, the camera no longer sways on stairs and settles at once when Link stops: it follows him at his own speed instead of rocking around it, and with the Smooth camera it sees at once that he has stopped. When the game puts Link back elsewhere, after a fall or a whirlpool, the camera finds him again quickly instead of drifting there, and it no longer runs ahead into a neighbouring room still being prepared. Savestates taken before keep their camera.
 - **Saves of games with mods.** **Import save…** now brings the save in for the game with mods too: the save the Mods page's Play uses goes to Backups with the old one, and the next game with mods starts from the save imported.
 
 ### Fixed
 
+- **Diagonals in dungeons.** With the Smooth camera, Link no longer shakes as he walks diagonally through a dungeon's large rooms, stepping across then down in turn: he glides there as he does outdoors, in every view.
 - **Import save on Android.** The confirmation now shows the folder the save comes from (Download, or the folder you picked it in) instead of a blank line.
 - **Cartridge's Save row on Android.** With **Import save…** highlighted, the note under the save now speaks of the import, instead of repeating Export's.
 - **Import save.** The message after an import now names each file that went to Backups, the savestate included.

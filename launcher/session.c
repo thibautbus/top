@@ -545,8 +545,9 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
          * knows (oracles_session_follow_subpixel), else the player's choice; the pause changes it at once. */
         oracles_enhanced_view_set_subpixel(s->view, oracles_settings_subpixel_camera(s->settings, 0));
         s->subpixel_followed = !o->no_window;
-        fprintf(stderr, "oracles: camera %s (%s)\n", oracles_enhanced_view_subpixel_on(s->view) ? "smooth" : "pixel",
-                s->settings->subpixel_camera >= 0 ? "subpixel_camera= in the settings" : "the platform's default");
+        if (!s->subpixel_followed)   /* in a window, the first frame says it, with the scale */
+            fprintf(stderr, "oracles: camera %s (%s)\n", oracles_enhanced_view_subpixel_on(s->view) ? "smooth" : "pixel",
+                    s->settings->subpixel_camera >= 0 ? "subpixel_camera= in the settings" : "the platform's default");
         oracles_enhanced_view_set_link_phase(s->view, s->settings->link_phase);
         if (o->neighbour_objects) oracles_enhanced_view_set_neighbour_objects(s->view, 1);
         const int frozen = oracles_settings_quality_of(s->view_level, (int)oracles_core_kind(s->core), s->ghosts) == ORACLES_QUALITY_LOW;

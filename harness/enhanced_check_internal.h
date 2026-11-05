@@ -151,12 +151,14 @@ struct OraclesEnhancedCheck {
     unsigned diagonal_frames, camera_wobble;
     /* The same walk as the screen shows it at 4x (MEASURE_SCALE), the band moved by the sub-pixel camera's fraction
      * and Link drawn apart where the view does: the stops of the band on an axis between two of its steps (its jerks, an axis at a time), its steps back across the walk by 2 px or more (its zigzag), those Link moves on the
-     * screen, and those he goes back there against his step before. */
+     * screen, and those he goes back there against his step before; and Link's own steps on the ground, the band's
+     * added to his on the screen, back across the walk by 2 px or more (his zigzag, x and y crossing their pixels on
+     * frames of their own). */
     int32_t shown_band[2], shown_link[2], shown_link_step[2];
     uint32_t shown_frame;
     int shown_band_moved[2];
-    int shown_last_across;
-    unsigned band_stops, band_wobble, straight_frames, straight_band_stops, link_screen_moves, link_screen_backsteps;
+    int shown_last_across, ground_last_across;
+    unsigned band_stops, band_wobble, straight_frames, straight_band_stops, link_screen_moves, link_screen_backsteps, link_wobble;
     /* The band and Link as the screen shows them at 4x where the picture switches (a transition, a text box, Link
      * drawn apart): the change of their step from one frame to the next (a jolt) at the frame of the switch, the one
      * before and the one after, the largest on either axis; and the largest elsewhere (measure_switch_jolts). */

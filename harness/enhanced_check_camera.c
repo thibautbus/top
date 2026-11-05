@@ -303,6 +303,13 @@ static int32_t shown_pixels_down(int32_t fraction)
     return f >= 0 ? f / 256 : -((-f + 255) / 256);
 }
 
+/* Link's own fraction as the backend moves his layer by it: rounded down, but at the band's own fraction (the band
+ * taking his, a dungeon's large room), on the band's pixel. */
+static int32_t shown_link(int32_t layer_fraction, int32_t band_fraction)
+{
+    return layer_fraction ? shown_pixels_down(layer_fraction + band_fraction) : shown_pixels(band_fraction);
+}
+
 /* The band's place (the world's pixel at the screen's left and top) and Link's on the screen, in pixels of the
  * screen at MEASURE_SCALE, as the backend shows them: the band moved by its fraction, Link drawn apart at his own
  * where the view hands a layer, else with the band. */
@@ -313,8 +320,8 @@ static void shown_places(OraclesEnhancedCheck *c, const int32_t world[2], int32_
     const uint32_t *layer = NULL;
     oracles_enhanced_view_subpixel(c->view, &sx, &sy, &band_top, &band_height, &layer, &layer_x, &layer_y, &layer_w, &layer_h, &layer_fx, &layer_fy);
     band[0] = camera_x * MEASURE_SCALE + shown_pixels(sx); band[1] = camera_y * MEASURE_SCALE + shown_pixels(sy);
-    link[0] = world[0] * MEASURE_SCALE - band[0] + (layer ? shown_pixels_down(layer_fx + sx) : 0);
-    link[1] = world[1] * MEASURE_SCALE - band[1] + (layer ? shown_pixels_down(layer_fy + sy) : 0);
+    link[0] = world[0] * MEASURE_SCALE - band[0] + (layer ? shown_link(layer_fx, sx) : 0);
+    link[1] = world[1] * MEASURE_SCALE - band[1] + (layer ? shown_link(layer_fy, sy) : 0);
 }
 
 /* The band and Link as the screen at MEASURE_SCALE shows them, each world frame Link is drawn, transitions included:
@@ -446,7 +453,7 @@ static void measure_camera_wobble(OraclesEnhancedCheck *c, uint32_t frame, const
         const int32_t *a = c->wobble_world[(c->wobble_count + k - 1u) % 9u], *b = c->wobble_world[(c->wobble_count + k) % 9u];
         if ((b[0] != a[0] && sign(b[0] - a[0]) != sign(mx)) || (b[1] != a[1] && sign(b[1] - a[1]) != sign(my))) steady = 0;
     }
-    if (!steady) { c->wobble_last_across = 0; c->shown_last_across = 0; return; }
+    if (!steady) { c->wobble_last_across = 0; c->shown_last_across = 0; c->ground_last_across = 0; return; }
     c->diagonal_frames++;
     c->band_stops += shown_stop;
     /* The band as shown going back across the walk by 2 px of the screen or more (one is the rounding of a straight line). */
@@ -454,6 +461,13 @@ static void measure_camera_wobble(OraclesEnhancedCheck *c, uint32_t frame, const
     if (shown_across >= 2 || shown_across <= -2) {
         if (c->shown_last_across && sign(shown_across) != c->shown_last_across) c->band_wobble++;
         c->shown_last_across = sign(shown_across);
+    }
+    if (shown_steps) {
+        const int32_t ground_across = (link_step[0] + band_step[0]) * sign(my) - (link_step[1] + band_step[1]) * sign(mx);
+        if (ground_across >= 2 || ground_across <= -2) {
+            if (c->ground_last_across && sign(ground_across) != c->ground_last_across) c->link_wobble++;
+            c->ground_last_across = sign(ground_across);
+        }
     }
     if (shown_steps && (link_step[0] || link_step[1])) c->link_screen_moves++;
     for (unsigned a = 0; a < 2u; a++) {

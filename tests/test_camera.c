@@ -82,6 +82,37 @@ static int64_t slow_walk(unsigned profile, int num, int den, int sign, unsigned 
     return worst;
 }
 
+/* Link's place to the 256th of a pixel, as the sub-pixel camera feeds it
+ * (`exact`), else in whole pixels: `steps[f]` his move into frame f, from
+ * 3000 px, the pad held along the axis on the frames `held` says (none if
+ * NULL).  The camera's place after each frame in `cameras`, its look-ahead
+ * in `lookaheads` if not NULL. */
+static void walk_with(unsigned profile, int exact, const int32_t *steps, const bool *held, unsigned frames, int32_t *cameras, int64_t *lookaheads)
+{
+    OraclesE11Config config;
+    OraclesE11State state;
+    oracles_e11_config_profile(&config, profile);
+    oracles_e11_state_initial(&state, &config);
+    int32_t link = 3000 * ORACLES_E11_F256;
+    for (unsigned f = 0; f < frames; f++) {
+        link += steps[f];
+        OraclesE11Observation o = obs_at("ages", f + 1u, 0, 40 * 160);
+        o.link_x = exact ? link : link / ORACLES_E11_F256 * ORACLES_E11_F256;
+        o.subpixel = exact != 0;
+        o.held = held && held[f];
+        OraclesE11Result r = oracles_e11_reduce(&state, &o, &config);
+        if (r.error != ORACLES_E11_OK || r.state.status != ORACLES_E11_TRACKING) failures++;
+        state = r.state;
+        cameras[f] = state.camera_pos;
+        if (lookaheads) lookaheads[f] = state.lookahead;
+    }
+}
+
+static void exact_walk(unsigned profile, const int32_t *steps, unsigned frames, int32_t *cameras)
+{
+    walk_with(profile, 1, steps, NULL, frames, cameras, NULL);
+}
+
 int main(void)
 {
     /* ---- world-coordinate math ---- */
@@ -205,12 +236,17 @@ int main(void)
 
     /* ---- the second pinned configuration: valid, its own digest, its states bound to it ---- */
     {
-        OraclesE11Config v2;
+        OraclesE11Config v2, v4;
         oracles_e11_config_profile(&v2, 2);
         CHECK(oracles_e11_config_valid(&v2));
-        CHECK(strcmp(v2.digest, ORACLES_E11_CONFIG_DIGEST_V4) == 0 && strcmp(v2.schema, ORACLES_E11_CONFIG_SCHEMA_V4) == 0);
+        CHECK(strcmp(v2.digest, ORACLES_E11_CONFIG_DIGEST_V5) == 0 && strcmp(v2.schema, ORACLES_E11_CONFIG_SCHEMA_V5) == 0);
         CHECK(v2.dead_half_width == 2 * ORACLES_E11_F256 && v2.max_speed == 2 * ORACLES_E11_F256);
         CHECK(oracles_e11_state_restore(wire, written, &v2, &restored) != ORACLES_E11_OK);   /* a v1 state is not a v2 state */
+        /* The second as it followed before it settled, for comparison: its own digest, the same values. */
+        oracles_e11_config_profile(&v4, 3);
+        CHECK(oracles_e11_config_valid(&v4));
+        CHECK(strcmp(v4.digest, ORACLES_E11_CONFIG_DIGEST_V4) == 0 && strcmp(v4.schema, ORACLES_E11_CONFIG_SCHEMA_V4) == 0);
+        CHECK(v4.dead_half_width == v2.dead_half_width && v4.lookahead_max == v2.lookahead_max && v4.max_speed == v2.max_speed && v4.max_accel == v2.max_accel);
         OraclesE11Config v1;
         oracles_e11_config_profile(&v1, 1);
         CHECK(memcmp(&v1, &config, sizeof v1) == 0);
@@ -281,6 +317,134 @@ int main(void)
                     fprintf(stderr, "  %d/%d px a frame, sign %+d: gap %.2f px\n",
                             rates[rate][0], rates[rate][1], sign, (double)gap / ORACLES_E11_F256);
             }
+        }
+        /* Link to the 256th of a pixel, as the sub-pixel camera feeds him.
+         * On stairs walked diagonally, 90/256 of a pixel a frame each way, the
+         * camera settles on his speed: past its run-up it steps by his own
+         * step to a few 256ths.  The configuration before it braked inside
+         * its dead zone and overtook him again, a cycle from 15 to 190. */
+        {
+            enum { STAIRS = 240 };
+            int32_t steps[STAIRS], settled[STAIRS], cycling[STAIRS];
+            for (unsigned f = 0; f < STAIRS; f++) steps[f] = 90;
+            exact_walk(2u, steps, STAIRS, settled);
+            exact_walk(3u, steps, STAIRS, cycling);
+            int32_t low = INT32_MAX, high = INT32_MIN, low_v4 = INT32_MAX, high_v4 = INT32_MIN;
+            for (unsigned f = 80; f < STAIRS; f++) {
+                const int32_t step = settled[f] - settled[f - 1], step_v4 = cycling[f] - cycling[f - 1];
+                if (step < low) low = step;
+                if (step > high) high = step;
+                if (step_v4 < low_v4) low_v4 = step_v4;
+                if (step_v4 > high_v4) high_v4 = step_v4;
+            }
+            CHECK(low >= 86 && high <= 94);
+            CHECK(high_v4 - low_v4 > 100);
+            if (low < 86 || high > 94) fprintf(stderr, "  stairs: camera steps %d to %d\n", low, high);
+        }
+        /* Link walks at a pixel a frame and stops: the first still frame is
+         * the stop, the look-ahead let go at once.  The camera sheds its speed
+         * at twice the rate it gains it, in four frames, never steps back, and
+         * stays; before, it went on for eight, four of them before it saw the
+         * stop. */
+        {
+            enum { WALK = 120, STILL = 60 };
+            int32_t steps[WALK + STILL], cameras[WALK + STILL], cameras_v4[WALK + STILL];
+            for (unsigned f = 0; f < WALK + STILL; f++) steps[f] = f < WALK ? 256 : 0;
+            exact_walk(2u, steps, WALK + STILL, cameras);
+            exact_walk(3u, steps, WALK + STILL, cameras_v4);
+            unsigned moving = 0, moving_v4 = 0, back = 0;
+            for (unsigned f = WALK; f < WALK + STILL; f++) {
+                const int32_t step = cameras[f] - cameras[f - 1];
+                if (step) moving++;
+                if (step < 0) back++;
+                if (cameras_v4[f] != cameras_v4[f - 1]) moving_v4++;
+            }
+            CHECK(moving <= 4 && back == 0);
+            CHECK(moving_v4 >= 8);
+            CHECK(cameras[WALK + STILL - 1] - cameras[WALK - 1] <= 2 * ORACLES_E11_F256);   /* under two pixels past his stop */
+        }
+        /* Link turns back: the camera stops going his old way within four
+         * frames, then follows him the other way without coming back. */
+        {
+            enum { OUT = 120, BACK = 120 };
+            int32_t steps[OUT + BACK], cameras[OUT + BACK];
+            for (unsigned f = 0; f < OUT + BACK; f++) steps[f] = f < OUT ? 256 : -256;
+            exact_walk(2u, steps, OUT + BACK, cameras);
+            unsigned old_way = 0, turns = 0;
+            int32_t last = 0;
+            for (unsigned f = OUT; f < OUT + BACK; f++) {
+                const int32_t step = cameras[f] - cameras[f - 1];
+                if (step > 0) old_way++;
+                if (step && last && (step > 0) != (last > 0)) turns++;
+                if (step) last = step;
+            }
+            CHECK(old_way <= 4 && turns == 1);
+            CHECK(cameras[OUT + BACK - 1] - cameras[OUT + BACK - 2] == -256);   /* and goes at his speed */
+        }
+        /* The game puts Link elsewhere (a respawn, 63 pixels back): no walk
+         * to smooth, the camera re-centres on him within half a second, never
+         * more than four pixels a frame, and stays. */
+        {
+            enum { BEFORE = 60, AFTER = 60 };
+            int32_t steps[BEFORE + AFTER], cameras[BEFORE + AFTER];
+            for (unsigned f = 0; f < BEFORE + AFTER; f++) steps[f] = f == BEFORE ? -63 * ORACLES_E11_F256 : 0;
+            exact_walk(2u, steps, BEFORE + AFTER, cameras);
+            int32_t largest = 0;
+            for (unsigned f = BEFORE; f < BEFORE + AFTER; f++) {
+                const int32_t step = cameras[f] > cameras[f - 1] ? cameras[f] - cameras[f - 1] : cameras[f - 1] - cameras[f];
+                if (step > largest) largest = step;
+            }
+            const int32_t framed = (3000 - 63) * ORACLES_E11_F256 - 128 * ORACLES_E11_F256;
+            const int32_t off = cameras[BEFORE + 29] - framed;
+            CHECK(largest <= 4 * ORACLES_E11_F256);
+            CHECK(off >= -2 * ORACLES_E11_F256 && off <= 2 * ORACLES_E11_F256);
+            CHECK(cameras[BEFORE + AFTER - 1] == cameras[BEFORE + 29]);
+        }
+        /* The game holds Link a frame, the pad held (a scroll's end, a
+         * swim's stroke): no stop, the look-ahead kept and the camera going
+         * on at its speed.  The pad let go, the same frame is the stop. */
+        {
+            enum { WALK = 120, AFTER = 30 };
+            int32_t steps[WALK + AFTER], cameras[WALK + AFTER], stopped[WALK + AFTER];
+            int64_t ahead[WALK + AFTER], let_go[WALK + AFTER];
+            bool held[WALK + AFTER];
+            for (unsigned f = 0; f < WALK + AFTER; f++) { steps[f] = f == WALK ? 0 : 256; held[f] = true; }
+            walk_with(2u, 1, steps, held, WALK + AFTER, cameras, ahead);
+            walk_with(2u, 1, steps, NULL, WALK + AFTER, stopped, let_go);
+            CHECK(ahead[WALK] == ahead[WALK - 1]);
+            CHECK(cameras[WALK] - cameras[WALK - 1] == cameras[WALK - 1] - cameras[WALK - 2]);
+            CHECK(let_go[WALK] != let_go[WALK - 1]);
+            CHECK(stopped[WALK] - stopped[WALK - 1] < cameras[WALK] - cameras[WALK - 1]);
+        }
+        /* In whole pixels, diagonally (0xb5/256 a frame, steps of 1, 1, 0):
+         * a still frame between two steps is no stop, the camera's speed
+         * keeps within a quarter of a pixel; Link stopping, the camera stops
+         * within ten frames and never steps back; turning back, it stops going
+         * his old way within eight. */
+        {
+            enum { WALK = 150, STILL = 40, BACK = 60 };
+            int32_t steps[WALK + STILL + BACK], cameras[WALK + STILL + BACK];
+            for (unsigned f = WALK; f < WALK + STILL + BACK; f++) steps[f] = f < WALK + STILL ? 0 : -256;
+            int32_t carried = 0;
+            for (unsigned f = 0; f < WALK; f++) { carried += 0xb5; steps[f] = (carried >> 8) * ORACLES_E11_F256; carried &= 0xff; }
+            walk_with(2u, 0, steps, NULL, WALK + STILL + BACK, cameras, NULL);
+            int32_t low = INT32_MAX, high = INT32_MIN;
+            for (unsigned f = 80; f < WALK; f++) {
+                const int32_t step = cameras[f] - cameras[f - 1];
+                if (step < low) low = step;
+                if (step > high) high = step;
+            }
+            CHECK(high - low <= ORACLES_E11_F256 / 4);
+            unsigned moving = 0, back = 0, old_way = 0;
+            for (unsigned f = WALK; f < WALK + STILL; f++) {
+                if (cameras[f] != cameras[f - 1]) moving++;
+                if (cameras[f] < cameras[f - 1]) back++;
+            }
+            for (unsigned f = WALK + STILL; f < WALK + STILL + BACK; f++) if (cameras[f] > cameras[f - 1]) old_way++;
+            CHECK(moving <= 10 && back == 0);
+            CHECK(old_way == 0);
+            if (high - low > ORACLES_E11_F256 / 4 || moving > 10 || back || old_way)
+                fprintf(stderr, "  whole pixels: speed %d to %d, %u frames moving after the stop, %u back, %u his old way\n", low, high, moving, back, old_way);
         }
         /* The first configuration crosses its sixteen-pixel dead zone and
          * catches up, at a quarter of a pixel a frame as at one: its gap is
@@ -496,6 +660,21 @@ int main(void)
             oracles_enhanced_view_set_camera_profile(view, 1);
             CHECK(oracles_enhanced_view_load_state(view, wire, written) == 0);
             CHECK(oracles_enhanced_camera_profile(oracles_enhanced_view_camera(view)) == 2);
+            /* A state of the second profile before it settled (v4) resumes under it, renamed. */
+            oracles_enhanced_view_set_camera_profile(view, 3);
+            CHECK(oracles_enhanced_view_save_state(view, wire, sizeof wire, &written) == 0);
+            oracles_enhanced_view_set_camera_profile(view, 2);
+            CHECK(oracles_enhanced_view_load_state(view, wire, written) == 0);
+            CHECK(oracles_enhanced_camera_profile(oracles_enhanced_view_camera(view)) == 2);
+            CHECK(strcmp(oracles_enhanced_camera_state(oracles_enhanced_view_camera(view))->config_digest, ORACLES_E11_CONFIG_DIGEST_V5) == 0);
+            CHECK(strcmp(oracles_enhanced_camera_state_vertical(oracles_enhanced_view_camera(view))->config_digest, ORACLES_E11_CONFIG_DIGEST_V5) == 0);
+            /* And under the first profile, as it did when the second was that one. */
+            oracles_enhanced_view_set_camera_profile(view, 3);
+            CHECK(oracles_enhanced_view_save_state(view, wire, sizeof wire, &written) == 0);
+            oracles_enhanced_view_set_camera_profile(view, 1);
+            CHECK(oracles_enhanced_view_load_state(view, wire, written) == 0);
+            CHECK(oracles_enhanced_camera_profile(oracles_enhanced_view_camera(view)) == 2);
+            CHECK(strcmp(oracles_enhanced_camera_state(oracles_enhanced_view_camera(view))->config_digest, ORACLES_E11_CONFIG_DIGEST_V5) == 0);
             oracles_enhanced_view_toggle(view);
             CHECK(oracles_enhanced_view_framed_only(view) == 1);
             oracles_enhanced_view_toggle(view);

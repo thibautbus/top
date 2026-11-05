@@ -83,6 +83,60 @@ static unsigned black_places(OraclesEnhancedView *v, int32_t camera_x, int32_t c
     return count;
 }
 
+static int32_t floor_div(int32_t a, int32_t b) { return a >= 0 ? a / b : -((-a + b - 1) / b); }
+
+/* A room of the grid beside the band whose terrain a ghost is running or the thread's will run, black for a few frames
+ * more if shown; or, a corner's in a transition (`corner`), one whose terrain is not there yet. */
+static int coming(OraclesEnhancedView *v, int grid, int32_t col, int32_t row, int corner)
+{
+    if (!grid_room(v, grid, col, row)) return 0;
+    const uint8_t room = (uint8_t)(row * 16 + col);
+    const entry *e = room == v->observer.ref_room ? NULL : ev_find_entry(v, v->observer.ref_group, room);
+    const int scroll = corner && v->observation.in_transition;
+    return room != v->observer.ref_room && (e ? !ev_entry_drawable(v, e) && (e->in_flight || e->queued || scroll) : scroll);
+}
+
+void ev_dark_limits(OraclesEnhancedView *v, int32_t limits[4])
+{
+    limits[0] = INT32_MIN; limits[1] = INT32_MAX; limits[2] = INT32_MIN; limits[3] = INT32_MAX;
+    if (!v->ghost || !v->have_view) return;
+    /* Each side whose edge the band showed black: the edge held there, to show no more of it. */
+    if (v->uncovered_edges & 1u) limits[0] = v->view_left;
+    if (v->uncovered_edges & 2u) limits[1] = v->view_left;
+    if (v->uncovered_edges & 4u) limits[2] = v->view_top;
+    if (v->uncovered_edges & 8u) limits[3] = v->view_top;
+    const int grid = grid_shown(v);
+    if (grid == GRID_NONE) return;
+    const int32_t h = (int32_t)ORACLES_GHOST_AREA_HEIGHT;
+    const int32_t inset_x = (int32_t)(v->size.width - v->shown_width) / 2, inset_y = (int32_t)(v->band_height - v->shown_height) / 2;
+    int32_t left, top;
+    shown_rect(v, v->view_left, v->view_top, &left, &top);
+    const int32_t right = left + (int32_t)v->shown_width, bottom = top + (int32_t)v->shown_height;
+    const int32_t col0 = floor_div(left, SMALL_ROOM_W), col1 = floor_div(right - 1, SMALL_ROOM_W);
+    const int32_t row0 = floor_div(top, h), row1 = floor_div(bottom - 1, h);
+    /* Each side beyond which a room is on its way, the corners included: the edge no further than that room's. */
+    int right_coming = 0, left_coming = 0, below_coming = 0, above_coming = 0;
+    for (int32_t row = row0; row <= row1; row++) {
+        right_coming |= coming(v, grid, col1 + 1, row, 0);
+        left_coming |= coming(v, grid, col0 - 1, row, 0);
+    }
+    for (int32_t col = col0; col <= col1; col++) {
+        below_coming |= coming(v, grid, col, row1 + 1, 0);
+        above_coming |= coming(v, grid, col, row0 - 1, 0);
+    }
+    /* A corner room on its way holds both sides it lies past. */
+    for (int dc = 0; dc < 2; dc++)
+        for (int dr = 0; dr < 2; dr++)
+            if (coming(v, grid, dc ? col1 + 1 : col0 - 1, dr ? row1 + 1 : row0 - 1, 1)) {
+                if (dc) right_coming = 1; else left_coming = 1;
+                if (dr) below_coming = 1; else above_coming = 1;
+            }
+    if (right_coming && limits[1] == INT32_MAX) limits[1] = (col1 + 1) * SMALL_ROOM_W - (int32_t)v->shown_width - inset_x;
+    if (left_coming && limits[0] == INT32_MIN) limits[0] = col0 * SMALL_ROOM_W - inset_x;
+    if (below_coming && limits[3] == INT32_MAX) limits[3] = (row1 + 1) * h - (int32_t)v->shown_height - inset_y;
+    if (above_coming && limits[2] == INT32_MIN) limits[2] = row0 * h - inset_y;
+}
+
 /* Whether the band shows a place of no room of its grid: past the map's
  * edge, a place the map never draws, the sea's shore. */
 static int past_edge(const OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y)
