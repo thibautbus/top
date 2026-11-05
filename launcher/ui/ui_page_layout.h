@@ -319,8 +319,9 @@ void oracles_ui_text_preview_pixels(const OraclesDisplayTextPreview *p, OraclesU
 int oracles_ui_text_preview_picture(const OraclesDisplayTextPreview *p, const uint32_t colors[3], uint32_t *out);
 
 /* Mods: the folder's row, each mod's row (its switch and its knob, its name, its games, its line and that line's dot),
- * the count and the note under the list, Play.  The texts are the layout's, fitted to their room.  Six mods show at
- * once in 16:9, three in 4:3: past those, the list shows those around the highlighted row. */
+ * the count and the note under the list, on Android the Save row, Play.  The texts are the layout's, fitted to their
+ * room.  Six mods show at once in 16:9, three in 4:3 (on Android, whose Save row takes the room of one, five and two):
+ * past those, the list shows those around the highlighted row. */
 #define ORACLES_UI_MODS_SHOWN 6
 #define ORACLES_UI_MODS_SHOWN_4_3 3
 typedef struct OraclesUiModLayout {
@@ -345,6 +346,14 @@ typedef struct OraclesUiModsLayout {
     OraclesUiLine count;
     char count_text[ORACLES_HOME_TEXT_LENGTH];
     OraclesUiWrapped note;
+    /* Android's Save row (save_row's height 0 elsewhere): its label, Export save with mods… and its dot at the right; in
+     * 16:9 beside them, in 4:3 under them, its note (save_note_text, wrapped in 16:9, on one line in 4:3), or the
+     * export's status (save_status_text, its tone save_tone) beside its dot. */
+    OraclesUiBox save_row, save_dot;
+    OraclesUiLine label_save, save_button, save_button_dot;
+    OraclesUiWrapped save_note, save_status;
+    const char *save_note_text, *save_status_text;
+    OraclesTone save_tone;
     OraclesUiBox list, play_row;
     OraclesUiLine play_note, play, play_dot;
     const char *play_note_text;

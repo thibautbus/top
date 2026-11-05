@@ -7,7 +7,9 @@
  * left, its width, its line box and its baseline, an element by its box.
  * Past six mods (three in 4:3), the list shows those around the highlighted
  * row.  On Android the folder shows from its Android/data, reachable over
- * USB. */
+ * USB, and the Save row, between the list and Play, exports the game with
+ * mods' save: greyed without one and from a game, its note saying why, its
+ * status after an export, gone with the page. */
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -292,6 +294,110 @@ static void android_folder(void)
     CHECK(android.folder_line.x == desktop.folder_line.x && android.folder_line.y >= last->y + last->h);
 }
 
+/* Android's Save row: its place among the rows, what OK and a click ask, its note and its status, by layout. */
+static void android_save(void)
+{
+    OraclesHomeNav nav;
+    page(&nav, ORACLES_HOME_GAME_AGES, 1, ORACLES_MODS_ROW_FOLDER);
+    CHECK(oracles_mods_row_save(&nav) == ORACLES_MODS_ROW_NONE && oracles_mods_rows(&nav) == 4 && oracles_mods_row_play(&nav) == 3);
+    OraclesUiModsLayout desktop;
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_16_9, &nav, &desktop);
+    CHECK(desktop.save_row.h == 0.0f && desktop.label_save.w == 0.0f);
+
+    /* Folder, the two mods, Save, Play, wrapping; left and right do nothing on Save. */
+    nav.android = 1;
+    CHECK(oracles_mods_rows(&nav) == 5 && oracles_mods_row_save(&nav) == 3 && oracles_mods_row_play(&nav) == 4);
+    nav.row = 2;
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == 3);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STAY && oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY);
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(nav.row == 4);
+    nav.row = ORACLES_MODS_ROW_FOLDER;
+    oracles_home_act(&nav, ORACLES_HOME_UP);
+    CHECK(nav.row == 4);
+
+    /* No save with mods yet: greyed, saying why, on one line in both layouts, whole in 4:3. */
+    nav.row = 3;
+    CHECK(!oracles_mods_save_live(&nav) && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && oracles_mods_click(&nav, 3) == ORACLES_HOME_STAY);
+    CHECK(!strcmp(oracles_mods_save_note(&nav, 0), "No save with mods yet: Play with a mod on makes one.") && !strcmp(oracles_mods_save_note(&nav, 1), oracles_mods_save_note(&nav, 0)));
+    OraclesUiModsLayout greyed;
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_16_9, &nav, &greyed);
+    CHECK(greyed.save_note.count == 1);
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_4_3, &nav, &greyed);
+    CHECK(greyed.save_note.count == 1 && !strcmp(greyed.save_note.text[0], oracles_mods_save_note(&nav, 1)));
+    /* With one, OK and a click ask for the document picker; the note says what the copy is. */
+    nav.games[ORACLES_HOME_GAME_AGES].mods_save = 1;
+    CHECK(oracles_mods_save_live(&nav) && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_EXPORT_MODS_SAVE);
+    nav.row = 0;
+    CHECK(oracles_mods_click(&nav, 3) == ORACLES_HOME_EXPORT_MODS_SAVE && nav.row == 3);
+    CHECK(!strcmp(oracles_mods_save_action, "Export save with mods\xe2\x80\xa6"));
+    CHECK(!strcmp(oracles_mods_save_note(&nav, 0), "Export a copy of the game you played with mods, to play it elsewhere. The mods' own data stays here."));
+    CHECK(!strcmp(oracles_mods_save_note(&nav, 1), "Export a copy of the game played with mods."));
+    /* Seasons' page reads Seasons' save with mods. */
+    nav.games[ORACLES_HOME_GAME_SEASONS].mods_save = 0;
+    nav.entry = ORACLES_HOME_SEASONS;
+    CHECK(!oracles_mods_save_live(&nav));
+    nav.entry = ORACLES_HOME_AGES;
+    /* From a game, never. */
+    nav.in_game = 1;
+    CHECK(!oracles_mods_save_live(&nav) && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY);
+    CHECK(!strcmp(oracles_mods_save_note(&nav, 0), oracles_display_pause_reason));
+    nav.in_game = 0;
+
+    /* 16:9: the row under the list, its label in the labels' column, its action where Open folder is, centred on the note
+     * beside it, on two lines. */
+    OraclesUiModsLayout l;
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(l.save_row.h > 0.0f && l.save_row.y >= l.list.y + l.list.h && l.play_row.y >= l.save_row.y + l.save_row.h);
+    CHECK(!memcmp(&l.list, &desktop.list, sizeof l.list) && l.play_row.y > desktop.play_row.y);
+    CHECK(l.label_save.x == l.label_folder.x && l.save_row.x == l.folder_row.x && l.save_row.w == l.folder_row.w);
+    CHECK(l.save_button_dot.x + l.save_button_dot.w == l.folder_button_dot.x + l.folder_button_dot.w);
+    CHECK(l.save_note.count == 2 && !l.save_status_text && l.save_note.lines[0].x == l.folder_path.x);
+    for (unsigned i = 0; i < l.save_note.count; i++) CHECK(l.save_note.lines[i].x + l.save_note.lines[i].w <= l.save_button.x - 24.0f + LAYOUT_TOLERANCE);
+    const float middle = l.save_note.lines[0].y + l.save_note.h * 0.5f;
+    CHECK(l.save_button.y + l.save_button.h * 0.5f > middle - 1.0f && l.save_button.y + l.save_button.h * 0.5f < middle + 1.0f);
+    /* Five mods, the row taking the room of a sixth, above the help bar; Save highlighted shows the last ones. */
+    for (int i = 0; i < 7; i++) {
+        char name[16];
+        snprintf(name, sizeof name, "mod-%d", i);
+        add_mod(&nav, ORACLES_HOME_GAME_AGES, name, "", 1, 0, 0, 0);
+    }
+    nav.row = oracles_mods_row_save(&nav);
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(l.shown == ORACLES_UI_MODS_SHOWN - 1u && l.mods[4].index == 8 && l.panel.y + l.panel.h < 1000.0f);
+    nav.row = 1;
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(l.mods[0].index == 0 && l.mods[4].index == 4);
+
+    /* 4:3: two of the three mods, the row and Play above the help bar; the label and the action on one baseline, the
+     * note on one line under them, whole. */
+    page(&nav, ORACLES_HOME_GAME_AGES, 2, 4);
+    nav.android = 1;
+    nav.games[ORACLES_HOME_GAME_AGES].mods_save = 1;
+    CHECK(nav.row == oracles_mods_row_save(&nav));
+    oracles_ui_layout_mods(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    CHECK(l.shown == ORACLES_UI_MODS_SHOWN_4_3 - 1u && l.mods[0].index == 1 && l.mods[1].index == 2);
+    CHECK(l.save_row.y >= l.list.y + l.list.h && l.play_row.y >= l.save_row.y + l.save_row.h);
+    CHECK(l.play_row.y + l.play_row.h <= 982.0f && l.save_row.h >= 100.0f);
+    CHECK(l.label_save.baseline == l.save_button.baseline && l.label_save.x == l.label_folder.x);
+    CHECK(l.save_button_dot.x + l.save_button_dot.w == l.folder_button_dot.x + l.folder_button_dot.w);
+    CHECK(l.save_note.count == 1 && !strcmp(l.save_note.text[0], "Export a copy of the game played with mods."));
+    CHECK(l.save_note.lines[0].y >= l.save_button.y + l.save_button.h && l.save_note.lines[0].x == l.count.x);
+
+    /* An export done: its status in place of the note, until the page is left. */
+    snprintf(nav.save_flow.text, sizeof nav.save_flow.text, "Save with mods exported.");
+    nav.save_flow.state = ORACLES_SAVE_FLOW_DONE;
+    CHECK(!oracles_mods_save_note(&nav, 0)[0]);
+    for (int layout = 0; layout < 2; layout++) {
+        oracles_ui_layout_mods(layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        CHECK(l.save_status_text && !strcmp(l.save_status_text, "Save with mods exported.") && l.save_tone == ORACLES_TONE_OK);
+        CHECK(l.save_note.count == 0 && l.save_status.count == 1 && l.save_dot.w > 0.0f);
+    }
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
+    CHECK(nav.screen == ORACLES_SCREEN_HOME && nav.save_flow.state == ORACLES_SAVE_FLOW_NONE);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-mods launcher_layout_reference.json\n"); return 2; }
@@ -303,6 +409,7 @@ int main(int argc, char **argv)
     many();
     frame_10l_10m();
     android_folder();
+    android_save();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher mods: the page matches the layout reference within %.1f px in both layouts\n", (double)LAYOUT_TOLERANCE);
     return 0;

@@ -127,13 +127,15 @@ static void SDLCALL answered(void *userdata, const char *const *files, int filte
 static const struct {
     const char *title;
     SDL_DialogFileFilter filters[2];
-} kinds[5] = {
+} kinds[] = {
     { "Choose ROM", { { "Game Boy Color ROM", "gbc;gb;zip" }, { "All files", "*" } } },
     { "Choose patch", { { "BPS patch", "bps;zip" }, { "All files", "*" } } },
     { "Choose European ROM", { { "Game Boy Color ROM", "gbc;gb;zip" }, { "All files", "*" } } },
     { "Import save", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
     { "Export save", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
+    { "Export save with mods", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
 };
+_Static_assert(sizeof kinds / sizeof kinds[0] == ORACLES_DIALOG_EXPORT_MODS + 1, "a title and filters for each dialog's kind");
 
 void oracles_choose_file(struct SDL_Window *window, OraclesDialogKind kind, const char *folder, int game)
 {
@@ -177,7 +179,7 @@ int oracles_dialog_answer(const union SDL_Event *event, OraclesDialogResult *res
     snprintf(path, capacity, "%s", answer->path ? answer->path : "");
 #ifdef __ANDROID__
     /* A save is read where it is, and a copy of one written there: neither is copied in. */
-    const int in_place = answer->kind == ORACLES_DIALOG_SAVE || answer->kind == ORACLES_DIALOG_EXPORT;
+    const int in_place = answer->kind == ORACLES_DIALOG_SAVE || answer->kind == ORACLES_DIALOG_EXPORT || answer->kind == ORACLES_DIALOG_EXPORT_MODS;
     if (*result == ORACLES_DIALOG_CHOSEN && !in_place && strncmp(path, "content://", 10) == 0 && !local_copy(answer->path, answer->kind, path, capacity, copied)) {
         SDL_Log("%s cannot be copied into the application's folder: %s", answer->path, SDL_GetError());
         *result = ORACLES_DIALOG_FAILED;
@@ -190,7 +192,8 @@ int oracles_dialog_answer(const union SDL_Event *event, OraclesDialogResult *res
 }
 
 #ifdef __ANDROID__
-static int export_game;   /* the game of the document picker open, one at a time as every dialog */
+static int export_game;   /* the game of the document picker open, one at a time as every dialog, and its kind */
+static OraclesDialogKind export_kind = ORACLES_DIALOG_EXPORT;
 
 /* OraclesActivity's answer for the document it asked the picker to make (createDocument): its content:// address, or
  * NULL when the player cancelled; on Android's interface thread, pushed to the launcher's as a dialog's answer. */
@@ -200,7 +203,7 @@ JNIEXPORT void JNICALL Java_org_theoraclesproject_OraclesActivity_nativeDocument
     (void)class;
     dialog_answer *answer = SDL_calloc(1, sizeof *answer);
     if (!answer) return;
-    answer->kind = ORACLES_DIALOG_EXPORT;
+    answer->kind = export_kind;
     answer->game = export_game;
     const char *chars = uri ? (*env)->GetStringUTFChars(env, uri, NULL) : NULL;
     const char *const files[2] = { chars ? chars : "", NULL };
@@ -209,12 +212,12 @@ JNIEXPORT void JNICALL Java_org_theoraclesproject_OraclesActivity_nativeDocument
 }
 #endif
 
-void oracles_choose_export(const char *name, int game)
+void oracles_choose_export(const char *name, OraclesDialogKind kind, int game)
 {
     if (!answer_event) answer_event = SDL_RegisterEvents(1);
     dialog_answer *answer = SDL_calloc(1, sizeof *answer);
     if (!answer) return;
-    answer->kind = ORACLES_DIALOG_EXPORT;
+    answer->kind = kind;
     answer->game = game;
     int started = 0;
 #ifdef __ANDROID__
@@ -225,6 +228,7 @@ void oracles_choose_export(const char *name, int game)
         jmethodID method = (*env)->GetStaticMethodID(env, class, "createDocument", "(Ljava/lang/String;)Z");
         jstring argument = (*env)->NewStringUTF(env, name);
         export_game = game;
+        export_kind = kind;
         started = method && argument && (*env)->CallStaticBooleanMethod(env, class, method, argument);
         if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); started = 0; }
         if (argument) (*env)->DeleteLocalRef(env, argument);

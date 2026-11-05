@@ -19,13 +19,15 @@ typedef enum OraclesDialogResult {
 } OraclesDialogResult;
 
 /* What a dialog chooses: a ROM, a fan game's BPS patch, an Oracle's European ROM, a save to import (read where it is,
- * never copied), or where a copy of the save goes (Android's document picker, oracles_choose_export). */
+ * never copied), or where a copy of the save goes, or of the game with mods' save (Android's document picker,
+ * oracles_choose_export). */
 typedef enum OraclesDialogKind {
     ORACLES_DIALOG_ROM,
     ORACLES_DIALOG_PATCH,
     ORACLES_DIALOG_EU_ROM,
     ORACLES_DIALOG_SAVE,
-    ORACLES_DIALOG_EXPORT
+    ORACLES_DIALOG_EXPORT,
+    ORACLES_DIALOG_EXPORT_MODS
 } OraclesDialogKind;
 
 /* Opens the system's dialog for a file of `kind` for game `game`, starting in `folder` (may be empty), over `window`,
@@ -33,10 +35,11 @@ typedef enum OraclesDialogKind {
  * thread the system answers on. */
 void oracles_choose_file(struct SDL_Window *window, OraclesDialogKind kind, const char *folder, int game);
 
-/* Android's document picker making a document named `name` for a copy of game `game`'s save, and returning at once:
- * the answer comes as oracles_choose_file's does, of kind ORACLES_DIALOG_EXPORT, its path the document's content://
- * address.  UNAVAILABLE at once elsewhere, where Open folder shows the save. */
-void oracles_choose_export(const char *name, int game);
+/* Android's document picker making a document named `name` for a copy of game `game`'s save (`kind`
+ * ORACLES_DIALOG_EXPORT) or of its game with mods' save (ORACLES_DIALOG_EXPORT_MODS), and returning at once: the answer
+ * comes as oracles_choose_file's does, of that kind, its path the document's content:// address.  UNAVAILABLE at once
+ * elsewhere, where Open folder shows the save. */
+void oracles_choose_export(const char *name, OraclesDialogKind kind, int game);
 
 /* 1 when `event` is a dialog's answer: its result, the kind and the game it was opened for and the path chosen (empty
  * unless CHOSEN), *copied set when that path is a copy made for this answer (Android), which the caller removes if it

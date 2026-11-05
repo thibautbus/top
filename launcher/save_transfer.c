@@ -61,6 +61,19 @@ void oracles_save_transfer_beside(const char *save, const char *extension, char 
     snprintf(out, capacity, "%.*s%s", (int)length, save, extension);
 }
 
+void oracles_save_transfer_exported(const char *save, int mods, char *out, size_t capacity)
+{
+    if (mods) oracles_save_transfer_beside(save, ".mods.sav", out, capacity);
+    else snprintf(out, capacity, "%s", save);
+}
+
+int oracles_save_transfer_has_mods_save(const char *save)
+{
+    char path[4200];
+    oracles_save_transfer_beside(save, ".mods.sav", path, sizeof path);
+    return SDL_GetPathInfo(path, NULL);
+}
+
 int oracles_save_transfer_has_mods(const char *save)
 {
     static const char *const extensions[3] = { ".mods.sav", ".mods.state", ".mods.store" };

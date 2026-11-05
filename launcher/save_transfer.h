@@ -49,6 +49,11 @@ int oracles_save_transfer_import(const char *save, const uint8_t *data, size_t s
 /* The file beside the save at `save` that `extension` names: NAME.mods.sav for ".mods.sav" beside NAME.sav. */
 void oracles_save_transfer_beside(const char *save, const char *extension, char *out, size_t capacity);
 
+/* The file an export of the save at `save` copies: the save, or with `mods` the game with mods' save beside it
+ * (NAME.mods.sav); and 1 when that save is there. */
+void oracles_save_transfer_exported(const char *save, int mods, char *out, size_t capacity);
+int oracles_save_transfer_has_mods_save(const char *save);
+
 /* 1 when the game of the save at `save` played with mods has a file an import moves to Backups: its save, savestate or
  * mods' storage (NAME.mods.sav, NAME.mods.state, NAME.mods.store). */
 int oracles_save_transfer_has_mods(const char *save);

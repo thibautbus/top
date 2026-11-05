@@ -361,17 +361,28 @@ OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int 
  *
  * Mods, for an Oracle (a fan game's menu greys it): the mods folder (Open folder
  * shows it in the system's file manager), the mods found there with a switch
- * each, how many are active, and Play, which starts the game with the active
- * mods on its own save, NAME.mods.sav.  A refused mod says why and does not
- * switch on; eight at most are active.  Up and down move through the Folder,
- * each mod and Play, and wrap; left and right switch the highlighted mod off
- * and on, OK switches it, opens the folder or plays; Back returns to the home
- * screen, on Mods.  The choices are kept in settings.txt at once. */
+ * each, how many are active, on Android the Save row, whose Export save with
+ * mods… makes a copy of the game with mods' save where the document picker
+ * makes one, and Play, which starts the game with the active mods on its own
+ * save, NAME.mods.sav.  A refused mod says why and does not switch on; eight at
+ * most are active.  Up and down move through the Folder, each mod, Save and
+ * Play, and wrap; left and right switch the highlighted mod off and on, OK
+ * switches it, opens the folder, exports or plays; Back returns to the home
+ * screen, on Mods, the Save row's status going with the page.  The choices are
+ * kept in settings.txt at once. */
 
-/* The page's rows: Folder, each mod, Play. */
+/* The page's rows: Folder, each mod, Save (Android; ORACLES_MODS_ROW_NONE elsewhere), Play. */
 #define ORACLES_MODS_ROW_FOLDER 0u
+#define ORACLES_MODS_ROW_NONE 0xffffffffu
 unsigned oracles_mods_rows(const OraclesHomeNav *nav);
 unsigned oracles_mods_row_play(const OraclesHomeNav *nav);
+unsigned oracles_mods_row_save(const OraclesHomeNav *nav);
+/* The Save row: its action, which acts while the game with mods' save is there and no game runs; its note, the
+ * shorter one in 4:3: what the copy is, else why the action is greyed, empty while the row shows the export's status
+ * (oracles_page_save_status). */
+extern const char oracles_mods_save_action[];
+int oracles_mods_save_live(const OraclesHomeNav *nav);
+const char *oracles_mods_save_note(const OraclesHomeNav *nav, int four_three);
 /* The mods of the page's game (Ages' or Seasons'). */
 const OraclesHomeMods *oracles_mods_list(const OraclesHomeNav *nav);
 /* The mods active for an Oracle (ORACLES_HOME_GAME_AGES or _SEASONS). */

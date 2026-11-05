@@ -208,9 +208,16 @@ static void page_command(home_app *app, OraclesHomeCommand c)
         else host->choose_eu_rom(host->opaque, game, app->window);
         return;
     }
-    if ((c == ORACLES_HOME_IMPORT_SAVE || c == ORACLES_HOME_EXPORT_SAVE) && host->choose_save && host->save_chosen) {
-        app->dialog_open = 1;
-        host->choose_save(host->opaque, game, c == ORACLES_HOME_EXPORT_SAVE, app->window);
+    if ((c == ORACLES_HOME_IMPORT_SAVE || c == ORACLES_HOME_EXPORT_SAVE || c == ORACLES_HOME_EXPORT_MODS_SAVE) && host->choose_save && host->save_chosen) {
+        const OraclesDialogKind kind = c == ORACLES_HOME_EXPORT_MODS_SAVE ? ORACLES_DIALOG_EXPORT_MODS
+                                     : c == ORACLES_HOME_EXPORT_SAVE    ? ORACLES_DIALOG_EXPORT
+                                                                        : ORACLES_DIALOG_SAVE;
+        app->dialog_open = host->choose_save(host->opaque, game, kind, app->window);
+        /* The file to copy gone: the page shows it, its action greyed. */
+        if (!app->dialog_open) {
+            refresh(app);
+            changed(app);
+        }
         return;
     }
     if (c == ORACLES_HOME_REPLACE_SAVE && host->replace_save) {
@@ -237,7 +244,7 @@ static void dialog_answered(home_app *app, int result, int kind, int game, const
     char message[256] = "";
     app->dialog_open = 0;
     if (app->quit_after_dialog) app->running = 0;
-    if (kind == ORACLES_DIALOG_SAVE || kind == ORACLES_DIALOG_EXPORT) app->host->save_chosen(app->host->opaque, game, kind, result, path, &app->nav);
+    if (kind == ORACLES_DIALOG_SAVE || kind == ORACLES_DIALOG_EXPORT || kind == ORACLES_DIALOG_EXPORT_MODS) app->host->save_chosen(app->host->opaque, game, kind, result, path, &app->nav);
     else app->host->file_chosen(app->host->opaque, game, kind, result, path, copied, message, sizeof message);
     refresh(app);
     changed(app);

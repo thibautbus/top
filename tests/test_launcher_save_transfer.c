@@ -3,7 +3,8 @@
  * set to English, a fan game's taken as it is, another game's save, a file of another size or that is no save refused;
  * the save replaced kept in Backups under its name and the time, a backup of that name already there kept too, the new
  * one numbered; no backup without a save; the savestate moved there with it, and the game with mods' save, savestate
- * and storage; all left in place when the new save cannot be written, or when a move fails midway; a copy out; the folder Android's
+ * and storage; all left in place when the new save cannot be written, or when a move fails midway; a copy out, of the
+ * save and of the game with mods' save, that file found beside the save; the folder Android's
  * document picker gives a save in, read in its address. */
 #include "file_dialog.h"
 #include "save_transfer.h"
@@ -155,11 +156,21 @@ static void import(const char *folder)
     }
     snprintf(expected, sizeof expected, "%s.partial", save);
     CHECK(!SDL_GetPathInfo(expected, NULL));
-    CHECK(SDL_RemovePath(mods[2]) && SDL_RemovePath(state) && SDL_RemovePath(mods[0]));
+    CHECK(SDL_RemovePath(mods[2]) && SDL_RemovePath(state));
 
-    /* Out: a copy of the save where the player chose. */
+    /* Out: a copy of the save where the player chose, and of the game with mods' save, the save left as it is; the file
+     * each export copies, and the save with mods seen while it is there. */
+    char exported[1100];
+    oracles_save_transfer_exported(save, 0, exported, sizeof exported);
+    CHECK(!strcmp(exported, save));
+    oracles_save_transfer_exported(save, 1, exported, sizeof exported);
+    CHECK(!strcmp(exported, mods[0]) && oracles_save_transfer_has_mods_save(save));
     snprintf(expected, sizeof expected, "%s/copy.sav", folder);
     CHECK(oracles_save_transfer_export(save, expected, error, sizeof error) && holds(expected, third, sizeof third));
+    snprintf(expected, sizeof expected, "%s/copy.mods.sav", folder);
+    CHECK(oracles_save_transfer_export(exported, expected, error, sizeof error) && holds(expected, mods_save, sizeof mods_save));
+    CHECK(holds(save, third, sizeof third) && holds(mods[0], mods_save, sizeof mods_save) && SDL_RemovePath(mods[0]));
+    CHECK(!oracles_save_transfer_has_mods_save(save));
     snprintf(save, sizeof save, "%s/none.sav", folder);
     CHECK(!oracles_save_transfer_export(save, expected, error, sizeof error) && error[0]);
 }

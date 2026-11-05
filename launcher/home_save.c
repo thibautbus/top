@@ -1,8 +1,9 @@
 /* Cartridge's Save row for the home screen's games (home_games.h): Open folder, the system's file manager on the save's
  * folder (Android, which opens none, says where it is); Import save…, a save chosen in the system's dialog, checked
  * (save_transfer.h), confirmed, then written over the game's, the one it replaces, its savestate and the game with mods'
- * save kept in Backups; and on Android Export save…, a copy of the save where the document picker makes one.  The page
- * shows the outcome as the row's status, and the standard error says it too. */
+ * save kept in Backups; and on Android Export save…, a copy of the save where the document picker makes one, as Mods'
+ * Save row's Export save with mods… makes one of the game with mods' save.  The page shows the outcome as the row's
+ * status, and the standard error says it too. */
 #include "home_games.h"
 
 #include "file_dialog.h"
@@ -57,32 +58,49 @@ static void open_folder(void *opaque, int game, char *message, size_t capacity)
 #endif
 }
 
-static void choose_save(void *opaque, int game, int copy_out, struct SDL_Window *window)
+/* The file an export copies: the save, or for ORACLES_DIALOG_EXPORT_MODS the game with mods' save beside it. */
+static void exported_path(const OraclesHomeGames *games, int game, int kind, char *path, size_t capacity)
+{
+    char save[ORACLES_SETTINGS_PATH_LENGTH];
+    oracles_home_games_save_path(games, game, save, sizeof save);
+    if (save[0]) oracles_save_transfer_exported(save, kind == ORACLES_DIALOG_EXPORT_MODS, path, capacity);
+    else path[0] = 0;
+}
+
+static int choose_save(void *opaque, int game, int kind, struct SDL_Window *window)
 {
     const OraclesHomeGames *games = opaque;
     char save[ORACLES_SETTINGS_PATH_LENGTH], folder[ORACLES_SETTINGS_PATH_LENGTH];
-    oracles_home_games_save_path(games, game, save, sizeof save);
-    if (copy_out) {
+    if (kind != ORACLES_DIALOG_SAVE) {
+        /* A file gone since the page showed it (moved over USB): no picker, which would leave an empty document behind;
+         * the refresh then greys the action. */
+        exported_path(games, game, kind, save, sizeof save);
+        if (!save[0] || !SDL_GetPathInfo(save, NULL)) {
+            fprintf(stderr, "oracles: the save %s is no longer there: nothing to export\n", save);
+            return 0;
+        }
         const char *slash = strrchr(save, '/');
-        oracles_choose_export(slash ? slash + 1 : save, game);
-        return;
+        oracles_choose_export(slash ? slash + 1 : save, (OraclesDialogKind)kind, game);
+        return 1;
     }
+    oracles_home_games_save_path(games, game, save, sizeof save);
     folder_of(save, folder, sizeof folder);
     oracles_choose_file(window, ORACLES_DIALOG_SAVE, folder, game);
+    return 1;
 }
 
-/* A copy of the save written where the document picker made it. */
-static void exported(const OraclesHomeGames *games, int game, const char *destination, OraclesHomeNav *nav)
+/* A copy of the save, or of the game with mods' save, written where the document picker made it. */
+static void exported(const OraclesHomeGames *games, int game, int kind, const char *destination, OraclesHomeNav *nav)
 {
     char save[ORACLES_SETTINGS_PATH_LENGTH], error[ORACLES_HOME_TEXT_LENGTH];
-    oracles_home_games_save_path(games, game, save, sizeof save);
+    exported_path(games, game, kind, save, sizeof save);
     if (!oracles_save_transfer_export(save, destination, error, sizeof error)) {
         fprintf(stderr, "oracles: the save %s is not exported: %s\n", save, error);
         status(nav, ORACLES_SAVE_FLOW_REFUSED, "The copy cannot be written.", NULL);
         return;
     }
     fprintf(stderr, "oracles: the save %s exported to %s\n", save, destination);
-    status(nav, ORACLES_SAVE_FLOW_DONE, "Save exported.", NULL);
+    status(nav, ORACLES_SAVE_FLOW_DONE, kind == ORACLES_DIALOG_EXPORT_MODS ? "Save with mods exported." : "Save exported.", NULL);
 }
 
 static void save_chosen(void *opaque, int game, int kind, int result, const char *path, OraclesHomeNav *nav)
@@ -90,10 +108,10 @@ static void save_chosen(void *opaque, int game, int kind, int result, const char
     OraclesHomeGames *games = opaque;
     if (result == ORACLES_DIALOG_CANCELLED) return;
     if (result != ORACLES_DIALOG_CHOSEN) {
-        status(nav, ORACLES_SAVE_FLOW_REFUSED, kind == ORACLES_DIALOG_EXPORT ? "No document picker on this system." : "No file dialog on this system.", NULL);
+        status(nav, ORACLES_SAVE_FLOW_REFUSED, kind != ORACLES_DIALOG_SAVE ? "No document picker on this system." : "No file dialog on this system.", NULL);
         return;
     }
-    if (kind == ORACLES_DIALOG_EXPORT) { exported(games, game, path, nav); return; }
+    if (kind != ORACLES_DIALOG_SAVE) { exported(games, game, kind, path, nav); return; }
     /* The file read where it is (on Android through its content:// address), checked as a save of the game, then
      * confirmed on the page. */
     OraclesGame engine;

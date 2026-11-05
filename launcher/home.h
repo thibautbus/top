@@ -45,14 +45,17 @@ typedef struct OraclesHomeHost {
     void (*choose_eu_rom)(void *opaque, int game, struct SDL_Window *window);   /* an Oracle's European ROM */
     void (*file_chosen)(void *opaque, int game, int kind, int result, const char *path, int copied, char *message, size_t capacity);
     void (*open_folder)(void *opaque, int game, char *message, size_t capacity);
-    /* Cartridge's Save row (ui_page_nav.h): the system's dialog for a save to import into game `game`, or (`copy_out`,
-     * Android) the document picker for a copy of its save, each answering later (save_chosen, which sets nav->save_flow:
-     * the import's confirmation, or the row's status); and the import confirmed. */
-    void (*choose_save)(void *opaque, int game, int copy_out, struct SDL_Window *window);
+    /* Cartridge's Save row (ui_page_nav.h): the system's dialog for a save to import into game `game` (`kind`, an
+     * OraclesDialogKind, ORACLES_DIALOG_SAVE), or on Android the document picker for a copy of its save
+     * (ORACLES_DIALOG_EXPORT), or of its game with mods' save (ORACLES_DIALOG_EXPORT_MODS, Mods' Save row), each
+     * answering later (save_chosen, which sets nav->save_flow: the import's confirmation, or the row's status), 1; 0 when
+     * the file to copy is no longer there, no dialog opened; and the import confirmed. */
+    int (*choose_save)(void *opaque, int game, int kind, struct SDL_Window *window);
     void (*save_chosen)(void *opaque, int game, int kind, int result, const char *path, OraclesHomeNav *nav);
     void (*replace_save)(void *opaque, int game, OraclesHomeNav *nav);
-    /* Mods: the mods folder read into nav->mods and nav->mods_folder, with each Oracle's active mods (the refresh reads
-     * it too), when the page opens; the folder in the system's file manager, made when it is not there. */
+    /* Mods: the mods folder read into nav->mods and nav->mods_folder, with each Oracle's active mods, and whether each
+     * Oracle's game with mods has its save (nav->games[].mods_save) (the refresh reads them too), when the page opens; the
+     * folder in the system's file manager, made when it is not there. */
     void (*read_mods)(void *opaque, OraclesHomeNav *nav);
     void (*open_mods)(void *opaque, char *message, size_t capacity);
     /* Plays the game in the launcher's window until the player leaves it, the pause menu drawn with `draw`; the pauses

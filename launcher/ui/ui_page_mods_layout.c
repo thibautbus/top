@@ -1,5 +1,5 @@
 /* Mods' layout (ui_page_layout.h), without SDL: its list of the mods in the folder, each with its toggle, its count and
- * its note, in 16:9 and in 4:3. */
+ * its note, and Android's Save row, in 16:9 and in 4:3. */
 #include "ui_page_layout_internal.h"
 
 #include <math.h>
@@ -11,9 +11,40 @@
 static unsigned first_shown(const OraclesHomeNav *nav, unsigned count, unsigned shown)
 {
     if (count <= shown) return 0;
-    const unsigned row = nav->row, play = oracles_mods_row_play(nav);
-    const unsigned focused = row == ORACLES_MODS_ROW_FOLDER ? 0u : row >= play ? count - 1u : row - 1u;
+    const unsigned row = nav->row;
+    const unsigned focused = row == ORACLES_MODS_ROW_FOLDER ? 0u : row > count ? count - 1u : row - 1u;   /* Save and Play: the last */
     return focused < shown ? 0u : focused - (shown - 1u);
+}
+
+/* The Save row's texts: the export's status, or the note. */
+static void save_texts(const OraclesHomeNav *nav, int four_three, OraclesUiModsLayout *out)
+{
+    const char *second;
+    out->save_status_text = oracles_page_save_status(nav, &out->save_tone, &second);
+    out->save_note_text = oracles_mods_save_note(nav, four_three);
+}
+
+/* 16:9's Save row from `y`, as the folder's: its label, Export save with mods… at the right, centred on the note or
+ * the status at the left.  Returns its height. */
+static float save_16_9(const OraclesHomeNav *nav, float left, float value_x, float value_w, float y, OraclesUiModsLayout *out)
+{
+    const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w, inner_y = y + ROW_PAD_Y;
+    save_texts(nav, 0, out);
+    out->label_save = pl_line_at(&oracles_ui_row_label, "Save", left, y + LABEL_PAD_TOP, 0.0f);
+    pl_button(oracles_mods_save_action, right, 0.0f, 0.0f, &out->save_button, &out->save_button_dot);
+    const float room = inner_w - ROW_GAP - (out->save_button_dot.x + out->save_button_dot.w - out->save_button.x);
+    OraclesUiWrapped *const lines = out->save_status_text ? &out->save_status : &out->save_note;
+    if (out->save_status_text)
+        oracles_ui_wrap_pretty(&oracles_ui_row_status, out->save_status_text, room - DOT - DOT_GAP, inner_x + DOT + DOT_GAP, inner_y, &out->save_status);
+    else
+        pl_wrap_pretty_lines(&oracles_ui_row_note, out->save_note_text, room, inner_x, inner_y, MODS_SAVE_NOTE_LINE, &out->save_note);
+    /* A text shorter than the action centred on it, as the action is on a longer one. */
+    const float content = pl_max_f(lines->h, out->save_button.h);
+    pl_move_wrapped(lines, inner_y + (content - lines->h) * 0.5f);
+    if (out->save_status_text) out->save_dot = pl_box(inner_x, lines->lines[0].y + (lines->lines[0].h - DOT) * 0.5f, DOT, DOT);
+    pl_button(oracles_mods_save_action, right, inner_y, content, &out->save_button, &out->save_button_dot);
+    out->save_row = pl_box(value_x, y, value_w, content + 2.0f * ROW_PAD_Y);
+    return out->save_row.h;
 }
 
 static void mods_16_9(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
@@ -48,8 +79,8 @@ static void mods_16_9(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
         pl_wrap_lines(&oracles_ui_row_status, oracles_mods_empty, inner_w, inner_x, y + MODS_EMPTY_PAD_Y, MODS_EMPTY_LINE, &out->empty);
         y += out->empty.h + 2.0f * MODS_EMPTY_PAD_Y + MODS_ROW_GAP;
     }
-    const unsigned first = first_shown(nav, mods->count, ORACLES_UI_MODS_SHOWN);
-    for (unsigned i = first; i < mods->count && out->shown < ORACLES_UI_MODS_SHOWN; i++) {
+    const unsigned most = ORACLES_UI_MODS_SHOWN - (nav->android != 0), first = first_shown(nav, mods->count, most);
+    for (unsigned i = first; i < mods->count && out->shown < most; i++) {
         const OraclesHomeMod *mod = &mods->mods[i];
         OraclesUiModLayout *m = &out->mods[out->shown++];
         m->index = i;
@@ -80,6 +111,7 @@ static void mods_16_9(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
     y += out->note.h;
     out->list = pl_box(value_x, list_y, value_w, y - list_y);
     y += GAME_ROW_GAP;
+    if (nav->android) y += save_16_9(nav, left, value_x, value_w, y, out) + GAME_ROW_GAP;
 
     /* Play, right-aligned across the panel, with why it cannot start when it cannot. */
     const float play_right = left + width - ROW_PAD_X;
@@ -141,6 +173,34 @@ static void wrap_anywhere(const OraclesUiTextStyle *style, const char *text, flo
     out->h = (float)out->count * height;
 }
 
+/* 4:3's Save row from `y`: its label and Export save with mods… on one baseline, the note on one line under them, or
+ * the status beside its dot.  Returns its height. */
+static float save_4_3(const OraclesHomeNav *nav, float y, OraclesUiModsLayout *out)
+{
+    const float span = RIGHT_4_3 - VALUE_X_4_3;
+    save_texts(nav, 1, out);
+    pl_place_button_4_3(oracles_mods_save_action, &out->save_button, &out->save_button_dot);
+    out->label_save = pl_line_at(&oracles_ui_row_label_4_3, "Save", LEFT_4_3, 0.0f, 0.0f);
+    OraclesUiLine *const first[3] = { &out->label_save, &out->save_button, &out->save_button_dot };
+    float bottom = pl_baseline_row(first, 3, y + ROW_PAD_Y_4_3) + GRID_ROW_GAP_4_3;
+    if (out->save_status_text) {
+        oracles_ui_wrap_pretty(&oracles_ui_row_text_4_3, out->save_status_text, span - DOT_4_3 - DOT_GAP_4_3, VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3, bottom,
+                               &out->save_status);
+        out->save_dot = pl_box(VALUE_X_4_3, out->save_status.lines[0].baseline - DOT_4_3, DOT_4_3, DOT_4_3);
+        bottom += out->save_status.h;
+    } else {
+        /* The note on one line, shortened where it does not hold, as Cartridge's. */
+        out->save_note.count = 1;
+        oracles_ui_fit(&oracles_ui_page_note_4_3, out->save_note_text, span, out->save_note.text[0], sizeof out->save_note.text[0]);
+        out->save_note.lines[0] = pl_line_at(&oracles_ui_page_note_4_3, out->save_note.text[0], VALUE_X_4_3, bottom, 0.0f);
+        out->save_note.w = out->save_note.lines[0].w;
+        out->save_note.h = out->save_note.lines[0].h;
+        bottom += out->save_note.h;
+    }
+    out->save_row = pl_row_4_3(y, bottom);
+    return out->save_row.h;
+}
+
 static void mods_4_3(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
 {
     const OraclesHomeHero hero = oracles_home_hero(nav);
@@ -177,8 +237,8 @@ static void mods_4_3(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
     }
     const float row_x = VALUE_X_4_3 - ROW_PAD_X_4_3, row_w = list_w + ROW_PAD_X_4_3;
     const float text_x = VALUE_X_4_3 + MODS_TOGGLE_W_4_3 + GRID_GAP_4_3, text_w = RIGHT_4_3 - text_x;
-    const unsigned first_mod = first_shown(nav, mods->count, ORACLES_UI_MODS_SHOWN_4_3);
-    for (unsigned i = first_mod; i < mods->count && out->shown < ORACLES_UI_MODS_SHOWN_4_3; i++) {
+    const unsigned most = ORACLES_UI_MODS_SHOWN_4_3 - (nav->android != 0), first_mod = first_shown(nav, mods->count, most);
+    for (unsigned i = first_mod; i < mods->count && out->shown < most; i++) {
         const OraclesHomeMod *mod = &mods->mods[i];
         OraclesUiModLayout *m = &out->mods[out->shown++];
         m->index = i;
@@ -208,6 +268,7 @@ static void mods_4_3(const OraclesHomeNav *nav, OraclesUiModsLayout *out)
     y += out->note.h;
     out->list = pl_box(VALUE_X_4_3, list_y, list_w, y - list_y);
     y += ROW_GAP_4_3;
+    if (nav->android) y += save_4_3(nav, y, out) + ROW_GAP_4_3;
 
     out->play_note_text = oracles_mods_play_note(nav);
     out->play_row = pl_play_4_3_row(out->play_note_text, y, &out->play_note, &out->play, &out->play_dot);

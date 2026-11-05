@@ -8,6 +8,7 @@ const char oracles_mods_empty[] = "No mods found. Put each mod in its own folder
 const char oracles_mods_note[] = "A game with mods plays on its own save, NAME.mods.sav beside the ROM, copied from the game's save the first time; "
                                  "the save without mods is never written by a game with mods.";
 const char oracles_mods_limit[] = "Eight mods at most play together";
+const char oracles_mods_save_action[] = "Export save with mods\xe2\x80\xa6";
 
 void oracles_mods_folder(const OraclesHomeNav *nav, char *out, size_t capacity) { oracles_page_folder(nav->android, nav->mods_folder, out, capacity); }
 
@@ -23,8 +24,21 @@ static int mods_game(const OraclesHomeNav *nav)
 }
 
 const OraclesHomeMods *oracles_mods_list(const OraclesHomeNav *nav) { return &nav->mods[mods_game(nav)]; }
-unsigned oracles_mods_rows(const OraclesHomeNav *nav) { return oracles_mods_list(nav)->count + 2u; }
-unsigned oracles_mods_row_play(const OraclesHomeNav *nav) { return oracles_mods_list(nav)->count + 1u; }
+unsigned oracles_mods_rows(const OraclesHomeNav *nav) { return oracles_mods_row_play(nav) + 1u; }
+unsigned oracles_mods_row_play(const OraclesHomeNav *nav) { return oracles_mods_list(nav)->count + 1u + (nav->android != 0); }
+unsigned oracles_mods_row_save(const OraclesHomeNav *nav) { return nav->android ? oracles_mods_list(nav)->count + 1u : ORACLES_MODS_ROW_NONE; }
+
+/* A running game holds its save: no copy of it taken under it. */
+int oracles_mods_save_live(const OraclesHomeNav *nav) { return nav->android && !nav->in_game && nav->games[mods_game(nav)].mods_save; }
+
+const char *oracles_mods_save_note(const OraclesHomeNav *nav, int four_three)
+{
+    if (nav->save_flow.state == ORACLES_SAVE_FLOW_DONE || nav->save_flow.state == ORACLES_SAVE_FLOW_REFUSED) return "";
+    if (nav->in_game) return oracles_display_pause_reason;
+    if (!nav->games[mods_game(nav)].mods_save) return "No save with mods yet: Play with a mod on makes one.";
+    return four_three ? "Export a copy of the game played with mods."
+                      : "Export a copy of the game you played with mods, to play it elsewhere. The mods' own data stays here.";
+}
 
 unsigned oracles_mods_active(const OraclesHomeNav *nav, int game)
 {
@@ -70,6 +84,7 @@ static OraclesHomeCommand switch_mod(OraclesHomeNav *nav, unsigned index, int on
 static OraclesHomeCommand activate(OraclesHomeNav *nav, unsigned row)
 {
     if (row == ORACLES_MODS_ROW_FOLDER) return ORACLES_HOME_OPEN_MODS;
+    if (row == oracles_mods_row_save(nav)) return oracles_mods_save_live(nav) ? ORACLES_HOME_EXPORT_MODS_SAVE : ORACLES_HOME_STAY;
     if (row == oracles_mods_row_play(nav)) {
         if (oracles_mods_play_note(nav)[0]) return ORACLES_HOME_STAY;
         return mods_game(nav) == ORACLES_HOME_GAME_SEASONS ? ORACLES_HOME_START_SEASONS_MODS : ORACLES_HOME_START_AGES_MODS;
@@ -88,10 +103,12 @@ OraclesHomeCommand oracles_mods_act(OraclesHomeNav *nav, OraclesHomeAction actio
         case ORACLES_HOME_DOWN: nav->row = (row + 1u) % rows; return ORACLES_HOME_STAY;
         case ORACLES_HOME_LEFT:
         case ORACLES_HOME_RIGHT:
-            if (row == ORACLES_MODS_ROW_FOLDER || row == oracles_mods_row_play(nav)) return ORACLES_HOME_STAY;
+            if (row == ORACLES_MODS_ROW_FOLDER || row == oracles_mods_row_save(nav) || row == oracles_mods_row_play(nav)) return ORACLES_HOME_STAY;
             return switch_mod(nav, row - 1u, action == ORACLES_HOME_RIGHT);
         case ORACLES_HOME_OK: return activate(nav, row);
         case ORACLES_HOME_BACK:
+            /* The Save row's status goes with the page. */
+            nav->save_flow.state = ORACLES_SAVE_FLOW_NONE;
             nav->screen = ORACLES_SCREEN_HOME;
             nav->focus = 4;   /* Mods, in the game's menu */
             return ORACLES_HOME_STAY;

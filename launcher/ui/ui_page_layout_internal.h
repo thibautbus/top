@@ -96,6 +96,7 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define MODS_EMPTY_PAD_Y 14.0f
 #define MODS_EMPTY_LINE 35.0f        /* 25 pixels at a line height of 1.4 */
 #define MODS_NOTE_LINE 29.6875f      /* 22 pixels at 1.35, as the layout rounds it to 1/64 of a pixel */
+#define MODS_SAVE_NOTE_LINE 29.0f    /* the Save row's note, as Cartridge's */
 #define MODS_COUNT_PAD_TOP 4.0f
 #define MODS_TOGGLE_COLUMN 72.0f
 #define MODS_TOGGLE_W 64.0f

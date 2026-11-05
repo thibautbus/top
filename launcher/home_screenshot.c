@@ -96,7 +96,8 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
      * over a game's frame, the pause of Moonrise Regalia rather than Ages'; `import`, on a game's page, the import's
      * confirmation as the page's own save chosen would open it; `imported`, there, the row's status after an import
      * that kept the save and its savestate in Backups and set the language to English; `mods` before either, the game
-     * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too; `reminder`,
+     * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too, and which
+     * Mods' Save row (`android`) exports; `reminder`,
      * over a game's frame, the game in play with the reminder over it that names the menu's key, in place of the pause. */
     int mods = 0;
     for (const char *p = inputs; p && *p;) {
@@ -107,7 +108,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         else if (length == 3 && !strncmp(p, "pad", 3)) oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
         else if (length == 7 && !strncmp(p, "android", 7)) nav.android = nav.display.fullscreen_only = 1;
         else if (length == 8 && !strncmp(p, "moonrise", 8) && frame) pause(&nav, ORACLES_HOME_GAME_MOONRISE, width);
-        else if (length == 4 && !strncmp(p, "mods", 4)) mods = 1;
+        else if (length == 4 && !strncmp(p, "mods", 4)) mods = nav.games[ORACLES_HOME_GAME_AGES].mods_save = nav.games[ORACLES_HOME_GAME_SEASONS].mods_save = 1;
         else if (length == 8 && !strncmp(p, "reminder", 8) && frame) reminder = 1;
         else if (length == 6 && !strncmp(p, "import", 6) && nav.screen == ORACLES_SCREEN_GAME) {
             const OraclesHomeGame *game = oracles_page_game_const(&nav);

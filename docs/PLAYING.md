@@ -266,6 +266,7 @@ A savestate taken in a language loads only in it. The fan games play in English 
 | --- | --- | --- |
 | **Folder** | **Open folder** | Opens the mods folder, making it first if need be. |
 | **Mods** | Off, On for each mod | Each mod found in the folder, with what it adds, or why it is refused. Eight at most play together. |
+| **Save** (Android) | **Export save with mods…** | A copy of the save the game with mods plays on, wherever you choose. |
 | **Play** | | Starts the game with the mods switched on, on a save of its own. |
 
 **Mods**, in the menu of Ages and of Seasons, lists the mods that add houses, characters and minigames to the game ([`MODDING.md`](MODDING.md)). Beside it, the menu says how many are on. A fan game's menu greys it: "Mods play on the original ROMs".
@@ -282,6 +283,8 @@ Each mod is a folder of its own in it, named with a–z, 0–9, `-` and `_`, wit
 The page lists each mod found, in the order of their names, which is the order they play in: a switch, its name, the games it adds houses to ("Houses in Ages and Seasons"), and its description, or why it is refused ("Refused: " and the reason). A refused mod stays off. Left and right, Enter or a click switch the highlighted mod, and the choice is kept at once, for each game.
 
 **Play**, at the bottom of the page, starts the game with the mods that are on, on a save of its own: `NAME.mods.sav` beside the ROM. It is copied from the game's usual save the first time, and again after **Import save…** ([Saves](#saves)); a game with mods never writes the usual save. **Start game**, in the game's menu, plays without mods, on the usual save. Play is greyed without a ROM ("Choose a ROM in Cartridge first") and on a ROM that is not the original US one ("Mods play on the original ROMs").
+
+On Android, the **Save** row above Play has **Export save with mods…**: Android's document picker makes a copy of `NAME.mods.sav` wherever you choose (Downloads, an SD card), as **Export save…** does for the usual save, to keep it or play it elsewhere; the mods' data in `NAME.mods.store` stays where it is. The row says "Save with mods exported." once the copy is written. It is greyed until the game with mods has a save of its own: "No save with mods yet: Play with a mod on makes one.". On a computer, **Open folder** in Cartridge shows the file beside the ROM.
 
 To try the two examples, [`mods/claw-game`](../mods/claw-game/) and [`mods/fortune-teller`](../mods/fortune-teller/): the release does not include them, so download the repository from GitHub (**Code › Download ZIP**) and copy both folders, as they are, into the mods folder. Open Ages' Mods page, switch both on, and choose Play. The claw game's house is on the big island in the south of Lynna City, by the bridge, and the fortune teller's on the island east of the red house. The fortune teller counts Link's visits, which it keeps with the save in `NAME.mods.store`.
 
@@ -347,13 +350,13 @@ A game's save is the `.sav` beside its ROM, under the same name, or for a fan ga
 - Import save… is greyed until the game's ROM is chosen, or a fan game's two files. The launcher imports from the home screen only, never while a game runs.
 - A save of the European game: the European game keeps its language in each game file, and with German, Italian or Spanish there the US game would read many texts at the wrong place. Import save… sets that language to English in an Oracle's save, and says so: "Its language was set to English for this game.". The rest of the game is kept.
 - The other way needs nothing: a save made here works with the European ROM in other emulators, put beside that ROM under the same name; the European game asks for its language at its first start.
-- **Open folder** shows the save's folder in the system's file manager. On Android, which has none to open, **Export save…** takes its place: the document picker makes a copy of the save wherever you choose (Downloads, an SD card), to play it elsewhere.
+- **Open folder** shows the save's folder in the system's file manager. On Android, which has none to open, **Export save…** takes its place: the document picker makes a copy of the save wherever you choose (Downloads, an SD card), to play it elsewhere. The Mods page's **Export save with mods…** does the same for the save with mods ([Mods](#mods)).
 
 ## Android
 
 The Android application is the same launcher, in landscape and fullscreen: F11 and **Display › Window** do nothing there.
 
-- **Files**: **Choose ROM…** and **Choose patch…** open Android's document picker. The chosen file is copied, under its name, into `Android/data/org.theoraclesproject/files/roms` (or `patches`), where its save and savestate go too. That folder is on the shared storage, reachable from a computer over USB; most file managers cannot open `Android/data` from Android 11 on. A chosen file never overwrites anything, and your original is never touched. **Export save…** and **Import save…** reach a save through the document picker, without a cable.
+- **Files**: **Choose ROM…** and **Choose patch…** open Android's document picker. The chosen file is copied, under its name, into `Android/data/org.theoraclesproject/files/roms` (or `patches`), where its save and savestate go too. That folder is on the shared storage, reachable from a computer over USB; most file managers cannot open `Android/data` from Android 11 on. A chosen file never overwrites anything, and your original is never touched. **Export save…** and **Import save…** reach a save through the document picker, without a cable, and the Mods page's **Export save with mods…** the save with mods.
 - **Mods**: the mods folder is `Android/data/org.theoraclesproject/files/mods`, beside `roms` and `patches`, reachable over USB. Each mod goes there in a folder of its own, as on a computer; **Open folder** makes the folder and says where it is.
 - **Back**: Android's Back button is the launcher's Escape, whatever it comes from (the system's navigation, a keyboard, a handheld's own controls): back on the home screen, the pause menu in a game. A controller's own select button stays the game's Select. A controller that Android reports without a Select keeps its Back as the game's Select; its left stick's click or its Guide button opens the menu.
 - **Leaving the application**: when Android sends it to the background, the save is written at once, and on return the game is in its pause menu.

@@ -688,6 +688,23 @@ void oracles_ui_mods_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracle
     text(draw, st->row_text, &l.count, l.count_text, oracles_ui_rgb(NOTE));
     wrapped(draw, st->mods_note, &l.note, oracles_ui_rgb(NOTE_ITALIC));
 
+    /* Android's Save row: Export save with mods… in the accent while highlighted, greyed while it does not act; its note
+     * or its status. */
+    if (l.save_row.h > 0.0f) {
+        const unsigned save_row = oracles_mods_row_save(nav);
+        text(draw, st->row_label, &l.label_save, "Save", oracles_ui_rgb(LABEL));
+        highlight(draw, lk, &l.save_row, row == save_row);
+        const OraclesUiColor save = !oracles_mods_save_live(nav) ? oracles_ui_rgb(row == save_row ? BUTTON_DISABLED_FOCUSED : BUTTON_DISABLED)
+                                    : row == save_row ? accent : oracles_ui_rgb(BUTTON);
+        text(draw, st->row_button, &l.save_button, oracles_mods_save_action, save);
+        text(draw, st->row_button, &l.save_button_dot, oracles_ui_item_dot, save);
+        wrapped(draw, nav->layout == ORACLES_UI_LAYOUT_4_3 ? st->page_note : st->row_note, &l.save_note, oracles_ui_rgb(NOTE_ITALIC));
+        if (l.save_status_text) {
+            dot(draw, &l.save_dot, l.save_tone);
+            wrapped(draw, st->row_status, &l.save_status, oracles_ui_rgb(tone_texts[l.save_tone]));
+        }
+    }
+
     const int playable = !l.play_note_text[0];
     highlight(draw, lk, &l.play_row, row == play_row);
     const OraclesUiColor play = !playable ? oracles_ui_rgb(row == play_row ? BUTTON_DISABLED_FOCUSED : BUTTON_DISABLED)
@@ -703,6 +720,7 @@ int oracles_ui_mods_hit(const OraclesHomeNav *nav, float x, float y)
     oracles_ui_layout_mods(nav->layout, nav, &l);
     if (inside(&l.folder_row, x, y)) return (int)ORACLES_MODS_ROW_FOLDER;
     for (unsigned i = 0; i < l.shown; i++) if (inside(&l.mods[i].row, x, y)) return (int)l.mods[i].index + 1;
+    if (l.save_row.h > 0.0f && inside(&l.save_row, x, y)) return (int)oracles_mods_row_save(nav);
     if (inside(&l.play_row, x, y)) return (int)oracles_mods_row_play(nav);
     return -1;
 }

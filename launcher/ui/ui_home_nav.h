@@ -90,6 +90,7 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_IMPORT_SAVE,    /* the game's page: the system's file dialog for a save to import (ui_page_nav.h) */
     ORACLES_HOME_REPLACE_SAVE,   /* its confirmation's Replace (Import without a save): the save imported, the one it replaces kept as a backup */
     ORACLES_HOME_EXPORT_SAVE,    /* Android: the document picker for a copy of the save */
+    ORACLES_HOME_EXPORT_MODS_SAVE,   /* Android, Mods: the document picker for a copy of the game with mods' save */
     /* The pause menu's. */
     ORACLES_HOME_RESUME,
     ORACLES_HOME_SAVE_STATE,
@@ -201,6 +202,7 @@ typedef struct OraclesHomeGame {
     char image_reason[ORACLES_HOME_TEXT_LENGTH];
     char save_file[ORACLES_HOME_TEXT_LENGTH];    /* the save's name, empty when it does not exist yet */
     char save_written[32];                       /* "21 Sep 2026, 22:14" */
+    int mods_save;                               /* an Oracle's: the save its game with mods plays on, NAME.mods.sav, is there (read with the mods) */
     int hotkeys;                                 /* item hotkeys: 0 off, 1 use, 2 equip, as the policy numbers them */
     int hotkeys_failed;                          /* they could not attach to this ROM in a session: it plays without them */
     unsigned cheats;                             /* the game's cheats on, settings.txt's cheats_<game>= (ui_page_nav.h) */
@@ -332,7 +334,7 @@ typedef enum OraclesInputDevice {
 
 /* Cartridge's Save row (ui_page_nav.h): the import's confirmation over the page, with the file chosen, its folder and
  * the button left and right chose; and the line an import or an export left in the row, success or refusal, until the
- * page is left. */
+ * page is left (Mods' Save row's export too). */
 typedef enum OraclesSaveFlow {
     ORACLES_SAVE_FLOW_NONE,
     ORACLES_SAVE_FLOW_CONFIRM,

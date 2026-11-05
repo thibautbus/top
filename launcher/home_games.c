@@ -11,6 +11,7 @@
 #include "pause.h"
 #include "profile.h"
 #include "rom.h"
+#include "save_transfer.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
 
@@ -310,7 +311,9 @@ static void find_save(const char *path, OraclesHomeGame *state)
     snprintf(state->save_written, sizeof state->save_written, "%s, %02d:%02d", state->last_session, local ? local->tm_hour : 0, local ? local->tm_min : 0);
 }
 
-/* The mods of the mods folder, for each Oracle as its Mods page lists them, active as settings.txt says. */
+/* The mods of the mods folder, for each Oracle as its Mods page lists them, active as settings.txt says; and whether
+ * the save its game with mods plays on is there, beside the ROM of settings.txt (none while a refused choice shows),
+ * which Mods' Save row exports: read each time the page opens, the file being the player's to move meanwhile. */
 static void read_mods(void *opaque, OraclesHomeNav *nav)
 {
     const OraclesHomeGames *games = opaque;
@@ -318,6 +321,10 @@ static void read_mods(void *opaque, OraclesHomeNav *nav)
     oracles_settings_mods_folder(games->settings, folder, sizeof folder);
     oracles_ui_copy_middle(nav->mods_folder, sizeof nav->mods_folder, folder, strlen(folder));
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
+        char save[ORACLES_SETTINGS_PATH_LENGTH];
+        const char *rom = games->settings->rom[g];
+        oracles_session_default_save_path(rom, save, sizeof save);
+        nav->games[g].mods_save = rom[0] && !games->refused[g].path[0] && oracles_save_transfer_has_mods_save(save);
         OraclesModEntry entries[ORACLES_HOME_MODS];
         OraclesHomeMods *mods = &nav->mods[g];
         mods->count = folder[0] ? (unsigned)oracles_mod_folder_list(folder, game_of((OraclesSettingsGame)g), entries, ORACLES_HOME_MODS) : 0u;
