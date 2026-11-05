@@ -234,6 +234,24 @@ static void incomplete_block(writer *w, unsigned literals, int unused)
     put(w, 0, 16);
 }
 
+/* The smallest dynamic block, not the last: a code-length code of two symbols of 1 bit (1: 0, 18: 1), two runs of
+ * zeros, the end of block and the one distance of 1 bit, and the end of block (90 bits, nothing written). */
+static void tiny_block(writer *w)
+{
+    static const uint8_t code_lengths[18] = { [2] = 1, [17] = 1 };
+    put(w, 0, 1);
+    put(w, 2, 2);
+    put(w, 0, 5);
+    put(w, 0, 5);
+    put(w, 14, 4);
+    for (unsigned i = 0; i < 18u; i++) put(w, code_lengths[i], 3);
+    code(w, 1, 1); put(w, 127, 7);   /* 138 zeros */
+    code(w, 1, 1); put(w, 107, 7);   /* 118 */
+    code(w, 0, 1);
+    code(w, 0, 1);
+    code(w, 0, 1);
+}
+
 /* The archive of one entry deflated as `w`, said to give `expected`. */
 static void deflated(archive *a, const writer *w, const uint8_t *expected, size_t size)
 {
@@ -357,6 +375,12 @@ int main(int argc, char **argv)
     incomplete_block(&w, 257, 1);
     deflated(&a, &w, (const uint8_t *)"A", 1);
     CHECK(refused(&a, ORACLES_ZIP_ROM, "does not decompress"));
+    /* Thousands of the smallest dynamic blocks, each its own codes of 1 bit, then a stored one. */
+    w = (writer){ packed, 0, 0 };
+    for (unsigned i = 0; i < 20000u; i++) tiny_block(&w);
+    stored_bytes(&w, 1, (const uint8_t *)"hi", 2);
+    deflated(&a, &w, (const uint8_t *)"hi", 2);
+    CHECK(extracts(&a, ORACLES_ZIP_ROM, (const uint8_t *)"hi", 2));
 
     /* Damaged fixed blocks: a copy from before the start, the lengths 286 and 287, the distances 30 and 31; then the
      * block they damage, 'A' and three copies of it. */

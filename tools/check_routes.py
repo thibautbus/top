@@ -76,7 +76,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bps import patch_report  # noqa: E402  (the offline tools' BPS applier, CRCs checked)
-from compare_positions import rooms_in_common  # noqa: E402
+from compare_positions import Unreadable, rooms_in_common  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
@@ -334,6 +334,53 @@ def check(rule: str, values: dict) -> str:
     return ""
 
 
+# Killed by a signal: a crash seen only under the load of a parallel suite, on rows of every game, the same row passing
+# alone, under a debugger and under AddressSanitizer: its core dumps show the instruction pointer one or a few bytes
+# inside an instruction no code branches to (SameBoy's GB_is_sgb, GB_display_run), the processor faulting under the
+# load, not the replay.  A run so killed is run again, up to CRASH_RETRIES times, and the row says so; a row whose every
+# run dies fails.
+CRASH_RETRIES = 2
+
+
+def run_harness(cmd: list, log_path: Path) -> tuple:
+    """Runs the harness into log_path: its exit status, and a note of the runs killed by a signal and run again (their
+    logs kept beside it, NAME.crashed.log then NAME.crashed-2.log)."""
+    signals = []
+    while True:
+        with open(log_path, "w") as log:
+            proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
+        if proc.returncode >= 0 or len(signals) == CRASH_RETRIES:
+            break
+        signals.append(-proc.returncode)
+        log_path.rename(log_path.with_name(f"{log_path.stem}.crashed{'' if len(signals) == 1 else f'-{len(signals)}'}.log"))
+    if proc.returncode < 0:
+        signals.append(-proc.returncode)
+    if not signals:
+        return proc.returncode, ""
+    again = len(signals) - (proc.returncode < 0)
+    return proc.returncode, (f" ({log_path.name} killed by signal {', '.join(str(n) for n in signals)}, run again {again} time{'s' if again > 1 else ''};"
+                             f" the logs of the runs killed are {log_path.stem}.crashed*.log)")
+
+
+def compare_cores_rooms(reference: Path, positions: Path, reference_exit: int, row_core: str, values: dict) -> list:
+    """The rooms the row's replay goes through against SameBoy's (reference, its harness's exit status): what does not
+    hold, the figures put in values.  A replay killed by a signal leaves its positions cut short, a line maybe half
+    written: the row fails, the suite goes on."""
+    if reference_exit < 0:
+        return [f"SameBoy's replay to compare with died (signal {-reference_exit}; see {reference.parent / 'harness-sameboy.log'})"]
+    if not positions.exists() or not reference.exists():
+        return ["no positions to compare with SameBoy's replay"]
+    try:
+        same, parted = rooms_in_common(str(reference), str(positions))
+    except Unreadable as error:
+        return [f"positions unreadable: {error}"]
+    values["cores.rooms_same"], values["cores.parted"] = str(same), str(int(parted))
+    # A row of both cores goes through the game as on SameBoy; a core's own row names where it parts (its expect).
+    if row_core == "-" and parted:
+        return [f"parts from SameBoy's replay after {same} rooms (tools/compare_positions.py)"]
+    return []
+
+
 def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_dir: Path, work: Path, threaded_args: tuple = ()) -> dict:
     # A route's rows for one core and its rows for both may share a mode: the line tells them apart.
     name = f"{row['label']}-{row['mode']}" + (f"-{row['line']}" if row["options"] or row["core"] != "-" else "") + ("" if core == "sameboy" else f"-{core}")
@@ -357,35 +404,17 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
     positions = [] if not compare_cores else ["--positions", str(w / "positions.tsv")]
     extra = list(threaded_args) if row["mode"].endswith("-threaded") else []
     cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + extra + positions + ["--summary", str(summary)]
-    with open(w / "harness.log", "w") as log:
-        proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
-    retried = ""
-    if proc.returncode < 0:
-        # Killed by a signal: a rare crash seen only under the load of a parallel suite, the same row passing alone
-        # (its core dumps show the CPU inside an instruction, on a single thread, in a deterministic replay).  Run
-        # once more, alone in its work directory, and say so: a row that dies twice fails.
-        signal = -proc.returncode
-        (w / "harness.log").rename(w / "harness.crashed.log")
-        with open(w / "harness.log", "w") as log:
-            proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
-        retried = f" (retried once after signal {signal}; the first log is harness.crashed.log)"
+    returncode, retried = run_harness(cmd, w / "harness.log")
     values = parse_summary(summary)
     violations = []
     if compare_cores and values:
         reference = w / "positions-sameboy.tsv"
-        with open(w / "harness-sameboy.log", "w") as log:
-            subprocess.run([str(harness)] + rom + ["--route", str(route_path), "--positions", str(reference)] + harness_options(row["options"], rom_dir)
-                           + ["--core", "sameboy"], stdout=log, stderr=subprocess.STDOUT)
-        if (w / "positions.tsv").exists() and reference.exists():
-            same, parted = rooms_in_common(str(reference), str(w / "positions.tsv"))
-            values["cores.rooms_same"], values["cores.parted"] = str(same), str(int(parted))
-            # A row of both cores goes through the game as on SameBoy; a core's own row names where it parts (its expect).
-            if row["core"] == "-" and parted:
-                violations.append(f"parts from SameBoy's replay after {same} rooms (tools/compare_positions.py)")
-        else:
-            violations.append("no positions to compare with SameBoy's replay")
+        reference_exit, reference_retried = run_harness([str(harness)] + rom + ["--route", str(route_path), "--positions", str(reference)]
+                                                        + harness_options(row["options"], rom_dir) + ["--core", "sameboy"], w / "harness-sameboy.log")
+        retried += reference_retried
+        violations += compare_cores_rooms(reference, w / "positions.tsv", reference_exit, row["core"], values)
     if not values:
-        violations.append(f"no summary written (harness exit {proc.returncode}{retried}; see {w / 'harness.log'})")
+        violations.append(f"no summary written (harness exit {returncode}{retried}; see {w / 'harness.log'})")
     sized = sized_rules(row["mode"], row["options"], row["expect"], core)
     for rule in ALWAYS[row["mode"]] + sized + prediction_rules(values) + row["expect"]:
         on, colon, rest = rule.partition(":")
@@ -397,19 +426,22 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
         if v:
             violations.append(v)
     got_hash = values.get("enhanced.run_hash", "-") if row["mode"] in HASHED_MODES else "-"
-    fingerprints = w / "fingerprints.tsv"
+    # A run killed by a signal leaves its fingerprints cut short: the row fails by itself, compared with nothing.
+    fingerprints = w / "fingerprints.tsv" if returncode >= 0 else None
     # A route recorded since the core's joypad bouncing was cut says so: the emulated state must then be the same
     # whatever the audio sample rate, a windowed session's as the harness's.  Its faithful row is replayed again at 48 kHz.
-    if row["mode"] == "faithful" and SESSION_CORE in header.get("core", "") and fingerprints.exists():
+    if row["mode"] == "faithful" and SESSION_CORE in header.get("core", "") and fingerprints and fingerprints.exists():
         at_rate = w / "fingerprints-48000.tsv"
-        with open(w / "harness-48000.log", "w") as log:
-            subprocess.run([str(harness)] + rom + ["--route", str(route_path), "--sample-rate", "48000", "--out", str(at_rate)] + options,
-                           stdout=log, stderr=subprocess.STDOUT)
+        at_rate_exit, at_rate_retried = run_harness([str(harness)] + rom + ["--route", str(route_path), "--sample-rate", "48000", "--out", str(at_rate)] + options,
+                                                    w / "harness-48000.log")
+        retried += at_rate_retried
+        if at_rate_exit < 0:
+            violations.append(f"the replay at 48 kHz died (signal {-at_rate_exit}; see {w / 'harness-48000.log'})")
         same = subprocess.run([str(harness), "--compare", str(fingerprints), str(at_rate)], capture_output=True, text=True)
-        if same.returncode != 0:
+        if same.returncode != 0 and at_rate_exit >= 0:
             violations.append("the replay at 48 kHz is not the replay without audio: " + (same.stdout.strip().splitlines() or ["no output"])[-1])
     return {"row": row, "name": name, "values": values, "violations": violations, "hash": got_hash, "log": w / "harness.log", "retried": retried,
-            "fingerprints": fingerprints if fingerprints.exists() else None}
+            "fingerprints": fingerprints if fingerprints and fingerprints.exists() else None}
 
 
 # Checks that only read the live instance: a faithful row with one of them is compared with its route's faithful row.

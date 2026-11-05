@@ -35,7 +35,8 @@ On every pull request the CI builds and tests on Linux, macOS (Intel and Apple S
 - `tools/audit_tracked_files.py`: no ROM, save, build output or binary tracked, no file over 4 MiB outside the vendored trees, the vendored trees equal to their pinned hashes;
 - `tools/check_public_text.py`: the text of the tracked files, in English, without local paths; `tools/check_public_text.allow` names its exceptions;
 - `tools/check_docs.py`: every relative link of the documents resolves, and `README.md` stays under 160 lines;
-- `tools/check_guest_addresses.py`: no guest address written by hand.
+- `tools/check_guest_addresses.py`: no guest address written by hand;
+- `tools/check_final_newline.py`: every source file ends with a newline, which macOS's clang requires.
 
 Run them before you push:
 
@@ -44,4 +45,5 @@ python3 tools/audit_tracked_files.py --root .
 python3 tools/check_public_text.py --root .
 python3 tools/check_docs.py
 python3 tools/check_guest_addresses.py --root .
+python3 tools/check_final_newline.py --root .
 ```

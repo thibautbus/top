@@ -37,6 +37,8 @@ jobs:
         run: python tools/check_docs.py ${{ vars.CHECK_EXCLUDE }}
       - name: Refuse hand-written guest addresses
         run: python tools/check_guest_addresses.py
+      - name: Refuse a source file without its final newline, which macOS's clang rejects
+        run: python tools/check_final_newline.py
 
   engine-linux:
     runs-on: ubuntu-latest

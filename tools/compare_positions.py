@@ -7,7 +7,8 @@ same order; a core's timing differs by a frame or a few, so the comparison is of
 frames.  The rooms before the game first sets one (the boot, room 0 of group 0) are left out.
 
 Prints the rooms both replays enter, with the frame each enters them and the offset, then the first room where they
-part (exit status 1), or that they go through the same rooms to the end (0).
+part (exit status 1), or that they go through the same rooms to the end (0); a file with a line that is not a frame's
+(a replay that died while writing it) is named, exit status 2.
 
 usage: compare_positions.py A.tsv B.tsv [--names NAME_A NAME_B]
 """
@@ -17,13 +18,20 @@ import argparse
 import sys
 
 
+class Unreadable(ValueError):
+    """A line that is not a frame's five numbers: a replay that died while writing them."""
+
+
 def rooms(path: str) -> list[tuple[int, int, int]]:
     """(frame, group, room) of each room entered, the boot's left out."""
     entered = []
     last = None
     with open(path, encoding="utf-8") as lines:
-        for line in lines:
-            frame, group, room, _y, _x = (int(v) for v in line.split())
+        for number, line in enumerate(lines, 1):
+            fields = line.split()
+            if len(fields) != 5 or not all(v.lstrip("-").isdigit() for v in fields):
+                raise Unreadable(f"{path}: line {number} is not a frame, a group, a room and a position: {line.strip()!r}")
+            frame, group, room, _y, _x = (int(v) for v in fields)
             if (group, room) != last:
                 last = (group, room)
                 if (group, room) != (0, 0) and frame > 0:
@@ -46,7 +54,11 @@ def main() -> int:
     ap.add_argument("b")
     ap.add_argument("--names", nargs=2, default=["A", "B"])
     args = ap.parse_args()
-    ra, rb = rooms(args.a), rooms(args.b)
+    try:
+        ra, rb = rooms(args.a), rooms(args.b)
+    except Unreadable as error:
+        print(error)
+        return 2
     name_a, name_b = args.names
     print(f"{'room':>10} {name_a:>10} {name_b:>10} {'offset':>7}")
     for i, (x, y) in enumerate(zip(ra, rb)):

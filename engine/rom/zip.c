@@ -54,11 +54,14 @@ static unsigned take(bits *b, unsigned n)
 }
 
 /* A canonical Huffman code: the number of codes of each length, the symbols in the order of their codes, and by the
- * next FAST_BITS bits, the code of FAST_BITS bits or fewer they begin with (its symbol << 4 | its length; 0 for none). */
+ * next `bits` bits, the code of that many bits or fewer they begin with (its symbol << 4 | its length; 0 for none):
+ * FAST_BITS, or fewer for a code whose longest is shorter, so that a small code clears and fills a small table (a
+ * stream of tiny dynamic blocks builds one a block). */
 typedef struct huffman {
     uint16_t count[16];
     uint16_t symbol[288];
     uint16_t fast[1u << FAST_BITS];
+    unsigned bits;
 } huffman;
 
 /* The code of `n` symbols' lengths, with its table of short codes when `table` (decode's; decode_bits reads without).
@@ -68,8 +71,13 @@ static int build(huffman *h, const uint8_t *lengths, unsigned n, int table)
     uint16_t offsets[16];
     unsigned next[16];
     memset(h->count, 0, sizeof h->count);
-    if (table) memset(h->fast, 0, sizeof h->fast);
     for (unsigned s = 0; s < n; s++) h->count[lengths[s]]++;
+    h->bits = 1;
+    for (unsigned length = FAST_BITS; length > 1u; length--)
+        if (h->count[length]) { h->bits = length; break; }
+    for (unsigned length = FAST_BITS + 1u; length < 16u; length++)
+        if (h->count[length]) h->bits = FAST_BITS;
+    if (table) memset(h->fast, 0, (1u << h->bits) * sizeof h->fast[0]);
     int left = 1;
     for (unsigned length = 1; length < 16u; length++) {
         left = (left << 1) - h->count[length];
@@ -87,11 +95,11 @@ static int build(huffman *h, const uint8_t *lengths, unsigned n, int table)
         if (!length) continue;
         h->symbol[offsets[length]++] = (uint16_t)s;
         const unsigned code = next[length]++;
-        if (!table || length > FAST_BITS) continue;
+        if (!table || length > h->bits) continue;
         /* The code is read first bit first, its highest: in the buffer, reversed, under every value of the bits after. */
         unsigned reversed = 0;
         for (unsigned i = 0; i < length; i++) reversed |= (code >> i & 1u) << (length - 1u - i);
-        for (unsigned i = reversed; i < 1u << FAST_BITS; i += 1u << length) h->fast[i] = (uint16_t)(s << 4 | length);
+        for (unsigned i = reversed; i < 1u << h->bits; i += 1u << length) h->fast[i] = (uint16_t)(s << 4 | length);
     }
     return 0;
 }
@@ -121,7 +129,7 @@ static int decode_bits(bits *b, const huffman *h)
 static int decode(bits *b, const huffman *h)
 {
     if (b->count < 15u) refill(b);
-    const unsigned entry = h->fast[b->buffer & ((1u << FAST_BITS) - 1u)];
+    const unsigned entry = h->fast[b->buffer & ((1u << h->bits) - 1u)];
     if (!entry) return decode_bits(b, h);
     const unsigned length = entry & 15u;
     if (length > b->count) return -1;
