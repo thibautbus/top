@@ -273,8 +273,8 @@ def marked(disasm: Path, game: str) -> tuple[list[list[int]], list[tuple[int, li
 
 
 def digest() -> str:
-    """The generator's own text, by which the file it made names it."""
-    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:16]
+    """The generator's own text, by which the file it made names it, its lines ended as in the repository."""
+    return hashlib.sha256(Path(__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:16]
 
 
 def render(disasm: Path) -> str:

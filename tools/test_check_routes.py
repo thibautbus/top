@@ -1,4 +1,5 @@
 """The rules check_routes.py holds a row to: python3 -m unittest test_check_routes, from tools/."""
+import os
 import sys
 import tempfile
 import unittest
@@ -81,6 +82,7 @@ class CoresRooms(unittest.TestCase):
         self.assertEqual(self.compare(self.FRAMES, self.FRAMES.replace("20 0 2", "20 0 3"), row_core="mgba")[0], [])
 
 
+@unittest.skipIf(os.name == "nt", "no signal kills a process on Windows")
 class Crashes(unittest.TestCase):
     # A harness that dies by SIGSEGV on its first `deaths` runs, then exits 0.
     SCRIPT = ("import os, signal, sys\n"

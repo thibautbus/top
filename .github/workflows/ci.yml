@@ -1,8 +1,7 @@
 name: CI
 
-# A push to main runs the checks and the Linux build with its tests; a pull request, or a run started by hand
-# (Actions, CI, Run workflow: before a tag, or after a push that went straight to main), also builds and tests on
-# macOS and Windows and builds the Android application.
+# A push to main, a pull request, or a run started by hand (Actions, CI, Run workflow) runs the checks, builds and
+# tests on Linux, macOS and Windows, and builds the Android application.
 on:
   push:
     branches: [main]
@@ -65,7 +64,6 @@ jobs:
 
   engine-macos:
     name: engine-macos (${{ matrix.arch }})
-    if: github.event_name != 'push'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -90,7 +88,6 @@ jobs:
         run: ctest --test-dir build-engine --no-tests=error --output-on-failure
 
   android:
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -112,7 +109,6 @@ jobs:
           retention-days: 14
 
   engine-windows:
-    if: github.event_name != 'push'
     runs-on: windows-latest
     timeout-minutes: 20
     env:
