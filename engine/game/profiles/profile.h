@@ -25,6 +25,7 @@ typedef struct OraclesCompatProfile {
     int swim_hold;                   /* --swim-hold: the swim's strokes from a held button, the mermaid suit's direction and the flippers' A */
     int continuous_diagonal;         /* --continuous-diagonal: a diagonal held carries Link across the transitions' axis (the room's collisions) */
     int predict_collisions;          /* the room a scroll enters: its collisions predicted from the ROM's tables while it loads (the diagonal's carry) */
+    int continuous_steps;            /* --continuous-steps: a step a frame through a transition as the keys give it, the frame that ends the scroll written (finishScrollingTransition) */
     int cheats;                      /* --cheats: the cheats' answers at the instructions that read Link's damage, the ammunition used and the rupees taken */
     int compact_text;                /* --text compact: the text box's lines composed in the font's own widths (drawLineOfText, displayNextTextCharacter) */
     int host_text_box;               /* the text box the host keeps and draws (dmaTextGfxBuffer, vblankDmaFunction): --text-box wide and Text size */
@@ -67,6 +68,7 @@ int oracles_compat_continuous_swim(const OraclesCompatProfile *profile);
 int oracles_compat_zoom_out(const OraclesCompatProfile *profile);
 int oracles_compat_swim_hold(const OraclesCompatProfile *profile);
 int oracles_compat_continuous_diagonal(const OraclesCompatProfile *profile);
+int oracles_compat_continuous_steps(const OraclesCompatProfile *profile);
 int oracles_compat_predict_collisions(const OraclesCompatProfile *profile);
 int oracles_compat_cheats(const OraclesCompatProfile *profile);
 int oracles_compat_compact_text(const OraclesCompatProfile *profile);

@@ -67,6 +67,9 @@ int main(void)
     /* The transitions' diagonal reads the room's collisions and wLinkAngle: qualified on the originals and the three fan games. */
     CHECK(oracles_compat_continuous_diagonal(ages) && oracles_compat_continuous_diagonal(seasons) && oracles_compat_continuous_diagonal(moonrise));
     CHECK(!oracles_compat_continuous_diagonal(NULL));
+    /* The transitions' steps write the frame that ends a scroll: qualified on the originals only so far. */
+    CHECK(oracles_compat_continuous_steps(ages) && oracles_compat_continuous_steps(seasons) && !oracles_compat_continuous_steps(moonrise));
+    CHECK(!oracles_compat_continuous_steps(NULL));
     /* The drawn-back view is qualified on the three; the item hotkeys on the originals only. */
     CHECK(oracles_compat_item_hotkeys(ages) && oracles_compat_item_hotkeys(seasons) && !oracles_compat_item_hotkeys(moonrise));
     CHECK(oracles_compat_zoom_out(ages) && oracles_compat_zoom_out(seasons) && oracles_compat_zoom_out(moonrise));

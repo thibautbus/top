@@ -266,7 +266,8 @@ static int lay_out_texts(session *s, const OraclesSessionOptions *o, OraclesSess
         wide = oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE);
         enhanced |= oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS)
                   || oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_SWIM)
-                  || oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_DIAGONAL);
+                  || oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_DIAGONAL)
+                  || oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS);
         oracles_route_free(&recorded);
     }
     OraclesLanguageLayout layout = { 0u, 0, 0u, NULL };
@@ -448,6 +449,11 @@ static int check_profile(session *s, const OraclesSessionOptions *o, OraclesSess
         fprintf(stderr, "oracles: %s does not support the continuous transitions' diagonal; they stay along their axis\n", name);
         s->continuous_diagonal = 0;
     }
+    if (s->continuous_steps && !oracles_compat_continuous_steps(s->profile)) {
+        if (!from_home) return failed(result, "%s does not support --continuous-steps", name);
+        fprintf(stderr, "oracles: %s does not support the continuous transitions' steps; Link walks through them a pixel a frame\n", name);
+        s->continuous_steps = 0;
+    }
     if (s->zoom_out && !oracles_compat_zoom_out(s->profile)) {
         if (!from_home) return failed(result, "%s does not support a view drawn back (--view medium or far, --zoom-out) yet", name);
         fprintf(stderr, "oracles: %s does not support the drawn-back view yet; the near view plays instead\n", name);
@@ -573,6 +579,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
     if (s->continuous_transitions && s->guest) {
         s->transition = oracles_room_transition_start(s->guest, s->rom, s->rom_size, s->continuous_swim);
         oracles_room_transition_set_diagonal(s->transition, s->continuous_diagonal);
+        oracles_room_transition_set_steps(s->transition, s->continuous_steps);
         if (s->transition) fprintf(stderr, "oracles: continuous transitions on%s: Link keeps walking through scrolling transitions; the game's state differs from a native session's\n", s->continuous_swim ? ", swimming too" : "");
         else fprintf(stderr, "oracles: continuous transitions need the hooks of a recognised game; the native transitions stay\n");
     }
@@ -696,10 +703,11 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->vsync_setting = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
     s->ghosts = o->ghosts ? o->ghosts - 1 : settings->ghosts;
     s->record_path = o->record_path;
-    s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim || o->continuous_diagonal;
-    s->continuous_transitions = o->continuous_transitions || o->continuous_swim || o->continuous_diagonal;
+    s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps;
+    s->continuous_transitions = o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps;
     s->continuous_swim = o->continuous_swim;
     s->continuous_diagonal = o->continuous_diagonal;
+    s->continuous_steps = o->continuous_steps;
     s->swim_hold = o->swim_hold;
     s->text_instant = o->text_instant == 2;
     s->text_speed_setting = -1;

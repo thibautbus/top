@@ -563,6 +563,7 @@
       "bank": 0,
       "address": "0xcc2b"
     },
+    "link_local_respawn": null,
     "hole_or_conveyor": {
       "bank": 0,
       "address": "0xcc92"
@@ -1321,6 +1322,7 @@
     "vblank_dma_function": "the host's text box not qualified for this revision",
     "textbox_vram_pos": "the host's text box not qualified for this revision",
     "character_display_timer": "the host's text box not qualified for this revision",
+    "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
     "text_address": "the host's text box not qualified for this revision",
     "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision"

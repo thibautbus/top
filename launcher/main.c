@@ -5,7 +5,7 @@
  *                       [--colour-correction on|off] [--vsync auto|on|off] [--camera 1|2]
  *                       [--mute] [--frames N] [--no-window]
  *                       [--screenshot PATH.ppm] [--record ROUTE] [--play ROUTE] [--continuous-transitions] [--continuous-swim] [--item-hotkeys=off|use|equip]
- *                       [--continuous-diagonal]
+ *                       [--continuous-diagonal] [--continuous-steps]
  *                       [--swim-hold] [--cheats LIST] [--text classic|compact] [--text-speed classic|instant]
  *                       [--zoom-out]
  *   the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,...]
@@ -110,6 +110,7 @@ static int usage(void)
                     "                           [--record ROUTE] [--play ROUTE] [--diagnostics] [--native-renderer] [--enhanced] [--neighbours off|static (static)] [--continuous-transitions]\n"
                     "                           [--continuous-swim]   (the continuous transitions with Link swimming at the surface too; implies --continuous-transitions)\n"
                     "                           [--continuous-diagonal]   (the continuous transitions with a diagonal held carrying Link across their axis too; implies --continuous-transitions)\n"
+                    "                           [--continuous-steps]   (the continuous transitions with Link taking a step a frame as the keys give it; implies --continuous-transitions)\n"
                     "                           [--swim-hold]   (swimming, a direction held swims at full speed where the game wants A tapped with the flippers, the direction with Ages' mermaid suit)\n"
                     "                           [--cheats no-damage,ammo,rupees]   (Ages and Seasons: Link loses no heart, seeds and bombs are not used up, buying costs nothing;\n"
                     "                           a mod's prices still apply; an empty list for none)\n"
@@ -189,6 +190,7 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
         else if (!strcmp(argv[i], "--continuous-transitions")) { o->continuous_transitions = 1; o->enhanced = 1; }
         else if (!strcmp(argv[i], "--continuous-swim")) { o->continuous_swim = o->continuous_transitions = 1; o->enhanced = 1; }
         else if (!strcmp(argv[i], "--continuous-diagonal")) { o->continuous_diagonal = o->continuous_transitions = 1; o->enhanced = 1; }
+        else if (!strcmp(argv[i], "--continuous-steps")) { o->continuous_steps = o->continuous_transitions = 1; o->enhanced = 1; }
         else if (!strcmp(argv[i], "--swim-hold")) o->swim_hold = 1;
         else if (!strcmp(argv[i], "--cheats") && more) {
             if (oracles_cheats_parse(argv[++i], NULL, &o->cheats) != 0) return 1;

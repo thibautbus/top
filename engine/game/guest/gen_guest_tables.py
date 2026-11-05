@@ -185,6 +185,9 @@ VARIABLES = [
     ("season_reload", "wcc4c"),
     # Ghost: the direction Link moves in, which the game checks before a transition at an edge (convertLinkAngleToDirectionButtons).
     ("link_angle", "wLinkAngle"),
+    # The continuous transitions' steps: Link's respawn in the room (y, x, then the way he faces), which
+    # finishScrollingTransition takes from his place at a scroll's end.
+    ("link_local_respawn", "wLinkLocalRespawnY"),
     # Ghost: over a hole (bit 7) or on a conveyor (bits 0-6), which decide a transition at an edge without input.
     ("hole_or_conveyor", "wcc92"),
     ("screen_offset_x", "wScreenOffsetX"), ("screen_offset_y", "wScreenOffsetY"),

@@ -66,7 +66,7 @@ typedef struct OraclesGuestTables {
         changed_tile_queue_head, changed_tile_queue_tail, tileset_layout_group, tileset_layout, gasha_spots_planted,
         tileset_gfx, tileset_palette, loaded_tileset_unique_gfx,
         loaded_tileset_palette, dirty_bg_palettes, room_pack, loading_room_pack, room_pack_data, map_transition_group_table,
-        season_reload, link_angle, hole_or_conveyor,
+        season_reload, link_angle, link_local_respawn, hole_or_conveyor,
         screen_offset_x, screen_offset_y, screen_shake_counter_y, screen_shake_counter_x, camera_x, camera_y,
         keys_pressed, keys_just_pressed, frame_counter, text_is_active, selected_text_option, opened_menu_type, minimap_group, global_flags, bought_shop_items1,
         group0_room_flags, link_object_index, objects_to_draw, oam, oam_tail, terrain_effects_used, link_raised_floor_offset, textbox_flags, enemies_killed_list,

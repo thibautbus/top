@@ -1,0 +1,76 @@
+oracles-route 13
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 5066fd92af3a71202140ab168abbac57eb073d4c
+options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,swim-hold
+core joypad-bouncing-off
+# A swim at the surface with the mermaid suit, played with the transitions' steps and their diagonal as the home screen
+# plays them, from swim.route's save: on foot down to 0:67, swimming down to 0:b7, up and left into 0:a6, then down into
+# 0:b6 twice (1928, 2055), a few tiles above a whirlpool. The second time the steps take him further in than the game's
+# own scroll would; the whirlpool takes him (2124) and brings him back at (9, 139), the place that scroll would have left
+# him, and from there he swims on right into 0:b7 (2197) and up into 0:a7 (2239).
+inputs
+0 keys 00
+454 keys 80
+460 keys 00
+467 keys 80
+472 keys 00
+477 keys 80
+483 keys 00
+487 keys 80
+495 keys 00
+542 keys 80
+548 keys 00
+553 keys 80
+561 keys 00
+589 keys 08
+899 keys 0a
+971 keys 08
+1000 keys 0a
+1118 keys 08
+1152 keys 0a
+1176 keys 02
+1217 keys 0a
+1227 keys 08
+1415 keys 09
+1459 keys 08
+1494 keys 09
+1581 keys 08
+1685 keys 0a
+1777 keys 02
+1813 keys 06
+1868 keys 02
+1877 keys 0a
+1958 keys 02
+1960 keys 03
+1961 keys 01
+1972 keys 05
+2019 keys 01
+2025 keys 09
+2026 keys 08
+2042 keys 0a
+2063 keys 0b
+2074 keys 09
+2077 keys 01
+2091 keys 05
+2152 keys 01
+2157 keys 00
+2178 keys 01
+2202 keys 05
+2272 keys 04
+2346 keys 00
+2414 keys 02
+2418 keys 06
+2475 keys 02
+2477 keys 00
+2494 keys 04
+2500 keys 00
+2504 keys 04
+2509 keys 00
+2512 keys 04
+2519 keys 00
+2522 keys 04
+2528 keys 00
+2531 keys 04
+2539 keys 00
+2570 keys 00

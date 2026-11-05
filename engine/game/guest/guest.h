@@ -140,6 +140,8 @@ typedef struct OraclesGuestTransitionState {
     uint8_t room_width, room_height;                                          /* in 8x8 tiles */
     const uint8_t *room_collisions;                                           /* 176 bytes: the room being entered once it is loaded */
     const uint8_t *room_layout;                                               /* 176 bytes: its tiles (wRoomLayout), loaded with the collisions */
+    const uint8_t *play_collisions, *play_layout;                             /* the room's own in normal play (wScrollMode 1), at the return of drawAllSprites: at the frame
+                                                                                 that ends a scroll, the room it entered; NULL otherwise */
     uint8_t active_collisions;                                                /* wActiveCollisions: the list of tileTypesTable its tiles are looked up in */
     uint8_t tile_types_bank;                                                  /* tileTypesTable in the ROM, 0xff when the game has none */
     uint16_t tile_types_table;
@@ -148,6 +150,7 @@ typedef struct OraclesGuestTransitionState {
     uint8_t transition_direction_raw;                                         /* wScreenTransitionDirection, bit 7 the forced transition */
     uint8_t link_enabled, link_move_angle;                                    /* w1Link.enabled, w1Link.angle (his motion's, 32 steps; bit 7 none) */
     uint8_t link_input_angle;                                                 /* wLinkAngle: the direction held, 32 steps; bit 7 none */
+    uint8_t link_direction;                                                   /* w1Link.direction: the way he faces, 0 up, 1 right, 2 down, 3 left */
     uint8_t link_stroke;                                                      /* w1Link.var35: a stroke of the flippers, 1 speeding up, 2 slowing down (linkUpdateFlippersSpeed) */
     uint8_t screen_transition_delay, disable_screen_transitions, hole_or_conveyor;   /* wScreenTransitionDelay, wDisableScreenTransitions, wcc92 */
     uint8_t boundary_x, boundary_y, active_room, active_tile_index;           /* wScreenTransitionBoundaryX/Y, wActiveRoom, wActiveTileIndex */
@@ -185,6 +188,13 @@ typedef struct OraclesGuestTransitionMutation {
     uint8_t force_transition;              /* --continuous-swim, in normal play: 1 raise wScreenTransitionDirection's bit 7 to `forced_direction`, 2 lower it */
     uint8_t forced_direction;              /* 0 up, 1 right, 2 down, 3 left */
     uint8_t carried;                       /* the delta across the transition's axis is a carry (--continuous-diagonal): counted when applied */
+    uint8_t set_facing;                    /* --continuous-steps, on foot in a scroll: write w1Link.direction (`facing`, 0 to 3), the way the keys turn him */
+    uint8_t facing;
+    uint8_t scroll_end;                    /* --continuous-steps: the move is Link's step of the frame whose logic ended the scroll, back in normal play after
+                                              linkState01 skipped his own: applied at the entry of its drawAllSprites only */
+    uint8_t set_respawn;                   /* --continuous-steps, at that frame: write wLinkLocalRespawnY/X (`respawn_y`, `respawn_x`, pixels in the room entered),
+                                              which finishScrollingTransition took from where the policy's steps left Link */
+    uint8_t respawn_y, respawn_x;
 } OraclesGuestTransitionMutation;
 
 typedef void (*OraclesGuestTransitionFn)(void *opaque, const OraclesGuestTransitionState *state, OraclesGuestTransitionMutation *mutation);
@@ -197,6 +207,10 @@ void oracles_guest_set_transition_policy(OraclesGuest *guest, OraclesGuestTransi
 /* With --continuous-swim, the transaction also takes Link swimming at the surface in his normal swimming state
  * (linkUpdateSwimming's state 3, diving or not, never in lava), his swimming or diving animation advanced. */
 void oracles_guest_set_transition_swim(OraclesGuest *guest, int on);
+/* With --continuous-steps, the frame whose logic ended a scroll is asked about at the entry of drawAllSprites instead of
+ * its return, and the transaction takes Link's step there, in normal play: the game draws him, and his terrain's effects
+ * with him, where he then is. */
+void oracles_guest_set_transition_steps(OraclesGuest *guest, int on);
 /* Whether a policy is installed: the continuous transitions are on. */
 int oracles_guest_has_transition_policy(const OraclesGuest *guest);
 /* The frame counter the host gave the guest (oracles_guest_set_frame). */
@@ -207,6 +221,13 @@ void oracles_guest_vblank_write_counts(const OraclesGuest *guest, unsigned out[8
 unsigned oracles_guest_vblank_policy_skipped(const OraclesGuest *guest);
 /* The carries across a transition's axis the transaction applied (OraclesGuestTransitionMutation.carried). */
 unsigned oracles_guest_transition_carried(const OraclesGuest *guest);
+/* The steps of the frame that ends a scroll the transaction applied (--continuous-steps). */
+unsigned oracles_guest_transition_end_steps(const OraclesGuest *guest);
+/* The respawns in the room entered the transaction moved where the game would have left Link (--continuous-steps). */
+unsigned oracles_guest_transition_respawns(const OraclesGuest *guest);
+/* wScreenTransitionState as the policy was last asked about it, given back by the policy's savestate data after a load
+ * (oracles_guest_reset_execution_state takes it from the state loaded otherwise). */
+void oracles_guest_set_transition_last_state(OraclesGuest *guest, uint8_t state);
 
 /* The inventory transaction (item hotkeys): the second closed
  * write path.  At the return of checkReloadStatusBarGraphics from its one

@@ -454,6 +454,15 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
         o->continuous_transitions = o->continuous_diagonal = 1;
         fprintf(stderr, "harness: the route was recorded with --continuous-diagonal: the option is on\n");
     }
+    const int route_steps = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS);
+    if ((o->continuous_steps || route_steps) && r->profile && !oracles_compat_continuous_steps(r->profile)) {
+        fprintf(stderr, "harness: %s does not support --continuous-steps; refusing the request and route option\n", oracles_compat_name(r->profile));
+        return 1;
+    }
+    if (route_steps && !o->continuous_steps) {
+        o->continuous_transitions = o->continuous_steps = 1;
+        fprintf(stderr, "harness: the route was recorded with --continuous-steps: the option is on\n");
+    }
     const int route_swim_hold = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_SWIM_HOLD);
     if (route_swim_hold && !oracles_compat_swim_hold(r->profile)) {
         fprintf(stderr, "harness: the route was recorded with --swim-hold, which %s does not support\n", r->profile ? oracles_compat_name(r->profile) : "this image");
@@ -544,6 +553,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         r->rom_size = rom_size;
         if (r->enhanced) oracles_enhanced_check_set_transition(r->enhanced, r->transition);
         oracles_room_transition_set_diagonal(r->transition, o->continuous_diagonal);
+        oracles_room_transition_set_steps(r->transition, o->continuous_steps);
     }
     if ((o->swim_hold || r->swim_changed)
         && (!r->guest || oracles_guest_set_swim_hold(r->guest, 1) != 0 || oracles_guest_set_swim_hold(r->guest, o->swim_hold) != 0)) {

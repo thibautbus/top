@@ -147,6 +147,7 @@ const OraclesGuestTables oracles_guest_tables_temple = {
     .map_transition_group_table = { 0x01, 0x48dd },
     .season_reload = { 0x00, 0xcc68 },
     .link_angle = { 0x00, 0xcc47 },
+    .link_local_respawn = { ORACLES_GUEST_ABSENT, 0 },
     .hole_or_conveyor = { 0x00, 0xccac },
     .screen_offset_x = { 0x00, 0xcd09 },
     .screen_offset_y = { 0x00, 0xcd08 },

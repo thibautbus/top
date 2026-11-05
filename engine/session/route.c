@@ -256,6 +256,11 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
                     set_error(error, error_capacity, "the text-instant option needs format 12", number);
                     goto fail;
                 }
+                /* Nor the transitions' steps. */
+                if (oracles_route_has_option(&route->header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS) && route->format < ORACLES_ROUTE_FORMAT_STEPS) {
+                    set_error(error, error_capacity, "the continuous-steps option needs format 13", number);
+                    goto fail;
+                }
             }
             else if (strcmp(key, "mods") == 0) {
                 /* A route of format 2 or less cannot name mods: its readers replay it without them. */
@@ -493,7 +498,8 @@ int oracles_route_writer_open_format(OraclesRouteWriter *writer, const char *pat
     writer->file = fopen(path, "wb"); /* LF on every platform */
     if (!writer->file) return -1;
     char language[16];
-    const int lowest = oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_INSTANT) ? ORACLES_ROUTE_FORMAT_TEXT_INSTANT
+    const int lowest = oracles_route_has_option(header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS) ? ORACLES_ROUTE_FORMAT_STEPS
+                     : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_INSTANT) ? ORACLES_ROUTE_FORMAT_TEXT_INSTANT
                      : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE) ? ORACLES_ROUTE_FORMAT_TEXT_BOX_WIDE
                      : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_COMPACT) ? ORACLES_ROUTE_FORMAT_TEXT_COMPACT
                      : oracles_route_has_cheat(header) ? ORACLES_ROUTE_FORMAT_CHEATS

@@ -51,7 +51,24 @@
  * up once they are known, at his own ratio across and along, within the
  * bus's bound a frame; a route
  * recorded without it replays without it, its diagonal crossings elsewhere
- * otherwise. */
+ * otherwise.  With `steps` (--continuous-steps) Link takes a step a frame of
+ * the game, as the keys give it: on foot he walks along the axis only with a
+ * direction held toward the edge (straight or diagonal), across it with one
+ * held across (a diagonal, or square across with the diagonal on), turned to
+ * face it as the game turns him (w1Link.direction), and never past the room's
+ * edge on that side, which the next transition at a corner would put him back
+ * from; with none along it, from the frame it is let go, the game's own move
+ * of the transition, its 15 or 16 px from where it began spread evenly over
+ * the frames left, never faster than he walked, without his walk animated;
+ * the frame that starts the
+ * transition, in which the game made his
+ * step and put him back on the edge, completes that step instead of adding
+ * one; and the frame whose logic ends the scroll, which the game leaves
+ * without a move (linkState01 skipped, the next frame's the first it moves
+ * him in), gets his step, at its drawAllSprites, by the same rules, his walk
+ * left to the game from the next frame.  In the
+ * water his motion is the game's, its momentum frozen through the scroll as
+ * without the steps. */
 #ifndef ORACLES_GAMEPLAY_ROOM_TRANSITION_H
 #define ORACLES_GAMEPLAY_ROOM_TRANSITION_H
 
@@ -74,6 +91,9 @@ void oracles_room_transition_stop(OraclesRoomTransition *transition);
 /* --continuous-diagonal: a diagonal held carries Link across the transition's axis too (off at the start), where the
  * guest's profile qualifies it; returns whether it is on. */
 int oracles_room_transition_set_diagonal(OraclesRoomTransition *transition, int on);
+/* --continuous-steps: Link takes a step a frame of the game through a transition, as the keys give it (off at the
+ * start), where the guest's profile qualifies it; returns whether it is on. */
+int oracles_room_transition_set_steps(OraclesRoomTransition *transition, int on);
 
 typedef struct OraclesRoomTransitionStats {
     unsigned transitions;        /* transitions the policy took over (the step doubled) */
@@ -98,10 +118,17 @@ typedef struct OraclesRoomTransitionStats {
     unsigned predicted_mismatched;  /* and those whose are not */
     unsigned predict_fallbacks;     /* those left to the game's load, its collisions unknown until it ends */
     unsigned predict_fallback_by[ORACLES_ROOM_PREDICT_VERDICTS];   /* by reason (OraclesRoomPredictVerdict) */
+    /* A step a frame (--continuous-steps), and what goes against it without: */
+    unsigned carry_edge_frames;     /* frames a carry was slowed so as to reach the edge across no sooner than the scroll ends, never past it: the next transition, at a
+                                       corner, would undo it (--continuous-steps) */
+    unsigned end_stalls;            /* scrolls the policy moved Link through to their last step whose last frame, the one that ends them, left him still, going on
+                                       (a direction held, his motion in the water) */
+    unsigned doubled_starts;        /* transitions whose first frame moved him further on an axis than a step, the game's and the policy's together */
+    unsigned released_frames;       /* frames of a transition the policy took him through on foot with no direction held toward the edge: the game's own move (--continuous-steps) */
 } OraclesRoomTransitionStats;
 /* The policy's progress through the transition in progress, for a savestate: ORACLES_ROOM_TRANSITION_STATE_SIZE bytes
  * written into `out`, their count returned; 0 when `capacity` is short. */
-#define ORACLES_ROOM_TRANSITION_STATE_SIZE (57u + 2u * ORACLES_ROOM_LAYOUT_BYTES)
+#define ORACLES_ROOM_TRANSITION_STATE_SIZE (89u + 2u * ORACLES_ROOM_LAYOUT_BYTES)
 size_t oracles_room_transition_save_state(const OraclesRoomTransition *transition, uint8_t *out, size_t capacity);
 /* That progress given back after a savestate's load reset the guest (oracles_guest_reset_execution_state): the policy
  * goes on with the transition the state was saved in as if no load had come between.  0, or -1 for data of another

@@ -116,6 +116,7 @@ const OraclesGuestTables oracles_guest_tables_moonrise = {
     .room_pack_data = { ORACLES_GUEST_ABSENT, 0 },
     .season_reload = { 0x00, 0xcc4c },
     .link_angle = { 0x00, 0xcc2b },
+    .link_local_respawn = { ORACLES_GUEST_ABSENT, 0 },
     .hole_or_conveyor = { 0x00, 0xcc92 },
     .screen_offset_x = { 0x00, 0xcd09 },
     .screen_offset_y = { 0x00, 0xcd08 },

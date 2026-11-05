@@ -67,6 +67,15 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
         fprintf(stderr, "continuous transitions: a diagonal held (--continuous-diagonal) carried Link across the axis on %u frames, withheld on %u (a collision across, the room's collisions not loaded)\n", oracles_guest_transition_carried(r->guest), stats.carry_withheld_frames);
         if (summary) fprintf(summary, "transitions.carried_frames=%u\ntransitions.carry_asked_frames=%u\ntransitions.carry_withheld_frames=%u\n", oracles_guest_transition_carried(r->guest), stats.carry_asked_frames, stats.carry_withheld_frames);
         if (summary) fprintf(summary, "transitions.resumed_frames=%u\n", stats.refused_by[10]);
+        fprintf(stderr, "continuous transitions: scrolls whose last frame gave Link his step (--continuous-steps) %u, left him still going on %u; starts that moved him further than a step %u; "
+                        "frames with no direction held toward the edge, the game's own move (--continuous-steps) %u; carries held short of the edge across %u; "
+                        "respawns in the room entered moved where the game would have left him %u\n",
+                oracles_guest_transition_end_steps(r->guest), stats.end_stalls, stats.doubled_starts, stats.released_frames, stats.carry_edge_frames,
+                oracles_guest_transition_respawns(r->guest));
+        if (summary) fprintf(summary, "transitions.end_steps=%u\ntransitions.end_stalls=%u\ntransitions.doubled_starts=%u\ntransitions.released_frames=%u\ntransitions.carry_edge_frames=%u\n"
+                                      "transitions.respawns_moved=%u\n",
+                             oracles_guest_transition_end_steps(r->guest), stats.end_stalls, stats.doubled_starts, stats.released_frames, stats.carry_edge_frames,
+                             oracles_guest_transition_respawns(r->guest));
         fprintf(stderr, "continuous transitions: the room entered's collisions predicted at %u transitions while the game loaded them (%u the same as the game's, %u not), "
                         "%u left to the load (", stats.predicted_transitions, stats.predicted_matched, stats.predicted_mismatched, stats.predict_fallbacks);
         for (unsigned v = 1, listed = 0; v < ORACLES_ROOM_PREDICT_VERDICTS; v++)

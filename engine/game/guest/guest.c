@@ -105,7 +105,12 @@ uint16_t oracles_guest_thread_sp(OraclesGuest *guest, unsigned thread)
 
 static void emit(OraclesGuest *guest, OraclesGuestEventType type, uint16_t pc, uint16_t address, uint8_t value)
 {
-    if (type == ORACLES_EVENT_FRAME_DRAWN) { oracles_guest_apply_transition_policy(guest, 0); guest->drawn_this_frame = 1; }
+    if (type == ORACLES_EVENT_FRAME_DONE) oracles_guest_apply_transition_entry(guest);
+    if (type == ORACLES_EVENT_FRAME_DRAWN) {
+        if (!guest->transition_at_entry) oracles_guest_apply_transition_policy(guest, 0);
+        guest->transition_at_entry = 0;
+        guest->drawn_this_frame = 1;
+    }
     /* checkReloadStatusBarGraphics is also reached by tail jumps whose return lies elsewhere: only its call from mainThreadStart is the write point. */
     if (type == ORACLES_EVENT_STATUS_BAR_CHECKED) { if (pc != guest->inventory_write_pc) return; oracles_guest_apply_inventory_policy(guest); }
     if (type == ORACLES_EVENT_STATUS_BAR_CHECK) oracles_guest_call_point(guest, oracles_core_registers(guest->core).sp);
@@ -348,6 +353,8 @@ void oracles_guest_reset_execution_state(OraclesGuest *guest)
         guest->link_next_y = link ? (uint16_t)(link[ORACLES_OBJ_Y] | (link[ORACLES_OBJ_YH] << 8)) : 0;
     }
     guest->policy_not_asked = 0;
+    guest->transition_at_entry = 0;
+    guest->transition_last_state = guest->tables ? oracles_guest_read8(guest, guest->tables->screen_transition_state) : 0u;   /* the state the saved frame's logic left */
     guest->call_count = 0;      /* the calls queued belong to the execution the load replaced */
     guest->call_watch_sp = 0;
     guest->compact_open = 0;    /* a line the load interrupted is given back by oracles_guest_compact_load_state */

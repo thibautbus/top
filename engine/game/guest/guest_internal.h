@@ -48,6 +48,8 @@ struct OraclesGuest {
     OraclesGuestTransitionResetFn transition_reset;
     void *transition_opaque;
     int transition_swim;                             /* --continuous-swim: the transaction takes Link swimming at the surface as well */
+    int transition_steps;                            /* --continuous-steps: and the frame that ends a scroll, at the entry of drawAllSprites */
+    int transition_at_entry;                         /* the policy was asked at the entry of drawAllSprites this frame, not at its return */
     OraclesGuestInventoryFn inventory_policy;        /* the item hotkeys */
     OraclesGuestInventoryResultFn inventory_result;
     OraclesGuestInventoryResetFn inventory_reset;
@@ -57,7 +59,10 @@ struct OraclesGuest {
     unsigned vblank_writes[8];                       /* transaction writes made at a vblank, by wScreenTransitionState */
     unsigned vblank_policy_skipped;                  /* vblanks of an unfinished frame outside a load, where the policy was not asked */
     unsigned transition_carried;                     /* carries across a transition's axis applied */
+    unsigned transition_end_steps;                   /* steps of the frame that ends a scroll applied (--continuous-steps) */
+    unsigned transition_respawns;                    /* respawns in the room entered moved where the game would have left Link (--continuous-steps) */
     uint32_t policy_not_asked;                       /* such vblanks since the policy was last asked */
+    uint8_t transition_last_state;                   /* wScreenTransitionState when the policy was last asked, or as a savestate's load found it */
     hook hooks[32];                                  /* the table of section 15 plus the hooks a consumer adds (tags, object updates) */
     unsigned hook_count;
     uint8_t hooked_pc[0x10000u / 8u];                 /* a bit per address some hook enters at: the others skip the table */
@@ -124,6 +129,7 @@ struct OraclesGuest {
 
 /* guest_transaction.c */
 void oracles_guest_apply_transition_policy(OraclesGuest *guest, int at_vblank);
+void oracles_guest_apply_transition_entry(OraclesGuest *guest);
 /* guest_inventory.c */
 void oracles_guest_apply_inventory_policy(OraclesGuest *guest);
 void oracles_guest_item_buttons_state(OraclesGuest *guest, OraclesGuestInventoryState *state);   /* guest_item_buttons.c */

@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         if (older) { fprintf(older, "oracles-route 4\ngame ages\noptions swim-hold\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1 && strstr(error, "format 5"));
         older = fopen(path, "w");
-        if (older) { fprintf(older, "oracles-route 13\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
+        if (older) { fprintf(older, "oracles-route 14\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1);   /* a later format */
     }
     {
@@ -198,12 +198,31 @@ int main(int argc, char **argv)
         CHECK(oracles_route_writer_open_format(&writer_instant, path, &wide, ORACLES_ROUTE_FORMAT_SET) == 0 && writer_instant.format == ORACLES_ROUTE_FORMAT_TEXT_BOX_WIDE);
         CHECK(oracles_route_writer_set(&writer_instant, 10, ORACLES_ROUTE_SET_TEXT_SPEED, 1) == -1);
         CHECK(oracles_route_writer_close(&writer_instant) == 0);
-        CHECK(oracles_route_writer_open_format(&writer_instant, path, &wide, ORACLES_ROUTE_FORMAT_LATEST) == 0 && writer_instant.format == ORACLES_ROUTE_FORMAT_TEXT_INSTANT);
+        CHECK(oracles_route_writer_open_format(&writer_instant, path, &wide, ORACLES_ROUTE_FORMAT_LATEST) == 0 && writer_instant.format == ORACLES_ROUTE_FORMAT_LATEST);
         oracles_route_writer_record(&writer_instant, 0, 0x00);
         CHECK(oracles_route_writer_set(&writer_instant, 10, ORACLES_ROUTE_SET_TEXT_SPEED, 1) == 0);
         CHECK(oracles_route_writer_close(&writer_instant) == 0);
-        CHECK(oracles_route_read(path, &back, error, sizeof error) == 0 && back.format == 12u && back.settings[0].value == 1);
+        CHECK(oracles_route_read(path, &back, error, sizeof error) == 0 && back.format == ORACLES_ROUTE_FORMAT_LATEST && back.settings[0].value == 1);
         oracles_route_free(&back);
+    }
+    {
+        /* The transitions' steps: format 13, which a reader before it refuses rather than replay it without; an older
+         * format naming it is refused. */
+        OraclesRouteHeader steps = route.header;
+        snprintf(steps.options, sizeof steps.options, "%s", "continuous-transitions,continuous-swim,continuous-diagonal," ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS ","
+                 ORACLES_ROUTE_OPTION_TEXT_INSTANT);
+        OraclesRouteWriter writer_steps;
+        CHECK(oracles_route_writer_open(&writer_steps, path, &steps) == 0 && writer_steps.format == ORACLES_ROUTE_FORMAT_STEPS);
+        oracles_route_writer_record(&writer_steps, 0, 0x00);
+        CHECK(oracles_route_writer_set(&writer_steps, 10, ORACLES_ROUTE_SET_TEXT_SPEED, 0) == 0);
+        CHECK(oracles_route_writer_close(&writer_steps) == 0);
+        OraclesRoute back;
+        CHECK(oracles_route_read(path, &back, error, sizeof error) == 0 && back.format == 13u && back.setting_count == 1);
+        CHECK(oracles_route_has_option(&back.header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS) && !strcmp(back.header.options, steps.options));
+        oracles_route_free(&back);
+        FILE *older = fopen(path, "w");
+        if (older) { fprintf(older, "oracles-route 12\ngame ages\noptions continuous-transitions,continuous-steps\ninputs\n0 keys 00\n"); fclose(older); }
+        CHECK(oracles_route_read(path, &back, error, sizeof error) == -1 && strstr(error, "format 13"));
     }
     {
         /* A cheat changed during the session: a `cheat` line, in a route opened in the format a session that may change
@@ -311,7 +330,7 @@ int main(int argc, char **argv)
             "oracles-route 10\ninputs\n10 set item-hotkeys on\n",
             "oracles-route 10\ninputs\n10 set view far\n",                                /* a setting this reader does not know */
             "oracles-route 10\ninputs\n10 set swim-hold on now\n",
-            "oracles-route 13\ninputs\n0 keys 00\n",                                      /* a later format */
+            "oracles-route 14\ninputs\n0 keys 00\n",                                      /* a later format */
         };
         for (unsigned i = 0; i < sizeof malformed / sizeof malformed[0]; i++) {
             FILE *bad = fopen(path, "w");
@@ -341,7 +360,7 @@ int main(int argc, char **argv)
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     CHECK(strstr(error, "line 5") != NULL);
     f = fopen(path, "w");
-    fprintf(f, "oracles-route 13\ninputs\n");
+    fprintf(f, "oracles-route 14\ninputs\n");
     fclose(f);
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     /* Format 2: the verbs that change the game's state, written and read back.  Two verbs may share a
@@ -385,7 +404,7 @@ int main(int argc, char **argv)
         "oracles-route 2\ninputs\n10 equip\n",
         "oracles-route 2\ninputs\n10 use s3 0a\n",                               /* a use is carried by a button */
         "oracles-route 2\nmods claw-game@2fd4e1c67a2d28fced849ee1bb76e7391b93eb12\ninputs\n0 keys 00\n",   /* mods need format 3 */
-        "oracles-route 13\ninputs\n0 keys 00\n",                                /* a format to come */
+        "oracles-route 14\ninputs\n0 keys 00\n",                                /* a format to come */
     };
     for (unsigned i = 0; i < sizeof refused / sizeof refused[0]; i++) {
         f = fopen(path, "w"); fputs(refused[i], f); fclose(f);

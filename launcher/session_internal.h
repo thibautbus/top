@@ -37,7 +37,7 @@ typedef struct session {
     const OraclesCompatProfile *profile;   /* NULL for an image the loader accepted by its header alone */
     save_file save;
     char route_sram_path[PATH_MAX_LENGTH], record_sram_path[PATH_MAX_LENGTH];
-    int enhanced, continuous_transitions, continuous_swim, continuous_diagonal, zoom_out;   /* zoom_out: the view draws back (medium or far) */
+    int enhanced, continuous_transitions, continuous_swim, continuous_diagonal, continuous_steps, zoom_out;   /* zoom_out: the view draws back (medium or far) */
     int swim_hold;                            /* the swim's hold: the option's, as a replayed route or the profile may change it */
     int compact_text;                         /* the compact text: the option's, as a replayed route or the profile may change it */
     int text_box_wide;                        /* the host's wide text box: the same */

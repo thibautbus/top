@@ -44,6 +44,19 @@ static void transaction_policy(void *opaque, const OraclesGuestTransitionState *
     m->update_walk_animation = 1; m->link_anim_counter = 2; m->link_anim_parameter = 7; m->link_anim_pointer = 0x4200; m->link_animation_frame = 0x66;
 }
 
+/* The step of the frame that ends a scroll (--continuous-steps): a pixel at each call in normal play, and Link's respawn
+ * in the room entered at (9, 80), or at (130, 80), below the room's bottom edge. */
+static int respawn_below_edge;
+static void scroll_end_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque;
+    policy_calls++;
+    if (s->transition_state == 2u) {
+        m->scroll_end = 1; m->link_x_delta = 0x100;
+        m->set_respawn = 1; m->respawn_y = respawn_below_edge ? 130u : 9u; m->respawn_x = 80u;
+    }
+}
+
 static void put8(OraclesGuest *guest, OraclesGuestSym sym, uint8_t value)
 {
     uint8_t *wram = oracles_guest_wram_writable(guest, sym.bank);
@@ -250,6 +263,50 @@ int main(void)
         oracles_core_run_frame(core);
         CHECK(oracles_guest_read8(guest, t->screen_scroll_delta) == 8);
         CHECK(oracles_guest_wram(guest, 1)[0x0d] == 100);
+        /* Back in normal play right after the scroll (state 5 at the last call), with the steps: the step of the frame
+         * that ends it is written once, at the first entry, the policy asked there and not at the return that follows;
+         * the calls after it see normal play, where nothing is.  Without the steps, nothing either. */
+        put8(guest, t->weapon_item_enabled, 0);
+        put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1);
+        put8(guest, t->screen_transition_boundary_x, 154); put8(guest, t->screen_transition_boundary_y, 121);
+        put8(guest, t->link_local_respawn, 40); put8(guest, (OraclesGuestSym){ 0, (uint16_t)(t->link_local_respawn.addr + 1u) }, 41);
+        oracles_guest_set_transition_policy(guest, scroll_end_policy, NULL, NULL);
+        oracles_guest_clear_hooks(guest);
+        CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+        policy_calls = 0;
+        oracles_core_run_frame(core);
+        CHECK(policy_calls > 50 && oracles_guest_wram(guest, 1)[0x0d] == 100);
+        CHECK(oracles_guest_read8(guest, t->link_local_respawn) == 40);
+        put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+        oracles_guest_set_transition_steps(guest, 1);
+        oracles_core_run_frame(core);
+        oracles_guest_clear_hooks(guest);   /* the returns the frame left pending: the next frame starts at an entry */
+        CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+        put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 100);
+        policy_calls = 0;
+        oracles_core_run_frame(core);
+        CHECK(policy_calls > 50 && oracles_guest_wram(guest, 1)[0x0d] == 101);
+        CHECK(oracles_guest_read16(guest, t->link_local_respawn) == (80u << 8 | 9u) && oracles_guest_transition_respawns(guest) == 1);
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_wram(guest, 1)[0x0d] == 101);
+        /* A respawn past the edges the game starts a transition at is not written. */
+        put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+        oracles_core_run_frame(core);
+        oracles_guest_clear_hooks(guest);
+        CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+        put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1);
+        put8(guest, t->link_local_respawn, 40);
+        respawn_below_edge = 1;
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_wram(guest, 1)[0x0d] == 102 && oracles_guest_read8(guest, t->link_local_respawn) == 40);
+        respawn_below_edge = 0;
+        oracles_guest_set_transition_steps(guest, 0);
+        oracles_guest_clear_hooks(guest);
+        CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_TEXT, ORACLES_EVENT_FRAME_DRAWN) == 0);
+        oracles_guest_set_transition_policy(guest, transaction_policy, NULL, NULL);
+        put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 100);
         /* A frame the game does not draw (no hooked return) while the
          * transition loads the room (state 3): the transaction runs once at
          * the vblank, Link moves a pixel, and his sprite entries go where he
