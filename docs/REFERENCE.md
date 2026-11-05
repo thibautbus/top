@@ -277,7 +277,22 @@ The camera has two profiles (`--camera`, `camera=` in the settings):
 
 With the Smooth camera (below, `subpixel_camera=`) it tells the stop on the first frame he stands still with the pad let go; with a direction held on the pad along that axis, either way, or during a transition, a frame he stands still is the game holding him (the end of a scroll, a swim stroke) or a wall, and the camera keeps its speed until four such frames say he has stopped, as the Pixel camera always waits.
 
-When the game puts him elsewhere (back at a room's entrance after a fall or a whirlpool) it pans to him in a fraction of a second rather than gliding there; where nothing of it shows (the game's own screen framed, a menu, a fade of the background and the sprites at white or black or within two steps of it), it is on him at the next frame, so that the world shows again with the camera in its place. Through a fade at white or black of eight frames or more, every palette of the world and of the sprites within two steps of it, the follow also comes to rest at once where it would stop with Link standing where he is (where the game puts him at the fade's last frame or its first one back included), its look-ahead let go, its braking done and a re-centre at its end, so that the world shows again with the camera where it stays rather than settling by a pixel or two after it; a shorter fade (a flash) leaves its move as it goes, and so do the fades a menu opens and closes through, after which the world comes back as it was. An object of Link's the game is making anew (its first state, in the room's corner) is not his place: his last one holds. Toward a neighbouring room still being prepared or waiting for the ghost, or past an edge it shows black, it goes no further than Link himself, without looking ahead, until the room is there, so that it seldom shows more black than before (a little more when the ghosts run far behind, in a thread on a busy device; and where Link stands beside the black past the map's edge, framed without the look-ahead the previous camera kept).
+When the game puts him elsewhere (back at a room's entrance after a fall or a whirlpool), it pans to him in a fraction of a second rather than gliding there.
+
+Where nothing of it shows, it is on him at the next frame, so that the world shows again with the camera in its place:
+
+- the game's own screen framed;
+- a menu;
+- a fade of the background and the sprites at white or black, or within two steps of it.
+
+Through a fade at white or black of eight frames or more, every palette of the world and of the sprites within two steps of it, the follow also comes to rest at once where it would stop with Link standing where he is, where the game puts him at the fade's last frame or its first one back included: its look-ahead let go, its braking done and a re-centre at its end, so that the world shows again with the camera where it stays rather than settling by a pixel or two after it. A shorter fade (a flash) leaves its move as it goes, and so do the fades a menu opens and closes through, after which the world comes back as it was.
+
+An object of Link's the game is making anew (its first state, in the room's corner) is not his place: his last one holds.
+
+Toward a neighbouring room still being prepared or waiting for the ghost, or past an edge it shows black, it goes no further than Link himself, without looking ahead, until the room is there. So it seldom shows more black than before, a little more only:
+
+- when the ghosts run far behind, in a thread on a busy device;
+- where Link stands beside the black past the map's edge, framed without the look-ahead the previous camera kept.
 
 With the Pixel camera its whole pixels step with Link's:
 
