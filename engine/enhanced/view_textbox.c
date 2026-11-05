@@ -122,7 +122,8 @@ static void put_host_box(OraclesEnhancedView *v, const OraclesEnhancedHostTextBo
 
 /* The scale the box is drawn at, `width` pixels wide at the game's: twice as large when Text size is Large and the view
  * holds it so across, else the game's. */
-static unsigned box_scale(const OraclesEnhancedView *v, unsigned width) { return v->text_size == ORACLES_ENHANCED_TEXT_XLARGE && 2u * width <= v->size.width ? 2u : 1u; }
+static unsigned box_scale_at(const OraclesEnhancedView *v, unsigned width, unsigned size) { return size == ORACLES_ENHANCED_TEXT_XLARGE && 2u * width <= v->size.width ? 2u : 1u; }
+static unsigned box_scale(const OraclesEnhancedView *v, unsigned width) { return box_scale_at(v, width, v->text_size); }
 
 /* Over the framed core: the same, but at its size with the large menus, the presenter enlarging it at every size within
  * the part shown alone. */
@@ -157,15 +158,125 @@ static void put_core_box(OraclesEnhancedView *v, const uint32_t *core, int32_t s
     v->scaled_w = w; v->scaled_h = h;
 }
 
+/* The box's size at the game's scale, and the part of the band (x, y, w, h) it takes at `scale`. */
+static void box_size(const OraclesEnhancedView *v, unsigned *w, unsigned *h)
+{
+    *w = v->box_wide ? v->box_host.width : (unsigned)(v->box_rect[2] - v->box_rect[0]);
+    *h = v->box_wide ? v->box_host.height : (unsigned)(v->box_rect[3] - v->box_rect[1]);
+}
+
+static void box_place(const OraclesEnhancedView *v, unsigned scale, int32_t place[4])
+{
+    unsigned w, h;
+    box_size(v, &w, &h);
+    const int lower = v->box_rect[1] >= (int)ORACLES_ENHANCED_AREA_HEIGHT / 2;
+    place[0] = ((int32_t)v->size.width - (int32_t)(scale * w)) / 2;
+    place[1] = v->box_rect[1] + v->box_dy - (lower ? (int32_t)((scale - 1u) * h) : 0);
+    place[2] = (int32_t)(scale * w); place[3] = (int32_t)(scale * h);
+}
+
+/* The band under the box at the largest size the view draws it at, which holds the others (all centred across, against
+ * the same edge), kept before the box is drawn; with the sub-pixel camera's rects held still so far. */
+static void keep_under_box(OraclesEnhancedView *v)
+{
+    int32_t place[4];
+    /* A game whose box keeps its size (oracles_enhanced_view_set_text_size) draws it at the game's size only. */
+    const unsigned largest = oracles_compat_host_text_box(oracles_guest_profile(v->guest)) ? ORACLES_ENHANCED_TEXT_XLARGE : ORACLES_ENHANCED_TEXT_NORMAL;
+    box_place(v, box_scale_at(v, v->box_wide ? v->box_host.width : 8u * ORACLES_TEXT_BOX_GAME_COLUMNS, largest), place);
+    int32_t x0 = place[0], y0 = place[1], x1 = place[0] + place[2], y1 = place[1] + place[3];
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > (int32_t)v->size.width) x1 = (int32_t)v->size.width;
+    if (y1 > (int32_t)v->band_height) y1 = (int32_t)v->band_height;
+    v->box_kept = x1 > x0 && y1 > y0 && (unsigned)(y1 - y0) <= BOX_UNDER_LINES;
+    if (!v->box_kept) return;
+    v->box_under_x = x0; v->box_under_y = y0;
+    v->box_under_w = (unsigned)(x1 - x0); v->box_under_h = (unsigned)(y1 - y0);
+    for (unsigned y = 0; y < v->box_under_h; y++)
+        memcpy(v->box_under + y * v->box_under_w, ev_band_pixel(v, (unsigned)x0, (unsigned)y0 + y), v->box_under_w * sizeof *v->box_under);
+    v->box_fixed_from = v->sub_fixed_count;
+    if (v->sub_fixed_count) memcpy(v->box_fixed_last, v->sub_fixed[v->sub_fixed_count - 1u], sizeof v->box_fixed_last);
+}
+
+/* The box centred at the Text size's scale: the game's at its size drawn here, noted for the presenter to show again
+ * larger; else left to ev_overlay_text_box_above, above all. */
+static void place_box(OraclesEnhancedView *v)
+{
+    const OraclesEnhancedObservation *ob = &v->observation;
+    const uint32_t *core = oracles_core_pixels(v->core);
+    if (!core) return;
+    const int *rect = v->box_rect;
+    const int top = rect[1], lower = top >= (int)ORACLES_ENHANCED_AREA_HEIGHT / 2;
+    const int wide = v->box_wide;
+    const int32_t dx = v->box_dx, dy = v->box_dy, camera_x = v->box_camera_x;
+    const unsigned scale = box_scale(v, wide ? v->box_host.width : 8u * ORACLES_TEXT_BOX_GAME_COLUMNS);
+    if (!wide && scale == 1u)
+        for (unsigned row = 0; row < v->box_rows; row++)
+            for (unsigned col = 0; col < v->box_cols; col++) {
+                if (!v->box_cells[row][col]) continue;
+                {   /* the box stands on the screen: the sub-pixel camera shows it unmoved */
+                    const int gx = (int)(col * 8u) - ob->drawn_camera_x, gy = (int)(row * 8u) - ob->drawn_camera_y;
+                    const int x0 = gx < 0 ? 0 : gx, y0 = gy < 0 ? 0 : gy;
+                    const int x1 = gx + 8 > (int)ORACLES_ENHANCED_CORE_WIDTH ? (int)ORACLES_ENHANCED_CORE_WIDTH : gx + 8;
+                    const int y1 = gy + 8 > (int)ORACLES_ENHANCED_AREA_HEIGHT ? (int)ORACLES_ENHANCED_AREA_HEIGHT : gy + 8;
+                    if (x1 > x0 && y1 > y0) ev_subpixel_fixed(v, ob->window_left + x0 - camera_x + dx, y0 + dy, x1 - x0, y1 - y0);
+                }
+                for (unsigned y = 0; y < 8u; y++)
+                    for (unsigned x = 0; x < 8u; x++) {
+                        const int gx = (int)(col * 8u + x) - ob->drawn_camera_x, gy = (int)(row * 8u + y) - ob->drawn_camera_y;
+                        if (gx < 0 || gx >= (int)ORACLES_ENHANCED_CORE_WIDTH || gy < 0 || gy >= (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
+                        /* the box at the same height on the screen as the game drew it, moved across */
+                        const int32_t px = ob->window_left + gx - camera_x + dx, py = gy + dy;
+                        if (px < 0 || px >= (int32_t)v->size.width || py < 0 || py >= (int32_t)v->band_height) continue;
+                        *ev_band_pixel(v, (unsigned)px, (unsigned)py) = core[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)gy) * ORACLES_PPU_WIDTH + (unsigned)gx];
+                    }
+            }
+    /* The box drawn by the host, or the game's twice as large: above all, the black outside the part of the band shown
+     * included (ev_overlay_text_box_above). */
+    const int32_t hud = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+    if (!wide && scale == 1u) {
+        note_enlarged(v, ((int32_t)v->size.width - (rect[2] - rect[0])) / 2, hud + top + dy, (unsigned)(rect[2] - rect[0]), (unsigned)(rect[3] - rect[1]), lower, 1,
+                      rect[0], hud + top, 0, 8u * ORACLES_TEXT_BOX_GAME_COLUMNS);
+        return;
+    }
+    v->above = wide ? 2 : 1;
+    if (wide) v->above_box = v->box_host;
+    v->above_scale = scale;
+    v->above_lower = lower;
+    v->above_source[0] = rect[0];
+    v->above_source[1] = hud + top;
+    v->above_size[0] = wide ? v->box_host.width : (unsigned)(rect[2] - rect[0]);
+    v->above_size[1] = wide ? v->box_host.height : (unsigned)(rect[3] - rect[1]);
+    v->above_at[0] = ((int32_t)v->size.width - (int32_t)(scale * v->above_size[0])) / 2;
+    v->above_at[1] = hud + top + dy - (lower ? (int32_t)((scale - 1u) * v->above_size[1]) : 0);
+}
+
+int oracles_enhanced_view_redraw_text_box(OraclesEnhancedView *v)
+{
+    if (!v->have_view || !v->box_kept) return 0;
+    for (unsigned y = 0; y < v->box_under_h; y++)
+        memcpy(ev_band_pixel(v, (unsigned)v->box_under_x, (unsigned)v->box_under_y + y), v->box_under + y * v->box_under_w, v->box_under_w * sizeof *v->box_under);
+    v->sub_fixed_count = v->box_fixed_from;
+    if (v->sub_fixed_count) memcpy(v->sub_fixed[v->sub_fixed_count - 1u], v->box_fixed_last, sizeof v->box_fixed_last);
+    v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;
+    v->above = 0;
+    const unsigned scaled_world = v->scaled_frames_world, wide_world = v->wide_frames_world;   /* the compositions' counts */
+    place_box(v);
+    ev_black_outside_shown(v);
+    ev_overlay_text_box_above(v);
+    v->scaled_frames_world = scaled_world; v->wide_frames_world = wide_world;
+    return 1;
+}
+
 void ev_overlay_text_box(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y)
 {
+    v->box_kept = 0;
     uint8_t cells[TEXT_BOX_ROWS][TEXT_BOX_COLS];
     unsigned rows = 0, cols = 0;
     if (!text_box_cells(v, cells, &rows, &cols)) return;
     int32_t dx = 0, dy = 0;
     int rect[4];
     if (!text_box_shift(v, cells, rows, cols, camera_x, &dx, &dy, rect)) return;
-    const int top = rect[1], lower = top >= (int)ORACLES_ENHANCED_AREA_HEIGHT / 2;
     /* The host's wide box, in place of the core's: the core's cells get the room under them, the host's box goes
      * centred across the band at the height the game drew its box at. */
     OraclesEnhancedHostTextBox host;
@@ -205,51 +316,27 @@ void ev_overlay_text_box(OraclesEnhancedView *v, int32_t camera_x, int32_t camer
     for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
     oracles_ppu_render(&in, v->popup_frame);
     /* First the room under the box at its place, then the box centred: the
-     * box stays above all, the neighbours' objects included.  Text size Large: the box twice as large, centred across,
-     * against the edge of the screen the game drew it against. */
-    const unsigned scale = box_scale(v, wide ? host.width : 8u * ORACLES_TEXT_BOX_GAME_COLUMNS);
-    for (int pass = 0; pass < (wide || scale > 1u ? 1 : 2); pass++)
-        for (unsigned row = 0; row < rows; row++)
-            for (unsigned col = 0; col < cols; col++) {
-                if (!cells[row][col]) continue;
-                if (pass == 1) {   /* the box stands on the screen: the sub-pixel camera shows it unmoved */
-                    const int gx = (int)(col * 8u) - ob->drawn_camera_x, gy = (int)(row * 8u) - ob->drawn_camera_y;
-                    const int x0 = gx < 0 ? 0 : gx, y0 = gy < 0 ? 0 : gy;
-                    const int x1 = gx + 8 > (int)ORACLES_ENHANCED_CORE_WIDTH ? (int)ORACLES_ENHANCED_CORE_WIDTH : gx + 8;
-                    const int y1 = gy + 8 > (int)ORACLES_ENHANCED_AREA_HEIGHT ? (int)ORACLES_ENHANCED_AREA_HEIGHT : gy + 8;
-                    if (x1 > x0 && y1 > y0) ev_subpixel_fixed(v, ob->window_left + x0 - camera_x + dx, y0 + dy, x1 - x0, y1 - y0);
+     * box stays above all, the neighbours' objects included. */
+    for (unsigned row = 0; row < rows; row++)
+        for (unsigned col = 0; col < cols; col++) {
+            if (!cells[row][col]) continue;
+            for (unsigned y = 0; y < 8u; y++)
+                for (unsigned x = 0; x < 8u; x++) {
+                    const int gx = (int)(col * 8u + x) - ob->drawn_camera_x, gy = (int)(row * 8u + y) - ob->drawn_camera_y;
+                    if (gx < 0 || gx >= (int)ORACLES_ENHANCED_CORE_WIDTH || gy < 0 || gy >= (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
+                    const int32_t px = ob->window_left + gx - camera_x, py = ob->window_top + gy - camera_y;
+                    if (px < 0 || px >= (int32_t)v->size.width || py < 0 || py >= (int32_t)v->band_height) continue;
+                    *ev_band_pixel(v, (unsigned)px, (unsigned)py) = v->popup_frame[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)gy) * ORACLES_PPU_WIDTH + (unsigned)gx];
                 }
-                for (unsigned y = 0; y < 8u; y++)
-                    for (unsigned x = 0; x < 8u; x++) {
-                        const int gx = (int)(col * 8u + x) - ob->drawn_camera_x, gy = (int)(row * 8u + y) - ob->drawn_camera_y;
-                        if (gx < 0 || gx >= (int)ORACLES_ENHANCED_CORE_WIDTH || gy < 0 || gy >= (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
-                        const unsigned source = (ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)gy) * ORACLES_PPU_WIDTH + (unsigned)gx;
-                        /* The room at the window's place; the box at the same
-                         * height on the screen as the game drew it, moved across. */
-                        const int32_t px = pass == 0 ? ob->window_left + gx - camera_x : ob->window_left + gx - camera_x + dx;
-                        const int32_t py = pass == 0 ? ob->window_top + gy - camera_y : gy + dy;
-                        if (px < 0 || px >= (int32_t)v->size.width || py < 0 || py >= (int32_t)v->band_height) continue;
-                        *ev_band_pixel(v, (unsigned)px, (unsigned)py) = pass == 0 ? v->popup_frame[source] : core[source];
-                    }
-            }
-    /* The box drawn by the host, or the game's twice as large: above all, the black outside the part of the band shown
-     * included (ev_overlay_text_box_above). */
-    const int32_t hud = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
-    if (!wide && scale == 1u) {
-        note_enlarged(v, ((int32_t)v->size.width - (rect[2] - rect[0])) / 2, hud + top + dy, (unsigned)(rect[2] - rect[0]), (unsigned)(rect[3] - rect[1]), lower, 1,
-                      rect[0], hud + top, 0, 8u * ORACLES_TEXT_BOX_GAME_COLUMNS);
-        return;
-    }
-    v->above = wide ? 2 : 1;
-    v->above_box = host;
-    v->above_scale = scale;
-    v->above_lower = lower;
-    v->above_source[0] = rect[0];
-    v->above_source[1] = hud + top;
-    v->above_size[0] = wide ? host.width : (unsigned)(rect[2] - rect[0]);
-    v->above_size[1] = wide ? host.height : (unsigned)(rect[3] - rect[1]);
-    v->above_at[0] = ((int32_t)v->size.width - (int32_t)(scale * v->above_size[0])) / 2;
-    v->above_at[1] = hud + top + dy - (lower ? (int32_t)((scale - 1u) * v->above_size[1]) : 0);
+        }
+    memcpy(v->box_cells, cells, sizeof v->box_cells);
+    v->box_rows = rows; v->box_cols = cols;
+    v->box_camera_x = camera_x; v->box_dx = dx; v->box_dy = dy;
+    memcpy(v->box_rect, rect, sizeof v->box_rect);
+    v->box_wide = wide;
+    if (wide) v->box_host = host;
+    keep_under_box(v);
+    place_box(v);
 }
 
 void ev_overlay_text_box_above(OraclesEnhancedView *v)

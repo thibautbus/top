@@ -257,7 +257,7 @@ int ev_shown_meets(const OraclesEnhancedView *v, int32_t band_left, int32_t band
 }
 
 /* What the overlays drew beyond the part of the band shown, black again. */
-static void black_outside_shown(OraclesEnhancedView *v)
+void ev_black_outside_shown(OraclesEnhancedView *v)
 {
     if (v->shown_width == v->size.width && v->shown_height == v->band_height) return;
     const unsigned x0 = (v->size.width - v->shown_width) / 2u, y0 = (v->band_height - v->shown_height) / 2u;
@@ -601,7 +601,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         ev_fade_appearing(v, camera_x, camera_y);
         ev_overlay_warp_curtain(v, camera_x, camera_y);
         ev_overlay_text_box(v, camera_x, camera_y);
-        black_outside_shown(v);
+        ev_black_outside_shown(v);
         ev_overlay_text_box_above(v);
         ev_subpixel_settle(v);
     } else if (!load_band) ev_overlay_text_box_framed(v);

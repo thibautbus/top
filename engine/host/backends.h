@@ -184,6 +184,9 @@ void oracles_sdl_backend_pause_box(const oracles_host_backend *backend, const ui
 /* The last frame's pixels drawn again (the frame's size, its crop, box and sub-pixel move kept): the pause changing a
  * setting that the frame's own pixels show (the status bar's layout) shows it in the image at once. */
 void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const uint32_t *pixels);
+/* And the rects of them the sub-pixel camera holds still (the text box drawn again at another size), where the last
+ * frame was moved by it. */
+void oracles_sdl_backend_pause_fixed(const oracles_host_backend *backend, const uint32_t (*rects)[4], unsigned count);
 /* What asked for the pause menu last: a key (Escape), a controller (Guide, the menu's button or trigger), a finger
  * (the touch controls' pause) or Android's Back, which a finger or a controller gives too; NONE before any, and for a
  * suspension (Android's background), which no device asked. */

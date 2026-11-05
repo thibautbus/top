@@ -134,6 +134,14 @@ def prediction_rules(values: dict) -> list:
     if "transitions.predicted" not in values:
         return []
     return PREDICTION + [f"transitions.predicted_matched={values['transitions.predicted']}"]
+
+
+# On every row with a text size (its counters in the summary): the box drawn again at the other sizes and back, as the
+# pause draws it, gives back the frame as composed.
+def redraw_rules(values: dict) -> list:
+    return ["text_box.redraw_wrong=0"] if "text_box.redraw_frames" in values else []
+
+
 MODE_FLAGS = {
     "faithful": lambda w: ["--render-check", str(w / "render"), "--colour-correction", "off", "--ghost-check", str(w / "ghost"), "--ghost-trace",
                            "--out", str(w / "fingerprints.tsv")],
@@ -421,7 +429,7 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
     if not values:
         violations.append(f"no summary written (harness exit {returncode}{retried}; see {w / 'harness.log'})")
     sized = sized_rules(row["mode"], row["options"], row["expect"], core)
-    for rule in ALWAYS[row["mode"]] + sized + prediction_rules(values) + row["expect"]:
+    for rule in ALWAYS[row["mode"]] + sized + prediction_rules(values) + redraw_rules(values) + row["expect"]:
         on, colon, rest = rule.partition(":")
         if colon and on in CORES:
             if on != core:

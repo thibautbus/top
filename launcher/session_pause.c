@@ -81,6 +81,14 @@ static int pause_settings_changed(void *opaque)
     }
     if (changed & ORACLES_SESSION_CHANGED_TEXT_SIZE) {
         oracles_enhanced_view_set_text_size(s->view, (unsigned)applied.text_size);
+        if (oracles_enhanced_view_redraw_text_box(s->view)) {   /* the pause's image of a world frame, its box at the new size at once */
+            const uint32_t *pixels = oracles_enhanced_view_surface(s->view);
+            if (s->mod) pixels = oracles_mod_session_screen(s->mod, pixels, oracles_enhanced_view_width(s->view), oracles_enhanced_view_height(s->view));
+            oracles_sdl_backend_pause_pixels(&s->backend, pixels);
+            const uint32_t (*fixed)[4] = NULL;
+            const unsigned count = oracles_enhanced_view_subpixel_fixed(s->view, &fixed);
+            oracles_sdl_backend_pause_fixed(&s->backend, fixed, count);
+        }
         uint32_t box[4], reserve = 0;   /* the pause's image of the box the presenter enlarges, at once */
         int bottom = 0;
         unsigned size = 0;

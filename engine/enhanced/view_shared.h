@@ -155,6 +155,7 @@ void ev_overlay_area_blurb(OraclesEnhancedView *v, int32_t camera_x, int32_t cam
 void ev_overlay_warp_curtain(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
 /* A dialogue's text box, drawn again at the middle of the band (view_textbox.c): the core's, or the host's wide box. */
 void ev_overlay_text_box(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
+void ev_black_outside_shown(OraclesEnhancedView *v);
 void ev_phase_observe(OraclesEnhancedView *v);
 void ev_hold_camera(OraclesEnhancedView *v, int32_t *camera_x, int32_t *camera_y);
 void ev_hold_note(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);

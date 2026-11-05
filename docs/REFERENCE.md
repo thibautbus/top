@@ -472,7 +472,7 @@ With `menus=large`, the menus, the map and the cutscenes keep the scale they hav
 
 The fan games keep the game's box at its size: Text size does not apply to them.
 
-It is presentation alone: the game, its routes and its savestates do not change, nothing more is hooked (the classic text in the game's box stays the game's, its box's pixels enlarged), and a change applies at once, from the pause too, the image behind its menu included, but for a change to or from Very large where the view draws the box twice as large, which that image shows when the game resumes.
+It is presentation alone: the game, its routes and its savestates do not change, nothing more is hooked (the classic text in the game's box stays the game's, its box's pixels enlarged), and a change applies at once, from the pause too, the image behind its menu included: to or from Very large where the view draws the box twice as large (the medium and far views), that image takes the box at its new size over the world as the frame showed it, the game not drawn again.
 
 ### Text speed
 
@@ -757,7 +757,7 @@ A fan game, which has neither Swimming's hold nor the item hotkeys, shows both g
 
 `--swim-hold`, `--text-speed`, `--item-hotkeys`, `--scale`, `--fullscreen` and `--vsync` hold until the pause changes their row, as `--colour-correction` does; a savestate loads with the swim's hold, the item hotkeys and the window as they are when it loads, none of them being in its identity, and a load lets an item hotkeys' exchange under way go, as it always did.
 
-The colour correction shows from the game's next frame, the image behind the menu staying the last one the game drew; the HUD, Menus & scenes and the text size change that image at once, but for a text box Very large where the view draws it twice as large itself (the medium and far views), which the image shows so, or no longer, once the game resumes; Display's Advanced rows open on the first row that changes there, vsync, and Display › Text on Text size.
+The colour correction shows from the game's next frame, the image behind the menu staying the last one the game drew; the HUD, Menus & scenes and the text size change that image at once, a text box Very large where the view draws it twice as large itself (the medium and far views) included, drawn again at the new size over the world as the frame showed it; Display's Advanced rows open on the first row that changes there, vsync, and Display › Text on Text size.
 
 The end-of-game report says the scaling in effect at the last frame. The pause holds the session between two frames: the core does not run, no frame is counted, and a route being recorded contains none.
 

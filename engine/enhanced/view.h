@@ -102,6 +102,12 @@ void oracles_enhanced_view_text_box_counts(const OraclesEnhancedView *view, unsi
 #define ORACLES_ENHANCED_TEXT_XLARGE 2u
 void oracles_enhanced_view_set_text_size(OraclesEnhancedView *view, unsigned size);
 unsigned oracles_enhanced_view_text_size(const OraclesEnhancedView *view);
+/* The last world frame's text box drawn again in the surface at the Text size now, the band under it as that frame
+ * composed it (a size changed from the pause, the game not running): 1, or 0 when that frame showed no box in the world
+ * band.  The sub-pixel camera's rects held still follow (oracles_enhanced_view_subpixel_fixed); Link's layer stays as the
+ * frame left it: under a larger box his pixels there are drawn over by the box's rect, held still after the layer, and
+ * where a smaller box uncovers him he shows with the band, at its fraction rather than his own. */
+int oracles_enhanced_view_redraw_text_box(OraclesEnhancedView *view);
 /* The framed core shown alone at its own scale (menus=large, oracles_enhanced_view_framed_crop as the host's frame_crop). */
 void oracles_enhanced_view_set_large_menus(OraclesEnhancedView *view, int large);
 /* The host's frame box (oracles_host_run_config's frame_box): 1 when the last composition drew a text box at its size for

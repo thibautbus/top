@@ -144,6 +144,7 @@ void oracles_enhanced_check_stop(OraclesEnhancedCheck *c)
     if (!c) return;
     if (c->tsv) fclose(c->tsv);
     free(c->saved_core);
+    free(c->redraw_copy);
     oracles_sprites_destroy(c->link_sprites);
     oracles_enhanced_view_stop(c->view);
     free(c);
@@ -223,6 +224,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
         if (spent > c->compose_us_max) c->compose_us_max = spent;
     }
     if (c->text_size) ec_check_scaled_text_box(c, mode, surface);
+    if (c->text_size) ec_check_text_size_redraw(c, mode);
     if (c->wide) ec_check_wide_text_box(c, mode, surface, frame);   /* the frame just composed, before a reload replaces the state it shows */
     else if (c->host_box) ec_check_host_text_box(c, mode, frame);
     const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * oracles_enhanced_view_height(c->view) * sizeof *surface, ORACLES_HASH_SEED);

@@ -451,6 +451,7 @@ static void scaled_summary(const OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "text_box.enlarged_frames=%u\ntext_box.enlarged_frames_world=%u\ntext_box.enlarged_frames_framed=%u\ntext_box.enlarged_frames_xlarge=%u\n"
                  "text_box.enlarged_pixels=%llu\ntext_box.enlarged_pixels_wrong=%llu\n",
             c->large_frames, c->large_frames_world, c->large_frames_framed, c->large_frames_xlarge, c->large_pixels, c->large_pixels_wrong);
+    fprintf(out, "text_box.redraw_frames=%u\ntext_box.redraw_wrong=%u\n", c->redraw_frames, c->redraw_wrong);
 }
 
 static void wide_summary(const OraclesEnhancedCheck *c, FILE *out)
@@ -490,6 +491,52 @@ static void wide_report(const OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "  the host's lines: %u composed (%u wider than the game's 128 pixels, %u characters past the box, %u symbols), %u copied at the game's DMA (%u unlike w7TextGfxBuffer)\n",
             g.composed, g.wide_lines, g.overflows, g.symbols, g.copies, g.copies_unlike);
     fprintf(out, "  wide text box: pages whole at frames (frame:box) %s; a symbol drawn first at (frame:character) %s\n", c->page_list, c->symbol_list[0] ? c->symbol_list : "none");
+}
+
+/* The pause's change of Text size (oracles_enhanced_view_redraw_text_box): each world frame with a box, drawn again at
+ * each other size, then at the row's, must give back the surface, the rects the sub-pixel camera holds still and the box
+ * published for the presenter as the composition left them. */
+typedef struct redraw_state {
+    unsigned fixed_count;
+    uint32_t fixed[ORACLES_ENHANCED_SUBPIXEL_FIXED][4];
+    int enlarged, bottom;
+    uint32_t rect[4], reserve;
+    unsigned size;
+} redraw_state;
+
+static void redraw_state_of(OraclesEnhancedCheck *c, redraw_state *s)
+{
+    memset(s, 0, sizeof *s);
+    const uint32_t (*fixed)[4] = NULL;
+    const unsigned count = oracles_enhanced_view_subpixel_fixed(c->view, &fixed);
+    s->fixed_count = count < ORACLES_ENHANCED_SUBPIXEL_FIXED ? count : ORACLES_ENHANCED_SUBPIXEL_FIXED;
+    if (s->fixed_count) memcpy(s->fixed, fixed, s->fixed_count * sizeof s->fixed[0]);
+    s->enlarged = oracles_enhanced_view_text_box_enlarged(c->view, s->rect, &s->bottom, &s->reserve, &s->size);
+}
+
+void ec_check_text_size_redraw(OraclesEnhancedCheck *c, OraclesEnhancedMode mode)
+{
+    if (mode != ORACLES_ENHANCED_WORLD) return;
+    const size_t pixels = (size_t)c->width * oracles_enhanced_view_height(c->view);
+    if (!c->redraw_copy && !(c->redraw_copy = malloc(pixels * sizeof *c->redraw_copy))) return;
+    const uint32_t *surface = oracles_enhanced_view_surface(c->view);
+    memcpy(c->redraw_copy, surface, pixels * sizeof *surface);
+    redraw_state before, after;
+    redraw_state_of(c, &before);
+    int drawn = 0, wrong = 0;
+    for (unsigned size = ORACLES_ENHANCED_TEXT_NORMAL; size <= ORACLES_ENHANCED_TEXT_XLARGE; size++) {
+        if (size == c->text_size) continue;
+        oracles_enhanced_view_set_text_size(c->view, size);
+        drawn = oracles_enhanced_view_redraw_text_box(c->view);
+        oracles_enhanced_view_set_text_size(c->view, c->text_size);
+        if (!drawn) break;
+        oracles_enhanced_view_redraw_text_box(c->view);
+        redraw_state_of(c, &after);
+        if (memcmp(c->redraw_copy, surface, pixels * sizeof *surface) != 0 || memcmp(&before, &after, sizeof before) != 0) wrong = 1;
+    }
+    if (!drawn) return;
+    c->redraw_frames++;
+    c->redraw_wrong += (unsigned)wrong;
 }
 
 void ec_host_text_box_summary(const OraclesEnhancedCheck *c, FILE *out)

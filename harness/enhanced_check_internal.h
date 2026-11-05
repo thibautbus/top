@@ -276,6 +276,8 @@ struct OraclesEnhancedCheck {
     unsigned wide_cursor_frames, wide_symbol_tiles;   /* frames with a choice's cursor drawn; whole tiles drawn (symbols, choices' places) */
     unsigned wide_crop_frames, wide_crop_outside;     /* framed frames with the large menus' rectangle; those it does not hold the box in */
     unsigned text_size;                      /* --text-size: ORACLES_ENHANCED_TEXT_* */
+    unsigned redraw_frames, redraw_wrong;    /* world frames whose box was drawn again at the other sizes and back; those not given back as composed */
+    uint32_t *redraw_copy;
     int large_menus;                         /* --menus-large: the surfaces written as the presenter shows the framed core alone */
     unsigned surface_scale;                  /* --surface-scale */
     unsigned large_frames, large_frames_world, large_frames_framed;   /* frames the box was published for the presenter (Large) */
@@ -398,6 +400,7 @@ void ec_check_host_text_box(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, u
 void ec_check_wide_text_box(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, const uint32_t *surface, uint32_t frame);
 /* The text box drawn twice as large (Text size Large) against the box it enlarges (enhanced_check_text_box.c). */
 void ec_check_scaled_text_box(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, const uint32_t *surface);
+void ec_check_text_size_redraw(OraclesEnhancedCheck *c, OraclesEnhancedMode mode);
 void ec_host_text_box_summary(const OraclesEnhancedCheck *c, FILE *out);
 void ec_host_text_box_report(const OraclesEnhancedCheck *c, FILE *out);
 void ec_note_blurb_drawn(OraclesEnhancedCheck *c);

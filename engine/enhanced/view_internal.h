@@ -40,6 +40,7 @@
 #define ENTRY_ANIMATION_IMAGES 192u   /* images of a neighbour's animation kept to match the live tiles */
 #define TEXT_BOX_ROWS (LARGE_ROOM_H / 8u)   /* the cells of the largest room, where a text box is looked for */
 #define TEXT_BOX_COLS (LARGE_ROOM_W / 8u)
+#define BOX_UNDER_LINES 128u   /* the band kept under a text box twice as large */
 #define LOOP_RECORD_TAG "LOOP"
 #define LOOP_RECORD_SIZE 12u         /* the tag, the loops' columns and rows (int32, little-endian) */
 #define SIZE_RECORD_TAG "SIZE"
@@ -494,6 +495,20 @@ struct OraclesEnhancedView {
     unsigned above_scale, above_size[2];
     int above_lower;                     /* the game drew its box in the lower half of its screen */
     int32_t above_source[2], above_at[2];   /* the core image's pixels it enlarges; its top-left in the surface */
+    /* The last world frame's box, for a change of Text size from the pause (oracles_enhanced_view_redraw_text_box): its
+     * cells and its place, and the band under every size it can take there, before the box was drawn. */
+    int box_kept;
+    uint8_t box_cells[TEXT_BOX_ROWS][TEXT_BOX_COLS];
+    unsigned box_rows, box_cols;
+    int32_t box_camera_x, box_dx, box_dy;
+    int box_rect[4];
+    int box_wide;
+    OraclesEnhancedHostTextBox box_host;
+    int32_t box_under_x, box_under_y;
+    unsigned box_under_w, box_under_h;
+    uint32_t box_under[ORACLES_ENHANCED_MAX_WIDTH * BOX_UNDER_LINES];
+    unsigned box_fixed_from;             /* the sub-pixel camera's rects held still before the box's, the last of them as it stood */
+    uint32_t box_fixed_last[4];
     uint32_t curtain_colour;          /* its colour, read in the core's image while the window still shows it */
     int curtain_colour_valid;
     uint8_t animated_tileset_gfx;    /* the tileset the counts above were seen under */

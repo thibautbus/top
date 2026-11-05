@@ -458,6 +458,15 @@ void oracles_sdl_backend_pause_box(const oracles_host_backend *backend, const ui
     sb_show_box(backend->opaque, rect, bottom, reserve_w, size);
 }
 
+void oracles_sdl_backend_pause_fixed(const oracles_host_backend *backend, const uint32_t (*rects)[4], unsigned count)
+{
+    sdl_backend *state = backend->opaque;
+    if (!state->shown_subpixel) return;
+    if (count > ORACLES_HOST_SUBPIXEL_FIXED) count = ORACLES_HOST_SUBPIXEL_FIXED;
+    if (count) memcpy(state->shown.fixed, rects, count * sizeof state->shown.fixed[0]);
+    state->shown.fixed_count = count;
+}
+
 void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const uint32_t *pixels)
 {
     const sdl_backend *state = backend->opaque;
