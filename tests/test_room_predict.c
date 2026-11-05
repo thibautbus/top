@@ -29,6 +29,7 @@ static OraclesGuestTransitionState loading(void)
     s.load.pirate_ship_flag = 0x40; s.load.intro_done_flag = 0x0a;
     s.load.portal_group = 0xff;
     s.load.given = 0x3f; s.load.room_code_replay = 1;
+    s.moblin_keep_bank = FIXTURE_BANK; s.moblin_keep_table = FIXTURE_MOBLIN_KEEP;
     return s;
 }
 
@@ -82,6 +83,8 @@ int main(void)
     CHECK(oracles_room_predict_substitute(&rom, &f.tables, &s, NULL, layout) == ORACLES_ROOM_PREDICTED && layout[0x11] == 0xeb);
     s.game = ORACLES_GAME_SEASONS; s.tileset_flags = 0x01;   /* Seasons has no pollution */
     CHECK(oracles_room_predict_substitute(&rom, &f.tables, &s, NULL, layout) == ORACLES_ROOM_PREDICTED && layout[0x11] == 0xeb);
+    s.game = ORACLES_GAME_AGES; f.tables.pollution_above_water = (OraclesSym){ 0, 0 };   /* its list not bound: refused */
+    CHECK(oracles_room_predict_substitute(&rom, &f.tables, &s, NULL, layout) == ORACLES_ROOM_PREDICT_UNREADABLE);
     memset(global_flags, 0, sizeof global_flags);
 
     /* Single tile changes: the room's flags against the mask; in Ages' engine $f0 unlinked, $f1 linked, and $f2 the game
@@ -563,6 +566,100 @@ int main(void)
         s.active_room = 0x6f;
         CHECK(oracles_room_predict_excluded(&rom, &f.tables, &s) == ORACLES_ROOM_PREDICTED);
     }
+    /* Seasons' Subrosia (group 1): the room beside within its own map (11 x 8), no pack compared (checkRoomPack and
+     * loadScreenMusic act in group 0 only); Ages' group 1 compares its packs; groups past 1 refused. */
+    {
+        fixture_init(&f, rom_bytes);
+        fixture_room_tile(&f, 0x03, 3, 2, 0x3a);
+        fixture_collision(&f, 0x3a, 0x0f);
+        uint8_t flags[256], room = 0;
+        memset(flags, 0, sizeof flags);
+        static const uint8_t no_objects[0x1000];
+        s = loading();
+        s.game = ORACLES_GAME_SEASONS; s.active_group = 1; s.active_room = 0x13; s.map_width = 11; s.map_height = 8;
+        s.room_pack_bank = FIXTURE_BANK; s.room_pack_table = FIXTURE_ROOM_PACKS;
+        s.load.room_flags_page = flags; s.load.objects = no_objects;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED);
+        CHECK(room == 0x03 && layout[0x23] == 0x3a && collisions[0x23] == 0x0f);
+        s.game = ORACLES_GAME_AGES; s.map_width = 14; s.map_height = 14;   /* Ages' group 1, one pack */
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x03);
+        fixture_put(&f, FIXTURE_ROOM_PACKS + 0x100u + 0x03u, 0x05);   /* another pack in group 1 */
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        s.game = ORACLES_GAME_SEASONS; s.map_width = 11; s.map_height = 8;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x03);
+        s.active_group = 0; s.map_width = 16; s.map_height = 16;
+        fixture_put(&f, FIXTURE_ROOM_PACKS + 0x03u, 0x05);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        fixture_put(&f, FIXTURE_ROOM_PACKS + 0x03u, 0x00);
+        /* The edges of Subrosia's map, not of Holodrum's. */
+        s.active_group = 1; s.map_width = 11; s.map_height = 8;
+        s.active_room = 0x7a;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 2, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x79);
+        s.active_group = 2; s.active_room = 0x13;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+    }
+    /* The Moblin's Keep (getMoblinKeepScreenIndex): the five rooms of the image's moblinKeepRooms, in group 0 alone (its
+     * tileset chosen by getMoblinKeepSeasonsTilesetData), a list of another image's rooms followed as it is; the list
+     * not bound, the image not qualified; unreadable, the room left to its load. */
+    {
+        fixture_init(&f, rom_bytes);
+        uint8_t flags[256], room = 0;
+        memset(flags, 0, sizeof flags);
+        static const uint8_t no_objects[0x1000];
+        s = loading();
+        s.game = ORACLES_GAME_SEASONS; s.active_room = 0x5a; s.map_width = 16; s.map_height = 16;
+        s.room_pack_bank = FIXTURE_BANK; s.room_pack_table = FIXTURE_ROOM_PACKS;
+        s.load.room_flags_page = flags; s.load.objects = no_objects;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED && room == 0x5b);
+        s.active_room = 0x6e;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x6d);
+        static const uint8_t other[5] = { 0x6d, 0x5c, 0x7d, 0x6c, 0x7b };
+        for (unsigned i = 0; i < 5u; i++) fixture_put(&f, FIXTURE_MOBLIN_KEEP + i, other[i]);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED && room == 0x6d);
+        s.active_room = 0x5a;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x5b);
+        fixture_put(&f, FIXTURE_MOBLIN_KEEP, 0x03);   /* a room of Subrosia's map: listed for group 0 alone */
+        s.active_room = 0x13;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED && room == 0x03);
+        s.active_group = 1; s.map_width = 11; s.map_height = 8;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x03);
+        s.active_group = 0; s.map_width = 16; s.map_height = 16;
+        s.moblin_keep_table = 0x3ffe;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        s.moblin_keep_bank = 0xff;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_UNQUALIFIED);
+        s.game = ORACLES_GAME_AGES; s.map_width = 14; s.map_height = 14;   /* Ages' engine has none */
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED);
+    }
+    /* A map walled inside the grid (Temple of Seasons): the room beside from its first column and row, none past them;
+     * Subrosia's columns 4 to 10, Holodrum's columns 13 to 15 and rows 3 to 11. */
+    {
+        fixture_init(&f, rom_bytes);
+        uint8_t flags[256], room = 0;
+        memset(flags, 0, sizeof flags);
+        static const uint8_t no_objects[0x1000];
+        s = loading();
+        s.game = ORACLES_GAME_SEASONS; s.active_group = 1; s.map_width = 11; s.map_height = 8; s.map_left = 4; s.map_top = 0;
+        s.room_pack_bank = FIXTURE_BANK; s.room_pack_table = FIXTURE_ROOM_PACKS;
+        s.load.room_flags_page = flags; s.load.objects = no_objects;
+        s.active_room = 0x14;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x04);
+        s.active_room = 0x15;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x14);
+        s.active_group = 0; s.map_width = 16; s.map_height = 12; s.map_left = 13; s.map_top = 3;
+        s.active_room = 0x3e;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        s.active_room = 0x4e;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x3e);
+        s.active_room = 0x4d;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 3, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED && room == 0x4e);
+        s.active_room = 0xbe;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 2, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+    }
     /* The room beside at a corner, its own code replayed (0:25 right of 0:24); a routine listed for another room, refused. */
     {
         fixture_init(&f, rom_bytes);
@@ -583,6 +680,124 @@ int main(void)
         CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED);
         CHECK(room == 0x25 && layout[0x50] == 0x1d && layout[0x60] == 0x1e);
         memset(global_flags, 0, sizeof global_flags);
+    }
+    /* The expanded tilesets: the collisions after the 2048 bytes of mappings of the tileset's entry (bank 2), a seasonal
+     * one's by the season; the layout group overridden, or the table's for the group, swapped by bit 0 of the flags; the
+     * large rooms raw; the rooms of group 0 whose chest stays closed until the past's room $20 has bit 0. */
+    {
+        fixture_init(&f, rom_bytes);
+        OraclesTables *t = &f.tables;
+        t->tileset_layout_table = (OraclesSym){ 0, 0 };
+        t->expanded_tileset_mappings_table = (OraclesSym){ FIXTURE_BANK, 0x6000 };
+        t->layout_group_table = (OraclesSym){ 0, 0x3000 };
+        static const uint8_t entries[] = { 0x40, 0x00, 0x02, 0xff, 0x10, 0x60, 0x48, 0x00, 0x02 };
+        for (unsigned i = 0; i < sizeof entries; i++) fixture_put(&f, 0x6000u + i, entries[i]);
+        for (unsigned i = 0; i < 4u; i++) { fixture_put(&f, 0x6010u + 3u * i, i == 2u ? 0x40 : 0x50); fixture_put(&f, 0x6011u + 3u * i, 0x00); fixture_put(&f, 0x6012u + 3u * i, i == 2u ? 0x03 : 0x02); }
+        rom_bytes[2u * 0x4000u + 0x800u + 0x3a] = 0x0f;          /* tileset 0 */
+        rom_bytes[3u * 0x4000u + 0x800u + 0x3a] = 0x05;          /* tileset 1 in autumn */
+        rom_bytes[2u * 0x4000u + 0x1000u + 0x800u + 0x3a] = 0x03;   /* tileset 1 in the other seasons */
+        int seasonal = -1;
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 0x80, 0, table, &seasonal) == ORACLES_OK && table[0x3a] == 0x0f && seasonal == 0);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 1, 2, table, &seasonal) == ORACLES_OK && table[0x3a] == 0x05 && seasonal == 1);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 1, 1, table, NULL) == ORACLES_OK && table[0x3a] == 0x03);
+        /* The whole season byte, as the game indexes by it: a fifth entry past the four, read; one past the bank, refused. */
+        fixture_put(&f, 0x601c, 0x40); fixture_put(&f, 0x601d, 0x00); fixture_put(&f, 0x601e, 0x03);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 1, 4, table, NULL) == ORACLES_OK && table[0x3a] == 0x05);
+        const OraclesTables none = { 0 };
+        CHECK(oracles_expanded_tileset_collisions(&rom, &none, 0, 0, table, NULL) == ORACLES_ERR_FORMAT);
+        /* An entry whose data leaves its bank, a seasonal pointer out of the switchable bank: refused. */
+        static const uint8_t bad[] = { 0x77, 0x80, 0x02, 0xff, 0x00, 0x30, 0xff, 0x00, 0x7f };
+        for (unsigned i = 0; i < sizeof bad; i++) fixture_put(&f, 0x6006u + i, bad[i]);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 2, 0, table, NULL) == ORACLES_ERR_FORMAT);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 3, 0, table, NULL) == ORACLES_ERR_FORMAT);
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 4, 0xff, table, NULL) == ORACLES_ERR_FORMAT);   /* its season's entry past $7fff */
+        static const uint8_t groups[8] = { 5, 2, 1, 5, 4, 5, 4, 5 };
+        memcpy(rom_bytes + 0x3000, groups, sizeof groups);
+        fixture_put(&f, 0x4000u + 8u * 5u, 0x00);   /* layout group 5 large, raw: its rooms' words at $4400 from $4600 - $200 */
+        fixture_room_tile(&f, 0x12, 3, 2, 0x3a);
+        s = loading();
+        s.load.tileset_layout = 0; s.load.tileset_layout_group = 0xff;
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICT_LARGE);
+        s.load.room_flags = 0x01;   /* the layout swapped: group 2, layout group 1 */
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED && layout[0x23] == 0x3a && collisions[0x23] == 0x0f);
+        s.load.room_flags = 0; s.load.tileset_layout_group = 0; s.load.tileset_layout = 1; s.load.room_state_modifier = 2;
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED && collisions[0x23] == 0x05);
+        s.load.loaded_tileset_layout = 1;   /* a seasonal tileset kept loaded: maybe another season's */
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        s.load.tileset_layout = 0; s.load.loaded_tileset_layout = 0;   /* not seasonal: the same collisions kept */
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED && collisions[0x23] == 0x0f);
+        s.load.tileset_layout = 1; s.load.loaded_tileset_layout = 0;
+        /* Seasons' engine: group 0's layout group the season (wRoomStateModifier), another group's the table's, no swap;
+         * a season naming no layout group, refused. */
+        s.game = ORACLES_GAME_SEASONS; s.load.tileset_layout_group = 0xff;
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED && collisions[0x23] == 0x05);
+        s.active_group = 1; s.load.room_flags = 0x01;   /* layout group 2; Ages' swap would give 3's, large */
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED);
+        s.game = ORACLES_GAME_AGES;
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICT_LARGE);
+        s.game = ORACLES_GAME_SEASONS; s.active_group = 0; s.load.room_flags = 0; s.load.room_state_modifier = 9;
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        s.load.tileset_layout_group = 8;   /* an override past the groups */
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        /* A seasonal tileset whose four seasons' collisions are the same, kept loaded: predicted. */
+        s.load.tileset_layout_group = 0xff; s.load.room_state_modifier = 1; s.load.tileset_layout = 0x20; s.load.loaded_tileset_layout = 0x20;
+        fixture_put(&f, 0x6060, 0xff); fixture_put(&f, 0x6061, 0x70); fixture_put(&f, 0x6062, 0x60);
+        for (unsigned i = 0; i < 4u; i++) { fixture_put(&f, 0x6070u + 3u * i, 0x50); fixture_put(&f, 0x6071u + 3u * i, 0x00); fixture_put(&f, 0x6072u + 3u * i, 0x02); }
+        CHECK(oracles_expanded_tileset_collisions(&rom, t, 0x20, 3, table, &seasonal) == ORACLES_OK && seasonal == 0);
+        CHECK(oracles_room_predict(&rom, t, &s, layout, collisions) == ORACLES_ROOM_PREDICTED && collisions[0x23] == 0x03);
+        s.game = ORACLES_GAME_AGES; s.load.tileset_layout_group = 0;
+        int large = 0;
+        fixture_put(&f, 0x4600u + 80u * 0x12u - 0x200u + 0x9eu, 0x3b);
+        CHECK(oracles_decode_room_layout(&rom, t, 5, 0x12, layout, &large) == ORACLES_OK && large && layout[0x9e] == 0x3b);
+        s = loading();
+        uint8_t all[0x400];
+        memset(all, 0, sizeof all);
+        s.load.room_flags_all = all; s.load.room_flags_all_size = sizeof all;
+        const uint8_t chests[] = { 0x33, 0x12, 0x28, 0x00, 0xff };
+        fixture_group_lists(&f, t->chest_data_group_table.addr, (const uint8_t[]){ 0xff }, 1, 0, chests, sizeof chests);
+        static const uint8_t exceptions[] = { 0x40, 0x12, 0x00 };
+        for (unsigned i = 0; i < sizeof exceptions; i++) fixture_put(&f, 0x6100u + i, exceptions[i]);
+        t->opened_chest_exceptions = (OraclesSym){ FIXTURE_BANK, 0x6100 };
+        s.load.room_flags = 0x20;
+        memset(layout, 0, sizeof layout);
+        CHECK(oracles_room_predict_substitute(&rom, t, &s, NULL, layout) == ORACLES_ROOM_PREDICTED && count(layout, 0xf0) == 0);
+        all[0x120] = 0x01;
+        CHECK(oracles_room_predict_substitute(&rom, t, &s, NULL, layout) == ORACLES_ROOM_PREDICTED && layout[0x33] == 0xf0);
+        s.load.room_flags_all = NULL; s.load.room_flags_all_size = 0;
+        CHECK(oracles_room_predict_substitute(&rom, t, &s, NULL, layout) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        s = loading(); s.active_group = 2; s.load.room_flags = 0x20;
+        fixture_group_lists(&f, t->chest_data_group_table.addr, (const uint8_t[]){ 0xff }, 1, 2, chests, sizeof chests);
+        memset(layout, 0, sizeof layout);
+        CHECK(oracles_room_predict_substitute(&rom, t, &s, NULL, layout) == ORACLES_ROOM_PREDICTED && layout[0x33] == 0xf0);
+        /* The room beside with the expanded tilesets: its tileset's own byte, the layout group by the group (Seasons' group 0
+         * by the season); in Ages' engine a pack from $7f refused. */
+        uint8_t room = 0, flags[256];
+        static const uint8_t no_objects[0x1000];
+        memset(flags, 0, sizeof flags);
+        s = loading(); s.active_room = 0x11; s.map_width = 14; s.map_height = 14;
+        s.room_pack_bank = FIXTURE_BANK; s.room_pack_table = FIXTURE_ROOM_PACKS;
+        s.load.room_flags_page = flags; s.load.objects = no_objects; s.load.tileset_layout = 0x80; s.load.tileset_layout_group = 0xff;
+        rom_bytes[0x3000] = 2;   /* group 0's layout group: 2, small */
+        s.game = ORACLES_GAME_SEASONS; s.load.room_state_modifier = 2; fixture_room_tile(&f, 0x12, 3, 2, 0x3a);
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED
+              && room == 0x12 && layout[0x23] == 0x3a && collisions[0x23] == 0x0f);
+        s.load.room_state_modifier = 9;   /* a season naming no layout group */
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_UNREADABLE);
+        s.game = ORACLES_GAME_AGES; s.load.room_state_modifier = 0;
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_UNQUALIFIED);   /* no profile's override */
+        s.load.tileset_override_rules = ORACLES_TILESET_OVERRIDE_SEASONS;
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED
+              && room == 0x12 && layout[0x23] == 0x3a && collisions[0x23] == 0x0f);
+        fixture_put(&f, 0x5d10u + 0x12u, 1);   /* the room beside's tileset 1, seasonal: left to its load */
+        fixture_put(&f, 0x5e18, 0x0f); fixture_put(&f, 0x5e19, 0x01);
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        fixture_put(&f, 0x5d10u + 0x12u, 0);
+        fixture_put(&f, FIXTURE_ROOM_PACKS + 0x11, 0x80); fixture_put(&f, FIXTURE_ROOM_PACKS + 0x12, 0x80);
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
+        s.load.tileset_override_rules = ORACLES_TILESET_OVERRIDE_BASE;   /* the base engine's: pack $80 keeps its tileset */
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED);
+        fixture_put(&f, FIXTURE_ROOM_PACKS + 0x11, 0x7f); fixture_put(&f, FIXTURE_ROOM_PACKS + 0x12, 0x7f);   /* Nuun Highlands */
+        CHECK(oracles_room_predict_beside(&rom, t, &s, 1, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_ROUTED);
     }
     CHECK(!strcmp(oracles_room_predict_verdict_name(ORACLES_ROOM_PREDICTED), "predicted"));
     CHECK(!strcmp(oracles_room_predict_verdict_name(ORACLES_ROOM_PREDICT_VERDICTS), "?"));

@@ -22,7 +22,7 @@ static const OraclesCompatProfile profiles[] = {
       .continuous_transitions = 1, .continuous_swim = 1, .item_hotkeys = 1, .zoom_out = 1, .swim_hold = 1, .continuous_diagonal = 1, .predict_collisions = 1, .room_code_replay = 1, .continuous_steps = 1, .continuous_line = 1, .cheats = 1, .compact_text = 1, .host_text_box = 1, .text_size = 1, .text_instant = 1,
       .guest_tables = &oracles_guest_tables_ages, .data_tables = &oracles_tables_ages, .room_flag_pages = ages_room_flag_pages,
       .map_width = 14, .map_height = 14,
-      .open_water_rules = 1, .maku_tree_rules = 1, .maku_isolation_rules = 1, .sea_level_rules = 1, .forest_scrambler_rules = 1,
+      .open_water_rules = 1, .maku_tree_rules = 1, .maku_isolation_rules = 1, .sea_level_rules = 1, .forest_scrambler_rules = 1, .ages_water_rules = 1,
       .language_bank = ORACLES_IMAGE_LANGUAGE_BANK },
     { .id = "seasons-original", .name = "Oracle of Seasons", .revision = ORACLES_ROM_REVISION_SEASONS_US, .family = ORACLES_GAME_SEASONS,
       .continuous_transitions = 1, .continuous_swim = 1, .item_hotkeys = 1, .zoom_out = 1, .swim_hold = 1, .continuous_diagonal = 1, .predict_collisions = 1, .room_code_replay = 1, .continuous_steps = 1, .continuous_line = 1, .cheats = 1, .compact_text = 1, .host_text_box = 1, .text_size = 1, .text_instant = 1,
@@ -32,16 +32,16 @@ static const OraclesCompatProfile profiles[] = {
       .language_bank = ORACLES_IMAGE_LANGUAGE_BANK },
     /* Moonrise: the rules its map and data were shown to follow, none inherited from Ages' family. */
     { .id = "moonrise-1.0.6", .name = "Moonrise Regalia 1.0.6", .revision = ORACLES_ROM_REVISION_MOONRISE_1_0_6, .family = ORACLES_GAME_AGES,
-      .continuous_transitions = 1, .zoom_out = 1, .continuous_diagonal = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
+      .continuous_transitions = 1, .zoom_out = 1, .continuous_diagonal = 1, .predict_collisions = 1, .continuous_steps = 1, .continuous_line = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
       .guest_tables = &oracles_guest_tables_moonrise, .data_tables = &oracles_tables_moonrise, .room_flag_pages = moonrise_room_flag_pages,
       .text_size = 1, .host_text_box = 1,
       .map_width = 8, .map_height = 8,
-      .open_water_rules = 1, .tileset_map_rules = 1,
+      .open_water_rules = 1, .tileset_map_rules = 1, .tileset_override_rules = ORACLES_TILESET_OVERRIDE_BASE,
       .language_bank = 0x71 },   /* bank $70 holds its data; $71 to $7f are empty */
     /* Temple of Seasons: built on hack-base's Seasons engine, Holodrum kept with its seasons, its Lost Woods routing and the
      * Maku tree (temple-of-seasons/manifest.json); features qualified only once its routes held them. */
     { .id = "temple-1.073", .name = "Temple of Seasons 1.073", .revision = ORACLES_ROM_REVISION_TEMPLE_1_073, .family = ORACLES_GAME_SEASONS,
-      .continuous_transitions = 1, .zoom_out = 1, .continuous_diagonal = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
+      .continuous_transitions = 1, .continuous_swim = 1, .swim_hold = 1, .zoom_out = 1, .continuous_diagonal = 1, .predict_collisions = 1, .continuous_steps = 1, .continuous_line = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
       .guest_tables = &oracles_guest_tables_temple, .data_tables = &oracles_tables_temple, .room_flag_pages = temple_room_flag_pages,
       .text_size = 1, .host_text_box = 1,
       /* Its maps are walled inside the grid by an outdoor filler tileset ($64, $e4) and bound its map screen's cursor:
@@ -61,11 +61,11 @@ static const OraclesCompatProfile profiles[] = {
      * drawn-back view shows them as the rooms off its map, in its whole band.  Features qualified only once its routes
      * held them. */
     { .id = "kinomi-1.1.2", .name = "Gifts of Kinomi 1.1.2", .revision = ORACLES_ROM_REVISION_KINOMI_1_1_2, .family = ORACLES_GAME_AGES,
-      .continuous_transitions = 1, .zoom_out = 1, .continuous_diagonal = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
+      .continuous_transitions = 1, .continuous_swim = 1, .swim_hold = 1, .zoom_out = 1, .continuous_diagonal = 1, .predict_collisions = 1, .continuous_steps = 1, .continuous_line = 1, .compact_text = 1, .text_instant = 1, .cheats = 1,
       .guest_tables = &oracles_guest_tables_kinomi, .data_tables = &oracles_tables_kinomi, .room_flag_pages = kinomi_room_flag_pages,
       .text_size = 1, .host_text_box = 1,
       .map_width = 8, .map_height = 8,
-      .open_water_rules = 1, .maku_tree_rules = 1, .tileset_map_rules = 1, .own_routing_rules = 1, .interior_area_rules = 1,
+      .open_water_rules = 1, .maku_tree_rules = 1, .tileset_map_rules = 1, .own_routing_rules = 1, .interior_area_rules = 1, .tileset_override_rules = ORACLES_TILESET_OVERRIDE_SEASONS, .ages_water_rules = 1,
       .language_bank = 0x72 }   /* banks $70 and $71 hold its data; $72 to $7f are empty */
 };
 
@@ -201,6 +201,10 @@ int oracles_compat_seasons_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->seasons_rules : 0;
 }
+int oracles_compat_ages_water_rules(const OraclesCompatProfile *profile)
+{
+    return profile ? profile->ages_water_rules : 0;
+}
 int oracles_compat_sea_level_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->sea_level_rules : 0;
@@ -220,6 +224,10 @@ int oracles_compat_own_routing_rules(const OraclesCompatProfile *profile)
 int oracles_compat_interior_area_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->interior_area_rules : 0;
+}
+int oracles_compat_tileset_override_rules(const OraclesCompatProfile *profile)
+{
+    return profile ? profile->tileset_override_rules : 0;
 }
 unsigned oracles_compat_language_bank(const OraclesCompatProfile *profile)
 {

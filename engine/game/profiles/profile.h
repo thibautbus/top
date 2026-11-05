@@ -12,6 +12,9 @@
 extern "C" {
 #endif
 
+/* The checkTilesetOverride an image's room beside a scroll follows (tileset_override_rules). */
+enum { ORACLES_TILESET_OVERRIDE_BASE = 1, ORACLES_TILESET_OVERRIDE_SEASONS = 2 };
+
 typedef struct OraclesCompatProfile {
     const char *id;
     const char *name;
@@ -46,6 +49,7 @@ typedef struct OraclesCompatProfile {
     int maku_tree_rules;             /* the Maku tree's screen stands alone */
     int maku_isolation_rules;        /* and so do the rooms under minimap group 2 (Ages' tree inside) */
     int seasons_rules;               /* the season decides a room's terrain (Seasons) */
+    int ages_water_rules;            /* the water of Ages' engine: deep water and sea water swum with the mermaid suit alone, whirlpools */
     int sea_level_rules;             /* a dive or a surfacing crosses two groups (Ages) */
     int forest_scrambler_rules;      /* a forest whose rooms route by a scrambled order (Ages) */
     int lost_woods_rules;            /* rooms of the routing table route elsewhere for good (Seasons) */
@@ -53,6 +57,10 @@ typedef struct OraclesCompatProfile {
                                         from the start, as Seasons', with no routing key (Gifts of Kinomi) */
     int tileset_map_rules;           /* a room of groups 0 and 1 is on its map by its tileset (outdoors) and its place within the map;
                                         the others (houses, a dungeon, areas past the map) are interiors */
+    int tileset_override_rules;      /* with the expanded tilesets on Ages' engine, the checkTilesetOverride the room beside a scroll
+                                        follows: ORACLES_TILESET_OVERRIDE_BASE, the base engine's (the Maku Tree's screen, Nuun
+                                        Highlands' pack $7f: Moonrise Regalia), ORACLES_TILESET_OVERRIDE_SEASONS, and every pack
+                                        from $7f by the season (Gifts of Kinomi); 0 none followed */
     int interior_area_rules;         /* the interiors (groups 2 and 3) are areas of small rooms joined by scrolls, its caves among them:
                                         laid out as a room off an overworld's map, in the drawn-back view's whole band (Gifts of Kinomi) */
     /* A language's banks (docs/ROM_DATA_FORMATS.md, section 16): from this one, its index at its start, to bank $7f, banks
@@ -96,11 +104,13 @@ int oracles_compat_open_water_rules(const OraclesCompatProfile *profile);
 int oracles_compat_maku_tree_rules(const OraclesCompatProfile *profile);
 int oracles_compat_maku_isolation_rules(const OraclesCompatProfile *profile);
 int oracles_compat_seasons_rules(const OraclesCompatProfile *profile);
+int oracles_compat_ages_water_rules(const OraclesCompatProfile *profile);
 int oracles_compat_sea_level_rules(const OraclesCompatProfile *profile);
 int oracles_compat_forest_scrambler_rules(const OraclesCompatProfile *profile);
 int oracles_compat_lost_woods_rules(const OraclesCompatProfile *profile);
 int oracles_compat_own_routing_rules(const OraclesCompatProfile *profile);
 int oracles_compat_interior_area_rules(const OraclesCompatProfile *profile);
+int oracles_compat_tileset_override_rules(const OraclesCompatProfile *profile);
 /* The first of a language's banks in the image (ORACLES_IMAGE_LANGUAGE_BANK for an original), 0 for none. */
 unsigned oracles_compat_language_bank(const OraclesCompatProfile *profile);
 

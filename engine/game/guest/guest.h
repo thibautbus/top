@@ -177,23 +177,29 @@ typedef struct OraclesGuestTransitionState {
      * game read this frame, the swimmer's ring worn, the swim's hold on. */
     uint8_t link_speed_tmp, link_speed_counter, link_speed_period, link_counter1, link_mermaid_stroke;
     uint8_t game_keys_pressed, game_keys_just_pressed, swimmers_ring, swim_hold;
+    uint8_t ages_water;                                                        /* the water of Ages' engine: the mermaid suit, sea water and whirlpools (its profile) */
     uint8_t game_frame;                                                       /* wFrameCounter: the game's frame, which a vblank of an unfinished one shares */
     uint8_t screen_transition_delay, disable_screen_transitions, hole_or_conveyor;   /* wScreenTransitionDelay, wDisableScreenTransitions, wcc92 */
     uint8_t use_simulated_input;                                              /* wUseSimulatedInput: the game's own keys driving Link (a scene), 2 the player's reversed */
     uint8_t boundary_x, boundary_y, active_room, active_tile_index;           /* wScreenTransitionBoundaryX/Y, wActiveRoom, wActiveTileIndex */
-    uint8_t map_width, map_height;                                            /* the overworld's (OVERWORLD_WIDTH/HEIGHT) */
+    /* The active group's map (OVERWORLD_WIDTH/HEIGHT, Subrosia's SUBROSIA_WIDTH/HEIGHT): its first column and row, and its
+     * edges past the last (the profile's, profile.h). */
+    uint8_t map_width, map_height, map_left, map_top;
     uint8_t animation_data_bank;
     uint16_t animation_table;                                                 /* specialObjectAnimationTable, in that bank */
     uint8_t map_transition_bank;                                              /* mapTransitionGroupTable (getNextActiveRoom's rooms of a special transition): its bank, $ff none */
     uint16_t map_transition_table;
     uint8_t room_pack_bank;                                                   /* roomPackData (loadScreenMusic: each overworld room's pack): its bank, $ff none */
     uint16_t room_pack_table;
+    uint8_t moblin_keep_bank;                                                 /* moblinKeepRooms (getMoblinKeepScreenIndex: the Moblin's Keep's five rooms, Seasons' engine): its bank, $ff none */
+    uint16_t moblin_keep_table;
     uint8_t palette_thread_mode, tileset_palette, loaded_tileset_palette;   /* wPaletteThread_mode, wTilesetPalette, wLoadedTilesetPalette */
     /* What the load of the room entered reads besides the fields above (active_group, active_room, tileset_flags,
      * active_collisions) to build its layout and collisions, each written before wScrollMode is 8 or left alone by the
      * load: the prediction of them (room_predict.h). */
     struct {
-        uint8_t tileset_layout, tileset_layout_group;   /* wTilesetLayout, wTilesetLayoutGroup (loadTilesetData) */
+        uint8_t tileset_layout, tileset_layout_group;   /* wTilesetLayout, wTilesetLayoutGroup (loadTilesetData); wTilesetIndex and wLayoutGroupOverride with expanded tilesets */
+        uint8_t loaded_tileset_layout;                  /* wLoadedTilesetLayout: the one whose collisions are loaded, $ff when not given */
         uint8_t room_flags;                             /* the room's own flags (getThisRoomFlags) */
         const uint8_t *room_flags_page;                 /* the flags of every room of the group (256 bytes), NULL where unknown */
         const uint8_t *objects;                         /* WRAM bank 1 from $d000 (4 KB: the objects' slots), at the return of drawAllSprites
@@ -212,6 +218,7 @@ typedef struct OraclesGuestTransitionState {
         uint8_t gameboy_type, ricky_state, essences_obtained, animal_companion, bought_shop_items1, seed_tree_refilled;
         uint8_t given;                                  /* which of those six the image has (ORACLES_LOAD_*): a routine reading one it has not is refused */
         uint8_t room_code_replay;                       /* the image's room code the original game's (its profile), which the prediction replays */
+        uint8_t tileset_override_rules;                 /* its expanded tilesets' checkTilesetOverride the one the prediction follows (its profile) */
         /* the game's constants (generated tables), 0xff for none */
         uint8_t chest_opened_tile, roomflag_item, timewarp_transition, pollution_fixed_flag, finished_game_flag, temple_lava_flag,
             pirate_ship_flag, intro_done_flag;
@@ -591,6 +598,8 @@ int oracles_guest_set_transition_line(OraclesGuest *guest, int on);
 void oracles_guest_set_scene_walks_taken(OraclesGuest *guest, int taken);
 /* wUseSimulatedInput as the transitions read it: 0 where the image has none or scene walks are taken. */
 uint8_t oracles_guest_simulated_input(OraclesGuest *guest);
+/* Whether linkSetSwimmingSpeed speeds Link's swim: the swimmer's ring worn, or the image's own treasure obtained (swim_speed_treasure). */
+int oracles_guest_swim_sped(OraclesGuest *guest);
 int oracles_guest_transition_line(const OraclesGuest *guest);
 void oracles_guest_line_counts(const OraclesGuest *guest, OraclesGuestLineCounts *out);
 

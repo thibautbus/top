@@ -268,8 +268,9 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->link_mermaid_stroke = oracles_guest_read8(guest, t->link_stroke_counter);
     s->game_keys_pressed = oracles_guest_read8(guest, t->game_keys_pressed);
     s->game_keys_just_pressed = oracles_guest_read8(guest, t->game_keys_just_pressed);
-    s->swimmers_ring = t->active_ring.bank != ORACLES_GUEST_ABSENT && oracles_guest_read8(guest, t->active_ring) == t->swimmers_ring;
+    s->swimmers_ring = (uint8_t)oracles_guest_swim_sped(guest);
     s->swim_hold = guest->swim_hold;
+    s->ages_water = (uint8_t)oracles_compat_ages_water_rules(oracles_guest_profile(guest));
     s->game_frame = oracles_guest_read8(guest, t->frame_counter);
     s->screen_transition_delay = oracles_guest_read8(guest, t->screen_transition_delay);
     s->disable_screen_transitions = oracles_guest_read8(guest, t->disable_screen_transitions);
@@ -279,8 +280,10 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->boundary_y = oracles_guest_read8(guest, t->screen_transition_boundary_y);
     s->active_room = oracles_guest_read8(guest, t->active_room);
     s->active_tile_index = oracles_guest_read8(guest, t->active_tile_index);
-    s->map_width = oracles_compat_map_width(oracles_guest_profile(guest));
-    s->map_height = oracles_compat_map_height(oracles_guest_profile(guest));
+    s->map_width = oracles_compat_group_map_width(oracles_guest_profile(guest), s->active_group);
+    s->map_height = oracles_compat_group_map_height(oracles_guest_profile(guest), s->active_group);
+    s->map_left = oracles_compat_group_map_left(oracles_guest_profile(guest), s->active_group);
+    s->map_top = oracles_compat_group_map_top(oracles_guest_profile(guest), s->active_group);
     s->link_speed = link ? link[ORACLES_OBJ_SPEED] : 0;
     s->link_var2f = link ? link[ORACLES_OBJ_VAR2F] : 0;
     s->animation_data_bank = t->special_object_animation_table.bank == ORACLES_GUEST_ABSENT ? 0xffu : (uint8_t)t->special_object_animation_table.bank;
@@ -289,11 +292,14 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->map_transition_table = t->map_transition_group_table.addr;
     s->room_pack_bank = t->room_pack_data.bank == ORACLES_GUEST_ABSENT ? 0xffu : (uint8_t)t->room_pack_data.bank;
     s->room_pack_table = t->room_pack_data.addr;
+    s->moblin_keep_bank = t->moblin_keep_rooms.bank == ORACLES_GUEST_ABSENT ? 0xffu : (uint8_t)t->moblin_keep_rooms.bank;
+    s->moblin_keep_table = t->moblin_keep_rooms.addr;
     s->palette_thread_mode = oracles_guest_read8(guest, t->palette_thread_mode);
     s->tileset_palette = oracles_guest_read8(guest, t->tileset_palette);
     s->loaded_tileset_palette = oracles_guest_read8(guest, t->loaded_tileset_palette);
     s->load.tileset_layout = oracles_guest_read8(guest, t->tileset_layout);
     s->load.tileset_layout_group = oracles_guest_read8(guest, t->tileset_layout_group);
+    s->load.loaded_tileset_layout = t->loaded_tileset_layout.bank != ORACLES_GUEST_ABSENT ? oracles_guest_read8(guest, t->loaded_tileset_layout) : 0xffu;
     /* getThisRoomFlags: the page of flagLocationGroupTable the group's rooms keep their flags in. */
     const unsigned page = oracles_compat_room_flag_page(oracles_guest_profile(guest), s->active_group);
     if (t->group0_room_flags.bank != ORACLES_GUEST_ABSENT && page * 0x100u + s->active_room < t->room_flags_size)
@@ -332,6 +338,7 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
         }
     }
     s->load.room_code_replay = (uint8_t)oracles_compat_room_code_replay(oracles_guest_profile(guest));
+    s->load.tileset_override_rules = (uint8_t)oracles_compat_tileset_override_rules(oracles_guest_profile(guest));
     s->load.chest_opened_tile = t->tileindex_chest_opened;
     s->load.roomflag_item = t->roomflag_item;
     s->load.timewarp_transition = t->transition_dest_timewarp;
@@ -581,6 +588,15 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
 }
 
 unsigned oracles_guest_vblank_policy_skipped(const OraclesGuest *guest) { return guest->vblank_policy_skipped; }
+
+int oracles_guest_swim_sped(OraclesGuest *guest)
+{
+    const OraclesGuestTables *t = guest->tables;
+    if (t->swim_speed_treasure == 0xffu) return t->active_ring.bank != ORACLES_GUEST_ABSENT && oracles_guest_read8(guest, t->active_ring) == t->swimmers_ring;
+    /* checkTreasureObtained: the treasure's bit in wObtainedTreasureFlags. */
+    const uint8_t *treasures = t->obtained_treasure_flags.bank != ORACLES_GUEST_ABSENT ? oracles_guest_ptr(guest, t->obtained_treasure_flags, t->obtained_treasure_flags_size) : NULL;
+    return treasures && (unsigned)(t->swim_speed_treasure >> 3) < t->obtained_treasure_flags_size && ((treasures[t->swim_speed_treasure >> 3] >> (t->swim_speed_treasure & 7u)) & 1u);
+}
 
 void oracles_guest_apply_transition_entry(OraclesGuest *guest)
 {

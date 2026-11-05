@@ -14,7 +14,7 @@ static OraclesGuestTransitionState eligible(void)
 {
     OraclesGuestTransitionState s;
     memset(&s, 0, sizeof s);
-    s.game = ORACLES_GAME_AGES;
+    s.game = ORACLES_GAME_AGES; s.ages_water = 1;
     s.game_state = 2; s.cutscene_index = 1;
     s.scroll_mode = 8; s.transition_state = 5; s.transition_substate = 2; s.transition_phase = 2; s.transition_direction = 1;
     s.screen_scroll_delta = 4; s.screen_scroll_counter = 0x14;
@@ -68,7 +68,7 @@ int main(void)
      * transition the game would start with the direction held, its checks kept. */
     {
         OraclesGuestTransitionState e = eligible();
-        e.game = ORACLES_GAME_SEASONS; e.transition_state = 2; e.scroll_mode = 1;
+        e.game = ORACLES_GAME_SEASONS; e.ages_water = 0; e.transition_state = 2; e.scroll_mode = 1;
         e.link_swimming_state = 3; e.link_anim_mode = 0x0b; e.link_enabled = 1; e.link_speed = 0x14;
         e.link_move_angle = 0x00; e.link_input_angle = 0xff; e.link_stroke = 1;
         e.link_x = 80 << 8; e.link_y = 6 << 8; e.boundary_x = 154; e.boundary_y = 121;
@@ -110,16 +110,16 @@ int main(void)
         f = e; f.link_y = 60 << 8; f.link_x = 154 << 8; f.link_move_angle = 0x08; CHECK(oracles_room_transition_swim_edge(&f) == 1);
         f = e; f.link_y = 60 << 8; f.link_x = 6 << 8; f.link_move_angle = 0x18; CHECK(oracles_room_transition_swim_edge(&f) == 3);
         /* Ages: the mermaid suit is left to the game, the overworld does not loop, deep water needs the suit. */
-        f = e; f.game = ORACLES_GAME_AGES; f.map_width = 14; f.map_height = 14; CHECK(oracles_room_transition_swim_edge(&f) == 0);
+        f = e; f.game = ORACLES_GAME_AGES; f.ages_water = 1; f.map_width = 14; f.map_height = 14; CHECK(oracles_room_transition_swim_edge(&f) == 0);
         f.link_var2f = 0x40; CHECK(oracles_room_transition_swim_edge(&f) < 0);
-        f = e; f.game = ORACLES_GAME_AGES; f.map_width = 14; f.map_height = 14; f.active_room = 0x6d; f.link_y = 60 << 8; f.link_x = 154 << 8; f.link_move_angle = 0x08;
+        f = e; f.game = ORACLES_GAME_AGES; f.ages_water = 1; f.map_width = 14; f.map_height = 14; f.active_room = 0x6d; f.link_y = 60 << 8; f.link_x = 154 << 8; f.link_move_angle = 0x08;
         CHECK(oracles_room_transition_swim_edge(&f) < 0);                                    /* the map's rightmost column */
         f.tileset_flags = 0; CHECK(oracles_room_transition_swim_edge(&f) == 1);              /* not outdoors: no such check */
-        f = e; f.game = ORACLES_GAME_AGES; f.map_width = 14; f.map_height = 14; f.active_tile_index = 0xfc; CHECK(oracles_room_transition_swim_edge(&f) < 0);
-        f = e; f.game = ORACLES_GAME_AGES; f.map_width = 14; f.map_height = 14; f.active_room = 0xd5; f.link_y = 121 << 8; f.link_move_angle = 0x10;
+        f = e; f.game = ORACLES_GAME_AGES; f.ages_water = 1; f.map_width = 14; f.map_height = 14; f.active_tile_index = 0xfc; CHECK(oracles_room_transition_swim_edge(&f) < 0);
+        f = e; f.game = ORACLES_GAME_AGES; f.ages_water = 1; f.map_width = 14; f.map_height = 14; f.active_room = 0xd5; f.link_y = 121 << 8; f.link_move_angle = 0x10;
         CHECK(oracles_room_transition_swim_edge(&f) < 0);                                    /* the map's bottom row */
         f.active_room = 0xc5; CHECK(oracles_room_transition_swim_edge(&f) == 2);
-        f = e; f.game = ORACLES_GAME_AGES; f.map_width = 14; f.map_height = 14; f.active_room = 0x60; f.link_y = 60 << 8; f.link_x = 6 << 8; f.link_move_angle = 0x18;
+        f = e; f.game = ORACLES_GAME_AGES; f.ages_water = 1; f.map_width = 14; f.map_height = 14; f.active_room = 0x60; f.link_y = 60 << 8; f.link_x = 6 << 8; f.link_move_angle = 0x18;
         CHECK(oracles_room_transition_swim_edge(&f) < 0);                                    /* the map's leftmost column */
         f.active_room = 0x61; CHECK(oracles_room_transition_swim_edge(&f) == 3);
     }
@@ -239,14 +239,14 @@ int main(void)
     collisions[5 * 16 + 0] = 0;                                 /* the type alone says water (Ages' currents have no collision) */
     layout[5 * 16 + 0] = 0x40; CHECK(oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));   /* a current */
     layout[5 * 16 + 0] = 0xe9; CHECK(oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));   /* a whirlpool */
-    s.game = ORACLES_GAME_SEASONS; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));   /* Seasons has no such type */
-    s.game = ORACLES_GAME_AGES;
+    s.game = ORACLES_GAME_SEASONS; s.ages_water = 0; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));   /* Seasons has no such type */
+    s.game = ORACLES_GAME_AGES; s.ages_water = 1;
     collisions[5 * 16 + 0] = 0x10;
     layout[5 * 16 + 0] = 0xf3; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));  /* a hole */
     layout[5 * 16 + 0] = 0xfc; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));  /* the sea, no mermaid suit */
     s.link_var2f = 0x40; CHECK(oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));
-    s.game = ORACLES_GAME_SEASONS; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));
-    s.game = ORACLES_GAME_AGES;
+    s.game = ORACLES_GAME_SEASONS; s.ages_water = 0; CHECK(!oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));
+    s.game = ORACLES_GAME_AGES; s.ages_water = 1;
     collisions[5 * 16 + 0] = 0; layout[5 * 16 + 0] = 0x01;       /* land: walkable, not swimmable */
     CHECK(oracles_room_transition_walkable(&s, 0, 0x120) && !oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));
     s.room_collisions = NULL; CHECK(oracles_room_transition_swimmable(types_rom, rom_size, &s, 0, 0x120));    /* not loaded yet */

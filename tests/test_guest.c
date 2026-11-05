@@ -577,6 +577,35 @@ int main(void)
     }
 
     oracles_guest_detach(guest);
+
+    /* The map the transition state gives for the active group: on Seasons' engine Subrosia's own (group 1), Temple of
+     * Seasons' walled inside the grid from its first column and row; Ages' one map for both groups. */
+    {
+        static const struct { OraclesGame game; OraclesRomRevision revision; uint8_t width[2], height[2], left[2], top[2]; } maps[] = {
+            { ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US, { 16, 11 }, { 16, 8 }, { 0, 0 }, { 0, 0 } },
+            { ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_TEMPLE_1_073, { 16, 11 }, { 12, 8 }, { 13, 4 }, { 3, 0 } },
+            { ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US, { 14, 14 }, { 14, 14 }, { 0, 0 }, { 0, 0 } },
+        };
+        for (unsigned i = 0; i < sizeof maps / sizeof maps[0]; i++) {
+            const OraclesRomInfo info = { .game = maps[i].game, .revision = maps[i].revision, .known = 1 };
+            OraclesGuest *g = oracles_guest_attach(core, oracles_compat_find(&info));
+            CHECK(g != NULL);
+            if (!g) continue;
+            oracles_guest_clear_hooks(g);
+            CHECK(oracles_guest_add_hook(g, sub_entry, ORACLES_EVENT_TEXT, ORACLES_EVENT_FRAME_DRAWN) == 0);
+            oracles_guest_set_transition_policy(g, capture_policy, NULL, NULL);
+            for (unsigned group = 0; group < 2u; group++) {
+                put8(g, oracles_guest_tables(g)->active_group, (uint8_t)group);
+                policy_calls = 0;
+                oracles_core_run_frame(core);
+                CHECK(policy_calls > 0);
+                CHECK(last_state.active_group == group && last_state.map_width == maps[i].width[group] && last_state.map_height == maps[i].height[group]);
+                CHECK(last_state.map_left == maps[i].left[group] && last_state.map_top == maps[i].top[group]);
+            }
+            oracles_guest_set_transition_policy(g, NULL, NULL, NULL);
+            oracles_guest_detach(g);
+        }
+    }
     oracles_core_destroy(core);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_guest: ok\n");

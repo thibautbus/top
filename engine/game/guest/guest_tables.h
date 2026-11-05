@@ -66,9 +66,9 @@ typedef struct OraclesGuestTables {
         room_width, room_height, tileset_unique_gfx, active_collisions, dungeon_floor, dungeon_map_position, dungeon_layout,
         warp_transition, warp_dest_pos, warp_dest_group, warp_dest_room, warp_transition2, active_tile_pos, lost_woods_transition_counter1, lost_woods_transition_counter2, link_time_warp_tile, is_linked_game, switch_state, rom_bank, jabu_water_level, gameboy_type,
         twinrova_tile_replacement_mode, seed_tree_refilled_bitset, ricky_state, essences_obtained, animal_companion, num_placed_slates,
-        changed_tile_queue_head, changed_tile_queue_tail, tileset_layout_group, tileset_layout, gasha_spots_planted,
+        changed_tile_queue_head, changed_tile_queue_tail, tileset_layout_group, tileset_layout, loaded_tileset_layout, gasha_spots_planted,
         tileset_gfx, tileset_palette, loaded_tileset_unique_gfx,
-        loaded_tileset_palette, dirty_bg_palettes, room_pack, loading_room_pack, room_pack_data, map_transition_group_table,
+        loaded_tileset_palette, dirty_bg_palettes, room_pack, loading_room_pack, room_pack_data, moblin_keep_rooms, map_transition_group_table,
         season_reload, link_angle, link_local_respawn, hole_or_conveyor,
         screen_offset_x, screen_offset_y, screen_shake_counter_y, screen_shake_counter_x, camera_x, camera_y,
         keys_pressed, keys_just_pressed, frame_counter, text_is_active, selected_text_option, opened_menu_type, minimap_group, global_flags, bought_shop_items1,
@@ -165,6 +165,7 @@ typedef struct OraclesGuestTables {
         treasure_rupees, treasure_heart_refill, treasure_ring, treasure_ring_box, treasure_gasha_seed, treasure_seed_satchel,
         num_rings,
         swimmers_ring,             /* the continuous transitions' swim: the ring linkSetSwimmingSpeed speeds a swim with */
+        swim_speed_treasure,       /* or, 0xff but where an image's own does, the treasure it speeds a swim with instead of the ring */
         text_offset_split_index;   /* a language: the first internal text group of the second base */
     /* The global flags the load around the substitutions reads, 0xff for the game whose load does not (ghost_key.c, the coarse list). */
     uint8_t coarse_flag_finished_game, coarse_flag_temple_lava, coarse_flag_moblins_keep, coarse_flag_pirate_ship, coarse_flag_intro_done;

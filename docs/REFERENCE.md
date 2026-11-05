@@ -33,7 +33,7 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" # the game straigh
 | `--continuous-transitions` | Link keeps walking through the scrolling transitions (implies `--enhanced`) |
 | `--continuous-swim` | the same, and Link keeps swimming through them too (implies `--continuous-transitions`); the home screen's choice turns it on |
 | `--continuous-diagonal` | the same, and a diagonal held carries Link across the transitions' axis too (implies `--continuous-transitions`); the home screen's choice turns it on |
-| `--continuous-steps` | the same, and Link takes a step a frame through them as the keys give it (implies `--continuous-transitions`); the home screen's choice turns it on; refused for the fan games ([continuous transitions](#continuous-transitions)) |
+| `--continuous-steps` | the same, and Link takes a step a frame through them as the keys give it (implies `--continuous-transitions`); the home screen's choice turns it on |
 | `--swim-hold` | swimming, a direction held swims at full speed where the game wants a button tapped: A with the flippers, the direction with Ages' mermaid suit (below); `swim_hold=on` in the settings |
 | `--cheats LIST` | Ages, Seasons and the three fan games: the cheats named, comma-separated, among `no-damage`, `ammo` and `rupees` (below); an empty list for none; `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` in the settings |
 | `--text classic\|compact` | Enhanced, Ages, Seasons and the fan games: the text box's lines in the font's own widths and the texts laid out again for them (below), or as the game draws and lays them out; `text=` in the settings |
@@ -321,6 +321,8 @@ The game's state then differs from a native session's: a route recorded with the
 
 **The swim through them** (`--continuous-swim`, which Display's continuous transitions turn on; a separate option so that the routes recorded with `--continuous-transitions` alone replay as they were played): Link swimming at the surface, in both games, flippers or Ages' mermaid suit, diving or not, keeps swimming at his own speed through the transition, never ending it short of the pixels the game moves him itself, his swimming animation going on, and beyond the pixels the game moves him itself only into water.
 
+Ages, Seasons, Gifts of Kinomi and Temple of Seasons qualify it, Gifts of Kinomi with its flippers, its Zora scale speeding a swim where the swimmer's ring does in Ages, Temple of Seasons with its flippers, as Seasons swims (its tiles of sea water, entered with its suit, are left to the game); Moonrise Regalia, whose water stops a swim every frame, plays without it when the home screen starts it, and refuses `--continuous-swim` with `--rom`.
+
 On Ages' sea floor he goes on at his own speed too, onto tiles without collision, walking while a direction is held and standing without one, as the game draws him there.
 
 A stroke of the flippers that carries him to an edge takes the transition the game would take with the direction held, when the direction held neither points to the edge nor away from it; the mermaid suit, driven by the direction pad, keeps the game's behaviour.
@@ -333,7 +335,7 @@ With the option, on foot, a diagonal held toward the edge goes on as the game wa
 
 Swimming (with `--continuous-swim`, flippers or Ages' mermaid suit) and on Ages' sea floor, his motion goes on at its own angle and speed, which the game freezes through the scroll and takes up again after it, across the axis only into water swimming.
 
-While the room entered loads, its walls are read from the game's own tables, as the load will make them, so that the carry goes on through it in Ages and Seasons; in the few rooms whose own code changes their tiles, and in the fan games, nothing carries him across until the walls are known, and what those frames held back is caught up then, at his own ratio across and along, never faster than a pixel a frame across on foot.
+While the room entered loads, its walls are read from the game's own tables, as the load will make them, so that the carry goes on through it in Ages, Seasons and the three fan games; in the few rooms whose own code changes their tiles (all of them in the fan games), nothing carries him across until the walls are known, and what those frames held back is caught up then, at his own ratio across and along, never faster than a pixel a frame across on foot.
 
 A savestate does not count it. A game whose profile does not qualify the diagonal plays without it when the home screen starts it, and refuses `--continuous-diagonal` with `--rom`; Ages, Seasons and the three fan games qualify it.
 
@@ -349,7 +351,7 @@ However far into the room entered he walked or swam, a whirlpool, a hole or a dr
 
 The frame that ends the scroll gives him his step, walking or swimming, as the frames before it, and the frame that starts a diagonal one his single step, where the game's own and the option's came together. Swimming and on Ages' sea floor, his motion is the game's, as without it.
 
-A savestate does not count it. Ages and Seasons qualify it; the three fan games play without it when the home screen starts them, and refuse `--continuous-steps` with `--rom`.
+A savestate does not count it. Ages, Seasons and the three fan games qualify it.
 
 **At the line between the rooms** (`--continuous-line`, which Display's continuous transitions turn on, with the steps; a separate option so that the routes recorded without it replay as they were played): the game starts a scroll 6 pixels before the line between two rooms (5 at the right) and never lets Link stand in those pixels, putting him back on their bound at once, so that a tap at a room's edge always takes him into the next room, and the next room always pushes him past those pixels on its side, whether a direction is still held or not.
 
@@ -362,11 +364,11 @@ With the option, on foot and on Ages' sea floor, the scroll starts as his middle
 
 Carried across the axis by a diagonal, he goes on at his pace past the room's own edge on that side, into the room beside the room entered, whose walls, holes and water hold him there as the game's would, as far as 32 pixels past the line.
 
-Its collisions are predicted from the ROM's tables as the game would load them (`engine/gameplay/room_predict.c`: the room's index beside, its tileset as `loadTilesetData` chooses it, Ages' group swapped by the room's flags, Seasons' season, then its layout, its substitutions on its own flags, and its tileset's collisions), and compared with what the game loads once a scroll enters that room (`transitions.beside_mismatched`).
+Outdoors, on Ages' two overworlds and Seasons' Holodrum and Subrosia, each within its own map (from its first column and row where a fan game walls it inside the grid), and on Ages' sea floor, its collisions are predicted from the ROM's tables as the game would load them (`engine/gameplay/room_predict.c`: the room's index beside, its tileset as `loadTilesetData` chooses it, Ages' group swapped by the room's flags, Seasons' season, then its layout, its substitutions on its own flags, and its tileset's collisions), and compared with what the game loads once a scroll enters that room (`transitions.beside_mismatched`).
 
 At the frame that ends the scroll, past the line on that side, the scroll into the room beside starts there, from where he stands, with no frame of normal play between the two scrolls. No key toward the edge is needed at that frame: past the line, he may not stay in the room entered.
 
-Where it is not predicted (a map's edge, a room with a transition of its own on either side, a room pack of its own, a tileset the game's code chooses, a room whose own code changes its tiles after its graphics are drawn (a Gasha spot with something planted, a few others), a large room, the dungeons, the fan games), and where one of the room entered's objects, created by its load, may leave the player without the controls in its first frame (an entry scene, a character's script that disables the menu or forces Link's state: the objects the games' sources say may do it in their first frame, drawn into `engine/gameplay/room_scenes.c`; they run that frame once the second scroll is decided, which they could no longer refuse), he goes as far as the room's own edge, where the game now lets him stand, slowing as he nears it so as to reach it as the scroll ends.
+Where it is not predicted (a map's edge, a room with a transition of its own on either side, a room pack of its own (but in Subrosia, whose scrolls compare no pack in the game either), a tileset the game's code chooses, a room whose own code changes its tiles after its graphics are drawn (a Gasha spot with something planted, a few others), a large room, the dungeons, in the fan games a room whose own code changes its tiles as it loads), and where one of the room entered's objects, created by its load, may leave the player without the controls in its first frame (an entry scene, a character's script that disables the menu or forces Link's state: the objects the games' sources say may do it in their first frame, drawn into `engine/gameplay/room_scenes.c`; they run that frame once the second scroll is decided, which they could no longer refuse), he goes as far as the room's own edge, where the game now lets him stand, slowing as he nears it so as to reach it as the scroll ends.
 
 If the transitions are disabled while he stands past the line, he walks back across to it during the scroll; still past it as the scroll ends, he is put back on it, as the game's own edge test would.
 
@@ -392,11 +394,11 @@ On a current (`wcc92`) the game's own edge and push stay. The game's own reasons
 
 On an animal, in a side view, in a dungeon's large rooms (whose transitions are the game's, its push included), at the edges of Ages' world map, and where a script disables the transitions (Maple scattering her things, the wind seed, Ricky's jump), the game's own edges stay. A fall or a drowning in the room entered brings him back where the game itself would place him after its scroll, as with the steps.
 
-Ages and Seasons qualify it; the three fan games play without it when the home screen starts them, and refuse `--continuous-line` with `--rom`.
+Ages, Seasons and the three fan games qualify it.
 
 ### The swim's hold
 
-**The swim's hold** (`--swim-hold`, `swim_hold=on` in the settings, off by default, in Faithful and Enhanced, Ages and Seasons): swimming, Link speeds up by strokes, and the game starts a stroke only on a new press, so the player taps.
+**The swim's hold** (`--swim-hold`, `swim_hold=on` in the settings, off by default, in Faithful and Enhanced, Ages, Seasons, Gifts of Kinomi and Temple of Seasons): swimming, Link speeds up by strokes, and the game starts a stroke only on a new press, so the player taps.
 
 - With the flippers, in both games, at the surface or in a side view, A starts a stroke of 25 frames, which speeds Link up and slows him back, the presses during it read by nobody; held, A gives one stroke.
 - With Ages' mermaid suit, wherever the game swims with it (the sea floor, the surface, the side views), a direction starts a stroke of five frames, each raising Link's speed and turning him towards the direction held; a direction released during one slows him down, and on the sea floor he moves only while one is held; held, a direction gives one stroke and Link stops.
@@ -405,7 +407,7 @@ With the option, a direction held swims as the best tapping does, in both games,
 
 Held, the flippers stroke every 25 frames, Link swimming about four fifths of a pixel a frame, as fast as any tapping of A, against half a pixel with the direction alone; the suit reaches its top speed, a pixel and an eighth a frame, in about ten frames, and keeps it with a stroke every nine. Tapping still swims, as the game wants it, a little less well with the suit where a tap is released during a stroke the option started.
 
-The fan games made on the Oracles do not have the option yet: the home screen starts them without it, and `--rom` refuses `--swim-hold` for them. A route recorded with it replays with it (`swim-hold` in its options), and one recorded without replays without it whatever the setting; a savestate does not count it.
+Gifts of Kinomi and Temple of Seasons have it, with their flippers; Moonrise Regalia does not: the home screen starts it without it, and `--rom` refuses `--swim-hold` for it. A route recorded with it replays with it (`swim-hold` in its options), and one recorded without replays without it whatever the setting; a savestate does not count it.
 
 ### Cheats
 
@@ -760,7 +762,7 @@ The window changes while the menu shows, its scale lowered to what the screen ho
 
 Swimming, the text speed and the cheats apply from the frame the game resumes on (a page being revealed finishes whole there, as after a press of A); the item hotkeys turned on from that frame too, their keys and the hotbar with them, and turned off from the first frame their policy is at rest, no exchange under way and no button's item still to come back, so that a button never keeps a hotkey's item, their keys doing nothing from the resume.
 
-A fan game, which has neither Swimming's hold nor the item hotkeys, shows both greyed from its pause, "Ages and Seasons only for now." in place of the lines that say fan games ignore or refuse them. An Oracle whose ROM no profile recognises has neither either: in its pause the two rows are greyed and inert, saying "Needs an original ROM.".
+A fan game shows greyed from its pause what its profile does not have, the item hotkeys and, in Moonrise Regalia, Swimming's hold, "Ages and Seasons only for now." in place of the lines that say fan games ignore or refuse them. An Oracle whose ROM no profile recognises has neither either: in its pause the two rows are greyed and inert, saying "Needs an original ROM.".
 
 `--swim-hold`, `--text-speed`, `--item-hotkeys`, `--scale`, `--fullscreen` and `--vsync` hold until the pause changes their row, as `--colour-correction` does; a savestate loads with the swim's hold, the item hotkeys and the window as they are when it loads, none of them being in its identity, and a load lets an item hotkeys' exchange under way go, as it always did.
 

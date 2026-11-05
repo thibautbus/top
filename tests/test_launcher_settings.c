@@ -609,9 +609,9 @@ static void profile_refusals(void)
 {
     CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US) == 0u);
     CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US) == 0u);
-    CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2) == FAN_REFUSES);
+    CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2) == SWIM_FAN_REFUSES);
     CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_MOONRISE_1_0_6) == FAN_REFUSES);
-    CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_TEMPLE_1_073) == FAN_REFUSES);
+    CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_TEMPLE_1_073) == SWIM_FAN_REFUSES);
 }
 
 /* Each game's cheats in the settings, read for its page and its Play, and written back from the page: a fan game's its

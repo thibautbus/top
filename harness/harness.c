@@ -148,8 +148,8 @@ static void glide_frame(run *r, OraclesGuest *bus)
     OraclesSwimMotion motion = { link[ORACLES_OBJ_ANGLE], link[ORACLES_OBJ_SPEED], oracles_guest_read8(bus, t->link_speed_cap),
                                  oracles_guest_read8(bus, t->link_speed_step_counter), oracles_guest_read8(bus, t->link_speed_step_period),
                                  link[ORACLES_OBJ_VAR35], link[ORACLES_OBJ_COUNTER1], oracles_guest_read8(bus, t->link_stroke_counter), link[ORACLES_OBJ_DIRECTION] };
-    const OraclesSwimKeys none = { 0xffu, 0, 0, (uint8_t)(oracles_compat_family(r->profile) == ORACLES_GAME_AGES && (link[ORACLES_OBJ_VAR2F] & 0x40u)),
-                                   (uint8_t)(t->active_ring.bank != ORACLES_GUEST_ABSENT && oracles_guest_read8(bus, t->active_ring) == t->swimmers_ring), 0, 0 };
+    const OraclesSwimKeys none = { 0xffu, 0, 0, (uint8_t)(oracles_compat_ages_water_rules(r->profile) && (link[ORACLES_OBJ_VAR2F] & 0x40u)),
+                                   (uint8_t)oracles_guest_swim_sped(bus), 0, 0 };
     r->glide_ex = r->glide_ey = 0;
     for (unsigned i = 0; i < 600u && motion.speed && !(motion.angle & 0x80u); i++) {
         oracles_room_transition_swim_step(&motion, &none);
@@ -208,6 +208,7 @@ static void on_frame_end(void *opaque, uint32_t frame)
             OraclesGuestTransitionState under;
             memset(&under, 0, sizeof under);
             under.game = oracles_compat_family(r->profile);
+            under.ages_water = (uint8_t)oracles_compat_ages_water_rules(r->profile);
             under.room_layout = oracles_guest_ptr(bus, t->room_layout, 176);
             under.active_collisions = oracles_guest_read8(bus, t->active_collisions);
             under.tile_types_bank = t->tile_types_table.bank == ORACLES_GUEST_ABSENT ? 0xffu : (uint8_t)t->tile_types_table.bank;

@@ -323,9 +323,21 @@
       "bank": 6,
       "address": "0x448e"
     },
-    "tile_types_table": null,
-    "screen_transition_delay": null,
-    "active_tile_index": null,
+    "tile_types_table": {
+      "bank": 5,
+      "address": "0x7cc0",
+      "name": "tileTypesTable"
+    },
+    "screen_transition_delay": {
+      "bank": 0,
+      "address": "0xcd15",
+      "name": "wScreenTransitionDelay"
+    },
+    "active_tile_index": {
+      "bank": 0,
+      "address": "0xccb4",
+      "name": "wActiveTileIndex"
+    },
     "screen_transition_boundary_x": {
       "bank": 0,
       "address": "0xcd0c"
@@ -474,7 +486,16 @@
       "bank": 0,
       "address": "0xcd24"
     },
-    "tileset_layout": null,
+    "tileset_layout": {
+      "bank": 0,
+      "address": "0xcd20",
+      "name": "wTilesetIndex"
+    },
+    "loaded_tileset_layout": {
+      "bank": 0,
+      "address": "0xcd2a",
+      "name": "wLoadedTilesetLayout"
+    },
     "gasha_spots_planted": {
       "bank": 0,
       "address": "0xc64a"
@@ -511,6 +532,10 @@
       "bank": 6,
       "address": "0x7a00"
     },
+    "moblin_keep_rooms": {
+      "bank": 4,
+      "address": "0x7b3a"
+    },
     "map_transition_group_table": {
       "bank": 1,
       "address": "0x48dd"
@@ -523,7 +548,11 @@
       "bank": 0,
       "address": "0xcc47"
     },
-    "link_local_respawn": null,
+    "link_local_respawn": {
+      "bank": 0,
+      "address": "0xcc3d",
+      "name": "wLinkLocalRespawnY"
+    },
     "hole_or_conveyor": {
       "bank": 0,
       "address": "0xccac"
@@ -821,7 +850,11 @@
     "menu_disabled": null,
     "disable_link_collisions_and_menu": null,
     "link_death_trigger": null,
-    "use_simulated_input": null,
+    "use_simulated_input": {
+      "bank": 0,
+      "address": "0xcbc3",
+      "name": "wUseSimulatedInput"
+    },
     "in_boxing_match": null,
     "items_disabled": null,
     "in_shop": null,
@@ -924,14 +957,46 @@
     },
     "gfx_header_table": null,
     "link_update_velocity_mermaid": null,
-    "game_keys_pressed": null,
-    "game_keys_just_pressed": null,
-    "link_speed_cap": null,
-    "link_speed_step_counter": null,
-    "link_speed_step_period": null,
-    "link_stroke_counter": null,
-    "active_ring": null,
-    "link_update_flippers_state0": null,
+    "game_keys_pressed": {
+      "bank": 0,
+      "address": "0xcc45",
+      "name": "wGameKeysPressed"
+    },
+    "game_keys_just_pressed": {
+      "bank": 0,
+      "address": "0xcc46",
+      "name": "wGameKeysJustPressed"
+    },
+    "link_speed_cap": {
+      "bank": 1,
+      "address": "0xd011",
+      "name": "w1Link.speedTmp"
+    },
+    "link_speed_step_counter": {
+      "bank": 1,
+      "address": "0xd012",
+      "name": "w1Link.var12"
+    },
+    "link_speed_step_period": {
+      "bank": 1,
+      "address": "0xd013",
+      "name": "w1Link.var13"
+    },
+    "link_stroke_counter": {
+      "bank": 1,
+      "address": "0xd03e",
+      "name": "w1Link.var3e"
+    },
+    "active_ring": {
+      "bank": 0,
+      "address": "0xc6c5",
+      "name": "wActiveRing"
+    },
+    "link_update_flippers_state0": {
+      "bank": 5,
+      "address": "0x576d",
+      "name": "linkUpdateFlippersSpeed@flippersState0"
+    },
     "link_apply_damage": {
       "bank": 6,
       "address": "0x46bb"
@@ -1085,7 +1150,6 @@
     "menu_disabled": "item hotkeys not qualified for this revision",
     "disable_link_collisions_and_menu": "item hotkeys not qualified for this revision",
     "link_death_trigger": "item hotkeys not qualified for this revision",
-    "use_simulated_input": "item hotkeys not qualified for this revision",
     "in_boxing_match": "item hotkeys not qualified for this revision",
     "items_disabled": "item hotkeys not qualified for this revision",
     "in_shop": "item hotkeys not qualified for this revision",
@@ -1111,25 +1175,12 @@
     "maku_tree_tileset_room_flags": "an Ages symbol: Seasons' engine has none",
     "veran_room_flags": "an Ages symbol: Seasons' engine has none",
     "num_placed_slates": "a symbol of another fan game: this game's engine has none",
-    "tile_types_table": "continuous swim not qualified for this revision",
-    "screen_transition_delay": "continuous swim not qualified for this revision",
-    "active_tile_index": "continuous swim not qualified for this revision",
     "treasure_collection_behaviours": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_data": "mods not qualified for this revision: they play on the original ROMs only",
     "treasure_object_lists_end": "mods not qualified for this revision: they play on the original ROMs only",
     "gfx_header_table": "the graphics that carry text keep their English in a fan game: no reader takes this table",
-    "link_update_velocity_mermaid": "the swim's hold not qualified for this revision",
-    "game_keys_pressed": "the swim's hold not qualified for this revision",
-    "game_keys_just_pressed": "the swim's hold not qualified for this revision",
-    "link_speed_cap": "the swim's hold not qualified for this revision",
-    "link_speed_step_counter": "the swim's hold not qualified for this revision",
-    "link_speed_step_period": "the swim's hold not qualified for this revision",
-    "link_stroke_counter": "the swim's hold not qualified for this revision",
-    "active_ring": "the continuous transitions' swim at the line not qualified for this revision",
-    "link_update_flippers_state0": "the swim's hold not qualified for this revision",
+    "link_update_velocity_mermaid": "its swimming states move Link with the flippers' routines, the suit's bit set or not",
     "bomb_fairy_lose_all_bombs": "an Ages symbol: Seasons' engine has none",
-    "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
-    "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
     "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "update_parts": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
@@ -1159,8 +1210,8 @@
     "item_bracelet": "0x00",
     "first_dynamic_interaction_index": "0xd2",
     "roomflag_visited": "0x10",
-    "tileindex_chest_opened": "0xff",
-    "roomflag_item": "0xff",
+    "tileindex_chest_opened": "0xf0",
+    "roomflag_item": "0x20",
     "transition_dest_timewarp": "0xff",
     "globalflag_water_pollution_fixed": "0xff",
     "coarse_flag_finished_game": "0xff",
@@ -1212,11 +1263,12 @@
     "treasure_gasha_seed": "0xff",
     "treasure_seed_satchel": "0xff",
     "num_rings": "0xff",
-    "swimmers_ring": "0xff",
+    "swimmers_ring": "0x04",
     "rupee_value_count": "0x15",
     "treasure_collection_behaviour_count": "0x00",
     "treasure_object_count": "0x00",
-    "text_offset_split_index": "0x4e"
+    "text_offset_split_index": "0x4e",
+    "swim_speed_treasure": "0xff"
   },
   "guest_table_empty": {
     "item_labels": "item hotkeys not qualified for this revision",
@@ -1258,6 +1310,42 @@
     "object_gfx_header_table": {
       "bank": 63,
       "address": "0x5b2a"
+    },
+    "single_tile_change_group_table": {
+      "bank": 4,
+      "address": "0x5f27"
+    },
+    "standard_tile_substitutions": {
+      "bank": 4,
+      "address": "0x5cd1"
+    },
+    "chest_data_group_table": {
+      "bank": 21,
+      "address": "0x6f65"
+    },
+    "room_tile_changer_code_group_table": {
+      "bank": 4,
+      "address": "0x616a"
+    },
+    "tile_changes_after_gfx_group_table": {
+      "bank": 4,
+      "address": "0x752b"
+    },
+    "gasha_spot_rooms": {
+      "bank": 4,
+      "address": "0x74f0"
+    },
+    "expanded_tileset_mappings_table": {
+      "bank": 2,
+      "address": "0x7ad9"
+    },
+    "layout_group_table": {
+      "bank": 0,
+      "address": "0x37c0"
+    },
+    "object_speed_table": {
+      "bank": 3,
+      "address": "0x71cb"
     }
   },
   "data_tables_empty": {
@@ -1278,14 +1366,10 @@
     "num_unique_gfx_headers": "a count only the originals' data check reads",
     "num_palette_headers": "a count only the originals' data check reads",
     "num_tileset_layouts": "a count only the originals' data check reads",
-    "single_tile_change_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "standard_tile_substitutions": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "chest_data_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "room_tile_changer_code_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "tile_changes_after_gfx_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "gasha_spot_rooms": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "timewarp_entry_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "timewarp_return_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "object_speed_table": "the continuous transitions' swim at the line not qualified for this revision"
+    "timewarp_entry_tile_replacement_dict": "Seasons' engine has none",
+    "timewarp_return_tile_replacement_dict": "Seasons' engine has none",
+    "pollution_above_water": "Seasons' engine has none",
+    "pollution_below_water": "Seasons' engine has none",
+    "opened_chest_exceptions": "its replaceOpenedChest lists none"
   }
 }

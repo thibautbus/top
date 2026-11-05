@@ -109,6 +109,55 @@ static int expand_mappings(const OraclesRom *rom, const OraclesTables *t,
     return ORACLES_OK;
 }
 
+/* lookupExpandedTilesetTable and loadTilesetLayout of the expanded tilesets: 3 bytes a tileset, its data's address BE
+ * then its bank, or $ff and a little-endian pointer within the table's bank to four such entries, one a season; the
+ * data, 2048 bytes of mappings (8 bytes a metatile) and the 256 collisions after them. */
+#define EXPANDED_SEASONAL 0xffu
+#define EXPANDED_MAPPINGS_BYTES 0x800u
+
+/* An entry's collisions, 3 bytes at `entry`. */
+static int entry_collisions(const OraclesRom *rom, size_t entry, uint8_t collisions[ORACLES_TILESET_COLLISIONS_BYTES])
+{
+    uint8_t bytes[3];
+    int rc;
+    for (unsigned i = 0; i < 3u; i++)
+        if ((rc = oracles_rom_read8(rom, entry + i, &bytes[i]))) return rc;
+    const unsigned addr = ((unsigned)bytes[0] << 8) | bytes[1];
+    if (addr < 0x4000u || addr + EXPANDED_MAPPINGS_BYTES + ORACLES_TILESET_COLLISIONS_BYTES > 0x8000u) return ORACLES_ERR_FORMAT;
+    const size_t src = oracles_rom_offset(bytes[2], addr) + EXPANDED_MAPPINGS_BYTES;
+    for (unsigned i = 0; i < ORACLES_TILESET_COLLISIONS_BYTES; i++)
+        if ((rc = oracles_rom_read8(rom, src + i, &collisions[i]))) return rc;
+    return ORACLES_OK;
+}
+
+int oracles_expanded_tileset_collisions(const OraclesRom *rom, const OraclesTables *t, unsigned index, unsigned season,
+                                        uint8_t collisions[ORACLES_TILESET_COLLISIONS_BYTES], int *seasonal)
+{
+    if (seasonal) *seasonal = 0;
+    const OraclesSym table = t->expanded_tileset_mappings_table;
+    if (!table.addr) return ORACLES_ERR_FORMAT;
+    size_t entry = oracles_rom_offset(table.bank, table.addr) + (index & 0x7fu) * 3u;
+    uint8_t bytes[3];
+    int rc;
+    for (unsigned i = 0; i < 3u; i++)
+        if ((rc = oracles_rom_read8(rom, entry + i, &bytes[i]))) return rc;
+    if (bytes[0] != EXPANDED_SEASONAL) return entry_collisions(rom, entry, collisions);
+    const unsigned pointer = (unsigned)bytes[1] | ((unsigned)bytes[2] << 8);
+    if (pointer < 0x4000u || pointer + (season & 0xffu) * 3u + 3u > 0x8000u || pointer + 12u > 0x8000u) return ORACLES_ERR_FORMAT;
+    const size_t seasons = oracles_rom_offset(table.bank, pointer);
+    if ((rc = entry_collisions(rom, seasons + (season & 0xffu) * 3u, collisions))) return rc;
+    /* Seasonal where the four seasons' collisions differ, or the season past the four. */
+    if (seasonal) {
+        *seasonal = (season & 0xffu) > 3u;
+        uint8_t other[ORACLES_TILESET_COLLISIONS_BYTES];
+        for (unsigned k = 0; k < 4u && !*seasonal; k++) {
+            if ((rc = entry_collisions(rom, seasons + k * 3u, other))) return rc;
+            *seasonal = memcmp(other, collisions, sizeof other) != 0;
+        }
+    }
+    return ORACLES_OK;
+}
+
 int oracles_decode_tileset_layout(const OraclesRom *rom, const OraclesTables *t, unsigned layout,
                                   uint8_t *mappings, uint8_t *collisions,
                                   int *have_mappings, int *have_collisions)

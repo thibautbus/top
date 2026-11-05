@@ -175,6 +175,8 @@ VARIABLES = [
     # Continuous transitions: the tileset layout the room entered loads its collisions from (loadTilesetAndRoomLayout),
     # written by loadTilesetData before wScrollMode is 8, which the prediction of those collisions reads.
     ("tileset_layout", "wTilesetLayout"),
+    # And the one loaded already (loadTilesetAndRoomLayout reloads the collisions only when it differs).
+    ("loaded_tileset_layout", "wLoadedTilesetLayout"),
     # Ghost: the load around the substitutions (the coarse list, ghost_key.c): the Gasha seeds planted.
     ("gasha_spots_planted", "wGashaSpotsPlantedBitset"),
     # Enhanced: the tileset a room has loaded, to render a neighbour's map with the live tiles when they are the same.
@@ -184,6 +186,7 @@ VARIABLES = [
     # Enhanced: the area (room pack) a room belongs to, whose season a room of the same area keeps (Seasons).
     ("room_pack", "wRoomPack"), ("loading_room_pack", "wLoadingRoomPack"),
     ("room_pack_data", "roomPackData"),   # ROM: the room pack of each overworld room (group 0)
+    ("moblin_keep_rooms", "moblinKeepRooms"),   # ROM: the five rooms of the Moblin's Keep (getMoblinKeepScreenIndex, Seasons)
     # The rooms whose transitions the game routes itself (getNextActiveRoom,
     # docs/GAME_HOOKS.md, section 4.3).  ROM: eight pointers by group, each to pairs of room and case
     # ended by a null room.
@@ -303,7 +306,7 @@ DEFINES = [("game_state", "wGameState"), ("cutscene_index", "wCutsceneIndex")]
 ROOM_FLAG_BYTES = [("maku_tree_tileset_room_flags", "wGroup1RoomFlags", "ROOM_AGES_148"),   # Ages: bit 0, the Maku Tree saved, 0:38's tileset
                    ("veran_room_flags", "wGroup4RoomFlags", "ROOM_AGES_4fc")]              # Ages: bit 7, Veran beaten, 0:38's staircase
 OPTIONAL = {"linkUpdateVelocity@mermaidSuit", "runRoomSpecificCode", "bombUpgradeFairy_loseAllBombs", "wPortalGroup", "wPortalRoom", "wLinkTimeWarpTile", "wJabuWaterLevel", "wLinkRaisedFloorOffset", "wSelectedHarpSong",   # Ages only
-            "wInBoxingMatch", "wSlingshotLevel", "wObtainedSeasons", "wMagnetGlovePolarity",   # Seasons only
+            "wInBoxingMatch", "wSlingshotLevel", "wObtainedSeasons", "wMagnetGlovePolarity", "moblinKeepRooms",   # Seasons only
             "wNumPlacedSlates"}   # neither original: a fan game's (Gifts of Kinomi)
 STRUCT_FIELDS = ["enabled", "id", "subid", "var03", "state", "substate", "counter1", "counter2", "direction",
                  "angle", "y", "yh", "x", "xh", "z", "zh", "speed", "speedZ", "relatedObj1", "relatedObj2",
@@ -403,8 +406,9 @@ DISASM_CONSTANTS = [
     ("treasure_ring", "common/treasure.s", "TREASURE_RING"), ("treasure_ring_box", "common/treasure.s", "TREASURE_RING_BOX"),
     ("treasure_gasha_seed", "common/treasure.s", "TREASURE_GASHA_SEED"), ("treasure_seed_satchel", "common/treasure.s", "TREASURE_SEED_SATCHEL"),
     ("num_rings", "common/rings.s", "NUM_RINGS"),
-    # The continuous transitions' swim: the ring that speeds a swim (linkSetSwimmingSpeed).
-    ("swimmers_ring", "common/rings.s", "SWIMMERS_RING"),
+    # The continuous transitions' swim: the ring that speeds a swim (linkSetSwimmingSpeed); a fan game's treasure that
+    # does instead, in the originals none (no such file: 0xff).
+    ("swimmers_ring", "common/rings.s", "SWIMMERS_RING"), ("swim_speed_treasure", "common/rings.s", "SWIM_SPEED_TREASURE"),
     # A language: the first internal text group read from the second base (compiled into getTextAddress's `cp`).
     ("text_offset_split_index", "../precompressed/text/{game}/textDefines.s", "TEXT_OFFSET_SPLIT_INDEX"),
 ]

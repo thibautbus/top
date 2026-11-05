@@ -106,6 +106,21 @@ static int decode_large(const OraclesRom *rom, size_t table, size_t base, unsign
     return ORACLES_OK;
 }
 
+/* The large rooms of the images with expanded tilesets (their loadRoomLayout@loadLargeRoomLayout): stored raw, the
+ * group's table a word per room, from the base minus $200, read for 176 bytes. */
+static int decode_large_raw(const OraclesRom *rom, size_t table, size_t base, unsigned room,
+                            uint8_t out[ORACLES_ROOM_LAYOUT_BYTES])
+{
+    unsigned word;
+    int rc = oracles_rom_read16le(rom, table + room * 2u, &word);
+    if (rc) return rc;
+    if (word < 0x200u) return ORACLES_ERR_FORMAT;
+    const size_t src = base + word - 0x200u;
+    for (unsigned i = 0; i < ORACLES_ROOM_LAYOUT_BYTES; i++)
+        if ((rc = oracles_rom_read8(rom, src + i, &out[i]))) return rc;
+    return ORACLES_OK;
+}
+
 int oracles_decode_room_layout(const OraclesRom *rom, const OraclesTables *t,
                                unsigned group, unsigned room,
                                uint8_t out[ORACLES_ROOM_LAYOUT_BYTES], int *is_large)
@@ -129,7 +144,7 @@ int oracles_decode_room_layout(const OraclesRom *rom, const OraclesTables *t,
     }
     if (mode == 0) {
         if (is_large) *is_large = 1;
-        return decode_large(rom, table, base, room, out);
+        return t->expanded_tileset_mappings_table.addr ? decode_large_raw(rom, table, base, room, out) : decode_large(rom, table, base, room, out);
     }
     return ORACLES_ERR_FORMAT;
 }

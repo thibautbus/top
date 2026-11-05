@@ -62,6 +62,16 @@ typedef struct OraclesTables {
     OraclesSym gasha_spot_rooms;
     OraclesSym timewarp_entry_tile_replacement_dict;
     OraclesSym timewarp_return_tile_replacement_dict;
+    /* replacePollutionWithWaterIfPollutionFixed's two lists, above and under water (Ages' engine; { 0, 0 } in
+     * Seasons), and replaceOpenedChest's rooms of group 0 that keep their chest closed, where an image has them. */
+    OraclesSym pollution_above_water;
+    OraclesSym pollution_below_water;
+    OraclesSym opened_chest_exceptions;
+    /* The expanded tilesets (docs/ROM_DATA_FORMATS.md, section 3.5), where an image replaces the tileset layouts with
+     * them: the tilesets' mappings and collisions (its large rooms then stored raw, section 2.3), and loadRoomLayout's
+     * layout group of each group; { 0, 0 } in the original games. */
+    OraclesSym expanded_tileset_mappings_table;
+    OraclesSym layout_group_table;
     /* The continuous transitions' swim: an object's move a frame by its speed and angle (getPositionOffsetForVelocity:
      * $50 bytes a row of 5 speed units, each row the 8.8 moves along y of the 32 angles then 8 more, x read 16 bytes
      * on). */
@@ -166,6 +176,13 @@ int oracles_read_tileset(const OraclesRom *rom, const OraclesTables *t, unsigned
 int oracles_decode_tileset_layout(const OraclesRom *rom, const OraclesTables *t, unsigned layout,
                                   uint8_t *mappings, uint8_t *collisions,
                                   int *have_mappings, int *have_collisions);
+
+/* The collisions of tileset `index` (bits 0-6 read) in the expanded tilesets, `season` (wRoomStateModifier, the whole
+ * byte) choosing a seasonal one's entry; `*seasonal`, unless NULL, whether they depend on the season (a seasonal
+ * tileset whose four seasons' collisions differ, or a season past the four).  ORACLES_ERR_FORMAT where the image has
+ * none, or an entry leaves its bank. */
+int oracles_expanded_tileset_collisions(const OraclesRom *rom, const OraclesTables *t, unsigned index, unsigned season,
+                                        uint8_t collisions[ORACLES_TILESET_COLLISIONS_BYTES], int *seasonal);
 
 /* ---- graphics --------------------------------------------------------- */
 

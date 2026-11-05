@@ -130,6 +130,7 @@ typedef struct OraclesRoomTransitionStats {
     unsigned predicted_transitions; /* those it predicted */
     unsigned predicted_matched;     /* of them, those whose layout and collisions are, byte for byte, what the game then loaded */
     unsigned predicted_mismatched;  /* and those whose are not */
+    unsigned predicted_pending;     /* the one still waiting for the game's load (1 or 0), a replay ending during it */
     unsigned predict_fallbacks;     /* those left to the game's load, its collisions unknown until it ends */
     unsigned predict_fallback_by[ORACLES_ROOM_PREDICT_VERDICTS];   /* by reason (OraclesRoomPredictVerdict) */
     /* A step a frame (--continuous-steps), and what goes against it without: */

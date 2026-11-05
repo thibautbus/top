@@ -5,9 +5,6 @@
 #define SCROLL_MODE_LOADED 8u            /* cutscene01 writes it after loadTilesetData and before loadTilesetAndRoomLayout */
 #define SMALL_GROUPS 4u                  /* NUM_SMALL_GROUPS: groups 4 to 7 are the dungeons' and the side views' */
 #define TILESETFLAG_OUTDOORS 0x01u
-#define POLLUTED_TILE 0xebu              /* replacePollutionWithWaterIfPollutionFixed (tileSubstitutions.s, Ages) */
-#define WATER_TILE_ABOVE 0xfcu
-#define WATER_TILE_BELOW 0x3bu
 #define SINGLE_TILE_UNLINKED 0xf0u       /* applySingleTileChanges' masks of Ages' engine */
 #define SINGLE_TILE_LINKED 0xf1u
 #define SINGLE_TILE_FINISHED 0xf2u
@@ -45,9 +42,23 @@ static int read16(const OraclesRom *rom, unsigned bank, unsigned addr, unsigned 
 
 static int bound(OraclesSym sym) { return sym.addr != 0; }
 
+/* A byte of a table of bank 0 or of a switchable bank. */
+static int read8_any(const OraclesRom *rom, OraclesSym table, unsigned index, uint8_t *out)
+{
+    return oracles_rom_read8(rom, oracles_rom_offset(table.bank, table.addr + index), out) == ORACLES_OK;
+}
+
 static int flag_set(const uint8_t *flags, unsigned size, uint8_t flag)
 {
     return flag != 0xffu && (unsigned)(flag >> 3) < size && flags && ((flags[flag >> 3] >> (flag & 7u)) & 1u);
+}
+
+/* A byte of the pages of room flags (getRoomFlags, or a room's by name); 0 when they are not given. */
+static int flags_byte(const OraclesGuestTransitionState *s, unsigned at, uint8_t *out)
+{
+    if (!s->load.room_flags_all || at >= s->load.room_flags_all_size) return 0;
+    *out = s->load.room_flags_all[at];
+    return 1;
 }
 
 /* findRoomSpecificData: the group's list of pairs of room and value, ended by a room $00; -1 when the room is not in
@@ -148,12 +159,27 @@ static int standard_substitutions(const OraclesRom *rom, const OraclesTables *da
     return 1;
 }
 
+#define CHEST_EXCEPTIONS_LIFTED 0x120u   /* replaceOpenedChest's exceptions: wPastRoomFlags+$20, its bit 0 (the layout swapped) */
+
 /* replaceOpenedChest and getChestData: the group's entries of position, room and contents (two bytes), ended by a
- * position $ff; a room without one has its opened chest put past the layout. */
+ * position $ff; a room without one has its opened chest put past the layout.  Where the image has them, the rooms of
+ * group 0 its exceptions list (findByteAtHl: their low bytes, ended by $00) keep their chest closed, unless bit 0 of
+ * the past's room $20 is set. */
 static int opened_chest(const OraclesRom *rom, const OraclesTables *data, const OraclesGuestTransitionState *s, uint8_t layout[ORACLES_ROOM_LAYOUT_BYTES])
 {
     if (s->load.roomflag_item == 0xffu || s->load.chest_opened_tile == 0xffu) return 0;
     if (!(s->load.room_flags & s->load.roomflag_item)) return 1;
+    if (bound(data->opened_chest_exceptions) && s->active_group == 0u) {
+        uint8_t lifted = 0;
+        if (!flags_byte(s, CHEST_EXCEPTIONS_LIFTED, &lifted)) return 0;
+        if (!(lifted & 0x01u))
+            for (unsigned i = 0;; i++) {
+                uint8_t room = 0;
+                if (i == LIST_LIMIT || !read8(rom, data->opened_chest_exceptions.bank, data->opened_chest_exceptions.addr + i, &room)) return 0;
+                if (room == 0u) break;
+                if (room == s->active_room) return 1;
+            }
+    }
     const OraclesSym t = data->chest_data_group_table;
     unsigned at = 0;
     if (!read16(rom, t.bank, t.addr + 2u * s->active_group, &at)) return 0;
@@ -260,14 +286,6 @@ static void draw(uint8_t layout[ORACLES_ROOM_LAYOUT_BYTES], unsigned pos, unsign
 }
 
 static int global(const OraclesGuestTransitionState *s, uint8_t flag) { return flag_set(s->load.global_flags, s->load.global_flags_size, flag); }
-
-/* A byte of the pages of room flags (getRoomFlags, or a room's by name); 0 when they are not given. */
-static int flags_byte(const OraclesGuestTransitionState *s, unsigned at, uint8_t *out)
-{
-    if (!s->load.room_flags_all || at >= s->load.room_flags_all_size) return 0;
-    *out = s->load.room_flags_all[at];
-    return 1;
-}
 
 /* setTileToWitheredVine: the tile at the vine's position, where its collision is 0, a withered vine. */
 static void withered_vine(const uint8_t table[ORACLES_TILESET_COLLISIONS_BYTES], unsigned pos, uint8_t layout[ORACLES_ROOM_LAYOUT_BYTES])
@@ -573,8 +591,11 @@ OraclesRoomPredictVerdict oracles_room_predict_substitute(const OraclesRom *rom,
 {
     if (!rom || !data || !s || !layout) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
     const int ages = s->game == ORACLES_GAME_AGES;
-    if (ages && flag_set(s->load.global_flags, s->load.global_flags_size, s->load.pollution_fixed_flag) && (s->tileset_flags & TILESETFLAG_OUTDOORS))
-        replace_pair((s->tileset_flags & ORACLES_TILESETFLAG_UNDERWATER) ? WATER_TILE_BELOW : WATER_TILE_ABOVE, POLLUTED_TILE, layout);
+    /* replacePollutionWithWaterIfPollutionFixed (Ages): its list above or under water, once the flag is set, outdoors. */
+    if (ages && flag_set(s->load.global_flags, s->load.global_flags_size, s->load.pollution_fixed_flag) && (s->tileset_flags & TILESETFLAG_OUTDOORS)) {
+        const OraclesSym list = (s->tileset_flags & ORACLES_TILESETFLAG_UNDERWATER) ? data->pollution_below_water : data->pollution_above_water;
+        if (!bound(list) || !replace_tiles(rom, list.bank, list.addr, layout)) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    }
     if (!single_tile_changes(rom, data, s, layout) || !standard_substitutions(rom, data, s, layout) || !opened_chest(rom, data, s, layout))
         return ORACLES_ROOM_PREDICT_UNREADABLE;
     const OraclesRoomPredictVerdict code = room_code(rom, data, s, table, layout);
@@ -656,27 +677,57 @@ void oracles_room_predict_collisions(const uint8_t table[ORACLES_TILESET_COLLISI
         for (unsigned col = 0; col < 16u; col++) collisions[ORACLES_SMALL_ROOM_HEIGHT * 16u + col] = 0xffu;
 }
 
+#define ROOMFLAG_LAYOUTSWAP 0x01u        /* getAdjustedRoomGroup (Ages): the room's layout and tileset of group 2 or 3 */
+
+/* The layout group loadRoomLayout decodes the room in: wTilesetLayoutGroup; where the image names it by group (its
+ * expanded tilesets, @getLayoutGroup), wLayoutGroupOverride unless $ff, else in Seasons' group 0 wRoomStateModifier
+ * (the season), else the table's byte for the group, in Ages the group getAdjustedRoomGroup gives (groups 0 and 1 as
+ * 2 and 3 under bit 0 of the room's flags).  -1 when it cannot be read or names no layout group. */
+static int layout_group(const OraclesRom *rom, const OraclesTables *data, const OraclesGuestTransitionState *s)
+{
+    if (!bound(data->layout_group_table)) return s->load.tileset_layout_group & 7;
+    unsigned group = s->active_group, value = s->load.tileset_layout_group;
+    if (value == 0xffu && s->game == ORACLES_GAME_SEASONS && group == 0u) value = s->load.room_state_modifier;
+    else if (value == 0xffu) {
+        if (s->game == ORACLES_GAME_AGES && group < 2u && (s->load.room_flags & ROOMFLAG_LAYOUTSWAP)) group |= 2u;
+        uint8_t byte = 0;
+        if (group > 7u || !read8_any(rom, data->layout_group_table, group, &byte)) return -1;
+        value = byte;
+    }
+    return value > 7u ? -1 : (int)value;
+}
+
 OraclesRoomPredictVerdict oracles_room_predict(const OraclesRom *rom, const OraclesTables *data, const OraclesGuestTransitionState *s,
                                                uint8_t layout[ORACLES_ROOM_LAYOUT_BYTES], uint8_t collisions[ORACLES_ROOM_LAYOUT_BYTES])
 {
     if (!rom || !data || !s || !layout || !collisions || (s->game != ORACLES_GAME_AGES && s->game != ORACLES_GAME_SEASONS)) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
-    if (!bound(data->room_layout_group_table) || !bound(data->tileset_layout_table) || !bound(data->single_tile_change_group_table)
+    if (!bound(data->room_layout_group_table) || (!bound(data->tileset_layout_table) && !bound(data->expanded_tileset_mappings_table)) || !bound(data->single_tile_change_group_table)
         || !bound(data->standard_tile_substitutions) || !bound(data->chest_data_group_table) || !bound(data->room_tile_changer_code_group_table)
         || !bound(data->tile_changes_after_gfx_group_table) || !bound(data->gasha_spot_rooms)) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
     if (s->scroll_mode != SCROLL_MODE_LOADED) return ORACLES_ROOM_PREDICT_EARLY;
     const OraclesRoomPredictVerdict excluded = oracles_room_predict_excluded(rom, data, s);
     if (excluded != ORACLES_ROOM_PREDICTED) return excluded;
-    /* loadRoomLayout: the 192 bytes cleared, the room of wLoadingRoom (wActiveRoom) decoded in wTilesetLayoutGroup's table. */
+    /* loadRoomLayout: the 192 bytes cleared, the room of wLoadingRoom (wActiveRoom) decoded in its layout group's table. */
+    const int group = layout_group(rom, data, s);
+    if (group < 0) return ORACLES_ROOM_PREDICT_UNREADABLE;
     int large = 0;
     memset(layout, 0, ORACLES_ROOM_LAYOUT_BYTES);
-    if (oracles_decode_room_layout(rom, data, s->load.tileset_layout_group & 7u, s->active_room, layout, &large) != ORACLES_OK) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    if (oracles_decode_room_layout(rom, data, (unsigned)group, s->active_room, layout, &large) != ORACLES_OK) return ORACLES_ROOM_PREDICT_UNREADABLE;
     if (large) return ORACLES_ROOM_PREDICT_LARGE;
     /* loadTilesetLayout, before the layout: w3TileCollisions, the tileset layout's own (the one loaded already when it
-     * is the same), which a room's own code may read. */
+     * is the same), which a room's own code may read; with the expanded tilesets, the tileset's, by wTilesetIndex: a
+     * seasonal one's of the season only where they are loaded again (wLoadedTilesetLayout another), those kept being
+     * another season's maybe. */
     uint8_t table[ORACLES_TILESET_COLLISIONS_BYTES];
-    int have = 0;
-    if (data->num_tileset_layouts && s->load.tileset_layout >= data->num_tileset_layouts) return ORACLES_ROOM_PREDICT_UNREADABLE;
-    if (oracles_decode_tileset_layout(rom, data, s->load.tileset_layout, NULL, table, NULL, &have) != ORACLES_OK || !have) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    if (bound(data->expanded_tileset_mappings_table)) {
+        int seasonal = 0;
+        if (oracles_expanded_tileset_collisions(rom, data, s->load.tileset_layout, s->load.room_state_modifier, table, &seasonal) != ORACLES_OK
+            || (seasonal && s->load.loaded_tileset_layout == s->load.tileset_layout)) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    } else {
+        int have = 0;
+        if (data->num_tileset_layouts && s->load.tileset_layout >= data->num_tileset_layouts) return ORACLES_ROOM_PREDICT_UNREADABLE;
+        if (oracles_decode_tileset_layout(rom, data, s->load.tileset_layout, NULL, table, NULL, &have) != ORACLES_OK || !have) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    }
     const OraclesRoomPredictVerdict substituted = oracles_room_predict_substitute(rom, data, s, table, layout);
     if (substituted != ORACLES_ROOM_PREDICTED) return substituted;
     oracles_room_predict_collisions(table, layout, 1, collisions);
@@ -684,7 +735,6 @@ OraclesRoomPredictVerdict oracles_room_predict(const OraclesRom *rom, const Orac
 }
 
 #define TILESETFLAG_DUNGEON 0x08u
-#define ROOMFLAG_LAYOUTSWAP 0x01u        /* getAdjustedRoomGroup (Ages): the room's layout and tileset of group 2 or 3 */
 #define ROOM_AGES_MAKU_TREE 0x38u        /* checkTilesetOverride@checkMakuTreeSaved: group 0, its tileset set by a flag of the past */
 #define PACK_AGES_NUUN 0x7fu             /* checkTilesetOverride: Nuun Highlands, the tileset of the animal companion */
 
@@ -714,10 +764,16 @@ int oracles_room_predict_scene(const OraclesRoomScenes *scenes, const uint8_t *o
     return 0;
 }
 
-/* getMoblinKeepScreenIndex (Seasons): group 0, a tileset of its own once the keep is destroyed. */
-static int moblin_keep(unsigned room)
+/* getMoblinKeepScreenIndex (Seasons' engine): one of the five rooms of the image's moblinKeepRooms, which take a tileset
+ * of their own in group 0 once the keep is destroyed (getMoblinKeepSeasonsTilesetData); -1 when the list is unreadable. */
+static int moblin_keep(const OraclesRom *rom, const OraclesGuestTransitionState *s, unsigned room)
 {
-    return room == 0x5bu || room == 0x5cu || room == 0x6bu || room == 0x6cu || room == 0x7bu;
+    for (unsigned i = 0; i < 5u; i++) {
+        uint8_t keep = 0;
+        if (!read8(rom, s->moblin_keep_bank, s->moblin_keep_table + i, &keep)) return -1;
+        if (keep == room) return 1;
+    }
+    return 0;
 }
 
 /* loadScreenMusic: the room's pack (roomPackData), Ages' groups 0 and 1, Seasons' group 0. */
@@ -733,7 +789,11 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
 {
     if (!rom || !data || !s || !room || !layout || !collisions || (s->game != ORACLES_GAME_AGES && s->game != ORACLES_GAME_SEASONS) || across > 3u)
         return ORACLES_ROOM_PREDICT_UNQUALIFIED;
-    if (s->room_pack_bank == 0xffu || !bound(data->room_tilesets_group_table) || !bound(data->tileset_data)) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
+    const int expanded = bound(data->expanded_tileset_mappings_table);
+    if (s->room_pack_bank == 0xffu || (s->game == ORACLES_GAME_SEASONS && s->moblin_keep_bank == 0xffu) || !bound(data->room_tilesets_group_table)
+        || !bound(data->tileset_data)) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
+    /* The expanded tilesets on Ages' engine: the checkTilesetOverride followed below must be the image's (its profile). */
+    if (expanded && s->game == ORACLES_GAME_AGES && !s->load.tileset_override_rules) return ORACLES_ROOM_PREDICT_UNQUALIFIED;
     if (s->scroll_mode != SCROLL_MODE_LOADED) return ORACLES_ROOM_PREDICT_EARLY;
     const int ages = s->game == ORACLES_GAME_AGES;
     const unsigned group = s->active_group, from = s->active_room, col = from & 0x0fu, row = from >> 4;
@@ -741,21 +801,31 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
      * 1), no edge refused (@transition refuses the map's edges outdoors only); updateActiveRoom's room a row or a
      * column away, a byte's sum (@smallMapDirectionTable). */
     const int sea_floor = ages && (group == 2u || group == 3u) && (s->tileset_flags & ORACLES_TILESETFLAG_UNDERWATER) && !(s->tileset_flags & TILESETFLAG_DUNGEON);
-    /* updateActiveRoom: a room a row (16) or a column (1) away, within the map's rows and columns. */
-    if (!s->load.room_flags_page || (!sea_floor && (group > (ages ? 1u : 0u) || !s->map_width || !s->map_height))) return ORACLES_ROOM_PREDICT_ROUTED;
-    if (!sea_floor && ((across == 0u && row == 0u) || (across == 2u && row + 1u >= s->map_height) || (across == 3u && col == 0u) || (across == 1u && col + 1u >= s->map_width)))
+    /* updateActiveRoom: a room a row (16) or a column (1) away, within the rows and columns of the group's map (Seasons'
+     * Subrosia, group 1, its own; a map walled inside the grid, from its first column and row). */
+    if (!s->load.room_flags_page || (!sea_floor && (group > 1u || !s->map_width || !s->map_height))) return ORACLES_ROOM_PREDICT_ROUTED;
+    if (!sea_floor && ((across == 0u && row <= s->map_top) || (across == 2u && row + 1u >= s->map_height) || (across == 3u && col <= s->map_left)
+                       || (across == 1u && col + 1u >= s->map_width)))
         return ORACLES_ROOM_PREDICT_ROUTED;
     const unsigned beside = (across == 0u ? from - 16u : across == 2u ? from + 16u : across == 3u ? from - 1u : from + 1u) & 0xffu;
     *room = (uint8_t)beside;
     if ((!sea_floor && !(s->tileset_flags & TILESETFLAG_OUTDOORS)) || (s->tileset_flags & TILESETFLAG_DUNGEON) || !special || special(s, (uint8_t)from, opaque)
         || special(s, (uint8_t)beside, opaque))
         return ORACLES_ROOM_PREDICT_ROUTED;
-    if (!sea_floor) {
-        /* checkRoomPack: a scroll into another pack fades (Ages) or sets the season (Seasons). */
+    if (!sea_floor && (ages || group == 0u)) {
+        /* checkRoomPack: a scroll into another pack fades (Ages, groups 0 and 1) or sets the season (Seasons, group 0
+         * only: Subrosia's scrolls compare no pack). */
         uint8_t pack_from = 0, pack = 0;
         if (!room_pack(rom, s, group, from, &pack_from) || !room_pack(rom, s, group, beside, &pack)) return ORACLES_ROOM_PREDICT_UNREADABLE;
         if (ages ? ((pack ^ pack_from) & 0x7fu) != 0u || pack == PACK_AGES_NUUN : pack != pack_from) return ORACLES_ROOM_PREDICT_ROUTED;
-        if (ages ? group == 0u && beside == ROOM_AGES_MAKU_TREE : moblin_keep(beside)) return ORACLES_ROOM_PREDICT_ROUTED;
+        /* An image's checkTilesetOverride that gives every pack from $7f a tileset of the season (Ages' engine). */
+        if (expanded && ages && s->load.tileset_override_rules == ORACLES_TILESET_OVERRIDE_SEASONS && pack >= PACK_AGES_NUUN) return ORACLES_ROOM_PREDICT_ROUTED;
+        if (ages && group == 0u && beside == ROOM_AGES_MAKU_TREE) return ORACLES_ROOM_PREDICT_ROUTED;
+        if (!ages) {
+            const int keep = moblin_keep(rom, s, beside);
+            if (keep < 0) return ORACLES_ROOM_PREDICT_UNREADABLE;
+            if (keep) return ORACLES_ROOM_PREDICT_ROUTED;
+        }
     }
     /* The room entered's objects, created by its load (its list and initializeRoom), run their first frame once the
      * scroll beside is decided. */
@@ -771,6 +841,11 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
     const unsigned tileset_group = ages && (flags & ROOMFLAG_LAYOUTSWAP) ? group | 2u : group;
     if (oracles_room_tileset(rom, data, tileset_group, beside, &index) != ORACLES_OK
         || oracles_read_tileset(rom, data, index & 0x7fu, s->load.room_state_modifier, &entry) != ORACLES_OK) return ORACLES_ROOM_PREDICT_UNREADABLE;
+    /* Ages' engine sets wRoomStateModifier for the room entered after its load (initializeRoom): the season the room
+     * beside will be loaded in is not the one read here, a seasonal expanded tileset left to its load. */
+    uint8_t first = 0;
+    if (expanded && ages && (!read8_any(rom, data->expanded_tileset_mappings_table, (index & 0x7fu) * 3u, &first) || first == 0xffu))
+        return ORACLES_ROOM_PREDICT_ROUTED;
     if (sea_floor ? !(entry.flags & ORACLES_TILESETFLAG_UNDERWATER) || (entry.flags & (TILESETFLAG_DUNGEON | ORACLES_TILESETFLAG_SIDESCROLL))
                   : !(entry.flags & TILESETFLAG_OUTDOORS) || (entry.flags & (TILESETFLAG_DUNGEON | ORACLES_TILESETFLAG_SIDESCROLL | ORACLES_TILESETFLAG_UNDERWATER))
                         || (!ages && entry.dungeon_index != 0x0fu)) return ORACLES_ROOM_PREDICT_ROUTED;
@@ -778,8 +853,11 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
     at.active_room = (uint8_t)beside;
     at.tileset_flags = entry.flags;
     at.active_collisions = (uint8_t)(ages ? entry.collisions_mode & 7u : entry.collisions_mode);
-    at.load.tileset_layout = entry.layout;
-    at.load.tileset_layout_group = entry.layout_group;
+    /* With the expanded tilesets, the tileset's own byte (wTilesetIndex), the layout group by the group (no override:
+     * the Maku Tree's screen is left above), and the collisions loaded those of the room entered. */
+    at.load.tileset_layout = expanded ? index : entry.layout;
+    at.load.tileset_layout_group = expanded ? 0xffu : entry.layout_group;
+    if (expanded) at.load.loaded_tileset_layout = s->load.tileset_layout;
     at.load.room_flags = flags;
     if (active_collisions) *active_collisions = at.active_collisions;
     /* The scroll into it runs updateSeedTreeRefillData before its load, which may set a bit of wSeedTreeRefilledBitset

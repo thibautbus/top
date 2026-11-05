@@ -53,11 +53,13 @@ OraclesRoomPredictVerdict oracles_room_predict(const OraclesRom *rom, const Orac
  * loads them, from `state` at a frame where the game has named the room entered (wScrollMode 8) and the ROM's tables;
  * the verdict.  loadTilesetData's choice is made again for it, the room entered's left alone: its tileset from
  * roomTilesetsGroupTable (Ages: the group of its layout swapped by its flags; Seasons: the season, which a scroll keeps
- * within a room pack), then the steps of oracles_room_predict on its own flags.  Only on an overworld (Ages' two,
- * Seasons' Holodrum), between two rooms outdoors of one room pack, or on Ages' sea floor (groups 2 and 3, between two
- * rooms of underwater tilesets: no map, no pack), neither with a transition of its own
+ * within a room pack; with the expanded tilesets, its tileset by its own byte and its layout group by its group, in
+ * Seasons' group 0 by the season), then the steps of oracles_room_predict on its own flags.  Only on an overworld (Ages' two,
+ * Seasons' Holodrum and Subrosia, within the group's map: `state`'s map_left, map_top, map_width and map_height), between two rooms
+ * outdoors of one room pack (Subrosia's compare none: checkRoomPack acts in Seasons' group 0 only), or on Ages' sea
+ * floor (groups 2 and 3, between two rooms of underwater tilesets: no map, no pack), neither with a transition of its own
  * (mapTransitionGroupTable: `special` says, 1 when unknown) nor a tileset chosen by the game's own code (Ages' Maku
- * Tree, Nuun Highlands; Seasons' Moblin's Keep), within the map: ORACLES_ROOM_PREDICT_ROUTED otherwise.  The frame after the first scroll, the room entered's objects run
+ * Tree, Nuun Highlands, with the expanded tilesets every pack from $7f; Seasons' Moblin's Keep, in Holodrum, by the image's moblinKeepRooms), within the map: ORACLES_ROOM_PREDICT_ROUTED otherwise.  The frame after the first scroll, the room entered's objects run
  * their first and the scroll beside is already decided, which none of them can refuse then: refused,
  * ORACLES_ROOM_PREDICT_SCENE, where an object of the room entered may leave the player without the controls
  * (oracles_room_predict_scene on `state`'s live objects; ORACLES_ROOM_PREDICT_EARLY while they are not given).  The

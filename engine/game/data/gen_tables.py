@@ -27,10 +27,17 @@ LABELS = [
     # The continuous transitions' swim: the moves of a speed and an angle (getPositionOffsetForVelocity).
     "objectSpeedTable",
 ]
-# Labels of one game only (Ages' time warps), { 0, 0 } in the other.
-OPTIONAL_LABELS = ["timewarpEntryTileReplacementDict", "timewarpReturnTileReplacementDict"]
+# Labels of one game only (Ages' time warps and pollution), { 0, 0 } in the other; and those of the images with
+# expanded tilesets, { 0, 0 } in both.
+OPTIONAL_LABELS = ["timewarpEntryTileReplacementDict", "timewarpReturnTileReplacementDict",
+                   "replacePollutionWithWaterIfPollutionFixed@aboveWaterReplacement",
+                   "replacePollutionWithWaterIfPollutionFixed@belowWaterReplacement", "replaceOpenedChest@exceptionTable",
+                   "expandedTilesetMappingsTable", "loadRoomLayout@layoutGroupTable"]
 # Fields named otherwise than their label.
-FIELD_NAMES = {"applyRoomSpecificTileChangesAfterGfxLoad@tileChangesGroupTable": "tile_changes_after_gfx_group_table"}
+FIELD_NAMES = {"applyRoomSpecificTileChangesAfterGfxLoad@tileChangesGroupTable": "tile_changes_after_gfx_group_table",
+               "replacePollutionWithWaterIfPollutionFixed@aboveWaterReplacement": "pollution_above_water",
+               "replacePollutionWithWaterIfPollutionFixed@belowWaterReplacement": "pollution_below_water",
+               "replaceOpenedChest@exceptionTable": "opened_chest_exceptions", "loadRoomLayout@layoutGroupTable": "layout_group_table"}
 
 # Counts declared as assembler defines in the data files, not present in the symbol file.
 COUNTS = {
@@ -96,7 +103,7 @@ def main() -> int:
         lines.append(f"    .{FIELD_NAMES.get(name, snake(name))} = {{ 0x{bank:02x}, 0x{addr:04x} }},")
     for name in OPTIONAL_LABELS:
         bank, addr = labels.get(name, (0, 0))
-        lines.append(f"    .{snake(name)} = {{ 0x{bank:02x}, 0x{addr:04x} }},")
+        lines.append(f"    .{FIELD_NAMES.get(name, snake(name))} = {{ 0x{bank:02x}, 0x{addr:04x} }},")
     ends = section_ends(args.sym)
     for field, anchor in FREE_TAILS:
         bank = labels[anchor][0]

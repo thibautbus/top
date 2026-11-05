@@ -55,6 +55,8 @@ static inline void fixture_init(fixture *f, uint8_t *rom)
     t->gasha_spot_rooms = (OraclesSym){ FIXTURE_BANK, 0x40e0 };
     t->timewarp_entry_tile_replacement_dict = (OraclesSym){ FIXTURE_BANK, 0x40f0 };
     t->timewarp_return_tile_replacement_dict = (OraclesSym){ FIXTURE_BANK, 0x40f8 };
+    t->pollution_above_water = (OraclesSym){ FIXTURE_BANK, 0x4100 };   /* $fc for $eb, then under water $3b for $eb */
+    t->pollution_below_water = (OraclesSym){ FIXTURE_BANK, 0x4103 };
     t->num_tileset_layouts = 64;
     f->next = 0x4400;
     /* Every group small (mode 1), its rooms' words at $4400 (raw, mode 0), their bytes from $4600: room r at $4600 + 80 r
@@ -72,6 +74,8 @@ static inline void fixture_init(fixture *f, uint8_t *rom)
     fixture_put(f, 0x4044, FIXTURE_BANK); fixture_put(f, 0x4045, 0x50); fixture_put(f, 0x4046, 0x00);
     const uint8_t header[8] = { 0x00, FIXTURE_BANK, 0x5a, 0x00, 0xdb, 0x00, 0x01, 0x00 };
     for (unsigned i = 0; i < 8u; i++) fixture_put(f, 0x4048u + i, header[i]);
+    static const uint8_t pollution[6] = { 0xfc, 0xeb, 0x00, 0x3b, 0xeb, 0x00 };
+    for (unsigned i = 0; i < 6u; i++) fixture_put(f, 0x4100u + i, pollution[i]);
     f->next = 0x5c40;
     static const uint8_t pair_end[2] = { 0, 0 }, chest_end[1] = { 0xff }, key_end[1] = { 0 };
     fixture_group_lists(f, t->single_tile_change_group_table.addr, pair_end, 2, 0, NULL, 0);
@@ -88,10 +92,15 @@ static inline void fixture_init(fixture *f, uint8_t *rom)
     fixture_put(f, 0x5e10, 0x0f);   /* no dungeon (Seasons reads the low nibble) */
     fixture_put(f, 0x5e11, 0x01);
     fixture_put(f, 0x5e19, 0x08);
+    static const uint8_t moblin_keep[5] = { 0x5b, 0x5c, 0x6b, 0x6c, 0x7b };
+    for (unsigned i = 0; i < 5u; i++) fixture_put(f, 0x7f00u + i, moblin_keep[i]);
 }
 
 /* The room packs of the groups 0 and 1 (roomPackData, its 512 bytes at FIXTURE_ROOM_PACKS), every room's 0 until set. */
 #define FIXTURE_ROOM_PACKS 0x5f20u
+
+/* The five rooms of the Moblin's Keep (moblinKeepRooms, Seasons' own list until set). */
+#define FIXTURE_MOBLIN_KEEP 0x7f00u
 
 /* Room `room`'s tile at (col, row) of its 10 x 8. */
 static inline void fixture_room_tile(fixture *f, unsigned room, unsigned col, unsigned row, uint8_t tile) { fixture_put(f, 0x4600u + 80u * room + row * 10u + col, tile); }

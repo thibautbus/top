@@ -5,7 +5,9 @@
 
 #include "ui_home_nav.h"
 
+/* Moonrise Regalia's; Gifts of Kinomi's and Temple of Seasons' keep the swim's hold. */
 #define FAN_REFUSES (ORACLES_HOME_REFUSES_SWIM_HOLD | ORACLES_HOME_REFUSES_HOTKEYS)
+#define SWIM_FAN_REFUSES ORACLES_HOME_REFUSES_HOTKEYS
 /* As the mockup draws the fan games, before they had cheats: their menu and pause without Cheats. */
 #define MOCKUP_FAN_REFUSES (FAN_REFUSES | ORACLES_HOME_REFUSES_CHEATS)
 
@@ -13,7 +15,12 @@ static inline void fan_profiles_refusing(OraclesHomeNav *nav, unsigned refuses)
 {
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) nav->games[oracles_home_fan_games[f].game].refuses = refuses;
 }
-static inline void fan_profiles(OraclesHomeNav *nav) { fan_profiles_refusing(nav, FAN_REFUSES); }
+static inline void fan_profiles(OraclesHomeNav *nav)
+{
+    fan_profiles_refusing(nav, FAN_REFUSES);
+    nav->games[ORACLES_HOME_GAME_KINOMI].refuses = SWIM_FAN_REFUSES;
+    nav->games[ORACLES_HOME_GAME_TEMPLE].refuses = SWIM_FAN_REFUSES;
+}
 static inline void mockup_fan_profiles(OraclesHomeNav *nav) { fan_profiles_refusing(nav, MOCKUP_FAN_REFUSES); }
 
 #endif

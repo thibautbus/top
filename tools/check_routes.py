@@ -126,14 +126,15 @@ ALWAYS["enhanced-zoom-threaded"] = ALWAYS["enhanced-threaded"]   # a run the thr
 SIZED = {"enhanced": ["enhanced.ghost_wrong_room=0", "enhanced.cold_fill_frames>=0"]}
 # On every row whose transitions are continuous (their counters in the summary), in every mode: the collisions of the
 # room a scroll enters, predicted while the game loads them, are byte for byte what it then loads, every prediction
-# compared (transitions.predicted, predicted_matched).
+# compared (transitions.predicted, predicted_matched) but one whose load the replay ends in (predicted_pending).
 PREDICTION = ["transitions.predicted_mismatched=0"]
 
 
 def prediction_rules(values: dict) -> list:
     if "transitions.predicted" not in values:
         return []
-    return PREDICTION + [f"transitions.predicted_matched={values['transitions.predicted']}"]
+    pending = int(values.get("transitions.predicted_pending", "0"))
+    return PREDICTION + ["transitions.predicted_pending<=1", f"transitions.predicted_matched={int(values['transitions.predicted']) - pending}"]
 
 
 # On every row with a text size (its counters in the summary): the box drawn again at the other sizes and back, as the

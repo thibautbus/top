@@ -770,7 +770,12 @@
       "bank": 0,
       "address": "0xcc45"
     },
-    "room_pack_data": null,
+    "room_pack_data": {
+      "bank": 13,
+      "address": "0x7796",
+      "name": "roomPackData"
+    },
+    "moblin_keep_rooms": null,
     "season_reload": {
       "bank": 0,
       "address": "0xcc4c"
@@ -779,7 +784,11 @@
       "bank": 0,
       "address": "0xcc2b"
     },
-    "link_local_respawn": null,
+    "link_local_respawn": {
+      "bank": 0,
+      "address": "0xcc21",
+      "name": "wLinkLocalRespawnY"
+    },
     "hole_or_conveyor": {
       "bank": 0,
       "address": "0xcc92"
@@ -1140,7 +1149,16 @@
       "bank": 0,
       "address": "0xcd24"
     },
-    "tileset_layout": null,
+    "tileset_layout": {
+      "bank": 0,
+      "address": "0xcd20",
+      "name": "wTilesetIndex"
+    },
+    "loaded_tileset_layout": {
+      "bank": 0,
+      "address": "0xcd2a",
+      "name": "wLoadedTilesetLayout"
+    },
     "tmp_cec0": {
       "bank": 0,
       "address": "0xcec0"
@@ -1154,7 +1172,11 @@
       "address": "0xcca9"
     },
     "update_animations": "sites.update_animations",
-    "use_simulated_input": null,
+    "use_simulated_input": {
+      "bank": 0,
+      "address": "0xcbc3",
+      "name": "wUseSimulatedInput"
+    },
     "vblank_function_queue": {
       "bank": 0,
       "address": "0xc400"
@@ -1359,8 +1381,8 @@
     "get_free_enemy_slot": "not bound: its hook is not installed, and the objects a neighbour creates are taken from the other hooks",
     "enemy_standard_update": "not bound: its hook is not installed, and the objects a neighbour creates are taken from the other hooks",
     "check_room_pack": "a Seasons symbol no rule of this profile reads",
+    "moblin_keep_rooms": "a Seasons symbol no rule of this profile reads",
     "load_object_gfx_header_to_slot4": "a Seasons symbol no rule of this profile reads",
-    "room_pack_data": "a Seasons symbol no rule of this profile reads",
     "check_reload_status_bar_graphics": "item hotkeys not qualified for this revision",
     "check_use_items": "item hotkeys not qualified for this revision",
     "disable_link_collisions_and_menu": "item hotkeys not qualified for this revision",
@@ -1404,7 +1426,6 @@
     "selected_harp_song": "item hotkeys not qualified for this revision",
     "shooter_selected_seeds": "item hotkeys not qualified for this revision",
     "status_bar_needs_refresh": "item hotkeys not qualified for this revision",
-    "use_simulated_input": "item hotkeys not qualified for this revision",
     "tile_types_table": "continuous swim not qualified for this revision",
     "screen_transition_delay": "continuous swim not qualified for this revision",
     "active_tile_index": "continuous swim not qualified for this revision",
@@ -1421,8 +1442,6 @@
     "link_stroke_counter": "the swim's hold not qualified for this revision",
     "active_ring": "the continuous transitions' swim at the line not qualified for this revision",
     "link_update_flippers_state0": "the swim's hold not qualified for this revision",
-    "link_local_respawn": "the continuous transitions' steps not qualified for this revision",
-    "tileset_layout": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "wave_scroll_values": "the waves held to a room shown whole not qualified for this revision",
     "update_enemies": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "update_parts": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
@@ -1448,10 +1467,10 @@
     "shutter_tile_last": "0x7f",
     "first_dynamic_interaction_index": "0xd2",
     "roomflag_visited": "0x10",
-    "tileindex_chest_opened": "0xff",
-    "roomflag_item": "0xff",
-    "transition_dest_timewarp": "0xff",
-    "globalflag_water_pollution_fixed": "0xff",
+    "tileindex_chest_opened": "0xf0",
+    "roomflag_item": "0x20",
+    "transition_dest_timewarp": "0x06",
+    "globalflag_water_pollution_fixed": "0x30",
     "coarse_flag_finished_game": "0x14",
     "coarse_flag_temple_lava": "0xff",
     "coarse_flag_moblins_keep": "0xff",
@@ -1509,7 +1528,8 @@
     "rupee_value_count": "0x15",
     "treasure_collection_behaviour_count": "0x00",
     "treasure_object_count": "0x00",
-    "text_offset_split_index": "0x2e"
+    "text_offset_split_index": "0x2e",
+    "swim_speed_treasure": "0xff"
   },
   "guest_table_empty": {
     "item_labels": "item hotkeys not qualified for this revision",
@@ -1523,7 +1543,59 @@
     "tileset_data": "static_contracts.expanded_tilesets.tileset_data",
     "room_tilesets_group_table": "static_contracts.expanded_tilesets.room_tilesets_group_table",
     "animation_group_table": "sites.animation_group_table",
-    "animation_gfx_headers": "sites.animation_gfx_headers"
+    "animation_gfx_headers": "sites.animation_gfx_headers",
+    "room_layout_group_table": {
+      "bank": 0,
+      "address": "0x3fa0"
+    },
+    "single_tile_change_group_table": {
+      "bank": 4,
+      "address": "0x6189"
+    },
+    "standard_tile_substitutions": {
+      "bank": 4,
+      "address": "0x5f7e"
+    },
+    "chest_data_group_table": {
+      "bank": 22,
+      "address": "0x5573"
+    },
+    "room_tile_changer_code_group_table": {
+      "bank": 4,
+      "address": "0x62ea"
+    },
+    "tile_changes_after_gfx_group_table": {
+      "bank": 2,
+      "address": "0x7743"
+    },
+    "gasha_spot_rooms": {
+      "bank": 2,
+      "address": "0x7700"
+    },
+    "timewarp_entry_tile_replacement_dict": {
+      "bank": 4,
+      "address": "0x5eec"
+    },
+    "timewarp_return_tile_replacement_dict": {
+      "bank": 4,
+      "address": "0x5ebc"
+    },
+    "pollution_above_water": {
+      "bank": 4,
+      "address": "0x5f19"
+    },
+    "pollution_below_water": {
+      "bank": 4,
+      "address": "0x5f1c"
+    },
+    "expanded_tileset_mappings_table": {
+      "bank": 1,
+      "address": "0x7dea"
+    },
+    "layout_group_table": {
+      "bank": 0,
+      "address": "0x37ae"
+    }
   },
   "data_tables_empty": {
     "warp_sources_table": "mods not qualified for this revision",
@@ -1533,7 +1605,6 @@
     "parse_object_data": "mods not qualified for this revision",
     "warp_bank_free": "mods not qualified for this revision",
     "object_bank_free": "mods not qualified for this revision",
-    "room_layout_group_table": "no reader of the ROM data takes it for this game: the Enhanced terrain comes from the game's VRAM",
     "tileset_layout_table": "no reader of the ROM data takes it for this game: the Enhanced terrain comes from the game's VRAM",
     "tileset_layout_dictionary_table": "no reader of the ROM data takes it for this game: the Enhanced terrain comes from the game's VRAM",
     "tile_mapping_table": "no reader of the ROM data takes it for this game: the Enhanced terrain comes from the game's VRAM",
@@ -1547,14 +1618,7 @@
     "num_unique_gfx_headers": "a count of a table no reader takes for this game",
     "num_palette_headers": "a count of a table no reader takes for this game",
     "num_tileset_layouts": "a count of a table no reader takes for this game",
-    "single_tile_change_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "standard_tile_substitutions": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "chest_data_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "room_tile_changer_code_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "tile_changes_after_gfx_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "gasha_spot_rooms": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "timewarp_entry_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "timewarp_return_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "object_speed_table": "the continuous transitions' swim at the line not qualified for this revision"
+    "object_speed_table": "the continuous transitions' swim at the line not qualified for this revision",
+    "opened_chest_exceptions": "its replaceOpenedChest lists none"
   }
 }

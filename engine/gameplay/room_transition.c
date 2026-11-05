@@ -214,8 +214,8 @@ static int edge_allowed(const OraclesGuestTransitionState *s, unsigned dir, int 
             if (dir == 2u && s->active_room >= (unsigned)(s->map_height - 1u) * 16u) return 0;
             if (dir == 3u && (s->active_room & 0x0fu) == 0u) return 0;
         }
-        if (!(s->link_var2f & VAR2F_MERMAID_SUIT) && s->active_tile_index == TILEINDEX_DEEP_WATER) return 0;
     }
+    if (s->ages_water && !(s->link_var2f & VAR2F_MERMAID_SUIT) && s->active_tile_index == TILEINDEX_DEEP_WATER) return 0;
     return 1;
 }
 
@@ -397,9 +397,8 @@ static int tile_allowed(const OraclesGuestTransitionState *s, const tile_rule *r
     if (!s->room_layout) return 0;
     const int type = oracles_room_transition_tile_type(r->rom, r->rom_size, s, s->room_layout[index]);
     if (type == (int)TILETYPE_WATER || (type >= (int)TILETYPE_UPCURRENT && type <= (int)TILETYPE_LEFTCURRENT)) return 1;
-    /* Seasons' table of tile types ends at the currents. */
-    return s->game == ORACLES_GAME_AGES
-        && ((type == (int)TILETYPE_SEAWATER && (s->link_var2f & VAR2F_MERMAID_SUIT)) || type == (int)TILETYPE_WHIRLPOOL);
+    /* Seasons' table of tile types ends at the currents; the water of Ages' engine goes on with sea water and whirlpools. */
+    return s->ages_water && ((type == (int)TILETYPE_SEAWATER && (s->link_var2f & VAR2F_MERMAID_SUIT)) || type == (int)TILETYPE_WHIRLPOOL);
 }
 
 /* checkTileCollisionAt_allowHoles (bank0.s) on the room entered's collisions, x and y in its coordinates: a value
@@ -949,7 +948,7 @@ static OraclesSwimMotion swim_motion_of(const OraclesGuestTransitionState *s)
 static OraclesSwimKeys swim_keys_of(const OraclesGuestTransitionState *s)
 {
     const OraclesSwimKeys k = { s->link_input_angle, s->game_keys_pressed, s->game_keys_just_pressed,
-                                (uint8_t)(s->game == ORACLES_GAME_AGES && (s->link_var2f & VAR2F_MERMAID_SUIT)), s->swimmers_ring, s->swim_hold,
+                                (uint8_t)(s->ages_water && (s->link_var2f & VAR2F_MERMAID_SUIT)), s->swimmers_ring, s->swim_hold,
                                 s->link_immobilized };
     return k;
 }
@@ -961,7 +960,7 @@ static int swim_stepped(const OraclesRoomTransition *tr, const OraclesGuestTrans
 {
     if (s->transition_state != 2u || s->scroll_mode != 1u || (!s->link_swimming_state && !on_sea_floor(s)) || s->text_is_active || s->palette_thread_mode
         || s->hole_or_conveyor) return 0;
-    if (s->game == ORACLES_GAME_AGES && oracles_room_transition_tile_type(tr->rom, tr->rom_size, s, s->active_tile_index) == (int)TILETYPE_WHIRLPOOL) return 0;
+    if (s->ages_water && oracles_room_transition_tile_type(tr->rom, tr->rom_size, s, s->active_tile_index) == (int)TILETYPE_WHIRLPOOL) return 0;
     OraclesGuestTransitionState during = *s;
     during.transition_state = STATE_PREPARE;
     during.scroll_mode = 4u;
@@ -2258,4 +2257,5 @@ void oracles_room_transition_stats(const OraclesRoomTransition *tr, OraclesRoomT
 {
     if (!out) return;
     if (tr) *out = tr->stats; else memset(out, 0, sizeof *out);
+    if (tr) out->predicted_pending = tr->predicted == 1;
 }
