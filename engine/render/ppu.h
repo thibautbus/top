@@ -46,6 +46,20 @@ void oracles_ppu_render_wide(const OraclesPpuInput *input, uint32_t *out, unsign
  * `first` still counted for the window as the LCD counts them. */
 void oracles_ppu_render_wide_lines(const OraclesPpuInput *input, uint32_t *out, unsigned width, unsigned first, unsigned end);
 
+/* A background drawn from tiles and maps kept apart (a neighbour's delivery): each bank's tile data from $8000, at
+ * least its 384 tiles, and from $9800 both maps' tile numbers (bank 0) and attributes (bank 1). */
+typedef struct OraclesPpuMaps {
+    const uint8_t *tiles[2];
+    const uint8_t *map, *attributes;
+} OraclesPpuMaps;
+
+/* The pixel the background, or the window over it, shows at (x, ly) of a frame drawn with `r` on every line, x up to
+ * 255: its colour index (bits 0-1), its palette (bits 2-4) and its tile's BG priority (bit 7); 0 with the LCD off. */
+uint8_t oracles_ppu_background_at(const OraclesPpuMaps *maps, const OraclesPpuRegs *r, unsigned x, unsigned ly);
+/* Whether that pixel hides an object's pixel of attribute `attr` under `lcdc`: a colour 1-3 with priority, its
+ * tile's or the object's, LCDC bit 0 set. */
+int oracles_ppu_hides_object(uint8_t lcdc, uint8_t background, uint8_t attr);
+
 /* The core's raw conversion of an RGB555 colour (colour correction disabled). */
 uint32_t oracles_ppu_rgb555(uint16_t colour);
 

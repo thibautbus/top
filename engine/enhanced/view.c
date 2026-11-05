@@ -272,6 +272,33 @@ static void add_source(OraclesEnhancedNeighbour *nb, int32_t left, int32_t top, 
     nb->world_left = left; nb->world_top = top; nb->game_area = area; nb->width = width; nb->height = height; nb->faded = faded; nb->veil = 0; nb->edge_veil = 0;
 }
 
+/* What source n of the band was drawn from: the tiles and maps, and the registers its line 0 was the frame's line 16
+ * with. */
+static void note_background(OraclesEnhancedView *v, unsigned n, const uint8_t *tiles0, const uint8_t *tiles1, const uint8_t *map,
+                            const uint8_t *attributes, OraclesPpuRegs regs)
+{
+    if (n >= sizeof v->backgrounds / sizeof v->backgrounds[0]) return;
+    band_background *b = &v->backgrounds[n];
+    b->maps.tiles[0] = tiles0; b->maps.tiles[1] = tiles1; b->maps.map = map; b->maps.attributes = attributes;
+    regs.lcdc |= 0x80u;
+    b->regs = regs;
+    b->drawn = 1;
+}
+
+/* A cached room's: its own map, the tiles of its last render, or its own when the ghost's render is shown. */
+static void note_entry_background(OraclesEnhancedView *v, unsigned n, const entry *e, const uint32_t *pixels)
+{
+    const uint8_t *tiles = pixels == e->live_area ? e->rendered_tiles : e->tiles;
+    const OraclesPpuRegs r = { e->regs3[0], (uint8_t)(e->regs3[1] - e->camera_y), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
+    note_background(v, n, tiles, tiles + ORACLES_GHOST_TILE_BYTES, e->bg_map, e->bg_map + 0x800u, r);
+}
+
+/* A capture's: the VRAM it copied, both banks. */
+static void note_vram_background(OraclesEnhancedView *v, unsigned n, const uint8_t *vram, OraclesPpuRegs regs)
+{
+    note_background(v, n, vram, vram + 0x2000u, vram + MAP_OFFSET, vram + 0x2000u + MAP_OFFSET, regs);
+}
+
 /* Every cached room of the map that the view intersects, at its place on
  * the grid: the neighbours of the row, the room itself under the game's
  * window (what the window leaves behind during a scroll), and the rows above
@@ -305,7 +332,9 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
             top = (int32_t)(e->room >> 4u) * h;
         }
         if (!ev_shown_meets(v, camera_x, camera_y, left, top, w, h, reach)) continue;
-        add_source(&nbs[count++], left, top, ev_neighbour_pixels(v, e), (unsigned)w, (unsigned)h, 1);
+        const uint32_t *pixels = ev_neighbour_pixels(v, e);
+        note_entry_background(v, count, e, pixels);
+        add_source(&nbs[count++], left, top, pixels, (unsigned)w, (unsigned)h, 1);
         nbs[count - 1u].veil = ev_room_veil(v, e->room);
         if (nbs[count - 1u].veil >= 256u) nbs[count - 1u].edge_veil = ev_room_edge_veil(v, e->room);
         if (!e->routed && !v->observation.large_grid) v->drawn_places[e->room >> 5u] |= 1u << (e->room & 31u);
@@ -316,6 +345,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         if (v->shown_slot[d] < SLOTS && !ev_room_hidden(v, v->slots[v->shown_slot[d]].group, v->slots[v->shown_slot[d]].room)) v->shown[d] = 1;
     const entry *captured = ev_on_map(v) && v->source_valid ? ev_find_entry(v, v->source_group, v->source_room) : NULL;
     if (ev_source_is_scroll_source(v) && !ev_entry_drawable(v, captured)) {
+        note_vram_background(v, count, v->source_vram, v->source_render_regs);
         add_source(&nbs[count++], v->source_left, v->source_top, ev_scroll_capture(v, 0), 0, 0, 0);
         if (v->source_group == v->observer.ref_group && !v->observation.large_grid) v->drawn_places[v->source_room >> 5u] |= 1u << (v->source_room & 31u);
     }
@@ -327,6 +357,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         const int out_of_band = !ev_shown_meets(v, camera_x, camera_y, v->left_left, v->left_top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, reach);
         if (back_in_it || out_of_band || v->left_epoch != v->observation.epoch || v->left_pipeline != v->colours_pipeline || !ev_on_map(v)) v->left_valid = 0;
         else {
+            note_vram_background(v, count, v->left_vram, v->left_regs);
             add_source(&nbs[count++], v->left_left, v->left_top, ev_scroll_capture(v, 1), 0, 0, 0);
             if (v->left_group == v->observer.ref_group) v->drawn_places[v->left_room >> 5u] |= 1u << (v->left_room & 31u);
         }
@@ -402,9 +433,18 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
     } else if (!ob->in_scroll) {
         entry *entered = v->large_was_in_scroll && v->large_scroll_epoch == ob->epoch ? ev_find_entry(v, ob->group, ob->room) : NULL;
         const int from_ghost = entered && entered->valid && entered->large;
-        if (from_ghost) add_source(&nbs[count++], ob->world.origin_x, ob->world.origin_y, ev_neighbour_pixels(v, entered), LARGE_ROOM_W, LARGE_ROOM_H, 1);
-        else ev_render_large_room(v);
+        if (from_ghost) {
+            const uint32_t *pixels = ev_neighbour_pixels(v, entered);
+            note_entry_background(v, count, entered, pixels);
+            add_source(&nbs[count++], ob->world.origin_x, ob->world.origin_y, pixels, LARGE_ROOM_W, LARGE_ROOM_H, 1);
+        } else ev_render_large_room(v);
         if (!from_ghost && v->strip_valid) {
+            const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+            const uint8_t *regs = oracles_guest_ptr(v->guest, t->gfx_regs3, 6), *vram0 = oracles_guest_vram(v->guest, 0), *vram1 = oracles_guest_vram(v->guest, 1);
+            if (regs && vram0 && vram1) {
+                const OraclesPpuRegs r = { regs[0], (uint8_t)(regs[1] - ob->drawn_camera_y), (uint8_t)(regs[2] - ob->drawn_camera_x), regs[3], regs[4] };
+                note_background(v, count, vram0, vram1, vram0 + MAP_OFFSET, vram1 + MAP_OFFSET, r);
+            }
             add_source(&nbs[count++], ob->world.origin_x, ob->world.origin_y, v->strip_area, LARGE_ROOM_W, LARGE_ROOM_H, 1);
             if (!ob->in_transition) {
                 memcpy(v->large_capture, v->strip_raw, sizeof v->large_capture);
@@ -516,6 +556,9 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     for (unsigned d = 0; d < 4; d++) v->shown[d] = 0;
     in.mode = ev_choose_mode(v, tracking);
     OraclesEnhancedNeighbour nbs[SLOTS + 4u];   /* the cached rooms in view, the scroll's capture, a large room's three sources */
+    for (unsigned n = 0; n < sizeof v->backgrounds / sizeof v->backgrounds[0]; n++) v->backgrounds[n].drawn = 0;
+    v->background_count = 0;
+    v->window_background.width = 0;
     if (in.mode == ORACLES_ENHANCED_WORLD) {
         in.window_world_left = v->observation.window_left;
         in.window_world_top = v->observation.window_top;
@@ -559,6 +602,31 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         v->shown_shift = in.line_shift;
         in.neighbours = nbs;
         in.neighbour_count = count;
+        {
+            band_background *w = &v->window_background;
+            const OraclesEnhancedObservation *ob = &v->observation;
+            const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+            const uint8_t *regs = oracles_guest_ptr(v->guest, t->gfx_regs3, 6), *vram0 = oracles_guest_vram(v->guest, 0), *vram1 = oracles_guest_vram(v->guest, 1);
+            w->left = ob->window_left; w->top = ob->window_top;
+            w->width = ORACLES_ENHANCED_CORE_WIDTH; w->height = ORACLES_ENHANCED_AREA_HEIGHT;
+            w->absent = 0;
+            w->drawn = 0;
+            if (regs && vram0 && vram1) {
+                w->maps.tiles[0] = vram0; w->maps.tiles[1] = vram1; w->maps.map = vram0 + MAP_OFFSET; w->maps.attributes = vram1 + MAP_OFFSET;
+                w->regs = (OraclesPpuRegs){ (uint8_t)(regs[0] | 0x80u), (uint8_t)(ob->drawn_camera_y + ob->drawn_offset_y - (int)ORACLES_ENHANCED_HUD_HEIGHT),
+                                            (uint8_t)(ob->drawn_camera_x + ob->drawn_offset_x), regs[3], regs[4] };
+                w->drawn = 1;
+            }
+        }
+        for (unsigned n = 0; n < count && n < sizeof v->backgrounds / sizeof v->backgrounds[0]; n++) {
+            band_background *b = &v->backgrounds[n];
+            b->left = nbs[n].world_left; b->top = nbs[n].world_top;
+            b->width = nbs[n].width ? nbs[n].width : ORACLES_GHOST_AREA_WIDTH;
+            b->height = nbs[n].height ? nbs[n].height : ORACLES_GHOST_AREA_HEIGHT;
+            b->absent = !nbs[n].game_area && nbs[n].veil < 256u;
+            if (!nbs[n].game_area || nbs[n].veil >= 256u) b->drawn = 0;
+            v->background_count = n + 1u;
+        }
         in.soft_edges = !v->unvisited_hard;
         in.edge_seed = v->observer.ref_group;
         in.shown_width = v->shown_width;
@@ -595,8 +663,10 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         ev_hold_note(v, camera_x, camera_y);
         ev_subpixel_layer(v, reducer_tracking, camera_x, camera_y);
         ev_fade_vanishing(v, camera_x, camera_y);
+        const unsigned hidden = v->sprite_hidden_pixels;
         ev_overlay_large_objects(v, camera_x, camera_y);
         ev_overlay_edge_sprites(v, camera_x, camera_y);
+        if (v->sprite_hidden_pixels != hidden) v->sprite_hidden_frames++;
         ev_overlay_area_blurb(v, camera_x, camera_y);
         ev_fade_appearing(v, camera_x, camera_y);
         ev_overlay_warp_curtain(v, camera_x, camera_y);

@@ -578,6 +578,9 @@ unsigned oracles_enhanced_view_link_unshown_frames(const OraclesEnhancedView *vi
 unsigned oracles_enhanced_view_link_built_frames(const OraclesEnhancedView *view);
 /* The frames that chain two scrolls where Link was drawn from his fields, and of them those none of his pixels reached the band. */
 void oracles_enhanced_view_link_chained_frames(const OraclesEnhancedView *view, unsigned *built, unsigned *unshown);
+/* The pixels of sprites past the window's edge left under a background tile with priority, as the LCD leaves them,
+ * and the frames with some. */
+void oracles_enhanced_view_sprite_hidden(const OraclesEnhancedView *view, unsigned *pixels, unsigned *frames);
 /* Frames Link's left column, on the game's hidden column x 0, was drawn at its place: Link standing on the room's left line. */
 unsigned oracles_enhanced_view_link_left_line_frames(const OraclesEnhancedView *view);
 /* Where this frame drew Link: his sprites' top left in the game area (`x`, `y`, past its edges too); 1 from the OAM's

@@ -145,7 +145,38 @@ int main(void)
         compared++;
     }
     CHECK(compared == 2000u);
+    /* One pixel of the background or the window, from tiles and maps kept apart, against the reference's pixel of a
+     * frame drawn with the same registers on every line. */
+    static uint8_t tiles0[0x1800], tiles1[0x1800], map[0x800], attributes[0x800];
+    unsigned pixels = 0;
+    for (unsigned trial = 0; trial < 200u && !failures; trial++) {
+        for (unsigned i = 0; i < sizeof vram; i++) vram[i] = (uint8_t)next();
+        memcpy(tiles0, vram, sizeof tiles0); memcpy(tiles1, vram + 0x2000u, sizeof tiles1);
+        memcpy(map, vram + 0x1800u, sizeof map); memcpy(attributes, vram + 0x3800u, sizeof attributes);
+        const OraclesPpuMaps maps = { { tiles0, tiles1 }, map, attributes };
+        const OraclesPpuRegs r = { (uint8_t)(next() | ((trial % 7u) ? 0x80u : 0u)), (uint8_t)next(), (uint8_t)next(), (uint8_t)(next() % 160u), (uint8_t)(next() % 180u) };
+        for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++)
+            for (unsigned x = 0; x < 256u; x++) {
+                unsigned palette = 0, colour = 0;
+                int priority = 0;
+                const int wx = (int)r.wx - 7, window = (r.lcdc & 0x20u) && ly >= r.wy && r.wx <= 166u && (int)x >= wx;
+                if (!(r.lcdc & 0x80u)) colour = 0;
+                else if (window) colour = ref_map_pixel(vram, r.lcdc, (r.lcdc & 0x40u) ? 0x1c00u : 0x1800u, (unsigned)((int)x - wx) & 0xffu, ly - r.wy, &palette, &priority);
+                else colour = ref_map_pixel(vram, r.lcdc, (r.lcdc & 0x08u) ? 0x1c00u : 0x1800u, (x + r.scx) & 0xffu, (ly + r.scy) & 0xffu, &palette, &priority);
+                const uint8_t expected = (uint8_t)(colour | palette << 2 | (priority ? 0x80u : 0u));
+                const uint8_t got = oracles_ppu_background_at(&maps, &r, x, ly);
+                CHECK(got == expected);
+                if (got != expected) { fprintf(stderr, "trial %u, pixel %u,%u: %02x for %02x\n", trial, x, ly, got, expected); break; }
+                pixels++;
+            }
+    }
+    /* An object's pixel under a background colour 1-3: hidden by its tile's priority or its own, with LCDC bit 0 set. */
+    CHECK(oracles_ppu_hides_object(0x81u, 0x81u, 0x00u));
+    CHECK(oracles_ppu_hides_object(0x81u, 0x02u, 0x80u));
+    CHECK(!oracles_ppu_hides_object(0x81u, 0x02u, 0x00u));
+    CHECK(!oracles_ppu_hides_object(0x81u, 0x80u, 0x80u));
+    CHECK(!oracles_ppu_hides_object(0x80u, 0x83u, 0x80u));
     if (failures) return 1;
-    printf("ppu tiles: %u renders equal to the per-pixel reference\n", compared);
+    printf("ppu tiles: %u renders equal to the per-pixel reference, %u background pixels\n", compared, pixels);
     return 0;
 }

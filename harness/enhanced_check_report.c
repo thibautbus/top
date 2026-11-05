@@ -60,6 +60,11 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.link_chained_frames=%u\nenhanced.link_chained_unshown=%u\n", built, unshown);
     }
     fprintf(out, "enhanced.link_left_line_frames=%u\n", oracles_enhanced_view_link_left_line_frames(c->view));
+    {
+        unsigned pixels = 0, frames = 0;
+        oracles_enhanced_view_sprite_hidden(c->view, &pixels, &frames);
+        fprintf(out, "enhanced.sprite_hidden_pixels=%u\nenhanced.sprite_hidden_frames=%u\n", pixels, frames);
+    }
     fprintf(out, "enhanced.camera_jumps=%u\nenhanced.largest_jump=%" PRId32 "\nenhanced.camera_jumps_y=%u\nenhanced.largest_jump_y=%" PRId32 "\n", c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
     fprintf(out, "enhanced.link_jumps=%u\nenhanced.link_jumps_y=%u\nenhanced.window_jumps=%u\n", c->link_jumps, c->link_jumps_y, c->window_jumps);
     fprintf(out, "enhanced.link_drawn_steps=%u\nenhanced.link_backsteps=%u\nenhanced.link_backsteps_y=%u\n", c->link_drawn_steps, c->link_backsteps, c->link_backsteps_y);

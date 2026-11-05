@@ -104,6 +104,35 @@ static unsigned rebuild_link_column(OraclesEnhancedView *v, edge_sprite *entries
 
 enum { ROWS_BELOW_BAR, ROWS_ALL, ROWS_UNDER_BAR };
 
+/* Whether what the band shows at world pixel (x, y) hides a sprite's pixel of attribute `attr` there, as the LCD
+ * would: the core's window from the live VRAM (window_background), elsewhere the source the composition drew on top,
+ * from its own map (a bridge's edge, an arch at a room's border).  A source without a map (a room kept dark, a large
+ * room's older capture) hides nothing. */
+/* Whether source `b`'s background at its pixel (bx, by) hides a sprite's pixel of attribute `attr`. */
+static int source_hides(const band_background *b, int32_t bx, int32_t by, uint8_t attr)
+{
+    if (!b->drawn || !(b->regs.lcdc & 0x01u)) return 0;
+    /* A large room's lower lines were drawn in a second pass, its SCY 128 further on, at the same lines of the frame. */
+    const unsigned pass = (unsigned)by / ORACLES_ENHANCED_AREA_HEIGHT;
+    OraclesPpuRegs r = b->regs;
+    r.scy = (uint8_t)(r.scy + pass * ORACLES_ENHANCED_AREA_HEIGHT);
+    const unsigned ly = ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)by - pass * ORACLES_ENHANCED_AREA_HEIGHT;
+    return oracles_ppu_hides_object(r.lcdc, oracles_ppu_background_at(&b->maps, &r, (unsigned)bx, ly), attr);
+}
+
+static int background_hides(const OraclesEnhancedView *v, int32_t x, int32_t y, uint8_t attr)
+{
+    const band_background *w = &v->window_background;
+    if (x >= w->left && x < w->left + (int32_t)w->width && y >= w->top && y < w->top + (int32_t)w->height) return source_hides(w, x - w->left, y - w->top, attr);
+    for (unsigned n = 0; n < v->background_count; n++) {
+        const band_background *b = &v->backgrounds[n];
+        const int32_t bx = x - b->left, by = y - b->top;
+        if (b->absent || bx < 0 || bx >= (int32_t)b->width || by < 0 || by >= (int32_t)b->height) continue;
+        return source_hides(b, bx, by, attr);
+    }
+    return 0;
+}
+
 /* One sprite's pixels outside the core's window, drawn into the world band
  * at their place, with the sprite's palette and flips: the part inside the
  * window is already in the core's image.  `sx`, `sy`: its top left in the
@@ -137,6 +166,7 @@ static void draw_sprite_outside(OraclesEnhancedView *v, int sx, int sy, uint8_t 
             const int32_t py = ob->window_top + gy - camera_y;
             const int32_t px = ob->window_left + gx - camera_x;
             if (px < 0 || px >= (int32_t)v->size.width || py < 0 || py >= (int32_t)v->band_height) continue;
+            if (background_hides(v, ob->window_left + gx, ob->window_top + gy, attr)) { v->sprite_hidden_pixels++; continue; }
             const uint16_t rgb = (uint16_t)(palette[colour * 2u] | (palette[colour * 2u + 1u] << 8));
             uint32_t *pixel = ev_band_pixel(v, (unsigned)px, (unsigned)py);
             if (made) ev_subpixel_made(v, px, py, *pixel, v->colours[rgb & 0x7fffu]);   /* his, which the OAM does not hold */
@@ -151,6 +181,10 @@ unsigned oracles_enhanced_view_link_built_frames(const OraclesEnhancedView *v) {
 void oracles_enhanced_view_link_chained_frames(const OraclesEnhancedView *v, unsigned *built, unsigned *unshown)
 {
     *built = v->link_chained_frames; *unshown = v->link_chained_unshown;
+}
+void oracles_enhanced_view_sprite_hidden(const OraclesEnhancedView *v, unsigned *pixels, unsigned *frames)
+{
+    *pixels = v->sprite_hidden_pixels; *frames = v->sprite_hidden_frames;
 }
 unsigned oracles_enhanced_view_link_left_line_frames(const OraclesEnhancedView *v) { return v->link_left_line_frames; }
 int oracles_enhanced_view_link_drawn(const OraclesEnhancedView *v, int *x, int *y)

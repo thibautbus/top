@@ -245,6 +245,17 @@ typedef struct blurb_drawing {
     int camera_x, camera_y;
 } blurb_drawing;
 
+/* A source of the band, as the edge overlay finds what lies under a sprite's pixel: its place and size in the world,
+ * and, when it was drawn from a map, the tiles and maps, and the registers, its pixel (x, y) the frame's (x, y + 16). */
+typedef struct band_background {
+    int32_t left, top;
+    unsigned width, height;
+    int absent;                      /* nothing drawn there, the sources below seen through */
+    int drawn;
+    OraclesPpuMaps maps;
+    OraclesPpuRegs regs;
+} band_background;
+
 #define HOTBAR_ICON_VARIANTS 8u   /* no variant, then the seeds 0 to 4 or the songs 1 to 3 */
 #define HOTBAR_PICTURE_W ORACLES_HOTBAR_GAME_PICTURE_WIDTH   /* an item in the game's look: its sprites and the tiles beside them */
 
@@ -638,6 +649,12 @@ struct OraclesEnhancedView {
     unsigned link_chained_unshown;   /* and of those, frames none of his pixels landed in the band */
     unsigned link_chained_pixels;    /* the pixels of him drawn so this frame */
     unsigned link_left_line_frames;  /* frames his left column was drawn from the hidden column x 0, Link on the room's left line */
+    band_background backgrounds[SLOTS + 4u];   /* this composition's sources, in its order (the first on top) */
+    band_background window_background;   /* and the core's window: the live VRAM, SCX and SCY those the frame was drawn with,
+                                          * LCDC, WY and WX the game's committed ones (wGfxRegs3) */
+    unsigned background_count;
+    unsigned sprite_hidden_pixels;   /* pixels of sprites past the window's edge left under a background with priority */
+    unsigned sprite_hidden_frames;   /* frames with some */
     int edge_link_made;              /* this frame's edge overlay drew sprites of his the OAM does not hold (a column, or all of him) */
     int edge_link_built;             /* all of him, from his fields */
     int link_drawn;                  /* this frame's Link: 0 none, 1 from the OAM, 2 built from his fields; at link_drawn_x, _y of the game area, his sprites' top left */

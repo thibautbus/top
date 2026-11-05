@@ -177,3 +177,23 @@ void oracles_ppu_render_wide_lines(const OraclesPpuInput *in, uint32_t *out, uns
     if (end > ORACLES_PPU_HEIGHT) end = ORACLES_PPU_HEIGHT;
     render_lines(in, out, width > 256u ? 256u : width, first, end);
 }
+
+uint8_t oracles_ppu_background_at(const OraclesPpuMaps *maps, const OraclesPpuRegs *r, unsigned x, unsigned ly)
+{
+    if (!(r->lcdc & LCDC_ENABLE)) return 0;
+    const int wx = (int)r->wx - 7;
+    const int window = (r->lcdc & LCDC_WIN_ENABLE) && ly >= r->wy && r->wx <= 166u && (int)x >= wx;
+    const unsigned px = window ? (unsigned)((int)x - wx) & 0xffu : (x + r->scx) & 0xffu, py = window ? (ly - r->wy) & 0xffu : (ly + r->scy) & 0xffu;
+    const unsigned entry = (((window ? r->lcdc & LCDC_WIN_MAP : r->lcdc & LCDC_BG_MAP) ? 0x400u : 0u) + (py / 8u) * 32u + px / 8u) & 0x7ffu;
+    const uint8_t index = maps->map[entry], attr = maps->attributes[entry];
+    const unsigned data = (r->lcdc & LCDC_TILE_DATA) ? (unsigned)index * 16u : 0x1000u + (unsigned)((int8_t)index) * 16u;
+    const unsigned row = (attr & ATTR_FLIP_Y) ? 7u - (py & 7u) : py & 7u, bit = (attr & ATTR_FLIP_X) ? px & 7u : 7u - (px & 7u);
+    const uint8_t *tile = maps->tiles[(attr & ATTR_BANK) ? 1 : 0] + data + row * 2u;
+    const unsigned colour = ((tile[0] >> bit) & 1u) | (((tile[1] >> bit) & 1u) << 1);
+    return (uint8_t)(colour | ((attr & ATTR_PALETTE) << 2) | (attr & ATTR_PRIORITY));
+}
+
+int oracles_ppu_hides_object(uint8_t lcdc, uint8_t background, uint8_t attr)
+{
+    return (lcdc & LCDC_BG_PRIORITY) && (background & 3u) && ((background & ATTR_PRIORITY) || (attr & ATTR_PRIORITY));
+}
