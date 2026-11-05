@@ -169,6 +169,9 @@ typedef struct OraclesRoomTransitionStats {
     unsigned swim_held_frames;      /* of them, a move on an axis held: land or a wall ahead, the line across, the room left's land behind */
     unsigned swim_untested_frames;  /* moves across made while the room entered's collisions were neither loaded nor predicted */
     unsigned swim_lifted_frames;    /* frames of an upward scroll that took him over a swimmer's line out of the room entered's bottom rows */
+    /* --continuous-line, on foot, a direction held toward the edge, past the place the game's own scroll would have left him: */
+    unsigned line_wall_frames;      /* frames a wall of the room entered held his step along the axis, as the game's walk would */
+    unsigned line_unknown_frames;   /* frames its collisions, neither loaded nor predicted, held him at that place */
 } OraclesRoomTransitionStats;
 /* The policy's progress through the transition in progress, for a savestate: ORACLES_ROOM_TRANSITION_STATE_SIZE bytes
  * written into `out`, their count returned; 0 when `capacity` is short. */
@@ -271,6 +274,12 @@ int oracles_room_transition_standing_frame(const uint8_t *rom, size_t rom_size, 
  * points the game tests for walls in a wall it is not in moved by `from`.  1
  * when the room's collisions are not loaded yet. */
 int oracles_room_transition_walkable(const OraclesGuestTransitionState *state, int from, int extra);
+/* How far into a wall Link stands at (x, y), whole pixels of a room `w` x `h` whose collisions are `collisions`
+ * (wRoomCollisions, 16 a row; outside the room, no wall): the most any of the eight points calculateAdjacentWallsBitset
+ * tests lies in a wall, counted back toward him on its own side, beyond the depth the game's walk can leave it at (2 px
+ * up, 1 px on the other sides: the points of a side are tested only as he goes that way); 0 where his walk may stand
+ * him, as the game's own transitions do. */
+int oracles_room_transition_wall_excess(const uint8_t *collisions, int w, int h, int x, int y);
 /* The same with --continuous-swim: stairs, and a bridge crossed along the transition's axis, are walked on too. */
 int oracles_room_transition_passable(const OraclesGuestTransitionState *state, int from, int extra);
 /* The same for Link swimming: onto water he can swim in, by its tile type alone as linkApplyTileTypes takes it (water, a

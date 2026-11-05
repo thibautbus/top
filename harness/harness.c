@@ -88,6 +88,8 @@ static int32_t frame_move(uint16_t from, uint16_t to, int size)
     return best;
 }
 
+#define WALL_SETTLE_FRAMES 8   /* frames of normal play an arrival in a wall must last to count (transitions.wall_arrivals) */
+
 /* A glide in the water (run.glide): its course frame by frame, and at its end against the game's swim alone. */
 static void glide_frame(run *r, OraclesGuest *bus)
 {
@@ -190,6 +192,40 @@ static void on_frame_end(void *opaque, uint32_t frame)
         const int swimming = oracles_guest_read8(bus, t->link_swimming_state) != 0u && (mode == ORACLES_LINK_ANIM_MODE_SWIM || mode == ORACLES_LINK_ANIM_MODE_DIVE);
         const uint8_t *link = oracles_guest_object(bus, 0, 0);
         const uint16_t x = link ? (uint16_t)(link[ORACLES_OBJ_X] | (link[ORACLES_OBJ_XH] << 8)) : 0, y = link ? (uint16_t)(link[ORACLES_OBJ_Y] | (link[ORACLES_OBJ_YH] << 8)) : 0;
+        /* On land: neither at the surface (his swim's state, or its animation through the frame that ends a scroll) nor on
+         * Ages' sea floor, where the policy moves him by his swim; nor on Ages' raised floor, whose $1e the game's walk
+         * crosses there (@checkTileCollisionAt_allowRaisedFl); nor in a scene's walk, the game's own keys. */
+        const int on_land = !oracles_guest_read8(bus, t->link_swimming_state) && mode != ORACLES_LINK_ANIM_MODE_SWIM && mode != ORACLES_LINK_ANIM_MODE_DIVE
+                            && !(oracles_guest_read8(bus, t->tileset_flags) & ORACLES_TILESETFLAG_UNDERWATER)
+                            && !(t->link_raised_floor_offset.bank != ORACLES_GUEST_ABSENT && oracles_guest_read8(bus, t->link_raised_floor_offset))
+                            && !(r->guest && oracles_guest_simulated_input(r->guest));
+        int excess = 0;
+        if (r->wall_measured && link && on_land && (state == 2u || (state >= 3u && state <= 5u && oracles_guest_read8(bus, t->scroll_mode) == 8u))) {
+            /* In a wall of the room in play: in normal play, and through a scroll once the game has loaded the room
+             * entered's collisions (wScrollMode 8), Link's coordinates still the room left's there, rebased as
+             * finishScrollingTransition will. */
+            const uint8_t *collisions = oracles_guest_ptr(bus, t->room_collisions, 176);
+            const int large = oracles_guest_read8(bus, t->room_is_large) != 0u, w = large ? 240 : 160, h = large ? 176 : 128;
+            const unsigned dir = state == 2u ? 4u : oracles_guest_read8(bus, t->screen_transition_direction) & 3u;
+            const int ex = ((x >> 8) + (dir == 1u ? -w : dir == 3u ? w : 0)) & 0xff, ey = ((y >> 8) + (dir == 2u ? -h : dir == 0u ? h : 0)) & 0xff;
+            excess = ex < w && ey < h ? oracles_room_transition_wall_excess(collisions, w, h, ex, ey) : 0;
+            if (state != 2u && excess > 0) r->wall_scroll_frames++;
+        }
+        if (state == 2u && r->in_transition) r->wall_pending = 1;
+        else if (state >= 3u && state <= 5u) r->wall_pending = 0;
+        if (state == 2u && r->wall_pending) {
+            /* An arrival in a wall that holds: the frames of normal play after the scroll, on the collisions the game
+             * holds then, which the first of them may still be loading (a room's own code, a scene); none of them free. */
+            if (excess <= 0) r->wall_pending = 0;
+            else {
+                if (r->wall_pending == 1 || excess < r->wall_pending_depth) r->wall_pending_depth = excess;
+                if (++r->wall_pending > WALL_SETTLE_FRAMES) {
+                    r->wall_arrivals++;
+                    if (r->wall_pending_depth > r->wall_arrival_depth) r->wall_arrival_depth = r->wall_pending_depth;
+                    r->wall_pending = 0;
+                }
+            }
+        } else if (state != 2u && !(state >= 3u && state <= 5u)) r->wall_pending = 0;
         if (state >= 3u && state <= 5u) {
             if (!r->in_transition) r->swam_into = r->swam_before;
             r->in_transition = 1;
@@ -676,6 +712,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         if (r->enhanced) oracles_enhanced_check_set_transition(r->enhanced, r->transition);
         oracles_room_transition_set_diagonal(r->transition, o->continuous_diagonal);
         oracles_room_transition_set_steps(r->transition, o->continuous_steps);
+        r->wall_measured = o->continuous_swim || o->continuous_diagonal || o->continuous_steps;
         oracles_guest_set_scene_walks_taken(r->guest, r->scene_walks_taken);
         if (o->continuous_line && !oracles_room_transition_set_line(r->transition, 1)) {
             fprintf(stderr, "harness: --continuous-line needs the screen's edge tests found in the ROM\n");

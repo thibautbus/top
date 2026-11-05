@@ -221,6 +221,7 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->link_animation_frame = oracles_guest_read8(guest, t->link_animation_frame);
     s->link_anim_pointer = oracles_guest_read16(guest, t->link_anim_pointer);
     s->link_in_air = oracles_guest_read8(guest, t->link_in_air);
+    s->link_raised_floor = t->link_raised_floor_offset.bank == ORACLES_GUEST_ABSENT ? 0u : oracles_guest_read8(guest, t->link_raised_floor_offset);
     s->link_swimming_state = oracles_guest_read8(guest, t->link_swimming_state);
     s->link_grab_state = oracles_guest_read8(guest, t->link_grab_state);
     s->magnet_glove_state = oracles_guest_read8(guest, t->magnet_glove_state);

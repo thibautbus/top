@@ -137,6 +137,18 @@ def prediction_rules(values: dict) -> list:
     return PREDICTION + ["transitions.predicted_pending<=1", f"transitions.predicted_matched={int(values['transitions.predicted']) - pending}"]
 
 
+# On every row whose transitions are continuous, but for the cap of the transitions alone (the harness measures it
+# otherwise): no scroll, the policy's or one it leaves to the game, leaves Link on foot on land in a wall of the room entered, where the game's
+# walk never stands him, his eight wall points as calculateAdjacentWallsBitset tests them, for the frames of normal play
+# after it (transitions.wall_arrivals); a row that gives the key its own rule (`transitions.wall_arrivals<=1`, or
+# `mgba:transitions.wall_arrivals<=1` for one core) holds that instead on the cores it names, the reason in a comment above it.
+def wall_rules(values: dict, expect: list, core: str) -> list:
+    own = [rule.split(":", 1)[1] for rule in expect if rule.split(":", 1)[0] == core] + [rule for rule in expect if rule.split(":", 1)[0] not in CORES]
+    if "transitions.wall_arrivals" not in values or any(rule.startswith("transitions.wall_arrivals") for rule in own):
+        return []
+    return ["transitions.wall_arrivals=0"]
+
+
 # On every row with a text size (its counters in the summary): the box drawn again at the other sizes and back, as the
 # pause draws it, gives back the frame as composed.
 def redraw_rules(values: dict) -> list:
@@ -430,7 +442,7 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
     if not values:
         violations.append(f"no summary written (harness exit {returncode}{retried}; see {w / 'harness.log'})")
     sized = sized_rules(row["mode"], row["options"], row["expect"], core)
-    for rule in ALWAYS[row["mode"]] + sized + prediction_rules(values) + redraw_rules(values) + row["expect"]:
+    for rule in ALWAYS[row["mode"]] + sized + prediction_rules(values) + wall_rules(values, row["expect"], core) + redraw_rules(values) + row["expect"]:
         on, colon, rest = rule.partition(":")
         if colon and on in CORES:
             if on != core:

@@ -80,6 +80,18 @@ typedef struct run {
     int carried_off;          /* 8.8: what the last transition carried him off its straight path, across its axis */
     unsigned landing_direction;
     unsigned swim_dropped;    /* transitions he swam into and came out of on land where the straight path stays in water */
+    /* On foot on land, Link's eight wall points (oracles_room_transition_wall_excess) in the room in play, after every
+     * scroll, the policy's and those it leaves to the game (which start at the line too): through the scroll once the
+     * game has loaded the room entered's collisions, and in the frames of normal play after it, an arrival counted once
+     * he has stood WALL_SETTLE_FRAMES in a wall on the collisions the game then holds; not on Ages' sea floor (the
+     * policy's swim step), nor with the transitions alone, whose cap (the routes recorded with it replay as they were
+     * played) may leave him in one. */
+    int wall_measured;
+    int wall_pending;         /* 1 + the frames of normal play since its end, Link in a wall at each; 0 none */
+    int wall_pending_depth;   /* the least depth over them */
+    unsigned wall_arrivals;   /* scrolls that left him in a wall, where the game's walk never stands him */
+    int wall_arrival_depth;   /* the deepest of them, pixels past what his walk can leave */
+    unsigned wall_scroll_frames;  /* frames of a scroll he was so in a wall of the room entered */
     /* With the continuous transitions, a glide in the water: from a frame no key is held (directions, A), his motion
      * left to slow down, how far he went until it stopped, against how far the game's swim routines take that motion
      * alone (oracles_room_transition_swim_step), the glide given up if a key is pressed again or he leaves the water. */

@@ -4,9 +4,24 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from check_routes import CRASH_RETRIES, SIZED, compare_cores_rooms, run_harness, sized_rules
+from check_routes import CRASH_RETRIES, SIZED, compare_cores_rooms, run_harness, sized_rules, wall_rules
 
 FAR = ["--language", "fr", "--view", "far", "--screen", "1920x1080"]
+
+
+class WallRules(unittest.TestCase):
+    MEASURED = {"transitions.wall_arrivals": "0"}
+
+    def test_a_row_that_measures_it_holds_it(self):
+        self.assertEqual(wall_rules(self.MEASURED, ["transitions.taken=3"], "sameboy"), ["transitions.wall_arrivals=0"])
+
+    def test_a_row_that_does_not_holds_none(self):
+        self.assertEqual(wall_rules({}, [], "sameboy"), [])
+
+    def test_its_own_rule_replaces_it_on_the_cores_it_names(self):
+        self.assertEqual(wall_rules(self.MEASURED, ["transitions.wall_arrivals<=1"], "mgba"), [])
+        self.assertEqual(wall_rules(self.MEASURED, ["mgba:transitions.wall_arrivals<=1"], "mgba"), [])
+        self.assertEqual(wall_rules(self.MEASURED, ["mgba:transitions.wall_arrivals<=1"], "sameboy"), ["transitions.wall_arrivals=0"])
 
 
 class SizedRules(unittest.TestCase):

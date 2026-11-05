@@ -165,6 +165,7 @@ typedef struct OraclesGuestTransitionState {
     uint8_t tile_types_bank;                                                  /* tileTypesTable in the ROM, 0xff when the game has none */
     uint16_t tile_types_table;
     uint8_t link_speed, link_var2f;                                           /* w1Link.speed (an objectSpeedTable row, times 5), var2f (Ages: bit 6 the mermaid suit, bit 7 the sea floor) */
+    uint8_t link_raised_floor;                                                /* wLinkRaisedFloorOffset (Ages; 0 elsewhere): Link's walls then leave out $1e, the floor he stands raised on */
     /* What screenTransitionState2@transition reads in normal play besides the direction held (--continuous-swim): */
     uint8_t transition_direction_raw;                                         /* wScreenTransitionDirection, bit 7 the forced transition */
     uint8_t link_enabled, link_move_angle;                                    /* w1Link.enabled, w1Link.angle (his motion's, 32 steps; bit 7 none) */

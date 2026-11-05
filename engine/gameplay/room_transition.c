@@ -405,15 +405,20 @@ static int tile_allowed(const OraclesGuestTransitionState *s, const tile_rule *r
  * under $10 blocks the quarter of the tile the point falls in (bit 3 the top left, 2 the top right, 1 the bottom left,
  * 0 the bottom right); a special one blocks the columns (values $10 to $17) or the rows ($18 to $1f) its byte in
  * @specialCollisions marks, two pixels a bit from bit 0 (bitTable). */
-static int collisions_wall(const uint8_t *collisions, int x, int y)
+static int collisions_wall_raised(const uint8_t *collisions, int x, int y, int raised)
 {
     static const uint8_t special[16] = { 0x00, 0xc3, 0x03, 0xc0, 0x00, 0xc3, 0xc3, 0x00, 0x00, 0xc3, 0x03, 0xc0, 0xc0, 0xc1, 0xff, 0x00 };
     const uint8_t v = collisions[(y >> 4) * 16 + (x >> 4)];
     if (v < 0x10u) return (v >> (((y & 8) ? 0 : 2) + ((x & 8) ? 0 : 1))) & 1;
     const unsigned index = v & 0x0fu;
+    /* Ages, Link raised on the floor (wLinkRaisedFloorOffset): calculateAdjacentWallsBitset's own test
+     * (@checkTileCollisionAt_allowRaisedFl, link.s), whose table leaves out $1e. */
+    if (raised && index == 0x0eu) return 0;
     const unsigned coordinate = (unsigned)(index < 8u ? x : y);
     return (special[index] >> ((coordinate >> 1) & 7u)) & 1u;
 }
+
+static int collisions_wall(const uint8_t *collisions, int x, int y) { return collisions_wall_raised(collisions, x, y, 0); }
 
 static int game_wall(const OraclesGuestTransitionState *s, int x, int y) { return collisions_wall(s->room_collisions, x, y); }
 
@@ -448,6 +453,30 @@ static int tile_wall(const OraclesGuestTransitionState *s, int xh, int yh)
  * x+2, right x+4 at y and y+5, down y+7, left x-5. */
 static const int WALL_POINTS[4][2][2] = { { { -3, -3 }, { 2, -3 } }, { { 4, 0 }, { 4, 5 } }, { { -3, 7 }, { 2, 7 } }, { { -5, 0 }, { -5, 5 } } };
 #define HAZARD_DY 5                     /* the tile the game takes as Link's own (linkApplyTileTypes, objectCheckIsOverHazard: ld bc,$0500) */
+
+/* Each side's points looked back toward Link (up: down), and the depth his walk may leave them at: the game tests a side
+ * only as he goes that way, so walking along a wall the other points may lie in it by the gap to their neighbours, 2 px
+ * up (y-3 against the sides' y), 1 px elsewhere (x+4, x-5 and y+7 against x+2, x-3 and y+5). */
+static const int WALL_BACK[4][2] = { { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 } };
+static const int WALL_DEPTH_WALKED[4] = { 2, 1, 1, 1 };
+
+int oracles_room_transition_wall_excess(const uint8_t *collisions, int w, int h, int x, int y)
+{
+    if (!collisions) return 0;
+    int worst = 0;
+    for (unsigned side = 0; side < 4u; side++)
+        for (unsigned i = 0; i < 2u; i++) {
+            const int px = x + WALL_POINTS[side][i][0], py = y + WALL_POINTS[side][i][1];
+            int depth = -1;
+            for (int n = 0; n <= 16; n++) {
+                const int qx = px + WALL_BACK[side][0] * n, qy = py + WALL_BACK[side][1] * n;
+                if (qx < 0 || qy < 0 || qx >= w || qy >= h || !collisions_wall(collisions, qx, qy)) break;
+                depth = n;
+            }
+            if (depth - WALL_DEPTH_WALKED[side] > worst) worst = depth - WALL_DEPTH_WALKED[side];
+        }
+    return worst;
+}
 
 static void along_pixel(const OraclesGuestTransitionState *s, int along, int *xh, int *yh)
 {
@@ -1686,6 +1715,47 @@ static void swim_line_move(OraclesRoomTransition *tr, const OraclesGuestTransiti
     if (extra) { tr->stats.walked_frames++; tr->stats.swum_frames++; }
 }
 
+/* --continuous-line, on foot, a direction held toward the edge: his move along the axis this frame, `extra` (8.8) after
+ * the machine's `machine_now`, as the game's walk would make it once he is past the place its own scroll would have left
+ * him (its distance from the game's edge, where the transition starts without the line, not from the line, where his
+ * steps began): out of a pixel only where the two points calculateAdjacentWallsBitset tests on the transition's side
+ * are free in the room entered (`entered`, its collisions loaded or predicted; unknown, none past that place).  What it
+ * leaves of `extra`: never less than the machine's step undone, Link never moved back. */
+static int line_wall_hold(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, const OraclesGuestTransitionState *entered, int extra, int machine_now)
+{
+    const unsigned dir = s->transition_direction;
+    const int horizontal = dir & 1u, forward = dir == 1u || dir == 2u, sign = forward ? 1 : -1;
+    const int native_total = horizontal ? NATIVE_TOTAL_X : NATIVE_TOTAL_Y;
+    /* In the room left's coordinates, unwrapped: leftward and upward they run below zero ($ffc2), the start too when the
+     * scroll began past the line already (a corner's second scroll). */
+    const int start = forward ? (int)tr->start_pos : (int)(int16_t)(uint16_t)tr->start_pos;
+    const int game_start = forward ? (int)(horizontal ? s->boundary_x : s->boundary_y) << 8 : (int)(EDGE + 1u) << 8;
+    const int anchor = forward ? (start < game_start ? start : game_start) : (start > game_start ? start : game_start);
+    const int place = (anchor + sign * native_total) >> 8;
+    const int pos = horizontal ? s->link_x : s->link_y;
+    const int now = start + sign * (int)(int16_t)(uint16_t)(forward ? pos - tr->start_pos : tr->start_pos - pos);
+    const int from = now - sign * machine_now, to = now + sign * extra;
+    const int cross = ((horizontal ? s->link_y : s->link_x) >> 8) & 0xff;
+    if (forward ? to <= from : to >= from) return extra;
+    for (int q = from >> 8; q != to >> 8; q += sign) {
+        if (forward ? q < place : q > place) continue;
+        int held = !entered->room_collisions;
+        for (unsigned i = 0; i < 2u && !held; i++) {
+            int ex = 0, ey = 0;
+            const int px = horizontal ? (q & 0xff) + WALL_POINTS[dir][i][0] : cross + WALL_POINTS[dir][i][0];
+            const int py = horizontal ? cross + WALL_POINTS[dir][i][1] : (q & 0xff) + WALL_POINTS[dir][i][1];
+            held = entered_pixel(entered, px, py, &ex, &ey) && collisions_wall_raised(entered->room_collisions, ex, ey, entered->link_raised_floor != 0u);
+        }
+        if (!held) continue;
+        /* As far as the pixel he may not leave: where he stood before the frame if he is in it, else its first 8.8 step. */
+        const int stop = q == from >> 8 ? from : forward ? q << 8 : (q << 8) | 0xff;
+        if (entered->room_collisions) tr->stats.line_wall_frames++;
+        else tr->stats.line_unknown_frames++;
+        return sign * (stop - now);
+    }
+    return extra;
+}
+
 /* Link walks a pixel a frame, or swims at his own speed: what the machine
  * moved him this frame (it moves the camera and him together, so the
  * camera's move says), topped up; his animation goes on with it. */
@@ -1854,6 +1924,7 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
         const int bound = in_water ? ORACLES_TRANSITION_SWIM_STEP_MAX : ORACLES_TRANSITION_WALK_STEP_MAX;
         if (add) extra = extra + add < bound ? extra + add : bound;
     }
+    if (keyed && tr->line && held) extra = line_wall_hold(tr, s, entered, extra, machine_moved ? (horizontal ? NATIVE_STEP_X : NATIVE_STEP_Y) : 0);
     if (!held && !back) tr->stats.released_frames++;
     /* Across, onto what he may stand on in the room entered: on foot and on the sea floor a tile without a collision,
      * swimming water. */
@@ -2014,7 +2085,8 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
         default: m->link_y_delta = (int16_t)returned; break;
         }
     }
-    if (!extra) return;
+    /* On foot, the machine's step undone alone leaves him where he stood: no frame walked. */
+    if (!extra || (!in_water && extra == -(machine_moved ? (horizontal ? NATIVE_STEP_X : NATIVE_STEP_Y) : 0))) return;
     tr->stats.walked_frames++;
     if (in_water) tr->stats.swum_frames++;
 }

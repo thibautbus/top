@@ -71,6 +71,11 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
         if (summary) fprintf(summary, "transitions.swim_taken=%u\ntransitions.swum_frames=%u\ntransitions.swim_forced=%u\n", stats.swim_transitions, stats.swum_frames, stats.forced_transitions);
         fprintf(stderr, "continuous transitions: transitions Link swam into and came out of on land where the straight path stays in water: %u\n", r->swim_dropped);
         if (summary) fprintf(summary, "transitions.swim_dropped=%u\n", r->swim_dropped);
+        if (r->wall_measured) {
+            fprintf(stderr, "continuous transitions: on foot on land, scrolls that left Link in a wall of the room entered, where the game's walk never stands him: %u (%d px deep at most); "
+                            "frames of a scroll he was so in one, its collisions loaded, the game's own move through it included: %u\n", r->wall_arrivals, r->wall_arrival_depth, r->wall_scroll_frames);
+            if (summary) fprintf(summary, "transitions.wall_arrivals=%u\ntransitions.wall_arrival_depth=%d\ntransitions.wall_scroll_frames=%u\n", r->wall_arrivals, r->wall_arrival_depth, r->wall_scroll_frames);
+        }
         fprintf(stderr, "continuous transitions: glides in the water, keys let go until his motion stops, against the game's swim of that motion alone: in a room %u (%u otherwise: a wall), "
                         "across a scroll %u (%u otherwise, by %d/256 px at most)\n", r->glides, r->glides_unlike, r->edge_glides, r->edge_glides_unlike, r->edge_glide_off_max);
         if (summary) fprintf(summary, "swim.glides=%u\nswim.glides_unlike=%u\nswim.edge_glides=%u\nswim.edge_glides_unlike=%u\nswim.edge_glide_off_max=%d\n",
@@ -118,6 +123,9 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
                             "%u different (the first at %u); scroll frames swum by that step %u (a move held %u, made across untested %u), the motion written %u\n",
                     stats.swim_model_frames, stats.swim_model_mismatched, stats.swim_model_first_mismatch, stats.swim_line_frames, stats.swim_held_frames, stats.swim_untested_frames,
                     oracles_guest_transition_swim_steps(r->guest));
+            fprintf(stderr, "continuous transitions: on foot past the game's own place (--continuous-line), steps along the axis held by a wall of the room entered on %u frames, by its collisions unknown on %u\n",
+                    stats.line_wall_frames, stats.line_unknown_frames);
+            if (summary) fprintf(summary, "transitions.line_wall_frames=%u\ntransitions.line_unknown_frames=%u\n", stats.line_wall_frames, stats.line_unknown_frames);
             if (summary) fprintf(summary, "transitions.swim_model_frames=%u\ntransitions.swim_model_mismatched=%u\ntransitions.swim_line_frames=%u\ntransitions.swim_held_frames=%u\n"
                                           "transitions.swim_untested_frames=%u\ntransitions.swim_steps=%u\ntransitions.swim_lifted_frames=%u\n",
                                  stats.swim_model_frames, stats.swim_model_mismatched, stats.swim_line_frames, stats.swim_held_frames, stats.swim_untested_frames,

@@ -421,6 +421,24 @@ int main(void)
     s.camera_x = (uint16_t)-12; CHECK(oracles_room_transition_machine_rest(&s, 0) == 11 * 0x60);
     s.camera_x = (uint16_t)-16; CHECK(oracles_room_transition_machine_rest(&s, 0) == 12 * 0x60 && oracles_room_transition_machine_rest(&s, 1) == 6 * 0x60);
 
+    /* Link's eight wall points against a room whose row 6 (y 96 to 111) is a wall: under it, his top points (y-3) as deep
+     * as walking along it leaves them, 2 px (y=112, Temple's 1:19); a pixel up, his side points in it too, the whole row
+     * beside them. Then the left half of a tile beside him: his right points in it as far as walking leaves them,
+     * then deeper, his top one in it, and past it his left ones. */
+    {
+        uint8_t walls[176];
+        memset(walls, 0, sizeof walls);
+        for (unsigned col = 0; col < 10u; col++) walls[6 * 16 + col] = 0x0f;
+        CHECK(oracles_room_transition_wall_excess(walls, 160, 128, 80, 116) == 0 && oracles_room_transition_wall_excess(walls, 160, 128, 80, 114) == 0);
+        CHECK(oracles_room_transition_wall_excess(walls, 160, 128, 80, 112) == 0 && oracles_room_transition_wall_excess(walls, 160, 128, 80, 111) == 15);
+        CHECK(oracles_room_transition_wall_excess(NULL, 160, 128, 80, 105) == 0);
+        memset(walls, 0, sizeof walls);
+        walls[0 * 16 + 1] = 0x0a;   /* the left half of column 1: x 16 to 23 */
+        CHECK(oracles_room_transition_wall_excess(walls, 160, 128, 12, 9) == 0 && oracles_room_transition_wall_excess(walls, 160, 128, 13, 9) == 0);
+        CHECK(oracles_room_transition_wall_excess(walls, 160, 128, 14, 9) == 7);   /* his top point (x+2) in it too */
+        CHECK(oracles_room_transition_wall_excess(walls, 160, 128, 28, 9) == 0);   /* past it, his left points (x-5) on its last pixel */
+    }
+
     if (failures) return 1;
     puts("test_room_transition: ok");
     return 0;

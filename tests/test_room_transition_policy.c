@@ -72,6 +72,7 @@ static int end_started = -1;       /* the direction of the transition it started
 static const uint8_t *flags_page;  /* the rooms' flags of group 0, with the overworld's map and room packs of the fixture (NULL: none) */
 static int disable_at;             /* the frame of the transition from which wDisableScreenTransitions is set (0: never) */
 static uint16_t animation_table;   /* specialObjectAnimationTable in bank 6, 0: none */
+static uint8_t raised_floor;       /* wLinkRaisedFloorOffset (Ages), 0: none */
 static int last_pose = -1;         /* the base frame the last animation written gave Link, -1 none */             /* the direction turned the other way from that frame of the transition on (0: never) */
 
 static OraclesRoomTransition *policy_under_test;
@@ -126,6 +127,7 @@ static void play(const run *r, int *out_x, int *out_y)
         s.room_pack_bank = FIXTURE_BANK; s.room_pack_table = FIXTURE_ROOM_PACKS; s.tileset_flags = 0x01;
     }
     s.link_input_angle = r->angle; s.link_move_angle = r->sea_floor ? r->move_angle : r->angle; s.tile_types_bank = 0xff;
+    s.link_raised_floor = raised_floor;
     if (r->sea_floor) { s.tileset_flags = ORACLES_TILESETFLAG_UNDERWATER; s.link_var2f = 0xc0; s.link_speed = r->speed ? r->speed : 0x28; }
     int x = r->x, y = r->y;
     const int horizontal = r->dir & 1u, rows = horizontal ? 20 : 16, step = horizontal ? 0x60 : 0x80;
@@ -767,6 +769,45 @@ int main(void)
         CHECK(y - (127 << 8) == 19 << 8 && largest_along == ORACLES_TRANSITION_LINE_STEP_MAX);
         back_at = 0;
         animation_table = 0;
+        /* Right from the line along the room entered's top row, its column 1 a wall: past the game's own place (its edge,
+         * 154, and its 15 px, not the line's) his step stops where his right points (x+4) reach the wall, x=12, as the
+         * game's walk stops him, never in it; the machine's later steps undone. */
+        memset(collisions, 0, sizeof collisions);
+        for (unsigned row = 0; row < 8u; row++) collisions[row * 16 + 1] = 0x0f;
+        r = (run){ 1u, 8u, 159 << 8, 9 << 8, 12, 2, collisions, 0, -1, 0, 0, 0, 0, 0, NULL, 0, 0, 1, 0, 0, 0, 0 };
+        oracles_room_transition_stats(tr, &before);
+        play(&r, &x, &y);
+        oracles_room_transition_stats(tr, &after);
+        CHECK((x >> 8) == 172 && oracles_room_transition_wall_excess(collisions, 160, 128, (x >> 8) - 160, y >> 8) == 0);
+        CHECK(after.line_wall_frames > before.line_wall_frames && after.line_unknown_frames == before.line_unknown_frames);
+        CHECK(oracles_room_transition_wall_excess(collisions, 160, 128, 14, 9) > 0);   /* where the steps from the line took him */
+        /* Its collisions unknown through the scroll: held at the game's place (169), a step on at the frame that ends it,
+         * which knows them. */
+        r.unknown = 1;
+        oracles_room_transition_stats(tr, &before);
+        play(&r, &x, &y);
+        oracles_room_transition_stats(tr, &after);
+        CHECK((x >> 8) == 170 && after.line_unknown_frames > before.line_unknown_frames);
+        r.unknown = 0;
+        /* Column 1 the raised floor's edge ($1e): a wall to his walk, but not raised on it (Ages' wLinkRaisedFloorOffset,
+         * @checkTileCollisionAt_allowRaisedFl), where he walks on, as far as the cap past the line's 15 px. */
+        for (unsigned row = 0; row < 8u; row++) collisions[row * 16 + 1] = 0x1e;
+        play(&r, &x, &y);
+        CHECK((x >> 8) == 172);
+        raised_floor = 1;
+        play(&r, &x, &y);
+        CHECK((x >> 8) > 172);
+        raised_floor = 0;
+        /* Up through a corner's second scroll, started past the line already (y=-8, 120 in the room entered), up-left held:
+         * row 6 a wall but for its last column, row 7 clear.  Up only as far as his top points (y-3) reach the wall,
+         * y=114, where the steps from the line took him 10 px further, into it. */
+        memset(collisions, 0, sizeof collisions);
+        for (unsigned col = 0; col < 9u; col++) collisions[6 * 16 + col] = 0x0f;
+        r = (run){ 0u, 28u, 140 << 8, -(8 << 8), 12, 2, collisions, 0, -1, 0, 0, 0, 0, 0, NULL, 0, 0, 1, 0, 0, 0, 0 };
+        play(&r, &x, &y);
+        CHECK(((y + (128 << 8)) >> 8) == 114);
+        CHECK(oracles_room_transition_wall_excess(collisions, 160, 128, x >> 8, (y + (128 << 8)) >> 8) == 0);
+        CHECK(oracles_room_transition_wall_excess(collisions, 160, 128, 140, 104) > 0);
     }
     CHECK(!oracles_room_transition_set_line(tr, 0));
     CHECK(!oracles_room_transition_set_steps(tr, 0));
