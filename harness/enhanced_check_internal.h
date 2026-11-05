@@ -183,6 +183,10 @@ struct OraclesEnhancedCheck {
     uint64_t epochs;
     unsigned neighbours_frames[5];       /* world frames with 0 to 4 neighbours shown */
     unsigned transitions, transitions_with_terrain, transitions_black, transitions_vertical;   /* the scrolling transitions judged: was the room entered shown, and true; those on the vertical axis among them */
+    unsigned transitions_dark;             /* of the rooms entered not shown, those kept dark as never visited, not black */
+    unsigned dark_visited;                 /* rooms kept dark, frame by frame of play, whose flags the game says visited */
+    unsigned dark_edge_stray;              /* rooms kept dark, frame by frame of play, lit on a side where nothing in clear stands beyond it */
+    unsigned shown_unvisited;              /* rooms drawn in clear, frame by frame of play, whose flags the game says never visited, the room in play aside, and rooms kept dark shown in clear past their edge */
     unsigned transitions_other_room;  /* entered while another room was shown that way: a wrong neighbour, never allowed */
     char other_room_list[256];        /* "from>to=shown" */
     unsigned curtain_frames, curtain_frames_wrong, curtain_frames_unchecked, curtain_pixels_wrong;
@@ -270,6 +274,7 @@ struct OraclesEnhancedCheck {
     int last_layout_valid[4];
     uint8_t last_layout[4][ORACLES_GHOST_LAYOUT_BYTES];
     int last_shown[4];
+    int last_dark[4];                      /* kept dark, never visited (--unvisited-rooms hidden) */
     uint8_t last_room[4];
     uint8_t last_play_room;
     int last_playing, last_mode_world;

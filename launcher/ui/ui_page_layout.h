@@ -189,9 +189,9 @@ typedef struct OraclesUiDisplayTexts {
     char workers_names[3][16];            /* "Auto · 2", "1", "2" */
     char scaling_sizes[2][24];            /* the image's size in fullscreen with Sharp, with Fill */
     const char *camera_explanation, *camera_note;   /* Camera's, and its note (NULL: none) where it has no effect */
-    /* Display › Picture's Menus & scenes and Far size: their explanations and notes (empty: none). */
-    const char *size_explanations[2];
-    char size_notes[2][ORACLES_HOME_TEXT_LENGTH];
+    /* Display › Picture's Menus & scenes, Far size and Unvisited rooms: their explanations and notes (empty: none). */
+    const char *size_explanations[3];
+    char size_notes[3][ORACLES_HOME_TEXT_LENGTH];
     char profile_sizes[ORACLES_PROFILES][24], view_sizes[3][24];   /* the sizes of the screen's shape, Enhanced's at the view chosen */
     float diagram_box_w;                  /* the diagram's box, the screen's shape at its height (0: 16:9's) */
     float diagram_w, diagram_h;           /* the window drawn in the diagram's box */
@@ -259,11 +259,11 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiLine preview_label, preview_note;
     OraclesUiOptionLayout margin[ORACLES_DISPLAY_MARGINS];   /* 16:9: above its explanation, from the row's left */
     OraclesUiOptionLayout camera[2];
-    /* Display › Picture's Menus & scenes and Far size: their choices, explanations (16:9, two lines kept) and notes (16:9,
-     * under them; 4:3 says them on the help's note line). */
-    OraclesUiOptionLayout menus[2], far_size[2];
-    OraclesUiWrapped size_explanations[2];
-    OraclesUiLine size_notes[2];
+    /* Display › Picture's Menus & scenes, Far size and Unvisited rooms: their choices, explanations (16:9, two lines kept)
+     * and notes (16:9, under them; 4:3 says them on the help's note line). */
+    OraclesUiOptionLayout menus[2], far_size[2], unvisited[2];
+    OraclesUiWrapped size_explanations[3];
+    OraclesUiLine size_notes[3];
     OraclesUiWrapped camera_explanation;              /* 16:9 */
     OraclesUiLine camera_note;                        /* 16:9: under its explanation */
     OraclesUiLine help, help_note;                   /* 4:3: in the header, the highlighted row's explanation and its note */

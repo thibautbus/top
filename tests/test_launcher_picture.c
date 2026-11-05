@@ -4,7 +4,9 @@
  * 16:9 (34a) and in 4:3 (34b); the page, Scaling highlighted, without Far size at 1920x1080 (34c); in 4:3, Screen margin
  * highlighted (34d); at 640x480 on Android with a controller, Large Android's default (34e); on a 1280x960 handheld,
  * Far size with its note on the help's note line (34f); from the pause, every row live (34g); in Faithful, Menus &
- * scenes dimmed, "Enhanced only." (34h); and Advanced's five rows, Camera highlighted (34i, 34i 4:3). */
+ * scenes dimmed, "Enhanced only." (34h); and Advanced's five rows, Camera highlighted (34i, 34i 4:3).  Turn 35's: the
+ * page's last row, Unvisited rooms, Shown and Hidden (35a, 35b), in 4:3 (35c), at 640x480 on Android (35d), from the
+ * pause (35e), in Faithful (35f), and Picture's summary naming the rooms hidden, or counting the extras (35g). */
 #include "layout_reference.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
@@ -14,9 +16,9 @@
 
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #condition); layout_fail(); } } while (0)
 
-static const char *const ids[4] = { "scaling", "margin", "color", "menus" };
-static const unsigned rows_of[4] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_MENUS };
-static const char *const choice_ids[4][4] = { { "sharp", "fill" }, { "off", "auto", "small", "large" }, { "off", "on" }, { "view", "large" } };
+static const char *const ids[5] = { "scaling", "margin", "color", "menus", "unvisited" };
+static const unsigned rows_of[5] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
+static const char *const choice_ids[5][4] = { { "sharp", "fill" }, { "off", "auto", "small", "large" }, { "off", "on" }, { "view", "large" }, { "shown", "hidden" } };
 
 /* Oracle of Ages with its original ROM; Display at a `width` x `height` screen's sizes, after a key (or a controller's
  * button, `gamepad`). */
@@ -69,10 +71,10 @@ static void hints(const char *frame, const OraclesHomeNav *nav, unsigned count)
 /* The page's rows, their labels and choices; 16:9's explanations and the section; 4:3's texts by their line boxes. */
 static void rows(const char *frame, const OraclesUiDisplayTexts *t, const OraclesUiDisplayLayout *l, int four_three)
 {
-    const OraclesUiOptionLayout *options[4] = { l->scaling, l->margin, l->colour, l->menus };
-    const unsigned counts[4] = { 2, ORACLES_DISPLAY_MARGINS, 2, 2 };
+    const OraclesUiOptionLayout *options[5] = { l->scaling, l->margin, l->colour, l->menus, l->unvisited };
+    const unsigned counts[5] = { 2, ORACLES_DISPLAY_MARGINS, 2, 2, 2 };
     char what[48];
-    for (unsigned i = 0; i < 4u; i++) {
+    for (unsigned i = 0; i < 5u; i++) {
         const unsigned row = rows_of[i];
         snprintf(what, sizeof what, "%s row", ids[i]); layout_box(frame, what, &l->rows[row]);
         snprintf(what, sizeof what, "%s grid", ids[i]); layout_near(frame, what, "y", l->rows[row].y);
@@ -85,9 +87,11 @@ static void rows(const char *frame, const OraclesUiDisplayTexts *t, const Oracle
     for (unsigned c = 0; c < 2u; c++) {
         snprintf(what, sizeof what, "menus %s text", choice_ids[3][c]);
         if (four_three) layout_line(frame, what, &l->menus[c].name); else layout_text(frame, what, &l->menus[c].name);
+        snprintf(what, sizeof what, "unvisited %s text", choice_ids[4][c]);
+        if (four_three) layout_line(frame, what, &l->unvisited[c].name); else layout_text(frame, what, &l->unvisited[c].name);
     }
     layout_near(frame, "rows", "y", l->rows[ORACLES_DISPLAY_SCALING].y);
-    layout_near(frame, "rows", "h", l->rows[ORACLES_DISPLAY_MENUS].y + l->rows[ORACLES_DISPLAY_MENUS].h - l->rows[ORACLES_DISPLAY_SCALING].y);
+    layout_near(frame, "rows", "h", l->rows[ORACLES_DISPLAY_UNVISITED].y + l->rows[ORACLES_DISPLAY_UNVISITED].h - l->rows[ORACLES_DISPLAY_SCALING].y);
     CHECK(!strcmp(t->section, "Display \xe2\x80\xba Picture") && t->picture && !t->advanced);
     /* No link on the page, nor Display's own rows, nor the Advanced rows. */
     CHECK(l->link == ORACLES_DISPLAY_ROWS && l->rows[ORACLES_DISPLAY_ADVANCED].w == 0.0f && l->rows[ORACLES_DISPLAY_CORE].w == 0.0f
@@ -107,6 +111,8 @@ static void rows(const char *frame, const OraclesUiDisplayTexts *t, const Oracle
     layout_text(frame, "color explanation", &l->explanations[0].lines[0]);
     layout_text(frame, "menus explanation", &l->size_explanations[0].lines[0]);
     layout_near(frame, "menus explanation", "lines", (float)l->size_explanations[0].count);
+    layout_text(frame, "unvisited explanation", &l->size_explanations[2].lines[0]);
+    layout_near(frame, "unvisited explanation", "lines", (float)l->size_explanations[2].count);
 }
 
 static void layouts(void)
@@ -185,6 +191,7 @@ static void layouts(void)
     CHECK(t.far_size && !strcmp(t.size_notes[1], "Here Fitted is 426\xc3\x97" "320 at 3\xc3\x97; Fixed is 480\xc3\x97" "360 at 2\xc3\x97."));
     layout_box("34f", "far row", &l.rows[ORACLES_DISPLAY_FAR_SIZE]);
     layout_box("34f", "menus row", &l.rows[ORACLES_DISPLAY_MENUS]);
+    layout_box("34f", "unvisited row", &l.rows[ORACLES_DISPLAY_UNVISITED]);
     layout_line("34f", "far label", &l.labels[ORACLES_DISPLAY_FAR_SIZE].lines[0]);
     layout_box("34f", "far screen", &l.far_size[0].box);
     layout_box("34f", "far fixed", &l.far_size[1].box);
@@ -208,7 +215,7 @@ static void layouts(void)
     nav.playing = ORACLES_PROFILE_ENHANCED;
     picture(&nav, ORACLES_DISPLAY_COLOUR);
     lay_out(&nav, &t, &l);
-    for (unsigned i = 0; i < 4u; i++) CHECK(!oracles_display_row_fixed(&nav, rows_of[i]));
+    for (unsigned i = 0; i < 5u; i++) CHECK(!oracles_display_row_fixed(&nav, rows_of[i]));
     CHECK(oracles_display_size_row_live(&nav, ORACLES_DISPLAY_MENUS) && !oracles_display_size_row_live(&nav, ORACLES_DISPLAY_FAR_SIZE));
     rows("34g", &t, &l, 0);
     layout_text("34g", "page note", &l.page_note.lines[0]);
@@ -221,6 +228,85 @@ static void layouts(void)
     CHECK(!strcmp(t.size_notes[0], "Enhanced only.") && !oracles_display_size_row_live(&nav, ORACLES_DISPLAY_MENUS));
     rows("34h", &t, &l, 0);
     layout_text("34h", "menus note", &l.size_notes[0]);
+
+    /* 35a, 35b: Unvisited rooms, the page's last row, Shown, then Hidden; Quality and the summary of the menus unmoved. */
+    ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
+    picture(&nav, ORACLES_DISPLAY_UNVISITED);
+    lay_out(&nav, &t, &l);
+    CHECK(!t.size_notes[2][0] && oracles_display_size_row_live(&nav, ORACLES_DISPLAY_UNVISITED));
+    rows("35a", &t, &l, 0);
+    hints("35a", &nav, 4);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    lay_out(&nav, &t, &l);
+    rows("35b", &t, &l, 0);
+    /* 35c: 4:3, its short help. */
+    ages(&nav, ORACLES_UI_LAYOUT_4_3, 1440, 1080, 0);
+    picture(&nav, ORACLES_DISPLAY_UNVISITED);
+    lay_out(&nav, &t, &l);
+    rows("35c", &t, &l, 1);
+    layout_line("35c", "help text", &l.help);
+    CHECK(!strcmp(t.help, "Hidden: rooms you never entered stay dark.") && !t.help_note);
+    /* 35d: 640x480 on Android with a controller. */
+    ages(&nav, ORACLES_UI_LAYOUT_4_3, 640, 480, 1);
+    nav.android = 1;
+    nav.display.fullscreen_only = 1;
+    nav.display.menus = 1;
+    picture(&nav, ORACLES_DISPLAY_UNVISITED);
+    lay_out(&nav, &t, &l);
+    rows("35d", &t, &l, 1);
+    layout_line("35d", "help text", &l.help);
+    hints("35d", &nav, 4);
+    /* 35e: from the pause, live, when the game resumes. */
+    ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
+    nav.in_game = 1;
+    nav.playing = ORACLES_PROFILE_ENHANCED;
+    nav.display.unvisited = 1;
+    picture(&nav, ORACLES_DISPLAY_UNVISITED);
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.size_notes[2], "Applies when the game resumes.") && oracles_display_size_row_live(&nav, ORACLES_DISPLAY_UNVISITED));
+    rows("35e", &t, &l, 0);
+    layout_text("35e", "page note", &l.page_note.lines[0]);
+    layout_text("35e", "unvisited note", &l.size_notes[2]);
+    /* 35f: Faithful, dimmed as Menus & scenes, "Enhanced only.". */
+    ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    picture(&nav, ORACLES_DISPLAY_UNVISITED);
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.size_notes[2], "Enhanced only.") && !oracles_display_size_row_live(&nav, ORACLES_DISPLAY_UNVISITED));
+    rows("35f", &t, &l, 0);
+    layout_text("35f", "menus note", &l.size_notes[0]);
+    layout_text("35f", "unvisited note", &l.size_notes[2]);
+    /* 35g: Picture's summary with the rooms hidden; with Large menus too, counted; the 1280x960 handheld's worst case. */
+    ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
+    nav.display.unvisited = 1;
+    nav.row = ORACLES_DISPLAY_PICTURE;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Rooms hidden"));
+    layout_box("35g", "picture row", &l.rows[ORACLES_DISPLAY_PICTURE]);
+    layout_box("35g", "picture link", &l.picture_link);
+    layout_text("35g", "picture summary text", &l.picture_summary);
+    layout_text("35g", "picture explanation", &l.picture_explanation.lines[0]);
+    layout_box("35g", "panel", &l.panel);
+    nav.display.menus = 1;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 2 more"));
+    layout_text("35g 2 more", "picture summary text", &l.picture_summary);
+    ages(&nav, ORACLES_UI_LAYOUT_4_3, 1280, 960, 1);
+    nav.android = 1;
+    nav.display.fullscreen_only = 1;
+    nav.display.far_fixed = 1;
+    nav.display.menus = 0;   /* View: away from Android's Large */
+    nav.display.unvisited = 1;
+    nav.row = ORACLES_DISPLAY_PICTURE;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 3 more"));
+    layout_box("35g 4:3", "picture row", &l.rows[ORACLES_DISPLAY_PICTURE]);
+    layout_box("35g 4:3", "picture link", &l.picture_link);
+    layout_line("35g 4:3", "picture summary text", &l.picture_summary);
+    /* In 4:3 two still hold on the line, as turn 34 named them. */
+    nav.display.unvisited = 0;
+    oracles_display_picture_summary(&nav, t.picture_summary, sizeof t.picture_summary);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Far fixed \xc2\xb7 View menus"));
 
     /* 34i: Advanced's five rows, Camera highlighted; no link. */
     for (int four_three = 0; four_three < 2; four_three++) {
@@ -265,7 +351,9 @@ static void keys(void)
     CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.picture_page && nav.row == ORACLES_DISPLAY_SCALING);
     CHECK(oracles_display_row_shown(&nav, ORACLES_DISPLAY_COLOUR) && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_FAR_SIZE)
           && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_PICTURE) && !oracles_display_row_shown(&nav, ORACLES_DISPLAY_CORE));
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_UNVISITED);
     CHECK(oracles_display_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_MENUS);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_UNVISITED);
     CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_SCALING);
     CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.scaling == 1);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_MARGIN, 2) == ORACLES_HOME_STORE && nav.display.margin == 2);
@@ -300,7 +388,7 @@ static void keys(void)
     nav.display.screen_h = 960;
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_FAR_SIZE, 1) == ORACLES_HOME_STORE && nav.display.far_fixed == 1);
     oracles_display_picture_summary(&nav, summary, sizeof summary);
-    CHECK(!strcmp(summary, "Fill \xc2\xb7 Small margin \xc2\xb7 Color off \xc2\xb7 Far fixed \xc2\xb7 Large menus"));
+    CHECK(!strcmp(summary, "Fill \xc2\xb7 Small margin \xc2\xb7 Color off \xc2\xb7 2 more"));   /* past the 16:9 line's twelve characters */
     nav.in_game = 1;
     nav.playing = ORACLES_PROFILE_ENHANCED;
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_FAR_SIZE, 0) == ORACLES_HOME_STAY && nav.display.far_fixed == 1);
@@ -309,6 +397,15 @@ static void keys(void)
     CHECK(!strcmp(note, "Change it from the home screen."));
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_MENUS, 0) == ORACLES_HOME_STORE && nav.display.menus == 0);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_SCALING, 0) == ORACLES_HOME_STORE && nav.display.scaling == 0);
+    /* Unvisited rooms from the pause: it changes, when the game resumes; held by --unvisited-rooms, it does not, and says nothing. */
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 1) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    oracles_display_size_note(&nav, ORACLES_DISPLAY_UNVISITED, note, sizeof note);
+    CHECK(!strcmp(note, "Applies when the game resumes."));
+    nav.display.unvisited_fixed = 1;
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 0) == ORACLES_HOME_STAY && nav.display.unvisited == 1);
+    oracles_display_size_note(&nav, ORACLES_DISPLAY_UNVISITED, note, sizeof note);
+    CHECK(!note[0]);
+    nav.display.unvisited_fixed = 0;
     /* A game running in Faithful: Menus & scenes dimmed whatever the profile chosen. */
     nav.playing = ORACLES_PROFILE_FAITHFUL;
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_MENUS, 1) == ORACLES_HOME_STAY);

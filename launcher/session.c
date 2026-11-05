@@ -545,7 +545,13 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         if (o->neighbour_objects) oracles_enhanced_view_set_neighbour_objects(s->view, 1);
         const int frozen = oracles_settings_quality_of(s->view_level, (int)oracles_core_kind(s->core), s->ghosts) == ORACLES_QUALITY_LOW;
         oracles_enhanced_view_set_neighbour_animation(s->view, !frozen);   /* the Low quality leaves them in their captured poses */
+        oracles_enhanced_view_set_unvisited_edge(s->view, !frozen);        /* and the rooms never visited cut straight */
         oracles_enhanced_view_set_hud(s->view, s->settings->hud);
+        /* The rooms never entered: the command line's, else the settings'; presentation alone. */
+        oracles_enhanced_view_set_unvisited_hidden(s->view, o->unvisited_hidden ? o->unvisited_hidden == 2 : s->settings->unvisited_hidden);
+        if (oracles_enhanced_view_unvisited_hidden(s->view))
+            fprintf(stderr, "oracles: unvisited rooms hidden: the rooms around Link that he has never entered stay dark (%s)\n",
+                    o->unvisited_hidden ? "--unvisited-rooms" : "unvisited_rooms= in the settings");
         if (s->text_box_wide) oracles_enhanced_view_set_text_box(s->view, ORACLES_TEXT_BOX_WIDE_PIXELS, ORACLES_TEXT_BOX_GAME_LINES);
         /* Text size: the command line's, else the settings'; presentation alone, which the pause changes at once.  A
          * fan game keeps the game's box at its size, as it keeps the box standard. */
@@ -682,6 +688,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->pause = o->pause;
     s->screen_margin_option = o->screen_margin;
     s->text_size_option = o->text_size;
+    s->unvisited_option = o->unvisited_hidden;
     /* --colour-correction and --vsync hold for this session and are never stored, as camera_profile. */
     s->colour_setting = settings->colour_correction;
     s->colour_applied = o->colour_option ? !strcmp(o->colour_option, "on") : settings->colour_correction;

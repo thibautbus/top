@@ -426,6 +426,33 @@ struct OraclesEnhancedView {
     unsigned other_animation_copies;  /* of those, into a neighbour whose tileset or animation is not the live room's */
     unsigned curtain_frames;          /* frames the curtain of a warp was extended over the band */
     unsigned waiting_frames;          /* frames an existing overworld neighbour in view was still black */
+    /* The rooms never visited kept dark (view_black.c): the rooms of the reference's group the last composition drew so,
+     * in that epoch, and those drawn so now; the rooms fading in since, from the frame each was shown. */
+    int unvisited_hidden;
+    int unvisited_hard;               /* their edge toward the rooms drawn in clear cut hard (the Low quality) */
+    int dark_check;                   /* the harness's check of the rooms kept dark past their edge */
+    unsigned dark_lit;                /* the rooms the last composition kept dark and showed in clear past their edge */
+    unsigned dark_stray;              /* and those it lit on a side where nothing in clear stands beyond */
+    int have_hidden_places;
+    uint8_t hidden_group;
+    uint64_t hidden_epoch;
+    uint32_t hidden_places[8], hidden_now[8];
+    uint32_t shown_places[8], shown_now[8];   /* the rooms of that group the last composition, and the one under way, drew in clear or fading in */
+    uint32_t referenced[8];           /* the rooms of that group that were the reference in that epoch */
+    unsigned hidden_count;            /* the rooms drawn dark by the composition under way */
+    struct { uint8_t room; uint32_t since; } reveals[8];
+    unsigned reveal_count;
+    uint32_t bare_places[8], bare_now[8];   /* the rooms of that group the last composition, and the one under way, laid dark with no pixels yet */
+    struct { uint8_t room; uint32_t since; } edge_fades[8];   /* the rooms kept dark whose edge comes in since their pixels came, from that frame */
+    unsigned edge_fade_count;
+    unsigned edge_fades_counted;      /* edges that came in so */
+    unsigned hidden_frames;           /* world frames with a room kept dark */
+    unsigned hidden_rooms_max;        /* the most rooms kept dark in one frame */
+    unsigned reveal_fades;            /* rooms that faded in, once visited */
+    unsigned unvisited_reference;     /* frames of normal play, the first after a transition aside, whose reference room was not visited */
+    uint32_t unvisited_reference_first;   /* the first of them, plus one; 0 none */
+    uint8_t unvisited_reference_group, unvisited_reference_room;
+    unsigned reference_settled;       /* compositions of normal play in a row, the last one's included */
     unsigned routed_delivered;        /* answers that were not the grid's neighbour: what the game routes itself */
     /* Learned from the ghost's own answers: a candidate room whose direction
      * came back as another room than the grid's neighbour.  A room of

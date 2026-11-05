@@ -172,7 +172,28 @@ typedef struct OraclesEnhancedNeighbour {
     const uint32_t *game_area;                                   /* width x height, or NULL for black */
     unsigned width, height;                                      /* 0: 160, 0: 128 */
     int faded;                                                   /* 1: 0xffRRGGBB pixels rendered with the game's fade already; 0: RGB555 colours, faded by the compose and converted through `colours` */
+    unsigned veil;                                               /* 0: its pixels; 1 to 255: those blended toward the band's black by veil / 256 (a room fading in);
+                                                                  * 256: the band's black, its area unread (a room kept dark), and covered; with
+                                                                  * `soft_edges`, both less along the sources drawn in clear beside it */
+    unsigned edge_veil;                                          /* with `soft_edges`: 0 its edge whole; 1 to 255 its edge's light that far toward none (an edge
+                                                                  * coming in); 256 none */
 } OraclesEnhancedNeighbour;
+
+/* The edge of a room kept dark beside a room drawn in clear (`soft_edges`): along their frontier, inside the dark room,
+ * its own pixels in full over a wave of up to ORACLES_ENHANCED_EDGE_WAVE pixels, smooth from one knot to the next every
+ * ORACLES_ENHANCED_EDGE_PERIOD pixels, then ORACLES_ENHANCED_EDGE_STEP pixels at 66 % of their light and as many at
+ * 40 %, then the black, each limit following the wave.  At a corner it shares with a room in clear alone, the edge
+ * turns round it; where two frontiers meet, the nearer holds.  A side is a frontier where what is drawn beside it is in
+ * clear at its middle and at the edge's depth from either end.  Nothing shows ORACLES_ENHANCED_EDGE_DEPTH pixels or
+ * more from the dark room's sides.  The wave belongs to the world: a frontier's line and the place along it, with the
+ * seed, give it, whatever the camera. */
+#define ORACLES_ENHANCED_EDGE_WAVE 5u
+#define ORACLES_ENHANCED_EDGE_PERIOD 6u
+#define ORACLES_ENHANCED_EDGE_STEP 3u
+#define ORACLES_ENHANCED_EDGE_DEPTH (ORACLES_ENHANCED_EDGE_WAVE + 2u * ORACLES_ENHANCED_EDGE_STEP)
+/* The pixels in full at `along` (world pixels) on the frontier at `line`, a world row (`vertical` 0, the place a column)
+ * or a world column (`vertical` 1, the place a row): 0 to ORACLES_ENHANCED_EDGE_WAVE. */
+unsigned oracles_enhanced_edge_wave(uint32_t seed, int32_t line, int vertical, int32_t along);
 
 typedef struct OraclesEnhancedCompose {
     OraclesEnhancedMode mode;
@@ -191,6 +212,8 @@ typedef struct OraclesEnhancedCompose {
     unsigned counted_width, counted_height;                      /* the black around them decided); width 0: all of the part shown */
     const uint32_t *hud_fill;                                    /* world mode: the HUD band's gutters line by line (oracles_enhanced_hud_fill), 0 where a line keeps the border; NULL: the border */
     const struct OraclesEnhancedHudPlace *hud_place;             /* world mode: the status bar cut into its blocks and laid out (oracles_enhanced_hud_place); NULL: centred */
+    int soft_edges;                                              /* world mode: a source kept dark or fading in takes the edge toward the sources drawn in clear beside it; 0: its veil alone */
+    uint32_t edge_seed;                                          /* the world its waves are drawn in (the rooms' group) */
 } OraclesEnhancedCompose;
 
 /* The game's status bar as it keeps it: its map (two rows of 32 cells, tiles and attributes), the LCDC of its lines
@@ -273,6 +296,15 @@ static inline OraclesEnhancedHudPlace oracles_enhanced_hud_place(unsigned width,
  * bar, its bottom 128 the game area of the active room.  Returns the number
  * of world-band pixels no source covered (black), 0 in framed mode. */
 unsigned oracles_enhanced_compose(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out);
+/* The sources `in` keeps dark (veil 256) that `out`, the surface it composed, shows in anything but the band's black at
+ * ORACLES_ENHANCED_EDGE_DEPTH pixels or more from each of their sides, where neither a source before them nor the core's
+ * window covers them: a room drawn in clear past its edge.  Read on the line at that depth inside each side and on the
+ * room's middle row and column. */
+unsigned oracles_enhanced_dark_lit(const OraclesEnhancedCompose *in, const uint32_t *out);
+/* The sources `in` keeps dark that `out` shows in anything but the band's black on their first line inside a side, the
+ * edge's depth from either end aside, where nothing drawn in clear stands just beyond it (another room kept dark, nothing,
+ * the world's end): an edge where there is no frontier. */
+unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uint32_t *out);
 /* The HUD band alone, the world mode's sixteen lines at the top of `out`, the rest left as it is. */
 void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out);
 /* An RGB555 colour of a source that does not carry the game's palette fade, as the compose draws it: the fade

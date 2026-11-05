@@ -4,6 +4,10 @@ What changed in each version of The Oracles Project, the newest first. The relea
 
 ## 1.4.0 (unreleased)
 
+### New
+
+- **Unvisited rooms.** **Display > Picture > Unvisited rooms**: Shown, as before, or Hidden, where the rooms around Link that he has never entered stay dark until he does, as on the game's own map, so that the wider views give nothing away. Where a dark room meets one you can see, a glimpse of it shows along their border, with whoever happens to stand there, and fades into the dark in a soft, wavy edge rather than a straight cut (the Low quality keeps the straight cut). It reads what your save already knows: an old save shows the rooms you have visited, a new game starts with none, and a room fades in as you first enter it. It works in Enhanced, for Ages, Seasons and the fan games, and changes from the pause too, when the game resumes. Picture's summary says " · Rooms hidden".
+
 ### Improved
 
 - **Saves of games with mods.** **Import save…** now brings the save in for the game with mods too: the save the Mods page's Play uses goes to Backups with the old one, and the next game with mods starts from the save imported.

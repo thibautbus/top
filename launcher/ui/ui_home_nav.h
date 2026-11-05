@@ -257,6 +257,9 @@ typedef struct OraclesHomeDisplay {
                                  * fills it badly; in Enhanced only, not from a game */
     int menus;                  /* Menus: 0 View, 1 Large, the settings' menus= (Large Android's default); in Enhanced only, from a game
                                  * too, where it applies at once */
+    int unvisited;              /* Unvisited rooms: 0 Shown (the default), 1 Hidden, the settings' unvisited_rooms=; in Enhanced only,
+                                 * from a game too, where it applies when the game resumes */
+    int unvisited_fixed;        /* --unvisited-rooms gave it for the run: the row shows it, dimmed and inert, and it is never stored */
     int room_w, room_h;         /* the room a window has there: the usable area, less the title bar */
     int fullscreen_only;        /* the platform plays every game fullscreen (Android): one size whatever Window says */
     unsigned windows_refused;   /* from the pause, the windows (1 << Window's value) whose pause would keep only its own

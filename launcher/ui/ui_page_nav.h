@@ -178,7 +178,7 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row, int opt
 
 /* Display's rows: its own, Advanced the last for the keys, Picture before it (Color correction's former place); the
  * Advanced rows, which show in their place; the Text rows (Display › Text, ui_page_text.h); and the Picture rows,
- * Scaling, Screen margin, Color correction, Far size and Menus & scenes for the keys (Display › Picture), which Picture
+ * Scaling, Screen margin, Color correction, Far size, Menus & scenes and Unvisited rooms for the keys (Display › Picture), which Picture
  * opens in their place. */
 typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PROFILE,
@@ -203,6 +203,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PICTURE,       /* the link to Display › Picture, its settings summed up beside it */
     ORACLES_DISPLAY_MENUS,         /* Display › Picture's Menus & scenes: View or Large */
     ORACLES_DISPLAY_FAR_SIZE,      /* its Far size: Fitted or Fixed, where it changes something */
+    ORACLES_DISPLAY_UNVISITED,     /* its Unvisited rooms, the last: Shown or Hidden */
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
@@ -329,20 +330,25 @@ const char *oracles_display_explanation(unsigned row);
 /* Color correction's, 16:9's or 4:3's shorter one, which names F2 only where a keyboard is at hand
  * (oracles_home_keys_shown). */
 const char *oracles_display_colour_explanation(const OraclesHomeNav *nav, int four_three);
-/* Display › Picture's last two: Far size, "Fitted" or "Fixed" (far=screen|fixed), the far view fitted to a screen its
+/* Display › Picture's last three: Far size, "Fitted" or "Fixed" (far=screen|fixed), the far view fitted to a screen its
  * size fills badly or kept at its own, a row only where far is fitted to the screen (oracles_display_far_size_shown:
  * aspect=auto, 1280x960 or 1240x1080); Menus & scenes, "View" or "Large" (menus=view|large, Large Android's default),
- * the game's menus, map, cutscenes and file screen framed at the view's scale or shown alone at their own largest one.
- * Both apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's): dimmed and inert
- * elsewhere, "Enhanced only.".  From the pause Menus & scenes applies at once; Far size, which changes the view, is dimmed
- * there.  A row's note, under its explanation (16:9) or on the help's note line (4:3): that reason, else Far size's sizes
- * on this screen, "Here Fitted is 426x320 at 3x; Fixed is 480x360 at 2x."; empty for none.  Picture's summary: the
- * scaling, the margin and the colors, "Sharp · No margin · Color off", then " · Far fixed" and " · Large menus" (" · View
- * menus" on Android) where they apply and differ from the platform's default. */
+ * the game's menus, map, cutscenes and file screen framed at the view's scale or shown alone at their own largest one;
+ * Unvisited rooms, "Shown" or "Hidden" (unvisited_rooms=shown|hidden), the rooms around Link he has never entered drawn
+ * or kept dark.  The three apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's):
+ * dimmed and inert elsewhere, "Enhanced only.".  From the pause Menus & scenes applies at once and Unvisited rooms when
+ * the game resumes ("Applies when the game resumes."); Far size, which changes the view, is dimmed there, and Unvisited
+ * rooms where --unvisited-rooms gave it for the run.  A row's note, under its explanation (16:9) or on the help's note
+ * line (4:3): those reasons, else Far size's sizes on this screen, "Here Fitted is 426x320 at 3x; Fixed is 480x360 at
+ * 2x."; empty for none.  Picture's summary: the scaling, the margin and the colors, "Sharp · No margin · Color off", then
+ * the extras that apply and differ from the platform's default, " · Far fixed", " · Large menus" (" · View menus" on
+ * Android) and " · Rooms hidden", named while they hold on the line (twelve characters in the 16:9 layout, 23 in 4:3's),
+ * else counted, " · 2 more". */
 int oracles_display_far_size_shown(const OraclesHomeNav *nav);
 void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_t capacity);
 extern const char *const oracles_display_menus_choices[2];
 extern const char *const oracles_display_far_size_choices[2];
+extern const char *const oracles_display_unvisited_choices[2];
 int oracles_display_size_row_live(const OraclesHomeNav *nav, unsigned row);
 void oracles_display_size_note(const OraclesHomeNav *nav, unsigned row, char *out, size_t capacity);
 

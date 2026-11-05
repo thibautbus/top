@@ -130,6 +130,8 @@ typedef struct oracles_settings {
                                    * default) two on a device of four processor threads or more, else one; Display's Neighbour
                                    * workers, in its Advanced rows */
     int aspect;                   /* an OraclesAspect: aspect=auto|16:9|4:3, the view's shape: the screen's (auto, the default), or the one named; not in Display */
+    int unvisited_hidden;         /* unvisited_rooms=shown|hidden: the rooms around Link he has never entered drawn (shown, the default), or
+                                   * kept dark as the game's map keeps them (hidden), in Enhanced; not in Display yet */
     int far_fixed;                /* far=screen|fixed: the far view fitted to the screen where its size fills it badly (screen, the default;
                                    * compositor.h, oracles_enhanced_far_fitting), or at its size whatever the screen (fixed); not in Display */
     OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */

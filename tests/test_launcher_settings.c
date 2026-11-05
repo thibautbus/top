@@ -259,7 +259,7 @@ static void pause_changes(void)
 {
     oracles_settings s;
     oracles_settings_defaults(&s);
-    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1 };
+    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1, -1 };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
     s.hud = !s.hud;
     s.screen_margin = ORACLES_SCREEN_MARGIN_SMALL;
@@ -320,7 +320,7 @@ static void pause_live_changes(void)
     oracles_settings s;
     oracles_settings_defaults(&s);
     OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, s.swim_hold, ORACLES_SETTINGS_SEASONS,
-                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large };
+                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
     /* Vsync, at once: off, then on, then auto again; it presents in step with a display near 60 Hz alone on auto
      * (never on Android), always on on, never on off. */
@@ -344,6 +344,13 @@ static void pause_live_changes(void)
     applied.menus_large = -1;
     s.menus_large = !s.menus_large;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0 && applied.menus_large == -1);
+    /* The rooms never visited, when the game resumes, with the Enhanced view; none without it, nor while --unvisited-rooms holds them. */
+    s.unvisited_hidden = 1;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_UNVISITED && applied.unvisited_hidden == 1);
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
+    applied.unvisited_hidden = -1;
+    s.unvisited_hidden = 0;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0 && applied.unvisited_hidden == -1);
     s.swim_hold = !s.swim_hold;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_SWIM && applied.swim_hold == s.swim_hold);
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
@@ -723,6 +730,23 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.far_fixed == 0);
+    /* The rooms never entered: shown at the first opening, hidden written and read back, an unknown value shown. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.unvisited_hidden == 0);
+    write_text(path, "unvisited_rooms=hidden\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 1);
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 1);
+    write_text(path, "unvisited_rooms = SHOWN\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 0);
+    write_text(path, "unvisited_rooms=dark\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 0);
     /* Fitted only where the view takes the screen's shape and far= is screen. */
     {
         OraclesSessionOptions options;

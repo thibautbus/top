@@ -450,14 +450,16 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
     text(draw, st->help_note, &l.help_note, t.help_note, oracles_ui_rgb(NOTE_ITALIC));
     if (t.picture) {
         /* The scaling, the margin and the colors in either profile, the margin dimmed while --screen-margin holds it; Far
-         * size and Menus & scenes where they change (oracles_display_size_row_live), dimmed with their reason else. */
+         * size, Menus & scenes and Unvisited rooms where they change (oracles_display_size_row_live), dimmed with their
+         * reason else. */
         const float margin_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_MARGIN) ? ROW_NOT_APPLIED : 1.0f;
-        const unsigned rows[5] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS };
-        for (unsigned i = 0; i < 5u; i++) {
+        const unsigned rows[6] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS,
+                                   ORACLES_DISPLAY_UNVISITED };
+        for (unsigned i = 0; i < 6u; i++) {
             const unsigned r = rows[i];
             if (r == ORACLES_DISPLAY_FAR_SIZE && !t.far_size) continue;
             const float opacity = r == ORACLES_DISPLAY_MARGIN ? margin_applied
-                                : r == ORACLES_DISPLAY_FAR_SIZE || r == ORACLES_DISPLAY_MENUS ? (oracles_display_size_row_live(nav, r) ? 1.0f : ROW_NOT_APPLIED) : 1.0f;
+                                : r >= ORACLES_DISPLAY_MENUS ? (oracles_display_size_row_live(nav, r) ? 1.0f : ROW_NOT_APPLIED) : 1.0f;
             highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
             wrapped(draw, st->row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
         }
@@ -474,12 +476,15 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         for (int c = 0; c < 2; c++)
             option(draw, st, lk, &l.colour[c], 0, oracles_display_colour_choices[c], NULL, c == nav->display.colour, row == ORACLES_DISPLAY_COLOUR, accent,
                    CHOICE_OFF, 1.0f);
-        const int values[2] = { nav->display.menus, nav->display.far_fixed };
-        for (unsigned i = t.far_size ? 0u : 1u; i < 2u; i++) {
-            const unsigned r = i ? ORACLES_DISPLAY_MENUS : ORACLES_DISPLAY_FAR_SIZE, n = r - ORACLES_DISPLAY_MENUS;
+        const int values[3] = { nav->display.menus, nav->display.far_fixed, nav->display.unvisited };
+        static const unsigned size_rows[3] = { ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
+        const char *const *const size_names[3] = { oracles_display_far_size_choices, oracles_display_menus_choices, oracles_display_unvisited_choices };
+        const OraclesUiOptionLayout *const size_options[3] = { l.far_size, l.menus, l.unvisited };
+        for (unsigned i = t.far_size ? 0u : 1u; i < 3u; i++) {
+            const unsigned r = size_rows[i], n = r - ORACLES_DISPLAY_MENUS;
             const float opacity = oracles_display_size_row_live(nav, r) ? 1.0f : ROW_NOT_APPLIED;
-            const char *const *names = i ? oracles_display_menus_choices : oracles_display_far_size_choices;
-            const OraclesUiOptionLayout *options = i ? l.menus : l.far_size;
+            const char *const *names = size_names[i];
+            const OraclesUiOptionLayout *options = size_options[i];
             wrapped(draw, st->row_text, &l.size_explanations[n], oracles_ui_rgba(NOTE, opacity));
             text(draw, st->row_note, &l.size_notes[n], t.size_notes[n], oracles_ui_rgba(NOTE_ITALIC, opacity));
             for (int c = 0; c < 2; c++) option(draw, st, lk, &options[c], 0, names[c], NULL, c == values[n], r == row, accent, CHOICE_OFF, opacity);
@@ -611,8 +616,10 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         for (int c = 0; c < 2; c++) if (inside(&l.colour[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_COLOUR; }
         for (int c = 0; t.far_size && c < 2; c++) if (inside(&l.far_size[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_FAR_SIZE; }
         for (int c = 0; c < 2; c++) if (inside(&l.menus[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_MENUS; }
-        const unsigned rows[5] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS };
-        for (int i = 0; i < 5; i++) if (inside(&l.rows[rows[i]], x, y)) return (int)rows[i];
+        for (int c = 0; c < 2; c++) if (inside(&l.unvisited[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_UNVISITED; }
+        const unsigned rows[6] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS,
+                                   ORACLES_DISPLAY_UNVISITED };
+        for (int i = 0; i < 6; i++) if (inside(&l.rows[rows[i]], x, y)) return (int)rows[i];
         return -1;
     }
     if (t.advanced) {

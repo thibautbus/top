@@ -341,6 +341,10 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
         nav->display.text_size = games->options->text_size - 1;
         nav->display.text_size_fixed = 1;
     }
+    if (games->options && games->options->unvisited_hidden) {   /* --unvisited-rooms', the same */
+        nav->display.unvisited = games->options->unvisited_hidden == 2;
+        nav->display.unvisited_fixed = 1;
+    }
     nav->cheats_fixed = games->options && games->options->cheats_given;   /* --cheats', for every game it starts */
     nav->update_check = games->settings->update_check;
     nav->cheats_changed = 0;

@@ -98,6 +98,14 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.text_box_frames_in_place=%u\nenhanced.curtain_window_frames_wrong=%u\n", c->text_box_frames_in_place, c->curtain_window_frames_wrong);
     fprintf(out, "enhanced.blurb_frames=%u\nenhanced.blurb_frames_in_window=%u\n", c->blurb_frames, c->blurb_frames_in_window);
     fprintf(out, "enhanced.neighbour_waiting_frames=%u\n", oracles_enhanced_view_waiting_frames(c->view));
+    {   /* the rooms never visited: those kept dark, and the reference room the game marks visited, whatever the setting */
+        OraclesEnhancedUnvisitedCounts u;
+        oracles_enhanced_view_unvisited_counts(c->view, &u);
+        fprintf(out, "enhanced.hidden_frames=%u\nenhanced.hidden_rooms_max=%u\nenhanced.reveal_fades=%u\nenhanced.edge_fades=%u\nenhanced.transitions_dark=%u\n"
+                "enhanced.dark_visited=%u\nenhanced.shown_unvisited=%u\nenhanced.dark_edge_stray=%u\nenhanced.unvisited_reference=%u\n", u.hidden_frames, u.hidden_rooms_max,
+                u.reveal_fades, u.edge_fades, c->transitions_dark, c->dark_visited, c->shown_unvisited, c->dark_edge_stray, u.unvisited_reference);
+        if (u.unvisited_reference) fprintf(out, "enhanced.unvisited_reference_first=%u:%u:%02x\n", u.first_frame, u.first_group, u.first_room);
+    }
     fprintf(out, "enhanced.continued_wave_frames=%u\n", oracles_enhanced_view_continued_wave_frames(c->view));
     fprintf(out, "enhanced.sway_frames=%u\n", oracles_enhanced_view_sway_frames(c->view));
     for (unsigned k = 0; k < 2u; k++) {
@@ -277,8 +285,8 @@ static void report_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
 {
     fprintf(out, "  scrolls entered walking diagonally: %u; their frames with Link standing across the axis two frames running: %u\n", c->scrolls_diagonal, c->scroll_across_stalled);
     fprintf(out, "  horizontal transitions in large rooms (the room entered shown during the scroll): %u; frames of a large room's scroll with the room entered missing: %u\n", c->transitions_large, c->large_scroll_black);
-    fprintf(out, "  scrolling transitions of the grid %u (%u vertical): the room entered was shown as a neighbour before %u times, black %u times%s%s, another room shown %u times%s%s\n",
-            c->transitions, c->transitions_vertical, c->transitions_with_terrain, c->transitions_black, c->transitions_black ? ": " : "", c->black_list,
+    fprintf(out, "  scrolling transitions of the grid %u (%u vertical): the room entered was shown as a neighbour before %u times, black %u times%s%s, kept dark as never visited %u times, another room shown %u times%s%s\n",
+            c->transitions, c->transitions_vertical, c->transitions_with_terrain, c->transitions_black, c->transitions_black ? ": " : "", c->black_list, c->transitions_dark,
             c->transitions_other_room, c->transitions_other_room ? ": " : "", c->other_room_list);
     fprintf(out, "  rooms entered while shown in their old state (the ghost running them again, not judged): %u\n", c->terrains_old);
     fprintf(out, "  shown terrain against the layout committed after the entry: equal %u, different %u (%u tiles)%s%s; stale ghost results dropped %u; ghost %s\n",

@@ -56,6 +56,8 @@ typedef struct OraclesSessionOptions {
                                       * it); 0: settings.txt's text_size= */
     int text_instant;                /* --text-speed: 1 classic, 2 instant (each line of the text box whole, in either profile); 0 for a game
                                       * the home screen starts: settings.txt's text_speed= */
+    int unvisited_hidden;            /* --unvisited-rooms: 1 shown, 2 hidden (the rooms never entered kept dark, in Enhanced), for the run;
+                                      * 0: settings.txt's unvisited_rooms= */
     int text_box_wide;               /* --text-box: 1 standard, 2 wide (the host's box, 192 pixels of text, in Enhanced alone); 0 for a game
                                       * the home screen starts: settings.txt's text_box= */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
@@ -108,7 +110,8 @@ int oracles_session_vsync_on(const char *vsync, unsigned display_hz);
  * draws it), the screen margin (an OraclesScreenMargin), the text box's size; and as the settings had them when the game last
  * took them, the swim's hold (-1 where the game's profile has none), the item hotkeys' mode (an OraclesHotkeysMode) of
  * the settings' game it plays (an OraclesSettingsGame, -1 for a game whose profile has none), the instant text, vsync= (0 auto,
- * 1 on, 2 off: what --vsync gave holds until the pause changes it), the large menus (-1 without the Enhanced view).  The
+ * 1 on, 2 off: what --vsync gave holds until the pause changes it), the large menus and the rooms never visited kept dark
+ * (-1 without the Enhanced view).  The
  * window is not among
  * them: the pause applies it when its row is chosen (OraclesPauseSession's window_chosen). */
 typedef struct OraclesSessionApplied {
@@ -118,6 +121,7 @@ typedef struct OraclesSessionApplied {
     int text_instant;   /* the instant text (-1 where the game's profile has none), as the settings had it when the game last took it */
     int vsync;
     int menus_large;   /* menus=large (-1 without the Enhanced view) */
+    int unvisited_hidden;   /* unvisited_rooms=hidden (-1 without the Enhanced view, or while --unvisited-rooms holds it for the run) */
 } OraclesSessionApplied;
 #define ORACLES_SESSION_CHANGED_COLOUR 1u
 #define ORACLES_SESSION_CHANGED_FILL 2u
@@ -129,6 +133,7 @@ typedef struct OraclesSessionApplied {
 #define ORACLES_SESSION_CHANGED_TEXT_SPEED 128u
 #define ORACLES_SESSION_CHANGED_VSYNC 256u
 #define ORACLES_SESSION_CHANGED_MENUS 512u
+#define ORACLES_SESSION_CHANGED_UNVISITED 1024u
 /* The settings after the pause's Display changed them, set against what the game shows: `applied` takes them, and the
  * ORACLES_SESSION_CHANGED_* bits say which changed.  The margin is --screen-margin's for the run when `margin_option`
  * gives one (oracles_session_screen_margin), and the text size --text-size's when `text_size_option` gives one (the

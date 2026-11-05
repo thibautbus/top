@@ -37,7 +37,7 @@ void oracles_session_hotkey_keys(session *s, int on)
 }
 
 /* Controls or Display changed the settings: the keys, the colour correction, vsync, the scaling, the status bar's width,
- * the large menus, the text size and the screen margin apply at once, the swim's hold, the text speed and the item hotkeys from the frame the game resumes on (the item
+ * the large menus, the text size and the screen margin apply at once, the swim's hold, the text speed, the rooms never visited and the item hotkeys from the frame the game resumes on (the item
  * hotkeys turned off once their policy is at rest), the rest at the next Play (the window: pause_window_chosen).  The
  * colour correction, the swim's hold and the item hotkeys apply when the pause changed them: --colour-correction,
  * --swim-hold, --text-speed and --item-hotkeys hold until then; --screen-margin holds for the run. */
@@ -47,7 +47,7 @@ static int pause_settings_changed(void *opaque)
     OraclesSessionApplied applied = { s->colour_setting, s->sdl.fill, s->view ? oracles_enhanced_view_hud(s->view) : -1, s->sdl.screen_margin,
                                       s->view && oracles_compat_host_text_box(s->profile) ? (int)oracles_enhanced_view_text_size(s->view) : -1,
                                       s->swim_setting, s->hotkeys_game, s->hotkeys_setting, s->text_speed_setting, s->vsync_setting,
-                                      s->view ? s->menus_large : -1 };
+                                      s->view ? s->menus_large : -1, s->view && !s->unvisited_option ? oracles_enhanced_view_unvisited_hidden(s->view) : -1 };
     const unsigned changed = oracles_session_settings_changed(s->settings, s->screen_margin_option, s->text_size_option, &applied);
     if (changed & ORACLES_SESSION_CHANGED_COLOUR) {
         s->colour_applied = s->colour_setting = applied.colour;
@@ -74,6 +74,10 @@ static int pause_settings_changed(void *opaque)
         uint32_t crop[4];   /* the pause's image of a framed screen shown alone, or at the view's scale, at once */
         oracles_sdl_backend_pause_crop(&s->backend, s->menus_large && oracles_enhanced_view_framed_crop(s->view, crop) ? crop : NULL);
         fprintf(stderr, "oracles: menus %s\n", s->menus_large ? "large" : "at the view's scale");
+    }
+    if (changed & ORACLES_SESSION_CHANGED_UNVISITED) {   /* the image behind the pause stays as it was composed: the game resuming shows it */
+        oracles_enhanced_view_set_unvisited_hidden(s->view, applied.unvisited_hidden);
+        fprintf(stderr, "oracles: unvisited rooms %s\n", applied.unvisited_hidden ? "hidden" : "shown");
     }
     if (changed & ORACLES_SESSION_CHANGED_TEXT_SIZE) {
         oracles_enhanced_view_set_text_size(s->view, (unsigned)applied.text_size);

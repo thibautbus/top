@@ -87,6 +87,11 @@ DEFAULT_JOBS = 8   # eight replays keep a desktop responsive; a machine that fai
 # most the frames the render budget lets a render wait (view_render.c), the frame it is drawn counted.  An object its
 # capture drew otherwise than its record says (enhanced.poses_frozen_unplaced) stays frozen: counted, not refused.
 POSES = ["enhanced.poses_drawn_wrong=0", "enhanced.pose_lines_wrong=0", "enhanced.poses_frozen_unreadable=0", "enhanced.pose_lag_max<=5"]
+# The game marks visited the room it plays by the first frame of play after a load or a scroll (setVisitedRoomFlag):
+# the rooms never visited the view keeps dark (--unvisited-rooms hidden) are the game's own map's, none of them visited
+# and none drawn in clear unvisited, the room in play aside; a room kept dark lit only along a side where something in
+# clear stands beyond it.
+UNVISITED = ["enhanced.unvisited_reference=0", "enhanced.dark_visited=0", "enhanced.shown_unvisited=0", "enhanced.dark_edge_stray=0"]
 ALWAYS = {
     # The floors say the check ran at all: a check that stopped measuring counts
     # zero difference and would satisfy every rule above it.  What a
@@ -103,12 +108,12 @@ ALWAYS = {
                  "object_sprites.frames_checked>=1", "animation.frames_checked>=1", "enhanced.transitions_other_room=0",
                  # a scroll's animation, run by the view alone, lands on the game's step, image for image, at the frame its plan
                  # spread the loops over (a jump at the landing is a landing off that frame)
-                 "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES,
+                 "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES + UNVISITED,
     "enhanced-threaded": ["result=ok", "enhanced.camera_jumps=0", "enhanced.window_misplaced=0", "enhanced.terrains_different=0",
                           "enhanced.live_diff_max=0", "enhanced.plain_shown_frames=0", "enhanced.text_box_frames_at_origin=0",
                           "enhanced.blurb_frames_in_window=0",
                           "enhanced.transitions_other_room=0",   # never a room drawn that way other than the one entered
-                          "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES,
+                          "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES + UNVISITED,
 }
 # The band must fill at least once: the black is counted from its first full frame, and a route whose band never fills
 # would count none and pass any ceiling.
@@ -450,16 +455,16 @@ READING_CHECKS = ("--object-animation-check",)
 
 def view_free(options: list) -> list:
     """The options less the view's level and shape (--view, --aspect), the screen far is fitted to (--screen), the
-    status bar's width (--hud), the text box's size (--text-size), the neighbours' objects frozen (--neighbour-animation)
-    and the large menus (--menus-large), which do not change the game, and the checks that only read: a row of a size,
-    of the bar drawn full width, of the box twice as large, of the objects frozen, or of such a check, is compared with
-    the faithful row of its route, or without a faithful row (the compact text, the wide box) with its row without
-    them."""
+    status bar's width (--hud), the text box's size (--text-size), the neighbours' objects frozen (--neighbour-animation),
+    the rooms never visited kept dark (--unvisited-rooms) and the large menus (--menus-large), which do not change the
+    game, and the checks that only read: a row of a size, of the bar drawn full width, of the box twice as large, of the
+    objects frozen, of the dark rooms, or of such a check, is compared with the faithful row of its route, or without a
+    faithful row (the compact text, the wide box) with its row without them."""
     out, skip = [], False
     for option in options:
         if skip:
             skip = False
-        elif option in ("--view", "--aspect", "--screen", "--hud", "--text-size", "--neighbour-animation"):
+        elif option in ("--view", "--aspect", "--screen", "--hud", "--text-size", "--neighbour-animation", "--unvisited-rooms"):
             skip = True
         elif option == "--menus-large" or option in READING_CHECKS:
             pass

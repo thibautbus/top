@@ -93,8 +93,8 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
 
     if (t->picture) {
         /* Display › Picture, two lines kept for each explanation: the scaling (each with the image's size in fullscreen,
-         * and its note), the screen margin, color correction, Far size where it changes something, Menus & scenes, the
-         * last two with their notes. */
+         * and its note), the screen margin, color correction, Far size where it changes something, Menus & scenes and
+         * Unvisited rooms, the last three with their notes. */
         const char *scaling_sizes[2];
         for (int i = 0; i < 2; i++) scaling_sizes[i] = t->scaling_sizes[i];
         const char *const scaling_notes[1] = { oracles_ui_scaling_note };
@@ -119,14 +119,17 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
         y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_COLOUR], left, t->explanations[0], ADVANCED_EXPLANATION_H,
                          NULL, 0, oracles_display_colour_choices, NULL, 2, &out->labels[ORACLES_DISPLAY_COLOUR], &out->explanations[0], NULL, out->colour,
                          &out->rows[ORACLES_DISPLAY_COLOUR]);
-        for (unsigned i = t->far_size ? 0u : 1u; i < 2u; i++) {
-            const unsigned row = i ? ORACLES_DISPLAY_MENUS : ORACLES_DISPLAY_FAR_SIZE, n = row - ORACLES_DISPLAY_MENUS;
+        static const unsigned size_rows[3] = { ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
+        const char *const *const size_choices[3] = { oracles_display_far_size_choices, oracles_display_menus_choices, oracles_display_unvisited_choices };
+        OraclesUiOptionLayout *const size_options[3] = { out->far_size, out->menus, out->unvisited };
+        for (unsigned i = t->far_size ? 0u : 1u; i < 3u; i++) {
+            const unsigned row = size_rows[i], n = row - ORACLES_DISPLAY_MENUS;
             const char *const notes[1] = { t->size_notes[n] };
             OraclesUiLine *const notes_out[1] = { &out->size_notes[n] };
             y += DISPLAY_ROW_GAP;
             y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[row], left, t->size_explanations[n], ADVANCED_EXPLANATION_H, notes,
-                                        t->size_notes[n][0] ? 1 : 0, i ? oracles_display_menus_choices : oracles_display_far_size_choices, NULL, 2,
-                                        &out->labels[row], &out->size_explanations[n], notes_out, i ? out->menus : out->far_size, &out->rows[row]);
+                                        t->size_notes[n][0] ? 1 : 0, size_choices[i], NULL, 2, &out->labels[row], &out->size_explanations[n], notes_out,
+                                        size_options[i], &out->rows[row]);
         }
         out->panel = pl_box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
         return;
@@ -340,7 +343,8 @@ static void display_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_COLOUR, oracles_display_colour_choices, NULL, NULL, 2, out->colour, out) + DISPLAY_ROW_GAP_4_3;
         if (t->far_size)
             y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_FAR_SIZE, oracles_display_far_size_choices, NULL, NULL, 2, out->far_size, out) + DISPLAY_ROW_GAP_4_3;
-        oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_MENUS, oracles_display_menus_choices, NULL, NULL, 2, out->menus, out);
+        y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_MENUS, oracles_display_menus_choices, NULL, NULL, 2, out->menus, out) + DISPLAY_ROW_GAP_4_3;
+        oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_UNVISITED, oracles_display_unvisited_choices, NULL, NULL, 2, out->unvisited, out);
     } else if (t->advanced) {
         const char *workers[3];
         for (int i = 0; i < 3; i++) workers[i] = t->workers_names[i];
@@ -428,7 +432,7 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
     t->explanations[8] = oracles_display_explanation(ORACLES_DISPLAY_TEXT);
     t->camera_explanation = oracles_display_explanation(ORACLES_DISPLAY_CAMERA);
     t->camera_note = oracles_display_camera_note(nav)[0] ? oracles_display_camera_note(nav) : NULL;
-    for (unsigned i = 0; i < 2u; i++) {
+    for (unsigned i = 0; i < 3u; i++) {
         t->size_explanations[i] = oracles_display_explanation(ORACLES_DISPLAY_MENUS + i);
         oracles_display_size_note(nav, ORACLES_DISPLAY_MENUS + i, t->size_notes[i], sizeof t->size_notes[i]);
     }
@@ -461,7 +465,7 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         "Accurate: the reference. Fast: lighter.", "Rooms scroll into one another, swimming too.", VSYNC_SHORT, "Two fill the view faster, on one more core.",
         "Sharp: exact pixels. Fill: the whole screen.", "Smooth: diagonal walks glide.", "Keeps the picture clear of hidden screen edges.", NULL, NULL,
         NULL, NULL, "Scaling, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
-        "Fitted: a Far made for this screen.",
+        "Fitted: a Far made for this screen.", "Hidden: rooms you never entered stay dark.",
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;
     t->help = row == ORACLES_DISPLAY_COLOUR ? oracles_display_colour_explanation(nav, 1) : help_4_3[row];
@@ -501,7 +505,8 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         case ORACLES_DISPLAY_SCALING: t->help_note = oracles_ui_scaling_note; break;
         case ORACLES_DISPLAY_CAMERA: t->help_note = t->camera_note; break;
         case ORACLES_DISPLAY_MENUS:
-        case ORACLES_DISPLAY_FAR_SIZE: {
+        case ORACLES_DISPLAY_FAR_SIZE:
+        case ORACLES_DISPLAY_UNVISITED: {
             /* The row's note: why it is dimmed, or Far size's sizes on this screen. */
             const char *note = t->size_notes[row - ORACLES_DISPLAY_MENUS];
             if (note[0]) t->help_note = note;

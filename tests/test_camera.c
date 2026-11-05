@@ -364,7 +364,7 @@ int main(void)
         /* A neighbour to the left fills what was black. */
         uint32_t *left = malloc(160u * 128u * sizeof *left);
         for (unsigned i = 0; i < 160u * 128u; i++) left[i] = 0xffabcdefu;
-        OraclesEnhancedNeighbour nb = { 480 - 160, 0, left, 0, 0, 1 };
+        OraclesEnhancedNeighbour nb = { 480 - 160, 0, left, 0, 0, 1, 0, 0u };
         wc.neighbours = &nb;
         wc.neighbour_count = 1;
         const unsigned uncovered_with = oracles_enhanced_compose(core, &wc, surface);
@@ -378,7 +378,7 @@ int main(void)
             oracles_enhanced_compose(core, &wc, surface);
             CHECK(surface[ORACLES_ENHANCED_HUD_HEIGHT * NORMAL_W + NORMAL_HUD_X] == core[(ORACLES_ENHANCED_HUD_HEIGHT + 64u) * 160u + 0u]);
             CHECK(surface[(ORACLES_ENHANCED_HUD_HEIGHT + 64u) * NORMAL_W + NORMAL_HUD_X] == 0xff000000u);
-            OraclesEnhancedNeighbour below = { 480, 128, left, 0, 0, 1 };
+            OraclesEnhancedNeighbour below = { 480, 128, left, 0, 0, 1, 0, 0u };
             wc.neighbours = &below;
             oracles_enhanced_compose(core, &wc, surface);
             CHECK(surface[(ORACLES_ENHANCED_HUD_HEIGHT + 64u) * NORMAL_W + NORMAL_HUD_X] == 0xffabcdefu);
@@ -388,7 +388,7 @@ int main(void)
         }
         /* A neighbour of another row, listed first, does not hide the one that covers the pixel. */
         {
-            OraclesEnhancedNeighbour rows[2] = { { 480 - 160, -128, left, 0, 0, 1 }, { 480 - 160, 0, left, 0, 0, 1 } };
+            OraclesEnhancedNeighbour rows[2] = { { 480 - 160, -128, left, 0, 0, 1, 0, 0u }, { 480 - 160, 0, left, 0, 0, 1, 0, 0u } };
             wc.neighbours = rows;
             wc.neighbour_count = 2;
             oracles_enhanced_compose(core, &wc, surface);
@@ -411,7 +411,7 @@ int main(void)
             for (unsigned i = 0; i < ORACLES_PPU_COLOURS; i++) table[i] = 0xff000000u | i;   /* the colour itself, recognisable */
             uint32_t *raw = malloc(160u * 128u * sizeof *raw);
             for (unsigned i = 0; i < 160u * 128u; i++) raw[i] = (20u << 10) | (4u << 5) | 30u;   /* b 20, g 4, r 30 */
-            OraclesEnhancedNeighbour rn = { 480 - 160, 0, raw, 0, 0, 0 };
+            OraclesEnhancedNeighbour rn = { 480 - 160, 0, raw, 0, 0, 0, 0, 0u };
             wc.neighbours = &rn;
             wc.colours = table;
             wc.fade = 0;
@@ -644,7 +644,7 @@ int main(void)
         for (unsigned ny = 0; ny < nb_h; ny++)
             for (unsigned nx = 0; nx < nb_w; nx++)
                 area[(size_t)ny * nb_w + nx] = WORLD_PIXEL(nb_left + (int32_t)nx, nb_top + (int32_t)ny);
-        OraclesEnhancedNeighbour around = { nb_left, nb_top, area, nb_w, nb_h, 1 };
+        OraclesEnhancedNeighbour around = { nb_left, nb_top, area, nb_w, nb_h, 1, 0, 0u };
         OraclesEnhancedCompose rc;
         memset(&rc, 0, sizeof rc);
         rc.mode = ORACLES_ENHANCED_WORLD;

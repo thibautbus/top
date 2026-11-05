@@ -228,3 +228,204 @@ const char *oracles_enhanced_black_kind_name(unsigned kind)
 }
 
 const char *oracles_enhanced_view_black_log(const OraclesEnhancedView *v) { return v->black_log; }
+
+/* ---- the rooms never visited ----------------------------------------------------------- */
+
+/* The game's own record of the rooms Link has entered, the one its map draws from: the visited bit of each room's
+ * flags (setVisitedRoomFlag, at the load of a scroll's room and at the first frame of play after any other load).
+ * The reference room and the active one, the room a scroll enters, are shown whatever it says, and so is a room that
+ * was the reference in this epoch: the game's own cutscenes load their rooms without marking them. */
+int ev_room_hidden(OraclesEnhancedView *v, uint8_t group, uint8_t room)
+{
+    if (!v->unvisited_hidden) return 0;
+    if (group == v->observer.ref_group && room == v->observer.ref_room) return 0;
+    if (group == v->observation.group && room == v->observation.room) return 0;
+    const int was_reference = v->have_hidden_places && group == v->hidden_group && (v->referenced[room >> 5u] & (1u << (room & 31u)));
+    const int unmarked = !(ev_live_byte(v, ev_room_flags_address(v, group, room)) & oracles_guest_tables(v->guest)->roomflag_visited);
+    return unmarked && !was_reference;
+}
+
+unsigned oracles_enhanced_reveal_veil(uint32_t age)
+{
+    return age >= ORACLES_ENHANCED_REVEAL_FRAMES ? 0u : 256u - age * 256u / ORACLES_ENHANCED_REVEAL_FRAMES;
+}
+
+void ev_hidden_forget(OraclesEnhancedView *v)
+{
+    v->have_hidden_places = 0;
+    v->reveal_count = 0;
+    v->edge_fade_count = 0;
+    v->reference_settled = 0;
+}
+
+/* A new epoch (a warp, a time travel, a load) or another group shows its rooms as they are, none fading in. */
+void ev_hidden_begin(OraclesEnhancedView *v)
+{
+    v->hidden_count = 0;
+    memset(v->hidden_now, 0, sizeof v->hidden_now);
+    memset(v->shown_now, 0, sizeof v->shown_now);
+    memset(v->bare_now, 0, sizeof v->bare_now);
+    if (!v->unvisited_hidden) return;
+    if (!v->have_hidden_places || v->hidden_epoch != v->observation.epoch || v->hidden_group != v->observer.ref_group) {
+        memset(v->hidden_places, 0, sizeof v->hidden_places);
+        memset(v->referenced, 0, sizeof v->referenced);
+        memset(v->bare_places, 0, sizeof v->bare_places);
+        v->reveal_count = 0;
+        v->edge_fade_count = 0;
+    }
+    v->have_hidden_places = 1;
+    v->hidden_epoch = v->observation.epoch;
+    v->hidden_group = v->observer.ref_group;
+    v->referenced[v->observer.ref_room >> 5u] |= 1u << (v->observer.ref_room & 31u);
+}
+
+/* A room of the reference's group: kept dark, or fading in from the frame it is shown after a composition that kept
+ * it dark. */
+unsigned ev_room_veil(OraclesEnhancedView *v, uint8_t room)
+{
+    if (!v->unvisited_hidden) return 0;
+    const uint32_t bit = 1u << (room & 31u);
+    if (ev_room_hidden(v, v->observer.ref_group, room)) {
+        if (!(v->hidden_now[room >> 5u] & bit)) v->hidden_count++;
+        v->hidden_now[room >> 5u] |= bit;
+        return 256u;
+    }
+    v->shown_now[room >> 5u] |= bit;
+    unsigned i = 0;
+    while (i < v->reveal_count && v->reveals[i].room != room) i++;
+    if (i == v->reveal_count) {
+        if (!(v->hidden_places[room >> 5u] & bit) || v->reveal_count == sizeof v->reveals / sizeof v->reveals[0]) return 0;
+        v->reveals[v->reveal_count].room = room;
+        v->reveals[v->reveal_count++].since = v->frame;
+        v->hidden_places[room >> 5u] &= ~bit;
+        v->reveal_fades++;
+    }
+    return oracles_enhanced_reveal_veil(v->frame - v->reveals[i].since + 1u);
+}
+
+/* A room kept dark drawn with its pixels: its edge, coming in over ORACLES_ENHANCED_REVEAL_FRAMES compositions from the
+ * one its pixels came in after a composition that laid it dark without them (the ghost's render arriving), whole
+ * otherwise. */
+unsigned ev_room_edge_veil(OraclesEnhancedView *v, uint8_t room)
+{
+    const uint32_t bit = 1u << (room & 31u);
+    unsigned i = 0;
+    while (i < v->edge_fade_count && v->edge_fades[i].room != room) i++;
+    if (i == v->edge_fade_count) {
+        if (!(v->bare_places[room >> 5u] & bit) || v->edge_fade_count == sizeof v->edge_fades / sizeof v->edge_fades[0]) return 0;
+        v->edge_fades[v->edge_fade_count].room = room;
+        v->edge_fades[v->edge_fade_count++].since = v->frame;
+        v->bare_places[room >> 5u] &= ~bit;
+        v->edge_fades_counted++;
+    }
+    return oracles_enhanced_reveal_veil(v->frame - v->edge_fades[i].since + 1u);
+}
+
+/* The places of the grid the band shows that no source covers, the game's map holding a room there never visited:
+ * dark as decided, not as waiting for the ghost, whose rooms are run as before. */
+unsigned ev_add_hidden_places(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, unsigned capacity,
+                              int32_t camera_x, int32_t camera_y, int32_t reach)
+{
+    const int grid = grid_shown(v);
+    if (!v->unvisited_hidden || grid == GRID_NONE) return count;
+    const int32_t h = (int32_t)ORACLES_GHOST_AREA_HEIGHT;
+    const int32_t col0 = camera_x / SMALL_ROOM_W - 1, row0 = camera_y / h - 1;
+    for (int32_t row = row0; row <= row0 + 4; row++)
+        for (int32_t col = col0; col <= col0 + 5 && count < capacity; col++) {
+            if (!grid_room(v, grid, col, row)) continue;
+            const uint8_t room = (uint8_t)(row * 16 + col);
+            if (v->drawn_places[room >> 5u] & (1u << (room & 31u))) continue;
+            if (!ev_shown_meets(v, camera_x, camera_y, col * SMALL_ROOM_W, row * h, SMALL_ROOM_W, h, reach)) continue;
+            if (!ev_room_hidden(v, v->observer.ref_group, room)) continue;
+            ev_room_veil(v, room);
+            OraclesEnhancedNeighbour *nb = &nbs[count++];
+            memset(nb, 0, sizeof *nb);
+            nb->world_left = col * SMALL_ROOM_W; nb->world_top = row * h;
+            nb->veil = 256u;
+            v->drawn_places[room >> 5u] |= 1u << (room & 31u);
+            v->bare_now[room >> 5u] |= 1u << (room & 31u);
+        }
+    return count;
+}
+
+void ev_hidden_end(OraclesEnhancedView *v)
+{
+    if (!v->unvisited_hidden) return;
+    memcpy(v->hidden_places, v->hidden_now, sizeof v->hidden_places);
+    memcpy(v->shown_places, v->shown_now, sizeof v->shown_places);
+    memcpy(v->bare_places, v->bare_now, sizeof v->bare_places);
+    for (unsigned i = 0; i < v->reveal_count;)
+        if (v->frame - v->reveals[i].since + 1u >= ORACLES_ENHANCED_REVEAL_FRAMES) v->reveals[i] = v->reveals[--v->reveal_count];
+        else i++;
+    for (unsigned i = 0; i < v->edge_fade_count;)
+        if (v->frame - v->edge_fades[i].since + 1u >= ORACLES_ENHANCED_REVEAL_FRAMES) v->edge_fades[i] = v->edge_fades[--v->edge_fade_count];
+        else i++;
+    if (v->hidden_count) v->hidden_frames++;
+    if (v->hidden_count > v->hidden_rooms_max) v->hidden_rooms_max = v->hidden_count;
+}
+
+/* The game marks the room it plays visited as it gives Link the controls back after a load or a scroll
+ * (setVisitedRoomFlag, cutscene00 a few frames after the load's end): counted past REFERENCE_SETTLE frames of play in a
+ * row, a cutscene of the game's own (wCutsceneIndex above 1, which loads its rooms itself) aside. */
+#define REFERENCE_SETTLE 8u
+void ev_check_reference_visited(OraclesEnhancedView *v)
+{
+    const OraclesEnhancedObservation *ob = &v->observation;
+    const int settled = ob->playing && !ob->in_transition && !ob->cutscene && v->observer.have_reference;
+    v->reference_settled = settled ? v->reference_settled + 1u : 0u;
+    if (v->reference_settled > REFERENCE_SETTLE
+        && !(ev_live_byte(v, ev_room_flags_address(v, v->observer.ref_group, v->observer.ref_room)) & oracles_guest_tables(v->guest)->roomflag_visited)) {
+        if (!v->unvisited_reference++) {
+            v->unvisited_reference_first = v->frame;
+            v->unvisited_reference_group = v->observer.ref_group;
+            v->unvisited_reference_room = v->observer.ref_room;
+        }
+    }
+}
+
+void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *v, int hidden)
+{
+    if (v->unvisited_hidden == (hidden != 0)) return;
+    v->unvisited_hidden = hidden != 0;
+    v->have_hidden_places = 0;   /* switched: the rooms as they are, none fading in */
+    v->reveal_count = 0;
+    v->edge_fade_count = 0;
+}
+
+int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *v) { return v->unvisited_hidden; }
+void oracles_enhanced_view_set_unvisited_edge(OraclesEnhancedView *v, int soft) { v->unvisited_hard = !soft; }
+void oracles_enhanced_view_check_dark(OraclesEnhancedView *v, int enabled) { v->dark_check = enabled != 0; }
+unsigned oracles_enhanced_view_dark_lit(const OraclesEnhancedView *v) { return v->dark_lit; }
+unsigned oracles_enhanced_view_dark_stray(const OraclesEnhancedView *v) { return v->dark_stray; }
+
+int oracles_enhanced_view_drawn_rooms(const OraclesEnhancedView *v, uint8_t *group, uint32_t dark[8], uint32_t shown[8])
+{
+    if (!v->unvisited_hidden || !v->have_hidden_places) return 0;
+    *group = v->hidden_group;
+    memcpy(dark, v->hidden_places, sizeof v->hidden_places);
+    memcpy(shown, v->shown_places, sizeof v->shown_places);
+    return 1;
+}
+
+/* The room drawn that way, else the grid's: kept dark by the last composition. */
+int oracles_enhanced_view_neighbour_dark(const OraclesEnhancedView *v, unsigned direction, uint8_t *room_out)
+{
+    uint8_t room;
+    if (!v->unvisited_hidden || !v->have_hidden_places || direction > 3u) return 0;
+    if (v->shown_slot[direction] < v->slot_count && v->slots[v->shown_slot[direction]].used) room = v->slots[v->shown_slot[direction]].room;
+    else if (!ev_on_map(v) || !ev_room_toward(v, v->observer.ref_room, (OraclesGhostDirection)direction, &room)) return 0;
+    if (room_out) *room_out = room;
+    return (v->hidden_places[room >> 5u] & (1u << (room & 31u))) != 0;
+}
+
+void oracles_enhanced_view_unvisited_counts(const OraclesEnhancedView *v, OraclesEnhancedUnvisitedCounts *out)
+{
+    out->hidden_frames = v->hidden_frames;
+    out->hidden_rooms_max = v->hidden_rooms_max;
+    out->reveal_fades = v->reveal_fades;
+    out->edge_fades = v->edge_fades_counted;
+    out->unvisited_reference = v->unvisited_reference;
+    out->first_frame = v->unvisited_reference_first ? v->unvisited_reference_first - 1u : 0u;
+    out->first_group = v->unvisited_reference_group;
+    out->first_room = v->unvisited_reference_room;
+}

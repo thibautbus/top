@@ -195,6 +195,19 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking);
 int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int tracking, int32_t camera_x, int32_t camera_y);
 /* view_black.c: the black of the composed frame counted, once a frame. */
 void ev_measure_black(OraclesEnhancedView *v, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
+/* The rooms never visited: whether a room of the reference's group is kept dark, the reference room and the active one
+ * never; a composition's sources begun, the veil of a room drawn (256 kept dark, less while it fades in, 0 shown), the
+ * places of the grid in view that no source covers and that are kept dark added, and the composition's count closed;
+ * the reference room's visit, once a composition; what a savestate's load forgets. */
+int ev_room_hidden(OraclesEnhancedView *v, uint8_t group, uint8_t room);
+void ev_hidden_begin(OraclesEnhancedView *v);
+unsigned ev_room_veil(OraclesEnhancedView *v, uint8_t room);
+unsigned ev_room_edge_veil(OraclesEnhancedView *v, uint8_t room);
+unsigned ev_add_hidden_places(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, unsigned capacity,
+                              int32_t camera_x, int32_t camera_y, int32_t reach);
+void ev_hidden_end(OraclesEnhancedView *v);
+void ev_check_reference_visited(OraclesEnhancedView *v);
+void ev_hidden_forget(OraclesEnhancedView *v);
 /* Whether the part of the band shown, the band's top-left corner at (band_left,
  * band_top), meets a rectangle of the world grown by `reach` each way. */
 int ev_shown_meets(const OraclesEnhancedView *v, int32_t band_left, int32_t band_top, int32_t left, int32_t top, int32_t width, int32_t height, int32_t reach);

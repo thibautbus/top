@@ -28,6 +28,7 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
     if (!c->view) { free(c); return NULL; }
     oracles_enhanced_view_set_sync_budget(c->view, ghost_budget);
     oracles_enhanced_view_pose_verify(c->view, 1);   /* each render of a neighbour's poses against the step and a whole render */
+    oracles_enhanced_view_check_dark(c->view, 1);    /* each room kept dark past its edge */
     c->threaded = ghost_budget == 0;
     c->run_hash = ORACLES_HASH_SEED;
     c->width = oracles_enhanced_view_width(c->view);
@@ -175,6 +176,36 @@ static void check_pixels_and_row(OraclesEnhancedCheck *c, const OraclesEnhancedO
     ec_write_frame_row(c, frame, hash, mode, camera_x, camera_y, shown[3], room[3], shown[1], room[1], uncovered, scx, scy, off_x, off_y);
 }
 
+/* The visited bit of a room's flags, its page read from the game family's flagLocationGroupTable as the disassembly
+ * has it (bank0.s), not from the profile's own table the view reads through. */
+static int room_visited(OraclesEnhancedCheck *c, uint8_t group, uint8_t room)
+{
+    static const uint8_t ages_pages[8] = { 0, 1, 0, 1, 2, 3, 2, 3 }, seasons_pages[8] = { 0, 1, 1, 1, 2, 3, 2, 3 };
+    const OraclesGuestTables *t = oracles_guest_tables(c->guest);
+    const uint8_t *pages = oracles_compat_family(oracles_guest_profile(c->guest)) == ORACLES_GAME_SEASONS ? seasons_pages : ages_pages;
+    const OraclesGuestSym flags = { t->group0_room_flags.bank, (uint16_t)(t->group0_room_flags.addr + pages[group & 7u] * 0x100u + room) };
+    return (oracles_guest_read8(c->guest, flags) & t->roomflag_visited) != 0;
+}
+
+/* The rooms the composition just drew, against the game's own record: one kept dark that the game says visited, one
+ * drawn in clear that it says never visited, the room in play aside (the leak the setting exists to prevent).  A room
+ * kept dark shows its edge beside a room in clear, its terrain over a few pixels along their frontier: kept dark all
+ * the same, unless it shows in clear past the edge's depth, a room drawn in clear then; and never on a side where
+ * nothing in clear stands beyond it. */
+static void check_drawn_rooms(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob)
+{
+    uint8_t group;
+    uint32_t dark[8], shown[8];
+    if (!oracles_enhanced_view_drawn_rooms(c->view, &group, dark, shown)) return;
+    c->shown_unvisited += oracles_enhanced_view_dark_lit(c->view);
+    c->dark_edge_stray += oracles_enhanced_view_dark_stray(c->view);
+    for (unsigned r = 0; r < 256u; r++) {
+        const uint32_t bit = 1u << (r & 31u);
+        if (dark[r >> 5u] & bit) { if (room_visited(c, group, (uint8_t)r)) c->dark_visited++; }
+        else if ((shown[r >> 5u] & bit) && !(group == ob->group && r == ob->room) && !room_visited(c, group, (uint8_t)r)) c->shown_unvisited++;
+    }
+}
+
 void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
 {
     OraclesEnhancedMode mode;
@@ -242,6 +273,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     if (mode == ORACLES_ENHANCED_WORLD) c->neighbours_frames[shown_count]++;
     const unsigned uncovered = oracles_enhanced_view_uncovered(c->view);
     if (mode == ORACLES_ENHANCED_WORLD && uncovered) ec_measure_coverage(c, frame, uncovered);
+    if (mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->in_transition) check_drawn_rooms(c, ob);   /* before a reload replaces the state composed */
     ec_reload_step(c, frame, camera_x, shown, room);
     ec_measure_scroll(c, ob, mode, uncovered);
     ec_measure_seams(c, ob, mode);
@@ -249,6 +281,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     if (ob->playing && !ob->in_transition) {
         for (unsigned d = 0; d < 4; d++) {
             c->last_shown[d] = shown[d]; c->last_room[d] = room[d];
+            c->last_dark[d] = oracles_enhanced_view_neighbour_dark(c->view, d, NULL);
             c->last_layout_valid[d] = oracles_enhanced_view_neighbour_layout(c->view, d, c->last_layout[d]);
         }
         c->last_play_room = ob->room;
@@ -326,6 +359,7 @@ void oracles_enhanced_check_event(OraclesEnhancedCheck *c, const OraclesGuestEve
     c->pending_old = shown && c->last_layout_valid[direction] == 2;
     if (c->pending_shown) memcpy(c->pending_layout, c->last_layout[direction], sizeof c->pending_layout);
     if (shown) c->transitions_with_terrain++;
+    else if (c->last_dark[direction]) c->transitions_dark++;
     else if (!c->last_shown[direction]) {
         c->transitions_black++;
         const size_t used = strlen(c->black_list);

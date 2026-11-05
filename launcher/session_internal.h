@@ -98,6 +98,7 @@ typedef struct session {
     int menus_large;         /* the Enhanced view's menus shown alone at their own scale (menus=large), as the pause may change it */
     int screen_margin_option;   /* --screen-margin's, an OraclesScreenMargin plus one, which holds for the run; 0: the settings' */
     int text_size_option;       /* --text-size's, the size plus one, which holds for the run; 0: the settings' */
+    int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, which holds for the run; 0: the settings' */
     int subpixel_followed;      /* in a window: the view's sub-pixel camera follows the settings at the scale the screen shows it */
 } session;
 

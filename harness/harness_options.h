@@ -39,7 +39,7 @@ typedef struct harness_options {
     uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
     unsigned enhanced_ghosts;                 /* --enhanced-ghosts: ghosts working at once, threaded (1 by default) */
     int object_animation;                  /* --object-animation-check: the objects' animation from the game's data against the live game */
-    int enhanced_frozen;                   /* --neighbour-animation off: a neighbour's objects frozen, as the Low quality has them */
+    int enhanced_frozen;                   /* --neighbour-animation off: a neighbour's objects frozen and the rooms never visited cut straight, as the Low quality has them */
     int objects_capture, enhanced_objects, enhanced_threaded, enhanced_paced, enhanced_zoom_out, continuous_transitions, continuous_swim, continuous_diagonal;
     int swim_hold;                         /* --swim-hold: the swim's strokes from a held button */
     int text_instant;                      /* --text-speed instant: each line of the text box whole */
@@ -54,6 +54,7 @@ typedef struct harness_options {
     int aspect_given;                         /* --aspect named the shape */
     unsigned screen_w, screen_h;              /* --screen: the screen the view's shape comes from, which far fits to; 0: none */
     int enhanced_hud;                         /* --hud full|wide: the status bar drawn full width, or laid out (OraclesEnhancedHud); original (0) by default, which every row hashed before it keeps */
+    int unvisited_hidden;                     /* --unvisited-rooms hidden: the rooms never visited kept dark, as the launcher's unvisited_rooms=hidden */
     int hooks, colour_correction, ghost_threaded, ghost_trace, ghost_trace_load, compare_session;
     int core_kind;                            /* --core: an OraclesCoreKind; without it, the route's (SameBoy, or mGBA for a route that says so) */
     int core_given;

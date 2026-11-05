@@ -376,6 +376,46 @@ int oracles_enhanced_view_room_whole(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_shake_frames(const OraclesEnhancedView *view);
 /* World frames where the band shows an overworld room beside the reference room, diagonals included, that no delivered terrain covers yet. */
 unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
+/* The rooms never visited kept dark (`hidden` 1): a room of the band that the game's own record says Link has never
+ * entered (the visited bit of its flags, from which the game's map draws its squares) is drawn in the band's black, its
+ * objects with it, the reference room and the room a scroll enters always shown.  Off (0) by default.  The ghost
+ * prepares every room as before, so that a room shows as soon as it is visited: drawn in the band after a composition
+ * that kept it dark, it fades in from the black over ORACLES_ENHANCED_REVEAL_FRAMES compositions (the veil of its
+ * age, the frame it is first shown 1), never on the first composition of an epoch (a warp, a time travel, a load) nor
+ * at the switch.  Presentation alone: it may change between two compositions.  A dark room counts as decided, never as
+ * a room waiting for the ghost, in the black the view measures.  The counts: world frames with a room kept dark, the
+ * most rooms so in a frame, the rooms that faded in, and, whatever the setting, the frames of normal play (the first
+ * after a transition aside) whose reference room the game had not marked visited, with the first of them. */
+#define ORACLES_ENHANCED_REVEAL_FRAMES 16u
+void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *view, int hidden);
+int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *view);
+/* A room kept dark beside a room drawn in clear shows its edge (ORACLES_ENHANCED_EDGE_DEPTH, compositor.h): a band of
+ * its own terrain along their frontier, in full over a wave, then darker, then black, the fade in going from that look
+ * to the room whole (`soft` 1, the default); or the black cut straight (0, the Low quality).  A room laid dark before
+ * its pixels came has no edge yet: it comes in with them, over ORACLES_ENHANCED_REVEAL_FRAMES compositions. */
+void oracles_enhanced_view_set_unvisited_edge(OraclesEnhancedView *view, int soft);
+/* The harness's check: after each composition, the rooms it kept dark read past their edge (oracles_enhanced_dark_lit)
+ * and along their sides where nothing in clear stands beyond (oracles_enhanced_dark_stray), and how many of them the
+ * last one showed lit there. */
+void oracles_enhanced_view_check_dark(OraclesEnhancedView *view, int enabled);
+unsigned oracles_enhanced_view_dark_lit(const OraclesEnhancedView *view);
+unsigned oracles_enhanced_view_dark_stray(const OraclesEnhancedView *view);
+/* The rooms of the reference's group the last composition drew, a bit each: kept dark (`dark`), and in clear or fading in
+ * (`shown`, the rooms the setting judged, the reference room among them as a cached entry).  0 with the setting off or
+ * before a composition that applied it. */
+int oracles_enhanced_view_drawn_rooms(const OraclesEnhancedView *view, uint8_t *group, uint32_t dark[8], uint32_t shown[8]);
+/* The neighbour of the last composed frame in a direction (oracles_enhanced_view_neighbour) kept dark, and which room
+ * it is in the reference's group (`room`, when not NULL, set whenever there is one). */
+int oracles_enhanced_view_neighbour_dark(const OraclesEnhancedView *view, unsigned direction, uint8_t *room);
+unsigned oracles_enhanced_reveal_veil(uint32_t age);
+typedef struct OraclesEnhancedUnvisitedCounts {
+    unsigned hidden_frames, hidden_rooms_max, reveal_fades;
+    unsigned edge_fades;   /* rooms kept dark whose edge came in as their pixels came */
+    unsigned unvisited_reference;
+    uint32_t first_frame;
+    uint8_t first_group, first_room;
+} OraclesEnhancedUnvisitedCounts;
+void oracles_enhanced_view_unvisited_counts(const OraclesEnhancedView *view, OraclesEnhancedUnvisitedCounts *out);
 /* Rooms delivered for a direction of a room the game routes itself. */
 unsigned oracles_enhanced_view_routed_delivered(const OraclesEnhancedView *view);
 /* The order in which the four directions of a room the game routes itself are

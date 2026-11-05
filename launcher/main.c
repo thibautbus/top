@@ -123,6 +123,7 @@ static int usage(void)
                     "                           [--aspect auto|16:9|4:3]   (the view's shape: the screen's, or the one named)\n"
                     "                           [--screen-margin off|auto|small|large]   (the band of the screen kept to, for this run: the whole screen,\n"
                     "                           clear of a cutout Android reports above or below, or 24 or 48 dp clear at the top and the bottom)\n"
+                    "                           [--unvisited-rooms shown|hidden]   (Enhanced: the rooms around Link that he has never entered, drawn or kept dark as on the game's map)\n"
                     "                           [--ghosts auto|1|2]   (Enhanced: the ghosts preparing the rooms around at once, for this run; auto: two on four processor threads or more)\n"
                     "                           [--mods DIR]...   (a mod in Lua, run during the game, --mods repeated for up to 8; its conversations hold the keys and draw over the screen)\n"
                     "                           [--start-at-house NAME]   (with --mods: every file of the save starts in front of the house NAME, or MOD/NAME)\n"
@@ -207,6 +208,11 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
             const char *size = argv[++i];
             o->text_size = !strcmp(size, "normal") ? 1 : !strcmp(size, "large") ? 2 : !strcmp(size, "xlarge") ? 3 : 0;
             if (!o->text_size) return 1;
+        }
+        else if (!strcmp(argv[i], "--unvisited-rooms") && more) {
+            const char *rooms = argv[++i];
+            o->unvisited_hidden = !strcmp(rooms, "shown") ? 1 : !strcmp(rooms, "hidden") ? 2 : 0;
+            if (!o->unvisited_hidden) return 1;
         }
         else if (!strcmp(argv[i], "--text-box") && more) {
             const char *box = argv[++i];

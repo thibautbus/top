@@ -296,6 +296,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (r->ghost && o->ghost_trace_load) oracles_ghost_check_trace_load(r->ghost);
         if (!r->ghost) { fprintf(stderr, "harness: the ghost instance could not start\n"); return 1; }
     }
+    if (o->unvisited_hidden && !o->enhanced_dir) { fprintf(stderr, "harness: --unvisited-rooms hidden is the Enhanced view's: it needs --enhanced-check\n"); return 1; }
     if (o->enhanced_dir) {
         r->enhanced = oracles_enhanced_check_start(r->core, r->guest, rom, rom_size, o->enhanced_dir, o->enhanced_threaded ? 0u : o->enhanced_budget);
         if (!r->enhanced) { fprintf(stderr, "harness: the Enhanced view could not start\n"); return 1; }
@@ -317,10 +318,12 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         oracles_enhanced_check_set_subpixel(r->enhanced, o->enhanced_subpixel);
         oracles_enhanced_check_subpixel_switch_at(r->enhanced, o->enhanced_subpixel_switch, o->enhanced_subpixel_switches);
         oracles_enhanced_view_set_hud(oracles_enhanced_check_view(r->enhanced), o->enhanced_hud);
+        oracles_enhanced_view_set_unvisited_hidden(oracles_enhanced_check_view(r->enhanced), o->unvisited_hidden);
         if (o->enhanced_ghosts > 1u) oracles_enhanced_view_set_ghosts(oracles_enhanced_check_view(r->enhanced), o->enhanced_ghosts);
         oracles_enhanced_check_set_paced(r->enhanced, o->enhanced_paced);
         if (o->enhanced_objects) oracles_enhanced_check_set_neighbour_objects(r->enhanced, 1);
         oracles_enhanced_view_set_neighbour_animation(oracles_enhanced_check_view(r->enhanced), !o->enhanced_frozen);
+        oracles_enhanced_view_set_unvisited_edge(oracles_enhanced_check_view(r->enhanced), !o->enhanced_frozen);   /* as the Low quality */
         r->animation = oracles_animation_check_start(r->guest, rom, rom_size);
         r->object_sprites = oracles_object_sprites_check_start(r->guest, rom, rom_size);
     }

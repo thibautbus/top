@@ -269,19 +269,21 @@ static void black_outside_shown(OraclesEnhancedView *v)
 
 static void add_source(OraclesEnhancedNeighbour *nb, int32_t left, int32_t top, const uint32_t *area, unsigned width, unsigned height, int faded)
 {
-    nb->world_left = left; nb->world_top = top; nb->game_area = area; nb->width = width; nb->height = height; nb->faded = faded;
+    nb->world_left = left; nb->world_top = top; nb->game_area = area; nb->width = width; nb->height = height; nb->faded = faded; nb->veil = 0; nb->edge_veil = 0;
 }
 
 /* Every cached room of the map that the view intersects, at its place on
  * the grid: the neighbours of the row, the room itself under the game's
  * window (what the window leaves behind during a scroll), and the rows above
- * and below, which the vertical camera shows.  Then the capture of the room
- * a scroll left, while the cache has no entry for it. */
+ * and below, which the vertical camera shows; a room never visited dark, as
+ * the places of the grid no entry covers yet that hold one.  Then the capture
+ * of the room a scroll left, while the cache has no entry for it. */
 static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, int32_t camera_x, int32_t camera_y)
 {
     const int32_t reach = wave_reach(v);
     int plain_shown = 0;
     memset(v->drawn_places, 0, sizeof v->drawn_places);
+    ev_hidden_begin(v);
     for (unsigned i = 0; i < v->slot_count && ev_on_map(v); i++) {
         entry *e = &v->slots[i];
         OraclesGhostDirection dir = ORACLES_DIR_UP;
@@ -304,11 +306,14 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         }
         if (!ev_shown_meets(v, camera_x, camera_y, left, top, w, h, reach)) continue;
         add_source(&nbs[count++], left, top, ev_neighbour_pixels(v, e), (unsigned)w, (unsigned)h, 1);
+        nbs[count - 1u].veil = ev_room_veil(v, e->room);
+        if (nbs[count - 1u].veil >= 256u) nbs[count - 1u].edge_veil = ev_room_edge_veil(v, e->room);
         if (!e->routed && !v->observation.large_grid) v->drawn_places[e->room >> 5u] |= 1u << (e->room & 31u);
-        if (oracles_enhanced_capture_blank(e->bg_palettes, e->base_bg_palettes, e->palette_offset, NULL, 0)) plain_shown = 1;
+        if (nbs[count - 1u].veil < 256u && oracles_enhanced_capture_blank(e->bg_palettes, e->base_bg_palettes, e->palette_offset, NULL, 0)) plain_shown = 1;
     }
     if (plain_shown) v->plain_shown_frames++;
-    for (unsigned d = 0; d < 4; d++) if (v->shown_slot[d] < SLOTS) v->shown[d] = 1;
+    for (unsigned d = 0; d < 4; d++)
+        if (v->shown_slot[d] < SLOTS && !ev_room_hidden(v, v->slots[v->shown_slot[d]].group, v->slots[v->shown_slot[d]].room)) v->shown[d] = 1;
     const entry *captured = ev_on_map(v) && v->source_valid ? ev_find_entry(v, v->source_group, v->source_room) : NULL;
     if (ev_source_is_scroll_source(v) && !ev_entry_drawable(v, captured)) {
         add_source(&nbs[count++], v->source_left, v->source_top, ev_scroll_capture(v, 0), 0, 0, 0);
@@ -326,6 +331,9 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
             if (v->left_group == v->observer.ref_group) v->drawn_places[v->left_room >> 5u] |= 1u << (v->left_room & 31u);
         }
     }
+    /* After the captures, which show their rooms where the grid's places would be dark. */
+    if (ev_on_map(v)) count = ev_add_hidden_places(v, nbs, count, SLOTS, camera_x, camera_y, reach);
+    ev_hidden_end(v);
     return count;
 }
 
@@ -370,6 +378,7 @@ static int room_waiting_in_view(OraclesEnhancedView *v, int32_t camera_x, int32_
     for (unsigned i = 0; i < count; i++) {
         const int32_t left = (int32_t)(rooms[i] & 0x0fu) * SMALL_ROOM_W, top = (int32_t)(rooms[i] >> 4u) * (int32_t)ORACLES_GHOST_AREA_HEIGHT;
         if (!ev_shown_meets(v, camera_x, camera_y, left, top, SMALL_ROOM_W, (int32_t)ORACLES_GHOST_AREA_HEIGHT, 0)) continue;
+        if (ev_room_hidden(v, v->observer.ref_group, rooms[i])) continue;   /* dark as decided */
         if (!ev_entry_drawable(v, ev_find_entry(v, v->observer.ref_group, rooms[i]))) return 1;
     }
     return 0;
@@ -450,6 +459,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     oracles_enhanced_camera_shown(v->camera, &v->shown_width, &v->shown_height);
     ev_hold_camera(v, &camera_x, &camera_y);
     v->frame++;
+    ev_check_reference_visited(v);
     ev_update_neighbours(v);
     /* The first frame of a transition: the room in play becomes a neighbour,
      * its animation going on from where the live game has it rather than from
@@ -545,6 +555,8 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         v->shown_shift = in.line_shift;
         in.neighbours = nbs;
         in.neighbour_count = count;
+        in.soft_edges = !v->unvisited_hard;
+        in.edge_seed = v->observer.ref_group;
         in.shown_width = v->shown_width;
         in.shown_height = v->shown_height;
         if (v->observation.large_grid && ev_drawn_back(v)) {
@@ -566,6 +578,9 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     v->sub_layer_w = v->sub_layer_h = 0;
     v->sub_fixed_count = 0;
     v->uncovered = oracles_enhanced_compose(in.mode == ORACLES_ENHANCED_WORLD && v->wave_held ? ev_sway_window(v, ev_scroll_window(v)) : ev_scroll_window(v), &in, v->surface);
+    const int dark_read = v->dark_check && v->hidden_count && in.mode == ORACLES_ENHANCED_WORLD && !load_band;
+    v->dark_lit = dark_read ? oracles_enhanced_dark_lit(&in, v->surface) : 0u;
+    v->dark_stray = dark_read ? oracles_enhanced_dark_stray(&in, v->surface) : 0u;
     if (load_band) { in.mode = ORACLES_ENHANCED_FRAMED; v->uncovered = 0; }
     v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;
     ev_find_area_blurb(v);

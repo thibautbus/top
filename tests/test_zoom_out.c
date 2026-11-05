@@ -7,7 +7,9 @@
 #include "camera.h"
 #include "compositor.h"
 #include "guest_struct_offsets.h"
+#include "ppu.h"
 #include "view.h"
+#include "view_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,12 +97,224 @@ static void compositor(void)
         static uint32_t first[80u * 128u], second[160u * 128u];
         for (unsigned i = 0; i < 80u * 128u; i++) first[i] = 0xff0000aau;
         for (unsigned i = 0; i < 160u * 128u; i++) second[i] = 0xff00bb00u;
-        const OraclesEnhancedNeighbour two[2] = { { 1160, 500, first, 80u, 128u, 1 }, { 1160, 500, second, 160u, 128u, 1 } };
+        const OraclesEnhancedNeighbour two[2] = { { 1160, 500, first, 80u, 128u, 1, 0, 0u }, { 1160, 500, second, 160u, 128u, 1, 0, 0u } };
         in.neighbours = two; in.neighbour_count = 2;
         CHECK(oracles_enhanced_compose(core, &in, surface) == W * BAND_H - 320u * 128u);
         CHECK(surface[(16u + 63u) * W + HUD_X + 170u] == 0xff0000aau && surface[(16u + 63u) * W + HUD_X + 250u] == 0xff00bb00u);
         in.neighbours = NULL; in.neighbour_count = 0;
     }
+    free(core); free(surface);
+}
+
+/* A room kept dark is the band's own black, faded with the game as the black no source covers, and covered; a room
+ * fading in is its pixels that far toward that black. */
+static void dark_sources(void)
+{
+    uint32_t *core = malloc(160u * 144u * sizeof *core);
+    for (unsigned i = 0; i < 160u * 144u; i++) core[i] = 0xff405060u;
+    uint32_t *surface = malloc(W * H * sizeof *surface);
+    static uint32_t colours[ORACLES_PPU_COLOURS], green[160u * 128u], raw[160u * 128u];
+    for (unsigned c = 0; c < ORACLES_PPU_COLOURS; c++) colours[c] = 0xff000000u | ((c * 37u + 0x050505u) & 0xffffffu);
+    for (unsigned i = 0; i < 160u * 128u; i++) { green[i] = 0xff00bb00u; raw[i] = 0x1234u; }
+    OraclesEnhancedNeighbour rooms[2] = { { 1160, 500, green, 0, 0, 1, 256u, 0u }, { 840, 500, raw, 0, 0, 0, 128u, 0u } };
+    OraclesEnhancedCompose in;
+    memset(&in, 0, sizeof in);
+    in.mode = ORACLES_ENHANCED_WORLD;
+    in.size = oracles_enhanced_size(1);
+    in.window_world_left = 1000; in.window_world_top = 500;
+    in.world_left = 1000 - 160; in.world_top = 500 - 63;
+    in.neighbours = rooms; in.neighbour_count = 2;
+    const unsigned dark = (16u + 63u) * W + HUD_X + 200u, veiled = (16u + 63u) * W + 10u, open = 16u * W;
+    const int fades[3] = { 0, -12, 20 };
+    for (unsigned f = 0; f < 3u; f++) {
+        in.fade = fades[f];
+        for (unsigned c = 0; c < 2u; c++) {
+            in.colours = c ? colours : NULL;
+            CHECK(oracles_enhanced_compose(core, &in, surface) == W * BAND_H - 3u * 160u * 128u);
+            const uint32_t black = surface[open];
+            CHECK(black == (fades[f] ? oracles_enhanced_faded_pixel(in.colours, 0, fades[f]) : 0xff000000u));
+            CHECK(surface[dark] == black && surface[(16u + 190u) * W + HUD_X + 319u] == black);
+            const uint32_t pixel = oracles_enhanced_faded_pixel(in.colours, 0x1234u, fades[f]);
+            uint32_t half = 0xff000000u;
+            for (unsigned shift = 0; shift < 24u; shift += 8u) half |= ((((pixel >> shift) & 0xffu) + ((black >> shift) & 0xffu)) * 128u >> 8) << shift;
+            CHECK(surface[veiled] == half);
+        }
+    }
+    /* With no pixels to read, a dark room is drawn all the same; without its veil, it is not. */
+    rooms[0].game_area = NULL;
+    in.fade = 0; in.colours = NULL;
+    CHECK(oracles_enhanced_compose(core, &in, surface) == W * BAND_H - 3u * 160u * 128u && surface[dark] == 0xff000000u);
+    rooms[0].veil = 0;
+    CHECK(oracles_enhanced_compose(core, &in, surface) == W * BAND_H - 2u * 160u * 128u);
+    /* The fade in: from the band's black, the frame a room is first shown 1, to its pixels after sixteen. */
+    CHECK(oracles_enhanced_reveal_veil(1) == 240u && oracles_enhanced_reveal_veil(8) == 128u && oracles_enhanced_reveal_veil(15) == 16u);
+    CHECK(oracles_enhanced_reveal_veil(ORACLES_ENHANCED_REVEAL_FRAMES) == 0u && oracles_enhanced_reveal_veil(1000) == 0u);
+    for (uint32_t age = 1; age < ORACLES_ENHANCED_REVEAL_FRAMES; age++) CHECK(oracles_enhanced_reveal_veil(age + 1u) < oracles_enhanced_reveal_veil(age));
+    free(core); free(surface);
+}
+
+/* A pixel `veil` 256ths of the way to black, as the compositor blends it. */
+static uint32_t veiled_pixel(uint32_t pixel, unsigned veil)
+{
+    uint32_t out = 0xff000000u;
+    for (unsigned shift = 0; shift < 24u; shift += 8u) out |= (((pixel >> shift) & 0xffu) * (256u - veil) >> 8) << shift;
+    return out;
+}
+
+/* The left edge's pixel `nx` pixels into a room, `full` pixels in full there, its light times `strength` / 256 against
+ * the room's own veil. */
+static uint32_t edge_pixel(uint32_t pixel, unsigned nx, unsigned full, unsigned strength, unsigned veil)
+{
+    const unsigned light = (nx < full ? 256u : nx < full + 3u ? 169u : nx < full + 6u ? 102u : 0u) * strength >> 8;
+    const unsigned v = (256u - light) * veil >> 8;
+    return v >= 256u ? 0xff000000u : veiled_pixel(pixel, v);
+}
+
+/* The edge of a room kept dark: along the window drawn in clear beside it, its pixels in full over the wave, then the
+ * two steps, then black, every limit on the wave, which the world gives, wherever the camera; round the corner a room
+ * shares with the window alone, as the band of the room above it goes on; nothing between two dark rooms, nothing past
+ * its depth; the fade in from that look; the hard black with the edges off. */
+static void dark_edges(void)
+{
+    uint32_t *core = malloc(160u * 144u * sizeof *core);
+    for (unsigned i = 0; i < 160u * 144u; i++) core[i] = 0xff405060u;
+    uint32_t *surface = malloc(W * H * sizeof *surface);
+    static uint32_t green[160u * 128u];
+    for (unsigned i = 0; i < 160u * 128u; i++) green[i] = 0xff20c040u + (i % 7u);
+    /* A right of the window, B below A: the window is B's corner; C left of the window, D above it. */
+    OraclesEnhancedNeighbour rooms[4] = { { 1160, 500, green, 0, 0, 1, 256u, 0u }, { 1160, 628, green, 0, 0, 1, 256u, 0u },
+                                          { 840, 500, green, 0, 0, 1, 256u, 0u }, { 1000, 372, green, 0, 0, 1, 256u, 0u } };
+    OraclesEnhancedCompose in;
+    memset(&in, 0, sizeof in);
+    in.mode = ORACLES_ENHANCED_WORLD;
+    in.size = oracles_enhanced_size(1);
+    in.window_world_left = 1000; in.window_world_top = 500;
+    in.world_left = 840; in.world_top = 437;
+    in.neighbours = rooms; in.neighbour_count = 4;
+    in.soft_edges = 1; in.edge_seed = 3;
+    #define AT(wx, wy) surface[(16u + (unsigned)((wy) - in.world_top)) * W + (unsigned)((wx) - in.world_left)]
+    const uint32_t depth = ORACLES_ENHANCED_EDGE_DEPTH;
+    CHECK(depth == 11u);
+    /* The wave: whole pixels up to five, smooth, the world's alone. */
+    unsigned values = 0, steep = 0;
+    for (int32_t along = -300; along < 300; along++) {
+        const unsigned f = oracles_enhanced_edge_wave(3, 1160, 1, along), g = oracles_enhanced_edge_wave(3, 1160, 1, along + 1);
+        values |= 1u << f;
+        steep += (f > g ? f - g : g - f) > 2u;
+        CHECK(f <= ORACLES_ENHANCED_EDGE_WAVE && f == oracles_enhanced_edge_wave(3, 1160, 1, along));
+    }
+    CHECK(steep == 0u && (values & 0x3eu) == 0x3eu);
+    unsigned differ = 0;
+    for (int32_t along = 0; along < 160; along++) differ += oracles_enhanced_edge_wave(3, 1160, 1, along) != oracles_enhanced_edge_wave(4, 1160, 1, along);
+    CHECK(differ > 40u);
+    CHECK(oracles_enhanced_compose(core, &in, surface) == W * BAND_H - 3u * 160u * 128u - 160u * (BAND_H - 191u) - 160u * 63u);
+    unsigned wrong = 0, shown = 0;
+    for (int32_t ny = 0; ny < 128; ny++) {
+        const unsigned full = oracles_enhanced_edge_wave(3, 1160, 1, 500 + ny);
+        for (int32_t nx = 0; nx < 160; nx++) {
+            const uint32_t pixel = AT(1160 + nx, 500 + ny);
+            wrong += pixel != edge_pixel(green[ny * 160 + nx], (unsigned)nx, full, 256u, 256u);
+            shown += pixel != 0xff000000u;
+        }
+    }
+    CHECK(wrong == 0u && shown > 128u * 6u && shown < 128u * 11u);
+    /* C's right side and D's bottom, along the window, the same from the other sides. */
+    wrong = 0;
+    for (int32_t ny = 0; ny < 128; ny++) {
+        const unsigned full = oracles_enhanced_edge_wave(3, 1000, 1, 500 + ny);
+        for (int32_t nx = 0; nx < 160; nx++) wrong += AT(840 + nx, 500 + ny) != edge_pixel(green[ny * 160 + nx], 159u - (unsigned)nx, full, 256u, 256u);
+    }
+    for (int32_t ny = 65; ny < 128; ny++)
+        for (int32_t nx = 0; nx < 160; nx++)
+            wrong += AT(1000 + nx, 372 + ny) != edge_pixel(green[ny * 160 + nx], 127u - (unsigned)ny, oracles_enhanced_edge_wave(3, 500, 0, 1000 + nx), 256u, 256u);
+    CHECK(wrong == 0u);
+    /* B: its first row goes on with A's band, its top beyond the corner and its left below it black. */
+    wrong = 0;
+    const unsigned b_full = oracles_enhanced_edge_wave(3, 1160, 1, 628);
+    for (int32_t nx = 0; nx < 160; nx++) wrong += AT(1160 + nx, 628) != edge_pixel(green[nx], (unsigned)nx, b_full, 256u, 256u);
+    CHECK(wrong == 0u);
+    CHECK(AT(1160 + 80, 628) == 0xff000000u && AT(1160, 628 + depth) == 0xff000000u && AT(1160 + depth, 628 + 1) == 0xff000000u);
+    CHECK(AT(1160 + depth - 1u, 628 + depth - 1u) == 0xff000000u && AT(1160, 628 + 1) != 0xff000000u);
+    /* Read past the edge's depth, nothing in clear; a pixel there lit is a room drawn in clear, one inside it is not. */
+    CHECK(oracles_enhanced_dark_lit(&in, surface) == 0u);
+    AT(1160 + depth, 564) = green[0];
+    CHECK(oracles_enhanced_dark_lit(&in, surface) == 1u);
+    AT(1160 + depth, 564) = 0xff000000u;
+    AT(1160 + 80, 628 + depth) = green[0];
+    CHECK(oracles_enhanced_dark_lit(&in, surface) == 1u);
+    AT(1160 + 80, 628 + depth) = 0xff000000u;
+    AT(1160 + 159u - depth, 520) = green[0];
+    CHECK(oracles_enhanced_dark_lit(&in, surface) == 1u);
+    AT(1160 + 159u - depth, 520) = 0xff000000u;
+    AT(1160 + depth - 1u, 564) = green[0];
+    CHECK(oracles_enhanced_dark_lit(&in, surface) == 0u);
+    /* The camera elsewhere, the same edge on the same pixels of the world. */
+    uint32_t *before = malloc(W * H * sizeof *before);
+    oracles_enhanced_compose(core, &in, surface);
+    memcpy(before, surface, W * H * sizeof *surface);
+    in.world_left += 7; in.world_top -= 3;
+    oracles_enhanced_compose(core, &in, surface);
+    wrong = 0;
+    for (int32_t wy = 500; wy < 628; wy++)
+        for (int32_t wx = 1160; wx < 1310; wx++)
+            wrong += AT(wx, wy) != before[(16u + (unsigned)(wy - 437)) * W + (unsigned)(wx - 840)];
+    CHECK(wrong == 0u);
+    in.world_left = 840; in.world_top = 437;
+    free(before);
+    /* Fading in, from that look: the edge's light against its veil; B's side toward A, A's veil less the light. */
+    rooms[0].veil = 128u;
+    oracles_enhanced_compose(core, &in, surface);
+    wrong = 0;
+    for (int32_t ny = 0; ny < 128; ny += 9) {
+        const unsigned full = oracles_enhanced_edge_wave(3, 1160, 1, 500 + ny);
+        for (int32_t nx = 0; nx < 160; nx++) wrong += AT(1160 + nx, 500 + ny) != edge_pixel(green[ny * 160 + nx], (unsigned)nx, full, 256u, 128u);
+    }
+    CHECK(wrong == 0u);
+    const unsigned up_full = oracles_enhanced_edge_wave(3, 628, 0, 1160 + 80);
+    CHECK(AT(1160 + 80, 628) == edge_pixel(green[80], 0u, up_full, 128u, 256u));
+    CHECK(AT(1160 + 80, 628 + depth) == 0xff000000u);
+    /* Lit on a side with nothing in clear beyond it: a stray edge; along the window, the edge itself. */
+    rooms[0].veil = 256u;
+    oracles_enhanced_compose(core, &in, surface);
+    CHECK(oracles_enhanced_dark_stray(&in, surface) == 0u);
+    AT(1160 + 80, 500) = green[0];
+    CHECK(oracles_enhanced_dark_stray(&in, surface) == 1u);
+    AT(1160 + 80, 500) = 0xff000000u;
+    AT(840, 560) = green[0];
+    CHECK(oracles_enhanced_dark_stray(&in, surface) == 1u);
+    AT(840, 560) = 0xff000000u;
+    AT(1160, 560) = green[0];
+    AT(1160 + 3, 500) = green[0];
+    CHECK(oracles_enhanced_dark_stray(&in, surface) == 0u);
+    /* An edge coming in: its light that far toward none. */
+    rooms[0].edge_veil = 128u;
+    oracles_enhanced_compose(core, &in, surface);
+    wrong = 0;
+    for (int32_t ny = 0; ny < 128; ny += 7) {
+        const unsigned full = oracles_enhanced_edge_wave(3, 1160, 1, 500 + ny);
+        for (int32_t nx = 0; nx < 160; nx++) wrong += AT(1160 + nx, 500 + ny) != edge_pixel(green[ny * 160 + nx], (unsigned)nx, full, 128u, 256u);
+    }
+    CHECK(wrong == 0u);
+    rooms[0].edge_veil = 256u;
+    oracles_enhanced_compose(core, &in, surface);
+    CHECK(AT(1160, 560) == 0xff000000u && AT(1160 + 1, 520) == 0xff000000u);
+    rooms[0].edge_veil = 0u;
+    /* The window across half of A's side (a scroll into a room the cache does not hold): no edge on it, nor on C's. */
+    in.window_world_top = 564;
+    oracles_enhanced_compose(core, &in, surface);
+    CHECK(AT(1160, 600) == 0xff000000u && AT(1160, 520) == 0xff000000u && AT(840 + 159, 600) == 0xff000000u);
+    CHECK(oracles_enhanced_dark_stray(&in, surface) == 0u && oracles_enhanced_dark_lit(&in, surface) == 0u);
+    in.window_world_top = 500;
+    /* Two rooms kept dark side by side: no edge between them. */
+    rooms[0].veil = 256u;
+    rooms[1].world_left = 1320; rooms[1].world_top = 500;
+    oracles_enhanced_compose(core, &in, surface);
+    CHECK(AT(1320 + 2, 560) == 0xff000000u && AT(1319, 560) == 0xff000000u);
+    /* The edges off: the black cut straight, as without them. */
+    in.soft_edges = 0;
+    oracles_enhanced_compose(core, &in, surface);
+    CHECK(AT(1160, 560) == 0xff000000u && AT(1160, 500) == 0xff000000u && oracles_enhanced_dark_lit(&in, surface) == 0u);
+    #undef AT
     free(core); free(surface);
 }
 
@@ -222,7 +436,7 @@ static void ripple(int32_t sway)
     uint32_t *area = malloc((size_t)nb_w * nb_h * sizeof *area);
     for (unsigned ny = 0; ny < nb_h; ny++)
         for (unsigned nx = 0; nx < nb_w; nx++) area[(size_t)ny * nb_w + nx] = WORLD_PIXEL(nb_left + (int32_t)nx, nb_top + (int32_t)ny);
-    const OraclesEnhancedNeighbour around = { nb_left, nb_top, area, nb_w, nb_h, 1 };
+    const OraclesEnhancedNeighbour around = { nb_left, nb_top, area, nb_w, nb_h, 1, 0, 0u };
     OraclesEnhancedCompose in;
     memset(&in, 0, sizeof in);
     in.mode = ORACLES_ENHANCED_WORLD;
@@ -880,6 +1094,189 @@ static void black_count(void)
     rig_stop(&r);
 }
 
+/* The rooms never visited kept dark, drawn back, no ghost to fill the band: the eight rooms around Link's are the game's
+ * own unvisited ones, dark as decided, so that nothing of the band counts as black waiting for the ghost; a room
+ * visited since is black again, waiting.  The reference room the game has not marked visited is counted, whatever the
+ * setting. */
+static void unvisited_rooms(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedView *view = r.guest ? oracles_enhanced_view_start(r.core, r.guest, NULL, 0) : NULL;
+    CHECK(view != NULL);
+    if (!view) { rig_stop(&r); return; }
+    oracles_enhanced_view_set_zoom_out(view, 1);
+    CHECK(!oracles_enhanced_view_unvisited_hidden(view));
+    oracles_enhanced_view_set_unvisited_hidden(view, 1);
+    CHECK(oracles_enhanced_view_unvisited_hidden(view));
+    const OraclesGuestTables *t = &oracles_guest_tables_ages;
+    uint8_t *w0 = oracles_guest_wram_writable(r.guest, 0), *w1 = oracles_guest_wram_writable(r.guest, 1);
+    uint8_t *link = w1 + (ORACLES_OBJECTS_BASE - 0xd000u), *flags = w0 + (t->group0_room_flags.addr - 0xc000u);
+    #define W0(sym) w0[(sym).addr - 0xc000u]
+    W0(t->game_state) = 2; W0(t->cutscene_index) = 1; W0(t->scroll_mode) = 1; W0(t->screen_transition_state) = 2;
+    W0(t->active_group) = 0; W0(t->active_room) = 0x45; W0(t->room_is_large) = 0;
+    link[ORACLES_OBJ_ENABLED] = 1; link[ORACLES_OBJ_STATE] = 1; link[ORACLES_OBJ_XH] = 80; link[ORACLES_OBJ_YH] = 64;
+    OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+    int32_t cam = 0, cam_y = 0;
+    OraclesEnhancedBlack black;
+    OraclesEnhancedUnvisitedCounts u;
+    frames(&r, view, 190, &mode, &cam, &cam_y);
+    oracles_enhanced_view_black(view, &black);
+    oracles_enhanced_view_unvisited_counts(view, &u);
+    /* What the game's window leaves of the room in play (the rig's camera is no room's) is all that is uncovered. */
+    const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(view);
+    const int32_t across = (ob->window_left + 160 < 960 ? ob->window_left + 160 : 960) - (ob->window_left > 800 ? ob->window_left : 800);
+    const int32_t down = (ob->window_top + 128 < 640 ? ob->window_top + 128 : 640) - (ob->window_top > 512 ? ob->window_top : 512);
+    const unsigned in_play = 160u * 128u - (unsigned)(across * down);
+    CHECK(mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_uncovered(view) == in_play && black.rooms_over == 0u && black.have_full);
+    CHECK(oracles_enhanced_view_waiting_frames(view) == 0u && u.hidden_frames > 60u && u.hidden_rooms_max == 8u && u.reveal_fades == 0u);
+    const uint32_t *surface = oracles_enhanced_view_surface(view);
+    const uint32_t dark = surface[16u * W];
+    CHECK(surface[(16u + 127u) * W + W - 1u] == dark && oracles_enhanced_view_neighbour_dark(view, 1, NULL) && oracles_enhanced_view_neighbour_dark(view, 0, NULL));
+    /* The reference room, unmarked, counted once the game has had its first frames of play to mark it; marked, no more. */
+    CHECK(u.unvisited_reference > 60u && u.first_group == 0u && u.first_room == 0x45u);
+    flags[0x45] = t->roomflag_visited;
+    const unsigned counted = u.unvisited_reference;
+    frames(&r, view, 5, &mode, &cam, &cam_y);
+    oracles_enhanced_view_unvisited_counts(view, &u);
+    CHECK(u.unvisited_reference == counted);
+    /* The room to the right visited (another flag of it set before changes nothing): no ghost has drawn it, black that waits. */
+    flags[0x46] = 0x20u;
+    frames(&r, view, 5, &mode, &cam, &cam_y);
+    CHECK(oracles_enhanced_view_uncovered(view) == in_play && oracles_enhanced_view_waiting_frames(view) == 0u);
+    flags[0x46] |= t->roomflag_visited;
+    frames(&r, view, 5, &mode, &cam, &cam_y);
+    oracles_enhanced_view_unvisited_counts(view, &u);
+    CHECK(oracles_enhanced_view_uncovered(view) == in_play + 160u * 128u && oracles_enhanced_view_waiting_frames(view) == 5u && u.hidden_rooms_max == 8u);
+    CHECK(!oracles_enhanced_view_neighbour_dark(view, 1, NULL) && oracles_enhanced_view_neighbour_dark(view, 3, NULL));
+    /* Shown: the band as before, every room around black, waiting. */
+    const unsigned hidden_frames = u.hidden_frames;
+    oracles_enhanced_view_set_unvisited_hidden(view, 0);
+    frames(&r, view, 5, &mode, &cam, &cam_y);
+    oracles_enhanced_view_unvisited_counts(view, &u);
+    CHECK(u.hidden_frames == hidden_frames && oracles_enhanced_view_uncovered(view) == W * BAND_H - 160u * 128u && surface[16u * W] == dark);
+    CHECK(!oracles_enhanced_view_neighbour_dark(view, 3, NULL));
+    #undef W0
+    oracles_enhanced_view_stop(view);
+    rig_stop(&r);
+}
+
+/* A room's veil from one composition to the next, as add_grid_sources asks it of a room drawn. */
+static unsigned veil_step(OraclesEnhancedView *v, uint8_t room)
+{
+    ev_hidden_begin(v);
+    const unsigned veil = ev_room_veil(v, room);
+    ev_hidden_end(v);
+    v->frame++;
+    return veil;
+}
+
+/* The rooms never visited from one composition to the next: a room visited between two of them fades in through
+ * every veil, once; across an epoch (a warp, a time travel), another group, a savestate's load or the setting
+ * switched, it shows at once; the room a scroll enters shows, fading in where the band shows it beside the window, and
+ * so does a room that was the reference in the epoch, unmarked as the game's own cutscenes leave theirs. */
+static void unvisited_states(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedView *v = r.guest ? oracles_enhanced_view_start(r.core, r.guest, NULL, 0) : NULL;
+    CHECK(v != NULL);
+    if (!v) { rig_stop(&r); return; }
+    oracles_enhanced_view_set_zoom_out(v, 1);
+    oracles_enhanced_view_set_unvisited_hidden(v, 1);
+    const OraclesGuestTables *t = &oracles_guest_tables_ages;
+    uint8_t *w0 = oracles_guest_wram_writable(r.guest, 0), *w1 = oracles_guest_wram_writable(r.guest, 1);
+    uint8_t *link = w1 + (ORACLES_OBJECTS_BASE - 0xd000u), *present = w0 + (t->group0_room_flags.addr - 0xc000u), *past = present + 0x100u;
+    const uint8_t visited = t->roomflag_visited;
+    #define W0(sym) w0[(sym).addr - 0xc000u]
+    W0(t->game_state) = 2; W0(t->cutscene_index) = 1; W0(t->scroll_mode) = 1; W0(t->screen_transition_state) = 2;
+    W0(t->active_group) = 0; W0(t->active_room) = 0x45; W0(t->room_is_large) = 0;
+    link[ORACLES_OBJ_ENABLED] = 1; link[ORACLES_OBJ_STATE] = 1; link[ORACLES_OBJ_XH] = 80; link[ORACLES_OBJ_YH] = 64;
+    present[0x45] = visited;
+    OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+    int32_t cam = 0, cam_y = 0;
+    frames(&r, v, 40, &mode, &cam, &cam_y);
+    CHECK(mode == ORACLES_ENHANCED_WORLD && v->observer.ref_group == 0u && v->observer.ref_room == 0x45u && v->observation.room == 0x45u);
+    OraclesEnhancedUnvisitedCounts u;
+    oracles_enhanced_view_unvisited_counts(v, &u);
+    const unsigned fades = u.reveal_fades;
+    /* Kept dark, then visited: every veil from 240 down, then the room whole, one fade. */
+    CHECK(veil_step(v, 0x46) == 256u && veil_step(v, 0x46) == 256u);
+    present[0x46] |= visited;
+    for (unsigned age = 1; age < ORACLES_ENHANCED_REVEAL_FRAMES; age++) CHECK(veil_step(v, 0x46) == 256u - age * 16u);
+    CHECK(veil_step(v, 0x46) == 0u && veil_step(v, 0x46) == 0u);
+    oracles_enhanced_view_unvisited_counts(v, &u);
+    CHECK(u.reveal_fades == fades + 1u);
+    /* Laid dark without pixels, then with them: its edge comes in over the same frames, once; one never laid bare, whole. */
+    ev_hidden_begin(v); v->bare_now[0x56 >> 5u] |= 1u << (0x56 & 31u); ev_hidden_end(v); v->frame++;
+    for (unsigned age = 1; age < ORACLES_ENHANCED_REVEAL_FRAMES; age++) {
+        ev_hidden_begin(v); CHECK(ev_room_edge_veil(v, 0x56) == 256u - age * 16u); ev_hidden_end(v); v->frame++;
+    }
+    ev_hidden_begin(v); CHECK(ev_room_edge_veil(v, 0x56) == 0u && ev_room_edge_veil(v, 0x57) == 0u); ev_hidden_end(v); v->frame++;
+    oracles_enhanced_view_unvisited_counts(v, &u);
+    CHECK(u.edge_fades == 1u);
+    /* Visited across a new epoch: shown at once. */
+    CHECK(veil_step(v, 0x47) == 256u);
+    present[0x47] |= visited;
+    v->observation.epoch++;
+    CHECK(veil_step(v, 0x47) == 0u);
+    /* Across another group (the other era): its own page, shown at once once marked there. */
+    CHECK(veil_step(v, 0x48) == 256u);
+    present[0x48] |= visited;
+    v->observer.ref_group = 1;
+    CHECK(veil_step(v, 0x48) == 256u);   /* the past's 0x48, never entered */
+    past[0x48] |= visited;
+    v->observer.ref_group = 0;
+    CHECK(veil_step(v, 0x48) == 0u);
+    /* Across a savestate's load. */
+    CHECK(veil_step(v, 0x49) == 256u);
+    present[0x49] |= visited;
+    uint8_t wire[1024];
+    size_t written = 0;
+    CHECK(oracles_enhanced_view_save_state(v, wire, sizeof wire, &written) == 0 && oracles_enhanced_view_load_state(v, wire, written) == 0);
+    v->observer.ref_group = 0; v->observer.ref_room = 0x45;   /* as the next observation rebuilds them */
+    CHECK(veil_step(v, 0x49) == 0u);
+    /* Across the setting switched off and on. */
+    CHECK(veil_step(v, 0x4a) == 256u);
+    present[0x4a] |= visited;
+    oracles_enhanced_view_set_unvisited_hidden(v, 0);
+    CHECK(veil_step(v, 0x4a) == 0u);
+    oracles_enhanced_view_set_unvisited_hidden(v, 1);
+    CHECK(veil_step(v, 0x4a) == 0u);
+    oracles_enhanced_view_unvisited_counts(v, &u);
+    CHECK(u.reveal_fades == fades + 1u);
+    /* The room a scroll enters, the game's active room before it marks it: shown, fading in beside the window. */
+    CHECK(veil_step(v, 0x55) == 256u);
+    v->observation.room = 0x55;
+    CHECK(!ev_room_hidden(v, 0, 0x55) && veil_step(v, 0x55) == 240u);
+    v->observation.room = 0x45;
+    /* A room that was the reference in this epoch, unmarked: shown, until the epoch ends. */
+    v->observer.ref_room = 0x35;
+    CHECK(veil_step(v, 0x35) == 0u);
+    v->observer.ref_room = 0x45;
+    CHECK(!ev_room_hidden(v, 0, 0x35) && veil_step(v, 0x35) == 0u);
+    v->observation.epoch++;
+    CHECK(veil_step(v, 0x35) == 256u);
+    /* Through the composition: a fade under way, then a real time travel (a room change outside a scroll, to the past's
+     * 0x45): the observer opens a new epoch and the composition after it drops the fade, the rooms of the past dark or
+     * shown as they are. */
+    CHECK(veil_step(v, 0x56) == 256u);
+    present[0x56] |= visited;
+    CHECK(veil_step(v, 0x56) == 240u && v->reveal_count == 1u);
+    frames(&r, v, 1, &mode, &cam, &cam_y);   /* the composition puts its own observation back */
+    const uint64_t before = v->observation.epoch;
+    W0(t->scroll_mode) = 2; frames(&r, v, 1, &mode, &cam, &cam_y);
+    W0(t->active_group) = 1; frames(&r, v, 1, &mode, &cam, &cam_y);
+    W0(t->scroll_mode) = 1; frames(&r, v, 2, &mode, &cam, &cam_y);
+    CHECK(v->observation.epoch != before && v->observer.ref_group == 1u && mode == ORACLES_ENHANCED_WORLD);
+    CHECK(v->reveal_count == 0u && v->hidden_group == 1u && v->hidden_epoch == v->observation.epoch);
+    #undef W0
+    oracles_enhanced_view_stop(v);
+    rig_stop(&r);
+}
+
 /* The same black in episodes by cause, in far 4:3, no ghost to fill the
  * band: the rooms around the first room are the band's fill; Link in the
  * room beside, near its top right corner, shows the corner two columns and
@@ -1234,6 +1631,8 @@ int main(void)
 {
     world_math();
     compositor();
+    dark_sources();
+    dark_edges();
     hud_full_width();
     ripple(0);
     ripple(2);
@@ -1251,6 +1650,8 @@ int main(void)
     tint_memories();
     black_count();
     black_kinds();
+    unvisited_rooms();
+    unvisited_states();
     parent_keys();
     parent_visits();
     beside_reads();

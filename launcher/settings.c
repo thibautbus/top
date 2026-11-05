@@ -284,6 +284,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->view = 2;   /* far: the view drawn back, as Enhanced was before the levels */
     s->aspect = ORACLES_ASPECT_AUTO;
     s->far_fixed = 0;   /* fitted to the screen */
+    s->unvisited_hidden = 0;   /* every room around shown */
     s->ghosts = 0;   /* auto */
     s->hud = 1;   /* full: the bar across the whole view, not a strip between two dark bands */
 #ifdef __ANDROID__
@@ -307,7 +308,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
@@ -377,6 +378,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     }
     if (!strcmp(name, "far")) {
         if (!strcmp(word, "screen") || !strcmp(word, "fixed")) s->far_fixed = !strcmp(word, "fixed");
+        return 1;
+    }
+    if (!strcmp(name, "unvisited_rooms")) {
+        if (!strcmp(word, "shown") || !strcmp(word, "hidden")) s->unvisited_hidden = !strcmp(word, "hidden");
         return 1;
     }
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -642,6 +647,9 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The far view: screen (fitted to a screen its size fills badly, 426x320 on 1280x960 and 412x360 on 1240x1080,\n"
                "# three times, with aspect=auto) or fixed (480x270 or 480x360, whatever the screen).\n");
     put(&w, "far=%s\n", s->far_fixed ? "fixed" : "screen");
+    put(&w, "# The rooms around Link that he has never entered, in enhanced: shown, or hidden (kept dark until he enters\n"
+               "# them, as on the game's map).\n");
+    put(&w, "unvisited_rooms=%s\n", s->unvisited_hidden ? "hidden" : "shown");
     put(&w, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
                "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
     if (s->ghosts == 1 || s->ghosts == 2) put(&w, "ghosts=%d\n", s->ghosts); else put(&w, "ghosts=auto\n");

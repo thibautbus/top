@@ -183,5 +183,6 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     ev_invalidate_all(v);
     v->coarse_len = 0;   /* the coarse list is taken again from the state loaded */
     v->black_loaded = 1;   /* the band fills again (view_black.c) */
+    ev_hidden_forget(v);   /* the rooms the state loaded keeps dark are shown so at once */
     return 0;
 }

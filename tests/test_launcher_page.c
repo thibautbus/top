@@ -2711,7 +2711,7 @@ static void margin_probes(const char *frame, const OraclesUiDisplayLayout *l, in
     else { layout_text(frame, "margin Small text", &l->margin[2].name); layout_text(frame, "margin Large text", &l->margin[3].name); }
     layout_box(frame, "scaling row", &l->rows[ORACLES_DISPLAY_SCALING]);
     layout_near(frame, "rows", "y", l->rows[ORACLES_DISPLAY_SCALING].y);
-    layout_near(frame, "rows", "h", l->rows[ORACLES_DISPLAY_MENUS].y + l->rows[ORACLES_DISPLAY_MENUS].h - l->rows[ORACLES_DISPLAY_SCALING].y);
+    layout_near(frame, "rows", "h", l->rows[ORACLES_DISPLAY_UNVISITED].y + l->rows[ORACLES_DISPLAY_UNVISITED].h - l->rows[ORACLES_DISPLAY_SCALING].y);
 }
 
 /* Screen margin (turn 20), Display › Picture's second row since turn 34: in 16:9 its choices above its explanation, on two lines (margin), from
