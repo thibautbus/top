@@ -1,0 +1,24 @@
+name: Feature request
+description: An idea for the launcher, the Enhanced view, an option, the mods or a platform.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you would like the port to do.
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What it would help with
+      description: When you would use it, and what you do without it today.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: System and device
+      description: Where you play, if the idea depends on it.
+      placeholder: "Android, a handheld with a 4:3 screen"

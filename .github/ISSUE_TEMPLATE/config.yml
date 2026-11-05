@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and discussions
+    url: https://github.com/thibautbus/top/discussions
+    about: Ask how to do something, share a mod, or talk about the port.
+  - name: Manual
+    url: https://github.com/thibautbus/top/blob/main/docs/PLAYING.md
+    about: The launcher's pages, the keys, the saves and the settings.

@@ -2,7 +2,7 @@
 """Check the documents of the repository.
 
 - every relative Markdown link in a document resolves to a file;
-- README.md has fewer than 150 lines.
+- README.md has fewer than 160 lines.
 
 The documents: the Markdown files git tracks, except the vendored ones
 (third_party/) and those under the prefixes --exclude FILE lists, one per line.
@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_public_text import published_files  # noqa: E402
 
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)\)")
-README_MAX_LINES = 150
+README_MAX_LINES = 160
 
 
 def documents(root: Path, exclude: Path | None = None) -> list[Path]:

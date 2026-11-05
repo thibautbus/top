@@ -4,32 +4,30 @@
 
 **Play Oracle of Ages and Oracle of Seasons in widescreen, on Windows, macOS, Linux and Android.**
 
-Your own ROM, untouched · Item hotkeys · Five languages · Lua mods · Fan games
+Your own ROM, untouched · Item hotkeys · European languages · Lua mods · Fan games
 
 [![Latest release](https://img.shields.io/github/v/release/thibautbus/top)](https://github.com/thibautbus/top/releases) [![Downloads](https://img.shields.io/github/downloads/thibautbus/top/total)](https://github.com/thibautbus/top/releases) [![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg)](#contributors-)
 
-**[Download](https://github.com/thibautbus/top/releases/latest)** · [Features](#features) · [Fan games](docs/PLAYING.md#fan-games) · [Manual](docs/PLAYING.md) · [Report a problem](https://github.com/thibautbus/top/issues) · [Building](docs/BUILDING.md)
+**[Download](https://github.com/thibautbus/top/releases/latest)** · [Getting started](#getting-started) · [FAQ](#faq) · [Fan games](docs/PLAYING.md#fan-games) · [Manual](docs/PLAYING.md) · [Report a problem](https://github.com/thibautbus/top/issues/new/choose) · [Building](docs/BUILDING.md)
 
 ![The Oracles Project: play Oracle of Ages and Oracle of Seasons in widescreen, with your own ROM. An illustration of the original screen, and the rooms around it that the Enhanced view shows, between the cool side of Ages and the warm side of Seasons](docs/assets/banner.png)
 
 </div>
 
-## Features
+## What it is
 
-A faithful, moddable port of Oracle of Ages and Oracle of Seasons for Windows, macOS, Linux and Android. Your own ROM runs in an emulator core, [SameBoy](https://sameboy.github.io/), unmodified, the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices (Display's Core); around it, a native host observes the game and presents it:
+The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, untouched, in a Game Boy Color emulator core, and adds what the original screen could not show: a widescreen view with the rooms around Link, options that make the game easier to play and to read, languages, mods and three fan games. Nothing of the game's code is rewritten, so it plays as it always did; [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) says how.
 
-- **Faithful**: the original image, 160x144, exactly what the game draws;
-- **Enhanced**: a widescreen view with the neighbouring rooms, which the game itself computes in a second instance of the core, a smooth camera, and the status bar repositioned in a band of its own;
-- **gameplay options**: continuous transitions (Link keeps walking through the scrolling transitions), item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped (the flippers' A, Ages' mermaid suit), cheats (no damage, ammo and rupees that never run out), and a drawn-back view that shows three rooms across and two down outdoors;
-- **languages and text**: French, German, Italian, Spanish and the European English, taken from your own European ROM; a compact text whose letters take their own width, a wider text box, a larger text for small screens, and instant text;
-- **saves**: import a save from another emulator or from the European game, and export a copy to play it elsewhere;
-- **Lua mods**: houses, characters who talk and minigames, which act on the game through the game's own routines and replay exactly;
-- **fan games** from their BPS patch, applied in memory to your ROM:
-  - Gifts of Kinomi 1.1.2, built on Oracle of Ages;
-  - Moonrise Regalia 1.0.6, built on Oracle of Ages;
-  - Temple of Seasons 1.073, built on Oracle of Seasons.
+- **Widescreen**: Enhanced shows the rooms around Link in the shape of your screen, at three distances, Near, Medium and Far; Faithful keeps the original picture, 160x144, exactly what the game draws.
+- **Easier to play**: item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped, continuous transitions (Link keeps walking as the screen scrolls), and cheats if you want them (no damage, ammo and rupees that never run out).
+- **Easier to read**: a compact text whose letters take their own width, a wider text box, a larger text for small screens, and instant text.
+- **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
+- **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.
+- **Lua mods**: houses, characters who talk and minigames, which act on the game through the game's own routines and replay exactly.
+- **Fan games** from their BPS patch, applied in memory to your ROM: Gifts of Kinomi and Moonrise Regalia on Oracle of Ages, Temple of Seasons on Oracle of Seasons.
+- **Two emulator cores**: [SameBoy](https://sameboy.github.io/), the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices.
 
-Nothing of the game's code is rewritten: the game runs as it is, and the host reads its state. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) says why.
+![The launcher's home screen: Oracle of Ages chosen, with its menu (Start game, Cartridge, Controls, Display, Mods, Cheats, Exit), and Oracle of Seasons and the fan games beside it](docs/assets/launcher-home.png)
 
 ## Featured in
 
@@ -38,38 +36,27 @@ Nothing of the game's code is rewritten: the game runs as it is, and the host re
 
 The project is also listed on:
 
-- [quiverlauncher.com](https://quiverlauncher.com/apps/the-legend-of-zelda-oracle-of-seasons-oracle-of-ages-the-oracles-project)
-- [recomp.fyi](https://recomp.fyi/game/the-legend-of-zelda-oracle-of-ages-seasons-gbc)
 - [openportsgames.com](https://openportsgames.com/en/ports/the-oracles-project/)
+- [playported.com](https://playported.com/ports/879-the-legend-of-zelda-oracle-of-ages/)
+- [quiverlauncher.com](https://quiverlauncher.com/apps/the-legend-of-zelda-oracle-of-seasons-oracle-of-ages-the-oracles-project)
+- [recomp.center](https://recomp.center/projeto/github-repository-1391290392)
+- [recomp.fyi](https://recomp.fyi/game/the-legend-of-zelda-oracle-of-ages-seasons-gbc)
 
 ## Download
 
-The [latest release](https://github.com/thibautbus/top/releases/latest) has the port ready to play with your own ROM, for Windows, macOS (Apple Silicon and Intel), Linux and Android 10 or later. On Linux, take the AppImage, `the-oracles-project-X.Y.Z-linux-x86_64.AppImage`: make it executable (`chmod +x`) and run it. If the AppImage does not start, use the `.tar.gz`, a folder that runs once extracted, or run the AppImage with `--appimage-extract-and-run`. Linux ARM64 (Raspberry Pi 5, Asahi Linux...) has the same two files, `-linux-arm64`: experimental, not yet tried on real hardware; feedback welcome. The release notes say how to install each file.
+The [latest release](https://github.com/thibautbus/top/releases/latest) has a file for each system, ready to play with your own ROM; its notes say more about each file.
 
-## Quick start
+| System | File | First launch |
+| --- | --- | --- |
+| Windows, 64-bit | `…-windows.zip` | Unzip the folder and run `the-oracles-project.exe`. It is not signed: if SmartScreen warns, choose **More info**, then **Run anyway**. |
+| macOS 11 or later, Apple Silicon and Intel | `…-macos.zip` | Unzip it and move The Oracles Project to Applications. It is not notarised. On macOS 11 to 14, right-click it the first time and choose **Open**. On macOS 15 or later, open it once, then choose **Open Anyway** in **System Settings › Privacy & Security**. |
+| Linux x86_64 | `…-linux-x86_64.AppImage`, `.tar.gz` | Make it executable (`chmod +x`, or in the file's properties) and run it. If it does not start, take the `.tar.gz`, extract it and run `./the-oracles-project`. |
+| Linux ARM64 (Raspberry Pi 5, Asahi Linux...) | `…-linux-arm64.AppImage`, `.tar.gz` | As on x86_64. Experimental, not yet tried on real hardware; feedback welcome. |
+| Android 10 or later | `…-android.apk` | Open it to install it, allowing your browser or file manager to do so when Android asks. |
 
-On Linux, with a C11 compiler, CMake 3.19 or later and the development packages SDL 3 builds against (or an installed SDL 3):
+## What you need
 
-```bash
-cmake -S . -B build -DBUILD_TESTING=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-Then run the launcher, and choose your ROM on its Cartridge page, or start a game directly:
-
-```bash
-build/the-oracles-project
-build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" --enhanced
-```
-
-macOS, Windows (MSYS2) and Android are in [`docs/BUILDING.md`](docs/BUILDING.md); the launcher, the options, the keys and the settings in [`docs/PLAYING.md`](docs/PLAYING.md).
-
-## What this repository does not contain
-
-No ROM, no asset of the games, no data decompressed from a ROM, no code of the games. You provide your own ROM of Oracle of Ages or Oracle of Seasons (US); a fan game needs that ROM and the game's own BPS patch. The addresses and symbol names the host uses come from the [oracles-disasm](https://github.com/Stewmath/oracles-disasm) disassembly, at the commit pinned in `config/disasm.json`, through tables generated from its symbol files; the CI audits that no ROM byte enters the repository. Tests that need a ROM are skipped without one, never simulated.
-
-The port recognises these files by their SHA-1; a patch's is the file as its authors distribute it (the port checks the image it makes), and a `.zip` is recognised by the one ROM or patch it holds:
+Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on. A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Another image whose header is an Oracle's (a hack, a randomizer seed) plays in Faithful only.
 
 | File you provide | Expected SHA-1 |
 |---|---|
@@ -81,13 +68,34 @@ The port recognises these files by their SHA-1; a patch's is the file as its aut
 | Moonrise Regalia 1.0.6 patch (`.bps`), on Ages (US) | `fcef50de31ce3e57d3e23cd846c0749e42098e08` |
 | Temple of Seasons 1.073 patch (`.bps`), on Seasons (US) | `0646e0a8fd6830198e453fdfeeea4a0a7c01cdf4` |
 
-## Platforms
+## Getting started
 
-- Linux and macOS (Intel and Apple Silicon), with SDL 3;
-- Windows, built with MSYS2 UCRT64;
-- Android 10 and later (`arm64-v8a`, `x86_64`), with touch controls, the same launcher and the same options.
+1. **Install** the file for your system (above), and open The Oracles Project. The home screen lists Oracle of Ages, Oracle of Seasons and Fan games: the arrows or the d-pad choose, Enter or A opens, Escape or B goes back, and the mouse and touch work too.
+2. **Choose a game**, then **Cartridge** in its menu.
+3. **Choose ROM…** and pick your ROM (a fan game asks for its patch too); on a computer, dropping the file on the window does the same. The page says whether the port recognises it.
+4. **Play**, at the bottom of the page, or **Start game** in the game's menu. The game starts in Enhanced, the widescreen view; **Display** changes the view, the window and the quality.
 
-The CI builds and tests all four on every pull request.
+![The Cartridge page: the ROM recognised, the save beside it, the optional European ROM and the language](docs/assets/launcher-cartridge.png)
+
+In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace is Select; Escape, or L3 on a controller, opens the pause menu. Your save is written beside your ROM, under its name (`Oracle of Ages.sav` for `Oracle of Ages.gbc`), in the format other emulators use. The [manual](docs/PLAYING.md) has every page, key and setting.
+
+## FAQ
+
+**Which ROM do I need?** Your own dump of the US cartridge of Oracle of Ages or Oracle of Seasons, which the port checks by its SHA-1 ([What you need](#what-you-need)); a `.zip` holding it works too, 7z and RAR do not. The European ROM is needed only for the languages, and is chosen on the game's **Cartridge** page beside the US one. A hack or a randomizer seed plays in Faithful only.
+
+**Which device can run it?** On a computer, **Display › Quality** starts on Max, the farthest view on the accurate core; on Android, on High or Medium, by the device's processor and memory. On any system, after a game that ran slowly, the home screen suggests a lighter quality. On a Steam Deck, run the Linux AppImage, added to Steam as a non-Steam game so that the Deck's controls reach the port.
+
+**How do I bring my save from another emulator?** Open the game's **Cartridge** page and choose **Import save…**. It takes a `.sav` from another emulator, another device or the European game, keeps the save it replaces in a `Backups` folder beside it, and refuses a file that is not a save of that game. On Android, **Export save…** puts a copy where you choose. [Saves](docs/PLAYING.md#saves) says more.
+
+**Will an update keep my saves and settings?** Yes. Your saves stay beside your ROMs and your settings in your user folder, so the new version finds both: on Windows, unzip it where you like; on macOS and Linux, put it in place of the old one; on Android, install the new APK over the old one. On Android, 1.1.0 and earlier were a different application, which the new one installs beside and does not read: copy your save from the old application's `files/roms` folder over USB, bring it in with **Import save…**, then uninstall the old application. Each release's notes say whether the savestates (F5) of the version before still load. The home screen says when a newer version is out.
+
+**Where do I get the fan games?** From their authors, as BPS patches. The port needs the exact versions in the table of [What you need](#what-you-need), and applies the patch in memory to your own US ROM: the game's **Cartridge** page asks for both files. [Fan games](docs/PLAYING.md#fan-games) says more.
+
+**Something went wrong: what should I send?** Open an [issue](https://github.com/thibautbus/top/issues/new/choose) with your system, your device, the version (at the bottom left of the home screen) and the log, and never a ROM. On Windows, a console window opens with the launcher: play until the problem shows, choose **Quit to launcher** in the pause menu, which writes the end-of-game report, then copy the console's text before you close the launcher, since closing the console closes the launcher too. On macOS and Linux, start the launcher from a terminal and copy what it prints. On Android, it is `Android/data/org.theoraclesproject/files/the-oracles-project.log`, reachable from a computer over USB.
+
+## Building from source
+
+The port builds with CMake on Linux, macOS, Windows (MSYS2 UCRT64) and Android, and the CI builds and tests all four on every pull request: [`docs/BUILDING.md`](docs/BUILDING.md). This repository holds no ROM, no asset and no code of the games, and the CI checks that no byte of a ROM enters it.
 
 ## Documentation
 
@@ -101,6 +109,7 @@ The CI builds and tests all four on every pull request.
 | [`docs/GAME_HOOKS.md`](docs/GAME_HOOKS.md) | what the host hooks in the game and where it may write |
 | [`docs/ROM_DATA_FORMATS.md`](docs/ROM_DATA_FORMATS.md) | the formats of the ROM's data |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | the rules of the code and of a change |
+| [`docs/README.md`](docs/README.md) | every document, by reader |
 
 ## AI-assisted development
 

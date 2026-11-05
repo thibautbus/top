@@ -2,10 +2,14 @@
 
 A mod adds houses, characters who talk and minigames to the game, written in Lua. It does not change the user's ROM: the port composes its houses into a copy in memory at launch, and the mod asks the game to run its own routines (give an item, play a sound) instead of writing its memory. A game with mods replays exactly, like every route of the port. The API may still change.
 
-Two examples come with the repository; a player copies each folder as it is into the launcher's mods folder (see Running):
+Two examples come with the source repository, not with the release's files for now: a player downloads the repository (**Code › Download ZIP** on GitHub) and copies each folder as it is into the launcher's mods folder (see Running):
 
 - [`mods/claw-game/`](../mods/claw-game/): a house in Lynna City (Ages) and in Horon (Seasons), its keeper and the claw game of Link's Awakening (`main.lua`, `claw.lua`, `sprites.lua`);
 - [`mods/fortune-teller/`](../mods/fortune-teller/): a second house, on the island east of Lynna City's red house, whose fortune teller remembers how many times Link came (`mod.storage`); loaded with the claw game, it exercises several mods together.
+
+Contents: [Running](#running) · [Your first mod](#your-first-mod) · [A mod](#a-mod) · [Houses](#houses) · [Characters](#characters) · [The conversation](#the-conversation) · [Scenes: a minigame](#scenes-a-minigame) · [Acting on the game](#acting-on-the-game) · [Keeping data](#keeping-data-modstorage) · [Several mods together](#several-mods-together) · [Testing and replaying](#testing-and-replaying) · [When a mod stops](#when-a-mod-stops) · [The sandbox](#the-sandbox) · [Current limits](#current-limits)
+
+![The Mods page: the mods folder and the two example mods turned on](assets/launcher-mods.png)
 
 ## Running
 
@@ -23,6 +27,32 @@ the-oracles-project --rom ROM --mods mods/claw-game --start-at-house claw_game  
 - A game with mods has **its own save**: `NAME.mods.sav` beside the ROM, copied from `NAME.sav` the first time. A game with mods never writes the save without mods. `--save` chooses another file.
 - `--start-at-house NAME` (or `MOD/NAME` when two mods have a house of that name) makes every file of the save resume in front of the house's door, facing it. Only the SRAM loaded changes; the file changes only if the game saves. The save needs a file already.
 - The terminal says what each mod does: its loading (`mod claw-game@… loaded`), its houses (`house claw_game in 0/55 (door 68)…`), its conversations, what `print` writes, and why a mod stopped.
+
+## Your first mod
+
+A house on the island east of Lynna City's red house, in Ages, whose keeper says hello and gives Link a few rupees.
+
+1. In the mods folder (above), make a folder `hello`, and in it a file `main.lua`:
+
+   ```lua
+   mod.description("My first mod: a keeper who says hello")
+
+   mod.house("hello", { ages = { room = "0/46", col = 6, row = 3 } })
+
+   mod.npc("keeper", { house = "hello" }, function(talk)
+     talk:say("Hello, Link!")
+     if talk:ask("Some Rupees?", { "Yes", "No" }) == "Yes" then
+       game.give("rupees", 5)
+       talk:say("Here you are.")
+     end
+   end)
+   ```
+
+2. Open Ages' **Mods** page: `hello` is listed, "Houses in Ages", with its description, or `Refused: ` and the reason. The fortune teller's house stands in the same room: switch `fortune-teller` off if you have it, then switch `hello` on and **Play**.
+3. Load a file and walk to the house; or, from the command line, `the-oracles-project --rom ROM --mods PATH/hello --start-at-house hello` resumes every file of the save in front of its door (the save needs a file already). Go in, face the keeper behind the counter and press A.
+4. Change the text, then Play again: `main.lua` is read at each launch. An error in a conversation stops the mod, not the game, and the terminal (on Android, the log) names the file and the line. Keep to the letters the game's font has (The conversation, below).
+
+The rest of this document is what each call does.
 
 ## A mod
 
@@ -85,7 +115,7 @@ mod.npc("plen", { existing = { ages = "3/f8" } }, function(talk) ... end)     --
 
 - A line of the box holds **16 characters**. The text is cut at spaces; `?`, `!`, `:` and `;` stay with the word before. Letters appear one a frame, as in the game.
 - The options of `ask` hold on one line, two spaces between them: 16 characters in all, or the call is refused with the length. A long question is cut into pages, its last line staying with the options.
-- The font is the game's: letters, digits, ASCII punctuation and `ÀÂÄÆÇÈÉÊËÎÏÑÖŒÙÛÜàâäæçèéêëîïñöœùûü` (`ROM_DATA_FORMATS.md`, section 8.1). There is no `ô`, no `«»`, no `…`: a missing character stops the mod, naming it.
+- The font is the game's: letters, digits, ASCII punctuation and `ÀÂÄÆÇÈÉÊËÎÏÑÖŒÙÛÜàâäæçèéêëîïñöœùûü` (`ROM_DATA_FORMATS.md`, section 8.1). There is no `ã`, `õ` or `ô`, no `«»`, no `…`, so a language that needs them, Brazilian Portuguese for one, cannot be written in the game's font: a missing character stops the mod, naming it.
 
 ## Scenes: a minigame
 

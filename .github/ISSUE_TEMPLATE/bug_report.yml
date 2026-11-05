@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in the launcher or in a game does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Never attach a ROM, or an image made from one: the port only ever needs your own copy, and this repository holds none.
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows
+        - macOS
+        - Linux x86_64
+        - Linux ARM64
+        - Android
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: The computer, handheld or phone, and the controller if you play with one.
+      placeholder: "Steam Deck; a phone with a Bluetooth controller; a laptop and its keyboard"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version at the bottom left of the home screen, also shown in About.
+      placeholder: "1.3.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Oracle of Ages
+        - Oracle of Seasons
+        - Gifts of Kinomi
+        - Moonrise Regalia
+        - Temple of Seasons
+        - The launcher, outside a game
+    validations:
+      required: true
+  - type: input
+    id: display
+    attributes:
+      label: Display
+      description: The Profile, the Quality, the View, and the Core (Display › Advanced › Core), as the Display page shows them.
+      placeholder: "Enhanced, High, Far, Accurate"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. The steps that make it happen again help most.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        What the launcher wrote while it happened, pasted here or attached as a file.
+        - Windows: a console window opens with the launcher. Play until it happens, choose Quit to launcher in the pause menu, which writes the end-of-game report, then select the console's text and copy it before you close the launcher: closing the console closes the launcher too. Or, from a Command Prompt in the launcher's folder, run `the-oracles-project.exe > log.txt 2>&1` and attach `log.txt`.
+        - macOS: once the application has opened from the Finder, run in Terminal `"/Applications/The Oracles Project.app/Contents/MacOS/The Oracles Project" 2>&1 | tee ~/Desktop/the-oracles-project.log`, play until it happens, and attach the file from the Desktop.
+        - Linux: from a terminal in the file's folder, run `./the-oracles-project-X.Y.Z-linux-x86_64.AppImage 2>&1 | tee the-oracles-project.log` (or `./the-oracles-project` in the archive's folder), play until it happens, and attach the file.
+        - Android: `Android/data/org.theoraclesproject/files/the-oracles-project.log`, reachable from a computer over USB; the run before is kept beside it as `the-oracles-project.previous.log`.
+      render: text
+  - type: textarea
+    id: pictures
+    attributes:
+      label: Screenshots or video
+      description: A screenshot or a short video, if it shows the problem.
+  - type: checkboxes
+    id: rom
+    attributes:
+      label: Files
+      options:
+        - label: I attached no ROM, and no image made from one.
+          required: true

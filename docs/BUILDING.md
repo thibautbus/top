@@ -10,7 +10,14 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-The launcher is `build/the-oracles-project`, the differential harness `build/oracles-harness`.
+The launcher is `build/the-oracles-project`, the differential harness `build/oracles-harness`. Run the launcher and choose your ROM on its Cartridge page, or start a game directly:
+
+```bash
+build/the-oracles-project
+build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" --enhanced
+```
+
+[`PLAYING.md`](PLAYING.md) has the launcher, the options, the keys and the settings.
 
 **SDL 3.** The release pinned in `config/sdl3.json` is the minimum: an installed SDL 3 at least that recent is used (`find_package(SDL3 CONFIG)`); otherwise CMake downloads that release's archive, checks its SHA-256 and builds it in the build directory, as a shared library beside the executables, with its licence (`SDL3-LICENSE.txt`). On Linux that build needs the development packages SDL's `README-linux` lists (X11, Wayland, ALSA, PulseAudio or PipeWire...), those the CI installs; without one of them SDL's configuration fails and names the option that does without it, for instance `-DSDL_X11_XTEST=OFF`. Without network, `-DFETCHCONTENT_SOURCE_DIR_SDL3=/path/to/SDL3-3.x.y` gives already extracted sources.
 
@@ -21,7 +28,7 @@ The launcher is `build/the-oracles-project`, the differential harness `build/ora
 | `ORACLES_BUILD_LAUNCHER` | `ON` | the SDL 3 launcher; `OFF` builds the core, the host, the harness and the tests only, without SDL |
 | `ORACLES_WARNINGS_AS_ERRORS` | `OFF` | warnings in the port's own code are errors (the CI sets it) |
 | `ORACLES_SDL3_FROM_SOURCE` | `OFF` | build the pinned SDL 3 even when one is installed |
-| `ORACLES_DEFAULT_CORE` | `sameboy`, `mgba` on Android | the core the games run on until the player chooses one in Display's Core (`core=` in the settings): `sameboy` (Accurate) or `mgba` (Fast); `android/build_apk.sh` builds on mGBA, and on SameBoy with `ORACLES_DEFAULT_CORE=sameboy` (`the-oracles-project-release-sameboy.apk`) |
+| `ORACLES_DEFAULT_CORE` | `sameboy`, `mgba` on Android | the core the games run on until the player chooses one in Display › Advanced › Core (`core=` in the settings): `sameboy` (Accurate) or `mgba` (Fast); `android/build_apk.sh` builds on mGBA, and on SameBoy with `ORACLES_DEFAULT_CORE=sameboy` (`the-oracles-project-release-sameboy.apk`) |
 | `ORACLES_GIT_DESCRIBE` | empty | the commit description shown beside the version, for a copy of the sources without `.git` |
 | `BUILD_TESTING` | `ON` | the tests |
 
