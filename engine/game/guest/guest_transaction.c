@@ -273,6 +273,7 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->game_frame = oracles_guest_read8(guest, t->frame_counter);
     s->screen_transition_delay = oracles_guest_read8(guest, t->screen_transition_delay);
     s->disable_screen_transitions = oracles_guest_read8(guest, t->disable_screen_transitions);
+    s->use_simulated_input = oracles_guest_simulated_input(guest);
     s->hole_or_conveyor = oracles_guest_read8(guest, t->hole_or_conveyor);
     s->boundary_x = oracles_guest_read8(guest, t->screen_transition_boundary_x);
     s->boundary_y = oracles_guest_read8(guest, t->screen_transition_boundary_y);

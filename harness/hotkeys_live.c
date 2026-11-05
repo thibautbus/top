@@ -81,7 +81,7 @@ static void on_throw_started(void *opaque, uint32_t frame, unsigned button_slot)
     if (oracles_route_writer_action(&l->writer, &action) != 0) l->write_failed = 1;
 }
 
-OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const OraclesHotkeysLiveOptions *options, const OraclesRouteHeader *header)
+OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const OraclesHotkeysLiveOptions *options, const OraclesRouteHeader *header, int scene_walks_taken)
 {
     OraclesHotkeysLive *l = calloc(1, sizeof *l);
     if (!l) return NULL;
@@ -101,7 +101,10 @@ OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const Oracle
     const OraclesItemHotkeysSink sink = { on_applied, on_use_started, on_sound, on_throw_started, l };
     oracles_item_hotkeys_set_sink(l->policy, &sink);
     if (options->record_path) {
-        if (oracles_route_writer_open_format(&l->writer, options->record_path, header, ORACLES_ROUTE_FORMAT_SOUND) != 0) { fprintf(stderr, "harness: cannot write %s\n", options->record_path); oracles_item_hotkeys_stop(l->policy); free(l); return NULL; }
+        /* A scene's walk the session left to the game says so, as the launcher writes it; one it took as the transitions did keeps
+         * the format before. */
+        const int scene_walks = oracles_route_has_option(header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS) && !scene_walks_taken;
+        if (oracles_route_writer_open_format(&l->writer, options->record_path, header, scene_walks ? ORACLES_ROUTE_FORMAT_SCENE_WALKS : ORACLES_ROUTE_FORMAT_SOUND) != 0) { fprintf(stderr, "harness: cannot write %s\n", options->record_path); oracles_item_hotkeys_stop(l->policy); free(l); return NULL; }
         l->recording = 1;
     }
     return l;

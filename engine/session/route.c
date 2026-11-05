@@ -390,6 +390,11 @@ static int listed(const char *list, const char *name)
 
 int oracles_route_has_option(const OraclesRouteHeader *header, const char *name) { return listed(header->options, name); }
 
+int oracles_route_scene_walks_taken(const OraclesRoute *route)
+{
+    return route && route->format < ORACLES_ROUTE_FORMAT_SCENE_WALKS && oracles_route_has_option(&route->header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS);
+}
+
 int oracles_route_has_cheat(const OraclesRouteHeader *header)
 {
     const size_t prefix = strlen(ORACLES_ROUTE_OPTION_CHEAT);

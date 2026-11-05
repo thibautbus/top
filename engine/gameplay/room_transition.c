@@ -134,6 +134,11 @@ int oracles_room_transition_in_water(const OraclesGuestTransitionState *s)
     return s && (s->link_swimming_state != 0u || (s->tileset_flags & ORACLES_TILESETFLAG_UNDERWATER));
 }
 
+int oracles_room_transition_simulated(const OraclesGuestTransitionState *s)
+{
+    return s && s->use_simulated_input != 0u && s->use_simulated_input != 2u;
+}
+
 int oracles_room_transition_refusal(const OraclesGuestTransitionState *s, int swim)
 {
     /* The large rooms (the dungeons) keep the game's transition,
@@ -141,6 +146,9 @@ int oracles_room_transition_refusal(const OraclesGuestTransitionState *s, int sw
      * dungeon's rooms are meant to be crossed as the game has it. */
     if (!s || (s->game != ORACLES_GAME_AGES && s->game != ORACLES_GAME_SEASONS) || s->active_group > 5u || s->room_is_large || (s->tileset_flags & ORACLES_TILESETFLAG_SIDESCROLL) || s->game_state != 2u || s->cutscene_index > 1u || s->text_is_active) return 0;
     if (s->transition_state < STATE_PREPARE || s->transition_state > STATE_SCROLL || (s->scroll_mode != 4u && s->scroll_mode != 8u) || s->transition_direction > 3u) return 1;
+    /* A scene walking him across the edge with the game's own keys (wUseSimulatedInput; 2 is the player's, reversed
+     * against Ganon): the scroll as the game has it, so that he enters where the scene goes on from. */
+    if (oracles_room_transition_simulated(s)) return 2;
     if (s->link_force_state != 0u || s->link_object_index != 0xd0u || s->link_id != 0u || s->link_state != 1u) return 2;
     if (!(s->link_visible & 0x80u)) return 3;
     if (s->link_in_air) return 4;
@@ -1414,7 +1422,10 @@ static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransition
             m->scroll_delta = native_delta(s->transition_direction);
         }
         tr->armed = 0;
-        if (s->transition_state >= STATE_PREPARE && s->transition_state <= STATE_SCROLL) { tr->stats.refused_frames++; tr->stats.refused_by[refusal]++; }
+        if (s->transition_state >= STATE_PREPARE && s->transition_state <= STATE_SCROLL) {
+            tr->stats.refused_frames++; tr->stats.refused_by[refusal]++;
+            if (oracles_room_transition_simulated(s)) tr->stats.simulated_frames++;
+        }
         return;
     }
 

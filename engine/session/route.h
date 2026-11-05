@@ -23,7 +23,9 @@
 #define ORACLES_ROUTE_FORMAT_STEPS 13      /* written with the transitions' steps among the options: a reader before it would replay without */
 #define ORACLES_ROUTE_FORMAT_SOUND 14      /* written by a session that may write a `sound` line (the item hotkeys on, or a pause that turns them on): a verb a reader before it does not know */
 #define ORACLES_ROUTE_FORMAT_LINE 15       /* written with the transitions at the line among the options: the same */
-#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_LINE
+#define ORACLES_ROUTE_FORMAT_SCENE_WALKS 16   /* written with the continuous transitions among the options: a scene's walk across an edge with the
+                                              * game's own keys is the game's transition; a route before it replays that walk as the transitions took it */
+#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_SCENE_WALKS
 #define ORACLES_ROUTE_MAX_EVENTS 200000u
 
 typedef struct OraclesRouteHeader {
@@ -131,6 +133,9 @@ typedef struct OraclesRoute {
 /* Reads a route file; returns 0, or -1 with a message. The caller frees with oracles_route_free. */
 int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_t error_capacity);
 void oracles_route_free(OraclesRoute *route);
+/* Whether a replay of `route` takes a scene's walk across an edge with the game's own keys as the transitions did when it
+ * was recorded: the continuous transitions among its options, in a format before ORACLES_ROUTE_FORMAT_SCENE_WALKS. */
+int oracles_route_scene_walks_taken(const OraclesRoute *route);
 
 /* The actions of `frame`: the index of the first and their number (in the file's order). */
 size_t oracles_route_actions_at(const OraclesRoute *route, uint32_t frame, size_t *first);

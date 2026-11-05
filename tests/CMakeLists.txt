@@ -419,6 +419,14 @@ if(BUILD_TESTING)
                 ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home;SDL_VIDEO_DRIVER=dummy")
         endforeach()
 
+        # A route written before scene walks were left to the game, replayed by the launcher as it was recorded: skipped
+        # unless ORACLES_ROM_DIR names a directory with Ages' ROM.
+        if(Python3_Interpreter_FOUND)
+            add_test(NAME oracles-launcher-scene-walks COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/launcher_scene_walks.py
+                     $<TARGET_FILE:oracles> ${CMAKE_CURRENT_SOURCE_DIR}/../routes/ages/intro.route)
+            set_tests_properties(oracles-launcher-scene-walks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
+        endif()
+
         # --launcher-screenshot draws offscreen with SDL's software renderer: a test
         # without a display or a ROM, at 1080p, at the smallest window, letterboxed in the
         # 4:3 layout (1000x700 is nearer 4:3), and at a handheld's 640x480.

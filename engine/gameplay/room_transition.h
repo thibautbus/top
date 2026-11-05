@@ -116,6 +116,7 @@ typedef struct OraclesRoomTransitionStats {
     unsigned forced_transitions; /* transitions a swim's momentum took Link to at an edge, the direction not held (--continuous-swim) */
     unsigned capped_frames;      /* frames the extra move was withheld: a collision ahead in the room entered */
     unsigned refused_frames;     /* frames in a transition the policy left alone (Link not on foot, an item out) */
+    unsigned simulated_frames;   /* of them, those of a scene walking him with the game's own keys */
     unsigned refused_by[11];     /* by reason: 0 game/room, 1 state, 2 Link's state, 3 not walking, 4 airborne, 5 holding/pushing, 6 item, shield, seeds, knocked or stunned, 7 animation data, 8 swimming, 9 under water, 10 a savestate loaded in the transition without the policy's progress */
     unsigned unanimated_frames;  /* frames Link was not moved because his animation stream could not be read */
     unsigned palette_refreshes;  /* palettes refreshed after a palette transition's fade outlived the doubled scroll */
@@ -182,6 +183,8 @@ int oracles_room_transition_load_state(OraclesRoomTransition *transition, const 
 int oracles_room_transition_straight_cross(const OraclesRoomTransition *transition, unsigned *direction, uint16_t *cross);
 /* The first reason a state is not eligible (the index of refused_by), -1 when eligible; `swim` as at the start. */
 int oracles_room_transition_refusal(const OraclesGuestTransitionState *state, int swim);
+/* Whether the game drives Link with its own keys (wUseSimulatedInput), a scene's walk: its transitions are left to it. */
+int oracles_room_transition_simulated(const OraclesGuestTransitionState *state);
 void oracles_room_transition_stats(const OraclesRoomTransition *transition, OraclesRoomTransitionStats *out);
 
 /* Pure helpers, testable without a ROM. */

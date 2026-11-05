@@ -136,6 +136,9 @@ int oracles_session_record_route(session *s, const OraclesSessionOptions *o, cha
          * (their effects are applied, never written): such a route would lose them. */
         if (same_file(o->play_path, o->record_path)) return refuse(error, capacity, "--play and --record name the same route");
         if (s->play.action_count) return refuse(error, capacity, "%s has inventory exchanges, which an extension would not carry: it cannot be extended", o->play_path);
+        /* Its replay takes a scene's walk as the transitions did; the extension, in the format of today, would replay it as the game. */
+        if (oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS) && s->play.format < ORACLES_ROUTE_FORMAT_SCENE_WALKS)
+            return refuse(error, capacity, "%s was written before scene walks were left to the game (format %u): it cannot be extended", o->play_path, s->play.format);
     }
     if (strcmp(s->save.sha1, "none") != 0) {
         const size_t size = oracles_core_sram_size(s->core);
@@ -207,7 +210,9 @@ int oracles_session_record_route(session *s, const OraclesSessionOptions *o, cha
     /* A session whose pause may change a setting, or that extends a route that changes some, may write `cheat` and `set`
      * lines, and one with the item hotkeys on `sound` lines: its header says the format they need from the start. */
     const int changes = s->pause || (o->play_path && (s->play.cheat_count || s->play.setting_count)) || s->hotkeys_mode != ORACLES_HOTKEYS_OFF;
-    if (oracles_route_writer_open_format(&s->record, o->record_path, &header, changes ? ORACLES_ROUTE_FORMAT_LATEST : 0) != 0)
+    /* With the transitions on, a scene's walk with the game's own keys was the game's: a replay leaves it to the game too. */
+    const int scene_walks = oracles_route_has_option(&header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS) ? ORACLES_ROUTE_FORMAT_SCENE_WALKS : 0;
+    if (oracles_route_writer_open_format(&s->record, o->record_path, &header, changes ? ORACLES_ROUTE_FORMAT_LATEST : scene_walks) != 0)
         return refuse(error, capacity, "cannot write %s", o->record_path);
     if (s->mod) {
         char path[PATH_MAX_LENGTH + 16];

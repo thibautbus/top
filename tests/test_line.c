@@ -133,6 +133,15 @@ static void test_left_to_the_game(void)
     CHECK(oracles_guest_edge_test_a(&t) == 0u);
     t.tileset_flags = 0u; t.direction = 1u; t.a = 154u; t.position = 157u; t.room = 0x3du;   /* indoors: no map edge */
     CHECK(oracles_guest_edge_test_a(&t) == 159u);
+    /* A scene walking him with the game's own keys (wUseSimulatedInput, its reading over at $ff): the game's bound; the
+     * player's keys reversed against Ganon (2) are play. */
+    t = on_foot(0u, 5u, 3u);
+    t.simulated_input = 1u;
+    CHECK(oracles_guest_edge_test_a(&t) == 5u);
+    t.simulated_input = 0xffu;
+    CHECK(oracles_guest_edge_test_a(&t) == 5u);
+    t.simulated_input = 2u;
+    CHECK(oracles_guest_edge_test_a(&t) == 0u);
 }
 
 /* screenTransitionState2 from its start to the Ages-only checks of @transition, as the US images hold it. */

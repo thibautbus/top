@@ -88,9 +88,8 @@ static int load_sram(OraclesCore *core, const char *path, char sha1[41])
 static void replay_stopped(session *s, uint32_t frame, const char *why)
 {
     if (!s->playing) return;
-    s->playing = 0;
     fprintf(stderr, "oracles: route replay stopped by %s at frame %u, the player has the controls\n", why, frame);
-    oracles_hotkeys_session_route_over(s->hotkeys);
+    oracles_session_replay_over(s);
 }
 
 static void frame_begin(void *opaque, uint32_t frame)
@@ -191,6 +190,13 @@ static const uint32_t *native_frame(void *opaque)
     return oracles_frame_check_native(opaque);
 }
 
+void oracles_session_replay_over(session *s)
+{
+    s->playing = 0;
+    oracles_guest_set_scene_walks_taken(s->guest, 0);   /* the player's game leaves a scene's walk to the game */
+    oracles_hotkeys_session_route_over(s->hotkeys);
+}
+
 void oracles_session_stop_recording(session *s, const char *why)
 {
     if (!s->recording) return;
@@ -233,9 +239,8 @@ static int input_source(void *opaque, uint32_t frame, unsigned *mask)
     session *s = opaque;
     if (!s->playing) return 0;
     if (oracles_route_mask_at(&s->play, frame, mask)) return 1;
-    s->playing = 0;
     fprintf(stderr, "oracles: route finished at frame %u, the player has the controls\n", frame);
-    oracles_hotkeys_session_route_over(s->hotkeys);
+    oracles_session_replay_over(s);
     return 0;
 }
 
@@ -637,6 +642,12 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
             if (!from_home) return failed(result, "--continuous-line cannot find the screen's edge tests in this ROM");
             fprintf(stderr, "oracles: the transitions at the line cannot find the screen's edge tests in this ROM; they start where the game starts them\n");
             s->continuous_line = 0;
+        }
+        /* A route written before a scene's walk with the game's own keys was left to the game: its inputs followed the walk the
+         * transitions took, until the replay ends. */
+        if (s->transition && s->playing && oracles_route_scene_walks_taken(&s->play)) {
+            oracles_guest_set_scene_walks_taken(s->guest, 1);
+            fprintf(stderr, "oracles: the route's format (%u) is before scene walks were left to the game: the transitions take them while it replays, as when it was recorded\n", s->play.format);
         }
         if (s->transition) fprintf(stderr, "oracles: continuous transitions on%s: Link keeps walking through scrolling transitions; the game's state differs from a native session's\n", s->continuous_swim ? ", swimming too" : "");
         else fprintf(stderr, "oracles: continuous transitions need the hooks of a recognised game; the native transitions stay\n");

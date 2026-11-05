@@ -42,6 +42,11 @@ int main(void)
     x = s; x.transition_state = 3; x.scroll_mode = 4; CHECK(oracles_room_transition_eligible(&x, 0));   /* the preparation, before the load */
     x = s; x.link_anim_mode = 0; CHECK(!oracles_room_transition_eligible(&x, 0));
     x = s; x.link_in_air = 1; CHECK(oracles_room_transition_refusal(&x, 0) == 4);
+    /* A scene walking him across with the game's own keys (wUseSimulatedInput, $ff once read to their end): the game's
+     * transition; 2 is the player's keys reversed (Ganon), play. */
+    x = s; x.use_simulated_input = 1; CHECK(oracles_room_transition_refusal(&x, 0) == 2 && oracles_room_transition_simulated(&x));
+    x = s; x.use_simulated_input = 0xff; CHECK(oracles_room_transition_refusal(&x, 1) == 2);
+    x = s; x.use_simulated_input = 2; CHECK(oracles_room_transition_eligible(&x, 0) && !oracles_room_transition_simulated(&x));
     x = s; x.link_swimming_state = 3; CHECK(oracles_room_transition_refusal(&x, 0) == 8);
     x = s; x.tileset_flags = 0x41; CHECK(oracles_room_transition_refusal(&x, 0) == 9);   /* Ages' sea floor */
     /* Swimming, with --continuous-swim: the normal swimming state (3), diving or not, its own animations. */

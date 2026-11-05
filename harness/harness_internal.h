@@ -104,6 +104,7 @@ typedef struct run {
     unsigned reminder_in_play, reminder_menu, reminder_in_play_menu, reminder_text, reminder_in_play_text, reminder_run;
     uint32_t reminder_start;
     int swim_changed;         /* the route's `set swim-hold` lines change the swim's hold, its tests armed from the start */
+    int scene_walks_taken;    /* a route of a format before scene walks were left to the game: the transitions take them */
     int text_speed_changed;   /* the route's `set text-speed` lines change the instant text, its points armed from the start */
     OraclesTextSpeedCheck text_speed;   /* with the instant text armed: its lines and pages */
 } run;

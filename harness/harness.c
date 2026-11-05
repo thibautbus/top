@@ -542,6 +542,12 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
         o->continuous_transitions = 1;
         fprintf(stderr, "harness: the route was recorded with --continuous-transitions: the option is on\n");
     }
+    /* A route written before a scene's walk with the game's own keys was left to the game: its inputs followed the walk the
+     * transitions took. */
+    if (oracles_route_scene_walks_taken(&r->route)) {
+        r->scene_walks_taken = 1;
+        fprintf(stderr, "harness: the route's format (%u) is before scene walks were left to the game: the transitions take them, as when it was recorded\n", r->route.format);
+    }
     const int route_swim = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_CONTINUOUS_SWIM);
     if ((o->continuous_swim || route_swim) && r->profile && !oracles_compat_continuous_swim(r->profile)) {
         fprintf(stderr, "harness: %s does not support --continuous-swim; refusing the request and route option\n", oracles_compat_name(r->profile));
@@ -669,6 +675,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         if (r->enhanced) oracles_enhanced_check_set_transition(r->enhanced, r->transition);
         oracles_room_transition_set_diagonal(r->transition, o->continuous_diagonal);
         oracles_room_transition_set_steps(r->transition, o->continuous_steps);
+        oracles_guest_set_scene_walks_taken(r->guest, r->scene_walks_taken);
         if (o->continuous_line && !oracles_room_transition_set_line(r->transition, 1)) {
             fprintf(stderr, "harness: --continuous-line needs the screen's edge tests found in the ROM\n");
             return 1;
@@ -728,7 +735,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
             snprintf(header.core, sizeof header.core, "%s,%s", ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF, ORACLES_ROUTE_CORE_MGBA);
         else
             snprintf(header.core, sizeof header.core, "%s", oracles_route_joypad_bouncing(&r->route.header) ? "" : ORACLES_ROUTE_CORE_JOYPAD_BOUNCING_OFF);
-        r->hotkeys_live = oracles_hotkeys_live_start(r->guest, &o->hotkeys_live, &header);
+        r->hotkeys_live = oracles_hotkeys_live_start(r->guest, &o->hotkeys_live, &header, r->scene_walks_taken);
         if (!r->hotkeys_live) return 1;
     }
     /* A route's exchanges (format 2, the item hotkeys) are part of its replay: applied whenever the route has some. */

@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         if (older) { fprintf(older, "oracles-route 4\ngame ages\noptions swim-hold\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1 && strstr(error, "format 5"));
         older = fopen(path, "w");
-        if (older) { fprintf(older, "oracles-route 16\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
+        if (older) { fprintf(older, "oracles-route 17\ngame ages\ninputs\n0 keys 00\n"); fclose(older); }
         CHECK(oracles_route_read(path, &back, error, sizeof error) == -1);   /* a later format */
     }
     {
@@ -230,10 +230,21 @@ int main(int argc, char **argv)
         snprintf(line.options, sizeof line.options, "%s", "continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps," ORACLES_ROUTE_OPTION_CONTINUOUS_LINE);
         OraclesRouteWriter writer_line;
         CHECK(oracles_route_writer_open(&writer_line, path, &line) == 0 && writer_line.format == ORACLES_ROUTE_FORMAT_LINE);
+        oracles_route_writer_close(&writer_line);
+        /* A session that took a scene's walk as the game does (the launcher, the transitions on) says so: format 16, which
+         * a replay leaves to the game; a route before it replays that walk as the transitions took it. */
+        CHECK(oracles_route_writer_open_format(&writer_line, path, &line, ORACLES_ROUTE_FORMAT_SCENE_WALKS) == 0 && writer_line.format == ORACLES_ROUTE_FORMAT_SCENE_WALKS);
         oracles_route_writer_record(&writer_line, 0, 0x00);
         CHECK(oracles_route_writer_close(&writer_line) == 0);
         OraclesRoute back;
-        CHECK(oracles_route_read(path, &back, error, sizeof error) == 0 && back.format == 15u);
+        CHECK(oracles_route_read(path, &back, error, sizeof error) == 0 && back.format == 16u);
+        CHECK(!oracles_route_scene_walks_taken(&back));   /* its walks left to the game, as when it was written */
+        OraclesRoute probe = back;
+        probe.format = ORACLES_ROUTE_FORMAT_LINE;
+        CHECK(oracles_route_scene_walks_taken(&probe));    /* written before: the transitions take them, as they did */
+        snprintf(probe.header.options, sizeof probe.header.options, "%s", "swim-hold");
+        CHECK(!oracles_route_scene_walks_taken(&probe));   /* no transitions to take them */
+        CHECK(!oracles_route_scene_walks_taken(NULL));
         CHECK(oracles_route_has_option(&back.header, ORACLES_ROUTE_OPTION_CONTINUOUS_LINE) && !strcmp(back.header.options, line.options));
         oracles_route_free(&back);
         FILE *older = fopen(path, "w");
@@ -346,7 +357,7 @@ int main(int argc, char **argv)
             "oracles-route 10\ninputs\n10 set item-hotkeys on\n",
             "oracles-route 10\ninputs\n10 set view far\n",                                /* a setting this reader does not know */
             "oracles-route 10\ninputs\n10 set swim-hold on now\n",
-            "oracles-route 16\ninputs\n0 keys 00\n",                                      /* a later format */
+            "oracles-route 17\ninputs\n0 keys 00\n",                                      /* a later format */
         };
         for (unsigned i = 0; i < sizeof malformed / sizeof malformed[0]; i++) {
             FILE *bad = fopen(path, "w");
@@ -376,7 +387,7 @@ int main(int argc, char **argv)
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     CHECK(strstr(error, "line 5") != NULL);
     f = fopen(path, "w");
-    fprintf(f, "oracles-route 16\ninputs\n");
+    fprintf(f, "oracles-route 17\ninputs\n");
     fclose(f);
     CHECK(oracles_route_read(path, &route, error, sizeof error) == -1);
     /* Format 2: the verbs that change the game's state, written and read back.  Two verbs may share a
@@ -441,7 +452,7 @@ int main(int argc, char **argv)
         "oracles-route 2\ninputs\n10 equip\n",
         "oracles-route 2\ninputs\n10 use s3 0a\n",                               /* a use is carried by a button */
         "oracles-route 2\nmods claw-game@2fd4e1c67a2d28fced849ee1bb76e7391b93eb12\ninputs\n0 keys 00\n",   /* mods need format 3 */
-        "oracles-route 16\ninputs\n0 keys 00\n",                                /* a format to come */
+        "oracles-route 17\ninputs\n0 keys 00\n",                                /* a format to come */
         "oracles-route 13\ninputs\n10 sound 56\n",                             /* the sound needs format 14 */
         "oracles-route 13\ninputs\n10 throw b\n",                              /* and the throw */
         "oracles-route 14\ninputs\n10 throw s3\n",                             /* a throw is on a button */

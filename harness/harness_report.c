@@ -80,6 +80,8 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
         fprintf(stderr, "continuous transitions: a diagonal held (--continuous-diagonal) carried Link across the axis on %u frames, withheld on %u (a collision across, the room's collisions not loaded)\n", oracles_guest_transition_carried(r->guest), stats.carry_withheld_frames);
         if (summary) fprintf(summary, "transitions.carried_frames=%u\ntransitions.carry_asked_frames=%u\ntransitions.carry_withheld_frames=%u\n", oracles_guest_transition_carried(r->guest), stats.carry_asked_frames, stats.carry_withheld_frames);
         if (summary) fprintf(summary, "transitions.resumed_frames=%u\n", stats.refused_by[10]);
+        fprintf(stderr, "continuous transitions: frames of a scene's walk across an edge with the game's own keys, left to the game: %u\n", stats.simulated_frames);
+        if (summary) fprintf(summary, "transitions.simulated_frames=%u\n", stats.simulated_frames);
         fprintf(stderr, "continuous transitions: scrolls whose last frame gave Link his step (--continuous-steps) %u, left him still going on %u; starts that moved him further than a step %u; "
                         "frames with no direction held toward the edge, the game's own move (--continuous-steps) %u; carries held short of the edge across %u; "
                         "respawns in the room entered moved where the game would have left him %u\n",

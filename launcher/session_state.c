@@ -293,9 +293,9 @@ static int load_state(session *s, char *message, size_t capacity, int restart)
             fprintf(stderr, "oracles: the savestate's mods' storage is refused (%s); the mods keep theirs\n", error);
         if (s->check) oracles_frame_check_reset(s->check);
         /* A state load is a jump the route format cannot express: the route ends here. */
-        if (s->playing) { s->playing = 0; fprintf(stderr, "oracles: route replay stopped by the state load\n"); }
+        if (s->playing) fprintf(stderr, "oracles: route replay stopped by the state load\n");
         oracles_session_stop_recording(s, "stopped by the state load");
-        oracles_hotkeys_session_route_over(s->hotkeys);   /* the guest's reset has stopped the route's exchanges and emptied the policy */
+        oracles_session_replay_over(s);   /* the guest's reset has stopped the route's exchanges and emptied the policy */
         ok = 1;
     } else {
         fprintf(stderr, "oracles: %s\n", error);

@@ -25,6 +25,8 @@ uint8_t oracles_guest_edge_test_a(const OraclesGuestEdgeTest *t)
     /* Swimming at the surface, with the transitions' swim alone, and never on a current, whose transition (wcc92's low
      * bits, taken without the direction) and push through the scroll stay the game's. */
     if (t->swimming && (!t->swim || t->conveyor)) return t->a;
+    /* A scene walking him across with the game's own keys: the game's bound, so that he enters where it goes on from. */
+    if (t->simulated_input != 0u && t->simulated_input != 2u) return t->a;
     /* A small room alone: a large one (240 by 176, the dungeons) leaves no room past its edges to tell a coordinate
      * wrapped below zero from one past the other edge, and its transitions are the game's. */
     if (t->room_is_large || t->room_width != SMALL_WIDTH || t->room_height != SMALL_HEIGHT) return t->a;
@@ -110,6 +112,14 @@ int oracles_guest_set_transition_line(OraclesGuest *guest, int on)
 
 int oracles_guest_transition_line(const OraclesGuest *guest) { return guest && guest->transition_line; }
 
+void oracles_guest_set_scene_walks_taken(OraclesGuest *guest, int taken) { if (guest) guest->scene_walks_taken = taken != 0; }
+
+uint8_t oracles_guest_simulated_input(OraclesGuest *guest)
+{
+    const OraclesGuestTables *t = guest->tables;
+    return guest->scene_walks_taken || t->use_simulated_input.bank == ORACLES_GUEST_ABSENT ? 0u : oracles_guest_read8(guest, t->use_simulated_input);
+}
+
 void oracles_guest_line_counts(const OraclesGuest *guest, OraclesGuestLineCounts *out)
 {
     if (!out) return;
@@ -133,6 +143,7 @@ void oracles_guest_edge_test(OraclesGuest *guest, OraclesGuestEventType type)
     e.swimming = oracles_guest_read8(guest, t->link_swimming_state);
     e.swim = guest->transition_swim;
     e.conveyor = oracles_guest_read8(guest, t->hole_or_conveyor);
+    e.simulated_input = oracles_guest_simulated_input(guest);
     e.transitions_disabled = oracles_guest_read8(guest, t->disable_screen_transitions);
     e.room = oracles_guest_read8(guest, t->active_room);
     e.room_is_large = oracles_guest_read8(guest, t->room_is_large);

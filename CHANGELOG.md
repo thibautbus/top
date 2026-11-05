@@ -24,6 +24,7 @@ What changed in each version of The Oracles Project, the newest first. The relea
 
 ### Fixed
 
+- **A scene's walk into the next room.** With **Continuous transitions**, when the game itself walks Link into the next room during a scene, the room now changes as the game has it, so that the scene goes on from where the game places him: early in Ages, he no longer ends up overlapping the character who comes to meet him.
 - **Item hotkeys during a scene.** In Ages and Seasons, the item hotkeys no longer act in the last moments of a scene that walks Link on its own, when the game still holds the controls.
 - **Walking through a room's edge.** With **Continuous transitions** and the Pixel camera, Link on foot no longer stops for a moment and then jumps ahead as the scroll to the next room starts, as he already did not when swimming.
 - **Older savestates in a room change.** A savestate made before 1.2.0 with **Continuous transitions**, just as a room change began, now takes Link all the way into the next room when it loads, instead of half way, cut by the screen's edge.

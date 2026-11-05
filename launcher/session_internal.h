@@ -119,6 +119,9 @@ void oracles_session_stop_recording(session *s, const char *why);
 /* session_route.c: --play's route read and its options taken on, --record's opened; 1, or 0 with the reason in `error`. */
 int oracles_session_replay_route(session *s, const OraclesSessionOptions *o, char *error, size_t capacity);
 int oracles_session_record_route(session *s, const OraclesSessionOptions *o, char *error, size_t capacity);
+/* The replay of a route is over, at its end, by a change from the pause or a state load: the player has the controls, the
+ * route's exchanges stop, and a scene's walk is the game's again. */
+void oracles_session_replay_over(session *s);
 /* session_live.c: the settings a running game takes from `frame` on, before it runs: the guest attached at the first
  * that needs it (1 when there is one); the cheats, the swim's hold, the instant text, the item hotkeys' mode asked and the one the policy
  * settled on; the surface a window is a whole multiple of, and the window Display chose (window_scale=: 2 to 4, 0

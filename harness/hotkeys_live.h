@@ -31,7 +31,7 @@ int oracles_hotkeys_slots_hotbar(const OraclesHotkeysLiveOptions *options, struc
 
 /* `--hotkey-press FRAME:SLOT:FRAMES` into the options; 0 when malformed or too many. */
 int oracles_hotkeys_live_parse_press(OraclesHotkeysLiveOptions *options, const char *text);
-OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const OraclesHotkeysLiveOptions *options, const OraclesRouteHeader *header);
+OraclesHotkeysLive *oracles_hotkeys_live_start(OraclesGuest *guest, const OraclesHotkeysLiveOptions *options, const OraclesRouteHeader *header, int scene_walks_taken);
 /* The keys handed to the core for this frame: the route's, the scripted keys played, the policy's press added; recorded. */
 unsigned oracles_hotkeys_live_keys(OraclesHotkeysLive *live, uint32_t frame, unsigned route_mask);
 void oracles_hotkeys_live_frame_end(OraclesHotkeysLive *live, uint32_t frame);

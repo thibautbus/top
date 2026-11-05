@@ -103,6 +103,7 @@ struct OraclesGuest {
     unsigned mermaid_strokes, flippers_strokes;      /* the swim's hold (guest_swim.c): strokes it started */
     int swim_hold, swim_hold_armed;                  /* the hold on; its tests hooked */
     int transition_line, line_armed;                 /* the transitions at the line (guest_line.c): on; its comparisons hooked */
+    int scene_walks_taken;                           /* a scene's walk with the game's own keys taken by the transitions, as before (a route of an earlier format) */
     uint8_t map_last_column, map_last_row;           /* Ages' overworld edges @transition refuses, read in the ROM */
     OraclesGuestLineCounts line_counts;
     unsigned cheats, cheats_armed;                   /* the cheats (guest_cheats.c): those on, those whose point is armed */

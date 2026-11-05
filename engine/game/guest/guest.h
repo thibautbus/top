@@ -179,6 +179,7 @@ typedef struct OraclesGuestTransitionState {
     uint8_t game_keys_pressed, game_keys_just_pressed, swimmers_ring, swim_hold;
     uint8_t game_frame;                                                       /* wFrameCounter: the game's frame, which a vblank of an unfinished one shares */
     uint8_t screen_transition_delay, disable_screen_transitions, hole_or_conveyor;   /* wScreenTransitionDelay, wDisableScreenTransitions, wcc92 */
+    uint8_t use_simulated_input;                                              /* wUseSimulatedInput: the game's own keys driving Link (a scene), 2 the player's reversed */
     uint8_t boundary_x, boundary_y, active_room, active_tile_index;           /* wScreenTransitionBoundaryX/Y, wActiveRoom, wActiveTileIndex */
     uint8_t map_width, map_height;                                            /* the overworld's (OVERWORLD_WIDTH/HEIGHT) */
     uint8_t animation_data_bank;
@@ -561,6 +562,7 @@ typedef struct OraclesGuestEdgeTest {
     uint8_t room_is_large, room_width, room_height;   /* wRoomIsLarge; wRoomWidth, wRoomHeight in 8-pixel tiles */
     int swim;                        /* swimming at the surface answered too (the continuous transitions' swim) */
     uint8_t conveyor;                /* wcc92: over a hole (bit 7) or on a conveyor or a current (bits 0-6) */
+    uint8_t simulated_input;         /* wUseSimulatedInput: a scene walking him with the game's own keys, but 2 (the player's, reversed) */
 } OraclesGuestEdgeTest;
 
 /* What the transaction did since the attach. */
@@ -583,6 +585,12 @@ void oracles_guest_find_map_edges(const OraclesGuestTables *tables, const uint8_
 /* Turns the line on or off from the next comparison, arming the four the first time it is on; -1 when the profile does
  * not qualify it, a comparison is not found once, or the hook table is full.  Once armed they stay so. */
 int oracles_guest_set_transition_line(OraclesGuest *guest, int on);
+/* A scene's walk across an edge with the game's own keys (wUseSimulatedInput) taken by the transitions as any walk, as
+ * they took it before it was left to the game: the replay of a route of a format before ORACLES_ROUTE_FORMAT_SCENE_WALKS,
+ * whose inputs followed it.  Off by default. */
+void oracles_guest_set_scene_walks_taken(OraclesGuest *guest, int taken);
+/* wUseSimulatedInput as the transitions read it: 0 where the image has none or scene walks are taken. */
+uint8_t oracles_guest_simulated_input(OraclesGuest *guest);
 int oracles_guest_transition_line(const OraclesGuest *guest);
 void oracles_guest_line_counts(const OraclesGuest *guest, OraclesGuestLineCounts *out);
 
