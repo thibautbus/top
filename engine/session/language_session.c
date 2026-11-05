@@ -221,13 +221,18 @@ int oracles_language_session_lay_out(OraclesLanguageSession **session, const Ora
     s->layout.pages = &s->pages;
     /* A savestate holds the address of a text laid out again: it loads with the same layout only.  The compact text in
      * the game's box keeps the name its states were taken with. */
-    char digest[41];
-    oracles_language_layout_digest(&s->layout, info->revision, digest);
-    const unsigned lines = layout->lines ? layout->lines : 2u;
-    if (!layout->fixed && layout->width == 128u && lines == 2u) snprintf(s->layout_identity, sizeof s->layout_identity, "text-compact@%s", digest);
-    else snprintf(s->layout_identity, sizeof s->layout_identity, "text-%s-%ux%u@%s", layout->fixed ? "classic" : "compact", layout->width, lines, digest);
+    oracles_language_layout_word(&s->layout, info->revision, s->layout_identity, sizeof s->layout_identity);
     snprintf(s->identity, sizeof s->identity, "%s%s%s", s->language_identity, s->language_identity[0] ? "," : "", s->layout_identity);
     return 0;
+}
+
+void oracles_language_layout_word(const OraclesLanguageLayout *layout, OraclesRomRevision revision, char *out, size_t capacity)
+{
+    char digest[41];
+    oracles_language_layout_digest(layout, revision, digest);
+    const unsigned lines = layout->lines ? layout->lines : 2u;
+    if (!layout->fixed && layout->width == 128u && lines == 2u) snprintf(out, capacity, "text-compact@%s", digest);
+    else snprintf(out, capacity, "text-%s-%ux%u@%s", layout->fixed ? "classic" : "compact", layout->width, lines, digest);
 }
 
 int oracles_language_session_compose(OraclesLanguageSession *session, uint8_t **rom, size_t *rom_size, char *error, size_t capacity)

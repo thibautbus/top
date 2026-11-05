@@ -101,8 +101,14 @@ typedef struct session {
     int screen_margin_option;   /* --screen-margin's, an OraclesScreenMargin plus one, which holds for the run; 0: the settings' */
     int text_size_option;       /* --text-size's, the size plus one, which holds for the run; 0: the settings' */
     int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, which holds for the run; 0: the settings' */
+    OraclesEnhancedFarChoice far_choice;   /* what decided the far view's size at the start, for a savestate's refusal */
     int subpixel_followed;      /* in a window: the view's sub-pixel camera follows the settings at the scale the screen shows it */
     int subpixel_said;          /* the camera's line written, once the first frame knew that scale */
+    const OraclesSessionOptions *options;   /* the session's, for the settings a savestate's load asks for */
+    int load_at_start;          /* the savestate is loaded before the first frame (options' load_state) */
+    int state_restart;          /* the pause's Load state asked for the game again with the savestate's Display */
+    char state_notice[192];     /* what that changed */
+    OraclesStateDisplay state_previous;   /* the choices of Display it changed, as they were */
 } session;
 
 /* Writes a file through a temporary name (1 when done); reads a whole file into a buffer the caller frees (1, or 0
@@ -143,5 +149,8 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o);
 /* F5 and F7: 1 when done; otherwise 0, and *message says why, shortly (the pause menu shows it). */
 int oracles_session_save_state(session *s, char *message, size_t capacity);
 int oracles_session_load_state(session *s, char *message, size_t capacity);
+/* The pause's Load state: F7's, but a savestate taken with other Display settings that a game started again with them
+ * loads changes the settings to them (stored) and asks for that (s->state_restart): 1 then too. */
+int oracles_session_load_state_or_restart(session *s, char *message, size_t capacity);
 
 #endif

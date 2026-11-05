@@ -299,7 +299,7 @@ if(BUILD_TESTING)
 
     # The launcher's own tests need its SDL backend (the settings' key names) or its binary.
     if(TARGET oracles)
-        add_executable(oracles-test-launcher-settings test_launcher_settings.c ${ORACLES_LAUNCHER_DIR}/settings.c ${ORACLES_LAUNCHER_DIR}/home_choices.c ${ORACLES_LAUNCHER_DIR}/session_options.c ${ORACLES_SESSION_DIR}/hotkey_lines.c ${ORACLES_LAUNCHER_DIR}/sdl_backend.c ${ORACLES_LAUNCHER_DIR}/sdl_window.c ${ORACLES_LAUNCHER_DIR}/sdl_input.c ${ORACLES_LAUNCHER_DIR}/sdl_present.c ${ORACLES_LAUNCHER_DIR}/safe_area.c ${ORACLES_LAUNCHER_DIR}/touch_controls.c ${ORACLES_LAUNCHER_DIR}/touch_sdl.c)
+        add_executable(oracles-test-launcher-settings test_launcher_settings.c ${ORACLES_LAUNCHER_DIR}/settings.c ${ORACLES_LAUNCHER_DIR}/state_display.c ${ORACLES_LAUNCHER_DIR}/home_choices.c ${ORACLES_LAUNCHER_DIR}/session_options.c ${ORACLES_SESSION_DIR}/hotkey_lines.c ${ORACLES_LAUNCHER_DIR}/sdl_backend.c ${ORACLES_LAUNCHER_DIR}/sdl_window.c ${ORACLES_LAUNCHER_DIR}/sdl_input.c ${ORACLES_LAUNCHER_DIR}/sdl_present.c ${ORACLES_LAUNCHER_DIR}/safe_area.c ${ORACLES_LAUNCHER_DIR}/touch_controls.c ${ORACLES_LAUNCHER_DIR}/touch_sdl.c)
         target_include_directories(oracles-test-launcher-settings PRIVATE ${ORACLES_LAUNCHER_DIR} ${ORACLES_SESSION_DIR} ${ORACLES_ENHANCED_DIR})
         target_link_libraries(oracles-test-launcher-settings PRIVATE oracles_host oracles_guest oracles_gameplay oracles_ui ${ORACLES_SDL_TARGET})
         oracles_set_warnings(oracles-test-launcher-settings)

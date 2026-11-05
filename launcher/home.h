@@ -57,8 +57,9 @@ typedef struct OraclesHomeHost {
     void (*open_mods)(void *opaque, char *message, size_t capacity);
     /* Plays the game in the launcher's window until the player leaves it, the pause menu drawn with `draw`; the pauses
      * start from `nav`'s device used last (a controller's: the first game's toast) and leave theirs there.  Returns
-     * 1 when the window was closed meanwhile (the launcher then ends too); *message is what to show, empty when all
-     * went well; *slow, 1 when the game ran slowly and the home screen suggests something lighter (nav->slow). */
+     * 1 when the window was closed meanwhile (the launcher then ends too), 2 when the same game is to start again at once
+     * (its savestate's Display chosen in the pause), else 0; *message is what to show, empty when all went well; *slow,
+     * 1 when the game ran slowly and the home screen suggests something lighter (nav->slow). */
     int (*start)(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, struct SDL_Window *window, struct SDL_Renderer *renderer,
                  OraclesUiDraw *draw, char *message, size_t capacity, int *slow);
 } OraclesHomeHost;

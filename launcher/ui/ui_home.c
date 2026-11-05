@@ -324,6 +324,16 @@ void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const
     draw_line(draw, oracles_ui_home_styles(scene)->pad_toast, &l.text, text, 0.0f, oracles_ui_rgba(TOAST_TEXT, opacity));
 }
 
+void oracles_ui_home_notice(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float bar_bottom, float opacity)
+{
+    OraclesUiNoticeLayout l;
+    oracles_ui_layout_notice(scene, text, bar_bottom, &l);
+    const float radius = look_of(scene)->toast_radius;
+    oracles_ui_fill_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, oracles_ui_rgba(TOAST_BACKGROUND, opacity));
+    oracles_ui_stroke_round_rect(draw, l.box.x, l.box.y, l.box.w, l.box.h, radius, 1.0f, oracles_ui_rgba(TOAST_BORDER, TOAST_BORDER_OPACITY * opacity));
+    for (unsigned i = 0; i < l.lines; i++) draw_line(draw, oracles_ui_home_styles(scene)->pad_toast, &l.text_lines[i], l.text[i], 0.0f, oracles_ui_rgba(TOAST_TEXT, opacity));
+}
+
 /* The slow game's toast, on the home screen only, as long as nav->slow holds, and the row it leads to: 0 when there is
  * none to show. */
 static int layout_slow(const OraclesHomeNav *nav, OraclesUiSlowLayout *out, const char **path)

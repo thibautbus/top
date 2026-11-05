@@ -102,6 +102,11 @@ int oracles_core_load_state(OraclesCore *core, const uint8_t *buffer, size_t siz
 
 const char *oracles_core_version(const OraclesCore *core) { return core->ops->version; }
 
+const char *oracles_core_kind_version(OraclesCoreKind kind)
+{
+    return (kind == ORACLES_CORE_MGBA ? &oracles_core_mgba_ops : &oracles_core_sameboy_ops)->version;
+}
+
 uint8_t *oracles_core_memory(OraclesCore *core, OraclesCoreRegion region, size_t *size, uint16_t *bank)
 {
     return core->ops->memory(core, region, size, bank);

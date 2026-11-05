@@ -191,6 +191,15 @@ static void screen_size(const OraclesHomeNav *nav, unsigned *w, unsigned *h)
     *h = known ? (unsigned)nav->display.screen_h : 0u;
 }
 
+/* The screen's lines the margin keeps the game out of: far fits to the band left (oracles_session_far_screen).  In a game,
+ * the margin it started with: a margin changed from the pause changes the view's size at the next game. */
+static unsigned margin_lines(const OraclesHomeNav *nav)
+{
+    const int margin = nav->in_game && nav->display.game_margin > 0 ? nav->display.game_margin - 1 : nav->display.margin;
+    const int lines = margin >= 0 && margin < ORACLES_DISPLAY_MARGINS ? nav->display.margin_lines[margin] : 0;
+    return lines > 0 ? (unsigned)lines : 0u;
+}
+
 int oracles_display_screen_4_3(const OraclesHomeNav *nav)
 {
     /* As the session decides it (oracles_session_view_4_3): the settings' shape, else the screen's. */
@@ -208,7 +217,7 @@ static OraclesEnhancedSize view_surface(const OraclesHomeNav *nav, int view)
     const int level = view >= 0 && view < ORACLES_ENHANCED_LEVELS ? view : ORACLES_ENHANCED_FAR;
     unsigned w, h;
     screen_size(nav, &w, &h);
-    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)level, named_aspect(nav), nav->display.far_fixed, w, h);
+    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)level, named_aspect(nav), nav->display.far_fixed, w, h, margin_lines(nav));
 }
 
 void oracles_display_view_size(const OraclesHomeNav *nav, int view, char *out, size_t capacity)
@@ -221,7 +230,7 @@ int oracles_display_far_size_shown(const OraclesHomeNav *nav)
 {
     unsigned w, h;
     screen_size(nav, &w, &h);
-    return named_aspect(nav) == ORACLES_ENHANCED_ASPECTS && oracles_enhanced_far_fitting(w, h).fit == ORACLES_ENHANCED_FIT_FITTED;
+    return named_aspect(nav) == ORACLES_ENHANCED_ASPECTS && oracles_enhanced_far_fitting_band(w, h, margin_lines(nav)).fit == ORACLES_ENHANCED_FIT_FITTED;
 }
 
 void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_t capacity)
@@ -257,7 +266,7 @@ void oracles_display_size_note(const OraclesHomeNav *nav, unsigned row, char *ou
 {
     unsigned w, h;
     screen_size(nav, &w, &h);
-    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting(w, h);
+    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting_band(w, h, margin_lines(nav));
     if (capacity) out[0] = 0;
     if (row != ORACLES_DISPLAY_MENUS && row != ORACLES_DISPLAY_FAR_SIZE && row != ORACLES_DISPLAY_UNVISITED) return;
     if (!oracles_display_hud_applies(nav)) snprintf(out, capacity, "Enhanced only.");
@@ -275,7 +284,7 @@ void oracles_display_far_note(const OraclesHomeNav *nav, char *out, size_t capac
 {
     unsigned w, h;
     screen_size(nav, &w, &h);
-    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting(w, h);
+    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting_band(w, h, margin_lines(nav));
     if (named_aspect(nav) == ORACLES_ENHANCED_ASPECTS && !nav->display.far_fixed && f.fit == ORACLES_ENHANCED_FIT_FITTED)
         snprintf(out, capacity, "Far fits this screen: %u\xc3\x97%u at %u\xc3\x97.", f.size.width, f.size.height, f.scale);
     else if (capacity) out[0] = 0;

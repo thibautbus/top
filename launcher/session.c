@@ -96,6 +96,20 @@ static void replay_stopped(session *s, uint32_t frame, const char *why)
 static void frame_begin(void *opaque, uint32_t frame)
 {
     session *s = opaque;
+    /* The game started again for its savestate: loaded before the first frame, what changed said over the game; refused
+     * after all, Display's choices put back as they were. */
+    if (s->load_at_start) {
+        char message[256] = "";
+        const int loaded = oracles_session_load_state(s, message, sizeof message);
+        s->load_at_start = 0;
+        if (!loaded && s->options->state_previous) {
+            oracles_state_display_restore(s->settings, s->options->state_previous);
+            fprintf(stderr, "oracles: the savestate is refused after all (%s): Display's choices put back as they were\n", message);
+            char notice[sizeof message + 64];
+            snprintf(notice, sizeof notice, "The savestate was refused after all, Display is back as it was. %s", message);
+            oracles_pause_notice(s->pause, notice);
+        }
+    }
     oracles_session_follow_subpixel(s);
     /* The pause's, when they differ from the game's (one turned on and off again changes nothing): a route recorded
      * says so; a replay, which has no pause today (--play is --rom's), would give the controls back. */
@@ -206,7 +220,10 @@ static void on_command(void *opaque, int command)
             }
             break;
         case ORACLES_COMMAND_SAVE_STATE: oracles_session_save_state(s, message, sizeof message); break;
-        case ORACLES_COMMAND_LOAD_STATE: oracles_session_load_state(s, message, sizeof message); break;
+        case ORACLES_COMMAND_LOAD_STATE:
+            /* Refused, the reason over the game: the pause shows it otherwise. */
+            if (!oracles_session_load_state(s, message, sizeof message)) oracles_pause_notice(s->pause, message);
+            break;
         default: oracles_hotkeys_session_command(s->hotkeys, command); break;
     }
 }
@@ -373,6 +390,7 @@ static int bar_in_play(session *s)
     OraclesGuest *reader = s->guest ? s->guest : s->bar_reader;
     uint32_t framed[4];
     if (!s->profile) return 1;
+    if (!reader) return 0;   /* no reminder to wait for: a notice alone, which does not */
     if (s->view && (oracles_enhanced_view_framed_only(s->view) || oracles_enhanced_view_framed_crop(s->view, framed))) return 0;
     return oracles_enhanced_bar_in_play(reader, s->core);
 }
@@ -383,6 +401,7 @@ static int bar_in_play(session *s)
 static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
 {
     session *s = opaque;
+    if (!oracles_pause_overlay_pending(s->pause)) return 1;   /* kept for a notice to come (F7's) */
     s->bar_frames = bar_in_play(s) ? s->bar_frames + 1u : 0u;
     OraclesPauseFrame frame = { s->bar_frames >= ORACLES_ENHANCED_BAR_SETTLE, oracles_home_menu_device((int)oracles_sdl_backend_last_input(&s->backend)), 0, 0, 0 };
     oracles_sdl_backend_pause_size(&s->backend, &frame.width, &frame.height);
@@ -566,7 +585,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         oracles_enhanced_view_set_size(s->view, oracles_session_view_size(o, s->view_level));
         if (s->view_level == ORACLES_ENHANCED_FAR) {   /* the far view's size, and why */
             char far[192];
-            if (o->screen_w) oracles_enhanced_far_fitting_words(o->screen_w, o->screen_h, far, sizeof far);
+            if (o->screen_w) oracles_enhanced_far_fitting_words(o->screen_w, o->screen_h, o->screen_margin_lines, far, sizeof far);
             else snprintf(far, sizeof far, "the far view at %ux%u, %s", oracles_enhanced_view_width(s->view), oracles_enhanced_view_height(s->view),
                           s->settings->far_fixed ? "far=fixed in the settings" : o->aspect || s->settings->aspect ? "the shape --aspect or aspect= names"
                                                                                                   : "no screen to fit it to");
@@ -729,22 +748,21 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
 }
 
 /* The frames late as the slow game's suggestion counts them (OraclesSessionResult). */
-int oracles_session_view_4_3(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window)
-{
-    const int aspect = o->aspect ? o->aspect - 1 : settings->aspect;
-    return aspect == ORACLES_ASPECT_4_3 ? 1 : aspect == ORACLES_ASPECT_16_9 ? 0 : oracles_sdl_screen_4_3(window);
-}
-
 int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settings, OraclesSessionResult *result)
 {
     memset(result, 0, sizeof *result);
     session *s = calloc(1, sizeof *s);
     if (!s) { snprintf(result->error, sizeof result->error, "out of memory"); return 1; }
     s->settings = settings;
+    s->options = o;
+    s->load_at_start = o->load_state && o->pause;
     s->pause = o->pause;
+    if (s->load_at_start) oracles_pause_notice(s->pause, o->state_notice);
     s->screen_margin_option = o->screen_margin;
     s->text_size_option = o->text_size;
     s->unvisited_option = o->unvisited_hidden;
+    s->far_choice = (OraclesEnhancedFarChoice){ settings->far_fixed, (o->aspect ? o->aspect - 1 : settings->aspect) != ORACLES_ASPECT_AUTO, o->screen_w, o->screen_h,
+                                                o->screen_margin_lines };
     /* --colour-correction and --vsync hold for this session and are never stored, as camera_profile. */
     s->colour_setting = settings->colour_correction;
     s->colour_applied = o->colour_option ? !strcmp(o->colour_option, "on") : settings->colour_correction;
@@ -815,6 +833,10 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     }
     oracles_session_finish(s, o);
     result->route_written = s->route_written;
+    result->state_restart = ok && s->state_restart && !result->window_closed;
+    result->state_previous = s->state_previous;
+    result->state_unloaded = s->load_at_start;
+    snprintf(result->state_notice, sizeof result->state_notice, "%s", s->state_notice);
     free(s);
     return ok ? 0 : 1;
 }

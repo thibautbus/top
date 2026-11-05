@@ -13,7 +13,7 @@
 #include <time.h>
 
 static int pause_save(void *opaque, char *message, size_t capacity) { return oracles_session_save_state(opaque, message, capacity); }
-static int pause_load(void *opaque, char *message, size_t capacity) { return oracles_session_load_state(opaque, message, capacity); }
+static int pause_load(void *opaque, char *message, size_t capacity) { return oracles_session_load_state_or_restart(opaque, message, capacity); }
 
 static void pause_state_time(void *opaque, char *out, size_t capacity)
 {
@@ -222,7 +222,8 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
                                            s->cheats_game >= 0, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
                                            window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size,
                                            oracles_home_menu_by_key((int)source) };
-    const OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
+    OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
+    if (result == ORACLES_PAUSE_RESUME && s->state_restart) result = ORACLES_PAUSE_QUIT;   /* the game starts again for its savestate */
     if (result == ORACLES_PAUSE_RESUME) oracles_sdl_backend_hold(&s->backend, 0);   /* a pause that ends the session is past the last present */
     if (result == ORACLES_PAUSE_WINDOW_CLOSED) oracles_sdl_backend_set_window_closed(&s->backend);
     return result == ORACLES_PAUSE_RESUME ? ORACLES_HOST_PAUSE_RESUME : ORACLES_HOST_PAUSE_QUIT;

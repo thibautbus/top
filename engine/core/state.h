@@ -82,6 +82,8 @@ int oracles_state_mods(const uint8_t *data, size_t size, char *mods, size_t capa
 /* The core version a savestate was taken on ("sameboy-1.0.3", "mgba-..."), read without loading it.  0, or -1 when
  * the data is no savestate or the version does not fit. */
 int oracles_state_core_version(const uint8_t *data, size_t size, char *version, size_t capacity);
+/* The game ("ages", "seasons") and the ROM's SHA-1 a savestate was made with, read the same way. */
+int oracles_state_game(const uint8_t *data, size_t size, char *game, size_t game_capacity, char *rom_sha1, size_t rom_capacity);
 
 /* The mods' storage of a composite savestate, read in place: 0 with `storage` pointing into `data` (NULL and 0 when
  * empty or absent), or -1 for a state that is not one of this format. */

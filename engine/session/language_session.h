@@ -48,6 +48,8 @@ const uint32_t *oracles_language_session_laid_pages(const OraclesLanguageSession
 /* Each apart: the language's, and the layout's, which a change of the text's settings alone changes. */
 const char *oracles_language_session_language_identity(const OraclesLanguageSession *session);
 const char *oracles_language_session_layout_identity(const OraclesLanguageSession *session);
+/* The layout's word for an image of `revision` laid out by `layout`, as a session's identity holds it. */
+void oracles_language_layout_word(const OraclesLanguageLayout *layout, OraclesRomRevision revision, char *out, size_t capacity);
 /* The language and its pack, and the texts the game looked up (oracles_guest_language_counts): the end of a session's
  * report; `prefix` starts the line. */
 void oracles_language_session_report(const OraclesLanguageSession *session, const OraclesGuest *guest, const char *prefix, FILE *out);

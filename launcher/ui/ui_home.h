@@ -31,6 +31,8 @@ void oracles_ui_home_toast(OraclesUiHome *home, const char *text, double now_ms)
 /* The reminder over a game started ("L3 opens the menu"), in the scene of `scene`, under the game's status bar whose
  * bottom is at `bar_bottom` there, at `opacity`. */
 void oracles_ui_home_pad_toast(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float bar_bottom, float opacity);
+/* A notice over a game, as the reminder, on three lines at most (oracles_ui_layout_notice). */
+void oracles_ui_home_notice(OraclesUiDraw *draw, OraclesUiLayout scene, const char *text, float bar_bottom, float opacity);
 
 /* The layout the screen of `nav` is drawn in, which the caller sets on the drawing before the frame begins
  * (oracles_ui_draw_layout): the window's, nav->layout, for every screen. */

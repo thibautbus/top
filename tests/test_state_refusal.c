@@ -13,11 +13,11 @@ static int failures;
 
 int main(void)
 {
-    char message[128], detail[320];
+    char message[256], detail[320];
 
     /* Taken in Enhanced with the transitions, loaded in Faithful: the profile, not the greyed transitions. */
     CHECK(oracles_state_transitions_refusal(1, 0, 0, message, sizeof message, detail, sizeof detail) == 1);
-    CHECK(!strcmp(message, "Refused: the savestate was taken in Enhanced, with continuous transitions"));
+    CHECK(!strcmp(message, "Refused: taken in Enhanced: choose Enhanced in Display's Profile from the home screen"));
     CHECK(strstr(detail, "this session is Faithful") && strstr(detail, "the Enhanced profile in the launcher's Display"));
     CHECK(!strstr(detail, "Continuous transitions in"));
     /* Faithful with the transitions asked for (a command line's leftover): still Faithful's refusal. */
@@ -26,10 +26,10 @@ int main(void)
 
     /* In Enhanced, the transitions are what differs. */
     CHECK(oracles_state_transitions_refusal(1, 1, 0, message, sizeof message, detail, sizeof detail) == 1);
-    CHECK(!strcmp(message, "Refused: the savestate was taken with continuous transitions on"));
+    CHECK(!strcmp(message, "Refused: taken with transitions on: choose On in Display \xe2\x80\xba Advanced \xe2\x80\xba Continuous transitions from the home screen"));
     CHECK(strstr(detail, "Continuous transitions in the launcher's Display") && strstr(detail, "loads only with them on"));
     CHECK(oracles_state_transitions_refusal(0, 1, 1, message, sizeof message, detail, sizeof detail) == 1);
-    CHECK(!strcmp(message, "Refused: the savestate was taken with continuous transitions off"));
+    CHECK(!strcmp(message, "Refused: taken with transitions off: choose Off in Display \xe2\x80\xba Advanced \xe2\x80\xba Continuous transitions from the home screen"));
 
     /* The same transitions: it loads, and says nothing. */
     CHECK(oracles_state_transitions_refusal(1, 1, 1, message, sizeof message, detail, sizeof detail) == 0 && !message[0] && !detail[0]);
@@ -39,10 +39,11 @@ int main(void)
     /* Taken on the other core: refused by the core's name, the core to choose said; the same core, another version
      * included, passes (the load refuses another version itself). */
     CHECK(oracles_state_core_refusal("mgba-c3c8e5e8", "sameboy-1.0.3", message, sizeof message, detail, sizeof detail) == 1);
-    CHECK(!strcmp(message, "Refused: taken on Fast (mGBA)"));
+    CHECK(!strcmp(message, "Refused: taken on Fast (mGBA): choose Fast in Display \xe2\x80\xba Advanced \xe2\x80\xba Core from the home screen"));
     CHECK(strstr(detail, "choose Fast (mGBA) in Display's Core, or --core mgba") != NULL);
     CHECK(oracles_state_core_refusal("sameboy-1.0.3", "mgba-c3c8e5e8", message, sizeof message, detail, sizeof detail) == 1);
-    CHECK(!strcmp(message, "Refused: taken on Accurate (SameBoy)") && strstr(detail, "--core sameboy"));
+    CHECK(!strcmp(message, "Refused: taken on Accurate (SameBoy): choose Accurate in Display \xe2\x80\xba Advanced \xe2\x80\xba Core from the home screen")
+          && strstr(detail, "--core sameboy"));
     CHECK(oracles_state_core_refusal("sameboy-1.0.2", "sameboy-1.0.3", message, sizeof message, detail, sizeof detail) == 0 && !message[0] && !detail[0]);
     CHECK(oracles_state_core_refusal("mgba-c3c8e5e8", "mgba-c3c8e5e8", message, sizeof message, detail, sizeof detail) == 0);
 
@@ -128,6 +129,26 @@ int main(void)
     CHECK(oracles_state_text_refusal(texts[1], "", 0, 1, 1, faithful_message, sizeof faithful_message, text_detail, sizeof text_detail) == 1);
     CHECK(!strcmp(faithful_message, "Refused: taken in Enhanced with the Compact text in the Standard box: choose Enhanced and Standard in Display "
                                     "from the home screen"));
+
+    /* The text each was taken with, as a game started again for it reads it. */
+    static const int taken_texts[4][3] = { { 0, 0, 0 }, { 1, 1, 0 }, { 1, 0, 1 }, { 1, 1, 1 } };
+    for (unsigned i = 0; i < 4u; i++) {
+        int compact = -1, wide = -1;
+        CHECK(oracles_state_text_taken(texts[i], &compact, &wide) == taken_texts[i][0] && compact == taken_texts[i][1] && wide == taken_texts[i][2]);
+    }
+
+    /* A game started again with other choices of Display loads a state that differs only in them: the transitions and
+     * the text's word aside, the same mods and language, and the word the game started again would lay its text with. */
+    const char *word = "text-compact@0123456789abcdef0123456789abcdef01234567";
+    CHECK(oracles_state_display_only("continuous-transitions,mod-a@1,language-de@abcd,text-compact@0123456789abcdef0123456789abcdef01234567",
+                                     "mod-a@1,language-de@abcd", word));
+    CHECK(oracles_state_display_only("mod-a@1", "continuous-transitions,mod-a@1,text-compact@ffff", ""));
+    CHECK(oracles_state_display_only("", "continuous-transitions", ""));
+    CHECK(!oracles_state_display_only("continuous-transitions,language-fr@abcd", "continuous-transitions", ""));   /* another language */
+    CHECK(!oracles_state_display_only("mod-a@1", "mod-b@1", ""));                                                   /* other mods */
+    CHECK(!oracles_state_display_only("mod-a@1", "mod-a@2", ""));                                                   /* another version of it */
+    CHECK(!oracles_state_display_only("text-compact@ffffffffffffffffffffffffffffffffffffffff", "", word));          /* another layout's digest */
+    CHECK(!oracles_state_display_only(texts[1], "language-de@abcd", ""));                                            /* the classic text where it was compact */
 
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("state refusal: Faithful points to the profile, Enhanced to the transitions, another core to Display's Core, another text or box to Display's Text\n");

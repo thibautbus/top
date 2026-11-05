@@ -293,6 +293,18 @@ static void toast(void)
     oracles_ui_layout_toast(ORACLES_UI_LAYOUT_4_3, "Refused: not an Oracle of Ages or Seasons ROM", &t);
     layout_box("toast 4:3", "toast", &t.box);
     layout_line("toast 4:3", "toast text", &t.text);
+    /* The longest refusals of a savestate the pause shows, on one line inside the scene in both layouts. */
+    static const char *const refusals[] = {
+        "Refused: taken in Far at 426\xc3\x97" "320, fitted to its screen: choose Fitted in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen",
+        "Refused: taken on Accurate (SameBoy): choose Accurate in Display \xe2\x80\xba Advanced \xe2\x80\xba Core from the home screen",
+        "Refused: taken with transitions off: choose Off in Display \xe2\x80\xba Advanced \xe2\x80\xba Continuous transitions from the home screen",
+        "Refused: taken in Far at 426\xc3\x97" "320: choose Off in Display \xe2\x80\xba Picture \xe2\x80\xba Screen margin from the home screen",
+    };
+    for (unsigned i = 0; i < sizeof refusals / sizeof refusals[0]; i++)
+        for (int layout = 0; layout < 2; layout++) {
+            oracles_ui_layout_toast(layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9, refusals[i], &t);
+            if (t.box.x < 0.0f) { fprintf(stderr, "FAIL toast: \"%s\" wider than the %s scene\n", refusals[i], layout ? "4:3" : "16:9"); layout_fail(); }
+        }
 }
 
 /* The reminder over a game started, centred under the status bar: the far view's, 480x270 at 4x in 16:9 (its bar 64
@@ -328,6 +340,40 @@ static void reminders(void)
     oracles_controls_menu_tip(ORACLES_INPUT_GAMEPAD, 1, "leftstick", text, sizeof text);
     reminder_frame("37f", ORACLES_UI_LAYOUT_4_3, text, 171.0f);
     reminder_frame("37f 16:9", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
+}
+
+/* A notice over a game: the longest the session shows, what a game started again for its savestate changed, the
+ * refusals F7 shows and a game started again that refuses its savestate after all, on three lines at most inside the
+ * scene in both layouts. */
+static void notices(void)
+{
+    static const char *const texts[] = {
+        "Display set to Continuous transitions Off, Accurate (SameBoy), Screen margin Small and Standard text box to load this savestate",
+        "Display set to Enhanced, Fast (mGBA), Compact text and Medium to load this savestate",
+        "Display changed in 8 rows to load this savestate",
+        "The game started again with Display's settings to load this savestate",
+        "The savestate was refused after all, Display is back as it was. Refused: taken in Enhanced with the Compact text in the Wide box: "
+        "choose Enhanced, Compact and Wide in Display from the home screen",
+        "The savestate was refused after all, Display is back as it was. Refused: taken in Far at 426\xc3\x97" "320, fitted to its screen: choose "
+        "Fitted in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen",
+        "Refused here: Load state in the menu starts the game again with the Display settings it needs",
+        "Refused: taken in Enhanced with the Compact text in the Wide box: choose Enhanced, Compact and Wide in Display from the home screen",
+        "Refused: taken in Far at 426\xc3\x97" "320, fitted to its screen: choose Fitted in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen",
+        "Refused: taken with transitions off: choose Off in Display \xe2\x80\xba Advanced \xe2\x80\xba Continuous transitions from the home screen",
+        "Refused: the savestate was made with another set of mods and gameplay options",
+        "Refused: the mod's conversation is running",
+    };
+    for (unsigned i = 0; i < sizeof texts / sizeof texts[0]; i++)
+        for (int layout = 0; layout < 2; layout++) {
+            const float scene_w = layout ? 1440.0f : 1920.0f;
+            OraclesUiNoticeLayout n;
+            oracles_ui_layout_notice(layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9, texts[i], layout ? 48.0f : 64.0f, &n);
+            if (n.wrapped_lines > ORACLES_UI_NOTICE_LINES || n.box.x < 0.0f || n.box.x + n.box.w > scene_w) {
+                fprintf(stderr, "FAIL notice: \"%s\" on %u lines, from %.0f to %.0f in the %s scene\n", texts[i], n.wrapped_lines, n.box.x, n.box.x + n.box.w,
+                        layout ? "4:3" : "16:9");
+                layout_fail();
+            }
+        }
 }
 
 /* Ages' pause with its item hotkeys off, in 16:9 from a key (37g) and at 640x480 from a controller (37h): the line under
@@ -889,6 +935,7 @@ int main(int argc, char **argv)
     frame_8e();
     toast();
     reminders();
+    notices();
     hotkeys_line("37g", 1920, 1080, ORACLES_INPUT_KEYBOARD);
     hotkeys_line("37h", 640, 480, ORACLES_INPUT_GAMEPAD);
     hotkeys_line_rules();

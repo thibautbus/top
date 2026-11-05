@@ -44,6 +44,8 @@ static int surface_of(OraclesEnhancedSize size, unsigned *level, unsigned *aspec
     return 0;
 }
 
+static int same_size(OraclesEnhancedSize a, OraclesEnhancedSize b) { return a.width == b.width && a.height == b.height; }
+
 /* A surface as the player chose it: the view's level and the screen's shape that give it. */
 static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
 {
@@ -54,7 +56,7 @@ static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
     else snprintf(out, capacity, "the %s view, %ux%u in %s", levels[l], size.width, size.height, surface_aspects[a]);
 }
 
-int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_t *data, size_t size, char *why, size_t capacity)
+OraclesEnhancedSize oracles_enhanced_view_state_surface(const uint8_t *data, size_t size)
 {
     OraclesEnhancedSize saved = oracles_enhanced_size(0);
     size_t at, offsets_at;
@@ -62,6 +64,12 @@ int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_
         saved.width = data[at + 4] | (unsigned)data[at + 5] << 8;
         saved.height = data[at + 6] | (unsigned)data[at + 7] << 8;
     }
+    return saved;
+}
+
+int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_t *data, size_t size, char *why, size_t capacity)
+{
+    const OraclesEnhancedSize saved = oracles_enhanced_view_state_surface(data, size);
     if (saved.width == v->size.width && saved.height == v->size.height) return 0;
     if (why && capacity) {
         char taken[96], shown[96];
@@ -79,6 +87,35 @@ int oracles_enhanced_view_check_state(const OraclesEnhancedView *v, const uint8_
         snprintf(why, capacity, "the savestate was taken on %s, and this session shows %s: it loads only on its own surface%s", taken, shown, hint);
     }
     return -1;
+}
+
+void oracles_enhanced_view_state_message(const OraclesEnhancedView *v, const uint8_t *data, size_t size, const OraclesEnhancedFarChoice *choice,
+                                         char *message, size_t capacity)
+{
+    static const char *const levels[ORACLES_ENHANCED_LEVELS] = { "Near", "Medium", "Far" };
+    const OraclesEnhancedSize saved = oracles_enhanced_view_state_surface(data, size);
+    unsigned saved_level, saved_aspect, level, aspect; int saved_fitted, fitted;
+    if (!surface_of(saved, &saved_level, &saved_aspect, &saved_fitted) || !surface_of(v->size, &level, &aspect, &fitted))
+        snprintf(message, capacity, "Refused: the savestate was taken on another surface");
+    else if (saved_level != level)
+        snprintf(message, capacity, "Refused: taken in %s: choose %s in Display's View from the home screen", levels[saved_level], levels[saved_level]);
+    else if (saved_fitted && fitted)
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u, fitted to another screen", saved.width, saved.height);
+    else if (saved_fitted && choice && choice->far_fixed)
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u, fitted to its screen: choose Fitted in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen",
+                 saved.width, saved.height);
+    else if (saved_fitted && choice && choice->aspect_named)
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u, fitted to its screen: aspect=auto in settings.txt shows it", saved.width, saved.height);
+    else if (saved_fitted && choice && choice->margin_lines && same_size(oracles_enhanced_far_fitting_band(choice->screen_w, choice->screen_h, 0).size, saved))
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u: choose Off in Display \xe2\x80\xba Picture \xe2\x80\xba Screen margin from the home screen",
+                 saved.width, saved.height);
+    else if (saved_fitted)
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u, fitted to another screen", saved.width, saved.height);
+    else if (fitted && saved_aspect == ORACLES_ENHANCED_4_3)
+        snprintf(message, capacity, "Refused: taken in Far at %u\xc3\x97%u: choose Fixed in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen",
+                 saved.width, saved.height);
+    else snprintf(message, capacity, "Refused: taken in %s at %u\xc3\x97%u: aspect=%s in settings.txt shows it", levels[saved_level], saved.width, saved.height,
+                  surface_aspects[saved_aspect]);
 }
 
 /* The host state: the horizontal reducer's record, then the vertical one. */

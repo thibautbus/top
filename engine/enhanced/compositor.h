@@ -85,8 +85,10 @@ static inline OraclesEnhancedAspect oracles_enhanced_screen_aspect(unsigned scre
     return (float)long_side / (float)short_side < (4.0f / 3.0f + 16.0f / 9.0f) / 2.0f ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9;
 }
 
-/* The far view fitted to the screen.  Where far's size in the screen's shape covers less than four fifths of the
- * screen at its largest whole scale, the smallest whole scale k of 2 or more whose screen/k, each side made even,
+/* The far view fitted to the screen, or to the band a screen margin leaves the game on it, `margin_lines` of the
+ * screen's height taken off (the band's shape, not the screen's, then decides the sizes the scales give; far's own
+ * size keeps the screen's shape, as every other level does).  Where far's size in that shape covers less than four
+ * fifths of the band at its largest whole scale, the smallest whole scale k of 2 or more whose screen/k, each side made even,
  * fits in 480x360 gives the surface, kept if at least 400x224 and as wide as its band is tall (the camera's
  * vertical margin), and if it is one of the sizes the view takes: 426x320 (1280x960 at three times), 412x360
  * (1240x1080).  Else far keeps its size.  The screen counts by its long side across.  None is larger than far in
@@ -111,10 +113,11 @@ typedef struct OraclesEnhancedFitting {
     OraclesEnhancedAspect aspect;      /* the screen's shape */
     unsigned far_scale, far_percent;   /* far's size in that shape: the whole scale the screen holds it at, the part of the screen it covers */
 } OraclesEnhancedFitting;
-static inline OraclesEnhancedFitting oracles_enhanced_far_fitting(unsigned screen_w, unsigned screen_h)
+static inline OraclesEnhancedFitting oracles_enhanced_far_fitting_band(unsigned screen_w, unsigned screen_h, unsigned margin_lines)
 {
     OraclesEnhancedFitting f = { ORACLES_ENHANCED_FIT_FILLS, { 0u, 0u }, { 0u, 0u }, 0u, oracles_enhanced_screen_aspect(screen_w, screen_h), 0u, 0u };
-    const unsigned long long w = screen_w > screen_h ? screen_w : screen_h, h = screen_w > screen_h ? screen_h : screen_w;
+    const unsigned band_h = margin_lines < screen_h ? screen_h - margin_lines : screen_h;
+    const unsigned long long w = screen_w > band_h ? screen_w : band_h, h = screen_w > band_h ? band_h : screen_w;
     f.size = oracles_enhanced_view_size(ORACLES_ENHANCED_FAR, f.aspect);
     if (!h) return f;
     const unsigned long long across = w / f.size.width, down = h / f.size.height;
@@ -135,19 +138,23 @@ static inline OraclesEnhancedFitting oracles_enhanced_far_fitting(unsigned scree
         }
     return f;
 }
+static inline OraclesEnhancedFitting oracles_enhanced_far_fitting(unsigned screen_w, unsigned screen_h)
+{
+    return oracles_enhanced_far_fitting_band(screen_w, screen_h, 0u);
+}
 /* The view's surface at `level` on a screen of screen_w x screen_h, as a game started there takes it: the level's
- * size in the shape `aspect` names, or for ORACLES_ENHANCED_ASPECTS in the screen's, far then fitted to the screen
- * unless `far_fixed` (aspect= and far= in the settings, docs/REFERENCE.md).  The session, the harness and Display's
- * sizes all take it from here. */
+ * size in the shape `aspect` names, or for ORACLES_ENHANCED_ASPECTS in the screen's, far then fitted to the band its
+ * screen margin leaves (`margin_lines`, 0 for none) unless `far_fixed` (aspect=, far= and screen_margin= in the
+ * settings, docs/REFERENCE.md).  The session, the harness and Display's sizes all take it from here. */
 static inline OraclesEnhancedSize oracles_enhanced_screen_view_size(OraclesEnhancedLevel level, OraclesEnhancedAspect aspect, int far_fixed,
-                                                                    unsigned screen_w, unsigned screen_h)
+                                                                    unsigned screen_w, unsigned screen_h, unsigned margin_lines)
 {
     if ((unsigned)aspect < ORACLES_ENHANCED_ASPECTS) return oracles_enhanced_view_size(level, aspect);
-    if (level == ORACLES_ENHANCED_FAR && !far_fixed) return oracles_enhanced_far_fitting(screen_w, screen_h).size;
+    if (level == ORACLES_ENHANCED_FAR && !far_fixed) return oracles_enhanced_far_fitting_band(screen_w, screen_h, margin_lines).size;
     return oracles_enhanced_view_size(level, oracles_enhanced_screen_aspect(screen_w, screen_h));
 }
-/* What the far view takes on a screen and why, for a log. */
-void oracles_enhanced_far_fitting_words(unsigned screen_w, unsigned screen_h, char *out, size_t capacity);
+/* What the far view takes on a screen, less its margin's lines, and why, for a log. */
+void oracles_enhanced_far_fitting_words(unsigned screen_w, unsigned screen_h, unsigned margin_lines, char *out, size_t capacity);
 /* A size the view takes: a level's in a shape, or the far view fitted to a screen; `fitted` says which. */
 static inline int oracles_enhanced_size_known(OraclesEnhancedSize size, int *fitted)
 {

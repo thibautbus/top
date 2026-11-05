@@ -5,6 +5,7 @@
 #include "compositor.h"
 #include "room_predict.h"
 #include "room_transition.h"
+#include "safe_area.h"
 #include "text_box.h"
 #include "ui_layout.h"
 
@@ -37,6 +38,46 @@ void oracles_session_report_transitions(const OraclesRoomTransitionStats *stats,
     fprintf(out, "%s\n", listed ? ")" : "");
 }
 
+int oracles_session_view_4_3(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window)
+{
+    const int aspect = o->aspect ? o->aspect - 1 : settings->aspect;
+    return aspect == ORACLES_ASPECT_4_3 ? 1 : aspect == ORACLES_ASPECT_16_9 ? 0 : oracles_sdl_screen_4_3(window);
+}
+
+OraclesProfile oracles_session_display_options(OraclesSessionOptions *o, const oracles_settings *settings, int enhanced_allowed, struct SDL_Window *window,
+                                               OraclesEnhancedSize *surface)
+{
+    const int command_line_view = o->enhanced || o->zoom_out || o->view || o->continuous_transitions;
+    const OraclesProfile chosen = command_line_view ? ORACLES_PROFILE_ENHANCED : settings->profile;
+    const OraclesProfile profile = chosen == ORACLES_PROFILE_ENHANCED && !enhanced_allowed ? ORACLES_PROFILE_FAITHFUL : chosen;
+    const int enhanced = profile != ORACLES_PROFILE_FAITHFUL;
+    /* Display's Continuous transitions take Link swimming too, on across the axis walking diagonally, and a step a frame
+     * as the keys give it, a scroll starting at the line between two rooms; --continuous-transitions alone is the command
+     * line's, for the routes recorded with it, and so are --continuous-swim, --continuous-diagonal, --continuous-steps and
+     * --continuous-line. */
+    o->continuous_swim = enhanced && (o->continuous_swim || settings->transitions);
+    o->continuous_diagonal = enhanced && (o->continuous_diagonal || settings->transitions);
+    o->continuous_steps = enhanced && (o->continuous_steps || settings->transitions);
+    o->continuous_line = enhanced && (o->continuous_line || settings->transitions);
+    o->continuous_transitions = enhanced && (o->continuous_transitions || settings->transitions);
+    /* The compact text, in Enhanced alone: the command line's, else settings.txt's text=, a fan game's too (in its
+     * English, the only language the launcher starts it in); an image no profile qualifies plays without (check_profile). */
+    if (!o->compact_text) o->compact_text = settings->compact_text ? 2 : 1;
+    if (!enhanced) o->compact_text = 1;
+    /* The wide text box, the same: the command line's, else settings.txt's text_box=. */
+    if (!o->text_box_wide) o->text_box_wide = settings->text_box_wide ? 2 : 1;
+    if (!enhanced) o->text_box_wide = 1;
+    if (!enhanced) o->enhanced = o->zoom_out = o->view = 0;
+    else if (!command_line_view) { o->enhanced = 1; o->view = settings->view + 1; }   /* Display's View */
+    else o->enhanced = 1;
+    /* The view's surface: its level in the screen's shape, far fitted to the screen (as the session takes it). */
+    o->screen_4_3 = oracles_session_view_4_3(o, settings, window);
+    oracles_session_far_screen(o, settings, window, &o->screen_w, &o->screen_h, &o->screen_margin_lines);
+    const OraclesEnhancedLevel level = o->view ? (OraclesEnhancedLevel)(o->view - 1) : o->zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
+    *surface = !o->enhanced ? (OraclesEnhancedSize){ 160u, 144u } : oracles_session_view_size(o, (int)level);
+    return profile;
+}
+
 int oracles_session_vsync_on(const char *vsync, unsigned display_hz)
 {
     if (!strcmp(vsync, "on")) return 1;
@@ -47,19 +88,24 @@ int oracles_session_vsync_on(const char *vsync, unsigned display_hz)
 #endif
 }
 
-void oracles_session_far_screen(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window, unsigned *width, unsigned *height)
+void oracles_session_far_screen(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window, unsigned *width, unsigned *height,
+                                unsigned *margin_lines)
 {
-    *width = *height = 0;
+    *width = *height = *margin_lines = 0;
     const int aspect = o->aspect ? o->aspect - 1 : settings->aspect;
     if (settings->far_fixed || aspect != ORACLES_ASPECT_AUTO) return;
-    oracles_sdl_screen_size(window, width, height);
+    if (!oracles_sdl_screen_size(window, width, height)) return;
+    OraclesTouchEdges edges;
+    oracles_safe_area_edges(window, oracles_session_screen_margin(o->screen_margin, settings), &edges);
+    const OraclesTouchBox band = oracles_touch_band((int)*width, (int)*height, &edges);
+    *margin_lines = *height - (unsigned)band.h;
 }
 
 OraclesEnhancedSize oracles_session_view_size(const OraclesSessionOptions *o, int level)
 {
     /* A screen given is one far fits to, its shape the view's; else the options' shape. */
     const OraclesEnhancedAspect aspect = o->screen_w && o->screen_h ? ORACLES_ENHANCED_ASPECTS : o->screen_4_3 ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9;
-    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)level, aspect, 0, o->screen_w, o->screen_h);
+    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)level, aspect, 0, o->screen_w, o->screen_h, o->screen_margin_lines);
 }
 
 unsigned oracles_session_settings_changed(const oracles_settings *settings, int margin_option, int text_size_option, OraclesSessionApplied *applied)

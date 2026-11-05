@@ -86,6 +86,11 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
  * faded out over 0.6 s; it goes as the pause opens over it, and never takes an input.  Its glyphs are the pause's,
  * prepared beforehand. */
 void oracles_pause_reminder(OraclesPause *pause, const char *menu_pad);
+/* A line over the game from its first frame, as the reminder shows (before it, when both are due): what the game
+ * started again for its savestate changed. */
+void oracles_pause_notice(OraclesPause *pause, const char *text);
+/* A notice or the reminder waits or shows. */
+int oracles_pause_overlay_pending(const OraclesPause *pause);
 /* It waits for its first frame, or shows. */
 int oracles_pause_reminder_pending(const OraclesPause *pause);
 /* It was drawn over a frame of the game: settings.txt counts it. */

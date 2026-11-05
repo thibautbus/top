@@ -246,5 +246,5 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
 OraclesEnhancedSize harness_view_size(const harness_options *o)
 {
     const OraclesEnhancedAspect aspect = o->screen_w && !o->aspect_given ? ORACLES_ENHANCED_ASPECTS : (OraclesEnhancedAspect)o->enhanced_aspect;
-    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)o->enhanced_level, aspect, 0, o->screen_w, o->screen_h);
+    return oracles_enhanced_screen_view_size((OraclesEnhancedLevel)o->enhanced_level, aspect, 0, o->screen_w, o->screen_h, 0);
 }

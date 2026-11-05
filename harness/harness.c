@@ -415,7 +415,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (o->screen_w && o->enhanced_level == ORACLES_ENHANCED_FAR) {
             char fitting[160];
             if (o->aspect_given) snprintf(fitting, sizeof fitting, "the far view at its size in the shape --aspect names");
-            else oracles_enhanced_far_fitting_words(o->screen_w, o->screen_h, fitting, sizeof fitting);
+            else oracles_enhanced_far_fitting_words(o->screen_w, o->screen_h, 0, fitting, sizeof fitting);
             fprintf(stderr, "harness: %s\n", fitting);
         }
         oracles_enhanced_check_set_camera_profile(r->enhanced, o->enhanced_camera);

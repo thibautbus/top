@@ -47,6 +47,8 @@ static const screen screens[] = {
     { "a 2560x1600 monitor", 2560, 1600, ORACLES_ENHANCED_FIT_UNLISTED, 480, 270, 426, 266 },
 };
 
+static int size_is(OraclesEnhancedSize s, unsigned w, unsigned h) { return s.width == w && s.height == h; }
+
 static void rule(void)
 {
     unsigned listed[ORACLES_ENHANCED_FITTED_SIZES] = { 0 };
@@ -87,17 +89,28 @@ static void rule(void)
     CHECK(!oracles_e11_viewport_valid(444 * ORACLES_E11_F256, 222 * ORACLES_E11_F256));
     /* The log says what far takes and why. */
     char words[192];
-    oracles_enhanced_far_fitting_words(1280, 960, words, sizeof words);
+    oracles_enhanced_far_fitting_words(1280, 960, 0, words, sizeof words);
     CHECK(!strcmp(words, "the far view fitted to the 1280x960 screen: 426x320 at 3x, where 480x360 covers 56% of it at 2x"));
-    oracles_enhanced_far_fitting_words(1334, 750, words, sizeof words);
+    oracles_enhanced_far_fitting_words(1334, 750, 0, words, sizeof words);
     CHECK(!strcmp(words, "the far view at 480x270: the 1334x750 screen at 3x gives 444x250, not a size the view takes"));
-    oracles_enhanced_far_fitting_words(640, 480, words, sizeof words);
+    oracles_enhanced_far_fitting_words(640, 480, 0, words, sizeof words);
     CHECK(!strcmp(words, "the far view at 480x360: the 640x480 screen at 2x gives 320x240, under 400x224 or taller than wide"));
-    oracles_enhanced_far_fitting_words(1920, 1080, words, sizeof words);
+    oracles_enhanced_far_fitting_words(1920, 1080, 0, words, sizeof words);
     CHECK(!strcmp(words, "the far view at 480x270: it covers 100% of the 1920x1080 screen at 4x"));
+    /* With a screen margin, far fits to the band it leaves: on 1280x960, Small's 120 lines leave 1280x840, where 426x320
+     * at three times does not fit, and far keeps 480x360 at twice, as it does without fitting; the shape stays the
+     * screen's.  1240x1080 likewise; a margin that leaves the lines the fitted size needs keeps it fitted. */
+    f = oracles_enhanced_far_fitting_band(1280, 960, 120);
+    CHECK(f.fit == ORACLES_ENHANCED_FIT_UNLISTED && size_is(f.size, 480, 360) && size_is(f.computed, 426, 280) && f.far_scale == 2 && f.aspect == ORACLES_ENHANCED_4_3);
+    f = oracles_enhanced_far_fitting_band(1240, 1080, 48);
+    CHECK(f.fit == ORACLES_ENHANCED_FIT_UNLISTED && size_is(f.size, 480, 360) && size_is(f.computed, 412, 344));
+    f = oracles_enhanced_far_fitting_band(1280, 960, 0);
+    CHECK(f.fit == ORACLES_ENHANCED_FIT_FITTED && size_is(f.size, 426, 320));
+    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_FAR, ORACLES_ENHANCED_ASPECTS, 0, 1280, 960, 120), 480, 360));
+    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_FAR, ORACLES_ENHANCED_ASPECTS, 0, 1280, 960, 0), 426, 320));
+    oracles_enhanced_far_fitting_words(1280, 960, 120, words, sizeof words);
+    CHECK(!strcmp(words, "the far view at 480x360: the 1280x840 band the margin leaves on the 1280x960 screen at 3x gives 426x280, not a size the view takes"));
 }
-
-static int size_is(OraclesEnhancedSize s, unsigned w, unsigned h) { return s.width == w && s.height == h; }
 
 /* The view's surface on a screen, as the session, the harness and Display take it: the screen's shape for every level
  * of every screen of the table, far fitted where the rule fits it; far=fixed keeps far's size in the screen's shape; a
@@ -109,18 +122,18 @@ static void screen_view_sizes(void)
         const OraclesEnhancedAspect shape = oracles_enhanced_screen_aspect(s->w, s->h);
         for (unsigned l = 0; l < ORACLES_ENHANCED_LEVELS; l++) {
             const OraclesEnhancedSize level = oracles_enhanced_view_size((OraclesEnhancedLevel)l, shape);
-            const OraclesEnhancedSize size = oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, ORACLES_ENHANCED_ASPECTS, 0, s->w, s->h);
+            const OraclesEnhancedSize size = oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, ORACLES_ENHANCED_ASPECTS, 0, s->w, s->h, 0);
             CHECK(l == ORACLES_ENHANCED_FAR ? size_is(size, s->size_w, s->size_h) : size_is(size, level.width, level.height));
-            const OraclesEnhancedSize fixed = oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, ORACLES_ENHANCED_ASPECTS, 1, s->w, s->h);
+            const OraclesEnhancedSize fixed = oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, ORACLES_ENHANCED_ASPECTS, 1, s->w, s->h, 0);
             CHECK(size_is(fixed, level.width, level.height));
             for (unsigned a = 0; a < ORACLES_ENHANCED_ASPECTS; a++) {
                 const OraclesEnhancedSize named = oracles_enhanced_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a);
-                CHECK(size_is(oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a, 0, s->w, s->h), named.width, named.height));
+                CHECK(size_is(oracles_enhanced_screen_view_size((OraclesEnhancedLevel)l, (OraclesEnhancedAspect)a, 0, s->w, s->h, 0), named.width, named.height));
             }
         }
     }
-    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_FAR, ORACLES_ENHANCED_ASPECTS, 0, 0, 0), 480, 270));
-    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_NEAR, ORACLES_ENHANCED_ASPECTS, 0, 0, 0), 256, 144));
+    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_FAR, ORACLES_ENHANCED_ASPECTS, 0, 0, 0, 0), 480, 270));
+    CHECK(size_is(oracles_enhanced_screen_view_size(ORACLES_ENHANCED_NEAR, ORACLES_ENHANCED_ASPECTS, 0, 0, 0, 0), 256, 144));
     /* The shape's rule at its edges: 3:2 and a square are 4:3, 16:10 and 5:3 are 16:9, a screen held upright by its turn. */
     CHECK(oracles_enhanced_screen_aspect(720, 480) == ORACLES_ENHANCED_4_3 && oracles_enhanced_screen_aspect(720, 720) == ORACLES_ENHANCED_4_3);
     CHECK(oracles_enhanced_screen_aspect(1280, 800) == ORACLES_ENHANCED_16_9 && oracles_enhanced_screen_aspect(1280, 768) == ORACLES_ENHANCED_16_9);
@@ -210,13 +223,36 @@ static void views_and_savestates(void)
     CHECK(!strcmp(why, "the savestate was taken on the far view fitted to the screen, 426x320, and this session shows the far view fitted to the screen, "
                        "412x360: it loads only on its own surface"));
     CHECK(oracles_enhanced_view_check_state(near, wire, written, why, sizeof why) != 0 && !strstr(why, "settings"));
+    /* The pause's words: the view it was taken in, and Display's choice that shows it.  A state of far fitted to
+     * 1280x960 in far's fixed size: Fitted where far=fixed kept it, Screen margin where Small's 120 lines did, the
+     * shape where aspect= named it, else another screen (a monitor far never fits). */
+    char message[256];
+    const OraclesEnhancedFarChoice fixed = { 1, 0, 0, 0, 0 }, margin = { 0, 0, 1280, 960, 120 }, named = { 0, 1, 0, 0, 0 }, monitor = { 0, 0, 1920, 1080, 0 };
+    oracles_enhanced_view_state_message(far_4_3, wire, written, &fixed, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320, fitted to its screen: choose Fitted in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen"));
+    oracles_enhanced_view_state_message(far_4_3, wire, written, &margin, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320: choose Off in Display \xe2\x80\xba Picture \xe2\x80\xba Screen margin from the home screen"));
+    oracles_enhanced_view_state_message(far_4_3, wire, written, &named, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320, fitted to its screen: aspect=auto in settings.txt shows it"));
+    oracles_enhanced_view_state_message(far_4_3, wire, written, &monitor, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320, fitted to another screen"));
+    oracles_enhanced_view_state_message(far_4_3, wire, written, NULL, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320, fitted to another screen"));
+    oracles_enhanced_view_state_message(mini, wire, written, NULL, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 426\xc3\x97" "320, fitted to another screen"));
+    oracles_enhanced_view_state_message(near, wire, written, NULL, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far: choose Far in Display's View from the home screen"));
     CHECK(oracles_enhanced_view_save_state(far_4_3, wire, sizeof wire, &written) == 0);
     CHECK(oracles_enhanced_view_check_state(nova, wire, written, why, sizeof why) != 0);
     CHECK(!strcmp(why, "the savestate was taken on the far view, 480x360 in 4:3, and this session shows the far view fitted to the screen, 426x320: "
                        "it loads only on its own surface; far=fixed in the settings shows that surface"));
+    oracles_enhanced_view_state_message(nova, wire, written, NULL, message, sizeof message);   /* a 1.1.0 state of Far on a 1280x960 screen */
+    CHECK(!strcmp(message, "Refused: taken in Far at 480\xc3\x97" "360: choose Fixed in Display \xe2\x80\xba Picture \xe2\x80\xba Far size from the home screen"));
     CHECK(oracles_enhanced_view_load_state(nova, wire, written) != 0);
     CHECK(oracles_enhanced_view_save_state(far_16_9, wire, sizeof wire, &written) == 0);
     CHECK(oracles_enhanced_view_check_state(mini, wire, written, why, sizeof why) != 0 && strstr(why, "; aspect=16:9 in the settings shows that surface"));
+    oracles_enhanced_view_state_message(mini, wire, written, NULL, message, sizeof message);
+    CHECK(!strcmp(message, "Refused: taken in Far at 480\xc3\x97" "270: aspect=16:9 in settings.txt shows it"));
 done:
     oracles_enhanced_view_stop(nova); oracles_enhanced_view_stop(mini); oracles_enhanced_view_stop(far_4_3);
     oracles_enhanced_view_stop(far_16_9); oracles_enhanced_view_stop(near); oracles_enhanced_view_stop(unlisted);

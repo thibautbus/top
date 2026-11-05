@@ -9,6 +9,7 @@
 
 #include "backends.h"
 #include "settings.h"
+#include "state_display.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -40,6 +41,7 @@ typedef struct OraclesSessionOptions {
     int view;                        /* the Enhanced view's level plus one (an OraclesEnhancedLevel; --view, Display's View); 0: far with zoom_out, else near */
     int screen_4_3;                  /* the view takes the 4:3 shape (oracles_session_view_4_3) */
     unsigned screen_w, screen_h;     /* the screen the far view fits to (oracles_session_far_screen); 0: far at its size */
+    unsigned screen_margin_lines;    /* and the lines of it the screen margin keeps the game out of: far fits to the band left */
     int aspect;                      /* --aspect: an OraclesAspect plus one, for the run, never stored; 0: the settings' */
     int ghosts;                      /* --ghosts: auto, 1 or 2 as 1, 2 or 3, for the run, never stored; 0: the settings' ghosts= */
     int core;                        /* --core: an OraclesCoreKind plus one, for the run, never stored; 0: the settings' core= */
@@ -69,6 +71,16 @@ typedef struct OraclesSessionOptions {
     oracles_sdl_options sdl;
     /* A game the home screen started: Escape opens this pause menu (pause.h) rather than ending the session. */
     struct OraclesPause *pause;
+    /* A game the home screen started: the command line's options, which win over the settings, and whether its ROM plays
+     * in Enhanced; a savestate the pause's Load state finds taken with other Display settings then ends the session for
+     * the game to start again with them (OraclesSessionResult's state_restart).  NULL for --rom's. */
+    const struct OraclesSessionOptions *command_line;
+    int enhanced_allowed;
+    /* The game started again so: its savestate loaded before the first frame, and `state_notice` shown over the game;
+     * refused after all, Display's choices put back as `state_previous` holds them. */
+    int load_state;
+    const char *state_notice;
+    const OraclesStateDisplay *state_previous;
 } OraclesSessionOptions;
 
 typedef struct OraclesSessionResult {
@@ -82,6 +94,12 @@ typedef struct OraclesSessionResult {
     int enhanced;
     uint32_t frames_played, frames_late;
     char language_note[256];         /* what the language's session says beside playing, such as a pack it could not write */
+    /* The pause's Load state changed Display's settings to the savestate's (oracles_state_display_settings) and ended the
+     * session: the game starts again with them and loads it, saying what changed. */
+    int state_restart;
+    char state_notice[192];
+    OraclesStateDisplay state_previous;   /* the choices it changed, as they were */
+    int state_unloaded;              /* a game started again for its savestate stopped before its first frame, which loads it */
 } OraclesSessionResult;
 
 /* Defaults: Faithful, the neighbours' objects shown in Enhanced, a window at scale 4. */
@@ -93,11 +111,18 @@ int oracles_session_run(const OraclesSessionOptions *options, oracles_settings *
  * screen of `window` (the primary display without one). */
 int oracles_session_view_4_3(const OraclesSessionOptions *options, const oracles_settings *settings, struct SDL_Window *window);
 /* The screen the far view fits to: that of `window` (the primary display without one) where the settings' far= is
- * screen and the view takes the screen's shape (no --aspect, aspect=auto); 0x0 otherwise. */
+ * screen and the view takes the screen's shape (no --aspect, aspect=auto); 0x0 otherwise.  `margin_lines`: the lines
+ * of it the screen margin the game plays with keeps it out of, above and below together (oracles_touch_band). */
 void oracles_session_far_screen(const OraclesSessionOptions *options, const oracles_settings *settings, struct SDL_Window *window,
-                                unsigned *width, unsigned *height);
-/* The surface of the view's level (an OraclesEnhancedLevel): the far view fitted to the options' screen
- * (oracles_enhanced_far_fitting), else the level's size in the options' shape. */
+                                unsigned *width, unsigned *height, unsigned *margin_lines);
+/* Display's part of a game the home screen starts with `settings`, into `o`, the command line's options (which win):
+ * the profile, Enhanced where the ROM plays it (`enhanced_allowed`), Faithful otherwise; the continuous transitions,
+ * the compact text and the wide box (Enhanced alone); the view's level, its shape and far fitted to the screen of
+ * `window`.  Returns the profile, *surface the view's (160x144 in Faithful). */
+OraclesProfile oracles_session_display_options(OraclesSessionOptions *o, const oracles_settings *settings, int enhanced_allowed,
+                                               struct SDL_Window *window, struct OraclesEnhancedSize *surface);
+/* The surface of the view's level (an OraclesEnhancedLevel): the far view fitted to the band the options' screen
+ * margin leaves of their screen (oracles_enhanced_far_fitting_band), else the level's size in the options' shape. */
 struct OraclesEnhancedSize oracles_session_view_size(const OraclesSessionOptions *options, int level);
 
 /* The screen margin the games play with, an OraclesScreenMargin: the command line's (`option`, --screen-margin's as

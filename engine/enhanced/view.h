@@ -671,6 +671,19 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *view, const uint8_t *d
  * reason in `why` when at the other (a state of the drawn-back view in the
  * normal one, or the reverse), which the launcher refuses whole. */
 int oracles_enhanced_view_check_state(const OraclesEnhancedView *view, const uint8_t *data, size_t size, char *why, size_t capacity);
+/* The surface a host state was taken at: the normal one for a state that names none. */
+OraclesEnhancedSize oracles_enhanced_view_state_surface(const uint8_t *data, size_t size);
+/* What decided the far view's size when the game started, as the launcher chose it: far=fixed, a shape named (aspect=),
+ * and the screen far was fitted to with its margin's lines (oracles_enhanced_far_fitting_band; 0x0 for none). */
+typedef struct OraclesEnhancedFarChoice {
+    int far_fixed, aspect_named;
+    unsigned screen_w, screen_h, margin_lines;
+} OraclesEnhancedFarChoice;
+/* The pause's few words for that refusal: the view the state was taken in, and the choice in Display that shows it
+ * (Far size's Fixed for a state of far's fixed size where far is fitted; for a state of far fitted to this screen,
+ * Fitted where far=fixed kept far's size, Screen margin where the margin did).  `choice` NULL: none known. */
+void oracles_enhanced_view_state_message(const OraclesEnhancedView *view, const uint8_t *data, size_t size, const OraclesEnhancedFarChoice *choice,
+                                         char *message, size_t capacity);
 
 OraclesEnhancedCamera *oracles_enhanced_view_camera(OraclesEnhancedView *view);
 

@@ -355,7 +355,7 @@ int main(int argc, char **argv)
         oracles_settings_store(prefs); /* also writes the defaults the first time, so they can be edited */
         if (options.enhanced && !options.no_window) {   /* the view's shape, and the screen far fits to */
             options.screen_4_3 = oracles_session_view_4_3(&options, prefs, NULL);
-            oracles_session_far_screen(&options, prefs, NULL, &options.screen_w, &options.screen_h);
+            oracles_session_far_screen(&options, prefs, NULL, &options.screen_w, &options.screen_h, &options.screen_margin_lines);
         }
         OraclesSessionResult result;
         status = oracles_session_run(&options, prefs, &result);

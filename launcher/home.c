@@ -138,14 +138,14 @@ static void read_update(home_app *app)
     changed(app);
 }
 
-static void start(home_app *app, OraclesHomeCommand game)
+/* A game played, then the home screen back; the host's answer (home.h). */
+static int play(home_app *app, OraclesHomeCommand game)
 {
-    if (!app->host || !app->host->start) return;
     char message[256] = "";
     int slow = 0;
-    const int closed = app->host->start(app->host->opaque, game, &app->nav, app->window, app->renderer, app->draw, message, sizeof message, &slow);
+    const int ended = app->host->start(app->host->opaque, game, &app->nav, app->window, app->renderer, app->draw, message, sizeof message, &slow);
     oracles_ui_draw_freeze(app->draw, 0);   /* the pause held the rasters at the game's scale; the home screen redoes its own */
-    if (closed) { app->running = 0; return; }
+    if (ended == 1) { app->running = 0; return ended; }
     restore_window(app);
     read_edges(app);   /* the game may have seen them change */
     /* The session had the controllers' plugs and unplugs: every controller is opened again from scratch, so that one the
@@ -176,6 +176,15 @@ static void start(home_app *app, OraclesHomeCommand game)
     read_update(app);   /* an answer that came during the game, whose loop took its event */
     changed(app);
     if (message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
+    return ended;
+}
+
+static void start(home_app *app, OraclesHomeCommand game)
+{
+    if (!app->host || !app->host->start) return;
+    /* The game again, at once (its savestate's Display chosen in its pause), from the window and the inputs as a game
+     * started here finds them, before the home screen draws. */
+    while (play(app, game) == 2) {}
 }
 
 /* The game's page asks the host for a file, a folder, or to keep a choice. */

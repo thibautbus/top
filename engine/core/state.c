@@ -201,6 +201,23 @@ int oracles_state_core_version(const uint8_t *data, size_t size, char *version, 
     return 0;
 }
 
+/* Field `wanted` copied into `out` as a string: 0, or -1 for no savestate or a field that does not fit. */
+static int field_text(const uint8_t *data, size_t size, unsigned wanted, char *out, size_t capacity)
+{
+    const uint8_t *field = NULL;
+    size_t length = 0;
+    if (capacity) out[0] = 0;
+    if (peek_field(data, size, wanted, &field, &length) != 0 || length >= capacity) return -1;
+    if (length) memcpy(out, field, length);
+    out[length] = 0;
+    return 0;
+}
+
+int oracles_state_game(const uint8_t *data, size_t size, char *game, size_t game_capacity, char *rom_sha1, size_t rom_capacity)
+{
+    return field_text(data, size, 1u, game, game_capacity) == 0 && field_text(data, size, 2u, rom_sha1, rom_capacity) == 0 ? 0 : -1;
+}
+
 int oracles_state_mods(const uint8_t *data, size_t size, char *mods, size_t capacity)
 {
     const uint8_t *field = NULL;

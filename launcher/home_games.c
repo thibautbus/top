@@ -674,21 +674,13 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
                      oracle.eu_reason);
         if (language_note[0]) fprintf(stderr, "oracles: %s\n", language_note);
     }
-    const int command_line_view = o.enhanced || o.zoom_out || o.view || o.continuous_transitions;
-    const OraclesProfile chosen = command_line_view ? ORACLES_PROFILE_ENHANCED : games->settings->profile;
-    const int effective = oracles_page_profile(&state, chosen);
-    const OraclesProfile profile = effective < 0 ? ORACLES_PROFILE_FAITHFUL : (OraclesProfile)effective;
+    /* Display's part: the profile the ROM plays, the transitions, the texts and the view's surface. */
+    const OraclesProfile chosen = o.enhanced || o.zoom_out || o.view || o.continuous_transitions ? ORACLES_PROFILE_ENHANCED : games->settings->profile;
+    OraclesEnhancedSize surface;
+    const OraclesProfile profile = oracles_session_display_options(&o, games->settings, oracles_page_profile_allowed(&state, ORACLES_PROFILE_ENHANCED),
+                                                                   window, &surface);
     if (profile != chosen) fprintf(stderr, "oracles: an unrecognized ROM plays in the Faithful profile, not %s\n", oracles_settings_profile_name(chosen));
     static const char *const hotkey_names[3] = { "off", "use", "equip" };
-    /* Display's Continuous transitions take Link swimming too, on across the axis walking diagonally, and a step a frame
-     * as the keys give it, a scroll starting at the line between two rooms; --continuous-transitions alone is the command
-     * line's, for the routes recorded with it, and so are --continuous-swim, --continuous-diagonal, --continuous-steps and
-     * --continuous-line. */
-    o.continuous_swim = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_swim || games->settings->transitions);
-    o.continuous_diagonal = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_diagonal || games->settings->transitions);
-    o.continuous_steps = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_steps || games->settings->transitions);
-    o.continuous_line = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_line || games->settings->transitions);
-    o.continuous_transitions = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_transitions || games->settings->transitions);
     /* The swim's hold, in either profile: the command line's, else settings.txt's swim_hold=. */
     o.swim_hold = o.swim_hold || games->settings->swim_hold;
     /* The text speed, in either profile, a fan game's too: the command line's, else settings.txt's text_speed=. */
@@ -696,19 +688,9 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     /* The cheats of the game's Oracle: the command line's, else settings.txt's cheats_<game>=; none for a fan game. */
     if (fan) o.cheats = 0;
     else if (!o.cheats_given) o.cheats = games->settings->cheats[g];
-    /* The compact text, in Enhanced alone: the command line's, else settings.txt's text=, a fan game's too (in its
-     * English, the only language the launcher starts it in); an image no profile qualifies plays without (check_profile). */
-    if (!o.compact_text) o.compact_text = games->settings->compact_text ? 2 : 1;
-    if (profile == ORACLES_PROFILE_FAITHFUL) o.compact_text = 1;
-    /* The wide text box, the same: the command line's, else settings.txt's text_box=. */
-    if (!o.text_box_wide) o.text_box_wide = games->settings->text_box_wide ? 2 : 1;
-    if (profile == ORACLES_PROFILE_FAITHFUL) o.text_box_wide = 1;
     /* No fan game's profile allows the item hotkeys yet: off, whatever the command line gave for the Oracles. */
     if (fan) o.hotkeys_option = hotkey_names[0];
     else if (!o.hotkeys_option) o.hotkeys_option = hotkey_names[state.hotkeys];
-    if (profile == ORACLES_PROFILE_FAITHFUL) o.enhanced = o.zoom_out = o.view = 0;
-    else if (!command_line_view) { o.enhanced = 1; o.view = games->settings->view + 1; }   /* Display's View */
-    else o.enhanced = 1;
     /* Display shows no camera: a game started here in Enhanced takes profile 2, the smooth camera. The camera key of
      * settings.txt stays for the command line and hand editing, and --camera given to the launcher still wins. */
     if (!o.camera_profile) o.camera_profile = 2;
@@ -720,11 +702,6 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
         if (games->settings->window_scale) o.sdl.scale = (unsigned)games->settings->window_scale;
     }
     if (oracles_sdl_fullscreen_only()) o.sdl.fullscreen = 1;   /* Android: the whole screen, whatever Display says */
-    /* The view's surface: its level in the screen's shape, far fitted to the screen (as the session takes it). */
-    o.screen_4_3 = oracles_session_view_4_3(&o, games->settings, window);
-    oracles_session_far_screen(&o, games->settings, window, &o.screen_w, &o.screen_h);
-    const OraclesEnhancedLevel level = o.view ? (OraclesEnhancedLevel)(o.view - 1) : o.zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
-    const OraclesEnhancedSize surface = !o.enhanced ? (OraclesEnhancedSize){ 160u, 144u } : oracles_session_view_size(&o, (int)level);
     o.sdl.scale = oracles_home_fitting_scale(window, o.sdl.scale, surface);
     /* Fill at one size, where every window comes to the one size the screen holds: fullscreen, as Display's diagram
      * shows it (oracles_display_fullscreen); Sharp there keeps the window, as large. */
@@ -749,6 +726,14 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     OraclesPause *pause = draw ? oracles_pause_create(draw, &pause_host, home_game, profile, games->settings->aspect,
                                                                 oracles_session_screen_margin(o.screen_margin, games->settings), nav) : NULL;
     o.pause = pause;
+    /* The pause's Load state may ask for the game again with a savestate's Display: the command line's options win there
+     * too, and Enhanced only where the ROM plays it. */
+    o.command_line = games->options;
+    o.enhanced_allowed = oracles_page_profile_allowed(&state, ORACLES_PROFILE_ENHANCED);
+    o.load_state = games->state_restart;
+    o.state_notice = games->state_notice;
+    o.state_previous = games->state_restart ? &games->state_previous : NULL;
+    games->state_restart = 0;
     /* Each game started says which key opens the menu, until the player opened it by its key, ten games at most: counted
      * once it was drawn over the game, not when a session that failed to start, or ended before its status bar showed,
      * never showed it.  The pause opened by its key marks it done (pause.c). */
@@ -768,6 +753,13 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
      * --record wrote its route. */
     static const char dropped[] = "Item hotkeys could not attach to this ROM: the game played without them.";
     if (result.error[0]) snprintf(message, capacity, "The game stopped: %s.", result.error);
+    /* A game started again for its savestate that stopped before loading it: Display's choices put back, as when the
+     * savestate is refused after all. */
+    if (o.state_previous && result.state_unloaded) {
+        oracles_state_display_restore(games->settings, o.state_previous);
+        oracles_ui_append_middle(message, capacity, "Display is back as it was.");
+        fprintf(stderr, "oracles: the game started again for its savestate stopped before loading it: Display's choices put back as they were\n");
+    }
     else if (result.hotkeys_dropped && result.route_written) snprintf(message, capacity, "%s Route written to %s", dropped, o.record_path);
     else if (result.hotkeys_dropped) snprintf(message, capacity, "%s", dropped);
     else if (result.route_written) snprintf(message, capacity, "Route written to %s", o.record_path);
@@ -776,6 +768,15 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     /* A game that ran slowly: the home screen suggests something lighter, once for the quality it ran at. */
     *slow = !result.error[0] && oracles_settings_slow_hint(games->settings, result.enhanced, result.frames_played, result.frames_late);
     if (*slow) oracles_settings_store(games->settings);
+    /* Its savestate taken with other Display settings, which the pause's Load state chose: the game again with them, the
+     * savestate loaded at its start, once the home screen has taken the window back. */
+    if (result.state_restart && !result.window_closed) {
+        games->state_restart = 1;
+        snprintf(games->state_notice, sizeof games->state_notice, "%s", result.state_notice);
+        games->state_previous = result.state_previous;
+        message[0] = 0;
+        return 2;
+    }
     return result.window_closed;
 }
 

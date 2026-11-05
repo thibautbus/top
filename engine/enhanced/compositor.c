@@ -646,16 +646,19 @@ void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCom
     compose_hud(core, in, in->size.width ? in->size : oracles_enhanced_size(0), out);
 }
 
-void oracles_enhanced_far_fitting_words(unsigned screen_w, unsigned screen_h, char *out, size_t capacity)
+void oracles_enhanced_far_fitting_words(unsigned screen_w, unsigned screen_h, unsigned margin_lines, char *out, size_t capacity)
 {
-    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting(screen_w, screen_h);
+    const OraclesEnhancedFitting f = oracles_enhanced_far_fitting_band(screen_w, screen_h, margin_lines);
     const OraclesEnhancedSize far = oracles_enhanced_view_size(ORACLES_ENHANCED_FAR, f.aspect);
+    char place[64];
+    if (margin_lines && margin_lines < screen_h) snprintf(place, sizeof place, "%ux%u band the margin leaves on the %ux%u screen", screen_w, screen_h - margin_lines, screen_w, screen_h);
+    else snprintf(place, sizeof place, "%ux%u screen", screen_w, screen_h);
     if (f.fit == ORACLES_ENHANCED_FIT_FITTED)
-        snprintf(out, capacity, "the far view fitted to the %ux%u screen: %ux%u at %ux, where %ux%u covers %u%% of it at %ux",
-                 screen_w, screen_h, f.size.width, f.size.height, f.scale, far.width, far.height, f.far_percent, f.far_scale);
+        snprintf(out, capacity, "the far view fitted to the %s: %ux%u at %ux, where %ux%u covers %u%% of it at %ux",
+                 place, f.size.width, f.size.height, f.scale, far.width, far.height, f.far_percent, f.far_scale);
     else if (f.fit == ORACLES_ENHANCED_FIT_FILLS)
-        snprintf(out, capacity, "the far view at %ux%u: it covers %u%% of the %ux%u screen at %ux", f.size.width, f.size.height, f.far_percent, screen_w, screen_h, f.far_scale);
+        snprintf(out, capacity, "the far view at %ux%u: it covers %u%% of the %s at %ux", f.size.width, f.size.height, f.far_percent, place, f.far_scale);
     else
-        snprintf(out, capacity, "the far view at %ux%u: the %ux%u screen at %ux gives %ux%u, %s", f.size.width, f.size.height, screen_w, screen_h, f.scale,
+        snprintf(out, capacity, "the far view at %ux%u: the %s at %ux gives %ux%u, %s", f.size.width, f.size.height, place, f.scale,
                  f.computed.width, f.computed.height, f.fit == ORACLES_ENHANCED_FIT_SMALL ? "under 400x224 or taller than wide" : "not a size the view takes");
 }

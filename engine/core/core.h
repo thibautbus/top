@@ -97,6 +97,8 @@ int oracles_core_load_state(OraclesCore *core, const uint8_t *buffer, size_t siz
 /* Version string of the instance's core ("sameboy-1.0.3"), part of every
  * composite savestate. */
 const char *oracles_core_version(const OraclesCore *core);
+/* The same for a core this build has, without an instance. */
+const char *oracles_core_kind_version(OraclesCoreKind kind);
 
 /* ---- memory and registers, for the guest bus ------------------------------------ */
 

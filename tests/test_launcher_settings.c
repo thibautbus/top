@@ -5,11 +5,13 @@
  * a profile, per-game profile and transitions keys) are not read, a key it does
  * not know is kept as it was, spaces and capitals are read as meant; menu_pad=
  * is taken as the session plays it; the end of a session reports the predictions
- * of the transitions, the wrong ones and those left to the load. */
+ * of the transitions, the wrong ones and those left to the load; a savestate taken with other Display settings finds
+ * the settings nearest to the player's that load it. */
 #include "compositor.h"
 #include "home_choices.h"
 #include "session.h"
 #include "settings.h"
+#include "state_display.h"
 #include "core.h"
 #include "room_transition.h"
 #include "ui_controls_nav.h"
@@ -425,6 +427,181 @@ static void pause_live_changes(void)
     CHECK(oracles_session_windows_refused(scales, 160, 144, ORACLES_ASPECT_16_9) == 7u);   /* 640 wide in 16:9 */
 }
 
+/* A screen for state_display: 16:9 at 1920x1080, or 4:3 at 1280x960, where far fitted is 426x320 without a margin. */
+typedef struct fake_screen { int four_three; } fake_screen;
+
+static void fake_play(void *opaque, const oracles_settings *settings, OraclesStatePlay *out)
+{
+    const fake_screen *screen = opaque;
+    memset(out, 0, sizeof *out);
+    out->core = oracles_settings_core(settings);
+    out->enhanced = settings->profile == ORACLES_PROFILE_ENHANCED;
+    if (!out->enhanced) return;
+    out->transitions = settings->transitions;
+    out->compact = settings->compact_text;
+    out->wide = settings->text_box_wide;
+    const int four_three = settings->aspect == ORACLES_ASPECT_4_3 || (settings->aspect == ORACLES_ASPECT_AUTO && screen->four_three);
+    OraclesEnhancedSize size = oracles_enhanced_view_size((OraclesEnhancedLevel)settings->view, four_three ? ORACLES_ENHANCED_4_3 : ORACLES_ENHANCED_16_9);
+    if (settings->view == ORACLES_ENHANCED_FAR && screen->four_three && settings->aspect == ORACLES_ASPECT_AUTO && !settings->far_fixed
+        && settings->screen_margin == ORACLES_SCREEN_MARGIN_OFF)
+        size = oracles_enhanced_fitted_size(0);
+    out->width = size.width;
+    out->height = size.height;
+}
+
+/* The player's settings: Enhanced, Far, the transitions on, the classic text, the Accurate core, no margin. */
+static void player(oracles_settings *s)
+{
+    oracles_settings_defaults(s);
+    s->profile = ORACLES_PROFILE_ENHANCED;
+    s->view = ORACLES_ENHANCED_FAR;
+    s->transitions = 1;
+    s->core = ORACLES_CORE_SAMEBOY;
+    s->screen_margin = ORACLES_SCREEN_MARGIN_OFF;
+    s->aspect = ORACLES_ASPECT_AUTO;
+    s->far_fixed = 0;
+}
+
+static void state_display(void)
+{
+    static oracles_settings s, before;
+    char notice[192];
+    fake_screen wide = { 0 }, square = { 1 };
+    /* As the player plays: nothing to change. */
+    OraclesStatePlay taken = { ORACLES_CORE_SAMEBOY, 1, 1, 0, 0, 480u, 270u };
+    player(&s);
+    CHECK(oracles_state_display_settings(&taken, &s, fake_play, &wide, notice, sizeof notice) == 0 && !notice[0]);
+    /* Another core, then another view too: those alone change. */
+    taken.core = ORACLES_CORE_MGBA;
+    CHECK(oracles_state_display_settings(&taken, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.core == ORACLES_CORE_MGBA && s.view == ORACLES_ENHANCED_FAR && s.profile == ORACLES_PROFILE_ENHANCED);
+    CHECK(!strcmp(notice, "Display set to Fast (mGBA) to load this savestate"));
+    player(&s);
+    taken.width = 256u;
+    taken.height = 144u;
+    CHECK(oracles_state_display_settings(&taken, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.core == ORACLES_CORE_MGBA && s.view == ORACLES_ENHANCED_NEAR && s.aspect == ORACLES_ASPECT_AUTO);
+    CHECK(!strcmp(notice, "Display set to Fast (mGBA) and Near to load this savestate"));
+    /* With the transitions too: three changes, Enhanced kept. */
+    player(&s);
+    taken.transitions = 0;
+    CHECK(oracles_state_display_settings(&taken, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.profile == ORACLES_PROFILE_ENHANCED && !s.transitions);
+    CHECK(!strcmp(notice, "Display set to Fast (mGBA), Continuous transitions Off and Near to load this savestate"));
+    /* Taken with the transitions, played in Faithful: Enhanced, which brings them and Far back. */
+    player(&s);
+    s.profile = ORACLES_PROFILE_FAITHFUL;
+    const OraclesStatePlay transitions = { ORACLES_CORE_SAMEBOY, 1, 1, 0, 0, 480u, 270u };
+    CHECK(oracles_state_display_settings(&transitions, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.profile == ORACLES_PROFILE_ENHANCED && !strcmp(notice, "Display set to Enhanced to load this savestate"));
+    /* Taken in Faithful (no surface), played with the transitions: they go, the profile stays. */
+    player(&s);
+    const OraclesStatePlay faithful = { ORACLES_CORE_SAMEBOY, 0, 0, 0, 0, 0u, 0u };
+    CHECK(oracles_state_display_settings(&faithful, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.profile == ORACLES_PROFILE_ENHANCED && !s.transitions);
+    CHECK(!strcmp(notice, "Display set to Continuous transitions Off to load this savestate"));
+    /* Taken with the compact text in the wide box. */
+    player(&s);
+    const OraclesStatePlay text = { ORACLES_CORE_SAMEBOY, 1, 1, 1, 1, 480u, 270u };
+    CHECK(oracles_state_display_settings(&text, &s, fake_play, &wide, notice, sizeof notice));
+    CHECK(s.compact_text && s.text_box_wide && !strcmp(notice, "Display set to Compact text and Wide text box to load this savestate"));
+    /* On a 4:3 screen where far is fitted: far's fixed 4:3 size is Far size's Fixed, the margin left alone; its 16:9 size
+     * only aspect= gives, which is no choice of Display: refused, nothing changed. */
+    player(&s);
+    const OraclesStatePlay fixed = { ORACLES_CORE_SAMEBOY, 1, 1, 0, 0, 480u, 360u };
+    CHECK(oracles_state_display_settings(&fixed, &s, fake_play, &square, notice, sizeof notice));
+    CHECK(s.far_fixed && s.aspect == ORACLES_ASPECT_AUTO && s.screen_margin == ORACLES_SCREEN_MARGIN_OFF);
+    CHECK(!strcmp(notice, "Display set to Far size Fixed to load this savestate"));
+    player(&s);
+    before = s;
+    const OraclesStatePlay sixteen_nine = { ORACLES_CORE_SAMEBOY, 1, 1, 0, 0, 480u, 270u };
+    CHECK(oracles_state_display_settings(&sixteen_nine, &s, fake_play, &square, notice, sizeof notice) == -1 && !notice[0]);
+    CHECK(!memcmp(&s, &before, sizeof s));
+    /* Taken fitted to this screen, played with a margin: the margin goes. */
+    player(&s);
+    s.screen_margin = ORACLES_SCREEN_MARGIN_AUTO;
+    const OraclesStatePlay fitted = { ORACLES_CORE_SAMEBOY, 1, 1, 0, 0, 426u, 320u };
+    CHECK(oracles_state_display_settings(&fitted, &s, fake_play, &square, notice, sizeof notice));
+    CHECK(s.screen_margin == ORACLES_SCREEN_MARGIN_OFF && !strcmp(notice, "Display set to Screen margin Off to load this savestate"));
+    /* Fitted to another screen: nothing loads it, and nothing changes. */
+    player(&s);
+    before = s;
+    const OraclesStatePlay elsewhere = { ORACLES_CORE_MGBA, 1, 1, 0, 0, 412u, 360u };
+    CHECK(oracles_state_display_settings(&elsewhere, &s, fake_play, &square, notice, sizeof notice) == -1 && !notice[0]);
+    CHECK(!memcmp(&s, &before, sizeof s));
+    /* Past four changes, how many. */
+    player(&s);
+    s.profile = ORACLES_PROFILE_FAITHFUL;
+    s.view = ORACLES_ENHANCED_NEAR;
+    s.screen_margin = ORACLES_SCREEN_MARGIN_AUTO;
+    const OraclesStatePlay many = { ORACLES_CORE_MGBA, 1, 1, 1, 1, 426u, 320u };
+    CHECK(oracles_state_display_settings(&many, &s, fake_play, &square, notice, sizeof notice) == 6);
+    CHECK(!strcmp(notice, "Display changed in 6 rows to load this savestate"));
+    /* The choices as they were, for the game started again: read and written back whole. */
+    OraclesStateDisplay kept;
+    player(&before);
+    oracles_state_display_read(&before, &kept);
+    oracles_state_display_write(&s, &kept);
+    CHECK(s.profile == before.profile && s.core == before.core && s.transitions == before.transitions && s.compact_text == before.compact_text
+          && s.text_box_wide == before.text_box_wide && s.view == before.view && s.far_fixed == before.far_fixed && s.screen_margin == before.screen_margin);
+}
+
+/* A game started again for its savestate that does not load it: Display's choices put back and stored, the quality
+ * suggested forgotten as View and Core change back. */
+static void display_restored(const char *path)
+{
+    static oracles_settings s, read;
+    player(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    OraclesStateDisplay previous;
+    oracles_state_display_read(&s, &previous);
+    s.core = ORACLES_CORE_MGBA;
+    s.view = ORACLES_ENHANCED_NEAR;
+    s.transitions = 0;
+    s.quality_hint = 2;
+    oracles_state_display_restore(&s, &previous);
+    CHECK(s.core == ORACLES_CORE_SAMEBOY && s.view == ORACLES_ENHANCED_FAR && s.transitions && s.quality_hint == -1);
+    oracles_settings_defaults(&read);
+    snprintf(read.path, sizeof read.path, "%s", path);
+    oracles_settings_load(&read);
+    CHECK(read.core == ORACLES_CORE_SAMEBOY && read.view == ORACLES_ENHANCED_FAR && read.transitions);
+    remove(path);
+}
+
+/* Display's part of a game the home screen starts, which a savestate's game started again is predicted with: the
+ * settings, the command line's options winning, Enhanced only where the ROM plays it. */
+static void display_options(void)
+{
+    static oracles_settings s;
+    player(&s);
+    s.aspect = ORACLES_ASPECT_16_9;   /* named: no screen asked */
+    s.transitions = 0;
+    s.compact_text = 1;
+    OraclesSessionOptions o;
+    OraclesEnhancedSize surface;
+    oracles_session_defaults(&o);
+    CHECK(oracles_session_display_options(&o, &s, 1, NULL, &surface) == ORACLES_PROFILE_ENHANCED);
+    CHECK(o.enhanced && o.view == ORACLES_ENHANCED_FAR + 1 && !o.continuous_transitions && !o.continuous_swim && o.compact_text == 2 && o.text_box_wide == 1);
+    CHECK(surface.width == 480u && surface.height == 270u);
+    /* An unrecognized ROM: Faithful, nothing of Enhanced. */
+    oracles_session_defaults(&o);
+    CHECK(oracles_session_display_options(&o, &s, 0, NULL, &surface) == ORACLES_PROFILE_FAITHFUL);
+    CHECK(!o.enhanced && !o.view && o.compact_text == 1 && surface.width == 160u && surface.height == 144u);
+    /* --view near and --continuous-swim: the view and the swim the command line's, whatever the settings say. */
+    oracles_session_defaults(&o);
+    o.view = ORACLES_ENHANCED_NEAR + 1;
+    o.continuous_swim = 1;
+    CHECK(oracles_session_display_options(&o, &s, 1, NULL, &surface) == ORACLES_PROFILE_ENHANCED);
+    CHECK(o.view == ORACLES_ENHANCED_NEAR + 1 && o.continuous_swim && !o.continuous_transitions && surface.width == 256u && surface.height == 144u);
+    /* Faithful chosen, the command line's view asks for Enhanced. */
+    s.profile = ORACLES_PROFILE_FAITHFUL;
+    oracles_session_defaults(&o);
+    CHECK(oracles_session_display_options(&o, &s, 1, NULL, &surface) == ORACLES_PROFILE_FAITHFUL && !o.enhanced);
+    oracles_session_defaults(&o);
+    o.view = ORACLES_ENHANCED_FAR + 1;
+    CHECK(oracles_session_display_options(&o, &s, 1, NULL, &surface) == ORACLES_PROFILE_ENHANCED && o.enhanced && surface.width == 480u);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) { fprintf(stderr, "usage: oracles-test-launcher-settings TEMPORARY_FILE\n"); return 2; }
@@ -772,19 +949,23 @@ int main(int argc, char **argv)
     {
         OraclesSessionOptions options;
         oracles_session_defaults(&options);
-        unsigned w = 1, h = 1;
+        unsigned w = 1, h = 1, lines = 1;
         read_back.far_fixed = 1;
-        oracles_session_far_screen(&options, &read_back, NULL, &w, &h);
-        CHECK(w == 0 && h == 0);
+        oracles_session_far_screen(&options, &read_back, NULL, &w, &h, &lines);
+        CHECK(w == 0 && h == 0 && lines == 0);
         read_back.far_fixed = 0;
         options.aspect = 1 + ORACLES_ASPECT_4_3;
-        w = h = 1;
-        oracles_session_far_screen(&options, &read_back, NULL, &w, &h);
-        CHECK(w == 0 && h == 0);
+        w = h = lines = 1;
+        oracles_session_far_screen(&options, &read_back, NULL, &w, &h, &lines);
+        CHECK(w == 0 && h == 0 && lines == 0);
         options.aspect = 0;
         options.screen_w = 1280; options.screen_h = 960;   /* its shape the view's, whatever screen_4_3 says */
         const OraclesEnhancedSize far = oracles_session_view_size(&options, ORACLES_ENHANCED_FAR), medium = oracles_session_view_size(&options, ORACLES_ENHANCED_MEDIUM);
         CHECK(far.width == 426 && far.height == 320 && medium.width == 320 && medium.height == 240);
+        options.screen_margin_lines = 120;   /* the band a margin leaves: 1280x840, where far keeps its size */
+        CHECK(oracles_session_view_size(&options, ORACLES_ENHANCED_FAR).width == 480 && oracles_session_view_size(&options, ORACLES_ENHANCED_FAR).height == 360);
+        CHECK(oracles_session_view_size(&options, ORACLES_ENHANCED_MEDIUM).width == 320);
+        options.screen_margin_lines = 0;
         options.screen_w = 1920; options.screen_h = 1080;
         CHECK(oracles_session_view_size(&options, ORACLES_ENHANCED_FAR).height == 270);
         options.screen_w = options.screen_h = 0;   /* far=fixed or a shape named: the options' shape */
@@ -1153,6 +1334,11 @@ int main(int argc, char **argv)
     pause_changes();
     text_layout();
     pause_live_changes();
+    state_display();
+    display_options();
+    char restored[ORACLES_SETTINGS_PATH_LENGTH];
+    snprintf(restored, sizeof restored, "%s.restored", path);
+    display_restored(restored);
     transitions_line(path);
 
     remove(path);

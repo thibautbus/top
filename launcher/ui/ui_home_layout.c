@@ -72,6 +72,7 @@ typedef struct metrics {
     float toast_bottom, toast_pad_x, toast_pad_y;
     float slow_left, slow_bottom, slow_max_width, slow_pad_x, slow_pad_y, slow_gap, slow_line;   /* the slow game's toast */
     float pad_toast_gap, pad_toast_pad_x, pad_toast_pad_y, pad_toast_min_h;   /* the reminder over a game, under its status bar */
+    float notice_max_width;   /* a notice over a game, as the reminder, wrapped within it */
 } metrics;
 
 static const metrics metrics_16_9 = {
@@ -89,6 +90,7 @@ static const metrics metrics_16_9 = {
     .slow_left = 96.0f, .slow_bottom = 1080.0f - 96.0f, .slow_max_width = 760.0f, .slow_pad_x = 26.0f, .slow_pad_y = 16.0f, .slow_gap = 6.0f,
     .slow_line = 24.0f * 1.35f,
     .pad_toast_gap = 16.0f, .pad_toast_pad_x = 26.0f, .pad_toast_pad_y = 14.0f, .pad_toast_min_h = 0.0f,
+    .notice_max_width = 1200.0f,
 };
 /* 4:3: every target at least 90 tall; the hero's title alone under the tabs, and higher in the pause, which has none,
  * so that seven entries fit under it. */
@@ -107,6 +109,7 @@ static const metrics metrics_4_3 = {
     .slow_left = 64.0f, .slow_bottom = 1080.0f - 120.0f, .slow_max_width = 640.0f, .slow_pad_x = 28.0f, .slow_pad_y = 18.0f, .slow_gap = 6.0f,
     .slow_line = 30.0f * 1.3f,
     .pad_toast_gap = 12.0f, .pad_toast_pad_x = 30.0f, .pad_toast_pad_y = 0.0f, .pad_toast_min_h = 90.0f,
+    .notice_max_width = 1240.0f,
 };
 
 static const metrics *metrics_of(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &metrics_4_3 : &metrics_16_9; }
@@ -369,6 +372,40 @@ void oracles_ui_layout_pad_toast(OraclesUiLayout layout, const char *text, float
     out->text.x = out->box.x + TOAST_BORDER + m->pad_toast_pad_x;
     out->text.y = out->box.y + (out->box.h - out->text.h) * 0.5f;
     out->text.baseline += out->text.y;
+}
+
+void oracles_ui_layout_notice(OraclesUiLayout layout, const char *text, float bar_bottom, OraclesUiNoticeLayout *out)
+{
+    const metrics *m = metrics_of(layout);
+    const OraclesUiTextStyle *style = oracles_ui_home_styles(layout)->pad_toast;
+    memset(out, 0, sizeof *out);
+    /* As wide as its text, up to its widest, where the text wraps. */
+    const float frame = 2.0f * (m->pad_toast_pad_x + TOAST_BORDER);
+    float inner = oracles_ui_text_width(style, text);
+    if (inner > m->notice_max_width - frame) inner = m->notice_max_width - frame;
+    OraclesUiWrapped wrapped;
+    oracles_ui_wrap_pretty(style, text, inner, 0.0f, 0.0f, &wrapped);
+    out->wrapped_lines = wrapped.count;
+    float y = 0.0f, widest = 0.0f;
+    for (unsigned i = 0; i < wrapped.count && i < ORACLES_UI_NOTICE_LINES; i++) {
+        snprintf(out->text[i], sizeof out->text[i], "%s", wrapped.text[i]);
+        out->text_lines[i] = line_at(style, out->text[i], 0.0f, y, 0.0f);
+        if (out->text_lines[i].w > widest) widest = out->text_lines[i].w;
+        y += out->text_lines[i].h;
+        out->lines++;
+    }
+    out->box.w = widest + frame;
+    out->box.h = y + 2.0f * (m->pad_toast_pad_y + TOAST_BORDER);
+    if (out->box.h < m->pad_toast_min_h) out->box.h = m->pad_toast_min_h;
+    out->box.x = m->scene_w * 0.5f - out->box.w * 0.5f;
+    out->box.y = bar_bottom + m->pad_toast_gap;
+    /* Each line centred in the box, the lines in the middle of its height. */
+    const float top = out->box.y + (out->box.h - y) * 0.5f;
+    for (unsigned i = 0; i < out->lines; i++) {
+        out->text_lines[i].x = m->scene_w * 0.5f - out->text_lines[i].w * 0.5f;
+        out->text_lines[i].y += top;
+        out->text_lines[i].baseline += top;
+    }
 }
 
 void oracles_ui_layout_slow(OraclesUiLayout layout, const char *text, const char *path, OraclesUiSlowLayout *out)

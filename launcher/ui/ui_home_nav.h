@@ -250,6 +250,8 @@ typedef struct OraclesHomeDisplay {
     int margin_fixed;           /* --screen-margin gave it for the run: the row shows it, dimmed and inert, and it is never stored */
     int margin_lines[4];        /* the screen's lines each margin (Off, Auto, Small, Large) keeps the game out of, above and
                                  * below together: 0 for none */
+    int game_margin;            /* in a game, its margin when it started plus one, which the view's sizes were fitted with: they
+                                 * change at the next game; 0: the margin chosen */
     int cores;                  /* the device's logical processor cores, which Auto's count follows */
     int screen_w, screen_h;     /* the display's size, for the sizes the page shows */
     int aspect;                 /* the settings' aspect= (an OraclesAspect): the shape of those sizes, the screen's when auto */

@@ -29,4 +29,14 @@ int oracles_state_core_refusal(const char *taken_on, const char *now, char *mess
 int oracles_state_text_refusal(const char *taken_mods, const char *mods, int enhanced, int compact_chosen, int wide_chosen, char *message,
                                size_t message_capacity, char *detail, size_t detail_capacity);
 
+/* The text a set of mods and gameplay options lays out, as oracles_state_text_refusal reads it: 1 for the host's (the
+ * compact text, the wide box, or both, *compact and *wide saying which), 0 for the classic text in the game's box. */
+int oracles_state_text_taken(const char *mods, int *compact, int *wide);
+
+/* 1 when a state whose set of mods and gameplay options is `taken_mods` differs from a session's `mods` only in what
+ * Display chooses, so that a game started again with other choices of Display could load it: the same mods and the
+ * same language, the continuous transitions aside, and its text's word (text-...@digest, "" for the classic text in the
+ * game's box) `text_word`, that of the layout the game started again would play. */
+int oracles_state_display_only(const char *taken_mods, const char *mods, const char *text_word);
+
 #endif

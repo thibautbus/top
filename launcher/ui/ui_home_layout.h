@@ -122,6 +122,16 @@ void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUi
 /* The reminder over a game started ("L3 opens the menu"), centred, under the game's status bar, whose bottom is at
  * `bar_bottom` in the scene. */
 void oracles_ui_layout_pad_toast(OraclesUiLayout layout, const char *text, float bar_bottom, OraclesUiToastLayout *out);
+/* A notice over a game (oracles_pause_notice), as the reminder is: its text on three lines at most within its widest,
+ * each centred; `wrapped_lines`, the lines the text took, which a text too long has more of than are laid out. */
+#define ORACLES_UI_NOTICE_LINES 3
+typedef struct OraclesUiNoticeLayout {
+    OraclesUiBox box;
+    unsigned lines, wrapped_lines;
+    char text[ORACLES_UI_NOTICE_LINES][ORACLES_HOME_TEXT_LENGTH];
+    OraclesUiLine text_lines[ORACLES_UI_NOTICE_LINES];
+} OraclesUiNoticeLayout;
+void oracles_ui_layout_notice(OraclesUiLayout layout, const char *text, float bar_bottom, OraclesUiNoticeLayout *out);
 /* The slow game's toast (oracles_home_slow_text): its text and the row it leads to ("Display › Quality"). */
 void oracles_ui_layout_slow(OraclesUiLayout layout, const char *text, const char *path, OraclesUiSlowLayout *out);
 

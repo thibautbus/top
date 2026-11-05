@@ -208,6 +208,28 @@ static void layouts(void)
     CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_MENUS);
     lay_out(&nav, &t, &l);
     CHECK(!t.far_size && l.rows[ORACLES_DISPLAY_FAR_SIZE].w == 0.0f);
+    /* Small margin's 120 lines leave 840: far fits to that band, where three times 426x320 does not fit, and keeps its
+     * size, as on a screen it fills; the row goes, and View's Far says 480x360. */
+    nav.display.aspect = 0;
+    nav.display.margin = 2;
+    nav.display.margin_lines[2] = 120;
+    lay_out(&nav, &t, &l);
+    CHECK(!t.far_size && !oracles_display_far_size_shown(&nav));
+    char far[32];
+    oracles_display_view_size(&nav, 2, far, sizeof far);
+    CHECK(!strcmp(far, "480\xc3\x97" "360"));
+    /* In a game started without a margin, Small chosen from the pause changes Far's size at the next game only: the
+     * page keeps the size the game has. */
+    nav.in_game = 1;
+    nav.display.game_margin = 1;
+    CHECK(oracles_display_far_size_shown(&nav));
+    oracles_display_view_size(&nav, 2, far, sizeof far);
+    CHECK(!strcmp(far, "426\xc3\x97" "320"));
+    nav.in_game = 0;
+    nav.display.game_margin = 0;
+    nav.display.margin = 0;
+    lay_out(&nav, &t, &l);
+    CHECK(t.far_size && oracles_display_far_size_shown(&nav));
 
     /* 34g: from the pause, every row live, the page's note under the title. */
     ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);

@@ -66,6 +66,11 @@ typedef struct OraclesHomeGames {
         int game, english;
         uint8_t data[ORACLES_SAVE_SIZE];
     } import;
+    /* A game to start again with its savestate's Display, the savestate loaded at its start, what changed, and the
+     * choices as they were before, put back if it is refused after all. */
+    int state_restart;
+    char state_notice[192];
+    OraclesStateDisplay state_previous;
 } OraclesHomeGames;
 
 /* The host of the home screen for these games. */
