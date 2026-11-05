@@ -592,7 +592,7 @@ The paragraphs below describe the launcher's pages row by row, with their notes 
 
 ### The home screen
 
-Without `--rom`, `the-oracles-project` opens the home screen in a 16:9 window of 1280x720 at the first opening, resizable down to 960x540, whose size is remembered: Oracle of Ages, Oracle of Seasons and Fan games, the chosen entry on the right with its title, its state (`Ready`, with the date of its save as the last session, `ROM not found`, or for a fan game whose Oracle's ROM is chosen, `Patch not found`) and its menu, the two others on the left.
+Without `--rom`, `the-oracles-project` opens the home screen in a 16:9 window of 1280x720 at the first opening, resizable down to 960x540, whose size is remembered: Oracle of Ages, Oracle of Seasons and Fan games, the chosen entry on the right with its title, its state (`Ready`, with the date of its save as the last session, `ROM not found`, or for a fan game whose Oracle's ROM is chosen, `Patch not found`, `Patch refused` when its patch is there but refused) and its menu, the two others on the left.
 
 A window nearer 4:3 than 16:9 (a 640x480 handheld, 1024x768), or any window with `aspect=4:3` in the settings, takes the 4:3 layout, larger for a small screen:
 

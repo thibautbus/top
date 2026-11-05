@@ -342,6 +342,20 @@ static void reminders(void)
     reminder_frame("37f 16:9", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
 }
 
+/* A fan game's state "Patch refused" takes no more room than "Patch not found", as the hero's state and as its note in
+ * the list of fan games, in both layouts. */
+static void patch_refused(void)
+{
+    for (int layout = 0; layout < 2; layout++) {
+        const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9);
+        if (oracles_ui_text_width(st->hero_state, "Patch refused") > oracles_ui_text_width(st->hero_state, "Patch not found")
+            || oracles_ui_text_width(st->item_note, "Patch refused") > oracles_ui_text_width(st->item_note, "Patch not found")) {
+            fprintf(stderr, "FAIL patch refused: wider than \"Patch not found\" in %s\n", layout ? "4:3" : "16:9");
+            layout_fail();
+        }
+    }
+}
+
 /* A notice over a game: the longest the session shows, what a game started again for its savestate changed, the
  * refusals F7 shows and a game started again that refuses its savestate after all, on three lines at most inside the
  * scene in both layouts. */
@@ -936,6 +950,7 @@ int main(int argc, char **argv)
     toast();
     reminders();
     notices();
+    patch_refused();
     hotkeys_line("37g", 1920, 1080, ORACLES_INPUT_KEYBOARD);
     hotkeys_line("37h", 640, 480, ORACLES_INPUT_GAMEPAD);
     hotkeys_line_rules();

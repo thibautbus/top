@@ -275,8 +275,15 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
         uint8_t *image = build_image(games, settings->rom[base], patch, &size, state->image_reason, sizeof state->image_reason);
         OraclesRomInfo info;
         state->image = ORACLES_ROM_REFUSED;
-        if (image && oracles_rom_identify(image, size, &info, state->image_reason, sizeof state->image_reason) == 0)
+        if (image && oracles_rom_identify(image, size, &info, state->image_reason, sizeof state->image_reason) == 0) {
             state->image = info.revision == fan_revisions[f] ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
+            /* Another fan game's patch (written so in settings.txt): refused, the game it makes named. */
+            for (unsigned o = 0; o < ORACLES_HOME_FAN_GAMES; o++)
+                if (o != f && info.revision == fan_revisions[o]) {
+                    state->image = ORACLES_ROM_REFUSED;
+                    snprintf(state->image_reason, sizeof state->image_reason, "the patch of %s, not of %s", fan_title(&oracles_home_fan_games[o]), fan_title(fan));
+                }
+        }
         free(image);
         keep_found(found, settings->rom[base], &file, there, state->image, state->image == ORACLES_ROM_REFUSED ? state->image_reason : "");
     } else {
@@ -442,12 +449,21 @@ static OraclesRomState offer_eu(OraclesHomeGames *games, OraclesSettingsGame g, 
     return state;
 }
 
-/* A patch for a fan game: kept in settings.txt when it is a BPS patch, else shown refused and not kept.  Whether it is
- * made for the Oracle's ROM, the image's line says. */
-static int offer_patch(OraclesHomeGames *games, const OraclesHomeFanGame *fan, const char *path, char *error, size_t capacity)
+static const OraclesHomeFanGame *fan_of_patch(OraclesHomeGames *games, const char *path);
+
+/* A patch for a fan game: kept in settings.txt when it is a BPS patch, else shown refused and not kept, and so is
+ * another fan game's, which makes that game's image of its Oracle's ROM (unless `its_own`, the caller having found that
+ * it makes this one's).  Whether it is made for the Oracle's ROM, the image's line says. */
+static int offer_patch(OraclesHomeGames *games, const OraclesHomeFanGame *fan, int its_own, const char *path, char *error, size_t capacity)
 {
     const unsigned f = fan_index(fan);
-    if (check_patch(games, path, error, capacity) != 0) {
+    int refused = check_patch(games, path, error, capacity) != 0;
+    const OraclesHomeFanGame *made = refused || its_own ? NULL : fan_of_patch(games, path);
+    if (made && made != fan) {
+        snprintf(error, capacity, "the patch of %s, not of %s", fan_title(made), fan_title(fan));
+        refused = 1;
+    }
+    if (refused) {
         snprintf(games->refused_patch[f].path, sizeof games->refused_patch[f].path, "%s", path);
         snprintf(games->refused_patch[f].reason, sizeof games->refused_patch[f].reason, "%s", error);
         fprintf(stderr, "oracles: %s patch %s refused, not kept: %s\n", fan_title(fan), path, error);
@@ -533,7 +549,7 @@ static void file_chosen(void *opaque, int game, int kind, int result, const char
         return;
     }
     const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
-    const int kept = kind == ORACLES_DIALOG_PATCH ? fan && offer_patch(games, fan, path, error, sizeof error)   /* the page's fan game */
+    const int kept = kind == ORACLES_DIALOG_PATCH ? fan && offer_patch(games, fan, 0, path, error, sizeof error)   /* the page's fan game */
                                                   : offer(games, rom_setting(game), path);
     /* A copy made for this choice and refused goes (Android): the application's folder keeps only what it uses. */
     if (!kept && copied && remove(path) == 0) fprintf(stderr, "oracles: %s removed, refused\n", path);
@@ -579,12 +595,13 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
             snprintf(message, capacity, "Refused: %s.", error);
             return -1;
         }
-        if (!fan) fan = fan_of_patch(games, path);
+        const int found = !fan;   /* the patch's own fan game, found once */
+        if (found) fan = fan_of_patch(games, path);
         if (!fan) {
             snprintf(message, capacity, "No fan game is made of this patch and the ROMs chosen: drop it on its page");
             return page_game >= 0 ? -1 : ORACLES_HOME_FAN;
         }
-        const int kept = offer_patch(games, fan, path, error, sizeof error);
+        const int kept = offer_patch(games, fan, found, path, error, sizeof error);
         if (page_game == fan->game) return -1;
         if (kept) snprintf(message, capacity, "%s patch set", fan_title(fan));
         else snprintf(message, capacity, "Refused: %s.", error);

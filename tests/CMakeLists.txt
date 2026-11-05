@@ -338,6 +338,12 @@ if(BUILD_TESTING)
                     --update-check-url ${CMAKE_CURRENT_BINARY_DIR}/update_release_newer.json)
         set_tests_properties(oracles-launcher-update-check PROPERTIES PASS_REGULAR_EXPRESSION "update check: version 99\\.0\\.0 available"
             FAIL_REGULAR_EXPRESSION "https://|update_release_newer" TIMEOUT 30 ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
+        # A fan game's patch written in settings.txt for another fan game: refused on that page (skipped without the user's
+        # ROM and patches in ORACLES_ROM_DIR).
+        add_test(NAME oracles-launcher-fan-patch-pages
+            COMMAND ${CMAKE_COMMAND} -D LAUNCHER=$<TARGET_FILE:oracles> -D WORK=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-fan-patches
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/fan_patch_pages.cmake)
+        set_tests_properties(oracles-launcher-fan-patch-pages PROPERTIES SKIP_REGULAR_EXPRESSION "skipped" TIMEOUT 60)
         # The home screen shows it above the version at a handheld's 640x480, highlighted by Up from Start game past the
         # version number, after a controller's button (the layout reference's frame 24d).
         add_test(NAME oracles-launcher-screenshot-update-draw

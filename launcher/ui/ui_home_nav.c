@@ -102,7 +102,9 @@ void oracles_home_state(const OraclesHomeNav *nav, OraclesHomeHero hero, char ou
     /* A fan game whose Oracle's ROM is there misses its patch. */
     const int fan = hero != ORACLES_HOME_HERO_AGES && hero != ORACLES_HOME_HERO_SEASONS;
     const int base_found = fan && (game->rom == ORACLES_ROM_ORIGINAL || game->rom == ORACLES_ROM_UNRECOGNISED);
-    if (!game->usable) snprintf(out, ORACLES_HOME_STATE_LENGTH, "%s", base_found ? "Patch not found" : "ROM not found");
+    /* A patch there but refused (not a BPS patch, another fan game's) says so. */
+    const int patch_refused = base_found && (game->patch == ORACLES_ROM_REFUSED || game->image == ORACLES_ROM_REFUSED);
+    if (!game->usable) snprintf(out, ORACLES_HOME_STATE_LENGTH, "%s", patch_refused ? "Patch refused" : base_found ? "Patch not found" : "ROM not found");
     else if (game->last_session[0]) snprintf(out, ORACLES_HOME_STATE_LENGTH, "Ready \xc2\xb7 last session %s", game->last_session);
     else snprintf(out, ORACLES_HOME_STATE_LENGTH, "Ready");
 }

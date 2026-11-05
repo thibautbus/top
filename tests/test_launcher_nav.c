@@ -268,6 +268,14 @@ static void fan_games(void)
     /* With its Oracle's ROM there, a fan game misses its patch. */
     nav.games[ORACLES_HOME_GAME_TEMPLE].rom = ORACLES_ROM_ORIGINAL;
     CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch not found") && !strcmp(items[0].note, "ROM not found"));
+    /* Its patch there but refused, or the image it makes refused (another fan game's): refused, not missing. */
+    nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_REFUSED;
+    CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch refused"));
+    nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_ORIGINAL;
+    nav.games[ORACLES_HOME_GAME_TEMPLE].image = ORACLES_ROM_REFUSED;
+    CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch refused"));
+    nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_NONE;
+    nav.games[ORACLES_HOME_GAME_TEMPLE].image = ORACLES_ROM_NONE;
     nav.games[ORACLES_HOME_GAME_TEMPLE].rom = ORACLES_ROM_NONE;
     CHECK(oracles_home_hints(&nav, hints) == 3);
     /* Back in the list stays in the list. */

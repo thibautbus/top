@@ -37,6 +37,8 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - **Import save on Android.** The confirmation now shows the folder the save comes from (Download, or the folder you picked it in) instead of a blank line.
 - **Cartridge's Save row on Android.** With **Import save…** highlighted, the note under the save now speaks of the import, instead of repeating Export's.
 - **Import save.** The message after an import now names each file that went to Backups, the savestate included.
+- **A fan game's patch on another fan game's page.** Choosing or dropping the patch of another of these fan games, in the version the launcher recognizes (Moonrise Regalia 1.0.6's on Gifts of Kinomi's page, for instance), is now refused, naming the game it is for, instead of being taken as an unrecognized patch playable in Faithful only.
+- **A refused patch on the home screen.** A fan game whose patch is there but refused, such as another fan game's, now shows "Patch refused" on the home screen and in the list of fan games, instead of "Patch not found".
 
 ## 1.3.0 (2026-10-25)
 
