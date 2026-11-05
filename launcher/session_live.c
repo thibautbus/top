@@ -19,14 +19,25 @@ int oracles_session_ensure_guest(session *s, uint32_t frame)
     return 1;
 }
 
+/* Why a feature turned on from the pause found no point to hook: the guest's table of hooks full, when it refused one
+ * just now, else the ROM; the launcher's warning written once more. */
+static const char *hooks_why(session *s, unsigned refused_before, const char *rom_reason)
+{
+    if (!s->guest || oracles_guest_hooks_refused(s->guest) == refused_before) return rom_reason;
+    fprintf(stderr, "oracles: WARNING: the guest's table of hooks is full: %u hook(s) not installed (%u installed)\n",
+            oracles_guest_hooks_refused(s->guest), oracles_guest_hook_count(s->guest));
+    return "the guest's table of hooks is full";
+}
+
 /* The cheats from `frame` on, before it runs: the guest attached at the first one turned on, its points armed and kept;
  * each change written while recording. */
 void oracles_session_change_cheats(session *s, uint32_t frame, unsigned cheats)
 {
     char names[64];
     if (cheats && !oracles_session_ensure_guest(s, frame)) { fprintf(stderr, "oracles: the hooks cannot be armed in this ROM: the cheats stay off\n"); return; }
+    const unsigned refused = s->guest ? oracles_guest_hooks_refused(s->guest) : 0;
     if (!s->guest || oracles_guest_set_cheats(s->guest, cheats) != 0) {
-        if (cheats) fprintf(stderr, "oracles: the cheats cannot find their points in this ROM: they stay as they were\n");
+        if (cheats) fprintf(stderr, "oracles: the cheats cannot be armed (%s): they stay as they were\n", hooks_why(s, refused, "their points are not in this ROM"));
         return;
     }
     for (unsigned index = 0; s->recording && index < ORACLES_CHEATS; index++)
@@ -40,8 +51,9 @@ void oracles_session_change_cheats(session *s, uint32_t frame, unsigned cheats)
 void oracles_session_change_swim_hold(session *s, uint32_t frame, int on)
 {
     if (on && !oracles_session_ensure_guest(s, frame)) { fprintf(stderr, "oracles: the hooks cannot be armed in this ROM: the swim's hold stays off\n"); return; }
+    const unsigned refused = s->guest ? oracles_guest_hooks_refused(s->guest) : 0;
     if (!s->guest || oracles_guest_set_swim_hold(s->guest, on) != 0) {
-        if (on) fprintf(stderr, "oracles: the swim's hold cannot find its strokes in this ROM: it stays off\n");
+        if (on) fprintf(stderr, "oracles: the swim's hold cannot be armed (%s): it stays off\n", hooks_why(s, refused, "its strokes are not in this ROM"));
         return;
     }
     if (s->recording && on != s->swim_hold) oracles_route_writer_set(&s->record, frame, ORACLES_ROUTE_SET_SWIM_HOLD, on);
@@ -53,8 +65,9 @@ void oracles_session_change_swim_hold(session *s, uint32_t frame, int on)
 void oracles_session_change_text_speed(session *s, uint32_t frame, int instant)
 {
     if (instant && !oracles_session_ensure_guest(s, frame)) { fprintf(stderr, "oracles: the hooks cannot be armed in this ROM: the text stays classic\n"); return; }
+    const unsigned refused = s->guest ? oracles_guest_hooks_refused(s->guest) : 0;
     if (!s->guest || oracles_guest_set_text_instant(s->guest, instant) != 0) {
-        if (instant) fprintf(stderr, "oracles: the instant text cannot find its points in this ROM: the text stays classic\n");
+        if (instant) fprintf(stderr, "oracles: the instant text cannot be armed (%s): the text stays classic\n", hooks_why(s, refused, "its points are not in this ROM"));
         return;
     }
     if (s->recording && instant != s->text_instant) oracles_route_writer_set(&s->record, frame, ORACLES_ROUTE_SET_TEXT_SPEED, instant);
@@ -82,8 +95,12 @@ void oracles_session_change_hotkeys(session *s, uint32_t frame, OraclesHotkeysMo
     if (s->hotkeys) { oracles_hotkeys_session_set_mode(s->hotkeys, mode); return; }
     if (mode == ORACLES_HOTKEYS_OFF) return;
     if (!oracles_session_ensure_guest(s, frame)) { fprintf(stderr, "oracles: the hooks cannot be armed in this ROM: the item hotkeys stay off\n"); return; }
+    const unsigned refused = oracles_guest_hooks_refused(s->guest);
     s->hotkeys = oracles_hotkeys_session_start(s->guest, s->info.game, mode, s->settings, NULL);
-    if (!s->hotkeys) { fprintf(stderr, "oracles: the item hotkeys cannot find the inventory's write point in this ROM: they stay off\n"); return; }
+    if (!s->hotkeys) {
+        fprintf(stderr, "oracles: the item hotkeys cannot be armed (%s): they stay off\n", hooks_why(s, refused, "the inventory's write point is not in this ROM"));
+        return;
+    }
     if (s->recording) oracles_hotkeys_session_record(s->hotkeys, &s->record);
     oracles_session_hotkeys_settled(s, frame, 1);
 }

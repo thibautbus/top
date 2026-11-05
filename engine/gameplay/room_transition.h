@@ -94,6 +94,19 @@ int oracles_room_transition_set_diagonal(OraclesRoomTransition *transition, int 
 /* --continuous-steps: Link takes a step a frame of the game through a transition, as the keys give it (off at the
  * start), where the guest's profile qualifies it; returns whether it is on. */
 int oracles_room_transition_set_steps(OraclesRoomTransition *transition, int on);
+/* --continuous-line, with the steps: the scroll starts at the line between two rooms and Link stands anywhere in a room
+ * (the guest's transitions at the line, armed here), and through a scroll he stops where the keys leave him, the
+ * machine's own move undone, or walks back toward the line he crossed; a diagonal carries him on past the line across
+ * into the room beside the room entered, where its collisions are predicted (oracles_room_predict_beside), the scroll
+ * into it started at the frame the first one ends; in the water (with `swim`), at the surface or on Ages' sea floor,
+ * he goes through the scroll as the game's swim routines move him in the middle of a room
+ * (oracles_room_transition_swim_step), his swim's state written back, a glide that takes him across the line starting
+ * the scroll; where the guest's profile qualifies it (off at the start, and with the steps); returns whether it is on. */
+int oracles_room_transition_set_line(OraclesRoomTransition *transition, int on);
+/* getNextActiveRoom: whether `room` of `group` has a transition of its own in mapTransitionGroupTable (the Lost Woods,
+ * the scrambled forest, the eye puzzle, Onox's castle...), its scroll possibly leading elsewhere than the room beside
+ * it; 1 when the table cannot be read. */
+int oracles_room_transition_special_room(const uint8_t *rom, size_t rom_size, const OraclesGuestTransitionState *state, uint8_t group, uint8_t room);
 
 typedef struct OraclesRoomTransitionStats {
     unsigned transitions;        /* transitions the policy took over (the step doubled) */
@@ -125,10 +138,39 @@ typedef struct OraclesRoomTransitionStats {
                                        (a direction held, his motion in the water) */
     unsigned doubled_starts;        /* transitions whose first frame moved him further on an axis than a step, the game's and the policy's together */
     unsigned released_frames;       /* frames of a transition the policy took him through on foot with no direction held toward the edge: the game's own move (--continuous-steps) */
+    unsigned stopped_frames;        /* of those with --continuous-line, none held at all: he stands, the machine's move undone */
+    unsigned standing_frames;       /* of the frames he stood, those he was given the game's standing pose (--continuous-line) */
+    unsigned back_frames;           /* and with one held away from the edge: he walks back toward the line (--continuous-line) */
+    unsigned back_line_frames;      /* of those, the frames the line held him, the room entered's edge (--continuous-line) */
+    unsigned back_past_frames;      /* frames he walked back past the line into the room left, on its collisions (--continuous-line) */
+    unsigned back_wall_frames;      /* frames a wall or a hole of the room left held that walk */
+    unsigned back_reversals;        /* scrolls that ended with him back in the room left, the transition back forced from where he stood */
+    unsigned back_lowered;          /* of those, the transitions back the next frame did not take, lowered: Link no longer past the line, or the transitions disabled */
+    unsigned back_kept_frames;      /* frames of normal play a transition back not taken yet was kept, Link past the line (a menu, a text) */
+    /* --continuous-line: the room beside the room entered across the axis (room_predict.h), and the carry past the line into it: */
+    unsigned beside_predicted;      /* rooms beside predicted, at the first frame a carry toward them asked for them in a transition */
+    unsigned beside_fallbacks;      /* those not predicted, the carry held short of the line as without them */
+    unsigned beside_fallback_by[ORACLES_ROOM_PREDICT_VERDICTS];   /* by reason (OraclesRoomPredictVerdict) */
+    unsigned beside_matched;        /* of the predicted, those the next scroll entered, whose layout and collisions are, byte for byte, what the game loaded */
+    unsigned beside_mismatched;     /* and those whose are not */
+    unsigned beside_unchecked;      /* those the next scroll did not enter (another way, or no scroll), or made before the last one's was compared */
+    unsigned beside_past_frames;    /* frames a carry took Link past the line across, into the room beside */
+    unsigned beside_held_frames;    /* frames it was held BESIDE_PAST_LINE past it */
+    unsigned beside_wall_frames;    /* frames a wall, a hole or water of the room beside held a step of his, across or along, the carry included */
+    unsigned beside_crossings;      /* scrolls that ended with him past the line across, the scroll into the room beside started from where he stood */
+    unsigned beside_returned_frames; /* frames he walked back across to the line, the transitions disabled since he went past it */
+    /* --continuous-line, in the water: the game's swim routines as the policy steps them (oracles_room_transition_swim_step). */
+    unsigned swim_model_frames;     /* frames of normal play a swim's step of the game was compared with the policy's from the frame before */
+    unsigned swim_model_mismatched; /* of them, those whose motion differed in a field */
+    unsigned swim_model_first_mismatch; /* the frame of the first, 0 for none */
+    unsigned swim_line_frames;      /* frames of a scroll the policy stepped his swim and moved him by it, the machine's own move undone */
+    unsigned swim_held_frames;      /* of them, a move on an axis held: land or a wall ahead, the line across, the room left's land behind */
+    unsigned swim_untested_frames;  /* moves across made while the room entered's collisions were neither loaded nor predicted */
+    unsigned swim_lifted_frames;    /* frames of an upward scroll that took him over a swimmer's line out of the room entered's bottom rows */
 } OraclesRoomTransitionStats;
 /* The policy's progress through the transition in progress, for a savestate: ORACLES_ROOM_TRANSITION_STATE_SIZE bytes
  * written into `out`, their count returned; 0 when `capacity` is short. */
-#define ORACLES_ROOM_TRANSITION_STATE_SIZE (89u + 2u * ORACLES_ROOM_LAYOUT_BYTES)
+#define ORACLES_ROOM_TRANSITION_STATE_SIZE (99u + 8u * ORACLES_ROOM_LAYOUT_BYTES)
 size_t oracles_room_transition_save_state(const OraclesRoomTransition *transition, uint8_t *out, size_t capacity);
 /* That progress given back after a savestate's load reset the guest (oracles_guest_reset_execution_state): the policy
  * goes on with the transition the state was saved in as if no load had come between.  0, or -1 for data of another
@@ -161,6 +203,9 @@ int oracles_room_transition_held_across(const OraclesGuestTransitionState *state
  * the game tests for walls, and the tile it takes as his own (y+5: a hole, water or lava), as clear as the straight
  * path does.  0 while the room entered's collisions are not loaded, or when a point leaves the room across. */
 int oracles_room_transition_across_free(const OraclesGuestTransitionState *state, unsigned across, int delta, int along, int offset, int rest);
+/* The same with --continuous-line, where the game lets Link stand up to the room's edge across: his points past it read
+ * the collision buffer's border, neither a wall nor a hole. */
+int oracles_room_transition_across_free_line(const OraclesGuestTransitionState *state, unsigned across, int delta, int along, int offset, int rest);
 /* The same for Link swimming: its points on water he can swim in (as oracles_room_transition_swimmable), and his own
  * tile out of water he can swim in (land, a hole, lava, the sea without the mermaid suit) only where the straight
  * path's is. */
@@ -175,6 +220,23 @@ int oracles_room_transition_moving_across(const OraclesGuestTransitionState *sta
  * multiple of 8, the last step taken at zero; with `doubled`, steps of 8 px, one a row; without, steps of 4 px, two a
  * row; before the scroll, all of them; 0 once it is over. */
 int oracles_room_transition_machine_rest(const OraclesGuestTransitionState *state, int doubled);
+/* Link's swim as the game steps it a frame (--continuous-line): w1Link.angle, speed, speedTmp, var12, var13, var35,
+ * counter1, var3e, direction. */
+typedef struct OraclesSwimMotion {
+    uint8_t angle, speed, speed_tmp, counter, period, stroke, counter1, mermaid_stroke, direction;
+} OraclesSwimMotion;
+/* What the routines read besides: the keys (wLinkAngle, wGameKeysPressed, wGameKeysJustPressed), the mermaid suit worn
+ * (w1Link.var2f bit 6), the swimmer's ring, the swim's hold, wLinkImmobilized. */
+typedef struct OraclesSwimKeys {
+    uint8_t input_angle, pressed, just_pressed, mermaid, swimmers_ring, swim_hold, immobilized;
+} OraclesSwimKeys;
+/* overworldSwimmingState3's step of his motion, a frame: updateLinkDirectionFromAngle, then the mermaid suit's
+ * linkUpdateVelocity@mermaidSuit, or the flippers' linkUpdateFlippersSpeed and func_5933 (link.s), the swim's hold's
+ * strokes included as its tests add them. */
+void oracles_room_transition_swim_step(OraclesSwimMotion *motion, const OraclesSwimKeys *keys);
+/* His move a frame at `speed` and `angle` (8.8, signed), from objectSpeedTable as getPositionOffsetForVelocity reads it;
+ * 0 when the table cannot be read. */
+int oracles_room_transition_swim_velocity(const uint8_t *rom, size_t rom_size, const OraclesTables *data, uint8_t speed, uint8_t angle, int *dy, int *dx);
 /* Whether Link swims at the surface (wLinkSwimmingState). */
 int oracles_room_transition_swimming(const OraclesGuestTransitionState *state);
 /* Whether he is in the water: swimming at the surface, or on Ages' sea floor. */
@@ -193,6 +255,11 @@ int oracles_room_transition_water_tile(const uint8_t *rom, size_t rom_size, cons
  * 0 when the data cannot be read. */
 int oracles_room_transition_next_walk_frame(const uint8_t *rom, size_t rom_size, const OraclesGuestTransitionState *state,
                                             OraclesGuestTransitionMutation *mutation);
+/* The frame Link stands on with no direction held (animateLinkStanding: the walk's animation set again,
+ * specialObjectAnimationTable's first entry for it), into the animation fields of `mutation`; 0 when the data cannot
+ * be read. */
+int oracles_room_transition_standing_frame(const uint8_t *rom, size_t rom_size, const OraclesGuestTransitionState *state,
+                                           OraclesGuestTransitionMutation *mutation);
 /* Whether Link, moved by `extra` (8.8) along the transition's axis, stands on
  * collision-free tiles of the room being entered (or still in the room he
  * leaves): the tile the game takes as his own (y+5) and the one his leading

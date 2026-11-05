@@ -47,6 +47,7 @@ typedef struct OraclesSessionOptions {
     int continuous_swim;             /* --continuous-swim: the transitions with Link swimming at the surface too (implies them) */
     int continuous_diagonal;         /* --continuous-diagonal: a diagonal held carries Link across the transitions' axis too (implies them) */
     int continuous_steps;            /* --continuous-steps: Link takes a step a frame through them as the keys give it (implies them) */
+    int continuous_line;             /* --continuous-line: a scroll starts at the line between two rooms, and Link stops where the keys leave him (implies the steps) */
     int swim_hold;                   /* --swim-hold, or settings.txt's swim_hold=on for a game the home screen starts: a direction held
                                       * starts the swim's strokes (A's with the flippers, A held too; the direction's with Ages' mermaid suit) */
     unsigned cheats;                 /* --cheats, or settings.txt's cheats_<game>= for a game the home screen starts: a mask of OraclesGuestCheat */

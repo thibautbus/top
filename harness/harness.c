@@ -75,6 +75,91 @@ static void reminder_frame(run *r, OraclesGuest *bus, uint32_t frame)
     if (!r->reminder_start && r->reminder_run == ORACLES_ENHANCED_BAR_SETTLE) r->reminder_start = frame;
 }
 
+/* The move between two frames, 8.8: the coordinate's wrap and the end of a scroll's rebase by the room's size undone. */
+static int32_t frame_move(uint16_t from, uint16_t to, int size)
+{
+    const int32_t raw = (int32_t)(uint16_t)(to - from);
+    int32_t best = raw;
+    for (int wrap = -1; wrap <= 1; wrap++)
+        for (int room = -1; room <= 1; room++) {
+            const int32_t v = raw + wrap * 0x10000 + room * size * 0x100;
+            if ((v < 0 ? -v : v) < (best < 0 ? -best : best)) best = v;
+        }
+    return best;
+}
+
+/* A glide in the water (run.glide): its course frame by frame, and at its end against the game's swim alone. */
+static void glide_frame(run *r, OraclesGuest *bus)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(bus);
+    const OraclesTables *data = oracles_compat_data_tables(r->profile);
+    const uint8_t *link = oracles_guest_object(bus, 0, 0);
+    if (!link || !data || t->link_speed_cap.bank == ORACLES_GUEST_ABSENT) return;
+    const unsigned state = oracles_guest_read8(bus, t->screen_transition_state), swimming = oracles_guest_read8(bus, t->link_swimming_state);
+    const uint8_t keys = oracles_guest_read8(bus, t->game_keys_pressed);
+    const int held = (keys & (ORACLES_GAME_DIRECTIONS | ORACLES_GAME_BUTTON_A)) != 0;
+    const uint16_t x = (uint16_t)(link[ORACLES_OBJ_X] | (link[ORACLES_OBJ_XH] << 8)), y = (uint16_t)(link[ORACLES_OBJ_Y] | (link[ORACLES_OBJ_YH] << 8));
+    const int moving = link[ORACLES_OBJ_SPEED] && !(link[ORACLES_OBJ_ANGLE] & 0x80u);
+    /* Swimming at the surface, or on Ages' sea floor in the mermaid suit's gait. */
+    const int floor = !swimming && (oracles_guest_read8(bus, t->tileset_flags) & ORACLES_TILESETFLAG_UNDERWATER)
+                      && oracles_guest_read8(bus, t->link_anim_mode) == ORACLES_LINK_ANIM_MODE_WALK;
+    const int water = (swimming & 0x4fu) == ORACLES_SWIMMING_NORMAL || floor;
+    if (water && r->swim_scroll_known && state >= 3u && state <= 5u) {
+        int vy = 0, vx = 0;
+        if (oracles_room_transition_swim_velocity(r->rom, r->rom_size, data, link[ORACLES_OBJ_SPEED], link[ORACLES_OBJ_ANGLE], &vy, &vx)) {
+            const int32_t dx = frame_move(r->swim_scroll_x, x, 160) - vx, dy = frame_move(r->swim_scroll_y, y, 128) - vy;
+            r->swim_load_frames++;
+            if (dx > 3 || dx < -3 || dy > 3 || dy < -3) r->swim_load_off_frames++;
+        }
+    }
+    /* The load's frames are a scroll's once it scrolls; a warp at the edge (its curtain, state 3 then 0) is no scroll. */
+    if (state == 5u || state < 3u || state > 5u) {
+        if (state == 5u) { r->swim_scroll_frames += r->swim_load_frames; r->swim_scroll_off_frames += r->swim_load_off_frames; }
+        r->swim_load_frames = r->swim_load_off_frames = 0;
+    }
+    r->swim_scroll_known = water;
+    r->swim_scroll_x = x; r->swim_scroll_y = y;
+    if (r->glide) {
+        if (!water || held) { r->glide = 0; return; }
+        r->glide_dx += frame_move(r->glide_x, x, 160);
+        r->glide_dy += frame_move(r->glide_y, y, 128);
+        r->glide_x = x; r->glide_y = y;
+        if (state >= 3u && state <= 5u) r->glide_scrolled = 1;
+        if (moving) return;
+        r->glide = 0;
+        const int32_t ox = r->glide_dx - r->glide_ex, oy = r->glide_dy - r->glide_ey;
+        const int32_t off = (ox < 0 ? -ox : ox) > (oy < 0 ? -oy : oy) ? (ox < 0 ? -ox : ox) : (oy < 0 ? -oy : oy);
+        const int unlike = off > 0x100;
+        if (r->glide_scrolled) {
+            r->edge_glides++;
+            r->edge_glides_unlike += (unsigned)unlike;
+            if (off > r->edge_glide_off_max) r->edge_glide_off_max = off;
+        } else {
+            r->glides++;
+            r->glides_unlike += (unsigned)unlike;
+        }
+        return;
+    }
+    if (!water || held || !moving || (state != 2u && (state < 3u || state > 5u))) return;
+    r->glide = 1;
+    r->glide_scrolled = state >= 3u && state <= 5u;
+    r->glide_x = x; r->glide_y = y;
+    r->glide_dx = r->glide_dy = 0;
+    OraclesSwimMotion motion = { link[ORACLES_OBJ_ANGLE], link[ORACLES_OBJ_SPEED], oracles_guest_read8(bus, t->link_speed_cap),
+                                 oracles_guest_read8(bus, t->link_speed_step_counter), oracles_guest_read8(bus, t->link_speed_step_period),
+                                 link[ORACLES_OBJ_VAR35], link[ORACLES_OBJ_COUNTER1], oracles_guest_read8(bus, t->link_stroke_counter), link[ORACLES_OBJ_DIRECTION] };
+    const OraclesSwimKeys none = { 0xffu, 0, 0, (uint8_t)(oracles_compat_family(r->profile) == ORACLES_GAME_AGES && (link[ORACLES_OBJ_VAR2F] & 0x40u)),
+                                   (uint8_t)(t->active_ring.bank != ORACLES_GUEST_ABSENT && oracles_guest_read8(bus, t->active_ring) == t->swimmers_ring), 0, 0 };
+    r->glide_ex = r->glide_ey = 0;
+    for (unsigned i = 0; i < 600u && motion.speed && !(motion.angle & 0x80u); i++) {
+        oracles_room_transition_swim_step(&motion, &none);
+        int vy = 0, vx = 0;
+        if (!oracles_room_transition_swim_velocity(r->rom, r->rom_size, data, motion.speed, motion.angle, &vy, &vx)) { r->glide = 0; return; }
+        r->glide_ex += vx;
+        r->glide_ey += vy;
+    }
+}
+
 static void on_frame_end(void *opaque, uint32_t frame)
 {
     run *r = opaque;
@@ -131,6 +216,7 @@ static void on_frame_end(void *opaque, uint32_t frame)
             if (!swimming && r->carried_off && oracles_room_transition_water_tile(r->rom, r->rom_size, &under, (unsigned)(row * 16 + column))) r->swim_dropped++;
         }
         if (state == 2u) r->swam_before = swimming;
+        if (r->rom) glide_frame(r, bus);
     }
     if (r->positions) {
         /* What the game is at, whatever the core: the fingerprints, hashes of the memory, differ from one core to the other. */
@@ -482,6 +568,15 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
         o->continuous_transitions = o->continuous_steps = 1;
         fprintf(stderr, "harness: the route was recorded with --continuous-steps: the option is on\n");
     }
+    const int route_line = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_CONTINUOUS_LINE);
+    if ((o->continuous_line || route_line) && r->profile && !oracles_compat_continuous_line(r->profile)) {
+        fprintf(stderr, "harness: %s does not support --continuous-line; refusing the request and route option\n", oracles_compat_name(r->profile));
+        return 1;
+    }
+    if (route_line && !o->continuous_line) {
+        o->continuous_transitions = o->continuous_steps = o->continuous_line = 1;
+        fprintf(stderr, "harness: the route was recorded with --continuous-line: the option is on\n");
+    }
     const int route_swim_hold = oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_SWIM_HOLD);
     if (route_swim_hold && !oracles_compat_swim_hold(r->profile)) {
         fprintf(stderr, "harness: the route was recorded with --swim-hold, which %s does not support\n", r->profile ? oracles_compat_name(r->profile) : "this image");
@@ -573,6 +668,10 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         if (r->enhanced) oracles_enhanced_check_set_transition(r->enhanced, r->transition);
         oracles_room_transition_set_diagonal(r->transition, o->continuous_diagonal);
         oracles_room_transition_set_steps(r->transition, o->continuous_steps);
+        if (o->continuous_line && !oracles_room_transition_set_line(r->transition, 1)) {
+            fprintf(stderr, "harness: --continuous-line needs the screen's edge tests found in the ROM\n");
+            return 1;
+        }
     }
     if ((o->swim_hold || r->swim_changed)
         && (!r->guest || oracles_guest_set_swim_hold(r->guest, 1) != 0 || oracles_guest_set_swim_hold(r->guest, o->swim_hold) != 0)) {

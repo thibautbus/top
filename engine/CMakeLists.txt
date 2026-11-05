@@ -19,7 +19,7 @@ target_link_libraries(oracles_host PUBLIC oracles_core)
 oracles_set_warnings(oracles_host)
 
 # Guest bus, hooks and register journal; the tables are generated per game.
-add_library(oracles_guest STATIC game/guest/guest.c game/guest/guest_transaction.c game/guest/guest_call.c game/guest/guest_inventory.c game/guest/guest_item_buttons.c game/guest/guest_text.c game/guest/guest_swim.c game/guest/guest_cheats.c game/guest/guest_compact_text.c game/guest/guest_text_box.c game/guest/guest_text_speed.c game/guest/guest_fingerprint.c game/guest/guest_tables_ages.c game/guest/guest_tables_seasons.c game/profiles/profile.c game/profiles/moonrise-regalia/tables.c game/profiles/temple-of-seasons/tables.c game/profiles/gifts-of-kinomi/tables.c)
+add_library(oracles_guest STATIC game/guest/guest.c game/guest/guest_transaction.c game/guest/guest_call.c game/guest/guest_inventory.c game/guest/guest_item_buttons.c game/guest/guest_text.c game/guest/guest_swim.c game/guest/guest_swim_press.c game/guest/guest_line.c game/guest/guest_cheats.c game/guest/guest_compact_text.c game/guest/guest_text_box.c game/guest/guest_text_speed.c game/guest/guest_fingerprint.c game/guest/guest_tables_ages.c game/guest/guest_tables_seasons.c game/profiles/profile.c game/profiles/moonrise-regalia/tables.c game/profiles/temple-of-seasons/tables.c game/profiles/gifts-of-kinomi/tables.c)
 target_include_directories(oracles_guest PUBLIC game/guest game/profiles game/data)
 target_link_libraries(oracles_guest PUBLIC oracles_core)
 oracles_set_warnings(oracles_guest)
@@ -122,7 +122,7 @@ target_include_directories(oracles_language PUBLIC language)
 target_link_libraries(oracles_language PUBLIC oracles_guest oracles_data oracles_core)
 oracles_set_warnings(oracles_language)
 
-add_library(oracles_gameplay STATIC gameplay/room_transition.c gameplay/room_predict.c gameplay/item_hotkeys.c gameplay/item_hotkeys_policy.c)
+add_library(oracles_gameplay STATIC gameplay/room_transition.c gameplay/room_predict.c gameplay/room_scenes.c gameplay/item_hotkeys.c gameplay/item_hotkeys_policy.c)
 target_include_directories(oracles_gameplay PUBLIC gameplay)
 target_link_libraries(oracles_gameplay PUBLIC oracles_guest)
 oracles_set_warnings(oracles_gameplay)

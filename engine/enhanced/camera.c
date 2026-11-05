@@ -255,6 +255,13 @@ static void place_window(OraclesGuest *guest, const OraclesGuestTables *t, Oracl
         out->drawn_camera_x = camera_x; out->drawn_camera_y = camera_y;
         out->drawn_offset_x = offset_x; out->drawn_offset_y = offset_y;
     }
+    /* The frame on screen drawn with the camera of the observation before (each axis): an OAM left uncopied, built
+     * a logic frame earlier, stands where that camera put it. */
+    const int before = o->have_last_window && o->last_window_epoch == out->epoch && o->have_before_camera;
+    o->drawn_camera_still_x = before && o->before_camera_x == out->drawn_camera_x;
+    o->drawn_camera_still_y = before && o->before_camera_y == out->drawn_camera_y;
+    o->have_before_camera = o->have_last_window && o->last_window_epoch == out->epoch && o->last_window_group == o->ref_group && o->last_window_room == o->ref_room;
+    o->before_camera_x = o->last_camera_x; o->before_camera_y = o->last_camera_y;
     o->have_last_window = 1;
     o->last_window_left = window_left; o->last_window_top = window_top;
     o->last_origin_x = out->world.origin_x; o->last_origin_y = out->world.origin_y;
@@ -285,6 +292,10 @@ void oracles_enhanced_observe(OraclesGuest *guest, OraclesEnhancedObserver *o, O
     out->in_transition = !(scroll_mode == NORMAL_SCROLL_MODE && transition_state == TRANSITION_IDLE);
     out->keys = oracles_guest_read8(guest, t->keys_pressed);
     out->in_scroll = (transition_state >= 3u && transition_state <= 5u) || scroll_mode == ORACLES_SCROLL_MODE_DECIDED || scroll_mode == ORACLES_SCROLL_MODE_TRANSITION;
+    /* A scroll decided at the very frame the last one ended, with no frame of normal play between (the continuous
+     * transitions at the line start the scroll into the room beside there): that frame is the room entered's, as the
+     * frame of normal play that ends a scroll is, the next one the new scroll's first. */
+    if (scroll_mode == ORACLES_SCROLL_MODE_DECIDED && transition_state == 3u && o->scrolling) { out->in_transition = out->in_scroll = 0; out->scroll_chained = 1; }
     out->grid = (out->group & 7u) <= 3u && !is_large;
     out->large = is_large != 0;
     out->large_grid = is_large != 0 && (out->group & 7u) >= 2u;   /* dungeons and their sidescrolling areas (groups 4 to 7) */
@@ -347,11 +358,21 @@ void oracles_enhanced_observe(OraclesGuest *guest, OraclesEnhancedObserver *o, O
         out->link_step_y = same_room ? link_y - o->last_link_y : out->world.link_y - o->last_world_link_y;
         /* Across the axis of a scroll the transaction carried Link across, at drawAllSprites' return: the frame on
          * screen draws him where the OAM it scanned had him, which a frame whose logic ended past the vblank left
-         * uncopied (oracles_guest_link_shown), not always where the previous observation had him. */
+         * uncopied (oracles_guest_link_shown), not always where the previous observation had him: the whole pixels
+         * his sprites lag that place by, which the sub-pixel camera's layer of him makes up.  Along the scroll's axis
+         * too, where the game's camera has not moved since that OAM was built (the scroll's first frames, the room
+         * still loading), where he would step back a pixel against his walk for a frame; with the sub-pixel camera alone,
+         * whose layer makes it up: without it the band in whole pixels would follow his sprites back and on, where
+         * they stay the game's own. */
         uint16_t shown_x = 0, shown_y = 0;
-        if (out->in_scroll && carried != o->carried_before_scroll && !warping && oracles_guest_link_shown(guest, &shown_x, &shown_y)) {
-            if (direction & 1u) out->link_step_y = (int8_t)(uint8_t)(raw_y - (shown_y >> 8));
-            else out->link_step_x = (int8_t)(uint8_t)(raw_x - (shown_x >> 8));
+        if (out->in_scroll && !warping && oracles_guest_link_shown(guest, &shown_x, &shown_y)) {
+            const int carries = carried != o->carried_before_scroll;
+            const int step_x = (int8_t)(uint8_t)(raw_x - (shown_x >> 8)), step_y = (int8_t)(uint8_t)(raw_y - (shown_y >> 8));
+            const int across_x = !(direction & 1u), lag_x = step_x - out->link_step_x, lag_y = step_y - out->link_step_y;
+            if (across_x && carries) { out->drawn_lag_x = lag_x; out->link_step_x = step_x; }
+            else if (!across_x && o->exact && o->drawn_camera_still_x && lag_x >= -2 && lag_x <= 2) { out->drawn_lag_x = lag_x; out->link_step_x = step_x; }
+            if (!across_x && carries) { out->drawn_lag_y = lag_y; out->link_step_y = step_y; }
+            else if (across_x && o->exact && o->drawn_camera_still_y && lag_y >= -2 && lag_y <= 2) { out->drawn_lag_y = lag_y; out->link_step_y = step_y; }
         }
     }
     o->have_last_link = 1;

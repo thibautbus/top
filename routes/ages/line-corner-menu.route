@@ -1,0 +1,40 @@
+oracles-route 15
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 5066fd92af3a71202140ab168abbac57eb073d4c
+options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,continuous-line
+core joypad-bouncing-off
+# ages/line-corner.route's keys, Start pressed by hand at frame 1380, the frame after the scroll from 0:67 into 0:68
+# Link walked back out of ends, the transition back raised: the menu opens before the game takes it, and closes at
+# 1480.
+inputs
+0 keys 00
+458 keys 80
+464 keys 00
+470 keys 80
+475 keys 00
+480 keys 80
+487 keys 00
+490 keys 80
+503 keys 00
+533 keys 80
+539 keys 00
+543 keys 80
+553 keys 00
+584 keys 08
+875 keys 0a
+930 keys 08
+1016 keys 0a
+1101 keys 00
+1126 keys 05
+1183 keys 00
+1194 keys 0a
+1268 keys 00
+1320 keys 01
+1355 keys 02
+1380 keys 82
+1381 keys 02
+1405 keys 00
+1480 keys 80
+1482 keys 00
+1600 keys 00

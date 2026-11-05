@@ -681,11 +681,13 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     if (profile != chosen) fprintf(stderr, "oracles: an unrecognized ROM plays in the Faithful profile, not %s\n", oracles_settings_profile_name(chosen));
     static const char *const hotkey_names[3] = { "off", "use", "equip" };
     /* Display's Continuous transitions take Link swimming too, on across the axis walking diagonally, and a step a frame
-     * as the keys give it; --continuous-transitions alone is the command line's, for the routes recorded with it, and so
-     * are --continuous-swim, --continuous-diagonal and --continuous-steps. */
+     * as the keys give it, a scroll starting at the line between two rooms; --continuous-transitions alone is the command
+     * line's, for the routes recorded with it, and so are --continuous-swim, --continuous-diagonal, --continuous-steps and
+     * --continuous-line. */
     o.continuous_swim = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_swim || games->settings->transitions);
     o.continuous_diagonal = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_diagonal || games->settings->transitions);
     o.continuous_steps = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_steps || games->settings->transitions);
+    o.continuous_line = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_line || games->settings->transitions);
     o.continuous_transitions = profile != ORACLES_PROFILE_FAITHFUL && (o.continuous_transitions || games->settings->transitions);
     /* The swim's hold, in either profile: the command line's, else settings.txt's swim_hold=. */
     o.swim_hold = o.swim_hold || games->settings->swim_hold;

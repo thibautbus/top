@@ -80,7 +80,18 @@ static inline void fixture_init(fixture *f, uint8_t *rom)
     fixture_group_lists(f, t->chest_data_group_table.addr, chest_end, 1, 0, NULL, 0);
     fixture_group_lists(f, t->room_tile_changer_code_group_table.addr, key_end, 1, 0, NULL, 0);
     fixture_group_lists(f, t->tile_changes_after_gfx_group_table.addr, key_end, 1, 0, NULL, 0);
+    /* Every room's tileset 0 (roomTilesetsGroupTable at $5d00, each group's 256 bytes at $5d10), outdoors, tileset
+     * layout 0 of layout group 0 (tilesetData at $5e10); tileset 1 a dungeon's. */
+    t->room_tilesets_group_table = (OraclesSym){ FIXTURE_BANK, 0x5d00 };
+    t->tileset_data = (OraclesSym){ FIXTURE_BANK, 0x5e10 };
+    for (unsigned g = 0; g < 8u; g++) fixture_word(f, 0x5d00u + 2u * g, 0x5d10);
+    fixture_put(f, 0x5e10, 0x0f);   /* no dungeon (Seasons reads the low nibble) */
+    fixture_put(f, 0x5e11, 0x01);
+    fixture_put(f, 0x5e19, 0x08);
 }
+
+/* The room packs of the groups 0 and 1 (roomPackData, its 512 bytes at FIXTURE_ROOM_PACKS), every room's 0 until set. */
+#define FIXTURE_ROOM_PACKS 0x5f20u
 
 /* Room `room`'s tile at (col, row) of its 10 x 8. */
 static inline void fixture_room_tile(fixture *f, unsigned room, unsigned col, unsigned row, uint8_t tile) { fixture_put(f, 0x4600u + 80u * room + row * 10u + col, tile); }

@@ -76,6 +76,11 @@ static void on_event(void *opaque, const OraclesGuestEvent *e)
         case ORACLES_EVENT_MERMAID_STROKE:
         case ORACLES_EVENT_FLIPPERS_STROKE:
             break;   /* the swim's hold's points */
+        case ORACLES_EVENT_EDGE_TEST_UP:
+        case ORACLES_EVENT_EDGE_TEST_RIGHT:
+        case ORACLES_EVENT_EDGE_TEST_DOWN:
+        case ORACLES_EVENT_EDGE_TEST_LEFT:
+            break;   /* the line's points */
         case ORACLES_EVENT_CHEAT_DAMAGE:
         case ORACLES_EVENT_CHEAT_AMMO:
         case ORACLES_EVENT_CHEAT_RUPEES:

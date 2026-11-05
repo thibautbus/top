@@ -24,6 +24,8 @@ LABELS = [
     # their tiles before and after the graphics, and the Gasha spots' rooms.
     "singleTileChangeGroupTable", "standardTileSubstitutions", "chestDataGroupTable", "roomTileChangerCodeGroupTable",
     "applyRoomSpecificTileChangesAfterGfxLoad@tileChangesGroupTable", "gashaSpotRooms",
+    # The continuous transitions' swim: the moves of a speed and an angle (getPositionOffsetForVelocity).
+    "objectSpeedTable",
 ]
 # Labels of one game only (Ages' time warps), { 0, 0 } in the other.
 OPTIONAL_LABELS = ["timewarpEntryTileReplacementDict", "timewarpReturnTileReplacementDict"]

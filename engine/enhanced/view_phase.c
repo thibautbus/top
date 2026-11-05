@@ -364,8 +364,11 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
         v->subpixel = 0; v->sub_leaving = 0;
         return;
     }
+    /* An OAM left uncopied in a scroll a carry crosses shows his sprites a pixel or two behind his place
+     * (oracles_enhanced_observe's drawn_lag): his layer is drawn at his place all the same. */
+    v->sub_lag_x = own ? ob->drawn_lag_x * 256 : 0; v->sub_lag_y = own ? ob->drawn_lag_y * 256 : 0;
     if (loading || (!own && !v->sub_link_x && !v->sub_link_y)) return;
-    if (!v->sub_x && !v->sub_y && !v->sub_link_x && !v->sub_link_y) return;
+    if (!v->sub_x && !v->sub_y && !v->sub_link_x && !v->sub_link_y && !v->sub_lag_x && !v->sub_lag_y) return;
     const uint8_t *oam = oracles_guest_oam(v->guest), *io = oracles_guest_io(v->guest), *palettes = oracles_guest_obj_palettes(v->guest);
     const uint8_t *vram0 = oracles_guest_vram(v->guest, 0), *vram1 = oracles_guest_vram(v->guest, 1);
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
@@ -415,7 +418,7 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
             any = 1;
         }
     }
-    v->sub_layer_fx = v->sub_link_x - v->sub_x; v->sub_layer_fy = v->sub_link_y - v->sub_y;
+    v->sub_layer_fx = v->sub_link_x - v->sub_x + v->sub_lag_x; v->sub_layer_fy = v->sub_link_y - v->sub_y + v->sub_lag_y;
     if (!any) { v->sub_ready = 1; return; }   /* none of him in the OAM: the edge overlay may build all of him (ev_subpixel_made) */
     if (right - left > (int)SUB_LAYER_SIZE || bottom - top > (int)SUB_LAYER_SIZE) { v->sub_refused_frames++; return; }
     /* Their sprites' own pixels (the colours other than 0 of their tiles, flipped as they are): what the frame shows
@@ -541,7 +544,7 @@ static int take_made(OraclesEnhancedView *v)
 {
     if (!v->sub_made_count) return 1;
     /* Built from his fields, the OAM holding nothing of him on the screen: what the layer took of it lags him, past
-     * the screen, and he is the built one alone. */
+     * the screen, and he is the built one alone, where the OAM would have him (moved by its lag as it would be). */
     if (v->edge_link_built && v->sub_layer_w && v->sub_layer_h) { v->sub_layer_w = v->sub_layer_h = 0; v->sub_layer_frames--; }
     const int layered = v->sub_layer_w && v->sub_layer_h;
     if (!v->sub_ready || v->sub_made_lost || (!layered && !v->edge_link_built)) return 0;

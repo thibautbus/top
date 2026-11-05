@@ -80,6 +80,22 @@ typedef struct run {
     int carried_off;          /* 8.8: what the last transition carried him off its straight path, across its axis */
     unsigned landing_direction;
     unsigned swim_dropped;    /* transitions he swam into and came out of on land where the straight path stays in water */
+    /* With the continuous transitions, a glide in the water: from a frame no key is held (directions, A), his motion
+     * left to slow down, how far he went until it stopped, against how far the game's swim routines take that motion
+     * alone (oracles_room_transition_swim_step), the glide given up if a key is pressed again or he leaves the water. */
+    int glide;                /* a glide under way */
+    int glide_scrolled;       /* it went through a scroll */
+    uint16_t glide_x, glide_y;   /* where the last frame left him, 8.8 */
+    int32_t glide_dx, glide_dy;  /* how far he went since it began */
+    int32_t glide_ex, glide_ey;  /* how far his motion takes him alone */
+    unsigned glides, glides_unlike, edge_glides, edge_glides_unlike;
+    int32_t edge_glide_off_max;  /* the most an edge glide went otherwise, along an axis, 8.8 */
+    /* Swimming through a scroll: his frames, and those he went otherwise than his motion's move (objectSpeedTable), on an
+     * axis by more than 3/256 px: a push, an axis held or frozen (a wall, the line across, a frame the game did not finish). */
+    unsigned swim_scroll_frames, swim_scroll_off_frames;
+    unsigned swim_load_frames, swim_load_off_frames;   /* those of the load before it, counted once it scrolls (not a warp's) */
+    int swim_scroll_known;    /* glide_x, glide_y hold where the last frame left him, swimming */
+    uint16_t swim_scroll_x, swim_scroll_y;
     unsigned cheats_changed;  /* the cheats the route's `cheat` lines change, their points armed from the start */
     /* --reminder-check: the frames the status bar is in play (oracles_enhanced_bar_in_play), and those it is drawn with a
      * menu open or a dialogue under way, and of them in play (none expected); the run of frames in play, and the frame the

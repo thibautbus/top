@@ -155,6 +155,8 @@ VARIABLES = [
     ("game_keys_pressed", "wGameKeysPressed"), ("game_keys_just_pressed", "wGameKeysJustPressed"),
     ("link_speed_cap", "w1Link.speedTmp"), ("link_speed_step_counter", "w1Link.var12"), ("link_speed_step_period", "w1Link.var13"),
     ("link_stroke_counter", "w1Link.var3e"),
+    # The continuous transitions' swim: the ring that speeds a swim (linkSetSwimmingSpeed, the swimmer's ring).
+    ("active_ring", "wActiveRing"),
     ("is_linked_game", "wIsLinkedGame"), ("switch_state", "wSwitchState"), ("rom_bank", "hRomBank"),
     # Ghost: Jabu-Jabu's water level decides its tiles (Ages); the hardware type opens the GBA shops (read by the substitutions, constant).
     ("jabu_water_level", "wJabuWaterLevel"), ("gameboy_type", "hGameboyType"),
@@ -396,6 +398,8 @@ DISASM_CONSTANTS = [
     ("treasure_ring", "common/treasure.s", "TREASURE_RING"), ("treasure_ring_box", "common/treasure.s", "TREASURE_RING_BOX"),
     ("treasure_gasha_seed", "common/treasure.s", "TREASURE_GASHA_SEED"), ("treasure_seed_satchel", "common/treasure.s", "TREASURE_SEED_SATCHEL"),
     ("num_rings", "common/rings.s", "NUM_RINGS"),
+    # The continuous transitions' swim: the ring that speeds a swim (linkSetSwimmingSpeed).
+    ("swimmers_ring", "common/rings.s", "SWIMMERS_RING"),
     # A language: the first internal text group read from the second base (compiled into getTextAddress's `cp`).
     ("text_offset_split_index", "../precompressed/text/{game}/textDefines.s", "TEXT_OFFSET_SPLIT_INDEX"),
 ]

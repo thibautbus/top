@@ -1,0 +1,71 @@
+oracles-route 15
+game seasons
+rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+sram_sha1 ad06a39053f0627a0456f1f9dc270e909c8ba40d
+options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,continuous-line
+core joypad-bouncing-off
+# diagonal-crossings.route's keys to frame 3320, then written by hand with the transitions at the line
+# (--continuous-line): left along 0:e8's top and up-left into the corner where 0:d7, 0:d8, 0:e7 and 0:e8 meet, past the
+# line across during the scroll left into 0:e7 and on up into 0:d7 from where he stands; down, left along 0:d7's bottom
+# and down-left into the corner of 0:d6, 0:d7, 0:e6 and 0:e7, down into 0:e7 and on left into 0:e6; then up-right back
+# through it, right into 0:e7 and on up into 0:d7, held on into a house there.
+inputs
+0 keys 00
+878 keys 80
+884 keys 00
+909 keys 80
+917 keys 00
+984 keys 80
+991 keys 00
+1003 keys 80
+1010 keys 00
+1152 keys 01
+1204 keys 00
+1248 keys 04
+1413 keys 06
+1417 keys 02
+1496 keys 04
+1554 keys 02
+1617 keys 00
+1653 keys 01
+1714 keys 09
+1770 keys 01
+1820 keys 09
+1862 keys 08
+2125 keys 0a
+2129 keys 02
+2154 keys 00
+2168 keys 08
+2379 keys 02
+2474 keys 0a
+2476 keys 08
+2552 keys 0a
+2554 keys 02
+2597 keys 06
+2598 keys 04
+2642 keys 00
+2645 keys 04
+2723 keys 00
+2730 keys 08
+2877 keys 01
+2930 keys 09
+2933 keys 08
+2978 keys 00
+2981 keys 02
+3002 keys 08
+3034 keys 0a
+3037 keys 02
+3136 keys 06
+3141 keys 04
+3266 keys 06
+3270 keys 02
+3320 keys 06
+3321 keys 02
+3397 keys 06
+3460 keys 08
+3480 keys 02
+3584 keys 0a
+3700 keys 00
+3720 keys 05
+4100 keys 00
+4120 keys 00

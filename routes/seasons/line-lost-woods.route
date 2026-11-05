@@ -1,0 +1,100 @@
+oracles-route 15
+game seasons
+rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+sram_sha1 ad06a39053f0627a0456f1f9dc270e909c8ba40d
+options continuous-transitions,continuous-steps,continuous-line
+core joypad-bouncing-off
+# seasons/lost-woods.route's keys to frame 3584 with the transitions at the line (--continuous-line), then, by hand,
+# up held at 3585 during the scroll down from 0:30 into the Lost Woods (0:40), and nothing from 3615: the woods' own
+# transition (screenTransitionLostWoods) leads the scroll back up to 0:40 again, not to 0:30.
+inputs
+0 keys 00
+473 keys 80
+480 keys 00
+487 keys 80
+495 keys 00
+546 keys 80
+551 keys 00
+556 keys 80
+563 keys 00
+669 keys 80
+677 keys 00
+739 keys 08
+748 keys 00
+789 keys 20
+798 keys 00
+870 keys 20
+878 keys 00
+896 keys 80
+903 keys 00
+940 keys 20
+950 keys 00
+1033 keys 08
+1188 keys 00
+1189 keys 20
+1199 keys 00
+1402 keys 20
+1411 keys 00
+1573 keys 20
+1582 keys 00
+1668 keys 04
+1678 keys 00
+1691 keys 10
+1700 keys 00
+1740 keys 08
+1752 keys 00
+1774 keys 04
+1776 keys 06
+1786 keys 00
+1819 keys 04
+1826 keys 00
+1834 keys 04
+1843 keys 00
+1846 keys 04
+1853 keys 00
+1872 keys 04
+1881 keys 00
+1901 keys 04
+1909 keys 00
+1969 keys 20
+1978 keys 00
+2096 keys 08
+2105 keys 00
+2119 keys 20
+2126 keys 00
+2174 keys 10
+2183 keys 00
+2250 keys 08
+2313 keys 0a
+2345 keys 08
+2373 keys 28
+2376 keys 20
+2384 keys 00
+2576 keys 08
+2586 keys 00
+2610 keys 02
+2617 keys 00
+2642 keys 10
+2651 keys 00
+2725 keys 10
+2736 keys 00
+2911 keys 08
+2961 keys 00
+3020 keys 08
+3232 keys 0a
+3240 keys 02
+3249 keys 0a
+3252 keys 08
+3270 keys 09
+3313 keys 01
+3346 keys 09
+3362 keys 08
+3374 keys 0a
+3394 keys 08
+3403 keys 09
+3425 keys 08
+3436 keys 09
+3446 keys 08
+3585 keys 04
+3615 keys 00
+3750 keys 00

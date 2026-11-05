@@ -1,0 +1,141 @@
+oracles-route 15
+game ages
+rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
+sram_sha1 5066fd92af3a71202140ab168abbac57eb073d4c
+options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,continuous-line,swim-hold
+core joypad-bouncing-off
+# A swim at the surface with the mermaid suit across the rooms' edges, with the transitions at the line and the swim's
+# hold, as the home screen plays them, from swim.route's save: the inputs of a session to 3868 (down from Lynna to
+# the sea, taps against the edge between 0:a4 and 0:a5, each glide crossing it or dying short of it), then written
+# by hand: diagonally down-left through the corner of 0:a4, 0:a5, 0:b4 and 0:b5 (3971 to 4027, carried past the
+# line across into 0:b4 and its scroll started from where he swims), right into 0:b5 and, turned back during its
+# scroll, back past the line into 0:b4 (4110 to 4170), the glide let go then crossing that scroll.
+inputs
+0 keys 00
+487 keys 80
+493 keys 00
+510 keys 80
+515 keys 00
+522 keys 80
+526 keys 00
+564 keys 80
+569 keys 00
+574 keys 80
+582 keys 00
+613 keys 08
+919 keys 0a
+957 keys 08
+975 keys 0a
+1128 keys 08
+1189 keys 0a
+1193 keys 02
+1248 keys 0a
+1252 keys 08
+1449 keys 09
+1492 keys 08
+1526 keys 09
+1610 keys 08
+1713 keys 0a
+1781 keys 02
+1893 keys 0a
+1916 keys 02
+2040 keys 06
+2092 keys 02
+2106 keys 06
+2125 keys 02
+2139 keys 00
+2182 keys 02
+2187 keys 00
+2261 keys 02
+2266 keys 00
+2298 keys 02
+2302 keys 00
+2337 keys 01
+2343 keys 00
+2371 keys 01
+2374 keys 00
+2397 keys 01
+2402 keys 00
+2442 keys 01
+2447 keys 00
+2477 keys 01
+2482 keys 00
+2515 keys 01
+2519 keys 00
+2548 keys 01
+2553 keys 00
+2584 keys 01
+2589 keys 00
+2654 keys 02
+2658 keys 00
+2691 keys 02
+2695 keys 00
+2725 keys 02
+2730 keys 00
+2780 keys 01
+2786 keys 00
+2816 keys 01
+2821 keys 00
+2851 keys 01
+2857 keys 00
+2917 keys 01
+2921 keys 00
+2946 keys 01
+2951 keys 00
+2978 keys 01
+2984 keys 00
+3009 keys 01
+3015 keys 00
+3045 keys 01
+3050 keys 00
+3085 keys 02
+3089 keys 00
+3113 keys 02
+3119 keys 00
+3142 keys 02
+3147 keys 00
+3169 keys 02
+3175 keys 00
+3199 keys 02
+3205 keys 00
+3227 keys 02
+3233 keys 00
+3253 keys 02
+3261 keys 00
+3282 keys 02
+3288 keys 00
+3356 keys 02
+3360 keys 00
+3383 keys 02
+3389 keys 00
+3412 keys 01
+3418 keys 00
+3434 keys 01
+3439 keys 00
+3460 keys 01
+3465 keys 00
+3520 keys 02
+3525 keys 00
+3554 keys 02
+3558 keys 00
+3587 keys 02
+3590 keys 00
+3643 keys 01
+3648 keys 00
+3674 keys 01
+3679 keys 00
+3743 keys 02
+3746 keys 00
+3767 keys 02
+3771 keys 00
+3798 keys 02
+3803 keys 00
+3863 keys 02
+3868 keys 05
+3908 keys 00
+3933 keys 0a
+4023 keys 00
+4063 keys 01
+4113 keys 02
+4153 keys 00
+4213 keys 00

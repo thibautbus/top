@@ -339,6 +339,15 @@ static void measure_switch_jolts(OraclesEnhancedCheck *c, uint32_t frame, const 
     const int state = (ob->in_transition ? 1 : 0) | (oracles_guest_read8(c->guest, t->text_is_active) ? 2 : 0) | (layer ? 4 : 0);
     int32_t band[2], link[2];
     shown_places(c, world, camera_x, camera_y, band, link);
+    const int32_t place[2] = { ob->world.link_x * 256 + ob->link_sub_x, ob->world.link_y * 256 + ob->link_sub_y };
+    const int scroll_next = ob->in_scroll && ob->grid && c->scroll_back_have && c->scroll_back_frame + 1u == frame && c->scroll_back_epoch == ob->epoch;
+    for (unsigned a = 0; a < 2u; a++) {
+        const int32_t step = link[a] - c->scroll_back_link[a], own = place[a] - c->scroll_back_place[a];
+        if (scroll_next && c->scroll_back_dip[a] && own && step && (step > 0) == (own > 0)) c->scroll_link_dips++;
+        c->scroll_back_dip[a] = scroll_next && own && (step >= 3 || step <= -3) && (step > 0) != (own > 0);
+    }
+    c->scroll_back_have = 1; c->scroll_back_frame = frame; c->scroll_back_epoch = ob->epoch;
+    memcpy(c->scroll_back_link, link, sizeof link); memcpy(c->scroll_back_place, place, sizeof place);
     /* An interior's room shown whole, or the band still in it, its edge opened by a scroll's start (a door left through
      * the edge), the game's window still, the game in that room still: the band as shown stands where it stood
      * (enhanced.alone_scroll_band_moves, of enhanced.alone_scroll_frames). */
@@ -509,8 +518,61 @@ static void measure_layer_objects(OraclesEnhancedCheck *c)
     }
 }
 
+/* Link's sprites as drawn (enhanced.link_drawn_zigzags): the top left of the OAM's entries of his graphics at his place
+ * in the window drawn (his left column, or his right one 8 px left, the hidden column x 0 aside), or of those the view
+ * built from his fields, in the world, then on the screen at MEASURE_SCALE as the backend moves them. */
+static void measure_link_drawn(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y)
+{
+    const uint8_t *oam = oracles_guest_oam(c->guest);
+    int32_t left = INT32_MAX, top = INT32_MAX;
+    int built_x = 0, built_y = 0;
+    const int shown = mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->cutscene && !(ob->in_transition && !ob->in_scroll);
+    if (shown && oracles_enhanced_view_link_drawn(c->view, &built_x, &built_y) == 2) { left = built_x; top = built_y; }
+    else if (shown && oam) {
+        const unsigned ax = (unsigned)(ob->world.link_x - ob->window_left) & 0xffu, ay = (unsigned)(ob->world.link_y - ob->window_top + 24) & 0xffu;
+        for (unsigned k = 0; k < 40u; k++) {
+            const uint8_t *e = oam + k * 4u;
+            if (e[0] == 0u || e[1] == 0u || (e[2] & 0xfcu) != ORACLES_LINK_TILES || !(e[3] & ORACLES_OAM_ATTR_VRAM_BANK1)) continue;
+            const int dy = (int8_t)(uint8_t)(e[0] - ay), dx = (int8_t)(uint8_t)(e[1] - ax);
+            if (dy < -2 || dy > 2 + (int)ORACLES_LINK_SWIM_LOWER || dx < -4 || dx > 11) continue;
+            const int32_t x = (e[1] >= 208u ? (int32_t)e[1] - 256 : (int32_t)e[1]) - 8 - (dx >= 4 ? 8 : 0);
+            const int32_t y = (e[0] >= 224u ? (int32_t)e[0] - 256 : (int32_t)e[0]) - 16 - (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+            if (x < left) left = x;
+            if (y < top) top = y;
+        }
+    }
+    if (!shown || left == INT32_MAX || top == INT32_MAX || (c->zig_have && (c->zig_frame + 1u != frame || c->zig_epoch != ob->epoch))) {
+        c->zig_have = 0;
+        if (!shown || left == INT32_MAX || top == INT32_MAX) return;
+    }
+    int32_t sx = 0, sy = 0, layer_x = 0, layer_y = 0, layer_fx = 0, layer_fy = 0;
+    uint32_t band_top = 0, band_height = 0, layer_w = 0, layer_h = 0;
+    const uint32_t *layer = NULL;
+    oracles_enhanced_view_subpixel(c->view, &sx, &sy, &band_top, &band_height, &layer, &layer_x, &layer_y, &layer_w, &layer_h, &layer_fx, &layer_fy);
+    const int32_t fx = shown_pixels(sx), fy = shown_pixels(sy);
+    const int32_t place[2] = { (ob->window_left + left - camera_x) * MEASURE_SCALE + (layer ? (layer_fx ? shown_pixels_down(layer_fx + sx) - fx : 0) : -fx),
+                               (ob->window_top + top - camera_y) * MEASURE_SCALE + (layer ? (layer_fy ? shown_pixels_down(layer_fy + sy) - fy : 0) : -fy) };
+    const int32_t world[2] = { ob->world.link_x - ob->link_step_x, ob->world.link_y - ob->link_step_y };
+    for (unsigned a = 0; a < 2u && c->zig_have; a++) {
+        const int32_t step = place[a] - c->zig_place[a], world_step = world[a] - c->zig_world[a], last = c->zig_step[a];
+        const int turned = world_step && c->zig_world_step[a] && (world_step > 0) != (c->zig_world_step[a] > 0);
+        if (!turned && (last >= 2 || last <= -2) && (step >= 2 || step <= -2) && (step > 0) != (last > 0) && step < 16 && step > -16 && last < 16 && last > -16) {
+            c->link_drawn_zigzags++;
+            const size_t used = strlen(c->zig_list);
+            if (used + 16 < sizeof c->zig_list) snprintf(c->zig_list + used, sizeof c->zig_list - used, "%s%u:%c", used ? " " : "", frame, a ? 'y' : 'x');
+        }
+    }
+    for (unsigned a = 0; a < 2u; a++) {
+        c->zig_step[a] = c->zig_have ? place[a] - c->zig_place[a] : 0;
+        c->zig_world_step[a] = c->zig_have ? world[a] - c->zig_world[a] : 0;
+    }
+    memcpy(c->zig_place, place, sizeof place); memcpy(c->zig_world, world, sizeof world);
+    c->zig_have = 1; c->zig_frame = frame; c->zig_epoch = ob->epoch;
+}
+
 void ec_measure_link_backsteps(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y)
 {
+    measure_link_drawn(c, frame, ob, mode, camera_x, camera_y);
     measure_layer_objects(c);
     int found = 0, left = 255, top = 255;
     const uint8_t *oam = oracles_guest_oam(c->guest);
@@ -560,6 +622,67 @@ void ec_measure_link_backsteps(OraclesEnhancedCheck *c, uint32_t frame, const Or
     memcpy(c->drawn_world, world, sizeof world);
     c->drawn_link_epoch = ob->epoch;
     c->have_drawn_link = 1;
+}
+
+#define SWIM_AFTER_SCROLL 3u   /* the frames after a transition counted with it */
+
+void ec_measure_swim(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(c->guest);
+    const uint8_t *link = oracles_guest_object(c->guest, 0, 0);
+    if (!link) { c->swim_have = 0; return; }
+    const uint8_t state = oracles_guest_read8(c->guest, t->link_swimming_state);
+    const int floor = (oracles_guest_read8(c->guest, t->tileset_flags) & ORACLES_TILESETFLAG_UNDERWATER) != 0;
+    const int swimming = (state & 0x4fu) == ORACLES_SWIMMING_NORMAL;
+    if ((c->swim_last_state & 0x4fu) == ORACLES_SWIMMING_NORMAL && !state && !floor && !ob->large && ob->playing
+        && (link[ORACLES_OBJ_YH] + 5u >= 128u || link[ORACLES_OBJ_XH] >= 160u)) c->swim_left_water_past_room++;
+    c->swim_last_state = state;
+    if (!ob->in_transition) c->swim_scroll_swimming = swimming;
+    else if (c->swim_scroll_swimming && !floor && oracles_guest_read8(c->guest, t->link_anim_mode) == ORACLES_LINK_ANIM_MODE_WALK) c->swim_walked_scroll_frames++;
+    const int window = ob->in_transition || c->swim_after;
+    c->swim_after = ob->in_transition ? SWIM_AFTER_SCROLL : c->swim_after ? c->swim_after - 1u : 0u;
+    int x = 0, y = 0;
+    const int drawn = oracles_enhanced_view_link_drawn(c->view, &x, &y);
+    const int measured = mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->cutscene && (swimming || floor);
+    /* The same on foot (walk.drawn_*), measured apart; not while wScrollMode is 0, a transition that does not scroll,
+     * where the world holds him at the room's edge while he walks on past it. */
+    const int walking = mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->cutscene && !state && !floor
+                     && oracles_guest_read8(c->guest, t->link_anim_mode) == ORACLES_LINK_ANIM_MODE_WALK && oracles_guest_read8(c->guest, t->scroll_mode) != 0u;
+    const int kind = measured ? 1 : walking ? 2 : 0;
+    const int contiguous = c->swim_have && c->swim_frame + 1u == frame && c->swim_epoch == ob->epoch;
+    const uint16_t pose = (uint16_t)(link[ORACLES_OBJ_OAM_DATA_ADDRESS] | link[ORACLES_OBJ_OAM_DATA_ADDRESS + 1] << 8);
+    if (kind && contiguous && drawn) {
+        const int32_t off[2] = { ob->window_left + x - c->swim_last_world[0], ob->window_top + y - c->swim_last_world[1] };
+        /* The pose the OAM draws is the frame before's: the same as the one before it, its sprites' offsets too. */
+        if (c->swim_off_have == kind && c->swim_pose[0] == c->swim_pose[1]) {
+            int32_t change = 0;
+            for (unsigned a = 0; a < 2u; a++) { const int32_t d = off[a] - c->swim_off[a]; if ((d < 0 ? -d : d) > change) change = d < 0 ? -d : d; }
+            OraclesEnhancedDrawnCounts *n = kind == 1 ? &c->swim_drawn : &c->walk_drawn;
+            if (drawn == 2 || c->swim_last_drawn == 2) n->off_built_frames += change >= 1;
+            else if (window) { n->scroll_frames++; n->off_scroll_frames += change >= 1; }
+            else { n->mid_frames++; n->off_mid_frames += change >= 1; }
+            if (change > n->off_max) n->off_max = change;
+        }
+        memcpy(c->swim_off, off, sizeof off);
+        c->swim_off_have = kind;
+    } else c->swim_off_have = 0;
+    /* The band as the screen shows it, its step against the step before. */
+    int32_t band[2], shown_link[2];
+    const int32_t world[2] = { ob->world.link_x, ob->world.link_y };
+    shown_places(c, world, camera_x, camera_y, band, shown_link);
+    if (measured && contiguous && c->smooth && c->swim_band_have) {
+        for (unsigned a = 0; a < 2u; a++) {
+            const int32_t step = band[a] - c->swim_band[a], jerk = step - c->swim_band_step[a];
+            if (c->swim_band_have > 1 && (jerk >= 3 || jerk <= -3)) { if (window) c->swim_band_jerks_scroll++; else c->swim_band_jerks_mid++; }
+            c->swim_band_step[a] = step;
+        }
+        c->swim_band_have = 2;
+    } else c->swim_band_have = measured ? 1 : 0;
+    memcpy(c->swim_band, band, sizeof band);
+    c->swim_pose[1] = c->swim_pose[0]; c->swim_pose[0] = pose;
+    c->swim_last_drawn = drawn;
+    c->swim_last_world[0] = world[0]; c->swim_last_world[1] = world[1];
+    c->swim_have = 1; c->swim_frame = frame; c->swim_epoch = ob->epoch;
 }
 
 /* The scroll registers in effect at the first game-area line of the frame

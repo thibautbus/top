@@ -177,7 +177,8 @@ static void end_room_episode(OraclesEnhancedView *v, unsigned i, uint32_t frame)
 
 /* The episodes by kind, a scroll's frames included: the rooms black this
  * frame (none in a frame not of the world), the band past the map's edge,
- * and what is black besides, a ripple's fringe or else. */
+ * and what is black besides, a ripple's fringe (the game's waves, or those
+ * the band goes on drawing through a scroll under Ages' sea) or else. */
 static void count_kinds(OraclesEnhancedView *v, int world, int32_t camera_x, int32_t camera_y, uint32_t frame)
 {
     if (world) {
@@ -215,7 +216,7 @@ static void count_kinds(OraclesEnhancedView *v, int world, int32_t camera_x, int
         present |= 1u << v->black_episodes[i].kind;
     }
     const int edge = world && v->uncovered && past_edge(v, camera_x, camera_y);
-    const int ripple = world && v->uncovered && !count && !edge && v->have_wave;
+    const int ripple = world && v->uncovered && !count && !edge && (v->have_wave || v->waves_continued);
     const int alone = world && v->uncovered && !count && !edge && !ripple && ev_isolated_room(v);
     const int places[4] = { edge, ripple, alone, world && v->uncovered && !count && !edge && !ripple && !alone };
     for (unsigned p = 0; p < 4u; p++) {

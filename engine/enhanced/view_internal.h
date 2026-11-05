@@ -619,8 +619,14 @@ struct OraclesEnhancedView {
     uint64_t blurb_mask;             /* this frame's OAM entries that are the blurb's (bit per entry) */
     unsigned link_unshown_frames;    /* scroll frames with Link to draw, none of him on the screen nor drawn past its edge */
     unsigned link_built_frames;      /* scroll frames he was drawn from his fields, the game writing none of his sprites */
+    unsigned link_chained_frames;    /* of them, frames that chain two scrolls (ob->scroll_chained) */
+    unsigned link_chained_unshown;   /* and of those, frames none of his pixels landed in the band */
+    unsigned link_chained_pixels;    /* the pixels of him drawn so this frame */
+    unsigned link_left_line_frames;  /* frames his left column was drawn from the hidden column x 0, Link on the room's left line */
     int edge_link_made;              /* this frame's edge overlay drew sprites of his the OAM does not hold (a column, or all of him) */
     int edge_link_built;             /* all of him, from his fields */
+    int link_drawn;                  /* this frame's Link: 0 none, 1 from the OAM, 2 built from his fields; at link_drawn_x, _y of the game area, his sprites' top left */
+    int link_drawn_x, link_drawn_y;
     /* The objects of a large room beyond the game's window: at each drawing
      * of the game in a large room, every object's
      * sprites built from its fields and the game's data, kept with the wOam
@@ -757,6 +763,7 @@ struct OraclesEnhancedView {
     unsigned sub_fixed_count;
     int32_t sub_layer_x, sub_layer_y;   /* its top left in the surface */
     int32_t sub_layer_fx, sub_layer_fy;   /* and its move, in 256ths of a pixel right and down: Link's place less the band's */
+    int32_t sub_lag_x, sub_lag_y;         /* of it, the whole pixels his sprites on screen lag his place by (drawn_lag), in 256ths */
     uint32_t sub_layer_w, sub_layer_h;
     unsigned sub_frames, sub_layer_frames, sub_refused_frames;
     unsigned sub_left_pixels, sub_wrong_pixels, sub_alike_pixels;   /* the checks of the layer (view_phase.c) */

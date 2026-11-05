@@ -480,6 +480,11 @@ static int check_profile(session *s, const OraclesSessionOptions *o, OraclesSess
         fprintf(stderr, "oracles: %s does not support the continuous transitions' steps; Link walks through them a pixel a frame\n", name);
         s->continuous_steps = 0;
     }
+    if (s->continuous_line && (!s->continuous_steps || !oracles_compat_continuous_line(s->profile))) {
+        if (!from_home) return failed(result, "%s does not support --continuous-line", name);
+        fprintf(stderr, "oracles: %s does not support the transitions at the line; they start where the game starts them\n", name);
+        s->continuous_line = 0;
+    }
     if (s->zoom_out && !oracles_compat_zoom_out(s->profile)) {
         if (!from_home) return failed(result, "%s does not support a view drawn back (--view medium or far, --zoom-out) yet", name);
         fprintf(stderr, "oracles: %s does not support the drawn-back view yet; the near view plays instead\n", name);
@@ -609,19 +614,34 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         s->transition = oracles_room_transition_start(s->guest, s->rom, s->rom_size, s->continuous_swim);
         oracles_room_transition_set_diagonal(s->transition, s->continuous_diagonal);
         oracles_room_transition_set_steps(s->transition, s->continuous_steps);
+        if (s->continuous_line && !oracles_room_transition_set_line(s->transition, 1)) {
+            if (!from_home) return failed(result, "--continuous-line cannot find the screen's edge tests in this ROM");
+            fprintf(stderr, "oracles: the transitions at the line cannot find the screen's edge tests in this ROM; they start where the game starts them\n");
+            s->continuous_line = 0;
+        }
         if (s->transition) fprintf(stderr, "oracles: continuous transitions on%s: Link keeps walking through scrolling transitions; the game's state differs from a native session's\n", s->continuous_swim ? ", swimming too" : "");
         else fprintf(stderr, "oracles: continuous transitions need the hooks of a recognised game; the native transitions stay\n");
     }
     if (!s->transition) { free(s->rom); s->rom = NULL; }   /* the policy reads the animation data from the ROM */
     if (s->guest && (s->hotkeys_mode != ORACLES_HOTKEYS_OFF || route_exchanges)) {
         s->hotkeys = oracles_hotkeys_session_start(s->guest, s->info.game, s->hotkeys_mode, s->settings, o->play_path ? &s->play : NULL);
-        if (!s->hotkeys && from_home && !route_exchanges) drop_hotkeys(s, result, "the item hotkeys cannot find the inventory's write point in this ROM");
-        else if (!s->hotkeys) return failed(result, "the item hotkeys cannot find the inventory's write point in this ROM; --item-hotkeys=off to play without them");
+        /* A full table of hooks is not the ROM's doing: say which. */
+        const char *why = oracles_guest_hooks_refused(s->guest) ? "the item hotkeys could not be hooked: the guest's table of hooks is full"
+                                                                 : "the item hotkeys cannot find the inventory's write point in this ROM";
+        if (!s->hotkeys && from_home && !route_exchanges) drop_hotkeys(s, result, why);
+        else if (!s->hotkeys) return failed(result, "%s; --item-hotkeys=off to play without them", why);
         if (s->hotkeys && s->recording) oracles_hotkeys_session_record(s->hotkeys, &s->record);
         if (s->hotkeys_mode != ORACLES_HOTKEYS_OFF)
             fprintf(stderr, "oracles: item hotkeys on, mode %s: keys %s %s %s %s; held with %s or %s a key takes the item of B or of A, in the inventory the item under the cursor\n",
                     o->hotkeys_option, s->settings->hotkey_key_names[0], s->settings->hotkey_key_names[1], s->settings->hotkey_key_names[2],
                     s->settings->hotkey_key_names[3], s->settings->hotkey_bind_b, s->settings->hotkey_bind_a);
+    }
+    if (s->guest && oracles_guest_hooks_refused(s->guest))
+        fprintf(stderr, "oracles: WARNING: the guest's table of hooks is full: %u hook(s) not installed (%u installed); a feature asked for may be missing its points\n",
+                oracles_guest_hooks_refused(s->guest), oracles_guest_hook_count(s->guest));
+    if (s->view) {
+        char degraded[256];
+        if (oracles_enhanced_view_degraded(s->view, degraded, sizeof degraded)) fprintf(stderr, "oracles: WARNING: the wide view runs without some of its hooks: %s\n", degraded);
     }
     if (s->guest && s->recording) {
         /* What the session was, frame by frame: `oracles-harness --compare` sets it against the replay of the route. */
@@ -732,11 +752,12 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->vsync_setting = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
     s->ghosts = o->ghosts ? o->ghosts - 1 : settings->ghosts;
     s->record_path = o->record_path;
-    s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps;
-    s->continuous_transitions = o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps;
+    s->enhanced = o->enhanced || o->zoom_out || o->view || o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps || o->continuous_line;
+    s->continuous_transitions = o->continuous_transitions || o->continuous_swim || o->continuous_diagonal || o->continuous_steps || o->continuous_line;
     s->continuous_swim = o->continuous_swim;
     s->continuous_diagonal = o->continuous_diagonal;
-    s->continuous_steps = o->continuous_steps;
+    s->continuous_steps = o->continuous_steps || o->continuous_line;
+    s->continuous_line = o->continuous_line;
     s->swim_hold = o->swim_hold;
     s->text_instant = o->text_instant == 2;
     s->text_speed_setting = -1;

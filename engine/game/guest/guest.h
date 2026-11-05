@@ -91,7 +91,11 @@ typedef enum OraclesGuestEventType {
     ORACLES_EVENT_TEXT_GFX_DMA,            /* entry of dmaTextGfxBuffer, with the host's text box armed: a = 0 the top line, 2 the bottom */
     ORACLES_EVENT_VBLANK_DMA,              /* entry of vblankDmaFunction, the same: the queued DMA it runs, its entry under SP */
     ORACLES_EVENT_TEXT_SKIP_TEST,          /* the `and` after updateCharacterDisplayTimer's read of wKeysJustPressed, with the instant text armed: its transaction runs here, */
-    ORACLES_EVENT_TEXT_SKIP_LOOP           /* and at displayNextTextCharacter's `bit 0,a` of w7d0c1, the test of its loop to the line's end */
+    ORACLES_EVENT_TEXT_SKIP_LOOP,          /* and at displayNextTextCharacter's `bit 0,a` of w7d0c1, the test of its loop to the line's end */
+    ORACLES_EVENT_EDGE_TEST_UP,            /* screenTransitionState2's `cp (hl)` of the top edge, with the line armed: its transaction runs here, */
+    ORACLES_EVENT_EDGE_TEST_RIGHT,         /* the right edge's, */
+    ORACLES_EVENT_EDGE_TEST_DOWN,          /* the bottom edge's, */
+    ORACLES_EVENT_EDGE_TEST_LEFT           /* and the left edge's */
 } OraclesGuestEventType;
 
 typedef struct OraclesGuestEvent {
@@ -109,15 +113,20 @@ typedef void (*OraclesGuestEventFn)(void *opaque, const OraclesGuestEvent *event
 
 /* The game's values the transition policy, its bus and the view share (constants/common/tilesetFlags.s,
  * linkAnimations.s; link.s linkUpdateSwimming). */
+#define ORACLES_TILESETFLAG_OUTDOORS 0x01u      /* the overworld */
 #define ORACLES_TILESETFLAG_SIDESCROLL 0x20u    /* a side view */
 #define ORACLES_TILESETFLAG_UNDERWATER 0x40u    /* Ages' sea floor; unused in Seasons */
 #define ORACLES_LINK_ANIM_MODE_SWIM 0x0bu
 #define ORACLES_LINK_ANIM_MODE_DIVE 0x0cu
 #define ORACLES_LINK_ANIM_MODE_WALK 0x10u
 #define ORACLES_SWIMMING_NORMAL 0x03u           /* wLinkSwimmingState's bits 0-3 in linkUpdateSwimming's state 3, bit 6 (lava) clear; bit 7 (diving) free */
+#define ORACLES_LINK_TILES 0x70u               /* his graphics' first tile, $70 to $73, which the game copies to VRAM bank 1 (loadLinkAndCompanionAnimationFrame) */
+#define ORACLES_OAM_ATTR_VRAM_BANK1 0x08u       /* an OAM entry's attribute bit 3: its tile in VRAM bank 1 */
 #define ORACLES_LINK_SWIM_LOWER 6u              /* px: the lowest of Link's swimming poses below the walk's line, measured against the OAM */
 #define ORACLES_TRANSITION_WALK_STEP_MAX 0x100  /* 8.8: the most the transition transaction moves Link along an axis in a frame on foot, a pixel */
 #define ORACLES_TRANSITION_SWIM_STEP_MAX 0x160  /* in the water: SPEED_160 along an axis, the fastest swim (the mermaid suit with the swimmer's ring) */
+#define ORACLES_TRANSITION_LINE_STEP_MAX 0x180  /* on foot with the line (--continuous-line): a pixel back and the machine's step of the scroll undone ($80 up or down) */
+#define ORACLES_TRANSITION_SWIM_LINE_STEP_MAX 0x1e0   /* in the water with the line: the fastest swim back and the machine's step undone */
 
 /* The transition transaction.  The state is a snapshot of the
  * scroll machine and of Link's gait at the return of drawAllSprites; the
@@ -125,6 +134,14 @@ typedef void (*OraclesGuestEventFn)(void *opaque, const OraclesGuestEvent *event
  * state is one where it is safe (a scrolling transition of a small room in
  * normal play, Link in his normal state, no item, no text), and only within
  * the bounds below. */
+/* OraclesGuestTransitionState.load.given: the bytes of the rooms' own code the image has. */
+#define ORACLES_LOAD_GAMEBOY_TYPE 0x01u
+#define ORACLES_LOAD_RICKY_STATE 0x02u
+#define ORACLES_LOAD_ESSENCES_OBTAINED 0x04u
+#define ORACLES_LOAD_ANIMAL_COMPANION 0x08u
+#define ORACLES_LOAD_BOUGHT_SHOP_ITEMS1 0x10u
+#define ORACLES_LOAD_SEED_TREE_REFILLED 0x20u
+
 typedef struct OraclesGuestTransitionState {
     OraclesGame game;
     uint8_t active_group, room_is_large, game_state, cutscene_index, text_is_active, tileset_flags;
@@ -152,10 +169,22 @@ typedef struct OraclesGuestTransitionState {
     uint8_t link_input_angle;                                                 /* wLinkAngle: the direction held, 32 steps; bit 7 none */
     uint8_t link_direction;                                                   /* w1Link.direction: the way he faces, 0 up, 1 right, 2 down, 3 left */
     uint8_t link_stroke;                                                      /* w1Link.var35: a stroke of the flippers, 1 speeding up, 2 slowing down (linkUpdateFlippersSpeed) */
+    /* The rest of his swim's state, which the game's swim routines step each frame of normal play (--continuous-line):
+     * w1Link.speedTmp (his speed's cap), var12 and var13 (the counter and period of his speed's steps), counter1 (the
+     * frames left of a stroke of the flippers), var3e (the frames left of a stroke of the mermaid suit); the keys the
+     * game read this frame, the swimmer's ring worn, the swim's hold on. */
+    uint8_t link_speed_tmp, link_speed_counter, link_speed_period, link_counter1, link_mermaid_stroke;
+    uint8_t game_keys_pressed, game_keys_just_pressed, swimmers_ring, swim_hold;
+    uint8_t game_frame;                                                       /* wFrameCounter: the game's frame, which a vblank of an unfinished one shares */
     uint8_t screen_transition_delay, disable_screen_transitions, hole_or_conveyor;   /* wScreenTransitionDelay, wDisableScreenTransitions, wcc92 */
     uint8_t boundary_x, boundary_y, active_room, active_tile_index;           /* wScreenTransitionBoundaryX/Y, wActiveRoom, wActiveTileIndex */
     uint8_t map_width, map_height;                                            /* the overworld's (OVERWORLD_WIDTH/HEIGHT) */
     uint8_t animation_data_bank;
+    uint16_t animation_table;                                                 /* specialObjectAnimationTable, in that bank */
+    uint8_t map_transition_bank;                                              /* mapTransitionGroupTable (getNextActiveRoom's rooms of a special transition): its bank, $ff none */
+    uint16_t map_transition_table;
+    uint8_t room_pack_bank;                                                   /* roomPackData (loadScreenMusic: each overworld room's pack): its bank, $ff none */
+    uint16_t room_pack_table;
     uint8_t palette_thread_mode, tileset_palette, loaded_tileset_palette;   /* wPaletteThread_mode, wTilesetPalette, wLoadedTilesetPalette */
     /* What the load of the room entered reads besides the fields above (active_group, active_room, tileset_flags,
      * active_collisions) to build its layout and collisions, each written before wScrollMode is 8 or left alone by the
@@ -163,12 +192,23 @@ typedef struct OraclesGuestTransitionState {
     struct {
         uint8_t tileset_layout, tileset_layout_group;   /* wTilesetLayout, wTilesetLayoutGroup (loadTilesetData) */
         uint8_t room_flags;                             /* the room's own flags (getThisRoomFlags) */
+        const uint8_t *room_flags_page;                 /* the flags of every room of the group (256 bytes), NULL where unknown */
+        const uint8_t *objects;                         /* WRAM bank 1 from $d000 (4 KB: the objects' slots), at the return of drawAllSprites
+                                                           alone, the frame's logic over (a load's objects created); NULL at a vblank */
         uint8_t room_state_modifier;                    /* the season (Seasons) */
         uint8_t is_linked_game;                         /* applySingleTileChanges (Ages) */
         uint8_t portal_group, portal_room, portal_pos;  /* replaceBreakableTileOverPortal (Ages) */
         uint8_t warp_transition, warp_dest_pos, link_time_warp_tile;   /* the time warp's arrival and return (Ages) */
         const uint8_t *global_flags, *gasha_spots_planted;   /* wGlobalFlags, wGashaSpotsPlantedBitset */
         uint16_t global_flags_size, gasha_spots_planted_size;
+        /* The rooms' own code (applyRoomSpecificTileChanges): every page of room flags (wGroup0RoomFlags to wGroup5RoomFlags,
+         * Ages' vines' positions among them), NULL where unknown; hGameboyType, wRickyState, wEssencesObtained,
+         * wAnimalCompanion, wBoughtShopItems1, wSeedTreeRefilledBitset; wObtainedTreasureFlags. */
+        const uint8_t *room_flags_all, *obtained_treasures;
+        uint16_t room_flags_all_size, obtained_treasures_size;
+        uint8_t gameboy_type, ricky_state, essences_obtained, animal_companion, bought_shop_items1, seed_tree_refilled;
+        uint8_t given;                                  /* which of those six the image has (ORACLES_LOAD_*): a routine reading one it has not is refused */
+        uint8_t room_code_replay;                       /* the image's room code the original game's (its profile), which the prediction replays */
         /* the game's constants (generated tables), 0xff for none */
         uint8_t chest_opened_tile, roomflag_item, timewarp_transition, pollution_fixed_flag, finished_game_flag, temple_lava_flag,
             pirate_ship_flag, intro_done_flag;
@@ -185,7 +225,8 @@ typedef struct OraclesGuestTransitionMutation {
     uint8_t link_anim_counter, link_anim_parameter, link_animation_frame;
     uint16_t link_anim_pointer;
     uint8_t refresh_bg_palettes;           /* BG palettes (bits 2-7) marked dirty in hDirtyBgPalettes, out of a transition, the palette thread stopped and the room's palettes loaded */
-    uint8_t force_transition;              /* --continuous-swim, in normal play: 1 raise wScreenTransitionDirection's bit 7 to `forced_direction`, 2 lower it */
+    uint8_t force_transition;              /* --continuous-swim, in normal play: 1 raise wScreenTransitionDirection's bit 7 to `forced_direction`, 2 lower it;
+                                              --continuous-line, at the frame that ends a scroll: 3 start the transition `forced_direction` there */
     uint8_t forced_direction;              /* 0 up, 1 right, 2 down, 3 left */
     uint8_t carried;                       /* the delta across the transition's axis is a carry (--continuous-diagonal): counted when applied */
     uint8_t set_facing;                    /* --continuous-steps, on foot in a scroll: write w1Link.direction (`facing`, 0 to 3), the way the keys turn him */
@@ -195,6 +236,10 @@ typedef struct OraclesGuestTransitionMutation {
     uint8_t set_respawn;                   /* --continuous-steps, at that frame: write wLinkLocalRespawnY/X (`respawn_y`, `respawn_x`, pixels in the room entered),
                                               which finishScrollingTransition took from where the policy's steps left Link */
     uint8_t respawn_y, respawn_x;
+    uint8_t set_swim;                      /* --continuous-line, in the water in a scroll or at the frame that ends it: write his swim's state as the game's
+                                              swim routines would have stepped it (`swim`: w1Link.angle, speed, speedTmp, var12, var13, var35, counter1,
+                                              var3e), so that the game takes it up after the scroll */
+    struct { uint8_t angle, speed, speed_tmp, counter, period, stroke, counter1, mermaid_stroke; } swim;
 } OraclesGuestTransitionMutation;
 
 typedef void (*OraclesGuestTransitionFn)(void *opaque, const OraclesGuestTransitionState *state, OraclesGuestTransitionMutation *mutation);
@@ -225,6 +270,14 @@ unsigned oracles_guest_transition_carried(const OraclesGuest *guest);
 unsigned oracles_guest_transition_end_steps(const OraclesGuest *guest);
 /* The respawns in the room entered the transaction moved where the game would have left Link (--continuous-steps). */
 unsigned oracles_guest_transition_respawns(const OraclesGuest *guest);
+/* The transitions back the transaction forced at the end of a scroll, Link walked back past the line (--continuous-line). */
+unsigned oracles_guest_transition_back_forced(const OraclesGuest *guest);
+/* The times the transaction put Link back on the line, left past it with no transition back to take him (--continuous-line). */
+unsigned oracles_guest_transition_put_back(const OraclesGuest *guest);
+/* The scrolls into the room beside the transaction started at the end of a scroll, Link carried past the line across (--continuous-line). */
+unsigned oracles_guest_transition_cross_started(const OraclesGuest *guest);
+/* The frames the transaction wrote Link's swim's state in a scroll, as the game's swim routines would have stepped it (--continuous-line). */
+unsigned oracles_guest_transition_swim_steps(const OraclesGuest *guest);
 /* wScreenTransitionState as the policy was last asked about it, given back by the policy's savestate data after a load
  * (oracles_guest_reset_execution_state takes it from the state loaded otherwise). */
 void oracles_guest_set_transition_last_state(OraclesGuest *guest, uint8_t state);
@@ -479,6 +532,58 @@ int oracles_guest_swim_hold(const OraclesGuest *guest);
 /* The strokes the transaction started since the attach, with the mermaid suit and with the flippers. */
 void oracles_guest_swim_strokes(const OraclesGuest *guest, unsigned *mermaid, unsigned *flippers);
 
+/* ---- the transitions at the line ------------------------------------------------------
+ *
+ * screenTransitionState2 (bank1.s) starts a scroll 6 px before the line between two rooms: past yh or xh 5 at the top
+ * and the left, past wScreenTransitionBoundaryY or X (the room's last 7 or 6 pixels kept) at the bottom and the right,
+ * and puts Link back on that bound, whether the scroll starts or not (@transition: a direction held toward the edge,
+ * and its other checks).  He never stands in those pixels.  With the line armed, at each of the four comparisons, the
+ * bound the routine has just loaded in a becomes the room's own edge: the comparison holds at the top and the left at 0
+ * or below it (a coordinate wrapped below zero, the upper half of what lies beyond the room: from 192 up and down, from
+ * 208 across, put back at 0, never taken for one past the other edge), at the bottom and the right past the room's
+ * last pixel; the scroll then starts at the line, and Link stands anywhere in the room.  Only in a small room (160 by
+ * 128: a large one leaves too little beyond its edges to tell the two apart, and its transitions are the game's), for
+ * Link on foot or on the sea floor (wLinkSwimmingState zero), his own object (not an animal), outside a side view,
+ * and never past an edge of Ages' overworld that @transition refuses (with the transitions disabled the bounds stay the
+ * line's, @transition refusing the scroll there); elsewhere a
+ * stays the game's.  Nothing else reads that register, and nothing is written in memory. */
+
+/* What an edge's comparison reads, at the instruction. */
+typedef struct OraclesGuestEdgeTest {
+    unsigned direction;              /* 0 the top, 1 the right, 2 the bottom, 3 the left */
+    uint8_t a;                       /* the bound the routine loaded */
+    uint8_t position;                /* (hl): yh or xh */
+    int link;                        /* (hl) is Link's own object */
+    uint8_t tileset_flags, swimming, transitions_disabled, room;   /* wTilesetFlags, wLinkSwimmingState, wDisableScreenTransitions, wActiveRoom */
+    uint8_t map_last_column, map_last_row;   /* Ages' overworld (@transition): its last column, its last row's first room; 0 for none */
+    uint8_t room_is_large, room_width, room_height;   /* wRoomIsLarge; wRoomWidth, wRoomHeight in 8-pixel tiles */
+    int swim;                        /* swimming at the surface answered too (the continuous transitions' swim) */
+    uint8_t conveyor;                /* wcc92: over a hole (bit 7) or on a conveyor or a current (bits 0-6) */
+} OraclesGuestEdgeTest;
+
+/* What the transaction did since the attach. */
+typedef struct OraclesGuestLineCounts {
+    unsigned rests;                  /* comparisons the game's bound would have held, Link inside the room: left to stand */
+    unsigned clamps;                 /* comparisons held at the line: back on it, the scroll asked of @transition */
+    unsigned wraps;                  /* of those, a coordinate below 0 at the top or the left */
+    unsigned native_backs;           /* comparisons left to the game's bound that held: water, an animal, an edge of the map */
+} OraclesGuestLineCounts;
+
+/* Pure: the a the transaction leaves at the comparison (the game's when it does not answer). */
+uint8_t oracles_guest_edge_test_a(const OraclesGuestEdgeTest *test);
+/* Pure: the address of an edge's `cp (hl)` in `rom` (the flat image), within screenTransitionState2's first $40 bytes;
+ * 0 when not found once. */
+uint16_t oracles_guest_find_edge_test(const OraclesGuestTables *tables, const uint8_t *rom, size_t size, unsigned direction);
+/* Pure: Ages' overworld edges @transition refuses, read in its code (`and $0f / cp OVERWORLD_WIDTH-1 / jr nz / ld a,c /
+ * cp DIR_RIGHT / ret z / ld a,e / cp (OVERWORLD_HEIGHT-1)*16`): its last column and its last row's first room; both 0
+ * when the game has no such check (Seasons). */
+void oracles_guest_find_map_edges(const OraclesGuestTables *tables, const uint8_t *rom, size_t size, uint8_t *column, uint8_t *row);
+/* Turns the line on or off from the next comparison, arming the four the first time it is on; -1 when the profile does
+ * not qualify it, a comparison is not found once, or the hook table is full.  Once armed they stay so. */
+int oracles_guest_set_transition_line(OraclesGuest *guest, int on);
+int oracles_guest_transition_line(const OraclesGuest *guest);
+void oracles_guest_line_counts(const OraclesGuest *guest, OraclesGuestLineCounts *out);
+
 /* ---- the cheats ------------------------------------------------------------------------
  *
  * Each cheat answers in a register, at the one instruction of a routine that reads it, before it runs, found in the
@@ -711,6 +816,9 @@ void oracles_guest_set_frame(OraclesGuest *guest, uint32_t frame);
  * the same events is not armed twice. Returns 0, or -1 when full. */
 void oracles_guest_clear_hooks(OraclesGuest *guest);
 int oracles_guest_add_hook(OraclesGuest *guest, OraclesGuestSym entry, OraclesGuestEventType on_entry, OraclesGuestEventType on_return);
+/* The hooks installed, and those refused for want of room in the table (a feature's points then missing). */
+unsigned oracles_guest_hook_count(const OraclesGuest *guest);
+unsigned oracles_guest_hooks_refused(const OraclesGuest *guest);
 
 /* ---- bus: physical reads -------------------------------------------------- */
 const uint8_t *oracles_guest_wram(OraclesGuest *guest, unsigned bank);   /* 4 KiB; bank 0 is $c000, banks 1-7 are $d000 */

@@ -1053,6 +1053,7 @@
     "link_speed_step_counter": null,
     "link_speed_step_period": null,
     "link_stroke_counter": null,
+    "active_ring": null,
     "link_update_flippers_state0": null,
     "link_apply_damage": null,
     "link_damage_to_apply": null,
@@ -1222,6 +1223,7 @@
     "treasure_gasha_seed": "0x34",
     "treasure_seed_satchel": "0x19",
     "num_rings": "0x40",
+    "swimmers_ring": "0xff",
     "coarse_flag_finished_game": "0x14",
     "coarse_flag_temple_lava": "0xff",
     "coarse_flag_moblins_keep": "0xff",
@@ -1303,7 +1305,8 @@
     "tile_changes_after_gfx_group_table": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "gasha_spot_rooms": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
     "timewarp_entry_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
-    "timewarp_return_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load"
+    "timewarp_return_tile_replacement_dict": "the collisions of the room a scroll enters are not predicted for this image: the scroll waits for its load",
+    "object_speed_table": "the continuous transitions' swim at the line not qualified for this revision"
   },
   "guest_table_absent": {
     "treasure_display_data1": "the hotbar's icons not qualified for this revision",
@@ -1329,6 +1332,7 @@
     "link_speed_step_counter": "the swim's hold not qualified for this revision",
     "link_speed_step_period": "the swim's hold not qualified for this revision",
     "link_stroke_counter": "the swim's hold not qualified for this revision",
+    "active_ring": "the continuous transitions' swim at the line not qualified for this revision",
     "link_update_flippers_state0": "the swim's hold not qualified for this revision",
     "link_apply_damage": "the cheats play on the original ROMs alone",
     "link_damage_to_apply": "the cheats play on the original ROMs alone",

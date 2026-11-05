@@ -61,9 +61,14 @@ struct OraclesGuest {
     unsigned transition_carried;                     /* carries across a transition's axis applied */
     unsigned transition_end_steps;                   /* steps of the frame that ends a scroll applied (--continuous-steps) */
     unsigned transition_respawns;                    /* respawns in the room entered moved where the game would have left Link (--continuous-steps) */
+    unsigned transition_put_back;                    /* Link put back on the line, past it with no transition back (--continuous-line) */
+    unsigned transition_back_forced;                 /* transitions back forced at the end of a scroll, Link past the line (--continuous-line) */
+    unsigned transition_cross_started;               /* scrolls into the room beside started at the end of a scroll, Link past the line across (--continuous-line) */
+    unsigned transition_swim_steps;                  /* frames Link's swim's state was written in a scroll (--continuous-line) */
     uint32_t policy_not_asked;                       /* such vblanks since the policy was last asked */
     uint8_t transition_last_state;                   /* wScreenTransitionState when the policy was last asked, or as a savestate's load found it */
-    hook hooks[32];                                  /* the table of section 15 plus the hooks a consumer adds (tags, object updates) */
+    hook hooks[64];                                  /* the table of section 15 plus the hooks a consumer adds (tags, object updates, the features' points) */
+    unsigned hooks_refused;                          /* hooks asked for once the table was full */
     unsigned hook_count;
     int reader;                                      /* oracles_guest_reader's: no hook, no callback of the core's */
     uint8_t hooked_pc[0x10000u / 8u];                 /* a bit per address some hook enters at: the others skip the table */
@@ -97,6 +102,9 @@ struct OraclesGuest {
     unsigned language_served, language_english, language_missing, language_laid_out;
     unsigned mermaid_strokes, flippers_strokes;      /* the swim's hold (guest_swim.c): strokes it started */
     int swim_hold, swim_hold_armed;                  /* the hold on; its tests hooked */
+    int transition_line, line_armed;                 /* the transitions at the line (guest_line.c): on; its comparisons hooked */
+    uint8_t map_last_column, map_last_row;           /* Ages' overworld edges @transition refuses, read in the ROM */
+    OraclesGuestLineCounts line_counts;
     unsigned cheats, cheats_armed;                   /* the cheats (guest_cheats.c): those on, those whose point is armed */
     OraclesGuestSym ammo_scripted_return;            /* where the bomb-upgrade fairy's call of decNumBombs returns; bank ABSENT: none */
     OraclesGuestCheatCounts cheat_counts;
@@ -142,6 +150,8 @@ void oracles_guest_serve_text(OraclesGuest *guest);
 /* guest_swim.c: at a stroke's test, the mermaid suit's or the flippers'. */
 void oracles_guest_mermaid_stroke(OraclesGuest *guest);
 void oracles_guest_flippers_stroke(OraclesGuest *guest);
+/* guest_line.c: at an edge's comparison in screenTransitionState2. */
+void oracles_guest_edge_test(OraclesGuest *guest, OraclesGuestEventType type);
 /* guest_cheats.c: at a cheat's point. */
 void oracles_guest_cheat_point(OraclesGuest *guest, OraclesGuestEventType type);
 /* guest_compact_text.c: at the compact text's points. */

@@ -28,6 +28,14 @@
 #define RELOAD_SETTLE_TIMEOUT 300u       /* the post-load topology wait, in host frames */
 
 /* The waves line by line on the surface (ec_measure_whole_room). */
+/* Link's sprites drawn against his place at the end of the frame before (ec_measure_swim): the frames counted and
+ * those whose offset changed by a pixel or more, in a transition and the frames just after it, elsewhere, where he was
+ * built from his fields; the largest change. */
+typedef struct OraclesEnhancedDrawnCounts {
+    unsigned scroll_frames, off_scroll_frames, mid_frames, off_mid_frames, off_built_frames;
+    int32_t off_max;
+} OraclesEnhancedDrawnCounts;
+
 typedef struct EcRipple {
     unsigned wave_frames, edge_moves, rippled_frames;
     int have_edge;
@@ -180,6 +188,47 @@ struct OraclesEnhancedCheck {
      * and the largest jump (measure_switch_jolts). */
     int32_t ground_offset[2];
     int ground_layer, ground_transition;
+    /* In a scroll between two small rooms, Link as shown going back on the screen by 3 px or more at 4x against his
+     * own step that frame, to the 256th of a pixel, then on again the next frame (a dip: his sprites drawn a pixel
+     * behind his place while his fraction runs on, an OAM left uncopied). */
+    int scroll_back_have;
+    uint32_t scroll_back_frame;
+    uint64_t scroll_back_epoch;
+    int32_t scroll_back_link[2], scroll_back_place[2];
+    int scroll_back_dip[2];
+    unsigned scroll_link_dips;
+    /* Link's sprites as the screen at 4x shows them, the OAM's entries of his graphics at his place or those the view
+     * built from his fields, moved as the backend moves them (with his layer, else with the band): a step of 2 px or
+     * more one way, then of 2 or more back at the next frame, he not turning (a zigzag: his sprites drawn a pixel off
+     * his place for a frame or every other one). */
+    int zig_have;
+    uint32_t zig_frame;
+    uint64_t zig_epoch;
+    int32_t zig_place[2], zig_step[2], zig_world[2], zig_world_step[2];
+    unsigned link_drawn_zigzags;
+    char zig_list[128];
+    /* Link swimming, or on Ages' sea floor: his sprites' place as the frame draws them (oracles_enhanced_view_link_drawn)
+     * against his place at the end of the frame before, where the OAM draws him; that offset changing from a frame to
+     * the next by a pixel or more on an axis, his pose the same: in a transition and the frames just after it
+     * (swim.drawn_off_scroll_frames, of swim.drawn_scroll_frames), elsewhere (swim.drawn_off_mid_frames, of
+     * swim.drawn_mid_frames), the largest change (swim.drawn_off_max); those where he was built from his fields, that
+     * frame or the one before, apart (swim.drawn_off_built_frames).  The band as shown the same way, with the
+     * sub-pixel camera: its step changing by 3 px of the screen at 4x or more (swim.band_jerks_scroll, _mid).  A scroll
+     * entered swimming that walks him (swim.walked_scroll_frames), and the game taking him out of the water with his
+     * own tile (y+5) past the room's last row (swim.left_water_past_room).  On foot, walking, the same offsets apart
+     * (walk.drawn_*). */
+    int swim_have, swim_off_have, swim_band_have;
+    uint32_t swim_frame;
+    uint64_t swim_epoch;
+    int32_t swim_last_world[2], swim_off[2], swim_band[2], swim_band_step[2];
+    uint16_t swim_pose[2];
+    unsigned swim_after;
+    int swim_scroll_swimming;
+    uint8_t swim_last_state;
+    OraclesEnhancedDrawnCounts swim_drawn, walk_drawn;   /* swimming or on Ages' sea floor, and on foot */
+    int swim_last_drawn;
+    unsigned swim_band_jerks_scroll, swim_band_jerks_mid, swim_walked_scroll_frames, swim_left_water_past_room;
+    int smooth;
     unsigned transition_layer_switches;
     int32_t transition_layer_shift_max;
     char jolt_list[256];                 /* the switches where the band's step changed by 2 px or more, "frame:band/link" */
@@ -326,6 +375,7 @@ void ec_measure_coverage(OraclesEnhancedCheck *c, uint32_t frame, unsigned uncov
 void ec_measure_scroll(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, unsigned uncovered);
 void ec_measure_seams(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode);
 void ec_measure_link_backsteps(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
+void ec_measure_swim(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
 void ec_replay_scroll_registers(OraclesEnhancedCheck *c, int *scx, int *scy);
 void ec_check_window_place(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int rippled, int scx, int scy, uint32_t frame);
 

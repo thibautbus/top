@@ -318,6 +318,14 @@ int main(void)
     s.link_x = (103 << 8) + 0x60; CHECK(oracles_room_transition_across_free(&s, 1, 0xb5, 0, 0, 0));   /* x+4 = 108 */
     collisions[7 * 16 + 6] = 0;
     s.link_x = 156 << 8; CHECK(!oracles_room_transition_across_free(&s, 1, 0xb5, 0, 0, 0));            /* x+4 out of the room */
+    /* With the line the game lets him on up to the room's edge across, his points past it on the collision buffer's
+     * border: free to x=159 (x+4 = 164, column 10), beyond it no further; leftward the same below zero. */
+    CHECK(oracles_room_transition_across_free_line(&s, 1, 0xb5, 0, 0, 0));
+    s.link_x = 159 << 8; CHECK(oracles_room_transition_across_free_line(&s, 1, 0xb5, 0, 0, 0));
+    s.link_x = 3 << 8; CHECK(!oracles_room_transition_across_free(&s, 3, 0xb5, 0, 0, 0) && oracles_room_transition_across_free_line(&s, 3, 0xb5, 0, 0, 0));
+    collisions[7 * 16 + 0] = 0x0f; CHECK(oracles_room_transition_across_free_line(&s, 3, 0xb5, 0, 0, 0));   /* column 0's wall: his points are past it */
+    s.link_x = 6 << 8; CHECK(!oracles_room_transition_across_free_line(&s, 3, 0xb5, 0, 0, 0));   /* x-5 on it: a wall in the room still holds him */
+    collisions[7 * 16 + 0] = 0;
     s.link_x = 80 << 8; s.room_collisions = NULL; CHECK(!oracles_room_transition_across_free(&s, 1, 0xb5, 0, 0, 0));
     /* Rightward, in the room entered already (x=170: 10 there), carried down: tested at y+7, row 4. */
     memset(collisions, 0, sizeof collisions);
@@ -325,6 +333,10 @@ int main(void)
     CHECK(oracles_room_transition_across_free(&s, 2, 0xb5, 0, 0, 0));
     collisions[3 * 16 + 0] = 0x0f; CHECK(oracles_room_transition_across_free(&s, 2, 0xb5, 0, 0, 0));   /* row 3: not reached */
     collisions[4 * 16 + 0] = 0x0f; CHECK(!oracles_room_transition_across_free(&s, 2, 0xb5, 0, 0, 0));  /* row 4 */
+    collisions[4 * 16 + 0] = 0;
+    s.link_y = 121 << 8; CHECK(!oracles_room_transition_across_free(&s, 2, 0xb5, 0, 0, 0));   /* y+7 out of the room */
+    CHECK(oracles_room_transition_across_free_line(&s, 2, 0xb5, 0, 0, 0));                    /* row 8, the border, with the line */
+    s.link_y = 59 << 8; collisions[4 * 16 + 0] = 0x0f;
     /* At the position the move along the axis takes him to as well: from x=150 of the room left, 12 px along reach
      * column 0 of the room entered, whose wall below holds him; without them, its first column is tested too. */
     s.link_x = 150 << 8; CHECK(!oracles_room_transition_across_free(&s, 2, 0xb5, 12 << 8, 0, 0));

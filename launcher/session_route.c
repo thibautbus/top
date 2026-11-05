@@ -59,6 +59,12 @@ int oracles_session_replay_route(session *s, const OraclesSessionOptions *o, cha
         return refuse(error, capacity, "the route was recorded with --continuous-steps, which %s does not support", oracles_compat_name(s->profile));
     if (route_steps && !s->continuous_steps) { s->continuous_steps = s->continuous_transitions = 1; s->enhanced = 1; fprintf(stderr, "oracles: the route was recorded with --continuous-steps: the option is on for the replay\n"); }
     else if (!route_steps && s->continuous_steps) { s->continuous_steps = 0; fprintf(stderr, "oracles: the route was recorded without --continuous-steps: the option is off for the replay\n"); }
+    /* The transitions at the line, which the home screen's Continuous transitions take: the route's, whatever it is. */
+    const int route_line = oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_CONTINUOUS_LINE);
+    if (route_line && s->profile && !oracles_compat_continuous_line(s->profile))
+        return refuse(error, capacity, "the route was recorded with --continuous-line, which %s does not support", oracles_compat_name(s->profile));
+    if (route_line && !s->continuous_line) { s->continuous_line = s->continuous_steps = s->continuous_transitions = 1; s->enhanced = 1; fprintf(stderr, "oracles: the route was recorded with --continuous-line: the option is on for the replay\n"); }
+    else if (!route_line && s->continuous_line) { s->continuous_line = 0; fprintf(stderr, "oracles: the route was recorded without --continuous-line: the option is off for the replay\n"); }
     /* The swim's hold, a setting the player may have on for every game: the route's, whatever it is. */
     const int route_swim_hold = oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_SWIM_HOLD);
     if (route_swim_hold && !oracles_compat_swim_hold(s->profile))
@@ -153,6 +159,10 @@ int oracles_session_record_route(session *s, const OraclesSessionOptions *o, cha
     if (s->continuous_steps) {   /* and every transition ends him elsewhere */
         const size_t used = strlen(header.options);
         snprintf(header.options + used, sizeof header.options - used, "%s" ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS, used ? "," : "");
+    }
+    if (s->continuous_line) {   /* and a scroll starts elsewhere, or not at all */
+        const size_t used = strlen(header.options);
+        snprintf(header.options + used, sizeof header.options - used, "%s" ORACLES_ROUTE_OPTION_CONTINUOUS_LINE, used ? "," : "");
     }
     if (oracles_language_session_translated(s->language)) {   /* the texts' lengths pace the dialogues: a replay plays in the same language */
         const size_t used = strlen(header.options);

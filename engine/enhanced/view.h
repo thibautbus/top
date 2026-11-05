@@ -225,6 +225,9 @@ typedef struct OraclesEnhancedHotbar { OraclesEnhancedHotbarSlot slots[ORACLES_E
 void oracles_enhanced_view_set_hotbar(OraclesEnhancedView *view, const OraclesEnhancedHotbar *hotbar);
 /* Icons captured from the game's status bar so far, and slots drawn with an icon at the last composition. */
 void oracles_enhanced_view_hotbar_counts(const OraclesEnhancedView *view, unsigned *icons_captured, unsigned *icons_shown);
+/* What the view does without, for want of a hook it could not install (the guest's table full): a description in `out`,
+ * or NULL when it has every hook it asked for. */
+const char *oracles_enhanced_view_degraded(const OraclesEnhancedView *view, char *out, size_t capacity);
 /* The distinct icons found in the ROM's tables, as the status bar would draw them on a button, before any was on one,
  * and the times one was found again, its variables possibly changed (the bar reloading its icons, a treasure given). */
 unsigned oracles_enhanced_view_hotbar_decoded(const OraclesEnhancedView *view);
@@ -567,6 +570,13 @@ int oracles_enhanced_view_blurb_drawn(const OraclesEnhancedView *view);
  * of his sprites. */
 unsigned oracles_enhanced_view_link_unshown_frames(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_link_built_frames(const OraclesEnhancedView *view);
+/* The frames that chain two scrolls where Link was drawn from his fields, and of them those none of his pixels reached the band. */
+void oracles_enhanced_view_link_chained_frames(const OraclesEnhancedView *view, unsigned *built, unsigned *unshown);
+/* Frames Link's left column, on the game's hidden column x 0, was drawn at its place: Link standing on the room's left line. */
+unsigned oracles_enhanced_view_link_left_line_frames(const OraclesEnhancedView *view);
+/* Where this frame drew Link: his sprites' top left in the game area (`x`, `y`, past its edges too); 1 from the OAM's
+ * entries (a column rebuilt beside one included), 2 built from his fields, 0 not drawn. */
+int oracles_enhanced_view_link_drawn(const OraclesEnhancedView *view, int *x, int *y);
 /* Pre-runs started while a room loaded: results filed beside the room the ghost primed in, and results dropped. */
 void oracles_enhanced_view_blind_runs(const OraclesEnhancedView *view, unsigned *filed, unsigned *dropped);
 /* Neighbours run again from the live state because the key had moved since they were computed (the source of a chain). */

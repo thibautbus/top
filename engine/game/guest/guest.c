@@ -117,6 +117,7 @@ static void emit(OraclesGuest *guest, OraclesGuestEventType type, uint16_t pc, u
     if (type == ORACLES_EVENT_TEXT_ADDRESS) oracles_guest_serve_text(guest);
     if (type == ORACLES_EVENT_MERMAID_STROKE) oracles_guest_mermaid_stroke(guest);
     if (type == ORACLES_EVENT_FLIPPERS_STROKE) oracles_guest_flippers_stroke(guest);
+    if (type >= ORACLES_EVENT_EDGE_TEST_UP && type <= ORACLES_EVENT_EDGE_TEST_LEFT) oracles_guest_edge_test(guest, type);
     if (type == ORACLES_EVENT_CHEAT_DAMAGE || type == ORACLES_EVENT_CHEAT_AMMO || type == ORACLES_EVENT_CHEAT_RUPEES) oracles_guest_cheat_point(guest, type);
     if (type >= ORACLES_EVENT_TEXT_LINE && type <= ORACLES_EVENT_TEXT_COLUMN_SHOWN) oracles_guest_compact_text_point(guest, type);
     if (type == ORACLES_EVENT_TEXT_SKIP_TEST || type == ORACLES_EVENT_TEXT_SKIP_LOOP) oracles_guest_text_skip_point(guest, type);
@@ -458,6 +459,9 @@ const uint8_t *oracles_guest_obj_palettes(OraclesGuest *guest)
 
 /* ---- attach --------------------------------------------------------------------- */
 
+unsigned oracles_guest_hook_count(const OraclesGuest *guest) { return guest ? guest->hook_count : 0; }
+unsigned oracles_guest_hooks_refused(const OraclesGuest *guest) { return guest ? guest->hooks_refused : 0; }
+
 int oracles_guest_add_hook(OraclesGuest *guest, OraclesGuestSym entry, OraclesGuestEventType on_entry, OraclesGuestEventType on_return)
 {
     if (entry.bank == ORACLES_GUEST_ABSENT) return 0; /* the game has no such function: nothing to hook */
@@ -465,7 +469,7 @@ int oracles_guest_add_hook(OraclesGuest *guest, OraclesGuestSym entry, OraclesGu
     for (unsigned i = 0; i < guest->hook_count; i++)
         if (guest->hooks[i].entry.bank == entry.bank && guest->hooks[i].entry.addr == entry.addr
             && guest->hooks[i].on_entry == on_entry && guest->hooks[i].on_return == on_return) return 0;
-    if (guest->hook_count >= sizeof guest->hooks / sizeof guest->hooks[0]) return -1;
+    if (guest->hook_count >= sizeof guest->hooks / sizeof guest->hooks[0]) { guest->hooks_refused++; return -1; }
     hook *h = &guest->hooks[guest->hook_count++];
     h->entry = entry;
     h->on_entry = on_entry;

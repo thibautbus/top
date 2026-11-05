@@ -423,6 +423,7 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
 const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnhancedMode *mode_out, int32_t *camera_x_out, int32_t *camera_y_out)
 {
     int32_t camera_x = 0, camera_y = 0;
+    v->observer.exact = oracles_enhanced_view_subpixel_on(v);
     oracles_enhanced_observe(v->guest, &v->observer, &v->observation);
     /* The interior's open edges come from the cache as it stands, for the
      * reference room this observation settled on: at the end of a scroll the
@@ -740,3 +741,19 @@ int oracles_enhanced_view_neighbour_layout(const OraclesEnhancedView *v, unsigne
 }
 
 OraclesEnhancedCamera *oracles_enhanced_view_camera(OraclesEnhancedView *v) { return v->camera; }
+
+const char *oracles_enhanced_view_degraded(const OraclesEnhancedView *v, char *out, size_t capacity)
+{
+    if (!v || !out || !capacity) return NULL;
+    out[0] = 0;
+    if (!v->large_objects_listening) snprintf(out, capacity, "a large room's objects not followed as the game skips their drawing");
+    if (!v->animation_steps_counted) {
+        const size_t used = strlen(out);
+        snprintf(out + used, capacity - used, "%sthe neighbours' tile animations stepped once a composition", used ? "; " : "");
+    }
+    if (v->hotbar_shown && !v->hotbar_hooked) {
+        const size_t used = strlen(out);
+        snprintf(out + used, capacity - used, "%sthe hotbar's icons not told when the bar reloads its own", used ? "; " : "");
+    }
+    return out[0] ? out : NULL;
+}

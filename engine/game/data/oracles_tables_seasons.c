@@ -27,6 +27,7 @@ const OraclesTables oracles_tables_seasons = {
     .room_tile_changer_code_group_table = { 0x04, 0x6114 },
     .tile_changes_after_gfx_group_table = { 0x04, 0x671a },
     .gasha_spot_rooms = { 0x04, 0x66df },
+    .object_speed_table = { 0x03, 0x409b },
     .timewarp_entry_tile_replacement_dict = { 0x00, 0x0000 },
     .timewarp_return_tile_replacement_dict = { 0x00, 0x0000 },
     .warp_bank_free = { 0x04, 0x7e03 },

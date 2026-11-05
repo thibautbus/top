@@ -32,6 +32,7 @@ int harness_usage(void)
                     "                       [--continuous-swim]   (the same with Link swimming at the surface too, implies --continuous-transitions; on by itself for a route recorded with it)\n"
                     "                       [--continuous-diagonal]   (a diagonal held carries Link across the transitions' axis too, implies --continuous-transitions; on by itself for a route recorded with it)\n"
                     "                       [--continuous-steps]   (Link takes a step a frame through them as the keys give it, implies --continuous-transitions; on by itself for a route recorded with it)\n"
+                    "                       [--continuous-line]   (a scroll starts at the line between two rooms, Link stands anywhere in a room and stops where the keys leave him, implies --continuous-steps; on by itself for a route recorded with it)\n"
                     "                       [--swim-hold]   (the swim's strokes from a held button: the mermaid suit's direction, the flippers' A; on by itself for a route recorded with it)\n"
                     "                       [--cheats no-damage,ammo,rupees]   (the cheats, Ages and Seasons: Link loses no heart, seeds and bombs are not used up, buying costs nothing\n"
                     "                                                (a mod's game.pay still charges); with those a route was recorded with, which are on by themselves)\n"
@@ -168,6 +169,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--continuous-swim")) o->continuous_transitions = o->continuous_swim = 1;
         else if (!strcmp(argv[i], "--continuous-diagonal")) o->continuous_transitions = o->continuous_diagonal = 1;
         else if (!strcmp(argv[i], "--continuous-steps")) o->continuous_transitions = o->continuous_steps = 1;
+        else if (!strcmp(argv[i], "--continuous-line")) o->continuous_transitions = o->continuous_steps = o->continuous_line = 1;
         else if (!strcmp(argv[i], "--swim-hold")) o->swim_hold = 1;
         else if (!strcmp(argv[i], "--cheats") && i + 1 < argc) {
             if (oracles_cheats_parse(argv[++i], NULL, &o->cheats) != 0) { fprintf(stderr, "harness: --cheats names no-damage, ammo or rupees, not %s\n", argv[i]); return -1; }

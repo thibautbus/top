@@ -107,7 +107,7 @@ static void write_surface(const OraclesEnhancedCheck *c, const uint32_t *surface
 }
 void oracles_enhanced_check_set_neighbour_objects(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_view_set_neighbour_objects(c->view, enabled); }
 void oracles_enhanced_check_set_link_phase(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_view_set_link_phase(c->view, enabled); }
-void oracles_enhanced_check_set_subpixel(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_view_set_subpixel(c->view, enabled); }
+void oracles_enhanced_check_set_subpixel(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_view_set_subpixel(c->view, enabled); c->smooth = enabled != 0; }
 
 void oracles_enhanced_check_subpixel_switch_at(OraclesEnhancedCheck *c, const uint32_t *frames, unsigned count)
 {
@@ -282,7 +282,10 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     ec_measure_scroll(c, ob, mode, uncovered);
     ec_measure_seams(c, ob, mode);
     ec_measure_link_backsteps(c, frame, ob, mode, camera_x, camera_y);
-    if (ob->playing && !ob->in_transition) {
+    ec_measure_swim(c, frame, ob, mode, camera_x, camera_y);
+    /* What the band showed at the last world frame: a framed one (a menu, a text framed) shows no neighbour and says
+     * nothing of them, and a scroll may start at the first world frame after it. */
+    if (ob->playing && !ob->in_transition && mode == ORACLES_ENHANCED_WORLD) {
         for (unsigned d = 0; d < 4; d++) {
             c->last_shown[d] = shown[d]; c->last_room[d] = room[d];
             c->last_dark[d] = oracles_enhanced_view_neighbour_dark(c->view, d, NULL);

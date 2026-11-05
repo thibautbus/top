@@ -62,6 +62,10 @@ typedef struct OraclesTables {
     OraclesSym gasha_spot_rooms;
     OraclesSym timewarp_entry_tile_replacement_dict;
     OraclesSym timewarp_return_tile_replacement_dict;
+    /* The continuous transitions' swim: an object's move a frame by its speed and angle (getPositionOffsetForVelocity:
+     * $50 bytes a row of 5 speed units, each row the 8.8 moves along y of the 32 angles then 8 more, x read 16 bytes
+     * on). */
+    OraclesSym object_speed_table;
     unsigned num_gfx_headers;
     unsigned num_unique_gfx_headers;
     unsigned num_palette_headers;

@@ -27,6 +27,7 @@ const OraclesTables oracles_tables_ages = {
     .room_tile_changer_code_group_table = { 0x04, 0x64a7 },
     .tile_changes_after_gfx_group_table = { 0x02, 0x7aaa },
     .gasha_spot_rooms = { 0x02, 0x7a67 },
+    .object_speed_table = { 0x03, 0x409b },
     .timewarp_entry_tile_replacement_dict = { 0x04, 0x6063 },
     .timewarp_return_tile_replacement_dict = { 0x04, 0x6033 },
     .warp_bank_free = { 0x04, 0x7ede },

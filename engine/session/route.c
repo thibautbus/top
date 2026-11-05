@@ -261,6 +261,10 @@ int oracles_route_read(const char *path, OraclesRoute *route, char *error, size_
                     set_error(error, error_capacity, "the continuous-steps option needs format 13", number);
                     goto fail;
                 }
+                if (oracles_route_has_option(&route->header, ORACLES_ROUTE_OPTION_CONTINUOUS_LINE) && route->format < ORACLES_ROUTE_FORMAT_LINE) {
+                    set_error(error, error_capacity, "the continuous-line option needs format 15", number);
+                    goto fail;
+                }
             }
             else if (strcmp(key, "mods") == 0) {
                 /* A route of format 2 or less cannot name mods: its readers replay it without them. */
@@ -506,7 +510,8 @@ int oracles_route_writer_open_format(OraclesRouteWriter *writer, const char *pat
     writer->file = fopen(path, "wb"); /* LF on every platform */
     if (!writer->file) return -1;
     char language[16];
-    const int lowest = oracles_route_has_option(header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS) ? ORACLES_ROUTE_FORMAT_STEPS
+    const int lowest = oracles_route_has_option(header, ORACLES_ROUTE_OPTION_CONTINUOUS_LINE) ? ORACLES_ROUTE_FORMAT_LINE
+                     : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS) ? ORACLES_ROUTE_FORMAT_STEPS
                      : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_INSTANT) ? ORACLES_ROUTE_FORMAT_TEXT_INSTANT
                      : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE) ? ORACLES_ROUTE_FORMAT_TEXT_BOX_WIDE
                      : oracles_route_has_option(header, ORACLES_ROUTE_OPTION_TEXT_COMPACT) ? ORACLES_ROUTE_FORMAT_TEXT_COMPACT

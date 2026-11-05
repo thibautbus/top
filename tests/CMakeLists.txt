@@ -55,6 +55,10 @@ if(BUILD_TESTING)
     target_link_libraries(oracles-test-swim-hold PRIVATE oracles_guest)
     oracles_set_warnings(oracles-test-swim-hold)
     add_test(NAME oracles-swim-hold COMMAND oracles-test-swim-hold)
+    add_executable(oracles-test-line test_line.c)
+    target_link_libraries(oracles-test-line PRIVATE oracles_guest)
+    oracles_set_warnings(oracles-test-line)
+    add_test(NAME oracles-line COMMAND oracles-test-line)
 
     add_executable(oracles-test-text-instant test_text_instant.c)
     target_link_libraries(oracles-test-text-instant PRIVATE oracles_guest)
@@ -128,7 +132,7 @@ if(BUILD_TESTING)
     # The policy built alone, the guest's few calls answered by the test.
     set(ORACLES_ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../engine)
     add_executable(oracles-test-room-transition-policy test_room_transition_policy.c ${ORACLES_ENGINE_DIR}/gameplay/room_transition.c
-                   ${ORACLES_ENGINE_DIR}/gameplay/room_predict.c)
+                   ${ORACLES_ENGINE_DIR}/gameplay/room_predict.c ${ORACLES_ENGINE_DIR}/gameplay/room_scenes.c ${ORACLES_ENGINE_DIR}/game/guest/guest_swim_press.c)
     target_include_directories(oracles-test-room-transition-policy PRIVATE ${ORACLES_ENGINE_DIR}/gameplay ${ORACLES_ENGINE_DIR}/game/guest
                                ${ORACLES_ENGINE_DIR}/game/profiles ${ORACLES_ENGINE_DIR}/game/data ${ORACLES_ENGINE_DIR}/core ${ORACLES_ENGINE_DIR}/rom)
     target_link_libraries(oracles-test-room-transition-policy PRIVATE oracles_data)
@@ -218,6 +222,13 @@ if(BUILD_TESTING)
     endif()
     # Each fan game's table against its manifest and the guest table's fields: a field the guest gains fails here,
     # before it takes the zero of C in a checked-in table (engine/game/profiles/gen_tables.py).
+    # The objects that may leave the player without the controls at a corner (engine/gameplay/room_scenes.c): made by
+    # this generator, with the disassembly when it is there (ORACLES_DISASM_DIR), else by its digest alone.
+    if(Python3_Interpreter_FOUND)
+        set(ORACLES_DISASM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../oracles-disasm" CACHE PATH "oracles-disasm, built, for the generated tables' checks")
+        add_test(NAME oracles-room-scenes COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/../engine/gameplay/gen_room_scenes.py --check
+                 --disasm ${ORACLES_DISASM_DIR})
+    endif()
     if(Python3_Interpreter_FOUND AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../engine/game/profiles/moonrise-regalia/manifest.json)
         add_test(NAME oracles-fan-game-tables COMMAND ${Python3_EXECUTABLE} -m unittest test_gen_tables
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../engine/game/profiles)

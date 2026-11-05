@@ -22,7 +22,8 @@
 #define ORACLES_ROUTE_FORMAT_TEXT_INSTANT 12  /* written with the instant text among the options, or a `set text-speed` line: a reader before it would replay the game's pace */
 #define ORACLES_ROUTE_FORMAT_STEPS 13      /* written with the transitions' steps among the options: a reader before it would replay without */
 #define ORACLES_ROUTE_FORMAT_SOUND 14      /* written by a session that may write a `sound` line (the item hotkeys on, or a pause that turns them on): a verb a reader before it does not know */
-#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_SOUND
+#define ORACLES_ROUTE_FORMAT_LINE 15       /* written with the transitions at the line among the options: the same */
+#define ORACLES_ROUTE_FORMAT_LATEST ORACLES_ROUTE_FORMAT_LINE
 #define ORACLES_ROUTE_MAX_EVENTS 200000u
 
 typedef struct OraclesRouteHeader {
@@ -41,6 +42,7 @@ typedef struct OraclesRouteHeader {
 #define ORACLES_ROUTE_OPTION_SWIM_HOLD "swim-hold"   /* the swim's strokes started by a held button */
 #define ORACLES_ROUTE_OPTION_CONTINUOUS_DIAGONAL "continuous-diagonal"   /* with the transitions: a diagonal held carries Link across their axis too */
 #define ORACLES_ROUTE_OPTION_CONTINUOUS_STEPS "continuous-steps"   /* with the transitions: Link takes a step a frame through them as the keys give it */
+#define ORACLES_ROUTE_OPTION_CONTINUOUS_LINE "continuous-line"   /* with the steps: a scroll starts at the line between two rooms, and Link stops where the keys leave him */
 #define ORACLES_ROUTE_OPTION_TEXT_COMPACT "text-compact"   /* the text box's lines drawn in the font's own widths (--text compact) */
 #define ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE "text-box-wide"   /* the host's wide text box, its texts laid out again for it, classic or compact (--text-box wide) */
 #define ORACLES_ROUTE_OPTION_TEXT_INSTANT "text-instant"   /* each line of the text box whole, as a press of A at its start shows it (--text-speed instant) */

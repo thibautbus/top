@@ -120,6 +120,10 @@ typedef struct OraclesEnhancedObserver {
     int32_t last_origin_x, last_origin_y;       /* the reference room's origin the last window was placed with */
     uint8_t last_window_group, last_window_room;  /* the reference room it was placed in */
     int last_camera_x, last_camera_y;
+    int before_camera_x, before_camera_y;    /* the camera of the window before the last one, in the same room and epoch */
+    int have_before_camera;
+    int drawn_camera_still_x, drawn_camera_still_y;   /* the frame on screen drawn with the camera of the window before it (each axis) */
+    int exact;                               /* the sub-pixel camera on (set by the view) */
     int last_offset_x, last_offset_y;
     uint64_t last_window_epoch;
     /* Link's place at the previous observation, room-local: the frame on
@@ -158,12 +162,14 @@ typedef struct OraclesEnhancedObservation {
     int link_step_x, link_step_y;            /* Link's move since the previous observation: the frame on screen drew him that much behind world.link */
     int drawn_link_dy;                       /* the view draws Link that many pixels below the game's sprite (walking diagonally, in phase with his x) */
     int drawn_sub_x, drawn_sub_y;            /* Link's 256ths of a pixel where the frame on screen draws him (the previous observation's) */
+    int drawn_lag_x, drawn_lag_y;            /* the whole pixels his sprites on screen lag that place by, an OAM left uncopied (link_step's correction) */
     int link_sub_x, link_sub_y;              /* and this observation's, with world.link */
     int link_in_phase;                       /* the view draws him so this frame (his diagonal walk at one speed both ways) */
     int drawn_link_dy_held;                  /* the offset it gave back this frame while it still moved him: the camera keeps its place */
     uint8_t group, room;                     /* wActiveGroup/wActiveRoom as the game has them now */
     int in_transition;                       /* not in normal play: scroll mode != 1 or transition state != 2 */
     int in_scroll;                           /* a scrolling transition between two rooms (states 3 to 5): a seam */
+    int scroll_chained;                      /* the frame between two scrolls with no normal play between, counted as the room entered's */
     unsigned scroll_direction;               /* its direction, the game's: 0 up, 1 right, 2 down, 3 left */
     int32_t scroll_start_left, scroll_start_top;   /* the game's window at the scroll's first frame */
     int grid;                                /* a small room of groups 0 to 3: on the 16-wide grid */

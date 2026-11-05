@@ -108,6 +108,8 @@ typedef struct OraclesGuestTables {
      * and period of his speed's steps and the frames left of his stroke (linkUpdateVelocity). */
     OraclesGuestSym link_update_velocity_mermaid, link_update_flippers_state0, game_keys_pressed, game_keys_just_pressed,
         link_speed_cap, link_speed_step_counter, link_speed_step_period, link_stroke_counter;
+    /* The continuous transitions' swim: the ring worn (the swimmer's ring speeds a swim). */
+    OraclesGuestSym active_ring;
     /* The cheats: the routines whose one read of a register each answers, Link's damage (linkApplyDamage's body, bank 6,
      * which reads w1Link.damageToApply), the ammunition used up (decNumBombs, whose end decNumActiveSeeds and
      * decNumBombchus share) and the rupees taken away (removeRupeeValue's call of getRupeeValue; remove_rupee_value is
@@ -159,6 +161,7 @@ typedef struct OraclesGuestTables {
         /* the call transaction: the treasures the high-level prizes give, and the number of rings */
         treasure_rupees, treasure_heart_refill, treasure_ring, treasure_ring_box, treasure_gasha_seed, treasure_seed_satchel,
         num_rings,
+        swimmers_ring,             /* the continuous transitions' swim: the ring linkSetSwimmingSpeed speeds a swim with */
         text_offset_split_index;   /* a language: the first internal text group of the second base */
     /* The global flags the load around the substitutions reads, 0xff for the game whose load does not (ghost_key.c, the coarse list). */
     uint8_t coarse_flag_finished_game, coarse_flag_temple_lava, coarse_flag_moblins_keep, coarse_flag_pirate_ship, coarse_flag_intro_done;

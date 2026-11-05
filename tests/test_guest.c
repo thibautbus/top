@@ -44,6 +44,22 @@ static void transaction_policy(void *opaque, const OraclesGuestTransitionState *
     m->update_walk_animation = 1; m->link_anim_counter = 2; m->link_anim_parameter = 7; m->link_anim_pointer = 0x4200; m->link_animation_frame = 0x66;
 }
 
+/* The state the policy was last given. */
+static OraclesGuestTransitionState last_state;
+static void capture_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque; (void)m;
+    policy_calls++;
+    last_state = *s;
+}
+
+/* A policy that asks nothing: the frame's step is the game's own. */
+static void still_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque; (void)s; (void)m;
+    policy_calls++;
+}
+
 /* The step of the frame that ends a scroll (--continuous-steps): a pixel at each call in normal play, and Link's respawn
  * in the room entered at (9, 80), or at (130, 80), below the room's bottom edge. */
 static int respawn_below_edge;
@@ -56,6 +72,38 @@ static void scroll_end_policy(void *opaque, const OraclesGuestTransitionState *s
         m->set_respawn = 1; m->respawn_y = respawn_below_edge ? 130u : 9u; m->respawn_x = 80u;
     }
 }
+
+/* The transitions at the line: at the frame that ends a scroll, the transition back toward the left asked. */
+static void back_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque;
+    policy_calls++;
+    if (s->transition_state == 2u) { m->force_transition = 1; m->forced_direction = 3; }
+}
+
+/* The transitions at the line: at the frame that ends a scroll, the scroll up into the room beside started there. */
+static void cross_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque;
+    policy_calls++;
+    if (s->transition_state == 2u && s->scroll_mode == 1u) { m->force_transition = 3; m->forced_direction = 0; }
+}
+
+/* screenTransitionState2 from its start to @transition's Ages-only checks, as the US image holds it at $01:4105: the
+ * four edge tests the line arms on. */
+static const uint8_t AGES_STATE2[] = {
+    0xfa, 0x5c, 0xcc, 0x87, 0x38, 0x07, 0x28, 0x05, 0x3e, 0x04, 0xea, 0x15, 0xcd, 0xfa, 0x02, 0xcd,
+    0xcb, 0x7f, 0x28, 0x06, 0xe6, 0x7f, 0x4f, 0xc3, 0xd6, 0x41, 0xfa, 0x2c, 0xcc, 0x67, 0x2e, 0x0b,
+    0x3e, 0x05, 0xbe, 0x30, 0x14, 0xfa, 0x0d, 0xcd, 0xbe, 0x38, 0x19, 0x2e, 0x0d, 0x3e, 0x05, 0xbe,
+    0x30, 0x1c, 0xfa, 0x0c, 0xcd, 0xbe, 0x38, 0x1e, 0xc9, 0x3c, 0x77, 0x06, 0x40, 0x0e, 0x00, 0xcd,
+    0x60, 0x41, 0x18, 0xe7, 0x77, 0x06, 0x80, 0x0e, 0x02, 0xcd, 0x60, 0x41, 0x18, 0xdd, 0x3c, 0x77,
+    0x06, 0x20, 0x0e, 0x03, 0x18, 0x05, 0x77, 0x06, 0x10, 0x0e, 0x01, 0xfa, 0x00, 0xd0, 0xb7, 0xc8,
+    0xfa, 0x91, 0xcc, 0xb7, 0xc0, 0xfa, 0x15, 0xcd, 0xb7, 0x28, 0x05, 0x3d, 0xea, 0x15, 0xcd, 0xc9,
+    0xfa, 0x01, 0xd1, 0xfe, 0x0a, 0x28, 0x5a, 0xfa, 0x92, 0xcc, 0x87, 0xd8, 0xfa, 0x5c, 0xcc, 0x87,
+    0x38, 0x4f, 0xfa, 0x2d, 0xd0, 0xb7, 0xc0, 0xfa, 0x92, 0xcc, 0x87, 0x20, 0x05, 0xcd, 0x02, 0x2a,
+    0xa0, 0xc8, 0xfa, 0x34, 0xcc, 0xe6, 0x01, 0x28, 0x20, 0xfa, 0x30, 0xcc, 0x5f, 0xe6, 0x0f, 0xfe,
+    0x0d, 0x20, 0x04, 0x79, 0xfe, 0x01, 0xc8, 0x7b, 0xfe, 0xd0, 0x38, 0x04, 0x79, 0xfe, 0x02, 0xc8,
+};
 
 static void put8(OraclesGuest *guest, OraclesGuestSym sym, uint8_t value)
 {
@@ -105,6 +153,7 @@ int main(void)
     const uint8_t full[] = { 0x3e, 0x01, 0xb7, 0xc9 };       /* $0230: ld a,1 ; or a (NZ) ; ret */
     memcpy(rom + 0x220, found, sizeof found);
     memcpy(rom + 0x230, full, sizeof full);
+    memcpy(rom + 0x4105, AGES_STATE2, sizeof AGES_STATE2);
 
     const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
     OraclesCore *core = oracles_core_create(rom, size, &options);
@@ -229,12 +278,14 @@ int main(void)
         put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0); put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 227);   /* x = 227.0: a hundred past the camera's (HRAM reads 0x7f here) */
         put8(guest, (OraclesGuestSym){ 1, 0xd010 }, 0x55);                                                 /* an unrelated field: Link's speed */
         put8(guest, t->link_anim_counter, 9);
-        /* Link's sprite in wOam: his two columns at his place (line 24 for y 0, x 100 and 108), and an unrelated entry. */
+        /* Link's sprite in wOam: his two columns at his place (line 24 for y 0, x 100 and 108), his graphics' tiles, and an unrelated entry. */
         const uint8_t oam_line = (uint8_t)(0 - oracles_guest_read16(guest, t->camera_y) + 24), oam_x = (uint8_t)(227 - oracles_guest_read16(guest, t->camera_x));
         put8(guest, (OraclesGuestSym){ 1, 0xd00a }, 0); put8(guest, (OraclesGuestSym){ 1, 0xd00b }, 0);
-        put8(guest, (OraclesGuestSym){ 0, 0xcb10 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb11 }, oam_x); put8(guest, (OraclesGuestSym){ 0, 0xcb12 }, 0x10); put8(guest, (OraclesGuestSym){ 0, 0xcb13 }, 0);
-        put8(guest, (OraclesGuestSym){ 0, 0xcb14 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb15 }, (uint8_t)(oam_x + 8)); put8(guest, (OraclesGuestSym){ 0, 0xcb16 }, 0x12); put8(guest, (OraclesGuestSym){ 0, 0xcb17 }, 0);
+        put8(guest, (OraclesGuestSym){ 0, 0xcb10 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb11 }, oam_x); put8(guest, (OraclesGuestSym){ 0, 0xcb12 }, 0x70); put8(guest, (OraclesGuestSym){ 0, 0xcb13 }, 0x08);
+        put8(guest, (OraclesGuestSym){ 0, 0xcb14 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb15 }, (uint8_t)(oam_x + 8)); put8(guest, (OraclesGuestSym){ 0, 0xcb16 }, 0x72); put8(guest, (OraclesGuestSym){ 0, 0xcb17 }, 0x08);
         put8(guest, (OraclesGuestSym){ 0, 0xcb18 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb19 }, (uint8_t)(oam_x - 40)); put8(guest, (OraclesGuestSym){ 0, 0xcb1a }, 0x20); put8(guest, (OraclesGuestSym){ 0, 0xcb1b }, 0);
+        /* A status bar's icon under its lines, where a carry past the room's top takes him: not his, and his still follow. */
+        put8(guest, (OraclesGuestSym){ 0, 0xcb1c }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb1d }, (uint8_t)(oam_x + 6)); put8(guest, (OraclesGuestSym){ 0, 0xcb1e }, 0x7c); put8(guest, (OraclesGuestSym){ 0, 0xcb1f }, 0x0c);
         oracles_guest_set_transition_policy(guest, transaction_policy, NULL, NULL);
         policy_calls = 0; link_moves_left = 20;
         oracles_core_run_frame(core);
@@ -245,7 +296,7 @@ int main(void)
         CHECK(oracles_guest_read8(guest, t->screen_scroll_delta) == 8);
         CHECK(w1[0x0d] == 247);                                                                 /* a pixel per call, twenty calls */
         CHECK(w0[0xb11] == (uint8_t)(oam_x + 20) && w0[0xb15] == (uint8_t)(oam_x + 28));       /* his sprite followed */
-        CHECK(w0[0xb10] == oam_line && w0[0xb19] == (uint8_t)(oam_x - 40));                                       /* the rest did not */
+        CHECK(w0[0xb10] == oam_line && w0[0xb19] == (uint8_t)(oam_x - 40) && w0[0xb1d] == (uint8_t)(oam_x + 6));   /* the rest did not */
         CHECK(w1[0x10] == 0x55);                                               /* untouched */
         CHECK(oracles_guest_read8(guest, t->link_anim_counter) == 2 && oracles_guest_read8(guest, t->link_anim_parameter) == 7);
         CHECK(oracles_guest_read16(guest, t->link_anim_pointer) == 0x4200 && oracles_guest_read8(guest, t->link_animation_frame) == 0x66);
@@ -301,6 +352,82 @@ int main(void)
         oracles_core_run_frame(core);
         CHECK(oracles_guest_wram(guest, 1)[0x0d] == 102 && oracles_guest_read8(guest, t->link_local_respawn) == 40);
         respawn_below_edge = 0;
+        /* The transitions at the line: Link walked back past the line (x=230.25, 26 px into the room left, to the
+         * left), the transition back asked at the frame that ends the scroll.  A script has disabled the transitions:
+         * not raised, and he is put back on the line, x=0, his y untouched.  Enabled: raised from where he stands. */
+        CHECK(oracles_guest_set_transition_line(guest, 1) == 0);
+        oracles_guest_set_transition_policy(guest, back_policy, NULL, NULL);
+        put8(guest, t->room_width, 20); put8(guest, t->room_height, 16); put8(guest, t->room_is_large, 0);
+        put8(guest, (OraclesGuestSym){ 1, 0xd000 }, 1);
+        for (int enabled = 0; enabled < 2; enabled++) {
+            put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+            oracles_core_run_frame(core);
+            oracles_guest_clear_hooks(guest);
+            CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1); put8(guest, t->screen_transition_direction, 1);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0x40); put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 230);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00a }, 0x80); put8(guest, (OraclesGuestSym){ 1, 0xd00b }, 60);
+            put8(guest, t->disable_screen_transitions, enabled ? 0 : 1);
+            const unsigned put_back = oracles_guest_transition_put_back(guest), forced = oracles_guest_transition_back_forced(guest);
+            oracles_core_run_frame(core);
+            const uint8_t *link = oracles_guest_wram(guest, 1);
+            const uint8_t direction = oracles_guest_read8(guest, t->screen_transition_direction);
+            if (!enabled) CHECK(link[0x0d] == 0 && link[0x0c] == 0 && direction == 1 && oracles_guest_transition_put_back(guest) == put_back + 1);
+            else CHECK(link[0x0d] == 230 && link[0x0c] == 0x40 && direction == 0x83 && oracles_guest_transition_back_forced(guest) == forced + 1
+                       && oracles_guest_transition_put_back(guest) == put_back);
+            CHECK(link[0x0b] == 60 && link[0x0a] == 0x80);
+        }
+        /* Carried past the line across into the room beside (y=244.5, 12 px past the top), the scroll up into it
+         * asked at the frame that ends the scroll: the transitions disabled, not started, and he is put back on the
+         * line, y=0, his x untouched; enabled, started there as @startTransition starts one, from where he stands. */
+        oracles_guest_set_transition_policy(guest, cross_policy, NULL, NULL);
+        for (int enabled = 0; enabled < 2; enabled++) {
+            put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+            oracles_core_run_frame(core);
+            oracles_guest_clear_hooks(guest);
+            CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1); put8(guest, t->screen_transition_direction, 1);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00a }, 0x80); put8(guest, (OraclesGuestSym){ 1, 0xd00b }, 244);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0x40); put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 30);
+            put8(guest, t->disable_screen_transitions, enabled ? 0 : 1);
+            put8(guest, t->disable_warp_tiles, 0);
+            const unsigned put_back = oracles_guest_transition_put_back(guest), started = oracles_guest_transition_cross_started(guest);
+            oracles_core_run_frame(core);
+            const uint8_t *link = oracles_guest_wram(guest, 1);
+            const uint8_t direction = oracles_guest_read8(guest, t->screen_transition_direction);
+            const uint8_t state = oracles_guest_read8(guest, t->screen_transition_state), mode = oracles_guest_read8(guest, t->scroll_mode);
+            if (!enabled) CHECK(link[0x0b] == 0 && link[0x0a] == 0 && direction == 1 && state == 2 && mode == 1 && oracles_guest_transition_put_back(guest) == put_back + 1);
+            else CHECK(link[0x0b] == 244 && link[0x0a] == 0x80 && direction == 0 && state == 3 && mode == 4
+                       && oracles_guest_transition_cross_started(guest) == started + 1 && oracles_guest_transition_put_back(guest) == put_back);
+            CHECK(link[0x0d] == 30 && link[0x0c] == 0x40);
+            /* The warp tiles held off for the frame after the scroll started (its warps would read Link's tile in the
+             * scripts' variables), given back once the room it enters is named. */
+            CHECK(oracles_guest_read8(guest, t->disable_warp_tiles) == (enabled ? 0x80 : 0));
+        }
+        put8(guest, t->scroll_mode, 4);
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_read8(guest, t->disable_warp_tiles) == 0x80);
+        put8(guest, t->scroll_mode, 8);
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_read8(guest, t->disable_warp_tiles) == 0);
+        /* The game's own hold (a companion just left) is left as it is. */
+        put8(guest, t->disable_warp_tiles, 1);
+        put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+        oracles_core_run_frame(core);
+        oracles_guest_clear_hooks(guest);
+        CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+        put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1); put8(guest, t->screen_transition_direction, 1);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00a }, 0x80); put8(guest, (OraclesGuestSym){ 1, 0xd00b }, 244);
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_read8(guest, t->screen_transition_state) == 3 && oracles_guest_read8(guest, t->disable_warp_tiles) == 1);
+        put8(guest, t->scroll_mode, 8);
+        oracles_core_run_frame(core);
+        CHECK(oracles_guest_read8(guest, t->disable_warp_tiles) == 1);
+        put8(guest, t->disable_warp_tiles, 0);
+        put8(guest, t->disable_screen_transitions, 0);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00a }, 0); put8(guest, (OraclesGuestSym){ 1, 0xd00b }, 0); put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0);
+        oracles_guest_set_transition_line(guest, 0);
+        oracles_guest_set_transition_policy(guest, scroll_end_policy, NULL, NULL);
         oracles_guest_set_transition_steps(guest, 0);
         oracles_guest_clear_hooks(guest);
         CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_TEXT, ORACLES_EVENT_FRAME_DRAWN) == 0);
@@ -345,6 +472,84 @@ int main(void)
         unsigned by_state[8];
         oracles_guest_vblank_write_counts(guest, by_state);
         CHECK(by_state[3] == 2 && by_state[5] == 0 && by_state[2] == 0);
+        /* Swimming, the frame that starts a transition, unfinished at its vblank, no move asked: the game's own step (226
+         * drawn, 228 now) takes his sprite with it, his graphics' entries alone, a splash at his side left where it is. */
+        oracles_guest_set_transition_swim(guest, 1);
+        put8(guest, t->link_swimming_state, 3); put8(guest, t->link_anim_mode, 0x0b);
+        put8(guest, t->screen_transition_state, 2); put8(guest, t->vblank_checker, 0xff);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 226);
+        oracles_guest_set_transition_policy(guest, still_policy, NULL, NULL);
+        oracles_core_run_frame(core);
+        put8(guest, t->screen_transition_state, 3); put8(guest, t->vblank_checker, 0);
+        put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 228);
+        put8(guest, (OraclesGuestSym){ 0, 0xcb11 }, (uint8_t)(oam_x - 1)); put8(guest, (OraclesGuestSym){ 0, 0xcb15 }, (uint8_t)(oam_x + 7));
+        put8(guest, (OraclesGuestSym){ 0, 0xcb18 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb19 }, (uint8_t)(oam_x + 2));   /* the splash */
+        policy_calls = 0;
+        oracles_core_run_frame(core);
+        CHECK(policy_calls == 1);
+        CHECK(oracles_guest_wram(guest, 1)[0x0d] == 228);
+        CHECK(w0[0xb11] == (uint8_t)(oam_x + 1) && w0[0xb15] == (uint8_t)(oam_x + 9) && w0[0xb19] == (uint8_t)(oam_x + 2));
+        {
+            uint16_t shown_x = 0;
+            oracles_core_run_frame(core);
+            CHECK(oracles_guest_link_shown(guest, &shown_x, NULL) && shown_x >> 8 == 228u);
+        }
+        oracles_guest_set_transition_swim(guest, 0);
+        put8(guest, t->link_swimming_state, 0); put8(guest, t->link_anim_mode, 0x10);
+        /* Walking, the same frame: his sprite goes where the game's step took him in wOam and in the core's OAM, which
+         * the next scan reads; an item's sprite beside him stays where it is. */
+        {
+            size_t oam_size = 0;
+            uint16_t oam_bank = 0;
+            uint8_t *oam = oracles_core_memory(core, ORACLES_CORE_OAM, &oam_size, &oam_bank);
+            CHECK(oam != NULL && oam_size >= 160u);
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->vblank_checker, 0xff);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 226);
+            oracles_core_run_frame(core);
+            put8(guest, t->screen_transition_state, 3); put8(guest, t->vblank_checker, 0);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 228);
+            put8(guest, (OraclesGuestSym){ 0, 0xcb11 }, (uint8_t)(oam_x - 1)); put8(guest, (OraclesGuestSym){ 0, 0xcb15 }, (uint8_t)(oam_x + 7));
+            put8(guest, (OraclesGuestSym){ 0, 0xcb18 }, oam_line); put8(guest, (OraclesGuestSym){ 0, 0xcb19 }, (uint8_t)(oam_x + 2));
+            if (oam) {
+                memcpy(oam + 0x10, w0 + 0xb10, 16);
+                oam[0x11] = (uint8_t)(oam_x - 1); oam[0x15] = (uint8_t)(oam_x + 7); oam[0x18] = oam_line; oam[0x19] = (uint8_t)(oam_x + 2);
+            }
+            policy_calls = 0;
+            oracles_core_run_frame(core);
+            CHECK(policy_calls == 1);
+            CHECK(oracles_guest_wram(guest, 1)[0x0d] == 228);
+            CHECK(w0[0xb11] == (uint8_t)(oam_x + 1) && w0[0xb15] == (uint8_t)(oam_x + 9) && w0[0xb19] == (uint8_t)(oam_x + 2) && w0[0xb1d] == (uint8_t)(oam_x + 6));
+            CHECK(oam && oam[0x11] == (uint8_t)(oam_x + 1) && oam[0x15] == (uint8_t)(oam_x + 9) && oam[0x19] == (uint8_t)(oam_x + 2) && oam[0x1d] == (uint8_t)(oam_x + 6));
+            uint16_t shown_x = 0;
+            oracles_core_run_frame(core);
+            CHECK(oracles_guest_link_shown(guest, &shown_x, NULL) && shown_x >> 8 == 228u);
+        }
+        /* The bytes the rooms' own code reads, as the state gives them to the prediction: hGameboyType in the HRAM, the
+         * pages of room flags from $c700 (the vines' positions at +$1f0, wGroup4RoomFlags+$f9 at +$2f9), the treasures
+         * obtained, each byte the image has marked given; the original image's room code replayed. */
+        {
+            size_t hram_size = 0;
+            uint16_t hram_bank = 0;
+            uint8_t *hram = oracles_core_memory(core, ORACLES_CORE_HRAM, &hram_size, &hram_bank);
+            CHECK(hram != NULL && t->gameboy_type.addr >= 0xff80u);
+            if (hram) hram[t->gameboy_type.addr - 0xff80u] = 0x81;
+            put8(guest, t->ricky_state, 0x21); put8(guest, t->essences_obtained, 0x15); put8(guest, t->animal_companion, 0x0c);
+            put8(guest, t->bought_shop_items1, 0x0f); put8(guest, t->seed_tree_refilled_bitset, 0x02);
+            put8(guest, (OraclesGuestSym){ 0, (uint16_t)(t->group0_room_flags.addr + 0x1f0u) }, 0x17);
+            put8(guest, (OraclesGuestSym){ 0, (uint16_t)(t->group0_room_flags.addr + 0x2f9u) }, 0x04);
+            put8(guest, (OraclesGuestSym){ 0, (uint16_t)(t->obtained_treasure_flags.addr + 9u) }, 0x01);   /* treasure $48 */
+            oracles_guest_set_transition_policy(guest, capture_policy, NULL, NULL);
+            put8(guest, t->screen_transition_state, 3); put8(guest, t->vblank_checker, 0);
+            policy_calls = 0;
+            oracles_core_run_frame(core);
+            CHECK(policy_calls == 1);
+            const OraclesGuestTransitionState *g = &last_state;
+            CHECK(g->load.gameboy_type == 0x81 && g->load.ricky_state == 0x21 && g->load.essences_obtained == 0x15 && g->load.animal_companion == 0x0c);
+            CHECK(g->load.bought_shop_items1 == 0x0f && g->load.seed_tree_refilled == 0x02 && g->load.given == 0x3f && g->load.room_code_replay == 1);
+            CHECK(g->load.room_flags_all && g->load.room_flags_all_size == t->room_flags_size && g->load.room_flags_all_size >= 0x300u);
+            CHECK(g->load.room_flags_all && g->load.room_flags_all[0x1f0] == 0x17 && g->load.room_flags_all[0x2f9] == 0x04);
+            CHECK(g->load.obtained_treasures && g->load.obtained_treasures_size == t->obtained_treasure_flags_size && (g->load.obtained_treasures[9] & 1u));
+        }
         oracles_guest_set_transition_policy(guest, NULL, NULL, NULL);
     }
 

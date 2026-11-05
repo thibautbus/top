@@ -54,6 +54,12 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
     }
     fprintf(out, "enhanced.link_unshown_frames=%u\nenhanced.link_built_frames=%u\n", oracles_enhanced_view_link_unshown_frames(c->view),
             oracles_enhanced_view_link_built_frames(c->view));
+    {
+        unsigned built = 0, unshown = 0;
+        oracles_enhanced_view_link_chained_frames(c->view, &built, &unshown);
+        fprintf(out, "enhanced.link_chained_frames=%u\nenhanced.link_chained_unshown=%u\n", built, unshown);
+    }
+    fprintf(out, "enhanced.link_left_line_frames=%u\n", oracles_enhanced_view_link_left_line_frames(c->view));
     fprintf(out, "enhanced.camera_jumps=%u\nenhanced.largest_jump=%" PRId32 "\nenhanced.camera_jumps_y=%u\nenhanced.largest_jump_y=%" PRId32 "\n", c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
     fprintf(out, "enhanced.link_jumps=%u\nenhanced.link_jumps_y=%u\nenhanced.window_jumps=%u\n", c->link_jumps, c->link_jumps_y, c->window_jumps);
     fprintf(out, "enhanced.link_drawn_steps=%u\nenhanced.link_backsteps=%u\nenhanced.link_backsteps_y=%u\n", c->link_drawn_steps, c->link_backsteps, c->link_backsteps_y);
@@ -67,7 +73,13 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.band_stops=%u\nenhanced.band_wobble=%u\nenhanced.straight_frames=%u\nenhanced.straight_band_stops=%u\nenhanced.link_screen_moves=%u\nenhanced.link_screen_backsteps=%u\n"
                      "enhanced.subpixel_frames=%u\nenhanced.subpixel_layer_frames=%u\nenhanced.subpixel_refused_frames=%u\nenhanced.subpixel_left_pixels=%u\nenhanced.subpixel_wrong_pixels=%u\nenhanced.subpixel_alike_pixels=%u\n",
                 c->band_stops, c->band_wobble, c->straight_frames, c->straight_band_stops, c->link_screen_moves, c->link_screen_backsteps, sub, layered, refused, left_pixels, wrong_pixels, alike_pixels);
-        fprintf(out, "enhanced.link_wobble=%u\n", c->link_wobble);
+        fprintf(out, "enhanced.link_wobble=%u\nenhanced.scroll_link_dips=%u\nenhanced.link_drawn_zigzags=%u\n", c->link_wobble, c->scroll_link_dips, c->link_drawn_zigzags);
+        fprintf(out, "swim.drawn_scroll_frames=%u\nswim.drawn_off_scroll_frames=%u\nswim.drawn_mid_frames=%u\nswim.drawn_off_mid_frames=%u\nswim.drawn_off_max=%" PRId32 "\nswim.drawn_off_built_frames=%u\n"
+                     "swim.band_jerks_scroll=%u\nswim.band_jerks_mid=%u\nswim.walked_scroll_frames=%u\nswim.left_water_past_room=%u\n",
+                c->swim_drawn.scroll_frames, c->swim_drawn.off_scroll_frames, c->swim_drawn.mid_frames, c->swim_drawn.off_mid_frames, c->swim_drawn.off_max, c->swim_drawn.off_built_frames,
+                c->swim_band_jerks_scroll, c->swim_band_jerks_mid, c->swim_walked_scroll_frames, c->swim_left_water_past_room);
+        fprintf(out, "walk.drawn_scroll_frames=%u\nwalk.drawn_off_scroll_frames=%u\nwalk.drawn_mid_frames=%u\nwalk.drawn_off_mid_frames=%u\nwalk.drawn_off_max=%" PRId32 "\nwalk.drawn_off_built_frames=%u\n",
+                c->walk_drawn.scroll_frames, c->walk_drawn.off_scroll_frames, c->walk_drawn.mid_frames, c->walk_drawn.off_mid_frames, c->walk_drawn.off_max, c->walk_drawn.off_built_frames);
         fprintf(out, "enhanced.subpixel_covered_pixels=%u\nenhanced.subpixel_unexplained_frames=%u\n", oracles_enhanced_view_subpixel_covered_pixels(c->view),
                 oracles_enhanced_view_subpixel_unexplained_frames(c->view));
         fprintf(out, "enhanced.subpixel_objects=%u\nenhanced.subpixel_objects_off=%u\nenhanced.subpixel_objects_left=%u\n", c->layer_objects, c->layer_objects_off,
@@ -249,6 +261,8 @@ static void report_the_band(OraclesEnhancedCheck *c, FILE *out)
                 c->switch_edges, c->switch_band_jolt_max, c->switch_link_jolt_max, c->jolt_list[0] ? c->jolt_list : "none of 2 px", c->band_jolt_max, c->link_jolt_max);
         fprintf(out, "  as shown at 4x, Link drawn apart or no longer in a transition, the band at a fraction: %u times, he moving against the ground by %" PRId32 " px at most\n",
                 c->transition_layer_switches, c->transition_layer_shift_max);
+        fprintf(out, "  as shown at 4x, Link's sprites stepping 2 px or more one way then back at the next frame, he not turning: %u times%s%s\n",
+                c->link_drawn_zigzags, c->zig_list[0] ? "; first: " : "", c->zig_list);
     }
     unsigned requested = 0, completed = 0, failed = 0;
     oracles_enhanced_view_ghost_counts(c->view, &requested, &completed, &failed);

@@ -1,0 +1,133 @@
+oracles-route 15
+game seasons
+rom_sha1 ba1268290fb2b1b70505d2d7b5825fc8a4816a4b
+sram_sha1 4b5e3ab93423f5032efeb3a6a516a97dde69f83d
+options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,continuous-line,swim-hold
+core joypad-bouncing-off
+# A swim at the surface with the flippers across the rooms' edges, with the transitions at the line and the swim's
+# hold, as the home screen plays them, from swim-steps.route's save: the inputs of a session to 4700, a frame
+# earlier from 640 (replayed without the French it was played in, the game is in 0:5e a frame sooner): scrolls swum
+# through the sea, two corners carried past the line across into the room beside, and a turn back during a
+# scroll; then written by hand, at the edge between 0:74 and 0:75: a tap left (4730), whose stroke and glide cross
+# it and slow down in the scroll as in the middle of a room, a tap right (4824) back across, and another left
+# (4918).
+inputs
+0 keys 00
+463 keys 80
+471 keys 00
+476 keys 80
+483 keys 00
+559 keys 80
+567 keys 00
+574 keys 80
+582 keys 00
+653 keys 08
+877 keys 0a
+909 keys 02
+1135 keys 06
+1151 keys 02
+1163 keys 06
+1188 keys 04
+1219 keys 06
+1256 keys 02
+1270 keys 06
+1332 keys 04
+1364 keys 06
+1412 keys 02
+1468 keys 06
+1495 keys 04
+1614 keys 05
+1631 keys 04
+1649 keys 05
+1670 keys 04
+1695 keys 05
+1725 keys 01
+1744 keys 05
+1823 keys 04
+1831 keys 05
+1855 keys 04
+1880 keys 14
+1888 keys 04
+1990 keys 14
+1998 keys 04
+2025 keys 06
+2032 keys 02
+2172 keys 0a
+2215 keys 08
+2258 keys 0a
+2273 keys 02
+2311 keys 06
+2422 keys 04
+2428 keys 06
+2436 keys 04
+2474 keys 05
+2487 keys 04
+2517 keys 05
+2586 keys 04
+2627 keys 05
+2652 keys 04
+2698 keys 05
+2732 keys 04
+2773 keys 06
+2880 keys 07
+2882 keys 05
+2969 keys 15
+2973 keys 05
+3008 keys 04
+3017 keys 06
+3059 keys 26
+3070 keys 06
+3171 keys 02
+3197 keys 0a
+3243 keys 02
+3249 keys 06
+3340 keys 02
+3348 keys 0a
+3441 keys 0b
+3443 keys 09
+3456 keys 01
+3461 keys 05
+3492 keys 04
+3519 keys 05
+3555 keys 04
+3558 keys 06
+3561 keys 02
+3569 keys 0a
+3685 keys 02
+3690 keys 06
+3739 keys 04
+3765 keys 05
+3845 keys 01
+3847 keys 00
+3850 keys 0a
+3938 keys 0b
+3940 keys 01
+3951 keys 05
+3990 keys 01
+4019 keys 05
+4078 keys 01
+4089 keys 09
+4096 keys 0b
+4098 keys 0a
+4200 keys 02
+4206 keys 06
+4234 keys 04
+4313 keys 00
+4322 keys 01
+4427 keys 02
+4492 keys 00
+4496 keys 01
+4570 keys 05
+4572 keys 04
+4611 keys 00
+4615 keys 08
+4676 keys 00
+4680 keys 02
+4700 keys 00
+4730 keys 02
+4734 keys 00
+4824 keys 01
+4828 keys 00
+4918 keys 02
+4921 keys 00
+5011 keys 00
