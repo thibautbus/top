@@ -217,7 +217,7 @@ int oracles_display_auto_workers(const OraclesHomeNav *nav);
 int oracles_display_transitions_apply(const OraclesHomeNav *nav);
 /* The HUD applies in Enhanced: the profile chosen, or from the pause the running game's, which takes it at once. */
 int oracles_display_hud_applies(const OraclesHomeNav *nav);
-/* The screen is nearer 4:3 than 16:9: the Enhanced view takes the 4:3 sizes (docs/PLAYING.md). */
+/* The screen is nearer 4:3 than 16:9: the Enhanced view takes the 4:3 sizes (docs/REFERENCE.md). */
 int oracles_display_screen_4_3(const OraclesHomeNav *nav);
 /* View's choices and the size of each, the view's level in the screen's shape, far fitted to the screen as a game
  * started from here takes it (oracles_enhanced_screen_view_size). */

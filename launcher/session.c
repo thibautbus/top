@@ -717,7 +717,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->compact_text = o->compact_text == 2;
     s->text_box_wide = o->text_box_wide == 2;
     /* The view's level (--view, Display's View; --zoom-out is far, --enhanced alone near); its size is the options'
-     * shape, the screen's, a window taking the surface's, and far fitted to the screen (docs/PLAYING.md). */
+     * shape, the screen's, a window taking the surface's, and far fitted to the screen (docs/REFERENCE.md). */
     s->view_level = o->view ? o->view - 1 : o->zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
     s->zoom_out = s->view_level != ORACLES_ENHANCED_NEAR;
     s->hotkeys_mode = oracles_settings_hotkeys_mode(o->hotkeys_option);   /* for this run alone; the slots and the keys are remembered */

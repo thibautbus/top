@@ -2,7 +2,7 @@
  *
  * Composes one wide surface from the core's committed image and the host
  * camera.  The surface's size is the view's level and the screen's shape
- * (docs/PLAYING.md): near, 256x144 or 213x160 in 4:3; medium,
+ * (docs/REFERENCE.md): near, 256x144 or 213x160 in 4:3; medium,
  * 384x216 or 320x240; far, the drawn-back view, 480x270 (`--zoom-out`: four
  * times 1920x1080, three rooms across and two down outdoors) or 480x360, or fitted to a screen those fill badly
  * (426x320, 412x360).  It is a HUD band of sixteen lines at the top, the status bar
@@ -137,7 +137,7 @@ static inline OraclesEnhancedFitting oracles_enhanced_far_fitting(unsigned scree
 }
 /* The view's surface at `level` on a screen of screen_w x screen_h, as a game started there takes it: the level's
  * size in the shape `aspect` names, or for ORACLES_ENHANCED_ASPECTS in the screen's, far then fitted to the screen
- * unless `far_fixed` (aspect= and far= in the settings, docs/PLAYING.md).  The session, the harness and Display's
+ * unless `far_fixed` (aspect= and far= in the settings, docs/REFERENCE.md).  The session, the harness and Display's
  * sizes all take it from here. */
 static inline OraclesEnhancedSize oracles_enhanced_screen_view_size(OraclesEnhancedLevel level, OraclesEnhancedAspect aspect, int far_fixed,
                                                                     unsigned screen_w, unsigned screen_h)

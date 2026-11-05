@@ -88,7 +88,7 @@ struct SDL_Renderer *oracles_sdl_create_renderer(struct SDL_Window *window, int 
 /* Pixels per unit of the window's coordinates: 2 on a Retina display, else 1 (Windows counts in pixels). */
 float oracles_sdl_pixel_ratio(struct SDL_Window *window);
 /* 1 when the screen the window is on (NULL: the main one) is nearer 4:3 than 16:9: the shape the Enhanced view takes
- * in fullscreen (docs/PLAYING.md). */
+ * in fullscreen (docs/REFERENCE.md). */
 int oracles_sdl_screen_4_3(struct SDL_Window *window);
 /* The size of that screen's desktop mode in pixels, which the far view fits to; 0 when SDL gives none. */
 int oracles_sdl_screen_size(struct SDL_Window *window, unsigned *width, unsigned *height);

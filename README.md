@@ -102,7 +102,8 @@ The port builds with CMake on Linux, macOS, Windows (MSYS2 UCRT64) and Android, 
 | Document | For |
 | --- | --- |
 | [`docs/BUILDING.md`](docs/BUILDING.md) | building on each platform, the options, the tests, releasing |
-| [`docs/PLAYING.md`](docs/PLAYING.md) | the launcher, the fan games, the command line, the profiles and options, the settings |
+| [`docs/PLAYING.md`](docs/PLAYING.md) | the manual: the launcher's pages, the keys, the saves, the fan games, Android |
+| [`docs/REFERENCE.md`](docs/REFERENCE.md) | the command line, every setting of `settings.txt`, the options in detail, the log |
 | [`docs/MODDING.md`](docs/MODDING.md) | writing a mod in Lua |
 | [`docs/ROUTES.md`](docs/ROUTES.md) | recorded routes, the differential harness, the route suite |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | the layers, the rules between them, the SameBoy strategy |

@@ -6,7 +6,8 @@ The port's documents, by who reads them. The [README](../README.md) has the down
 
 | Document | What it says |
 | --- | --- |
-| [`PLAYING.md`](PLAYING.md) | the manual: the launcher and each of its pages, the fan games, the mods folder, the command line, the profiles and options, the keys, the saves and savestates, the settings, Android |
+| [`PLAYING.md`](PLAYING.md) | the manual: the launcher and each of its pages, the fan games, the mods folder, the keys, the saves and savestates, Android, troubleshooting |
+| [`REFERENCE.md`](REFERENCE.md) | the command line, every key of `settings.txt`, the profiles and options in detail, the launcher in detail, the log lines |
 | [`CHANGELOG.md`](../CHANGELOG.md) | what each version changed, and what it keeps of the version before |
 
 ## For modders and contributors

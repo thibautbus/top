@@ -17,7 +17,7 @@ build/the-oracles-project
 build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" --enhanced
 ```
 
-[`PLAYING.md`](PLAYING.md) has the launcher, the options, the keys and the settings.
+[`PLAYING.md`](PLAYING.md) has the launcher, the keys and the saves; [`REFERENCE.md`](REFERENCE.md) the command line, the options and the settings.
 
 **SDL 3.** The release pinned in `config/sdl3.json` is the minimum: an installed SDL 3 at least that recent is used (`find_package(SDL3 CONFIG)`); otherwise CMake downloads that release's archive, checks its SHA-256 and builds it in the build directory, as a shared library beside the executables, with its licence (`SDL3-LICENSE.txt`). On Linux that build needs the development packages SDL's `README-linux` lists (X11, Wayland, ALSA, PulseAudio or PipeWire...), those the CI installs; without one of them SDL's configuration fails and names the option that does without it, for instance `-DSDL_X11_XTEST=OFF`. Without network, `-DFETCHCONTENT_SOURCE_DIR_SDL3=/path/to/SDL3-3.x.y` gives already extracted sources.
 
