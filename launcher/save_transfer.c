@@ -54,12 +54,22 @@ static void backup_name(const char *name, time_t now, char *out, size_t capacity
     snprintf(out, capacity, "%.*s%s%s", (int)(dot - name), name, stamp, *dot ? dot : ".sav");
 }
 
-/* The savestate of a save, as the session names it: NAME.state for NAME.sav. */
-static void state_path(const char *save, char *out, size_t capacity)
+void oracles_save_transfer_beside(const char *save, const char *extension, char *out, size_t capacity)
 {
     const char *dot = strrchr(save, '.');
     const size_t length = dot && !strcmp(dot, ".sav") ? (size_t)(dot - save) : strlen(save);
-    snprintf(out, capacity, "%.*s.state", (int)length, save);
+    snprintf(out, capacity, "%.*s%s", (int)length, save, extension);
+}
+
+int oracles_save_transfer_has_mods(const char *save)
+{
+    static const char *const extensions[3] = { ".mods.sav", ".mods.state", ".mods.store" };
+    char path[4200];
+    for (int i = 0; i < 3; i++) {
+        oracles_save_transfer_beside(save, extensions[i], path, sizeof path);
+        if (SDL_GetPathInfo(path, NULL)) return 1;
+    }
+    return 0;
 }
 
 /* The file at `path`, if there is one, copied into `backups` under its name and the time, *kept its path (empty when
@@ -82,32 +92,46 @@ static int keep(const char *path, const char *backups, time_t now, char *kept, s
     return ok;
 }
 
-int oracles_save_transfer_import(const char *save, const uint8_t *data, size_t size, time_t now, char *backup, size_t backup_capacity,
-                                 char *state_backup, size_t state_backup_capacity, char *error, size_t error_capacity)
+int oracles_save_transfer_import(const char *save, const uint8_t *data, size_t size, time_t now, OraclesSaveKept *kept, char *error,
+                                 size_t error_capacity)
 {
-    char folder[4096], backups[4200], state[4200], aside[4300], partial[4200];
+    char folder[4096], backups[4200], partial[4200];
     const char *file;
     split(save, folder, sizeof folder, &file);
     snprintf(backups, sizeof backups, "%s/Backups", folder);
-    state_backup[0] = 0;
-    if (!keep(save, backups, now, backup, backup_capacity)) { snprintf(error, error_capacity, "the save cannot be kept in Backups: %s", SDL_GetError()); return 0; }
-    /* The savestate holds the SRAM of the save it replaces, which a Load state would bring back and the game write over
-     * the new one: it goes to Backups too, and is set aside while the new save is written, put back if that fails. */
-    state_path(save, state, sizeof state);
-    snprintf(aside, sizeof aside, "%s.replaced", state);
-    if (!keep(state, backups, now, state_backup, state_backup_capacity) || (state_backup[0] && !SDL_RenamePath(state, aside))) {
-        snprintf(error, error_capacity, "the savestate cannot be moved to Backups: %s", SDL_GetError());
-        return 0;
+    memset(kept, 0, sizeof *kept);
+    if (!keep(save, backups, now, kept->save, sizeof kept->save)) { snprintf(error, error_capacity, "the save cannot be kept in Backups: %s", SDL_GetError()); return 0; }
+    /* The files that hold the SRAM of the save it replaces go to Backups too, each set aside while the new save is
+     * written and put back if that fails: its savestate, which a Load state would bring back and the game write over the
+     * new one; the game with mods' save, which the Mods page's Play would play on rather than the new one (it starts as a
+     * copy of the save when there is none), and its savestate and mods' storage, which go with it. */
+    static const char *const extensions[4] = { ".state", ".mods.sav", ".mods.state", ".mods.store" };
+    static const char *const names[4] = { "savestate", "save with mods", "savestate with mods", "mods' storage" };
+    char *const moved[4] = { kept->state, kept->mods_save, kept->mods_state, kept->mods_store };
+    char paths[4][4200], aside[4][4300];
+    int set = 0;
+    for (; set < 4; set++) {
+        oracles_save_transfer_beside(save, extensions[set], paths[set], sizeof paths[set]);
+        snprintf(aside[set], sizeof aside[set], "%.*s.replaced", (int)sizeof paths[set] - 1, paths[set]);
+        if (!keep(paths[set], backups, now, moved[set], ORACLES_SAVE_TRANSFER_PATH) || (moved[set][0] && !SDL_RenamePath(paths[set], aside[set]))) {
+            snprintf(error, error_capacity, "the %s cannot be moved to Backups: %s", names[set], SDL_GetError());
+            moved[set][0] = 0;
+            break;
+        }
     }
+    int ok = set == 4;
     snprintf(partial, sizeof partial, "%s.partial", save);
-    if (!SDL_SaveFile(partial, data, size) || !SDL_RenamePath(partial, save)) {
+    if (ok && (!SDL_SaveFile(partial, data, size) || !SDL_RenamePath(partial, save))) {
         snprintf(error, error_capacity, "the save cannot be written: %s", SDL_GetError());
         SDL_RemovePath(partial);
-        if (state_backup[0]) SDL_RenamePath(aside, state);
-        return 0;
+        ok = 0;
     }
-    if (state_backup[0]) SDL_RemovePath(aside);
-    return 1;
+    for (int i = 0; i < set; i++) {
+        if (!moved[i][0]) continue;
+        if (ok) SDL_RemovePath(aside[i]);
+        else SDL_RenamePath(aside[i], paths[i]);
+    }
+    return ok;
 }
 
 int oracles_save_transfer_export(const char *save, const char *destination, char *error, size_t error_capacity)

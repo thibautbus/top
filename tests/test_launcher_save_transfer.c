@@ -2,7 +2,10 @@
  * argument names, emptied first: a file chosen read, refused unread when larger than a save; an Oracle's European save
  * set to English, a fan game's taken as it is, another game's save, a file of another size or that is no save refused;
  * the save replaced kept in Backups under its name and the time, a backup of that name already there kept too, the new
- * one numbered; no backup without a save; the savestate moved there with it; a copy out. */
+ * one numbered; no backup without a save; the savestate moved there with it, and the game with mods' save, savestate
+ * and storage; all left in place when the new save cannot be written, or when a move fails midway; a copy out; the folder Android's
+ * document picker gives a save in, read in its address. */
+#include "file_dialog.h"
 #include "save_transfer.h"
 
 #include <SDL3/SDL.h>
@@ -62,7 +65,8 @@ static void check(void)
 static void import(const char *folder)
 {
     static uint8_t first[ORACLES_SAVE_SIZE], second[ORACLES_SAVE_SIZE], third[ORACLES_SAVE_SIZE], other[16] = "another backup";
-    char save[1024], backup[1100], state_backup[1100], state[1100], expected[1100], error[256];
+    char save[1024], state[1100], expected[1100], error[256];
+    static OraclesSaveKept kept;
     static const uint8_t old_state[] = "a savestate of the first";
     snprintf(save, sizeof save, "%s/Oracle of Ages (USA).sav", folder);
     build(first, ORACLES_GAME_AGES, 0, 1);
@@ -72,8 +76,8 @@ static void import(const char *folder)
     const time_t now = mktime(&when);
 
     /* No save yet: none kept, the new one written. */
-    CHECK(oracles_save_transfer_import(save, first, sizeof first, now, backup, sizeof backup, state_backup, sizeof state_backup, error, sizeof error));
-    CHECK(!backup[0] && !state_backup[0] && holds(save, first, sizeof first));
+    CHECK(oracles_save_transfer_import(save, first, sizeof first, now, &kept, error, sizeof error));
+    CHECK(!kept.save[0] && !kept.state[0] && holds(save, first, sizeof first));
     snprintf(expected, sizeof expected, "%s/Backups", folder);
     CHECK(!SDL_GetPathInfo(expected, NULL));
     /* The savestate beside the save, which holds the SRAM replaced: moved to Backups with it, under the same name and
@@ -85,31 +89,73 @@ static void import(const char *folder)
     SDL_CreateDirectory(expected);
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22.sav", folder);
     CHECK(SDL_SaveFile(expected, other, sizeof other));
-    CHECK(oracles_save_transfer_import(save, second, sizeof second, now, backup, sizeof backup, state_backup, sizeof state_backup, error, sizeof error));
+    CHECK(oracles_save_transfer_import(save, second, sizeof second, now, &kept, error, sizeof error));
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22 (2).sav", folder);
-    CHECK(!strcmp(backup, expected) && holds(backup, first, sizeof first));
+    CHECK(!strcmp(kept.save, expected) && holds(kept.save, first, sizeof first));
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22.sav", folder);
     CHECK(holds(expected, other, sizeof other));
     CHECK(holds(save, second, sizeof second));
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22.state", folder);
-    CHECK(!strcmp(state_backup, expected) && holds(state_backup, old_state, sizeof old_state) && !SDL_GetPathInfo(state, NULL));
+    CHECK(!strcmp(kept.state, expected) && holds(kept.state, old_state, sizeof old_state) && !SDL_GetPathInfo(state, NULL));
 
     /* Again in the same minute: a third name, the two before kept; no savestate now, none moved. */
-    CHECK(oracles_save_transfer_import(save, third, sizeof third, now, backup, sizeof backup, state_backup, sizeof state_backup, error, sizeof error));
-    CHECK(!state_backup[0]);
+    CHECK(oracles_save_transfer_import(save, third, sizeof third, now, &kept, error, sizeof error));
+    CHECK(!kept.state[0]);
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22 (3).sav", folder);
-    CHECK(!strcmp(backup, expected) && holds(backup, second, sizeof second));
+    CHECK(!strcmp(kept.save, expected) && holds(kept.save, second, sizeof second));
     snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA) 2026-10-20 14-22 (2).sav", folder);
     CHECK(holds(expected, first, sizeof first));
     CHECK(holds(save, third, sizeof third));
     snprintf(expected, sizeof expected, "%s.partial", save);
     CHECK(!SDL_GetPathInfo(expected, NULL));
+    CHECK(!kept.mods_save[0] && !kept.mods_state[0] && !kept.mods_store[0]);
 
-    /* The new save cannot be written (its temporary name taken by a folder): the save and its savestate stay in place. */
-    CHECK(SDL_SaveFile(state, old_state, sizeof old_state) && SDL_CreateDirectory(expected));
-    CHECK(!oracles_save_transfer_import(save, first, sizeof first, now, backup, sizeof backup, state_backup, sizeof state_backup, error, sizeof error));
-    CHECK(error[0] && holds(save, third, sizeof third) && holds(state, old_state, sizeof old_state));
-    CHECK(SDL_RemovePath(expected) && SDL_RemovePath(state));
+    /* The game with mods' save, savestate and mods' storage, which hold that game's SRAM: moved to Backups with the save,
+     * so that the next game with mods starts again from the new one. */
+    static const uint8_t mods_save[] = "the save with mods", mods_store[] = "the mods' storage";
+    char mods[3][1100];
+    snprintf(mods[0], sizeof mods[0], "%s/Oracle of Ages (USA).mods.sav", folder);
+    snprintf(mods[1], sizeof mods[1], "%s/Oracle of Ages (USA).mods.state", folder);
+    snprintf(mods[2], sizeof mods[2], "%s/Oracle of Ages (USA).mods.store", folder);
+    /* Any of the three makes the confirmation say "with mods too". */
+    CHECK(!oracles_save_transfer_has_mods(save));
+    for (int i = 0; i < 3; i++) {
+        CHECK(SDL_SaveFile(mods[i], mods_store, sizeof mods_store) && oracles_save_transfer_has_mods(save));
+        CHECK(SDL_RemovePath(mods[i]) && !oracles_save_transfer_has_mods(save));
+    }
+    CHECK(SDL_SaveFile(mods[0], mods_save, sizeof mods_save) && SDL_SaveFile(mods[1], old_state, sizeof old_state) && SDL_SaveFile(mods[2], mods_store, sizeof mods_store));
+    CHECK(oracles_save_transfer_import(save, second, sizeof second, now + 60, &kept, error, sizeof error));
+    snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA).mods 2026-10-20 14-23.sav", folder);
+    CHECK(!strcmp(kept.mods_save, expected) && holds(kept.mods_save, mods_save, sizeof mods_save) && !SDL_GetPathInfo(mods[0], NULL));
+    snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA).mods 2026-10-20 14-23.store", folder);
+    CHECK(!strcmp(kept.mods_store, expected) && holds(kept.mods_store, mods_store, sizeof mods_store) && !SDL_GetPathInfo(mods[2], NULL));
+    snprintf(expected, sizeof expected, "%s/Backups/Oracle of Ages (USA).mods 2026-10-20 14-23.state", folder);
+    CHECK(!strcmp(kept.mods_state, expected) && holds(kept.mods_state, old_state, sizeof old_state) && !SDL_GetPathInfo(mods[1], NULL));
+    CHECK(!kept.state[0] && kept.save[0] && holds(save, second, sizeof second));
+    CHECK(oracles_save_transfer_import(save, third, sizeof third, now + 60, &kept, error, sizeof error) && !kept.mods_save[0]);
+
+    /* The new save cannot be written (its temporary name taken by a folder): the save, its savestate and the save with
+     * mods stay in place. */
+    snprintf(expected, sizeof expected, "%s.partial", save);
+    CHECK(SDL_SaveFile(state, old_state, sizeof old_state) && SDL_SaveFile(mods[0], mods_save, sizeof mods_save) && SDL_CreateDirectory(expected));
+    CHECK(!oracles_save_transfer_import(save, first, sizeof first, now, &kept, error, sizeof error));
+    CHECK(error[0] && holds(save, third, sizeof third) && holds(state, old_state, sizeof old_state) && holds(mods[0], mods_save, sizeof mods_save));
+    CHECK(SDL_RemovePath(expected) && SDL_RemovePath(state) && SDL_RemovePath(mods[0]));
+
+    /* A move that fails midway (the mods' storage a folder, which cannot be read): the savestate and the save with
+     * mods set aside before it are put back, nothing left under a temporary name, the save as it was. */
+    CHECK(SDL_SaveFile(state, old_state, sizeof old_state) && SDL_SaveFile(mods[0], mods_save, sizeof mods_save) && SDL_CreateDirectory(mods[2]));
+    CHECK(!oracles_save_transfer_import(save, first, sizeof first, now, &kept, error, sizeof error));
+    CHECK(!strncmp(error, "the mods' storage cannot be moved to Backups", 44));
+    CHECK(holds(save, third, sizeof third) && holds(state, old_state, sizeof old_state) && holds(mods[0], mods_save, sizeof mods_save));
+    const char *const left[] = { state, mods[0], mods[2], save };
+    for (int i = 0; i < 4; i++) {
+        snprintf(expected, sizeof expected, "%s.replaced", left[i]);
+        CHECK(!SDL_GetPathInfo(expected, NULL));
+    }
+    snprintf(expected, sizeof expected, "%s.partial", save);
+    CHECK(!SDL_GetPathInfo(expected, NULL));
+    CHECK(SDL_RemovePath(mods[2]) && SDL_RemovePath(state) && SDL_RemovePath(mods[0]));
 
     /* Out: a copy of the save where the player chose. */
     snprintf(expected, sizeof expected, "%s/copy.sav", folder);
@@ -137,6 +183,39 @@ static void read_chosen(const char *folder)
     CHECK(!oracles_save_transfer_read(path, out, &size, error, sizeof error) && error[0]);
 }
 
+/* The folder the confirmation shows for a document Android's picker chose, read in its content:// address. */
+static void uri_folders(void)
+{
+    static const struct { const char *uri, *folder; } cases[] = {
+        { "content://com.android.externalstorage.documents/document/primary%3ADownload%2FOracle%20of%20Ages%20(USA).sav", "Download" },
+        { "content://com.android.externalstorage.documents/document/primary%3ADownload%2FSaves%2Fages.sav", "Download/Saves" },
+        { "content://com.android.externalstorage.documents/document/1A2B-3C4D%3AGames%2Fages.sav", "Games" },
+        { "content://com.android.externalstorage.documents/document/primary%3Aages.sav", "" },
+        { "content://com.android.providers.downloads.documents/document/msf%3A1000000033", "Download" },
+        { "content://com.android.providers.downloads.documents/document/33", "Download" },
+        { "content://com.android.providers.downloads.documents/document/raw%3A%2Fstorage%2Femulated%2F0%2FDownload%2Fages.sav", "Download" },
+        { "content://com.android.providers.downloads.documents/document/raw%3A%2Fstorage%2Femulated%2F0%2Fages.sav", "" },
+        { "content://com.android.providers.media.documents/document/document%3A1000000040", "" },
+        { "content://com.google.android.apps.docs.storage/document/acc%3D1%3Bdoc%3Dencoded%3Dabc", "" },
+        { "content://com.android.providers.downloads.documents/document/abc%2", "Download" },
+        { "content://com.android.externalstorage.documents/document/primary%3ADownload%2Fsave%2", "Download" },
+        { "content://com.android.externalstorage.documents/document/primary%3ASaves%-1%2Fages.sav", "Saves%-1" },
+        { "content://com.android.externalstorage.documents/document/primary%3ADownload%2Fages%", "Download" },
+        { "content://", "" },
+        { "file:///storage/emulated/0/Download/ages.sav", "Download" },
+        { "file:///sdcard/Saves%20old/ages.sav", "sdcard/Saves old" },
+        { "file:///ages.sav", "" },
+        { "file://", "" },
+        { "Download/ages.sav", "" },
+    };
+    for (size_t i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        char folder[256] = "x";
+        oracles_dialog_uri_folder(cases[i].uri, folder, sizeof folder);
+        if (strcmp(folder, cases[i].folder)) fprintf(stderr, "  %s gave \"%s\"\n", cases[i].uri, folder);
+        CHECK(!strcmp(folder, cases[i].folder));
+    }
+}
+
 static SDL_EnumerationResult SDLCALL removed(void *userdata, const char *dirname, const char *fname)
 {
     (void)userdata;
@@ -156,6 +235,7 @@ int main(int argc, char **argv)
     check();
     import(argv[1]);
     read_chosen(argv[1]);
+    uri_folders();
     if (failures) fprintf(stderr, "%d failure(s)\n", failures);
     else printf("save transfer: all checks passed\n");
     return failures != 0;

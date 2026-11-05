@@ -2,6 +2,18 @@
 
 What changed in each version of The Oracles Project, the newest first. The release page of each version on GitHub carries the same text, under the installation notes.
 
+## 1.4.0 (unreleased)
+
+### Improved
+
+- **Saves of games with mods.** **Import save…** now brings the save in for the game with mods too: the save the Mods page's Play uses goes to Backups with the old one, and the next game with mods starts from the save imported.
+
+### Fixed
+
+- **Import save on Android.** The confirmation now shows the folder the save comes from (Download, or the folder you picked it in) instead of a blank line.
+- **Cartridge's Save row on Android.** With **Import save…** highlighted, the note under the save now speaks of the import, instead of repeating Export's.
+- **Import save.** The message after an import now names each file that went to Backups, the savestate included.
+
 ## 1.3.0 (2026-10-25)
 
 ### New

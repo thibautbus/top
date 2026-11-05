@@ -1,8 +1,8 @@
 /* Cartridge's Save row for the home screen's games (home_games.h): Open folder, the system's file manager on the save's
  * folder (Android, which opens none, says where it is); Import save…, a save chosen in the system's dialog, checked
- * (save_transfer.h), confirmed, then written over the game's, the one it replaces and its savestate kept in Backups;
- * and on Android Export save…, a copy of the save where the document picker makes one.  The page shows the outcome as
- * the row's status, and the standard error says it too. */
+ * (save_transfer.h), confirmed, then written over the game's, the one it replaces, its savestate and the game with mods'
+ * save kept in Backups; and on Android Export save…, a copy of the save where the document picker makes one.  The page
+ * shows the outcome as the row's status, and the standard error says it too. */
 #include "home_games.h"
 
 #include "file_dialog.h"
@@ -113,7 +113,10 @@ static void save_chosen(void *opaque, int game, int kind, int result, const char
     games->import.game = game;
     nav->save_flow.state = ORACLES_SAVE_FLOW_CONFIRM;
     nav->save_flow.choice = 0;
-    nav->save_flow.replace = nav->games[game].save_file[0] != 0;
+    /* The game with mods' files go to Backups too: the confirmation says so. */
+    char current[ORACLES_SETTINGS_PATH_LENGTH];
+    oracles_home_games_save_path(games, game, current, sizeof current);
+    nav->save_flow.replace = current[0] && oracles_save_transfer_has_mods(current) ? 2 : nav->games[game].save_file[0] != 0;
     oracles_dialog_describe(path, nav->save_flow.file, sizeof nav->save_flow.file, nav->save_flow.folder, sizeof nav->save_flow.folder);
 }
 
@@ -121,23 +124,27 @@ static void replace_save(void *opaque, int game, OraclesHomeNav *nav)
 {
     OraclesHomeGames *games = opaque;
     if (nav->save_flow.state != ORACLES_SAVE_FLOW_CONFIRM || games->import.game != game) return;
-    char save[ORACLES_SETTINGS_PATH_LENGTH], backup[ORACLES_SETTINGS_PATH_LENGTH], state[ORACLES_SETTINGS_PATH_LENGTH], error[200];
+    char save[ORACLES_SETTINGS_PATH_LENGTH], error[200];
+    static OraclesSaveKept kept;
     oracles_home_games_save_path(games, game, save, sizeof save);
-    if (!save[0] || !oracles_save_transfer_import(save, games->import.data, ORACLES_SAVE_SIZE, time(NULL), backup, sizeof backup, state, sizeof state,
-                                                  error, sizeof error)) {
+    if (!save[0] || !oracles_save_transfer_import(save, games->import.data, ORACLES_SAVE_SIZE, time(NULL), &kept, error, sizeof error)) {
         fprintf(stderr, "oracles: the save %s is not imported: %s\n", save, save[0] ? error : "no ROM");
         char text[ORACLES_HOME_TEXT_LENGTH];
         snprintf(text, sizeof text, "Nothing replaced: %s.", save[0] ? error : "no ROM");
         status(nav, ORACLES_SAVE_FLOW_REFUSED, text, NULL);
         return;
     }
-    fprintf(stderr, "oracles: save imported as %s%s%s%s%s%s\n", save, backup[0] ? ", the previous one kept as " : "", backup,
-            state[0] ? ", its savestate moved to " : "", state, games->import.english ? ", its language set to English" : "");
-    const int fan = oracles_home_fan_game(game) != NULL;
-    const char *done = !backup[0] ? "Save imported."
-                       : fan ? "Save imported. The previous one is in Backups, beside the patch."
-                             : "Save imported. The previous one is in Backups, beside the ROM.";
-    status(nav, ORACLES_SAVE_FLOW_DONE, done, games->import.english ? "Its language was set to English for this game." : NULL);
+    fprintf(stderr, "oracles: save imported as %s%s%s%s%s%s%s%s\n", save, kept.save[0] ? ", the previous one kept as " : "", kept.save,
+            kept.state[0] ? ", its savestate moved to " : "", kept.state, kept.mods_save[0] ? ", the save with mods moved to " : "", kept.mods_save,
+            games->import.english ? ", its language set to English" : "");
+    if (kept.mods_state[0] || kept.mods_store[0])
+        fprintf(stderr, "oracles: with it, %s%s%s\n", kept.mods_state, kept.mods_state[0] && kept.mods_store[0] ? " and " : "", kept.mods_store);
+    char done[ORACLES_HOME_TEXT_LENGTH], kept_line[ORACLES_HOME_TEXT_LENGTH];
+    const unsigned moved = (kept.save[0] ? ORACLES_PAGE_KEPT_SAVE : 0u) | (kept.state[0] ? ORACLES_PAGE_KEPT_STATE : 0u)
+                           | (kept.mods_save[0] ? ORACLES_PAGE_KEPT_MODS_SAVE : 0u) | (kept.mods_state[0] ? ORACLES_PAGE_KEPT_MODS_STATE : 0u)
+                           | (kept.mods_store[0] ? ORACLES_PAGE_KEPT_MODS_STORE : 0u);
+    oracles_page_import_done(moved, oracles_home_fan_game(game) != NULL, games->import.english, done, kept_line);
+    status(nav, ORACLES_SAVE_FLOW_DONE, done, kept_line);
 }
 
 void oracles_home_save_host(OraclesHomeGames *games, OraclesHomeHost *host)

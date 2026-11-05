@@ -45,8 +45,13 @@ int oracles_dialog_answer(const union SDL_Event *event, OraclesDialogResult *res
                           char *path, size_t capacity, int *copied);
 
 /* A file a dialog chose, as the page names it: its name and its folder; on Android, a content:// address's name as the
- * picker shows it, and the folder its document says it is in ("Download"), empty when it says none. */
+ * picker shows it, and the folder oracles_dialog_uri_folder reads in the address. */
 void oracles_dialog_describe(const char *path, char *name, size_t name_capacity, char *folder, size_t folder_capacity);
+/* The folder of the shared storage a content:// address says its document is in, from the storage's root: "Download"
+ * for "primary:Download/save.sav", for the downloads' "raw:/storage/emulated/0/Download/save.sav" and for their other
+ * documents, and for "file:///storage/emulated/0/Download/save.sav"; empty when the address names none (a cloud
+ * drive's, a file at the storage's root) or is neither.  A '%' without two hexadecimal digits stays as it is. */
+void oracles_dialog_uri_folder(const char *uri, char *folder, size_t capacity);
 
 /* Keeps `size` bytes as `name` in `folder` (created if need be) without ever writing over a file: a file of that name
  * holding the same bytes is taken as it is (*fresh 0); else the first free name of "name", "name (2)"... before the

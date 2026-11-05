@@ -22,6 +22,7 @@ static const import_metrics import_4_3 = { 1440.0f, 1040.0f, 44.0f, 36.0f, 18.0f
 const char oracles_ui_import_title[] = "Import save";
 static const char replace_question[] = "Replace this game's save? The current one is kept as a backup.";
 static const char take_question[] = "Use this file as this game's save?";
+static const char mods_question[] = "Replace this game's save, with mods too? What it replaces is kept as a backup.";
 
 static const OraclesUiTextStyle import_title_4_3 = { ORACLES_UI_FONT_SERIF, 30.0f, 0.2f, 1 };
 static const OraclesUiTextStyle import_question = { ORACLES_UI_FONT_SANS, 26.0f, 0.0f, 0 };
@@ -139,9 +140,11 @@ void oracles_ui_layout_import(OraclesUiLayout layout, const char *file, const ch
     y += out->title.h + m->gap;
     out->file = pl_line_at(file_style, out->file_text, x, y, 0.0f);
     y += out->file.h + m->gap;
-    out->folder = pl_line_at(path_style, out->folder_text, x, y, 0.0f);
-    y += out->folder.h + m->gap;
-    out->question_text = replace ? replace_question : take_question;
+    if (out->folder_text[0]) {   /* a document whose address names no folder (Android): no line */
+        out->folder = pl_line_at(path_style, out->folder_text, x, y, 0.0f);
+        y += out->folder.h + m->gap;
+    }
+    out->question_text = replace == 2 ? mods_question : replace ? replace_question : take_question;
     out->label_texts[0] = replace ? "Replace" : "Import";
     out->label_texts[1] = "Cancel";
     pl_wrap_pretty_lines(question, out->question_text, width, x, y, m->question_line, &out->question);
@@ -162,7 +165,7 @@ void oracles_ui_layout_import(OraclesUiLayout layout, const char *file, const ch
     out->panel = pl_box((m->scene_w - m->panel_w) * 0.5f, top, m->panel_w, h);
     pl_move_line(&out->title, x, out->title.y + top);
     pl_move_line(&out->file, x, out->file.y + top);
-    pl_move_line(&out->folder, x, out->folder.y + top);
+    if (out->folder_text[0]) pl_move_line(&out->folder, x, out->folder.y + top);
     pl_move_wrapped(&out->question, out->question.lines[0].y + top);
     for (unsigned i = 0; i < 2u; i++) {
         out->buttons[i].y += top;

@@ -115,11 +115,27 @@ void oracles_page_save_line(const OraclesHomeGame *game, char *out, size_t capac
 const char *oracles_page_save_action(const OraclesHomeNav *nav, int action);
 int oracles_page_save_action_live(const OraclesHomeNav *nav, int action);
 /* The note under the row's line, an Oracle's, the shorter one in 4:3: that the save works with the European ROM in
- * other emulators, beginning on Android with the export; from a game, on Import, why it is greyed; empty for a fan game
- * and while the row shows a status. */
+ * other emulators, beginning on Android with the export; on Android with Import save… highlighted, that it takes a save
+ * from elsewhere, the European ROM's too; from a game, on Import, why it is greyed; empty for a fan game and while the
+ * row shows a status. */
 const char *oracles_page_save_note(const OraclesHomeNav *nav, int four_three);
 /* The status an import or an export left (nav->save_flow), its tone and its second line; NULL while there is none. */
 const char *oracles_page_save_status(const OraclesHomeNav *nav, OraclesTone *tone, const char **second);
+/* What an import moved to Backups (save_transfer.h): the save it replaced, its savestate, and the game with mods' save,
+ * savestate and mods' storage. */
+enum {
+    ORACLES_PAGE_KEPT_SAVE = 1u,
+    ORACLES_PAGE_KEPT_STATE = 2u,
+    ORACLES_PAGE_KEPT_MODS_SAVE = 4u,
+    ORACLES_PAGE_KEPT_MODS_STATE = 8u,
+    ORACLES_PAGE_KEPT_MODS_STORE = 16u
+};
+/* The status of an import done, on two lines of ORACLES_HOME_TEXT_LENGTH bytes that each hold in the row's room at
+ * 640x480: that it is imported, and its language set to English (`english`); then what went to Backups, each file `kept`
+ * names (ORACLES_PAGE_KEPT_*) said as it is, singular or plural, the game with mods' set as "with mods too" when it
+ * matches the save's, and beside the ROM or a fan game's patch (`fan`) when only the save and its savestate went;
+ * `second` empty when nothing went. */
+void oracles_page_import_done(unsigned kept, int fan, int english, char *first, char *second);
 const char *oracles_page_play_note(const OraclesHomeNav *nav);          /* shown beside Play; empty mostly */
 
 /* The European ROM row: an Oracle's (not a fan game's), with its original US ROM.  The Language row: that Oracle's, or a

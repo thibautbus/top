@@ -135,8 +135,9 @@ void oracles_ui_layout_page_head(OraclesUiLayout layout, const char *section, co
 void oracles_ui_layout_game(OraclesUiLayout layout, OraclesUiGameTexts *texts, OraclesUiGameLayout *out);
 
 /* The import's confirmation over Cartridge (ui_page_save_layout.c): the scene dimmed, a panel at its centre with its
- * title, the file chosen, its folder, the question and its buttons, each box the pointer's target: over a save, whether
- * to replace it (Replace, Cancel); without one, whether to take the file (Import, Cancel), in the same box. */
+ * title, the file chosen, its folder (no line when it is empty), the question and its buttons, each box the pointer's target: over a save, whether
+ * to replace it (Replace, Cancel), the game with mods' own save too when it has one; without one, whether to take the
+ * file (Import, Cancel), in the same box. */
 typedef struct OraclesUiImportLayout {
     OraclesUiBox backdrop, panel;
     OraclesUiLine title, file, folder;
@@ -150,7 +151,8 @@ typedef struct OraclesUiImportLayout {
 extern const char oracles_ui_import_title[];
 /* Its styles in `layout`: the title's, the question's and the buttons'. */
 const OraclesUiTextStyle *oracles_ui_import_style(OraclesUiLayout layout, int part);
-/* `replace`: the game has a save, which the file replaces. */
+/* `replace`: 1 when the game has a save, which the file replaces; 2 when the game with mods has a save, a savestate or
+ * mods' data (NAME.mods.*), which go to Backups too. */
 void oracles_ui_layout_import(OraclesUiLayout layout, const char *file, const char *folder, int replace, OraclesUiImportLayout *out);
 
 /* The texts of Display. */

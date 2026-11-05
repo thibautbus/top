@@ -141,8 +141,14 @@ const char *oracles_page_save_note(const OraclesHomeNav *nav, int four_three)
 {
     const OraclesHomeGame *game = oracles_page_game_const(nav);
     if (nav->save_flow.state == ORACLES_SAVE_FLOW_DONE || nav->save_flow.state == ORACLES_SAVE_FLOW_REFUSED) return "";
-    if (nav->in_game && nav->row == ORACLES_ROW_SAVE && nav->save_action == 1) return oracles_display_pause_reason;
+    const int import = nav->row == ORACLES_ROW_SAVE && nav->save_action == 1;
+    if (nav->in_game && import) return oracles_display_pause_reason;
     if (game->fan) return "";
+    /* Android's two actions each have their own: Import save… says what it takes, Export save… where the save goes. */
+    if (nav->android && import)
+        return four_three ? "Import a save from elsewhere, the European ROM's too."
+                          : "Import a save from another emulator or another device, also one made with the European ROM: its language is then "
+                            "set to English for this game.";
     if (nav->android)
         return four_three ? "Export a copy to play it elsewhere, also with the European ROM."
                           : "Export a copy to play it elsewhere: this save also works with the European ROM in other emulators, beside that ROM "
@@ -159,6 +165,37 @@ const char *oracles_page_save_status(const OraclesHomeNav *nav, OraclesTone *ton
     *tone = state == ORACLES_SAVE_FLOW_DONE ? ORACLES_TONE_OK : ORACLES_TONE_ERROR;
     if (nav->save_flow.text2[0]) *second = nav->save_flow.text2;
     return nav->save_flow.text;
+}
+
+void oracles_page_import_done(unsigned kept, int fan, int english, char *first, char *second)
+{
+    const int save = (kept & ORACLES_PAGE_KEPT_SAVE) != 0, state = (kept & ORACLES_PAGE_KEPT_STATE) != 0;
+    const int mods_save = (kept & ORACLES_PAGE_KEPT_MODS_SAVE) != 0, mods_state = (kept & ORACLES_PAGE_KEPT_MODS_STATE) != 0;
+    const int mods_store = (kept & ORACLES_PAGE_KEPT_MODS_STORE) != 0;
+    snprintf(first, ORACLES_HOME_TEXT_LENGTH, "Save imported.%s", english ? " Its language was set to English for this game." : "");
+    second[0] = 0;
+    /* The save's files, then the game with mods': one part when both hold the same ("with mods too"). */
+    const char *own = save && state ? "the old save and its savestate" : save ? "the old save" : state ? "the old savestate" : NULL;
+    const char *mods = mods_save ? (mods_state && mods_store ? "the save with mods, its savestate and data"
+                                    : mods_state            ? "the save with mods and its savestate"
+                                    : mods_store            ? "the save with mods and its data"
+                                                            : "the save with mods")
+                     : mods_state && mods_store ? "the mods' savestate and data"
+                     : mods_state               ? "the savestate with mods"
+                     : mods_store               ? "the mods' data"
+                                                : NULL;
+    if (!own && !mods) return;
+    char parts[160];
+    if (own && save == mods_save && state == mods_state)
+        snprintf(parts, sizeof parts, "%s, with mods too%s", own, mods_store ? ", and the mods' data" : "");
+    else if (own && mods)
+        snprintf(parts, sizeof parts, "%s%s%s", own, strstr(own, " and ") || strstr(mods, " and ") || strchr(mods, ',') ? ", and " : " and ", mods);
+    else if (own)
+        snprintf(parts, sizeof parts, "%s", own);
+    else
+        snprintf(parts, sizeof parts, "the old %s", mods + 4);   /* "the old save with mods" */
+    const char *where = mods ? "" : fan ? ", beside the patch" : ", beside the ROM";
+    snprintf(second, ORACLES_HOME_TEXT_LENGTH, "In Backups%s: %s.", where, parts);
 }
 
 const char *oracles_page_play_note(const OraclesHomeNav *nav)

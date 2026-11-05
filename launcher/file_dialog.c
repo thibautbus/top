@@ -2,12 +2,30 @@
 
 #include <SDL3/SDL.h>
 
+#include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef __ANDROID__
 #include <jni.h>
 #endif
+
+/* `from` percent-decoded into `out`: a '%' and two hexadecimal digits are their byte, anything else stays as it is. */
+static void decode(const char *from, char *out, size_t capacity)
+{
+    size_t n = 0;
+    for (const char *p = from; *p && n + 1 < capacity; p++) {
+        if (p[0] == '%' && isxdigit((unsigned char)p[1]) && isxdigit((unsigned char)p[2])) {
+            const char hex[3] = { p[1], p[2], 0 };
+            out[n++] = (char)strtol(hex, NULL, 16);
+            p += 2;
+        } else {
+            out[n++] = *p;
+        }
+    }
+    out[n] = 0;
+}
 
 /* A dialog's request, then its answer, carried by the event SDL's queue brings back to the launcher's loop. */
 typedef struct dialog_answer {
@@ -44,13 +62,7 @@ static void display_name(const char *uri, char *name, size_t capacity)
     }
     if (!name[0]) {
         const char *segment = strrchr(uri, '/');
-        size_t n = 0;
-        for (const char *p = segment ? segment + 1 : uri; *p && n + 1 < capacity; p++) {
-            unsigned value;
-            if (p[0] == '%' && sscanf(p + 1, "%2x", &value) == 1) { name[n++] = (char)value; p += 2; }
-            else name[n++] = *p;
-        }
-        name[n] = 0;
+        decode(segment ? segment + 1 : uri, name, capacity);
         const char *last = strrchr(name, '/');
         if (!last) last = strrchr(name, ':');
         if (last) memmove(name, last + 1, strlen(last + 1) + 1);
@@ -226,23 +238,55 @@ void oracles_choose_export(const char *name, int game)
     else answered(answer, NULL, -1);
 }
 
+/* A path's folder from the shared storage's root: "/storage/emulated/0/Download/save.sav" is in Download. */
+static void path_folder(const char *path, char *folder, size_t capacity)
+{
+    if (!strncmp(path, "/storage/emulated/", 18) && strchr(path + 18, '/')) path = strchr(path + 18, '/') + 1;
+    while (*path == '/') path++;
+    const char *slash = strrchr(path, '/');
+    snprintf(folder, capacity, "%.*s", slash ? (int)(slash - path) : 0, path);
+}
+
+void oracles_dialog_uri_folder(const char *uri, char *folder, size_t capacity)
+{
+    folder[0] = 0;
+    char id[1024];
+    /* A third-party picker's "file:///storage/emulated/0/Download/save.sav": its path. */
+    if (!strncmp(uri, "file://", 7)) {
+        decode(uri + 7, id, sizeof id);
+        path_folder(id, folder, capacity);
+        return;
+    }
+    if (strncmp(uri, "content://", 10)) return;
+    /* The document's identifier, the address's last segment decoded. */
+    decode(strrchr(uri, '/') + 1, id, sizeof id);
+    const char *authority = uri + 10;
+    const size_t authority_length = strcspn(authority, "/");
+    const char *colon = strchr(id, ':');
+    /* The downloads' "raw:/storage/emulated/0/Download/save.sav": the path. */
+    if (!strncmp(id, "raw:/", 5)) {
+        path_folder(id + 4, folder, capacity);
+        return;
+    }
+    /* A storage's "primary:Download/save.sav" is in Download, "primary:save.sav" at the storage's root, which it names
+     * none. */
+    if (colon && strchr(colon + 1, '/')) {
+        const char *slash = strrchr(colon + 1, '/');
+        snprintf(folder, capacity, "%.*s", (int)(slash - colon - 1), colon + 1);
+        return;
+    }
+    /* The downloads' other documents ("msf:33", "33") are in Download; another provider's (a cloud drive's, the
+     * media's) say no folder. */
+    static const char downloads[] = "com.android.providers.downloads.documents";
+    if (authority_length == sizeof downloads - 1 && !strncmp(authority, downloads, authority_length)) snprintf(folder, capacity, "Download");
+}
+
 void oracles_dialog_describe(const char *path, char *name, size_t name_capacity, char *folder, size_t folder_capacity)
 {
 #ifdef __ANDROID__
-    if (!strncmp(path, "content://", 10)) {
+    if (!strncmp(path, "content://", 10) || !strncmp(path, "file://", 7)) {
         display_name(path, name, name_capacity);
-        /* The document's identifier, the address's last segment decoded: "primary:Download/save.sav" is in Download. */
-        char id[1024];
-        const char *segment = strrchr(path, '/');
-        size_t n = 0;
-        for (const char *p = segment ? segment + 1 : path; *p && n + 1 < sizeof id; p++) {
-            unsigned value;
-            if (p[0] == '%' && sscanf(p + 1, "%2x", &value) == 1) { id[n++] = (char)value; p += 2; }
-            else id[n++] = *p;
-        }
-        id[n] = 0;
-        const char *colon = strchr(id, ':'), *rest = colon ? colon + 1 : id, *slash = strrchr(rest, '/');
-        snprintf(folder, folder_capacity, "%.*s", slash ? (int)(slash - rest) : 0, rest);
+        oracles_dialog_uri_folder(path, folder, folder_capacity);
         return;
     }
 #endif

@@ -2,7 +2,7 @@
  * the test's argument, and its navigation.  The reference's frames are turn 33's: Ages' row on a computer, Import save…
  * highlighted, in 16:9 (33a) and 4:3 (33b), and on Android at 640x480 with Export save… (33c) and in 16:9 with its long
  * note (33 android); the import's confirmation over the page (33d, 33d 4:3), and its Import in Replace's place for a
- * game without a save yet, in the same box; the import done with the language set to
+ * game without a save yet, in the same box, and without a folder line for a document whose address names none; the import done with the language set to
  * English (33e, 33e 4:3); a file refused (33f); Moonrise Regalia's row, without a note, on a computer (33g) and at
  * 640x480 on Android (33g 640x480).  The navigation: left and right between the actions, the pointer over them, what OK
  * asks of the host, the actions that do not act, the confirmation's buttons, Back, and the status kept until the page is
@@ -178,6 +178,18 @@ static void layout_33abc(void)
     layout_text("33 android", "Import save", &l.save_buttons[1]);
     layout_box("33 android", "EU row", &l.rows[ORACLES_ROW_EU_ROM]);
     note("33 android", &l, 2);
+
+    /* Import save… highlighted on Android: its own note, whole, the row as tall as with Export save…'s. */
+    for (int four_three = 0; four_three < 2; four_three++) {
+        OraclesUiGameLayout import;
+        ages(&nav, 1, four_three ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9);
+        lay_out(&nav, &t, state, &l);
+        nav.save_action = 1;
+        lay_out(&nav, &t, state, &import);
+        CHECK(import.save_note.count == l.save_note.count && import.rows[ORACLES_ROW_SAVE].h == l.rows[ORACLES_ROW_SAVE].h);
+        CHECK(import.rows[ORACLES_ROW_PLAY].y == l.rows[ORACLES_ROW_PLAY].y);
+        if (four_three) CHECK(!strcmp(import.save_note.text[0], oracles_page_save_note(&nav, 1)));
+    }
 }
 
 /* The status in the note's place (4:3: in the line's too), its dot, its second line. */
@@ -266,7 +278,17 @@ static void layout_33d(void)
         CHECK(!strcmp(take.label_texts[0], "Import") && !strcmp(take.label_texts[1], "Cancel"));
         CHECK(!memcmp(&take.panel, &l.panel, sizeof l.panel) && !memcmp(take.buttons, l.buttons, sizeof l.buttons));
         CHECK(take.question.lines[0].y == l.question.lines[0].y && take.labels[0].baseline == l.labels[0].baseline);
+        /* The game with mods' save too: the question says so, Replace and Cancel. */
+        OraclesUiImportLayout mods;
+        oracles_ui_layout_import(layout, "Oracle of Ages (Europe).sav", "C:\\Users\\sam\\Downloads", 2, &mods);
+        CHECK(!strcmp(mods.question_text, "Replace this game's save, with mods too? What it replaces is kept as a backup."));
+        CHECK(!strcmp(mods.label_texts[0], "Replace") && mods.panel.y + mods.panel.h <= 1080.0f);
         CHECK(take.labels[0].x + take.labels[0].w * 0.5f == take.buttons[0].x + take.buttons[0].w * 0.5f);
+        /* A document whose address names no folder (Android): no folder line, the question under the file. */
+        OraclesUiImportLayout bare;
+        oracles_ui_layout_import(layout, "Oracle of Ages (Europe).sav", "", 1, &bare);
+        CHECK(bare.folder.h == 0.0f && bare.panel.h < l.panel.h);
+        CHECK((l.question.lines[0].y - l.file.y) - (bare.question.lines[0].y - bare.file.y) == l.panel.h - bare.panel.h);
     }
 }
 
@@ -311,7 +333,7 @@ static void actions(void)
     CHECK(!strcmp(oracles_page_save_note(&nav, 0), oracles_display_pause_reason));
 }
 
-/* The notes: an Oracle's, by platform and layout; none for a fan game, nor under a status. */
+/* The notes: an Oracle's, by platform, layout and, on Android, action; none for a fan game, nor under a status. */
 static void notes(void)
 {
     OraclesHomeNav nav;
@@ -321,10 +343,67 @@ static void notes(void)
     nav.android = 1;
     CHECK(!strncmp(oracles_page_save_note(&nav, 0), "Export a copy to play it elsewhere: this save also works", 56));
     CHECK(!strcmp(oracles_page_save_note(&nav, 1), "Export a copy to play it elsewhere, also with the European ROM."));
+    /* Import save… highlighted: its own note on Android, the same on a computer. */
+    nav.save_action = 1;
+    CHECK(!strcmp(oracles_page_save_note(&nav, 0), "Import a save from another emulator or another device, also one made with the European ROM: its language is then set to English for this game."));
+    CHECK(!strcmp(oracles_page_save_note(&nav, 1), "Import a save from elsewhere, the European ROM's too."));
+    nav.row = ORACLES_ROW_EU_ROM;
+    CHECK(!strncmp(oracles_page_save_note(&nav, 1), "Export a copy", 13));
+    nav.row = ORACLES_ROW_SAVE;
+    nav.android = 0;
+    CHECK(!strncmp(oracles_page_save_note(&nav, 0), "This save also works with the European ROM", 42));
+    nav.android = 1;
+    nav.save_action = 0;
     nav.save_flow.state = ORACLES_SAVE_FLOW_REFUSED;
     CHECK(!oracles_page_save_note(&nav, 0)[0]);
     moonrise(&nav, 0, ORACLES_UI_LAYOUT_16_9);
     CHECK(!oracles_page_save_note(&nav, 0)[0] && !oracles_page_save_note(&nav, 1)[0]);
+}
+
+/* The status of an import done: that it is, the language set to English, then what went to Backups, file by file,
+ * beside the ROM or the patch; each line on one line of the row in 16:9 and 4:3, whatever went. */
+static void import_done(void)
+{
+    static const struct { unsigned kept; int fan; const char *second; } cases[] = {
+        { 0, 0, "" },
+        { ORACLES_PAGE_KEPT_SAVE, 0, "In Backups, beside the ROM: the old save." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_STATE, 0, "In Backups, beside the ROM: the old save and its savestate." },
+        { ORACLES_PAGE_KEPT_STATE, 1, "In Backups, beside the patch: the old savestate." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_MODS_SAVE, 0, "In Backups: the old save, with mods too." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_STATE | ORACLES_PAGE_KEPT_MODS_SAVE | ORACLES_PAGE_KEPT_MODS_STATE, 0,
+          "In Backups: the old save and its savestate, with mods too." },
+        { 31u, 0, "In Backups: the old save and its savestate, with mods too, and the mods' data." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_MODS_SAVE | ORACLES_PAGE_KEPT_MODS_STATE, 0,
+          "In Backups: the old save, and the save with mods and its savestate." },
+        { ORACLES_PAGE_KEPT_STATE | ORACLES_PAGE_KEPT_MODS_SAVE, 0, "In Backups: the old savestate and the save with mods." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_STATE | ORACLES_PAGE_KEPT_MODS_SAVE, 0,
+          "In Backups: the old save and its savestate, and the save with mods." },
+        { ORACLES_PAGE_KEPT_MODS_SAVE | ORACLES_PAGE_KEPT_MODS_STATE, 0, "In Backups: the old save with mods and its savestate." },
+        { ORACLES_PAGE_KEPT_MODS_STATE | ORACLES_PAGE_KEPT_MODS_STORE, 0, "In Backups: the old mods' savestate and data." },
+        { ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_MODS_STORE, 0, "In Backups: the old save and the mods' data." },
+    };
+    char first[ORACLES_HOME_TEXT_LENGTH], second[ORACLES_HOME_TEXT_LENGTH];
+    for (size_t i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        oracles_page_import_done(cases[i].kept, cases[i].fan, 0, first, second);
+        if (strcmp(second, cases[i].second)) fprintf(stderr, "  %u gave \"%s\"\n", cases[i].kept, second);
+        CHECK(!strcmp(first, "Save imported.") && !strcmp(second, cases[i].second));
+    }
+    oracles_page_import_done(0, 0, 1, first, second);
+    CHECK(!strcmp(first, "Save imported. Its language was set to English for this game.") && !second[0]);
+    for (unsigned kept = 0; kept < 64u; kept++) {
+        for (int four_three = 0; four_three < 2; four_three++) {
+            OraclesHomeNav nav;
+            OraclesUiGameTexts t;
+            OraclesUiGameLayout l;
+            char state[ORACLES_HOME_STATE_LENGTH];
+            ages(&nav, 1, four_three ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9);
+            nav.save_action = 1;
+            nav.save_flow.state = ORACLES_SAVE_FLOW_DONE;
+            oracles_page_import_done(kept & 31u, 1, kept >= 32u, nav.save_flow.text, nav.save_flow.text2);
+            lay_out(&nav, &t, state, &l);
+            CHECK(l.save_status.count == 1u && l.save_status2.count == ((kept & 31u) ? 1u : 0u));
+        }
+    }
 }
 
 /* The confirmation: left and right between Replace and Cancel, OK, Back; the rest does nothing while it is open; the
@@ -409,6 +488,7 @@ int main(int argc, char **argv)
     layout_33g();
     actions();
     notes();
+    import_done();
     confirmation();
     hover();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }

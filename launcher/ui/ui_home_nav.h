@@ -321,7 +321,7 @@ typedef enum OraclesSaveFlow {
 typedef struct OraclesHomeSaveFlow {
     OraclesSaveFlow state;
     int choice;                                  /* the confirmation's: 0 Replace (Import without a save), 1 Cancel */
-    int replace;                                 /* the game has a save, which the file replaces */
+    int replace;                                 /* 1: the game has a save, which the file replaces; 2: its game with mods has files */
     char file[ORACLES_HOME_TEXT_LENGTH], folder[ORACLES_HOME_TEXT_LENGTH * 4];
     char text[ORACLES_HOME_TEXT_LENGTH];         /* DONE or REFUSED: the row's status */
     char text2[ORACLES_HOME_TEXT_LENGTH];        /* and a line under it, empty without one */
