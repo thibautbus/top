@@ -1,11 +1,13 @@
 """The rules check_routes.py holds a row to: python3 -m unittest test_check_routes, from tools/."""
+import hashlib
 import os
 import sys
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
-from check_routes import CRASH_RETRIES, SIZED, compare_cores_rooms, run_harness, sized_rules, wall_rules
+from check_routes import CRASH_RETRIES, SIZED, compare_cores_rooms, find_roms, run_harness, sized_rules, wall_rules
 
 FAR = ["--language", "fr", "--view", "far", "--screen", "1920x1080"]
 
@@ -112,6 +114,46 @@ class Crashes(unittest.TestCase):
         code, note, logs, text = self.run_dying(CRASH_RETRIES + 1)
         self.assertEqual((code, logs, text), (-11, ["harness.crashed-2.log", "harness.crashed.log", "harness.log"], f"run {CRASH_RETRIES + 1}\n"))
         self.assertIn("signal 11, 11, 11", note)
+
+
+def bps_number(value):
+    out = bytearray()
+    while True:
+        x = value & 0x7f
+        value >>= 7
+        if value == 0:
+            return bytes(out + bytes([0x80 | x]))
+        out.append(x)
+        value -= 1
+
+
+def bps_appending(source, extra):
+    """A BPS patch that keeps `source` and writes `extra` after it."""
+    body = b"BPS1" + bps_number(len(source)) + bps_number(len(source) + len(extra)) + bps_number(0)
+    body += bps_number((len(source) - 1) << 2) + bps_number(((len(extra) - 1) << 2) | 1) + extra
+    body += zlib.crc32(source).to_bytes(4, "little") + zlib.crc32(source + extra).to_bytes(4, "little")
+    return body + zlib.crc32(body).to_bytes(4, "little")
+
+
+class FindRoms(unittest.TestCase):
+    def test_a_patch_of_two_roms_joined_is_offered_from_both(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first, second = Path(folder, "a.gbc"), Path(folder, "b.gbc")
+            first.write_bytes(b"AGES----")
+            second.write_bytes(b"SEASONS-")
+            Path(folder, "both.bps").write_bytes(bps_appending(b"AGES----SEASONS-", b"xy"))
+            roms = find_roms(Path(folder))
+            image = hashlib.sha1(b"AGES----SEASONS-xy").hexdigest()
+            self.assertEqual(roms[image], ["--rom", str(first), "--joined-rom", str(second), "--patch", str(Path(folder, "both.bps"))])
+
+    def test_the_patch_says_which_comes_first(self):
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, "a.gbc").write_bytes(b"AGES----")
+            Path(folder, "b.gbc").write_bytes(b"SEASONS-")
+            Path(folder, "both.bps").write_bytes(bps_appending(b"SEASONS-AGES----", b"xy"))
+            image = hashlib.sha1(b"SEASONS-AGES----xy").hexdigest()
+            roms = find_roms(Path(folder))
+            self.assertEqual(roms[image][1:4], [str(Path(folder, "b.gbc")), "--joined-rom", str(Path(folder, "a.gbc"))])
 
 
 if __name__ == "__main__":

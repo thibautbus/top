@@ -99,6 +99,39 @@ static void layouts(uint32_t *core)
     CHECK(!oracles_enhanced_bar_layout_shown(&bar, ORACLES_ENHANCED_BAR_NONE, NULL, NULL, core));
 }
 
+/* Oracles Combined writes the current game's icon, tile $3f, in the map's first row at column 11 whatever the layout: not
+ * a cell of any frame, and always in the money's block, which carries it. */
+static void game_icon(uint32_t *core)
+{
+    for (unsigned l = ORACLES_ENHANCED_BAR_NORMAL; l <= ORACLES_ENHANCED_BAR_BIGGORON; l++) {
+        map((OraclesEnhancedBarLayout)l);
+        tiles[11] = 0x3fu;
+        for (unsigned line = 0; line < 8u; line++) vram0[0x3fu * 16u + line * 2u] = 0xffu;
+        CHECK(oracles_enhanced_bar_layout(&bar) == (OraclesEnhancedBarLayout)l);
+        draw(core);
+        for (unsigned k = ORACLES_ENHANCED_BAR_NORMAL; k <= ORACLES_ENHANCED_BAR_BIGGORON; k++)
+            CHECK(oracles_enhanced_bar_layout_shown(&bar, (OraclesEnhancedBarLayout)k, NULL, NULL, core) == (k == l));
+        unsigned drawn = 0;
+        for (unsigned y = 0; y < 8u; y++) for (unsigned x = 0; x < 8u; x++) drawn += core[y * 160u + 11u * 8u + x] != core[y * 160u + 12u * 8u + x];
+        CHECK(drawn == 64u);
+        const unsigned buttons[] = { ORACLES_ENHANCED_BAR_BUTTONS, ORACLES_ENHANCED_BAR_BUTTONS_TIGHT };
+        for (unsigned b = l == ORACLES_ENHANCED_BAR_TIGHT; b < (l == ORACLES_ENHANCED_BAR_NORMAL ? 1u : 2u); b++) {
+            CHECK(buttons[b] <= 11u * 8u && 12u * 8u <= buttons[b] + ORACLES_ENHANCED_BAR_MONEY);
+            const OraclesEnhancedHudPlace p = oracles_enhanced_hud_place(480u, buttons[b], HOTBAR);
+            static uint32_t band[16u * 480u];
+            OraclesEnhancedCompose in;
+            memset(&in, 0, sizeof in);
+            in.mode = ORACLES_ENHANCED_WORLD;
+            in.size = (OraclesEnhancedSize){ 480u, 270u };
+            in.hud_place = &p;
+            oracles_enhanced_compose_hud(core, &in, band);
+            for (unsigned y = 0; y < 8u; y++)
+                for (unsigned x = 0; x < 8u; x++)
+                    CHECK(band[y * 480u + p.money_at + 11u * 8u - buttons[b] + x] == core[y * 160u + 11u * 8u + x]);
+        }
+    }
+}
+
 /* The bar laid out in `width`: the hearts, the money and B and A where the place says, each the core's own pixels, the
  * hearts' second row beside the first on the middle eight lines; the rest of the band the fill, the left's to the
  * middle; nothing under the band changes from the bar centred. */
@@ -144,6 +177,7 @@ int main(void)
     uint32_t *core = calloc(160u * 144u, sizeof *core);
     places();
     layouts(core);
+    game_icon(core);
     composed(core, 256u, 144u, ORACLES_ENHANCED_BAR_BUTTONS);
     composed(core, 256u, 144u, ORACLES_ENHANCED_BAR_BUTTONS_TIGHT);
     composed(core, 213u, 160u, ORACLES_ENHANCED_BAR_BUTTONS);

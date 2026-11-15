@@ -54,7 +54,7 @@ static void states(void)
     oracles_home_state(&nav, ORACLES_HOME_HERO_SEASONS, state);
     CHECK(!strcmp(state, "ROM not found"));
     oracles_home_state(&nav, ORACLES_HOME_HERO_FAN, state);
-    CHECK(!strcmp(state, "3 games"));
+    CHECK(!strcmp(state, "4 games"));
     /* Moonrise Regalia's, as a game's: its image built from the Ages ROM and its patch, and its save. */
     oracles_home_state(&nav, ORACLES_HOME_HERO_MOONRISE, state);
     CHECK(!strcmp(state, "ROM not found"));
@@ -70,7 +70,31 @@ static void states(void)
         CHECK(oracles_home_fan_game(oracles_home_fan_games[f].game) == &oracles_home_fan_games[f]
               && oracles_home_fan_game_started(oracles_home_fan_games[f].start) == &oracles_home_fan_games[f]);
     CHECK(!strcmp(oracles_home_fan_games[ORACLES_HOME_FAN_MOONRISE].key, "moonrise") && !strcmp(oracles_home_fan_games[ORACLES_HOME_FAN_TEMPLE].key, "temple")
-          && !strcmp(oracles_home_fan_games[ORACLES_HOME_FAN_KINOMI].key, "kinomi"));
+          && !strcmp(oracles_home_fan_games[ORACLES_HOME_FAN_KINOMI].key, "kinomi") && !strcmp(oracles_home_fan_games[ORACLES_HOME_FAN_COMBINED].key, "combined"));
+    /* Oracles Combined's base is the two European ROMs joined, the one fan game's that is; it starts as Ages. Another
+     * ROM chosen for either is refused, not a missing patch; with both its patch is what is missing. */
+    oracles_home_state(&nav, ORACLES_HOME_HERO_COMBINED, state);
+    CHECK(!strcmp(state, "ROM not found"));
+    nav.games[ORACLES_HOME_GAME_COMBINED].rom = ORACLES_ROM_UNRECOGNISED;
+    nav.games[ORACLES_HOME_GAME_COMBINED].patch = ORACLES_ROM_ORIGINAL;
+    oracles_home_state(&nav, ORACLES_HOME_HERO_COMBINED, state);
+    CHECK(!strcmp(state, "ROM refused"));
+    nav.games[ORACLES_HOME_GAME_COMBINED].rom = ORACLES_ROM_REFUSED;
+    oracles_home_state(&nav, ORACLES_HOME_HERO_COMBINED, state);
+    CHECK(!strcmp(state, "ROM refused"));
+    nav.games[ORACLES_HOME_GAME_COMBINED].rom = ORACLES_ROM_ORIGINAL;
+    nav.games[ORACLES_HOME_GAME_COMBINED].patch = ORACLES_ROM_NONE;
+    oracles_home_state(&nav, ORACLES_HOME_HERO_COMBINED, state);
+    CHECK(!strcmp(state, "Patch not found"));
+    /* A Moonrise Regalia whose Ages ROM is not the original still builds its image: its patch is what is missing. */
+    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 0;
+    nav.games[ORACLES_HOME_GAME_MOONRISE].rom = ORACLES_ROM_UNRECOGNISED;
+    oracles_home_state(&nav, ORACLES_HOME_HERO_MOONRISE, state);
+    CHECK(!strcmp(state, "Patch not found"));
+    nav.games[ORACLES_HOME_GAME_MOONRISE].rom = ORACLES_ROM_NONE;
+    for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) CHECK(oracles_home_fan_games[f].joined == (f == ORACLES_HOME_FAN_COMBINED));
+    CHECK(oracles_home_fan_game(ORACLES_HOME_GAME_COMBINED)->base == ORACLES_HOME_GAME_AGES);
+    CHECK(!strcmp(oracles_home_title(ORACLES_HOME_HERO_COMBINED), "Oracles Combined") && !strcmp(oracles_home_over(ORACLES_HOME_HERO_COMBINED), "Fan games"));
     CHECK(!oracles_home_fan_game_started(ORACLES_HOME_START_AGES) && !oracles_home_fan_game_started(ORACLES_HOME_EXIT));
     CHECK(oracles_home_fan_game(ORACLES_HOME_GAME_TEMPLE)->base == ORACLES_HOME_GAME_SEASONS
           && oracles_home_fan_game(ORACLES_HOME_GAME_MOONRISE)->base == ORACLES_HOME_GAME_AGES && !oracles_home_fan_game(ORACLES_HOME_GAME_AGES));
@@ -262,20 +286,21 @@ static void fan_games(void)
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     CHECK(oracles_home_hero(&nav) == ORACLES_HOME_HERO_FAN);
     /* The fan games in the list, each with its state, then Exit. */
-    CHECK(oracles_home_items(&nav, items) == 4);
+    CHECK(oracles_home_items(&nav, items) == 5);
     CHECK(!strcmp(items[0].label, "Gifts of Kinomi") && !strcmp(items[0].note, "ROM not found"));
     CHECK(!strcmp(items[1].label, "Moonrise Regalia") && !strcmp(items[1].note, "ROM not found"));
-    CHECK(!strcmp(items[2].label, "Temple of Seasons") && !strcmp(items[2].note, "ROM not found"));
-    CHECK(!strcmp(items[3].label, "Exit"));
+    CHECK(!strcmp(items[2].label, "Oracles Combined") && !strcmp(items[2].note, "ROM not found"));
+    CHECK(!strcmp(items[3].label, "Temple of Seasons") && !strcmp(items[3].note, "ROM not found"));
+    CHECK(!strcmp(items[4].label, "Exit"));
     /* With its Oracle's ROM there, a fan game misses its patch. */
     nav.games[ORACLES_HOME_GAME_TEMPLE].rom = ORACLES_ROM_ORIGINAL;
-    CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch not found") && !strcmp(items[0].note, "ROM not found"));
+    CHECK(oracles_home_items(&nav, items) == 5 && !strcmp(items[3].note, "Patch not found") && !strcmp(items[0].note, "ROM not found"));
     /* Its patch there but refused, or the image it makes refused (another fan game's): refused, not missing. */
     nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_REFUSED;
-    CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch refused"));
+    CHECK(oracles_home_items(&nav, items) == 5 && !strcmp(items[3].note, "Patch refused"));
     nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_ORIGINAL;
     nav.games[ORACLES_HOME_GAME_TEMPLE].image = ORACLES_ROM_REFUSED;
-    CHECK(oracles_home_items(&nav, items) == 4 && !strcmp(items[2].note, "Patch refused"));
+    CHECK(oracles_home_items(&nav, items) == 5 && !strcmp(items[3].note, "Patch refused"));
     nav.games[ORACLES_HOME_GAME_TEMPLE].patch = ORACLES_ROM_NONE;
     nav.games[ORACLES_HOME_GAME_TEMPLE].image = ORACLES_ROM_NONE;
     nav.games[ORACLES_HOME_GAME_TEMPLE].rom = ORACLES_ROM_NONE;
@@ -320,8 +345,8 @@ static void fan_games(void)
     oracles_home_pause(&paused, ORACLES_HOME_GAME_MOONRISE, ORACLES_PROFILE_ENHANCED, 0);
     CHECK(oracles_home_hero(&paused) == ORACLES_HOME_HERO_MOONRISE && oracles_home_game(&paused) == ORACLES_HOME_GAME_MOONRISE);
     oracles_home_act(&nav, ORACLES_HOME_BACK);
-    /* The third, Temple of Seasons, the same with its own. */
-    CHECK(oracles_home_click(&nav, 2) == ORACLES_HOME_STAY && oracles_home_hero(&nav) == ORACLES_HOME_HERO_TEMPLE);
+    /* The fourth, Temple of Seasons, the same with its own. */
+    CHECK(oracles_home_click(&nav, 3) == ORACLES_HOME_STAY && oracles_home_hero(&nav) == ORACLES_HOME_HERO_TEMPLE);
     CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_TEMPLE);
     nav.games[ORACLES_HOME_GAME_TEMPLE].usable = 1;
     nav.focus = 0;
@@ -329,6 +354,16 @@ static void fan_games(void)
     nav.games[ORACLES_HOME_GAME_TEMPLE].usable = 0;
     oracles_home_pause(&paused, ORACLES_HOME_GAME_TEMPLE, ORACLES_PROFILE_ENHANCED, 0);
     CHECK(oracles_home_hero(&paused) == ORACLES_HOME_HERO_TEMPLE && oracles_home_game(&paused) == ORACLES_HOME_GAME_TEMPLE);
+    oracles_home_act(&nav, ORACLES_HOME_BACK);
+    /* The third, Oracles Combined, the same with its own. */
+    CHECK(oracles_home_click(&nav, 2) == ORACLES_HOME_STAY && oracles_home_hero(&nav) == ORACLES_HOME_HERO_COMBINED);
+    CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_COMBINED);
+    nav.games[ORACLES_HOME_GAME_COMBINED].usable = 1;
+    nav.focus = 0;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_START_COMBINED);
+    nav.games[ORACLES_HOME_GAME_COMBINED].usable = 0;
+    oracles_home_pause(&paused, ORACLES_HOME_GAME_COMBINED, ORACLES_PROFILE_FAITHFUL, 0);
+    CHECK(oracles_home_hero(&paused) == ORACLES_HOME_HERO_COMBINED && oracles_home_game(&paused) == ORACLES_HOME_GAME_COMBINED);
     oracles_home_act(&nav, ORACLES_HOME_BACK);
     /* Changing entry from a fan game leaves the fan game. */
     oracles_home_click(&nav, 0);
@@ -349,10 +384,10 @@ static void pointer(void)
     CHECK(oracles_home_click(&nav, 6) == ORACLES_HOME_EXIT && oracles_home_focus(&nav) == 6);
     CHECK(oracles_home_click(&nav, 0) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 0);
     /* The highlight is kept within a shorter menu. */
-    nav.focus = 5;
+    nav.focus = 6;
     oracles_home_select(&nav, ORACLES_HOME_FAN);
-    nav.focus = 5;
-    CHECK(oracles_home_focus(&nav) == 3);
+    nav.focus = 6;
+    CHECK(oracles_home_focus(&nav) == 4);
 }
 
 /* The toast after a game that ran slowly: what it suggests, from Display's quality or its view; the first input takes it
@@ -580,10 +615,10 @@ static void update_notice(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.entry == ORACLES_HOME_SEASONS && oracles_home_focus(&nav) == 0);
     /* The list of fan games: after its Exit. */
     oracles_home_select(&nav, ORACLES_HOME_FAN);
-    nav.focus = 3;
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 4 && oracles_home_update_focused(&nav));
+    nav.focus = 4;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 5 && oracles_home_update_focused(&nav));
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_OPEN_UPDATE && oracles_home_hero(&nav) == ORACLES_HOME_HERO_FAN);
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 5 && oracles_home_version_focused(&nav));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 6 && oracles_home_version_focused(&nav));
 
     /* About's Update check: left, right and OK turn it off and on, kept at once; off, the notice goes, the number
      * taking its place; a click on On or Off sets it. */
@@ -604,7 +639,7 @@ static void update_notice(void)
     CHECK(oracles_about_click(&nav, 0, 1) == ORACLES_HOME_STAY && oracles_about_click(&nav, 0, -1) == ORACLES_HOME_STAY && !nav.update_check);
     CHECK(oracles_about_click(&nav, 1, 1) == ORACLES_HOME_STAY && nav.row == 0);   /* no Portable mode here */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && !oracles_home_update_shown(&nav)
-          && oracles_home_focus(&nav) == 4 && oracles_home_version_focused(&nav));
+          && oracles_home_focus(&nav) == 5 && oracles_home_version_focused(&nav));
     CHECK(oracles_about_click(&nav, 0, 0) == ORACLES_HOME_STORE && nav.update_check && oracles_home_update_shown(&nav));
 
     /* Not on a page, where Select stays Select. */

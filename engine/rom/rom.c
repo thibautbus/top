@@ -4,6 +4,7 @@
 #include "../game/profiles/moonrise-regalia/identity.h"
 #include "../game/profiles/temple-of-seasons/identity.h"
 #include "../game/profiles/gifts-of-kinomi/identity.h"
+#include "../game/profiles/oracles-combined/ages/identity.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +23,15 @@ static const struct {
     { ORACLES_KINOMI_SHA1, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2 },
     { "9f2dff3c46406839f839a8d535353dfc1e3e8670", ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_EU },
     { "360b9408e569ba826212eac1ebea1b09573cb48c", ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_EU },
+    { ORACLES_COMBINED_AGES_SHA1_EN, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_EN },
+    { ORACLES_COMBINED_AGES_SHA1_FR, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_FR },
+    { ORACLES_COMBINED_AGES_SHA1_DE, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_DE },
+    { ORACLES_COMBINED_AGES_SHA1_ES, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_ES },
+    { ORACLES_COMBINED_AGES_SHA1_IT, ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_IT },
 };
+
+#define COMBINED_TITLE "ZELDA CROSS"
+static const char *const combined_languages[] = { "English", "French", "German", "Spanish", "Italian" };
 
 #define HEADER_TITLE 0x134u
 #define HEADER_CGB_FLAG 0x143u
@@ -75,7 +84,7 @@ int oracles_rom_identify(const uint8_t *rom, size_t size, OraclesRomInfo *info, 
 
     if (oracles_rom_known(info->sha1, info) == 0) return 0;
 
-    if (strncmp(info->title, "ZELDA NAYRU", 11) == 0) info->game = ORACLES_GAME_AGES;
+    if (strncmp(info->title, "ZELDA NAYRU", 11) == 0 || strncmp(info->title, COMBINED_TITLE, 11) == 0) info->game = ORACLES_GAME_AGES;
     else if (strncmp(info->title, "ZELDA DIN", 9) == 0) info->game = ORACLES_GAME_SEASONS;
     else { set_error(error, error_capacity, "the header title is not that of an Oracle game"); return -1; }
     if (!(rom[HEADER_CGB_FLAG] & 0x80u)) { set_error(error, error_capacity, "the header has no Game Boy Color flag"); return -1; }
@@ -88,6 +97,17 @@ int oracles_rom_identify(const uint8_t *rom, size_t size, OraclesRomInfo *info, 
     (void)HEADER_ROM_SIZE; /* an extended image may declare a larger size; the file size is what counts */
     (void)HEADER_RAM_SIZE;
     return 0;
+}
+
+int oracles_rom_is_combined(const OraclesRomInfo *info)
+{
+    return info && (strncmp(info->title, COMBINED_TITLE, 11) == 0 || oracles_rom_combined_language(info));
+}
+
+const char *oracles_rom_combined_language(const OraclesRomInfo *info)
+{
+    if (!info || !info->known || info->revision < ORACLES_ROM_REVISION_COMBINED_1_5_EN || info->revision > ORACLES_ROM_REVISION_COMBINED_1_5_IT) return NULL;
+    return combined_languages[info->revision - ORACLES_ROM_REVISION_COMBINED_1_5_EN];
 }
 
 int oracles_rom_is_original(const OraclesRomInfo *info)

@@ -10,14 +10,13 @@
  * (determineCompanionRegionSeason: Natzu by the animal companion).  Horon
  * village (pack 0) draws its season at random and is never fixed.  Read from
  * the user's ROM: roomPackData and the rooms' layouts. */
-void oracles_ghost_find_fixed_seasons(OraclesGhost *g, const uint8_t *rom, size_t rom_size)
+void oracles_ghost_find_fixed_seasons(OraclesGhostRooms *g, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size)
 {
     for (unsigned p = 0xf0u; p < 256u; p++) g->fixed_season[p] = 1;
-    const OraclesCompatProfile *profile = oracles_guest_profile(g->guest);
-    const OraclesGuestTables *t = oracles_guest_tables(g->guest);
+    const OraclesGuestTables *t = oracles_compat_guest_tables(profile);
     const OraclesTables *data = oracles_compat_data_tables(profile);
     if (!oracles_compat_seasons_rules(profile)
-        || !data || t->room_pack_data.bank == ORACLES_GUEST_ABSENT) return;
+        || !data || !t || t->room_pack_data.bank == ORACLES_GUEST_ABSENT) return;
     const OraclesRom r = { rom, rom_size };
     const size_t packs = oracles_rom_offset(t->room_pack_data.bank, t->room_pack_data.addr);
     uint8_t has_room[256] = { 0 }, has_stump[256] = { 0 };
@@ -42,9 +41,8 @@ void oracles_ghost_find_fixed_seasons(OraclesGhost *g, const uint8_t *rom, size_
  * The sea makes a map of rooms side by side inside its group, whose extent
  * the view needs: a room of the sea has its neighbours beside it, one at the
  * sea's edge has none; a house under water stands alone like any house. */
-void oracles_ghost_find_open_water_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size)
+void oracles_ghost_find_open_water_rooms(OraclesGhostRooms *g, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size)
 {
-    const OraclesCompatProfile *profile = oracles_guest_profile(g->guest);
     const OraclesTables *data = oracles_compat_data_tables(profile);
     if (!oracles_compat_open_water_rules(profile) || !data) return;
     const OraclesRom r = { rom, rom_size };
@@ -58,7 +56,7 @@ void oracles_ghost_find_open_water_rooms(OraclesGhost *g, const uint8_t *rom, si
         }
 }
 
-int oracles_ghost_room_open_water(const OraclesGhost *g, uint8_t group, uint8_t room) { return g->open_water_room[group & 7u][room] != 0; }
+int oracles_ghost_room_open_water(const OraclesGhostRooms *g, uint8_t group, uint8_t room) { return g->open_water_room[group & 7u][room] != 0; }
 
 /* The rooms of the overworld groups on their map, by their tileset's flags
  * and their place: the game decides outdoors by TILESETFLAG_OUTDOORS (and, in
@@ -69,9 +67,8 @@ int oracles_ghost_room_open_water(const OraclesGhost *g, uint8_t group, uint8_t 
  * them, and Subrosia's rooms past its 11 x 8 are none of Subrosia's map.  A
  * seasonal tileset is read in its first season: Holodrum's are outdoors in
  * all four. */
-void oracles_ghost_find_map_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size)
+void oracles_ghost_find_map_rooms(OraclesGhostRooms *g, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size)
 {
-    const OraclesCompatProfile *profile = oracles_guest_profile(g->guest);
     const OraclesTables *data = oracles_compat_data_tables(profile);
     for (unsigned group = 0; group < 2u; group++)
         for (unsigned room = 0; room < 256u; room++) g->map_room[group][room] = 1;
@@ -92,12 +89,12 @@ void oracles_ghost_find_map_rooms(OraclesGhost *g, const uint8_t *rom, size_t ro
     }
 }
 
-int oracles_ghost_room_on_map(const OraclesGhost *g, uint8_t group, uint8_t room)
+int oracles_ghost_room_on_map(const OraclesGhostRooms *g, uint8_t group, uint8_t room)
 {
     return (group & 7u) < 2u && g->map_room[group & 7u][room] != 0;
 }
 
-int oracles_ghost_open_water_extent(const OraclesGhost *g, uint8_t group, uint8_t extent[4])
+int oracles_ghost_open_water_extent(const OraclesGhostRooms *g, uint8_t group, uint8_t extent[4])
 {
     unsigned left = 16u, top = 16u, right = 0, bottom = 0;
     for (unsigned room = 0; room < 256u; room++) {
@@ -113,7 +110,7 @@ int oracles_ghost_open_water_extent(const OraclesGhost *g, uint8_t group, uint8_
     return 1;
 }
 
-int oracles_ghost_area_holds_season(const OraclesGhost *g, uint8_t room_pack) { return !g->fixed_season[room_pack]; }
+int oracles_ghost_area_holds_season(const OraclesGhostRooms *g, uint8_t room_pack) { return !g->fixed_season[room_pack]; }
 
 /* The rooms whose transitions the game decides itself (getNextActiveRoom,
  * docs/GAME_HOOKS.md, section 4.3): before its standard transition the game looks the
@@ -127,10 +124,10 @@ int oracles_ghost_area_holds_season(const OraclesGhost *g, uint8_t room_pack) { 
  * null room; read from the user's ROM at the ghost's creation, as the sea
  * is.  The case says which routine routes the room: the ghost runs it, so
  * the host never has to know it. */
-void oracles_ghost_find_self_routed_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size)
+void oracles_ghost_find_self_routed_rooms(OraclesGhostRooms *g, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size)
 {
-    const OraclesGuestTables *t = oracles_guest_tables(g->guest);
-    if (t->map_transition_group_table.bank == ORACLES_GUEST_ABSENT) return;
+    const OraclesGuestTables *t = oracles_compat_guest_tables(profile);
+    if (!t || t->map_transition_group_table.bank == ORACLES_GUEST_ABSENT) return;
     const OraclesRom r = { rom, rom_size };
     const unsigned bank = t->map_transition_group_table.bank;
     const size_t table = oracles_rom_offset(bank, t->map_transition_group_table.addr);
@@ -147,5 +144,5 @@ void oracles_ghost_find_self_routed_rooms(OraclesGhost *g, const uint8_t *rom, s
     }
 }
 
-int oracles_ghost_room_self_routed(const OraclesGhost *g, uint8_t group, uint8_t room) { return g->self_routed_room[group & 7u][room] != 0; }
-int oracles_ghost_room_routine(const OraclesGhost *g, uint8_t group, uint8_t room) { return (int)g->self_routed_room[group & 7u][room] - 1; }
+int oracles_ghost_room_self_routed(const OraclesGhostRooms *g, uint8_t group, uint8_t room) { return g->self_routed_room[group & 7u][room] != 0; }
+int oracles_ghost_room_routine(const OraclesGhostRooms *g, uint8_t group, uint8_t room) { return (int)g->self_routed_room[group & 7u][room] - 1; }

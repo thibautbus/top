@@ -1,6 +1,7 @@
 # A fan game's patch written in settings.txt for another fan game made on the same Oracle, on the user's ROM and
 # patches found by their SHA-1 in ORACLES_ROM_DIR (skipped without them): the home screen refuses each on the page it
-# was written for, naming the fan game it makes.  cmake -D LAUNCHER=the-oracles-project -D WORK=DIR -P fan_patch_pages.cmake
+# was written for, naming the fan game it makes.  With the European ROMs and Oracles Combined's English patch there
+# too, Gifts of Kinomi's and Oracles Combined's patches swapped: neither builds on the other's base.  cmake -D LAUNCHER=the-oracles-project -D WORK=DIR -P fan_patch_pages.cmake
 set(rom_dir "$ENV{ORACLES_ROM_DIR}")
 if(NOT rom_dir OR NOT IS_DIRECTORY "${rom_dir}")
     message("fan patch pages: ORACLES_ROM_DIR is not set: skipped")
@@ -15,6 +16,12 @@ foreach(file IN LISTS files)
         set(kinomi "${file}")
     elseif(sha1 STREQUAL "fcef50de31ce3e57d3e23cd846c0749e42098e08")
         set(moonrise "${file}")
+    elseif(sha1 STREQUAL "9f2dff3c46406839f839a8d535353dfc1e3e8670")
+        set(eu_ages "${file}")
+    elseif(sha1 STREQUAL "360b9408e569ba826212eac1ebea1b09573cb48c")
+        set(eu_seasons "${file}")
+    elseif(sha1 STREQUAL "15029267980b902b15f348b89c5f9142f4684051")
+        set(combined "${file}")
     endif()
 endforeach()
 if(NOT ages OR NOT kinomi OR NOT moonrise)
@@ -38,3 +45,30 @@ foreach(expected "Gifts of Kinomi does not build: the patch of Moonrise Regalia,
     endif()
 endforeach()
 message("fan patch pages: each fan game's page refuses the other's patch, naming the game it makes")
+if(NOT eu_ages OR NOT eu_seasons OR NOT combined)
+    message("fan patch pages: no European ROMs of Ages and Seasons and English patch of Oracles Combined 1.5 in ${rom_dir}: Oracles Combined not checked")
+    return()
+endif()
+file(WRITE "${WORK}/settings.txt" "rom_ages=${ages}\neu_rom_ages=${eu_ages}\neu_rom_seasons=${eu_seasons}\npatch_kinomi=${combined}\npatch_combined=${kinomi}\nupdate_check=off\n")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E env "ORACLES_SETTINGS_DIR=${WORK}" "${LAUNCHER}" --launcher-screenshot "${WORK}/home.ppm"
+                        --launcher-size 960x540
+                RESULT_VARIABLE status OUTPUT_VARIABLE out ERROR_VARIABLE err)
+if(NOT status EQUAL 0)
+    message(FATAL_ERROR "the home screen did not draw (${status}): ${err}")
+endif()
+foreach(expected "Gifts of Kinomi does not build: this patch is not for this ROM"
+                 "Oracles Combined does not build: this patch is not made for the European ROMs of Ages and Seasons")
+    string(FIND "${err}" "${expected}" at)
+    if(at LESS 0)
+        message(FATAL_ERROR "not said: ${expected}\n${err}")
+    endif()
+endforeach()
+file(WRITE "${WORK}/settings.txt" "rom_ages=${ages}\neu_rom_ages=${eu_ages}\neu_rom_seasons=${eu_seasons}\npatch_kinomi=${kinomi}\npatch_combined=${combined}\nupdate_check=off\n")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E env "ORACLES_SETTINGS_DIR=${WORK}" "${LAUNCHER}" --launcher-screenshot "${WORK}/home.ppm"
+                        --launcher-size 960x540
+                RESULT_VARIABLE status OUTPUT_VARIABLE out ERROR_VARIABLE err)
+string(FIND "${err}" "does not build" at)
+if(NOT status EQUAL 0 OR NOT at LESS 0)
+    message(FATAL_ERROR "Gifts of Kinomi and Oracles Combined on their own patches (${status}): ${err}")
+endif()
+message("fan patch pages: Gifts of Kinomi and Oracles Combined refuse each other's patch, and build on their own")

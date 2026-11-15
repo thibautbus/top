@@ -1,6 +1,6 @@
 /* The inventory transaction of the item hotkeys: the second closed
  * path by which the host writes into the live instance.  An exchange of two
- * of the eighteen inventory slots, one of them a button, as the inventory
+ * of the inventory's slots, one of them a button, as the inventory
  * menu's @equipItem makes it, and a seed or song variant as its submenu
  * writes it; applied at the return of checkReloadStatusBarGraphics from its
  * one call in mainThreadStart, in the states where the player could open the
@@ -41,6 +41,7 @@ static unsigned variant_item(const OraclesGuestInventoryState *s, unsigned varia
     switch (variant) {
     case ORACLES_VARIANT_SATCHEL: return s->item_seed_satchel;
     case ORACLES_VARIANT_SHOOTER: return s->item_seed_shooter;
+    case ORACLES_VARIANT_SLINGSHOT: return s->item_slingshot;
     case ORACLES_VARIANT_NONE: return 0u;
     default: return s->item_harp;
     }
@@ -95,8 +96,8 @@ OraclesGuestInventoryVerdict oracles_guest_inventory_check(const OraclesGuestInv
     if (refusal != ORACLES_INVENTORY_APPLIED) return refusal;
     int changes = 0;
     if (op->swap) {
-        /* Two different slots of the eighteen, one of them a button: what @equipItem and the menu's three-step A/B exchange produce. */
-        if (op->slot_a >= ORACLES_INVENTORY_SLOTS || op->slot_b >= ORACLES_INVENTORY_SLOTS || op->slot_a == op->slot_b
+        /* Two different slots of the game's, one of them a button: what @equipItem and the menu's three-step A/B exchange produce. */
+        if (op->slot_a >= s->slot_count || op->slot_b >= s->slot_count || op->slot_a == op->slot_b
             || (op->slot_a > ORACLES_INVENTORY_SLOT_A && op->slot_b > ORACLES_INVENTORY_SLOT_A)) return ORACLES_INVENTORY_REFUSED_OPERATION;
         const uint8_t a = s->slots[op->slot_a], b = s->slots[op->slot_b];
         if (a >= s->num_inventory_items || b >= s->num_inventory_items) return ORACLES_INVENTORY_REFUSED_OPERATION;
@@ -106,9 +107,11 @@ OraclesGuestInventoryVerdict oracles_guest_inventory_check(const OraclesGuestInv
     }
     switch (op->variant) {
     case ORACLES_VARIANT_NONE: break;
-    case ORACLES_VARIANT_SATCHEL: case ORACLES_VARIANT_SHOOTER:
+    case ORACLES_VARIANT_SATCHEL: case ORACLES_VARIANT_SHOOTER: case ORACLES_VARIANT_SLINGSHOT:
+        if (op->variant == ORACLES_VARIANT_SLINGSHOT && s->slingshot_seeds == 0xffu) return ORACLES_INVENTORY_REFUSED_OPERATION;
         if (op->variant_value > 4u || !(s->obtained_seeds & (1u << op->variant_value))) return ORACLES_INVENTORY_REFUSED_VARIANT;
-        changes |= op->variant_value != (op->variant == ORACLES_VARIANT_SATCHEL ? s->satchel_seeds : s->shooter_seeds);
+        changes |= op->variant_value != (op->variant == ORACLES_VARIANT_SATCHEL ? s->satchel_seeds
+                                         : op->variant == ORACLES_VARIANT_SHOOTER ? s->shooter_seeds : s->slingshot_seeds);
         break;
     case ORACLES_VARIANT_HARP:
         if (s->harp_song == 0xffu || op->variant_value < 1u || op->variant_value > 3u || !(s->obtained_songs & (1u << (op->variant_value - 1u)))) return ORACLES_INVENTORY_REFUSED_VARIANT;
@@ -140,12 +143,19 @@ void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventorySta
     memset(s, 0, sizeof *s);
     s->game = oracles_compat_family(guest->profile);   /* the profile's family, not the identity of its table */
     s->frame = guest->frame;
-    /* wInventoryB, wInventoryA and the sixteen bytes of wInventoryStorage are contiguous (wram.s). */
-    const uint8_t *slots = oracles_guest_ptr(guest, t->inventory_b, ORACLES_INVENTORY_SLOTS);
-    if (slots && t->inventory_a.addr == t->inventory_b.addr + 1u && t->inventory_storage.addr == t->inventory_b.addr + 2u) memcpy(s->slots, slots, sizeof s->slots);
-    else memset(s->slots, 0xff, sizeof s->slots);   /* never consistent: every operation is refused */
+    /* wInventoryB, wInventoryA and the bytes of wInventoryStorage are contiguous (wram.s): sixteen, twenty in Oracles
+     * Combined (INVENTORY_CAPACITY). */
+    const unsigned count = 2u + t->inventory_storage_size;
+    const uint8_t *slots = count <= ORACLES_INVENTORY_SLOTS ? oracles_guest_ptr(guest, t->inventory_b, count) : NULL;
+    if (slots && t->inventory_a.addr == t->inventory_b.addr + 1u && t->inventory_storage.addr == t->inventory_b.addr + 2u) {
+        memcpy(s->slots, slots, count);
+        s->slot_count = (uint8_t)count;
+    } else memset(s->slots, 0xff, sizeof s->slots);   /* never consistent: every operation is refused */
     s->satchel_seeds = oracles_guest_read8(guest, t->satchel_selected_seeds);
     s->shooter_seeds = oracles_guest_read8(guest, t->shooter_selected_seeds);
+    /* Both games' items in each half: the slingshot has its own seeds (inventoryMenuState2, Oracles Combined's bank2.s). */
+    const int both = oracles_compat_both_games_items(guest->profile) && t->slingshot_selected_seeds.bank != ORACLES_GUEST_ABSENT;
+    s->slingshot_seeds = both ? oracles_guest_read8(guest, t->slingshot_selected_seeds) : 0xffu;
     s->harp_song = t->selected_harp_song.bank == ORACLES_GUEST_ABSENT ? 0xffu : oracles_guest_read8(guest, t->selected_harp_song);
     /* wObtainedTreasureFlags is a bit array by treasure id: the five seeds from TREASURE_EMBER_SEEDS, then the three songs. */
     const unsigned first = t->treasure_ember_seeds;
@@ -189,7 +199,8 @@ void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventorySta
     s->num_inventory_items = t->num_inventory_items; s->item_biggoron_sword = t->item_biggoron_sword;
     s->item_seed_satchel = t->item_seed_satchel; s->item_harp = t->item_harp;
     s->item_bomb = t->item_bomb; s->item_bracelet = t->item_bracelet;
-    s->item_seed_shooter = s->game == ORACLES_GAME_AGES ? t->item_shooter : t->item_slingshot;
+    s->item_seed_shooter = s->game == ORACLES_GAME_AGES || both ? t->item_shooter : t->item_slingshot;
+    s->item_slingshot = both ? t->item_slingshot : 0u;
     s->cutscene_ingame = t->cutscene_ingame; s->cutscene_onox_final_form = t->cutscene_onox_final_form;
     s->cutscene_loading_room = t->cutscene_loading_room;
     oracles_guest_item_buttons_state(guest, s);
@@ -198,17 +209,21 @@ void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventorySta
 static void write_operation(OraclesGuest *guest, const OraclesGuestInventoryOp *op)
 {
     const OraclesGuestTables *t = guest->tables;
-    uint8_t *slots = bank0_byte(guest, t->inventory_b, ORACLES_INVENTORY_SLOTS);
+    const unsigned count = 2u + t->inventory_storage_size;
+    uint8_t *slots = count <= ORACLES_INVENTORY_SLOTS ? bank0_byte(guest, t->inventory_b, count) : NULL;
     uint8_t *refresh = bank0_byte(guest, t->status_bar_needs_refresh, 1);
     if (!slots || !refresh) return;
     if (op->swap) { const uint8_t held = slots[op->slot_a]; slots[op->slot_a] = slots[op->slot_b]; slots[op->slot_b] = held; }
     const OraclesGuestSym variant = op->variant == ORACLES_VARIANT_SATCHEL ? t->satchel_selected_seeds
-                                  : op->variant == ORACLES_VARIANT_SHOOTER ? t->shooter_selected_seeds : t->selected_harp_song;
+                                  : op->variant == ORACLES_VARIANT_SHOOTER ? t->shooter_selected_seeds
+                                  : op->variant == ORACLES_VARIANT_SLINGSHOT ? t->slingshot_selected_seeds : t->selected_harp_song;
     uint8_t *value = op->variant != ORACLES_VARIANT_NONE ? bank0_byte(guest, variant, 1) : NULL;
     if (value) *value = op->variant_value;
     *refresh |= 0x01u;   /* as loseTreasure_helper does: updateStatusBar reloads the two buttons' icons at the next turn */
     guest->inventory_applied++;
-    if (!oracles_guest_inventory_consistent(slots)) guest->inventory_violations++;
+    uint8_t after[ORACLES_INVENTORY_SLOTS] = { 0 };
+    memcpy(after, slots, count);
+    if (!oracles_guest_inventory_consistent(after)) guest->inventory_violations++;
 }
 
 void oracles_guest_apply_inventory_policy(OraclesGuest *guest)
@@ -225,20 +240,25 @@ void oracles_guest_apply_inventory_policy(OraclesGuest *guest)
     if (guest->inventory_result) guest->inventory_result(guest->inventory_opaque, &state, &op, verdict);
 }
 
-/* The return address of the one `call checkReloadStatusBarGraphics` of mainThreadStart, read in the user's ROM. */
-static uint16_t find_write_point(OraclesGuest *guest)
+static int arm_write_point(OraclesGuest *guest)
 {
-    const OraclesGuestTables *t = guest->tables;
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
-    const uint16_t start = t->main_thread_start.addr, target = t->check_reload_status_bar_graphics.addr;
-    if (!rom || t->main_thread_start.bank != 0 || t->check_reload_status_bar_graphics.bank != 0 || (size_t)start + 0x80u > size || start + 0x80u > 0x4000u) return 0;
-    uint16_t found = 0;
-    unsigned count = 0;
-    for (uint16_t at = start; at < start + 0x80u - 2u; at++)
-        if (rom[at] == 0xcdu && rom[at + 1u] == (uint8_t)target && rom[at + 2u] == (uint8_t)(target >> 8)) { found = (uint16_t)(at + 3u); count++; }
-    return count == 1u ? found : 0;
+    /* Only where the inventory's addresses are verified (the profile says so). */
+    if (!oracles_compat_item_hotkeys(guest->profile)) return -1;
+    guest->inventory_write_pc = oracles_guest_find_status_bar_call(guest);
+    if (!guest->inventory_write_pc) return -1;
+    if (oracles_guest_add_hook(guest, guest->tables->check_reload_status_bar_graphics, 0, ORACLES_EVENT_STATUS_BAR_CHECKED) != 0
+        || oracles_guest_add_hook(guest, guest->tables->load_equipped_item_gfx, ORACLES_EVENT_EQUIPPED_GFX_LOADED, 0) != 0
+        || oracles_guest_add_hook(guest, guest->tables->check_use_items, ORACLES_EVENT_USE_ITEMS, 0) != 0
+        || oracles_guest_add_hook(guest, guest->tables->initialize_parent_item, ORACLES_EVENT_ITEM_STARTED, 0) != 0) return -1;
+    return 0;
+}
+
+/* The game went to the other half of its image: the write point of that half's mainThreadStart, its hooks.  The policy
+ * was told by the reset of the switch (oracles_guest_reset_execution_state): what it had under way is given up. */
+static void follow_half(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    if (guest->inventory_policy && arm_write_point(guest) != 0) guest->half_features_refused++;
 }
 
 int oracles_guest_set_inventory_policy(OraclesGuest *guest, OraclesGuestInventoryFn policy, OraclesGuestInventoryResultFn result,
@@ -246,14 +266,8 @@ int oracles_guest_set_inventory_policy(OraclesGuest *guest, OraclesGuestInventor
 {
     if (!guest) return -1;
     if (policy) {
-        /* Only where the inventory's addresses are verified (the profile says so). */
-        if (!oracles_compat_item_hotkeys(guest->profile)) return -1;
-        guest->inventory_write_pc = find_write_point(guest);
-        if (!guest->inventory_write_pc) return -1;
-        if (oracles_guest_add_hook(guest, guest->tables->check_reload_status_bar_graphics, 0, ORACLES_EVENT_STATUS_BAR_CHECKED) != 0
-            || oracles_guest_add_hook(guest, guest->tables->load_equipped_item_gfx, ORACLES_EVENT_EQUIPPED_GFX_LOADED, 0) != 0
-            || oracles_guest_add_hook(guest, guest->tables->check_use_items, ORACLES_EVENT_USE_ITEMS, 0) != 0
-            || oracles_guest_add_hook(guest, guest->tables->initialize_parent_item, ORACLES_EVENT_ITEM_STARTED, 0) != 0) return -1;
+        if (!oracles_compat_item_hotkeys(guest->profile) || oracles_guest_listen_half(guest, follow_half) != 0) return -1;
+        if (!guest->half_left && arm_write_point(guest) != 0) return -1;   /* between two halves: armed in the next */
     }
     guest->inventory_policy = policy;
     guest->inventory_result = policy ? result : NULL;

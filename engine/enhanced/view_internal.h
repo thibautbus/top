@@ -290,6 +290,12 @@ struct OraclesEnhancedView {
     OraclesEnhancedObservation observation;   /* of the last composed frame */
     uint32_t frame;
     int framed_only;
+    OraclesGhostRooms rooms;         /* the rooms of the half the guest is in (oracles_ghost_rooms_read), the view's own: a ghost
+                                      * follows a switch after its run, on its thread */
+    int passage_loaded;              /* a state was loaded between two halves: the core framed until the passage ends */
+    int half_cache_check;            /* the first composition after a switch counts the rooms still held (half_cache_kept) */
+    unsigned half_cache_kept;
+    unsigned half_switches, half_ghosts_moved, half_ghosts_made;   /* an image of two games: the guest's switches followed, the ghosts moved for them, and made again */
     OraclesEnhancedBlack black;      /* view_black.c */
     struct { uint8_t group, room; uint32_t since; } black_runs[32];   /* the places black now, and since when */
     uint32_t drawn_places[8];        /* the rooms of the reference's group the last composition drew at their place on the grid, a bit each */
@@ -468,8 +474,12 @@ struct OraclesEnhancedView {
     uint64_t live_tiles_hash;          /* this frame's hash of the live tile data of both banks, hashed once for every neighbour's render */
     int have_live_tiles_hash;
     uint8_t tile_changes[2u * 384u];   /* times each tile was seen changing: an animation cycles, a load (a font, a room's unique graphics) changes once */
-    /* The ROM, kept for the neighbours' animation data (the launcher frees its own copy early). */
-    uint8_t *rom;
+    /* The ROM, kept for the neighbours' animation data (the launcher frees its own copy early): the whole image, which
+     * the ghosts run, and the half of it the game's banks are relative to (oracles_rom.h), which the view reads; the
+     * image itself but for a half based past its start. */
+    uint8_t *image;
+    size_t image_size;
+    const uint8_t *rom;
     size_t rom_size;
     unsigned animation_renders;       /* this frame's renders for a neighbour's own animation alone, its objects' poses included */
     /* A neighbour's objects animated in place (view_poses.c): off in the Low quality, the harness's check of the
@@ -635,6 +645,7 @@ struct OraclesEnhancedView {
     OraclesEnhancedBarLayout hud_layout;
     int hud_tight_known, hud_tight;
     unsigned hud_wide_frames, hud_wide_centred, hud_wide_one_row;
+    unsigned hud_layout_frames[ORACLES_ENHANCED_BAR_BIGGORON + 1u], hud_layout_shown[ORACLES_ENHANCED_BAR_BIGGORON + 1u];
     /* The Maku tree stands in the reference room (an INTERAC_MAKU_TREE, $87, both games), sampled in normal play
      * and in an arrival that is not a scroll; ref_maku_arrival: set by that arrival, which may still undo it. */
     int ref_maku, ref_maku_arrival;

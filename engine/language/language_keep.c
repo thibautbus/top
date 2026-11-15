@@ -131,12 +131,26 @@ language_keep *language_keep_load(OraclesRomRevision revision, char *error, size
     return language_keep_parse(language_keep_table(revision), error, capacity);
 }
 
+const char *language_keep_table_half(OraclesRomRevision revision, OraclesGame family)
+{
+    if (revision < ORACLES_ROM_REVISION_COMBINED_1_5_EN || revision > ORACLES_ROM_REVISION_COMBINED_1_5_IT) return language_keep_table(revision);
+    return language_keep_table(family == ORACLES_GAME_SEASONS ? ORACLES_ROM_REVISION_SEASONS_US : ORACLES_ROM_REVISION_AGES_US);
+}
+
 void oracles_language_layout_digest(const OraclesLanguageLayout *layout, OraclesRomRevision revision, char out[41])
 {
-    const char *table = language_keep_table(revision);
+    const char *table = language_keep_table(revision), *ages = language_keep_table_half(revision, ORACLES_GAME_AGES);
+    char *both = NULL;
+    if (ages != table) {   /* an image of two games: both halves' */
+        const char *seasons = language_keep_table_half(revision, ORACLES_GAME_SEASONS);
+        if (!(both = malloc(strlen(ages) + strlen(seasons) + 1u))) { snprintf(out, 41, "%040u", 0u); return; }
+        memcpy(both, ages, strlen(ages));
+        memcpy(both + strlen(ages), seasons, strlen(seasons) + 1u);
+        table = both;
+    }
     const size_t n = strlen(table);
     char *bytes = malloc(n + 64u);
-    if (!bytes) { snprintf(out, 41, "%040u", 0u); return; }
+    if (!bytes) { free(both); snprintf(out, 41, "%040u", 0u); return; }
     const unsigned lines = layout && layout->lines ? layout->lines : 2u;
     char extra[32] = "";
     if (layout && layout->fixed) snprintf(extra, sizeof extra, " fixed");
@@ -145,6 +159,7 @@ void oracles_language_layout_digest(const OraclesLanguageLayout *layout, Oracles
     memcpy(bytes + head, table, n);
     oracles_sha1_hex((const uint8_t *)bytes, (size_t)head + n, out);
     free(bytes);
+    free(both);
 }
 
 int language_keep_has(const language_keep *keep, OraclesLanguage language, unsigned id)

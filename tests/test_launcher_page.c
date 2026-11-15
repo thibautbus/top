@@ -41,14 +41,13 @@
 
 /* A status the mockup's row cannot hold on its one line, which it lets run past the panel (1l, 1o, 1r): the layout
  * shortens it to its room, the row keeping the panel's width; their left edges, baselines and the row's height hold. */
-static void overflowing(const char *frame, const char *status, const OraclesUiLine *line, const char *row, const OraclesUiBox *box)
+/* A patch's status on two lines beside Choose patch…: its first line, its width, its row. */
+static void wrapped_status(const char *frame, const OraclesUiGameLayout *l)
 {
-    layout_near(frame, status, "x", line->x);
-    layout_near(frame, status, "baseline", line->baseline);
-    layout_near(frame, row, "x", box->x);
-    layout_near(frame, row, "y", box->y);
-    layout_near(frame, row, "h", box->h);
-    if (line->x + line->w > box->x + box->w) { fprintf(stderr, "FAIL %s: %s past its row\n", frame, status); layout_fail(); }
+    CHECK(l->patch_status.count == 2);
+    layout_text(frame, "patch status", &l->patch_status.lines[0]);
+    layout_near(frame, "patch status", "width", l->patch_status.w);
+    layout_box(frame, "patch row", &l->rows[ORACLES_ROW_PATCH]);
 }
 
 static void game_1h(OraclesHomeGame *g)
@@ -75,6 +74,14 @@ static void texts_of(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *sta
     t->state = state;
     t->credit = oracles_home_credit(oracles_home_hero(nav));
     t->patched = g->fan != NULL;
+    t->joined = g->fan && g->fan->joined;
+    for (int h = 0; t->joined && h < 2; h++) {
+        t->joined_labels[h] = oracles_page_joined_label(h);
+        t->joined_from[h] = nav->layout == ORACLES_UI_LAYOUT_4_3 ? "" : oracles_page_joined_from(g, h);
+        snprintf(t->joined_file[h], sizeof t->joined_file[h], "%s", oracles_page_joined_file(g, h));
+        oracles_page_joined_status(g, h, nav->layout == ORACLES_UI_LAYOUT_4_3, t->joined_status[h], sizeof t->joined_status[h], &tone);
+    }
+    t->image_notes = oracles_page_image_notes(g, nav->layout == ORACLES_UI_LAYOUT_4_3, t->image_note);
     if (g->fan) {
         snprintf(t->patch_file, sizeof t->patch_file, "%s", oracles_page_patch_file(g));
         snprintf(t->patch_folder, sizeof t->patch_folder, "%s", g->patch_folder);
@@ -264,7 +271,8 @@ static void layout_1k_1l(void)
     layout_text("1k", "Choose ROM dot", &l.rom_button_dot);
     layout_box("1k", "base row", &l.rows[ORACLES_ROW_ROM]);
     layout_text("1k", "patch file", &l.patch_file);
-    layout_text("1k", "patch status", &l.patch_status);
+    CHECK(l.patch_status.count == 1);
+    layout_text("1k", "patch status", &l.patch_status.lines[0]);
     layout_box("1k", "patch dot", &l.patch_dot);
     layout_text("1k", "Choose patch", &l.patch_button);
     layout_text("1k", "Choose patch dot", &l.patch_button_dot);
@@ -290,7 +298,8 @@ static void layout_1k_1l(void)
     oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
     layout_text("1l", "state", &l.head.state);
     layout_text("1l", "patch file", &l.patch_file);
-    overflowing("1l", "patch status", &l.patch_status, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    /* Its status on two lines beside Choose patch…, the row taller. */
+    wrapped_status("1l", &l);
     layout_text("1l", "image status", &l.image_status);
     layout_text("1l", "save file", &l.save_file);
     layout_text("1l", "save line", &l.save_line);
@@ -335,6 +344,307 @@ static void layout_1k_1l(void)
     texts_of(&nav, &t, state);
     oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
     CHECK(l.rows[ORACLES_ROW_PATCH].w == 0.0f && l.label_patch.w == 0.0f && l.head.title.count == 1);
+}
+
+/* Oracles Combined's page: a row for each European ROM, read-only once recognized, its image recognised with its language
+ * in its own name, the line under it, in every profile; another image in Faithful; the Oracles' own pages unchanged. */
+static void combined_page(void)
+{
+    OraclesHomeGame game, *g = &game;
+    memset(g, 0, sizeof *g);
+    g->fan = oracles_home_fan_game(ORACLES_HOME_GAME_COMBINED);
+    g->refuses = 0u;   /* its profile's, which refuses nothing */
+    CHECK(g->fan && g->fan->joined);
+    char text[ORACLES_HOME_TEXT_LENGTH];
+    OraclesTone tone;
+    CHECK(!strcmp(oracles_page_joined_label(0), "Ages ROM (EU)") && !strcmp(oracles_page_joined_label(1), "Seasons ROM (EU)"));
+    CHECK(!strcmp(oracles_page_joined_file(g, 1), "None"));
+    oracles_page_joined_status(g, 1, 0, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Not chosen yet: Oracle of Seasons\xe2\x80\x99s European ROM is used") && tone == ORACLES_TONE_NONE);
+    CHECK(!oracles_page_joined_set(g, 1) && !oracles_page_joined_from(g, 1)[0]);
+    g->joined[1].state = ORACLES_ROM_UNRECOGNISED;
+    snprintf(g->joined[1].file, sizeof g->joined[1].file, "Oracle of Ages (Europe).gbc");
+    oracles_page_joined_status(g, 1, 1, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Not the European ROM of Oracle of Seasons") && tone == ORACLES_TONE_ERROR);
+    CHECK(!strcmp(oracles_page_joined_file(g, 1), "Oracle of Ages (Europe).gbc"));
+    g->joined[1].state = ORACLES_ROM_REFUSED;
+    snprintf(g->joined[1].reason, sizeof g->joined[1].reason, "the file cannot be read");
+    oracles_page_joined_status(g, 1, 0, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Refused: the file cannot be read.") && tone == ORACLES_TONE_ERROR);
+    g->joined[0].state = ORACLES_ROM_ORIGINAL;
+    oracles_page_joined_status(g, 0, 0, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Recognized") && tone == ORACLES_TONE_OK && oracles_page_joined_set(g, 0));
+    CHECK(!strcmp(oracles_page_joined_from(g, 0), "Set in Oracle of Ages\xe2\x80\x99s Cartridge"));
+    oracles_page_joined_status(g, 0, 1, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Recognized \xc2\xb7 set in Oracle of Ages\xe2\x80\x99s Cartridge") && tone == ORACLES_TONE_OK);
+    oracles_page_patch_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "No patch: the BPS patch of an Oracles Combined release is expected"));
+    oracles_page_image_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "The game needs both European ROMs and the patch.") && tone == ORACLES_TONE_NONE);
+    char notes[ORACLES_PAGE_IMAGE_NOTES][ORACLES_HOME_TEXT_LENGTH];
+    CHECK(oracles_page_image_notes(g, 0, notes) == 1 && !strcmp(notes[0], "The language comes with the patch: choose another patch to change it."));
+    CHECK(oracles_page_image_notes(g, 1, notes) == 1 && !strcmp(notes[0], "The language comes with the patch."));
+    g->patch = ORACLES_ROM_ORIGINAL;
+    g->image = ORACLES_ROM_ORIGINAL;
+    g->image_language = "French";
+    g->usable = 1;
+    oracles_page_image_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Patched image recognized: Oracles Combined v1.5 \xc2\xb7 Fran\xc3\xa7" "ais") && tone == ORACLES_TONE_OK);
+    CHECK(oracles_page_image_notes(g, 0, notes) == 1 && !strcmp(notes[0], "The language comes with the patch: choose another patch to change it."));
+    CHECK(oracles_page_profile_allowed(g, ORACLES_PROFILE_FAITHFUL) && oracles_page_profile_allowed(g, ORACLES_PROFILE_ENHANCED));
+    CHECK(oracles_page_profile(g, ORACLES_PROFILE_ENHANCED) == ORACLES_PROFILE_ENHANCED);
+    /* Another image plays in Faithful, as any fan game's, which says so in its line. */
+    g->image = ORACLES_ROM_UNRECOGNISED;
+    g->image_language = NULL;
+    CHECK(oracles_page_profile_allowed(g, ORACLES_PROFILE_FAITHFUL) && !oracles_page_profile_allowed(g, ORACLES_PROFILE_ENHANCED));
+    CHECK(oracles_page_profile(g, ORACLES_PROFILE_ENHANCED) == ORACLES_PROFILE_FAITHFUL);
+    oracles_page_image_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Patched image not recognized, Faithful only") && tone == ORACLES_TONE_WARN);
+    CHECK(oracles_page_image_notes(g, 0, notes) == 1);
+    /* The other fan games have no line under their image's, nor these rows. */
+    OraclesHomeGame other;
+    memset(&other, 0, sizeof other);
+    other.fan = oracles_home_fan_game(ORACLES_HOME_GAME_MOONRISE);
+    other.image = ORACLES_ROM_ORIGINAL;
+    CHECK(oracles_page_image_notes(&other, 0, notes) == 0);
+    oracles_page_patch_status(&other, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "No patch: the BPS patch of Moonrise Regalia 1.0.6 is expected"));
+    /* It plays in Enhanced, Display with Enhanced's own note; the instant text too, a profile without it given a fan game's
+     * reason, not that its ROMs are not original; it has no Language row, its patch giving the language, even with the
+     * fan games' languages on. */
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[ORACLES_HOME_GAME_COMBINED] = *g;
+    nav.games[ORACLES_HOME_GAME_COMBINED].image = ORACLES_ROM_ORIGINAL;
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_COMBINED;
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    CHECK(oracles_display_played_profile(&nav) == ORACLES_PROFILE_ENHANCED);
+    CHECK(!strncmp(oracles_display_profile_note(&nav), "The wide world", 14));
+    CHECK(oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SPEED) && !strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_SPEED), ""));
+    nav.games[ORACLES_HOME_GAME_COMBINED].refuses |= ORACLES_HOME_REFUSES_TEXT_SPEED;
+    CHECK(!oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SPEED)
+          && !strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_SPEED), oracles_display_fan_reason));
+    nav.games[ORACLES_HOME_GAME_COMBINED].refuses &= ~ORACLES_HOME_REFUSES_TEXT_SPEED;
+    nav.fan_languages = 1;
+    CHECK(!oracles_page_language_shown(&nav, &nav.games[ORACLES_HOME_GAME_COMBINED]));
+    nav.games[ORACLES_HOME_GAME_MOONRISE].fan = oracles_home_fan_game(ORACLES_HOME_GAME_MOONRISE);
+    CHECK(oracles_page_language_shown(&nav, &nav.games[ORACLES_HOME_GAME_MOONRISE]));
+    /* Its rows: Ages' European ROM, Seasons', Patch, Save, Play; a recognized one does nothing, a missing or wrong one
+     * opens the dialog, Ages' as the base ROM's and Seasons' as a European ROM's. */
+    nav.screen = ORACLES_SCREEN_GAME;
+    nav.row = ORACLES_ROW_ROM;
+    nav.games[ORACLES_HOME_GAME_COMBINED].joined[1].state = ORACLES_ROM_NONE;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ROW_JOINED);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_CHOOSE_EU_ROM);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ROW_PATCH);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY
+          && nav.row == ORACLES_ROW_ROM);
+    nav.games[ORACLES_HOME_GAME_COMBINED].joined[0].state = ORACLES_ROM_UNRECOGNISED;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_CHOOSE_ROM);
+    nav.games[ORACLES_HOME_GAME_COMBINED].joined[1].state = ORACLES_ROM_ORIGINAL;
+    nav.row = ORACLES_ROW_JOINED;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY);
+    /* Another fan game has no such row. */
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    nav.row = ORACLES_ROW_ROM;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ROW_PATCH);
+    /* An image of both games chosen as Ages' ROM. */
+    memset(g, 0, sizeof *g);
+    g->rom = ORACLES_ROM_UNRECOGNISED;
+    g->combined = 1;
+    oracles_page_rom_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Oracles Combined image, Faithful only; see Fan games") && tone == ORACLES_TONE_WARN);
+    g->combined = 0;
+    oracles_page_rom_status(g, text, sizeof text, &tone);
+    CHECK(!strcmp(text, "Unrecognized ROM, Faithful only"));
+}
+
+/* Oracles Combined as the reference's frames hold it: both European ROMs recognized, the English patch read, the image
+ * recognized, a save beside the patch. */
+static OraclesHomeGame *game_combined(OraclesHomeNav *nav, const char *patch_file, const char *language)
+{
+    OraclesHomeGame *g = &nav->games[ORACLES_HOME_GAME_COMBINED];
+    memset(g, 0, sizeof *g);
+    g->fan = oracles_home_fan_game(ORACLES_HOME_GAME_COMBINED);
+    g->usable = 1;
+    g->rom = g->patch = g->image = ORACLES_ROM_ORIGINAL;
+    g->joined[0].state = g->joined[1].state = ORACLES_ROM_ORIGINAL;
+    snprintf(g->joined[0].file, sizeof g->joined[0].file, "Oracle of Ages (Europe).gbc");
+    snprintf(g->joined[1].file, sizeof g->joined[1].file, "Oracle of Seasons (Europe).gbc");
+    snprintf(g->rom_file, sizeof g->rom_file, "Oracle of Ages (Europe).gbc");
+    snprintf(g->patch_file, sizeof g->patch_file, "%s", patch_file);
+    snprintf(g->patch_folder, sizeof g->patch_folder, "C:\\Users\\sam\\Games\\Oracles");
+    g->image_language = language;
+    snprintf(g->save_file, sizeof g->save_file, "%.*s.sav", (int)strlen(patch_file) - 4, patch_file);
+    snprintf(g->save_written, sizeof g->save_written, "1 Nov 2026, 21:30");
+    snprintf(g->last_session, sizeof g->last_session, "1 Nov 2026");
+    nav->entry = ORACLES_HOME_FAN;
+    nav->fan_pick = ORACLES_HOME_HERO_COMBINED;
+    nav->screen = ORACLES_SCREEN_GAME;
+    return g;
+}
+
+/* Its Cartridge against the reference: each European ROM's row, the label on one line or two, where a recognized one is
+ * set in Choose…'s place, Choose… for a missing or wrong one; the patch's status on two lines without the patch; the
+ * image's line and the lines under it; in 16:9 (combined cartridge, combined cartridge missing, combined cartridge other
+ * base, combined cartridge refused) and at 640x480 (combined cartridge 640x480). */
+static void layout_combined(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    OraclesHomeGame *g = game_combined(&nav, "Oracles Combined v1.5 EN.bps", "English");
+    char state[ORACLES_HOME_STATE_LENGTH];
+    OraclesUiGameTexts t;
+    OraclesUiGameLayout l;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    const char *p = "combined cartridge";
+    layout_text(p, "over", &l.head.over);
+    CHECK(l.head.title.count == 2);
+    layout_near(p, "title box", "h", l.head.title.h);
+    layout_text(p, "state", &l.head.state);
+    layout_text(p, "credit text", &l.head.credit);
+    CHECK(l.label_rom.w == 0.0f && l.rom_button.w == 0.0f);
+    CHECK(l.joined_labels[0].count == 1 && l.joined_labels[1].count == 2);
+    layout_text(p, "ages label", &l.joined_labels[0].lines[0]);
+    layout_text(p, "seasons label", &l.joined_labels[1].lines[0]);
+    layout_near(p, "seasons label", "width", l.joined_labels[1].w);
+    layout_text(p, "ages file", &l.joined_files[0]);
+    layout_text(p, "ages from", &l.joined_from[0]);
+    layout_text(p, "ages status", &l.joined_status[0]);
+    layout_box(p, "ages dot", &l.joined_dots[0]);
+    layout_box(p, "ages row", &l.rows[ORACLES_ROW_ROM]);
+    layout_text(p, "seasons file", &l.joined_files[1]);
+    layout_text(p, "seasons from", &l.joined_from[1]);
+    layout_text(p, "seasons status", &l.joined_status[1]);
+    layout_box(p, "seasons dot", &l.joined_dots[1]);
+    layout_box(p, "seasons row", &l.rows[ORACLES_ROW_JOINED]);
+    CHECK(l.joined_buttons[0].w == 0.0f && l.joined_buttons[1].w == 0.0f);
+    layout_text(p, "Patch", &l.label_patch);
+    layout_text(p, "patch file", &l.patch_file);
+    layout_text(p, "patch status", &l.patch_status.lines[0]);
+    layout_text(p, "Choose patch", &l.patch_button);
+    layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    layout_text(p, "patch folder", &l.patch_folder);
+    layout_text(p, "image status", &l.image_status);
+    layout_box(p, "image dot", &l.image_dot);
+    CHECK(t.image_notes == 1);
+    layout_text(p, "language", &l.image_notes[0]);
+    layout_text(p, "Save", &l.label_save);
+    layout_text(p, "save file", &l.save_file);
+    layout_box(p, "Save row", &l.rows[ORACLES_ROW_SAVE]);
+    layout_box(p, "Play row", &l.rows[ORACLES_ROW_PLAY]);
+    layout_box(p, "panel", &l.panel);
+
+    /* Without Seasons' European ROM nor patch. */
+    g->usable = 0;
+    g->rom = ORACLES_ROM_NONE;
+    g->joined[1].state = ORACLES_ROM_NONE;
+    g->joined[1].file[0] = 0;
+    g->patch = g->image = ORACLES_ROM_NONE;
+    g->patch_file[0] = g->patch_folder[0] = g->save_file[0] = g->last_session[0] = 0;
+    g->image_language = NULL;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    p = "combined cartridge missing";
+    layout_text(p, "state", &l.head.state);
+    layout_text(p, "seasons file", &l.joined_files[1]);
+    layout_text(p, "Choose", &l.joined_buttons[1]);
+    layout_text(p, "Choose dot", &l.joined_button_dots[1]);
+    layout_text(p, "seasons status", &l.joined_status[1]);
+    layout_box(p, "seasons dot", &l.joined_dots[1]);
+    layout_box(p, "seasons row", &l.rows[ORACLES_ROW_JOINED]);
+    CHECK(l.joined_from[1].w == 0.0f);
+    layout_text(p, "patch file", &l.patch_file);
+    wrapped_status(p, &l);
+    layout_box(p, "patch dot", &l.patch_dot);
+    layout_text(p, "Choose patch", &l.patch_button);
+    layout_text(p, "image status", &l.image_status);
+    CHECK(t.image_notes == 1);
+    layout_text(p, "language", &l.image_notes[0]);
+    layout_text(p, "save file", &l.save_file);
+    layout_box(p, "Save row", &l.rows[ORACLES_ROW_SAVE]);
+    layout_box(p, "Play row", &l.rows[ORACLES_ROW_PLAY]);
+    layout_box(p, "panel", &l.panel);
+
+    /* A patch made for other ROMs. */
+    g = game_combined(&nav, "Oracles Combined EN (other base).bps", NULL);
+    g->usable = 0;
+    g->image = ORACLES_ROM_REFUSED;
+    snprintf(g->image_reason, sizeof g->image_reason, "this patch is not made for the European ROMs of Ages and Seasons");
+    g->save_file[0] = 0;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    p = "combined cartridge other base";
+    layout_text(p, "patch file", &l.patch_file);
+    layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    layout_text(p, "image status", &l.image_status);
+    layout_text(p, "language", &l.image_notes[0]);
+    layout_box(p, "Save row", &l.rows[ORACLES_ROW_SAVE]);
+    layout_box(p, "Play row", &l.rows[ORACLES_ROW_PLAY]);
+    layout_box(p, "panel", &l.panel);
+
+    /* Ages' European ROM chosen as Seasons', and a file that is not a BPS patch. */
+    g = game_combined(&nav, "Oracles Combined v1.5 EN.zip", NULL);
+    g->usable = 0;
+    g->rom = g->joined[1].state = ORACLES_ROM_UNRECOGNISED;
+    snprintf(g->joined[1].file, sizeof g->joined[1].file, "Oracle of Ages (Europe).gbc");
+    g->patch = ORACLES_ROM_REFUSED;
+    snprintf(g->patch_reason, sizeof g->patch_reason, "the file is not a BPS patch");
+    g->image = ORACLES_ROM_NONE;
+    g->save_file[0] = 0;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    p = "combined cartridge refused";
+    layout_text(p, "seasons file", &l.joined_files[1]);
+    layout_text(p, "Choose", &l.joined_buttons[1]);
+    layout_text(p, "seasons status", &l.joined_status[1]);
+    layout_box(p, "seasons row", &l.rows[ORACLES_ROW_JOINED]);
+    layout_text(p, "patch status", &l.patch_status.lines[0]);
+    layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    layout_text(p, "image status", &l.image_status);
+    layout_text(p, "language", &l.image_notes[0]);
+    layout_box(p, "Save row", &l.rows[ORACLES_ROW_SAVE]);
+    layout_box(p, "panel", &l.panel);
+
+    /* At 640x480 on Android, the French patch: each recognized row says where it is set, Choose… not drawn; the
+     * language's line shorter. */
+    oracles_home_init(&nav);
+    game_combined(&nav, "Oracles Combined v1.5 FR.bps", "French");
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    nav.android = 1;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    p = "combined cartridge 640x480";
+    layout_line(p, "title", &l.head.title.lines[0]);
+    layout_line(p, "state", &l.head.state);
+    layout_line(p, "credit text", &l.head.credit);
+    CHECK(l.joined_labels[0].count == 1 && l.joined_labels[1].count == 2);
+    layout_line(p, "ages label", &l.joined_labels[0].lines[0]);
+    layout_line(p, "seasons label", &l.joined_labels[1].lines[0]);
+    layout_line(p, "ages file", &l.joined_files[0]);
+    layout_line(p, "seasons file", &l.joined_files[1]);
+    layout_line(p, "ages status", &l.joined_status[0]);
+    layout_line(p, "seasons status", &l.joined_status[1]);
+    layout_box(p, "ages row", &l.rows[ORACLES_ROW_ROM]);
+    layout_box(p, "seasons row", &l.rows[ORACLES_ROW_JOINED]);
+    layout_line(p, "Patch", &l.label_patch);
+    layout_line(p, "patch file", &l.patch_file);
+    CHECK(l.patch_status.count == 1);
+    layout_line(p, "patch status", &l.patch_status.lines[0]);
+    layout_line(p, "Choose patch", &l.patch_button);
+    layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    layout_line(p, "patch folder", &l.patch_folder);
+    layout_line(p, "image status", &l.image_status);
+    CHECK(t.image_notes == 1);
+    layout_line(p, "language", &l.image_notes[0]);
+    layout_line(p, "Save", &l.label_save);
+    layout_line(p, "save file", &l.save_file);
+    layout_box(p, "Save row", &l.rows[ORACLES_ROW_SAVE]);
+    layout_box(p, "Play row", &l.rows[ORACLES_ROW_PLAY]);
 }
 
 static void navigation(void)
@@ -998,7 +1308,7 @@ static void layout_fan_page(const fan_frames *f)
     layout_text(p, "base status", &l.rom_status.lines[0]);
     layout_box(p, "base row", &l.rows[ORACLES_ROW_ROM]);
     layout_text(p, "patch file", &l.patch_file);
-    layout_text(p, "patch status", &l.patch_status);
+    layout_text(p, "patch status", &l.patch_status.lines[0]);
     layout_box(p, "patch row", &l.rows[ORACLES_ROW_PATCH]);
     layout_text(p, "patch folder", &l.patch_folder);
     snprintf(expected, sizeof expected, "Patched image recognized: %s", f->file_stem);
@@ -1020,7 +1330,7 @@ static void layout_fan_page(const fan_frames *f)
     p = f->bare;
     layout_text(p, "state", &l.head.state);
     layout_text(p, "patch file", &l.patch_file);
-    overflowing(p, "patch status", &l.patch_status, "patch row", &l.rows[ORACLES_ROW_PATCH]);
+    wrapped_status(p, &l);
     layout_text(p, "image status", &l.image_status);
     layout_text(p, "save file", &l.save_file);
     layout_text(p, "save line", &l.save_line);
@@ -1794,7 +2104,7 @@ static void layout_10d(void)
     layout_line("10d", "Play dot", &l.play_dot);
     layout_box("10d", "Play row", &l.rows[ORACLES_ROW_PLAY]);
     /* Every target 90 tall at least, every text 27 px at least. */
-    for (int r = 0; r < ORACLES_GAME_ROWS; r++) CHECK(r == ORACLES_ROW_PATCH || l.rows[r].h >= 90.0f);
+    for (int r = 0; r < ORACLES_GAME_ROWS; r++) CHECK(r == ORACLES_ROW_PATCH || r == ORACLES_ROW_JOINED || l.rows[r].h >= 90.0f);
     const OraclesUiPageStyles *st = oracles_ui_page_styles(ORACLES_UI_LAYOUT_4_3);
     const OraclesUiTextStyle *const all[] = { st->section, st->title, st->state, st->page_note, st->row_label, st->row_title, st->row_path,
                                               st->row_status, st->row_text, st->row_note, st->row_button, st->play, st->option_name,
@@ -1827,7 +2137,8 @@ static void layout_10e(void)
     layout_line("10e", "Choose ROM", &l.rom_button);
     layout_box("10e", "base row", &l.rows[ORACLES_ROW_ROM]);
     layout_line("10e", "patch file", &l.patch_file);
-    layout_line("10e", "patch status", &l.patch_status);
+    CHECK(l.patch_status.count == 1);
+    layout_line("10e", "patch status", &l.patch_status.lines[0]);
     layout_box("10e", "patch dot", &l.patch_dot);
     layout_line("10e", "Choose patch", &l.patch_button);
     layout_line("10e", "Choose patch dot", &l.patch_button_dot);
@@ -2900,6 +3211,8 @@ int main(int argc, char **argv)
     layout_1k_1l();
     layout_fan_page(&temple_frames);
     layout_fan_page(&kinomi_frames);
+    combined_page();
+    layout_combined();
     credit_4_3();
     navigation();
     layout_turn_14();

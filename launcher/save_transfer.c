@@ -16,18 +16,26 @@ int oracles_save_transfer_check(const uint8_t *data, size_t size, OraclesGame en
     return 1;
 }
 
-int oracles_save_transfer_read(const char *path, uint8_t *out, size_t *size, char *error, size_t error_capacity)
+int oracles_save_transfer_check_combined(const uint8_t *data, size_t size, uint8_t *out)
+{
+    if (!oracles_save_combined_valid(data, size)) return 0;
+    memcpy(out, data, ORACLES_SAVE_COMBINED_SIZE);
+    return 1;
+}
+
+int oracles_save_transfer_read(const char *path, uint8_t *out, size_t largest, size_t *size, char *error, size_t error_capacity)
 {
     *size = 0;
+    if (largest >= ORACLES_SAVE_TRANSFER_READ) largest = ORACLES_SAVE_TRANSFER_READ - 1u;
     SDL_IOStream *in = SDL_IOFromFile(path, "rb");
     if (!in) { snprintf(error, error_capacity, "%s", SDL_GetError()); return 0; }
-    if (SDL_GetIOSize(in) > (Sint64)ORACLES_SAVE_SIZE) {
+    if (SDL_GetIOSize(in) > (Sint64)largest) {
         SDL_CloseIO(in);
         snprintf(error, error_capacity, "larger than a save");
         return 0;
     }
     /* Its size unknown (a stream), no more than a save and a byte. */
-    for (size_t got; *size < ORACLES_SAVE_TRANSFER_READ && (got = SDL_ReadIO(in, out + *size, ORACLES_SAVE_TRANSFER_READ - *size)) != 0;) *size += got;
+    for (size_t got; *size <= largest && (got = SDL_ReadIO(in, out + *size, largest + 1u - *size)) != 0;) *size += got;
     const int ok = SDL_GetIOStatus(in) != SDL_IO_STATUS_ERROR;
     if (!ok) snprintf(error, error_capacity, "%s", SDL_GetError());
     SDL_CloseIO(in);

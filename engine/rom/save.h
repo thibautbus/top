@@ -30,6 +30,12 @@ void oracles_save_seal(uint8_t *sram, unsigned at);
 /* The copies of an SRAM image of `size` bytes valid for `game`, as bits (1 << the copy's index); 0 for an image of
  * another size. */
 unsigned oracles_save_valid(const uint8_t *sram, size_t size, OraclesGame game);
+/* Oracles Combined's save, its cartridge's 32 KiB in four banks of 8 KiB: the copies it keeps of the game not played,
+ * code, then Ages' save and Seasons' save, each laid out as the originals'. */
+#define ORACLES_SAVE_COMBINED_SIZE 0x8000u
+/* The copies of an Oracles Combined SRAM image valid, Ages' in bits 0 to 5 and Seasons' in bits 6 to 11; 0 for an image
+ * of another size. */
+unsigned oracles_save_combined_valid(const uint8_t *sram, size_t size);
 /* Each valid copy whose language is not English set to it, its checksum written again: a save of the European ROM
  * played in German, Italian or Spanish reads the US game's texts at the wrong place.  The European header stays,
  * which the US game never reads.  Returns the copies changed. */

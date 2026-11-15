@@ -24,12 +24,14 @@ static void folder_of(const char *path, char *out, size_t capacity)
     snprintf(out, capacity, "%.*s", slash ? (int)(slash - path) : 1, slash ? path : ".");
 }
 
-/* The game's name as the row's refusal says it, and the engine its save is a save of. */
-static const char *game_name(int game, OraclesGame *engine)
+/* The game's name as the row's refusal says it, the engine its save is a save of, and its save's size: Oracles
+ * Combined's holds both engines' saves. */
+static const char *game_name(int game, OraclesGame *engine, size_t *size)
 {
     const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
     const int base = fan ? fan->base : game;
     *engine = base == ORACLES_HOME_GAME_SEASONS ? ORACLES_GAME_SEASONS : ORACLES_GAME_AGES;
+    *size = fan && fan->joined ? ORACLES_SAVE_COMBINED_SIZE : ORACLES_SAVE_SIZE;
     return fan ? oracles_home_title(fan->hero) : oracles_game_name(*engine);
 }
 
@@ -115,12 +117,15 @@ static void save_chosen(void *opaque, int game, int kind, int result, const char
     /* The file read where it is (on Android through its content:// address), checked as a save of the game, then
      * confirmed on the page. */
     OraclesGame engine;
-    const char *name = game_name(game, &engine);
+    size_t expected;
+    const char *name = game_name(game, &engine, &expected);
     static uint8_t data[ORACLES_SAVE_TRANSFER_READ];
     size_t size = 0;
     char why[256];
-    const int read = oracles_save_transfer_read(path, data, &size, why, sizeof why);
-    const int save = read && oracles_save_transfer_check(data, size, engine, !oracles_home_fan_game(game), games->import.data, &games->import.english);
+    const int read = oracles_save_transfer_read(path, data, expected, &size, why, sizeof why);
+    games->import.english = 0;
+    const int save = read && (expected == ORACLES_SAVE_COMBINED_SIZE ? oracles_save_transfer_check_combined(data, size, games->import.data)
+                                                                     : oracles_save_transfer_check(data, size, engine, !oracles_home_fan_game(game), games->import.data, &games->import.english));
     if (!save) {
         char text[ORACLES_HOME_TEXT_LENGTH];
         snprintf(text, sizeof text, "This file is not a save of %s.", name);
@@ -129,6 +134,7 @@ static void save_chosen(void *opaque, int game, int kind, int result, const char
         return;
     }
     games->import.game = game;
+    games->import.size = expected;
     nav->save_flow.state = ORACLES_SAVE_FLOW_CONFIRM;
     nav->save_flow.choice = 0;
     /* The game with mods' files go to Backups too: the confirmation says so. */
@@ -145,7 +151,7 @@ static void replace_save(void *opaque, int game, OraclesHomeNav *nav)
     char save[ORACLES_SETTINGS_PATH_LENGTH], error[200];
     static OraclesSaveKept kept;
     oracles_home_games_save_path(games, game, save, sizeof save);
-    if (!save[0] || !oracles_save_transfer_import(save, games->import.data, ORACLES_SAVE_SIZE, time(NULL), &kept, error, sizeof error)) {
+    if (!save[0] || !oracles_save_transfer_import(save, games->import.data, games->import.size, time(NULL), &kept, error, sizeof error)) {
         fprintf(stderr, "oracles: the save %s is not imported: %s\n", save, save[0] ? error : "no ROM");
         char text[ORACLES_HOME_TEXT_LENGTH];
         snprintf(text, sizeof text, "Nothing replaced: %s.", save[0] ? error : "no ROM");

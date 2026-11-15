@@ -49,6 +49,7 @@ static int reload_load_state(OraclesEnhancedCheck *c, const int shown[4], const 
     }
     if (oracles_core_load_state(c->core, c->saved_core, c->saved_core_size) != 0) return 0;
     oracles_guest_reset_execution_state(c->guest);
+    oracles_guest_follow_half(c->guest);   /* a state of the other half of the image: the rest loads into its */
     if (c->saved_transition_size && oracles_room_transition_load_state(c->transition, c->saved_transition, c->saved_transition_size) != 0) return 0;
     if (c->saved_compact_size && oracles_guest_compact_load_state(c->guest, c->saved_compact, c->saved_compact_size) != 0) return 0;
     if (c->saved_text_box_size && oracles_guest_text_box_load_state(c->guest, c->saved_text_box, c->saved_text_box_size) != 0) return 0;

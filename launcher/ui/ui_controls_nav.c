@@ -148,7 +148,7 @@ int oracles_controls_menu_tip_due(int count) { return count >= 0 && count < ORAC
 int oracles_controls_hotkeys_tip_due(const OraclesHomeNav *nav)
 {
     const int game = oracles_home_game(nav);
-    return nav->screen == ORACLES_SCREEN_PAUSE && nav->in_game && (game == ORACLES_HOME_GAME_AGES || game == ORACLES_HOME_GAME_SEASONS)
+    return nav->screen == ORACLES_SCREEN_PAUSE && nav->in_game && oracles_home_hotkey_slots(game) >= 0
            && !nav->hotkeys_refused && !nav->games[game].hotkeys && !nav->narrow
            && nav->controls.hotkeys_tip >= 0 && nav->controls.hotkeys_tip < ORACLES_HOTKEYS_TIPS;
 }
@@ -201,24 +201,24 @@ const char *oracles_controls_item_heading(const OraclesHomeNav *nav)
     switch (oracles_home_hero(nav)) {
         case ORACLES_HOME_HERO_AGES: return "In Ages";
         case ORACLES_HOME_HERO_SEASONS: return "In Seasons";
-        default: {   /* a fan game: no slot of its own yet */
+        default: {   /* a fan game: Oracles Combined's slots its own, none for the others yet */
             const OraclesHomeFanGame *fan = oracles_home_fan_game(oracles_home_game(nav));
             return fan ? fan->item_heading : "";
         }
     }
 }
 
-/* The game shown, when it has item hotkeys (the two Oracles), else -1. */
+/* The game shown, when it has item hotkeys (the two Oracles, Oracles Combined), else -1. */
 static int hotkey_game(const OraclesHomeNav *nav)
 {
     const int g = oracles_home_game(nav);
-    return g >= 0 && g < ORACLES_HOME_HOTKEY_GAMES ? g : -1;
+    return oracles_home_hotkey_slots(g) >= 0 ? g : -1;
 }
 
 const char *oracles_controls_item(const OraclesHomeNav *nav, int slot)
 {
     const int g = hotkey_game(nav);
-    return g >= 0 && slot >= 0 && slot < ORACLES_HOME_SLOTS ? nav->controls.items[g][slot] : "";
+    return g >= 0 && slot >= 0 && slot < ORACLES_HOME_SLOTS ? nav->controls.items[oracles_home_hotkey_slots(g)][slot] : "";
 }
 
 /* The cells the highlight goes to, in order (a tie for the nearest row goes to the first): 16:9's grid, or 4:3's
@@ -327,7 +327,7 @@ static void move(OraclesHomeNav *nav, OraclesHomeAction action)
 
 static OraclesHomeCommand toggle_hotkeys(OraclesHomeNav *nav, int on)
 {
-    /* A fan game's hotkeys stay off: no fan game's profile allows them yet; nor from the pause of a game whose profile has none. */
+    /* Another fan game's hotkeys stay off: no other fan game's profile allows them yet; nor from the pause of a game whose profile has none. */
     const int g = hotkey_game(nav);
     if (g < 0 || nav->hotkeys_refused) return ORACLES_HOME_STAY;
     const int now = nav->games[g].hotkeys != 0;

@@ -180,6 +180,7 @@ static void frame_begin(void *opaque, uint32_t frame)
 static void frame_end(void *opaque, uint32_t frame)
 {
     session *s = opaque;
+    oracles_session_follow_half(s, frame);
     oracles_session_achievements_frame(s);
     if (s->fingerprints && s->recording) oracles_guest_write_fingerprint(s->guest, s->core, frame, s->fingerprints);
     if (s->recording) oracles_mod_session_frame_end(s->mod, frame);
@@ -226,7 +227,7 @@ static void on_command(void *opaque, int command)
             fprintf(stderr, "oracles: colour correction %s\n", s->colour_applied ? "on" : "off");
             break;
         case ORACLES_COMMAND_TOGGLE_ENHANCED:
-            if (s->view) {
+            if (s->view && !oracles_enhanced_view_half_passage(s->view)) {
                 oracles_enhanced_view_toggle(s->view);
                 fprintf(stderr, "oracles: Enhanced %s\n", oracles_enhanced_view_framed_only(s->view) ? "shows the framed core" : "shows the wide world");
             }
@@ -311,12 +312,12 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
 {
     char error[256];
     /* A fan game: the base ROM and its patch, the image built here at each start and never written. */
-    s->rom = o->patch_path ? oracles_bps_apply_files(o->rom_path, o->patch_path, &s->rom_size, error, sizeof error)
+    s->rom = o->patch_path ? oracles_bps_apply_joined_files(o->rom_path, o->joined_path, o->patch_path, &s->rom_size, error, sizeof error)
                            : oracles_rom_read_file(o->rom_path, &s->rom_size, error, sizeof error);
     if (!s->rom) return failed(result, "%s", error);
     if (oracles_rom_identify(s->rom, s->rom_size, &s->info, error, sizeof error) != 0) return failed(result, "%s", error);
     s->profile = oracles_compat_find(&s->info);
-    fprintf(stderr, "oracles: %s, %s ROM (%s)\n", oracles_game_name(s->info.game),
+    fprintf(stderr, "oracles: %s, %s ROM (%s)\n", oracles_rom_is_combined(&s->info) ? "Oracles Combined" : oracles_game_name(s->info.game),
             s->profile ? oracles_compat_name(s->profile) : s->info.known ? "authenticated image" : "unknown, header accepted", s->info.sha1);
     oracles_session_achievements_hash(s, o);   /* the image as read, before a mod or a language changes it */
     /* A language's pack comes from the US ROM as read; the language is composed after the mods' houses. */
@@ -326,10 +327,12 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
         fprintf(stderr, "oracles: %s\n", oracles_language_session_note(s->language));
         snprintf(result->language_note, sizeof result->language_note, "%s", oracles_language_session_note(s->language));
     }
-    /* A mod's houses are in the image before the core exists: every reader of the ROM sees them. */
+    /* A mod's houses are in the image before the core exists: every reader of the ROM sees them.  A profile that refuses
+     * the mods says so here, before the save with mods is copied from the vanilla one. */
     if (o->mods_count) {
         s->mod = oracles_mod_session_start(o->mods_dirs, o->mods_count, s->info.game, s->rom, s->rom_size, error, sizeof error);
-        if (!s->mod || oracles_mod_session_compose(s->mod, oracles_rom_is_original(&s->info), &s->rom, &s->rom_size, error, sizeof error) != 0) return failed(result, "%s", error);
+        if (!s->mod || oracles_mod_session_check_profile(s->mod, s->profile, error, sizeof error) != 0
+            || oracles_mod_session_compose(s->mod, oracles_rom_is_original(&s->info), &s->rom, &s->rom_size, error, sizeof error) != 0) return failed(result, "%s", error);
     }
     if (!lay_out_texts(s, o, result)) return 0;
     if (s->language && oracles_language_session_compose(s->language, &s->rom, &s->rom_size, error, sizeof error) != 0) return failed(result, "%s", error);
@@ -451,6 +454,11 @@ static void window_options(session *s, const OraclesSessionOptions *o)
     for (unsigned i = 0; i < 4; i++) s->sdl.pad_names[i] = prefs->pad_names[i];
     s->sdl.menu_pad_name = prefs->menu_pad;
     if (s->hotkeys_mode != ORACLES_HOTKEYS_OFF) oracles_session_hotkey_keys(s, 1);
+}
+
+unsigned oracles_session_hotkey_slots(const session *s)
+{
+    return oracles_compat_both_games_items(s->profile) ? ORACLES_HOTKEY_GAME_COMBINED : s->info.game == ORACLES_GAME_SEASONS ? 1u : 0u;
 }
 
 /* A game the home screen started plays on without the item hotkeys when they cannot attach to its ROM (one that is
@@ -670,7 +678,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
     }
     if (!s->transition) { free(s->rom); s->rom = NULL; }   /* the policy reads the animation data from the ROM */
     if (s->guest && (s->hotkeys_mode != ORACLES_HOTKEYS_OFF || route_exchanges)) {
-        s->hotkeys = oracles_hotkeys_session_start(s->guest, s->info.game, s->hotkeys_mode, s->settings, o->play_path ? &s->play : NULL);
+        s->hotkeys = oracles_hotkeys_session_start(s->guest, oracles_session_hotkey_slots(s), s->hotkeys_mode, s->settings, o->play_path ? &s->play : NULL);
         /* A full table of hooks is not the ROM's doing: say which. */
         const char *why = oracles_guest_hooks_refused(s->guest) ? "the item hotkeys could not be hooked: the guest's table of hooks is full"
                                                                  : "the item hotkeys cannot find the inventory's write point in this ROM";
@@ -830,13 +838,12 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     /* The pause's Cheats change the cheats of a game the home screen started whose profile has them, from the next frame; Controls its
      * swim's hold and item hotkeys, where its profile has them; Display, or a replayed route's `set window` lines, the
      * window of any game that has one. */
-    const int settings_game = s->info.game == ORACLES_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES;
     if (ok && s->pause && oracles_compat_cheats(s->profile)) s->pause_cheats = 1;
     if (ok && s->pause && oracles_compat_swim_hold(s->profile)) s->swim_setting = settings->swim_hold;
     if (ok && s->pause && oracles_compat_text_instant(s->profile)) s->text_speed_setting = settings->text_instant;
     if (ok && s->pause && oracles_compat_item_hotkeys(s->profile) && s->info.game != ORACLES_GAME_UNKNOWN) {
-        s->hotkeys_game = settings_game;
-        s->hotkeys_setting = (int)settings->item_hotkeys[settings_game];
+        s->hotkeys_game = (int)oracles_session_hotkey_slots(s);
+        s->hotkeys_setting = (int)settings->item_hotkeys[s->hotkeys_game];
     }
     if (ok && !o->no_window && !oracles_sdl_fullscreen_only()) s->window_setting = settings->window_scale;
     if (ok) {

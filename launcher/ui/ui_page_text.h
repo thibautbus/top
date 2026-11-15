@@ -46,9 +46,10 @@ int oracles_display_text_applies(const OraclesHomeNav *nav);
  * instant text, in the pause, or on the home screen a page whose ROM is unrecognised (a hack, a randomizer seed). */
 int oracles_display_text_link_applies(const OraclesHomeNav *nav);
 /* A Text row changes (ORACLES_DISPLAY_LETTERS, _TEXT_BOX, _TEXT_SIZE, _TEXT_SPEED): in Enhanced (Text size, from the
- * pause, the running game's), an Oracle's page for the box and the size, Text and Text box not from the pause, and none
- * the command line gave; Text speed in either profile, but not for a game that has no instant text (the pause's, or
- * an unrecognised ROM's page), "Needs an original ROM.". */
+ * pause, the running game's), the box and the size where the game's profile qualifies them, Text and Text box not from
+ * the pause, and none the command line gave; Text speed in either profile, but not for a game that has no instant text
+ * (the pause's, or an unrecognised ROM's page), "Needs an original ROM.", or a fan game's reason for an image the port
+ * knows whose profile does not have it. */
 int oracles_display_text_row_live(const OraclesHomeNav *nav, unsigned row);
 /* Beside the link, what applies: "Compact · Wide · Normal", the box and the size left out where the game's profile does
  * not qualify them, "As the game" in Faithful, and " · Instant" after it when Instant is chosen and the game has it. */
@@ -59,7 +60,7 @@ const char *oracles_display_text_explanation(unsigned row, int four_three);
 /* A Text row's note, under its explanation (16:9) or on the help's note line (4:3), empty for none: "Enhanced only." in
  * Faithful, a fan game's reason, "Change it from the home screen." from the pause, Text's savestates ("Savestates taken
  * with Compact need Compact.") and Text box's ("Savestates taken with Wide need Wide."), Text size's fallback in the view chosen ("Normal in this view: no room for a larger
- * box."), Text speed's in a pause that refuses it ("Needs an original ROM."). */
+ * box."), Text speed's in a pause that refuses it ("Needs an original ROM.", or a fan game's reason). */
 const char *oracles_display_text_note(const OraclesHomeNav *nav, unsigned row);
 
 /* The preview, in the game's pixels. */

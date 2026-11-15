@@ -274,6 +274,9 @@ VARIABLES = [
     ("c600_block", "wc600Block"), ("slingshot_level", "wSlingshotLevel"), ("spr_item_icons_1", "spr_item_icons_1"),
     # and what drawTreasureExtraTiles draws beside them in Seasons: the seasons the rod has, the gloves' polarity.
     ("obtained_seasons", "wObtainedSeasons"), ("magnet_glove_polarity", "wMagnetGlovePolarity"),
+    # Oracles Combined's: the slingshot's own seeds (its submenu writes them, apart from the shooter's), and the gloves'
+    # icon loadItemIconGfx takes outside spr_item_icons_1.
+    ("slingshot_selected_seeds", "wSlingshotSelectedSeeds"), ("spr_extra_mags", "spr_extra_mags"),
     # The harness's live-state dump: the vblank function queue, whose entries past its tail are already consumed.
     ("vblank_function_queue", "wVBlankFunctionQueue"), ("vblank_function_queue_tail", "hVBlankFunctionQueueTail"),
     # and the scratch the game documents as such: hFF8A to hFF93 (hram.s, "General-purpose variables"), wTmpcec0 to $ceff (wram.s, "several different uses depending on context").
@@ -307,7 +310,8 @@ ROOM_FLAG_BYTES = [("maku_tree_tileset_room_flags", "wGroup1RoomFlags", "ROOM_AG
                    ("veran_room_flags", "wGroup4RoomFlags", "ROOM_AGES_4fc")]              # Ages: bit 7, Veran beaten, 0:38's staircase
 OPTIONAL = {"linkUpdateVelocity@mermaidSuit", "runRoomSpecificCode", "bombUpgradeFairy_loseAllBombs", "wPortalGroup", "wPortalRoom", "wLinkTimeWarpTile", "wJabuWaterLevel", "wLinkRaisedFloorOffset", "wSelectedHarpSong",   # Ages only
             "wInBoxingMatch", "wSlingshotLevel", "wObtainedSeasons", "wMagnetGlovePolarity", "moblinKeepRooms",   # Seasons only
-            "wNumPlacedSlates"}   # neither original: a fan game's (Gifts of Kinomi)
+            "wNumPlacedSlates",   # neither original: a fan game's (Gifts of Kinomi)
+            "wSlingshotSelectedSeeds", "spr_extra_mags"}   # neither original: Oracles Combined's
 STRUCT_FIELDS = ["enabled", "id", "subid", "var03", "state", "substate", "counter1", "counter2", "direction",
                  "angle", "y", "yh", "x", "xh", "z", "zh", "speed", "speedZ", "relatedObj1", "relatedObj2",
                  "visible", "oamFlagsBackup", "oamFlags", "oamTileIndexBase", "oamDataAddress", "animCounter",
@@ -335,7 +339,7 @@ DUPLICATES = {"saveFile": 0,   # the bank-0 wrapper the game calls (bank0.s)
 # Sizes the host needs, from the `_sizeof_` entries of the symbol table.
 SIZES = [("global_flags_size", "_sizeof_wGlobalFlags", 1), ("room_flags_size", "_sizeof_wGroup0RoomFlags", 4),
          ("obtained_treasure_flags_size", "_sizeof_wObtainedTreasureFlags", 1), ("gasha_spots_planted_size", "_sizeof_wGashaSpotsPlantedBitset", 1),
-         ("vblank_function_queue_size", "_sizeof_wVBlankFunctionQueue", 1)]
+         ("vblank_function_queue_size", "_sizeof_wVBlankFunctionQueue", 1), ("inventory_storage_size", "_sizeof_wInventoryStorage", 1)]
 # Constants of the build, from the same entries of the symbol table:
 # the first ROM bank of the objects' sprite data (drawAllSprites@drawObject).
 CONSTANTS = [("oam_data_bank", "BASE_OAM_DATA_BANK")]
@@ -470,6 +474,24 @@ def item_labels(path: Path, game: str) -> list[tuple[str, str]]:
         seen[label] = name
         out.append((label, item_name(tail)))
     return out
+
+
+# The names a mod and the item hotkeys use: (field, constants file, prefix, whether the name keeps it, identifiers).
+NAMED_CONSTANTS = (("treasure_names", "treasure.s", "TREASURE_", False, 0x80),
+                   ("sound_names", "music.s", ("SND_", "MUS_"), True, 0x100),
+                   ("global_flag_names", "globalFlags.s", "GLOBALFLAG_", False, 0x80))
+
+
+def constant_names(constants: dict[str, int], field: str, prefix, keep_prefix: bool, capacity: int) -> list[str]:
+    """Each identifier's name, lower case, the first in alphabetical order when several share it; "" for none."""
+    named = {}
+    for name, value in sorted(constants.items()):
+        if not name.startswith(prefix) or value >= capacity or value in named:
+            continue
+        if field == "treasure_names" and (name in TREASURES_NOT_GIVEN or re.fullmatch(r"[0-9a-fA-F]{2}", name[len(prefix):])):
+            continue   # a placeholder or a helper of another treasure: no name, no call
+        named[value] = (name if keep_prefix else name[len(prefix):]).lower()
+    return [named.get(i, "") for i in range(capacity)]
 
 
 def item_name(tail: str) -> str:
@@ -697,18 +719,9 @@ def emit_game(game: str, labels: dict[str, tuple[int, int]], defines: dict[str, 
     # The treasures, sounds (music and effects) and global flags a mod names, as the disassembly names them, lower
     # case and without their prefix for the treasures and flags ("gasha_seed", "snd_getseed", "finishedgame"); an
     # identifier without a name is "".
-    for field, file, prefix, keep_prefix, capacity in (("treasure_names", "treasure.s", "TREASURE_", False, 0x80),
-                                                       ("sound_names", "music.s", ("SND_", "MUS_"), True, 0x100),
-                                                       ("global_flag_names", "globalFlags.s", "GLOBALFLAG_", False, 0x80)):
-        constants = load_constants(disasm / "constants" / "common" / file, game)
-        named = {}
-        for name, value in sorted(constants.items()):
-            if not name.startswith(prefix) or value >= capacity or value in named:
-                continue
-            if field == "treasure_names" and (name in TREASURES_NOT_GIVEN or re.fullmatch(r"[0-9a-fA-F]{2}", name[len(prefix):])):
-                continue   # a placeholder or a helper of another treasure: no name, no call
-            named[value] = (name if keep_prefix else name[len(prefix):]).lower()
-        lines.append(f"    .{field} = {{ " + ", ".join(f'"{named.get(i, "")}"' for i in range(capacity)) + " },")
+    for field, file, prefix, keep_prefix, capacity in NAMED_CONSTANTS:
+        named = constant_names(load_constants(disasm / "constants" / "common" / file, game), field, prefix, keep_prefix, capacity)
+        lines.append(f"    .{field} = {{ " + ", ".join(f'"{named[i]}"' for i in range(capacity)) + " },")
     # The treasures' tables the call transaction reads from the ROM at the time of a call (guest_call.c), never as values
     # here: treasureCollectionBehaviourTable (three bytes a treasure), treasureObjectData (four bytes a treasure, a
     # pointer to its subids' list for some) and the end of the last of those lists, and getRupeeValue's BCD words

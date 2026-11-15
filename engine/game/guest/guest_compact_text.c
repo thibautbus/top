@@ -184,8 +184,17 @@ int oracles_guest_arm_compact_text(OraclesGuest *guest)
         || oracles_guest_add_hook(guest, t->set_line_text_buffers, ORACLES_EVENT_TEXT_CHARACTER, 0) != 0
         || oracles_guest_add_hook(guest, place, ORACLES_EVENT_TEXT_CURSOR_PLACE, 0) != 0
         || oracles_guest_add_hook(guest, reveal, ORACLES_EVENT_TEXT_COLUMN_SHOWN, 0) != 0) return -1;
+    if (oracles_guest_text_follow_half(guest, ORACLES_GUEST_TEXT_COMPACT) != 0) return -1;
     guest->compact_armed = 1;
     return 0;
+}
+
+int oracles_guest_compact_font_wrong(const OraclesGuest *guest)
+{
+    if (!guest || !guest->compact_armed) return 0;
+    unsigned fixed = 1;
+    for (unsigned c = ORACLES_TEXT_FIRST_CHARACTER; c < 0x100u; c++) fixed &= guest->compact_font.advance[c] == ORACLES_TEXT_CELL_WIDTH;
+    return (int)fixed != (guest->compact_fixed != 0);
 }
 
 void oracles_guest_compact_counts(const OraclesGuest *guest, OraclesGuestCompactCounts *counts)

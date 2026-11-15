@@ -35,9 +35,12 @@ void oracles_guest_set_transition_swim(OraclesGuest *guest, int on) { (void)gues
 void oracles_guest_set_transition_steps(OraclesGuest *guest, int on) { (void)guest; (void)on; }
 int oracles_compat_continuous_line(const OraclesCompatProfile *profile) { (void)profile; return 1; }
 int oracles_compat_ages_water_rules(const OraclesCompatProfile *profile) { (void)profile; return 1; }
+unsigned oracles_compat_rom_bank_base(const OraclesCompatProfile *profile) { (void)profile; return 0; }
 int oracles_guest_set_transition_line(OraclesGuest *guest, int on) { (void)guest; (void)on; return 0; }
 static uint8_t bus_last_state;   /* what the policy's savestate data gives back to the bus */
 void oracles_guest_set_transition_last_state(OraclesGuest *guest, uint8_t state) { (void)guest; bus_last_state = state; }
+int oracles_guest_add_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque) { (void)guest; (void)listener; (void)opaque; return 0; }
+void oracles_guest_remove_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque) { (void)guest; (void)listener; (void)opaque; }
 void oracles_guest_set_transition_policy(OraclesGuest *guest, OraclesGuestTransitionFn policy, OraclesGuestTransitionResetFn reset, void *opaque)
 {
     (void)guest;
@@ -106,7 +109,7 @@ static OraclesGuestTransitionMutation next_frame_at(uint8_t raw, uint8_t state, 
 {
     OraclesGuestTransitionState s;
     memset(&s, 0, sizeof s);
-    s.game = ORACLES_GAME_AGES; s.ages_water = 1; s.game_state = 2; s.cutscene_index = 1; s.scroll_mode = state == 2u ? 1 : 4;
+    s.game = ORACLES_GAME_AGES; s.ages_water = 1; s.suit_swims = 1; s.game_state = 2; s.cutscene_index = 1; s.scroll_mode = state == 2u ? 1 : 4;
     s.transition_state = state; s.transition_direction = (uint8_t)(raw & 3u); s.transition_direction_raw = raw;
     s.link_object_index = 0xd0; s.link_state = 1; s.link_visible = 0x80; s.link_anim_mode = 0x10; s.animation_data_bank = 6;
     s.link_anim_pointer = 0x4000; s.link_input_angle = 0x80; s.tile_types_bank = 0xff; s.boundary_x = 154; s.boundary_y = 121;
@@ -124,7 +127,7 @@ static void play(const run *r, int *out_x, int *out_y)
 {
     OraclesGuestTransitionState s;
     memset(&s, 0, sizeof s);
-    s.game = ORACLES_GAME_AGES; s.ages_water = 1; s.game_state = 2; s.cutscene_index = 1; s.scroll_mode = 8;
+    s.game = ORACLES_GAME_AGES; s.ages_water = 1; s.suit_swims = 1; s.game_state = 2; s.cutscene_index = 1; s.scroll_mode = 8;
     s.transition_direction = (uint8_t)r->dir; s.link_object_index = 0xd0; s.link_state = 1; s.link_visible = 0x80;
     s.link_anim_mode = 0x10; s.animation_data_bank = 6; s.link_anim_pointer = 0x4000; s.animation_table = animation_table;
     s.map_transition_bank = 5; s.map_transition_table = 0x7000;   /* every group's list empty (main) */
@@ -1019,7 +1022,7 @@ int main(void)
         {
             OraclesGuestTransitionState n;
             memset(&n, 0, sizeof n);
-            n.game = ORACLES_GAME_AGES; n.ages_water = 1; n.game_state = 2; n.cutscene_index = 1; n.scroll_mode = 8; n.transition_state = 3;
+            n.game = ORACLES_GAME_AGES; n.ages_water = 1; n.suit_swims = 1; n.game_state = 2; n.cutscene_index = 1; n.scroll_mode = 8; n.transition_state = 3;
             n.link_object_index = 0xd0; n.link_state = 1; n.link_visible = 0x80; n.link_anim_mode = 0x10; n.animation_data_bank = 6;
             n.link_input_angle = 4; n.tile_types_bank = 0xff; n.active_room = 0x03; n.room_collisions = expected; n.room_layout = layout;
             n.frame = frame_counter++;
@@ -1227,6 +1230,35 @@ int main(void)
             }
         }
         g.load.objects = NULL;
+        /* With the line, the game's swim against the policy's step of it in normal play, on a family of Seasons whose
+         * swimming states move Link with the suit (Oracles Combined's Seasons half), var2f's bit 6 set: stepped as the suit
+         * where the game has its routine (suit_swims), and as the flippers, unlike the game, where it does not. */
+        for (int suit = 1; suit >= 0; suit--) {
+            oracles_room_transition_stop(tr);
+            tr = oracles_room_transition_start((OraclesGuest *)rom, rom, rom_size, 1);
+            CHECK(tr != NULL && oracles_room_transition_set_steps(tr, 1) && oracles_room_transition_set_line(tr, 1));
+            if (!tr) return 1;
+            OraclesRoomTransitionStats before, after;
+            oracles_room_transition_stats(tr, &before);
+            g.suit_swims = (uint8_t)suit; g.link_var2f = 0x40; g.swim_hold = 1; g.disabled_objects = 0;
+            g.link_x = 80 << 8; g.link_y = 60 << 8; g.transition_state = 2; g.scroll_mode = 1;
+            const swim_vector *v = &mermaid[0];
+            for (int k = 0; k < 2; k++) {
+                const OraclesSwimMotion *m = k ? &v->after : &v->before;
+                g.link_move_angle = m->angle; g.link_speed = m->speed; g.link_speed_tmp = m->speed_tmp; g.link_speed_counter = m->counter;
+                g.link_speed_period = m->period; g.link_stroke = m->stroke; g.link_counter1 = m->counter1; g.link_mermaid_stroke = m->mermaid_stroke;
+                g.link_direction = m->direction;
+                g.link_input_angle = k ? v->angle : 0x80; g.game_keys_pressed = k ? v->pressed : 0; g.game_keys_just_pressed = k ? v->just : 0;
+                g.game_frame = (uint8_t)(0x40 + k);
+                g.frame = frame_counter++;
+                memset(&glide, 0, sizeof glide);
+                installed(installed_opaque, &g, &glide);
+            }
+            oracles_room_transition_stats(tr, &after);
+            CHECK(after.swim_model_frames == before.swim_model_frames + 1);
+            CHECK(after.swim_model_mismatched == before.swim_model_mismatched + (suit ? 0u : 1u));
+        }
+        g.suit_swims = 0; g.link_var2f = 0; g.swim_hold = 0;
         predict_tables = NULL;
     }
 

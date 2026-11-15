@@ -15,7 +15,10 @@
  * European glyphs written first: a text laid out again is stored so, its entry marked (ORACLES_LANGUAGE_LAID_OUT); one
  * the game's tables keep (config/vwf_keep_<game>.tsv), or that another text calls or jumps to within a line, keeps its
  * layout.  English (US) has no pack: its index serves the US texts laid out again, the others kept in English; a fan
- * game's English is so laid out, its texts read in its image (the compact text lays it out in its English alone). */
+ * game's English is so laid out, its texts read in its image (the compact text lays it out in its English alone).  An
+ * image of two games that holds its own language (Oracles Combined) has no pack either: each half's texts, read from its
+ * three bases, are laid out in that language in the half's font, its index and texts in the half's banks from the same
+ * first one, the half's game's table of kept texts read, the pages noted where they lie in the whole image. */
 #include "language_internal.h"
 
 #include <stdio.h>
@@ -30,8 +33,9 @@
 #define PAGES_A_TEXT 64u   /* TX_09xx: the inventory's names and descriptions, which scroll on a line of their own */
 
 typedef struct composition {
-    uint8_t *im;
-    size_t size;                  /* the image's bytes */
+    uint8_t *im;                  /* the half composed: the image itself but for an image of two games */
+    size_t size;                  /* its bytes */
+    size_t base;                  /* where it starts in the image */
     size_t next;                  /* the next free byte of the language's banks */
     size_t end;                   /* past their last */
     language_slot slots[STORED_SLOTS];   /* the texts stored, by the hash of their bytes */
@@ -67,12 +71,12 @@ static void put_entry(uint8_t *entry, unsigned bank, unsigned addr)
     entry[2] = (uint8_t)(addr >> 8);
 }
 
-/* The text of TX_`id` the language has: the pack's, or for English (US) the US ROM's (`us`, decoded into `buffer`);
+/* The text of TX_`id` the language has: the pack's, or without one the image's own (`us`, decoded into `buffer`);
  * NULL when it has none. */
 static const uint8_t *text_of(const composition *c, const OraclesLanguagePack *pack, OraclesLanguage language, const OraclesTextSource *us,
                               unsigned groups, unsigned id, uint8_t *buffer, size_t *length)
 {
-    if (language != ORACLES_LANGUAGE_ENGLISH) return oracles_language_pack_text(pack, language, id, length);
+    if (pack) return oracles_language_pack_text(pack, language, id, length);
     const OraclesRom rom = { c->im, c->size };
     return language_text_of(&rom, us, groups, id, buffer, length) == 0 ? buffer : NULL;
 }
@@ -108,8 +112,8 @@ static void note_pages(composition *c, size_t at)
     OraclesLanguagePages *out = c->out_pages;
     for (unsigned i = 0; i < c->pages; i++) {
         if (i >= PAGES_A_TEXT || out->count >= out->capacity) { out->overflowed++; continue; }
-        out->ranges[2u * out->count] = (uint32_t)(at + c->page_from[i]);
-        out->ranges[2u * out->count + 1u] = (uint32_t)(at + c->page_to[i]);
+        out->ranges[2u * out->count] = (uint32_t)(c->base + at + c->page_from[i]);
+        out->ranges[2u * out->count + 1u] = (uint32_t)(c->base + at + c->page_to[i]);
         out->count++;
     }
 }
@@ -126,8 +130,8 @@ static int compose_group(composition *c, const OraclesLanguagePack *pack, Oracle
         const uint8_t *text = text_of(c, pack, language, us, groups, id, buffer, &length);
         int laid = 0;
         if (text && c->wrap) text = laid_out(c, language, group, id, text, &length, &laid, report);
-        if (!text || (language == ORACLES_LANGUAGE_ENGLISH && !laid)) {
-            const int kept = language == ORACLES_LANGUAGE_ENGLISH || oracles_language_pack_source_of(pack, language, id) != ORACLES_LANGUAGE_SOURCE_MISSING;
+        if (!text || (!pack && !laid)) {
+            const int kept = !pack || oracles_language_pack_source_of(pack, language, id) != ORACLES_LANGUAGE_SOURCE_MISSING;
             put_entry(entry, 0, kept ? ORACLES_LANGUAGE_KEPT : 0u);
             if (kept) report->english++;
             else report->missing++;
@@ -146,17 +150,19 @@ static int compose_group(composition *c, const OraclesLanguagePack *pack, Oracle
 /* The compact text's layout of a language, in the font of the image as composed: its words written with a hyphen
  * learned and the texts other texts call or jump to within a line found, over all its texts. */
 static int prepare_layout(composition *c, const OraclesLanguagePack *pack, OraclesLanguage language, const OraclesTextSource *us, unsigned groups,
-                          const language_target *target, const OraclesLanguageLayout *layout, char *error, size_t capacity)
+                          const language_target *target, const OraclesCompatProfile *half, const OraclesLanguageLayout *layout, char *error,
+                          size_t capacity)
 {
     const OraclesRom rom = { c->im, c->size };
+    const OraclesGuestTables *t = oracles_compat_guest_tables(half);
     OraclesTextFont font;
-    const int read = oracles_text_font(&rom, oracles_rom_offset(target->tables->font_start.bank, target->tables->font_start.addr), &font);
+    const int read = oracles_text_font(&rom, oracles_rom_offset(t->font_start.bank, t->font_start.addr), &font);
     if (read == ORACLES_OK && layout->fixed) oracles_text_font_fixed(&font, &font);
     if (read != ORACLES_OK || (layout->lines && layout->lines != 2u) || !(c->wrap = language_wrap_new(&font, layout->width, language))) {
         snprintf(error, capacity, "the compact text's layout of %u pixels a line cannot be made", layout->width);
         return -1;
     }
-    if (!(c->keep = language_keep_load(target->revision, error, capacity))) return -1;
+    if (!(c->keep = language_keep_parse(language_keep_table_half(target->revision, oracles_compat_family(half)), error, capacity))) return -1;
     uint8_t buffer[ORACLES_TEXT_MAX], targets[64];
     for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups; group++) {
         const int count = oracles_text_count(&rom, us, group);
@@ -179,7 +185,60 @@ static void free_composition(composition *c)
     free(c);
 }
 
-/* The composition of `language` (English (US): the US texts laid out again, `pack` NULL). */
+/* The language composed into one half of the image `im` (the image itself but for an image of two games): its index and
+ * its texts in the half's banks from the target's first. */
+static int compose_half(const OraclesLanguagePack *pack, OraclesLanguage language, const language_target *target, unsigned h, uint8_t *im,
+                        size_t composed, const OraclesLanguageLayout *layout, OraclesLanguageReport *report, char *error, size_t capacity)
+{
+    const OraclesCompatProfile *half = h ? oracles_compat_half(target->profile, h) : target->profile;
+    const size_t first = (size_t)target->first_bank * BANK, end = (LANGUAGE_LAST_BANK + 1u) * BANK;
+    composition *c = calloc(1, sizeof *c);
+    if (!c) { snprintf(error, capacity, "out of memory"); return -1; }
+    c->base = (size_t)oracles_compat_rom_bank_base(half) * BANK;
+    c->im = (uint8_t *)oracles_rom_half(im, composed, oracles_compat_rom_bank_base(half), &c->size);
+    c->end = end;
+    c->out_pages = layout ? layout->pages : NULL;
+    const OraclesRom rom = { c->im, c->size };
+    OraclesTextSource us;
+    const unsigned groups = c->im && language_source_profile(&rom, half, &us) == 0 ? oracles_text_groups(&rom, &us) : 0;
+    unsigned entries = 0;
+    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups; group++) {
+        const int count = oracles_text_count(&rom, &us, group);
+        entries += count > 0 ? (unsigned)count : 0u;
+    }
+    c->next = first + ORACLES_LANGUAGE_INDEX_GROUPS + 4u * groups + ENTRY_BYTES * entries;
+    if (!groups || groups > 0xffu || c->next > first + BANK) {
+        snprintf(error, capacity, "the image's text tables are not those of %s", target->name);
+        free_composition(c);
+        return -1;
+    }
+    /* The glyphs first: the layout measures the texts in the font the game will print them in. */
+    const uint8_t *characters = NULL, *bitmaps = NULL;
+    const unsigned glyphs = pack ? oracles_language_pack_glyphs(pack, &characters, &bitmaps) : 0;
+    const OraclesGuestTables *t = oracles_compat_guest_tables(half);
+    const size_t font = oracles_rom_offset(t->font_start.bank, t->font_start.addr);
+    for (unsigned g = 0; g < glyphs; g++) memcpy(c->im + font + characters[g] * GLYPH_BYTES, bitmaps + g * GLYPH_BYTES, GLYPH_BYTES);
+    int status = layout && layout->width ? prepare_layout(c, pack, language, &us, groups, target, half, layout, error, capacity) : 0;
+    uint8_t *index = c->im + first;
+    memcpy(index, ORACLES_LANGUAGE_INDEX_MAGIC, ORACLES_LANGUAGE_INDEX_MAGIC_BYTES);
+    index[16] = ORACLES_LANGUAGE_INDEX_VERSION;
+    index[17] = (uint8_t)groups;
+    memcpy(index + ORACLES_LANGUAGE_INDEX_CODE, oracles_language_code(language), strlen(oracles_language_code(language)));
+    size_t at = ORACLES_LANGUAGE_INDEX_GROUPS + 4u * groups;
+    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups && status == 0; group++) {
+        const int count = oracles_text_count(&rom, &us, group);
+        uint8_t *row = index + ORACLES_LANGUAGE_INDEX_GROUPS + 4u * group;
+        if (count <= 0) continue;
+        row[0] = (uint8_t)at; row[1] = (uint8_t)(at >> 8); row[2] = (uint8_t)count; row[3] = (uint8_t)(count >> 8);
+        status = compose_group(c, pack, language, &us, groups, group, (unsigned)count, index + at, report, error, capacity);
+        at += ENTRY_BYTES * (unsigned)count;
+    }
+    free_composition(c);
+    return status;
+}
+
+/* The composition of `language` (without a pack: the image's own texts laid out again, English (US)'s or the language an
+ * image of two games holds), a half at a time. */
 static int compose(const OraclesLanguagePack *pack, OraclesLanguage language, const language_target *target, const uint8_t *image, size_t size,
                    const OraclesLanguageLayout *layout, uint8_t **out, size_t *out_size, OraclesLanguageReport *report, char *error, size_t capacity)
 {
@@ -196,59 +255,24 @@ static int compose(const OraclesLanguagePack *pack, OraclesLanguage language, co
         }
         composed = size;
     }
-    for (size_t i = first; i < size && i < end; i++)
-        if (image[i]) { snprintf(error, capacity, "the image's language banks are taken"); return -1; }
-    composition *c = calloc(1, sizeof *c);
-    if (!c || !(c->im = calloc(1, composed))) { free(c); snprintf(error, capacity, "out of memory"); return -1; }
-    memcpy(c->im, image, size);
-    c->size = composed;
-    c->end = end;
-    if (layout && layout->pages) {
-        c->out_pages = layout->pages;
-        c->out_pages->count = c->out_pages->overflowed = 0;
+    for (unsigned h = 0; h < target->halves; h++) {
+        size_t half_size = 0;
+        const uint8_t *half = oracles_rom_half(image, size, oracles_compat_rom_bank_base(h ? oracles_compat_half(target->profile, h) : target->profile), &half_size);
+        for (size_t i = first; half && i < half_size && i < end; i++)
+            if (half[i]) { snprintf(error, capacity, "the image's language banks are taken"); return -1; }
     }
-    const OraclesRom rom = { c->im, composed };
-    OraclesTextSource us;
-    const unsigned groups = language_source_tables(&rom, target->tables, &us) == 0 ? oracles_text_groups(&rom, &us) : 0;
-    unsigned entries = 0;
-    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups; group++) {
-        const int count = oracles_text_count(&rom, &us, group);
-        entries += count > 0 ? (unsigned)count : 0u;
-    }
-    c->next = first + ORACLES_LANGUAGE_INDEX_GROUPS + 4u * groups + ENTRY_BYTES * entries;
-    if (!groups || groups > 0xffu || c->next > first + BANK) {
-        snprintf(error, capacity, "the image's text tables are not those of %s", target->name);
-        free(c->im);
-        free_composition(c);
-        return -1;
-    }
-    /* The glyphs first: the layout measures the texts in the font the game will print them in. */
-    const uint8_t *characters = NULL, *bitmaps = NULL;
-    const unsigned glyphs = pack ? oracles_language_pack_glyphs(pack, &characters, &bitmaps) : 0;
-    const size_t font = oracles_rom_offset(target->tables->font_start.bank, target->tables->font_start.addr);
-    for (unsigned g = 0; g < glyphs; g++) memcpy(c->im + font + characters[g] * GLYPH_BYTES, bitmaps + g * GLYPH_BYTES, GLYPH_BYTES);
-    int status = layout && layout->width ? prepare_layout(c, pack, language, &us, groups, target, layout, error, capacity) : 0;
-    uint8_t *index = c->im + first;
-    memcpy(index, ORACLES_LANGUAGE_INDEX_MAGIC, ORACLES_LANGUAGE_INDEX_MAGIC_BYTES);
-    index[16] = ORACLES_LANGUAGE_INDEX_VERSION;
-    index[17] = (uint8_t)groups;
-    memcpy(index + ORACLES_LANGUAGE_INDEX_CODE, oracles_language_code(language), strlen(oracles_language_code(language)));
-    size_t at = ORACLES_LANGUAGE_INDEX_GROUPS + 4u * groups;
-    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups && status == 0; group++) {
-        const int count = oracles_text_count(&rom, &us, group);
-        uint8_t *row = index + ORACLES_LANGUAGE_INDEX_GROUPS + 4u * group;
-        if (count <= 0) continue;
-        row[0] = (uint8_t)at; row[1] = (uint8_t)(at >> 8); row[2] = (uint8_t)count; row[3] = (uint8_t)(count >> 8);
-        status = compose_group(c, pack, language, &us, groups, group, (unsigned)count, index + at, report, error, capacity);
-        at += ENTRY_BYTES * (unsigned)count;
-    }
-    if (status == 0 && pack && target->original) status = language_gfx_compose(pack, language, c->im, composed, report, error, capacity);
+    uint8_t *im = calloc(1, composed);
+    if (!im) { snprintf(error, capacity, "out of memory"); return -1; }
+    memcpy(im, image, size);
+    if (layout && layout->pages) layout->pages->count = layout->pages->overflowed = 0;
+    int status = 0;
+    for (unsigned h = 0; h < target->halves && status == 0; h++) status = compose_half(pack, language, target, h, im, composed, layout, report, error, capacity);
+    if (status == 0 && pack && target->original) status = language_gfx_compose(pack, language, im, composed, report, error, capacity);
     if (status == 0) {
-        oracles_image_finish(c->im, composed);
-        *out = c->im;
+        oracles_image_finish(im, composed);
+        *out = im;
         *out_size = composed;
-    } else free(c->im);
-    free_composition(c);
+    } else free(im);
     return status;
 }
 
@@ -260,6 +284,10 @@ int oracles_language_compose(const OraclesLanguagePack *pack, OraclesLanguage la
     language_target target;
     if (language_target_of(pack->image, &target) != 0 || target.game != pack->game) {
         snprintf(error, capacity, "the pack translates an image the port does not know (SHA-1 %s)", pack->image);
+        return -1;
+    }
+    if (target.halves > 1u) {
+        snprintf(error, capacity, "%s holds its own language: no pack's is composed into it", target.name);
         return -1;
     }
     if (language == ORACLES_LANGUAGE_ENGLISH || !oracles_language_pack_count(pack, language)) {
@@ -281,5 +309,5 @@ int oracles_language_compose_english(const char *sha1, const uint8_t *image, siz
         return -1;
     }
     if (!layout || !layout->width) { snprintf(error, capacity, "English (US) is composed only laid out again"); return -1; }
-    return compose(NULL, ORACLES_LANGUAGE_ENGLISH, &target, image, size, layout, out, out_size, report, error, capacity);
+    return compose(NULL, target.own, &target, image, size, layout, out, out_size, report, error, capacity);
 }

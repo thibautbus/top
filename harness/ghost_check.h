@@ -31,6 +31,8 @@ void oracles_ghost_check_report(OraclesGhostCheck *check, FILE *out);
 void oracles_ghost_check_summary(const OraclesGhostCheck *check, FILE *out);
 /* DIR/reads.tsv: the addresses read by applyAllTileSubstitutions in the ghost, with counts. */
 void oracles_ghost_check_write_reads(OraclesGhostCheck *check, const char *dir);
+/* The guest went to the other half of an image of two games: a ghost of that half, the snapshots forgotten; -1 without. */
+int oracles_ghost_check_half_switched(OraclesGhostCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_ghost_check_stop(OraclesGhostCheck *check);
 
 #ifdef __cplusplus

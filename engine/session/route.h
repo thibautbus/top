@@ -85,8 +85,8 @@ typedef enum OraclesRouteVerb { ORACLES_ROUTE_EQUIP = 1, ORACLES_ROUTE_USE, ORAC
 typedef struct OraclesRouteAction {
     uint32_t frame;
     OraclesRouteVerb verb;
-    uint8_t swap, slot_a, item_a, slot_b, item_b;   /* slots: 0 B, 1 A, 2 to 17 the storage (s0 to s15) */
-    uint8_t variant, variant_value;                 /* 0 none, 1 satchel, 2 shooter, 3 harp */
+    uint8_t swap, slot_a, item_a, slot_b, item_b;   /* slots: 0 B, 1 A, 2 to 17 the storage (s0 to s15), to 21 in Oracles Combined (s19) */
+    uint8_t variant, variant_value;                 /* 0 none, 1 satchel, 2 shooter, 3 harp, 4 slingshot (Oracles Combined's) */
     uint8_t button, item;                           /* use: the carrier slot (0 B, 1 A) and the item; throw: the button; sound: the sound in `item` */
 } OraclesRouteAction;
 

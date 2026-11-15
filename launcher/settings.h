@@ -7,6 +7,7 @@
 #define ORACLES_LAUNCHER_SETTINGS_H
 
 #include "backends.h"
+#include "hotkey_lines.h"
 #include "item_hotkeys.h"
 #include "portable.h"
 #include "touch_controls.h"
@@ -85,13 +86,13 @@ typedef struct oracles_settings {
     char menu_pad[ORACLES_SETTINGS_NAME_LENGTH];   /* menu_pad=: the controller's Escape in a game, Guide's too (leftstick by default; a
                                                     * trigger, lefttrigger or righttrigger, too; empty: Guide alone) */
     /* Item hotkeys: the key and the button of each slot, the two keys that bind from a button, and the slots of each
-     * game (0 ages, 1 seasons).  With --rom the mode holds for the run that asks for it (deliberately:
+     * game (0 ages, 1 seasons, 2 Oracles Combined's, both its halves').  With --rom the mode holds for the run that asks for it (deliberately:
      * a command line speaks for its own run); the home screen remembers each game's (item_hotkeys_<game>=off|use, Controls' Off or On; equip,
      * which only the command line offers, reads too). */
     char hotkey_key_names[ORACLES_HOTKEY_SLOTS][ORACLES_SETTINGS_NAME_LENGTH];
     char hotkey_pad_names[ORACLES_HOTKEY_SLOTS][ORACLES_SETTINGS_NAME_LENGTH];
     char hotkey_bind_b[ORACLES_SETTINGS_NAME_LENGTH], hotkey_bind_a[ORACLES_SETTINGS_NAME_LENGTH];
-    OraclesHotkeySlot hotkeys[2][ORACLES_HOTKEY_SLOTS];
+    OraclesHotkeySlot hotkeys[ORACLES_HOTKEY_GAMES][ORACLES_HOTKEY_SLOTS];
     /* rom_ages=, rom_seasons=: the ROM a game starts from, set by dropping it on the home screen or by hand; empty: none. */
     char rom[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_PATH_LENGTH];
     /* patch_kinomi=, patch_moonrise=, patch_temple=: the BPS patch of each fan game, which plays from its Oracle's ROM
@@ -142,7 +143,7 @@ typedef struct oracles_settings {
                                    * kept dark as the game's map keeps them (hidden), in Enhanced; not in Display yet */
     int far_fixed;                /* far=screen|fixed: the far view fitted to the screen where its size fills it badly (screen, the default;
                                    * compositor.h, oracles_enhanced_far_fitting), or at its size whatever the screen (fixed); not in Display */
-    OraclesHotkeysMode item_hotkeys[ORACLES_SETTINGS_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too) */
+    OraclesHotkeysMode item_hotkeys[ORACLES_HOTKEY_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too); item_hotkeys_combined= for Oracles Combined */
     /* mods_ages=, mods_seasons=: the mods the game's Mods page made active, their names in order and separated by
      * commas, eight at most; empty: none.  The Mods page's Play starts the game with them. */
     char mods[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_MODS_LENGTH];
@@ -163,7 +164,7 @@ typedef struct oracles_settings {
                                    * default, as the system's touch feedback setting allows; not in Controls */
     /* menu_tip=, the reminder over each game started that names the key opening the menu: the games it was shown over, 0
      * to 9 (0 by default), or off (ORACLES_TIP_OFF) once the menu was opened by its key or after ten.  hotkeys_tip=, the
-     * line under the pause menu of Ages or Seasons while their item hotkeys are off: the pause menus it was shown in, 0 to
+     * line under the pause menu of Ages, Seasons or Oracles Combined while their item hotkeys are off: the pause menus it was shown in, 0 to
      * 2, or off once they were turned on or after three.  Controls' Reset to defaults brings both back.  The 1.3 versions'
      * menu_toast= is read and dropped: the reminder shows again to those who saw its toast. */
     int menu_tip, hotkeys_tip;
@@ -245,6 +246,8 @@ const char *oracles_settings_profile_name(OraclesProfile profile);
 const char *oracles_settings_game_name(OraclesSettingsGame game);
 /* off, use or equip, as the policy names them; NULL or anything else is off. */
 OraclesHotkeysMode oracles_settings_hotkeys_mode(const char *text);
+/* The generated tables that name the items of a game's hotkey slots (0 ages, 1 seasons, 2 Oracles Combined's). */
+const OraclesGuestTables *oracles_settings_hotkey_tables(unsigned game);
 
 /* A mods_<game>= list: its names, in their order (at most `capacity`); whether it has `name`; and `name` made active
  * or not, the names kept in order: 0 when a ninth mod would be active, the list then unchanged. */

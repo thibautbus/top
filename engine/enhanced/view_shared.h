@@ -229,6 +229,8 @@ unsigned ev_add_hidden_places(OraclesEnhancedView *v, OraclesEnhancedNeighbour *
 void ev_hidden_end(OraclesEnhancedView *v);
 void ev_check_reference_visited(OraclesEnhancedView *v);
 void ev_hidden_forget(OraclesEnhancedView *v);
+/* view_state.c: all the view holds of the game forgotten, the guest gone to the other half of an image of two games. */
+void ev_half_forget(OraclesEnhancedView *v);
 /* Whether the part of the band shown, the band's top-left corner at (band_left,
  * band_top), meets a rectangle of the world grown by `reach` each way. */
 int ev_shown_meets(const OraclesEnhancedView *v, int32_t band_left, int32_t band_top, int32_t left, int32_t top, int32_t width, int32_t height, int32_t reach);

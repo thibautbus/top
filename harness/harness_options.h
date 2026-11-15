@@ -15,7 +15,7 @@ typedef struct harness_poke { uint32_t frame; uint8_t bank; uint16_t addr; uint8
 
 /* What the command line asks of a run. */
 typedef struct harness_options {
-    const char *rom_path, *patch_path, *route_path, *out_path, *compare_a, *compare_b, *samples_dir;
+    const char *rom_path, *patch_path, *joined_path, *route_path, *out_path, *compare_a, *compare_b, *samples_dir;
     const char *ghost_dir, *enhanced_dir, *summary_path, *objects_dir, *render_expect, *hotkeys_dir;
     const char *positions_path;               /* --positions: group, room and Link's position after every frame */
     const char *frame_times_path;             /* --frame-times: each frame's phases, timed */
@@ -40,7 +40,7 @@ typedef struct harness_options {
     int enhanced_reload_in_place;
     const char *enhanced_surfaces_out, *enhanced_surfaces_against;
     uint32_t enhanced_surfaces_from;
-    uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
+    uint32_t enhanced_reload_at, hotbar_forget_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
     uint32_t framed_toggle[8];               /* --framed-toggle-at: the frames F3 switches between the wide world and the framed core */
     unsigned framed_toggles;
     unsigned enhanced_ghosts;                 /* --enhanced-ghosts: ghosts working at once, threaded (1 by default) */

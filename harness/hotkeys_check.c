@@ -29,7 +29,14 @@ struct OraclesHotkeysCheck {
     unsigned calls_seen, sounds_in_inventory;   /* the route's sounds run, and those run with the inventory open */
     struct { int active; uint32_t since; } throw_watch;   /* a `throw` line: Link must let go of what he holds within the grace */
     unsigned throws, throws_not_thrown;
+    unsigned applied_seasons_half, uses_seasons_half;   /* an image of two games: those of its second half (Seasons') */
 };
+
+static int in_second_half(const OraclesHotkeysCheck *c)
+{
+    const OraclesCompatProfile *p = oracles_guest_profile(c->guest);
+    return oracles_compat_half_switch(p) && oracles_compat_half_game(p) == 1u;
+}
 
 static void start_uses(OraclesHotkeysCheck *c, uint32_t frame);
 
@@ -87,7 +94,10 @@ void oracles_hotkeys_check_event(OraclesHotkeysCheck *c, const OraclesGuestEvent
     c->refresh_pending = 0;
     OraclesItemHotkeysStats stats;
     oracles_item_hotkeys_replay_stats(c->replay, &stats);
-    if (stats.applied != c->applied_seen) { c->applied_seen = stats.applied; c->refresh_pending = 1; c->refresh_pending_frame = event->frame; c->menu_opened_since = 0; }
+    if (stats.applied != c->applied_seen) {
+        if (in_second_half(c)) c->applied_seasons_half += stats.applied - c->applied_seen;
+        c->applied_seen = stats.applied; c->refresh_pending = 1; c->refresh_pending_frame = event->frame; c->menu_opened_since = 0;
+    }
 }
 
 static void close_use(OraclesHotkeysCheck *c)
@@ -118,6 +128,7 @@ static void start_uses(OraclesHotkeysCheck *c, uint32_t frame)
         if (a->verb != ORACLES_ROUTE_USE) continue;
         close_use(c);
         c->uses++;
+        if (in_second_half(c)) c->uses_seasons_half++;
         c->use.active = 1; c->use.fired = 0; c->use.item = a->item; c->use.since = frame; c->use.released_at = 0;
         /* The item already in use when the press begins (the shield kept up by its key across a scroll): the press
          * keeps it in use, and the game starts nothing anew. */
@@ -156,7 +167,7 @@ void oracles_hotkeys_check_frame_end(OraclesHotkeysCheck *c, uint32_t frame, uns
     c->calls_seen = calls;
     if (!c->tsv) return;
     unsigned storage = ORACLES_INVENTORY_SLOTS;
-    for (unsigned i = 2; i < ORACLES_INVENTORY_SLOTS && storage == ORACLES_INVENTORY_SLOTS; i++) if (s.slots[i] && s.slots[i] < s.num_inventory_items && s.slots[i] != s.item_biggoron_sword) storage = i;   /* the Biggoron sword takes both buttons: never exchanged */
+    for (unsigned i = 2; i < s.slot_count && storage == ORACLES_INVENTORY_SLOTS; i++) if (s.slots[i] && s.slots[i] < s.num_inventory_items && s.slots[i] != s.item_biggoron_sword) storage = i;   /* the Biggoron sword takes both buttons: never exchanged */
     const char *verdicts[2] = { "-", "-" };
     unsigned in_use = 0;
     for (unsigned i = 0; i < 5u; i++) in_use += s.parents[i].enabled != 0;
@@ -167,7 +178,7 @@ void oracles_hotkeys_check_frame_end(OraclesHotkeysCheck *c, uint32_t frame, uns
         verdicts[k] = oracles_guest_inventory_verdict_name(oracles_guest_inventory_check(&s, &op));
     }
     fprintf(c->tsv, "%u\t%02x\t%u\t%s\t%s\t%u\t%d\t", frame, keys & 0xffu, points, verdicts[0], verdicts[1], in_use, storage < ORACLES_INVENTORY_SLOTS ? (int)storage : -1);
-    for (unsigned i = 0; i < ORACLES_INVENTORY_SLOTS; i++) fprintf(c->tsv, "%s%02x", i ? " " : "", s.slots[i]);
+    for (unsigned i = 0; i < s.slot_count; i++) fprintf(c->tsv, "%s%02x", i ? " " : "", s.slots[i]);
     fprintf(c->tsv, "\t");
     for (unsigned i = 0; i < 5u; i++) fprintf(c->tsv, "%s%02x:%02x:%02x", i ? " " : "", s.parents[i].enabled, s.parents[i].id, s.parents[i].button);
     const unsigned read = oracles_guest_item_buttons(&s);   /* the buttons checkUseItems would read now (fact 10) */
@@ -191,6 +202,8 @@ void oracles_hotkeys_check_summary(OraclesHotkeysCheck *c, FILE *out)
             stats.applied, stats.replay_mismatch, stats.missed_write_point, violations, c->refresh_missed, c->refreshes_seen, c->write_points);
     for (unsigned v = ORACLES_INVENTORY_NOTHING; v < ORACLES_INVENTORY_VERDICTS; v++)
         if (stats.verdicts[v]) fprintf(out, "hotkeys.refused.%s=%u\n", oracles_guest_inventory_verdict_name((OraclesGuestInventoryVerdict)v), stats.verdicts[v]);
+    if (oracles_compat_half_switch(oracles_guest_profile(c->guest)))
+        fprintf(out, "hotkeys.applied_seasons_half=%u\nhotkeys.uses_seasons_half=%u\n", c->applied_seasons_half, c->uses_seasons_half);
 }
 
 void oracles_hotkeys_check_report(OraclesHotkeysCheck *c, FILE *out)

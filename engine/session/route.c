@@ -33,7 +33,8 @@ static int push_event(OraclesRoute *route, uint32_t frame, unsigned mask)
     return 0;
 }
 
-static const char *const variant_names[4] = { "", "satchel", "shooter", "harp" };
+/* The slingshot's own seeds, Oracles Combined's: a route of an image without them never has the name. */
+static const char *const variant_names[5] = { "", "satchel", "shooter", "harp", "slingshot" };
 
 static int slot_from_name(const char *name)
 {
@@ -42,7 +43,7 @@ static int slot_from_name(const char *name)
     if (name[0] != 's' || !name[1]) return -1;
     char *end = NULL;
     const unsigned long n = strtoul(name + 1, &end, 10);
-    return *end == 0 && n < 16ul ? (int)n + 2 : -1;
+    return *end == 0 && n < 20ul ? (int)n + 2 : -1;   /* s16 to s19: Oracles Combined's storage only */
 }
 
 static void slot_name(unsigned slot, char out[8])
@@ -78,7 +79,7 @@ static int parse_equip(char *rest, OraclesRouteAction *action)
             continue;
         }
         unsigned variant = 0;
-        for (unsigned v = 1; v < 4u; v++) if (strcmp(token, variant_names[v]) == 0) variant = v;
+        for (unsigned v = 1; v < 5u; v++) if (strcmp(token, variant_names[v]) == 0) variant = v;
         if (!variant || action->variant) return 0;
         action->variant = (uint8_t)variant; action->variant_value = value;
     }
@@ -564,7 +565,7 @@ int oracles_route_writer_action(OraclesRouteWriter *writer, const OraclesRouteAc
         fprintf(writer->file, "%u use %s %02x\n", action->frame, action->button ? "a" : "b", action->item);
         return 0;
     }
-    if (action->slot_a >= 18u || action->slot_b >= 18u || action->variant > 3u || (!action->swap && !action->variant)) return -1;
+    if (action->slot_a >= 22u || action->slot_b >= 22u || action->variant > 4u || (!action->swap && !action->variant)) return -1;
     fprintf(writer->file, "%u equip", action->frame);
     if (action->swap) {
         char a[8], b[8];

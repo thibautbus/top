@@ -209,6 +209,13 @@ unsigned oracles_ghost_frames_oam_full(const OraclesGhost *ghost);
 /* Loads the ROM once (copied by the core) and attaches its own guest.  The ghost runs on the game's core (`kind`, from
  * oracles_core_kind): it loads that core's savestates. */
 OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind);
+/* The ghost of the other half of an image of two games, on the same core (the whole image): its guest's tables and
+ * hooks and the data it reads of its half (read once for all the ghosts of the image).  A run in flight is not waited
+ * for: its worker moves the ghost once it ends, and its result is dropped.  -1 when a hook does not fit (a ghost that
+ * could not follow runs nothing after). */
+int oracles_ghost_switch_half(OraclesGhost *ghost, const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile);
+/* Whether the ghost could not follow the last switch (its hooks did not fit): it runs nothing until made again. */
+int oracles_ghost_half_failed(const OraclesGhost *ghost);
 void oracles_ghost_destroy(OraclesGhost *ghost);
 size_t oracles_ghost_state_size(OraclesGhost *ghost);
 
@@ -253,30 +260,45 @@ void oracles_ghost_set_held_season(OraclesGhost *ghost, int season);
  * run times out.  The state given must be primeable.  -1 none, the default.
  * Taken with each request. */
 void oracles_ghost_set_level_change(OraclesGhost *ghost, int group);
+/* The rooms of a half of the ROM as the ghost and the view read them, once: the room packs whose season never changes
+ * (Seasons) and the pack of each overworld room, the rooms of the open sea (Ages), the rooms of the overworld groups on
+ * their map, and the rooms whose transitions the game routes itself, its routine's case plus one. */
+typedef struct OraclesGhostRooms {
+    uint8_t fixed_season[256];
+    uint8_t room_pack_of[256];
+    uint8_t open_water_room[8][256];
+    uint8_t map_room[2][256];
+    uint8_t self_routed_room[8][256];
+} OraclesGhostRooms;
+/* A ghost's own, which its thread rewrites when it follows a switch of halves after its run. */
+const OraclesGhostRooms *oracles_ghost_rooms(const OraclesGhost *ghost);
+/* Those of `profile`'s half of the image, on the caller's thread: an image of two games keeps them by profile, which
+ * names the image's revision, and so its content (rom.c's SHA-1), whatever its address. */
+void oracles_ghost_rooms_read(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesGhostRooms *out);
 /* Seasons: whether an overworld room pack takes the season the game holds (0 for an
  * area whose season never changes: no stump for the rod of seasons, or $f0 and up). */
-int oracles_ghost_area_holds_season(const OraclesGhost *ghost, uint8_t room_pack);
+int oracles_ghost_area_holds_season(const OraclesGhostRooms *rooms, uint8_t room_pack);
 /* Ages: whether a room is part of the open sea (its tileset under water and
  * outdoors), which is a map of rooms side by side; a house under water is not. */
-int oracles_ghost_room_open_water(const OraclesGhost *ghost, uint8_t group, uint8_t room);
+int oracles_ghost_room_open_water(const OraclesGhostRooms *rooms, uint8_t group, uint8_t room);
 /* Whether a room of an overworld group (0 or 1) is on its map: without the
  * profile's tileset map rules, every one; with them, a room whose tileset is
  * outdoors (TILESETFLAG_OUTDOORS) within the map's columns and rows.  The
  * others are interiors on the grid: Moonrise's houses and dungeon filed
  * under its overworld groups and its areas past the 8 x 8 map, Subrosia's
  * rooms past its 11 x 8. */
-int oracles_ghost_room_on_map(const OraclesGhost *ghost, uint8_t group, uint8_t room);
+int oracles_ghost_room_on_map(const OraclesGhostRooms *rooms, uint8_t group, uint8_t room);
 /* The rectangle of the grid a group's open sea covers: its first column and
  * row, its columns and rows; 0 when the group has no sea. */
-int oracles_ghost_open_water_extent(const OraclesGhost *ghost, uint8_t group, uint8_t extent[4]);
+int oracles_ghost_open_water_extent(const OraclesGhostRooms *rooms, uint8_t group, uint8_t extent[4]);
 /* Whether the game routes this room's transitions itself (mapTransitionGroupTable,
  * docs/GAME_HOOKS.md, section 4.3): the room it loads when Link leaves is not the grid's neighbour
  * and depends on live state, so each direction is asked of the ghost from the room
  * in play (Seasons' Lost Woods, Ages' forest scrambler, both games' eye puzzle). */
-int oracles_ghost_room_self_routed(const OraclesGhost *ghost, uint8_t group, uint8_t room);
+int oracles_ghost_room_self_routed(const OraclesGhostRooms *rooms, uint8_t group, uint8_t room);
 /* The case of mapTransitionGroupTable that routes such a room (the routine
  * getNextActiveRoom jumps to), -1 for a room the game does not route. */
-int oracles_ghost_room_routine(const OraclesGhost *ghost, uint8_t group, uint8_t room);
+int oracles_ghost_room_routine(const OraclesGhostRooms *rooms, uint8_t group, uint8_t room);
 /* The routing key of a routine: the bytes it reads to choose the room, besides
  * the room it routes and the direction, each with the routine that reads it
  * (ghost_key.c), so that an answer the ghost gave holds while they keep their

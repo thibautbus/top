@@ -131,6 +131,46 @@ static void test_operations(void)
     CHECK(!oracles_guest_inventory_consistent(used.slots));
 }
 
+/* Oracles Combined: the slots past the eighteenth exist in its halves alone; the slingshot's own seeds; the harp's song in
+ * Seasons' half; a restore into the first empty slot of its twenty. */
+static void test_combined(void)
+{
+    OraclesGuestInventoryOp op;
+    for (OraclesGame game = ORACLES_GAME_AGES; game <= ORACLES_GAME_SEASONS; game++) {
+        const OraclesGuestInventoryState s = playable_combined(game);
+        memset(&op, 0, sizeof op);
+        op.swap = 1; op.slot_a = 0; op.slot_b = 18;
+        CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_APPLIED);
+        op.slot_b = 21; CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_APPLIED);   /* an empty slot: unequipping into it */
+        op.slot_b = 22; CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_REFUSED_OPERATION);
+        CHECK(oracles_item_hotkeys_equip(&s, 0x13, 2, 0, &op) && op.swap && op.slot_a == 0 && op.slot_b == 18
+              && op.variant == ORACLES_VARIANT_SLINGSHOT && op.variant_value == 2);
+        CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_REFUSED_VARIANT);   /* the pegasus seeds not obtained */
+        op.variant_value = 1; CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_APPLIED);
+        CHECK(oracles_item_hotkeys_equip(&s, 0x0f, 1, 0, &op) && op.variant == ORACLES_VARIANT_SHOOTER);   /* the shooter keeps its own */
+        CHECK(oracles_guest_item_variant(&s, 0x13) == 0 && oracles_guest_item_variant(&s, 0x11) == 1);
+        CHECK(oracles_item_hotkeys_equip(&s, 0x11, 2, 0, &op) && op.variant == ORACLES_VARIANT_HARP && oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_APPLIED);
+        OraclesGuestInventoryState full = s;
+        for (unsigned i = 2; i < 18u; i++) full.slots[i] = (uint8_t)(0x20u + i);
+        full.slots[0] = 0x13; full.slots[18] = 0x05;
+        CHECK(oracles_item_hotkeys_restore(&full, 0, 0x13, 0, ORACLES_HOTKEY_NO_VARIANT, &op) && op.slot_b == 20);   /* the first empty of the twenty */
+        OraclesGuestInventoryState used = s;
+        used.slots[0] = 0x13; used.slots[18] = 0x05; used.slingshot_seeds = 1;
+        CHECK(oracles_item_hotkeys_restore(&used, 0, 0x13, 0x05, 0, &op) && op.slot_b == 18 && op.variant == ORACLES_VARIANT_SLINGSHOT && op.variant_value == 0);
+    }
+    /* The originals: eighteen slots, the slingshot (Seasons') the shooter of its game, no seeds of its own. */
+    const OraclesGuestInventoryState s = playable(ORACLES_GAME_SEASONS);
+    memset(&op, 0, sizeof op);
+    op.swap = 1; op.slot_a = 0; op.slot_b = 18;
+    CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_REFUSED_OPERATION);
+    op.swap = 0; op.variant = ORACLES_VARIANT_SLINGSHOT; op.variant_value = 1;
+    CHECK(oracles_guest_inventory_check(&s, &op) == ORACLES_INVENTORY_REFUSED_OPERATION);
+    OraclesGuestInventoryState full = s;
+    for (unsigned i = 2; i < 18u; i++) full.slots[i] = (uint8_t)(0x20u + i);
+    full.slots[0] = 0x13;
+    CHECK(!oracles_item_hotkeys_restore(&full, 0, 0x13, 0, ORACLES_HOTKEY_NO_VARIANT, &op));   /* no empty slot among its sixteen */
+}
+
 /* ---- the transaction on a synthetic program ---------------------------------------------- */
 
 static unsigned asked, results, gfx_events;
@@ -245,6 +285,7 @@ int main(void)
     test_conditions(ORACLES_GAME_AGES);
     test_conditions(ORACLES_GAME_SEASONS);
     test_operations();
+    test_combined();
     test_transaction();
     if (failures) return 1;
     puts("test_item_hotkeys: ok");

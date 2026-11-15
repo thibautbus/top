@@ -47,6 +47,13 @@ OraclesObjectSpritesCheck *oracles_object_sprites_check_start(OraclesGuest *gues
     return c;
 }
 
+void oracles_object_sprites_check_half_switched(OraclesObjectSpritesCheck *c, const uint8_t *rom, size_t rom_size)
+{
+    memcpy(c->rom, rom, rom_size < c->rom_size ? rom_size : c->rom_size);
+    oracles_sprites_forget(c->tags);
+    oracles_sprites_add_hooks(c->guest);
+}
+
 void oracles_object_sprites_check_stop(OraclesObjectSpritesCheck *c)
 {
     if (!c) return;

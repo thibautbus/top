@@ -37,7 +37,8 @@ static int named(const char *const *names, unsigned count, uint8_t value)
 
 static int bcd(uint8_t value) { return (value >> 4) <= 9u && (value & 0x0fu) <= 9u; }
 
-/* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000. */
+/* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000, the cartridge
+ * RAM's code from its bank's start (oracles_rom.h), within the 8 KiB the game copies. */
 const uint8_t *oracles_guest_rom_at(const OraclesGuestRom *rom, OraclesGuestSym sym, size_t length)
 {
     if (!rom || !rom->data || sym.bank == ORACLES_GUEST_ABSENT) return NULL;
@@ -45,6 +46,9 @@ const uint8_t *oracles_guest_rom_at(const OraclesGuestRom *rom, OraclesGuestSym 
     if (sym.bank == 0u) {
         if (sym.addr >= 0x4000u) return NULL;
         at = sym.addr;
+    } else if (oracles_rom_in_sram(sym.addr)) {
+        if (sym.addr - ORACLES_SRAM_CODE_START + length > ORACLES_SRAM_CODE_END - ORACLES_SRAM_CODE_START) return NULL;   /* the copy's 8 KiB */
+        at = (size_t)sym.bank * 0x4000u + (sym.addr - ORACLES_SRAM_CODE_START);
     } else {
         if (sym.addr < 0x4000u || sym.addr >= 0x8000u) return NULL;
         at = (size_t)sym.bank * 0x4000u + (sym.addr - 0x4000u);
@@ -148,7 +152,10 @@ OraclesGuestRom oracles_guest_rom(OraclesGuest *guest)
 {
     OraclesGuestRom rom = { NULL, 0 };
     uint16_t bank = 0;
-    if (guest && guest->core) rom.data = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &rom.size, &bank);
+    size_t size = 0;
+    if (!guest || !guest->core) return rom;
+    const uint8_t *image = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
+    rom.data = oracles_rom_half(image, size, guest->rom_bank_base, &rom.size);
     return rom;
 }
 
@@ -164,36 +171,55 @@ static OraclesGuestSym routine_entry(const OraclesGuestTables *t, OraclesGuestRo
     }
 }
 
-/* The return address of the one `call checkReloadStatusBarGraphics` of mainThreadStart, read in the user's ROM (as
- * the inventory transaction finds its write point, guest_inventory.c). */
-static uint16_t find_call_point(OraclesGuest *guest)
+uint16_t oracles_guest_find_status_bar_call(OraclesGuest *guest)
 {
     const OraclesGuestTables *t = guest->tables;
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
-    const uint16_t start = t->main_thread_start.addr, target = t->check_reload_status_bar_graphics.addr;
-    if (!rom || t->main_thread_start.bank != 0 || t->check_reload_status_bar_graphics.bank != 0 || (size_t)start + 0x80u > size || start + 0x80u > 0x4000u) return 0;
+    const OraclesGuestRom rom = oracles_guest_rom(guest);
+    const OraclesGuestSym main = t->main_thread_start;
+    const uint16_t start = main.addr, target = t->check_reload_status_bar_graphics.addr;
+    if (!oracles_guest_always_mapped(guest, main) || t->check_reload_status_bar_graphics.bank != 0) return 0;
+    const unsigned region_end = start < 0x4000u ? 0x4000u : ORACLES_SRAM_CODE_END;
+    const uint8_t *code = start + 0x80u <= region_end ? oracles_guest_rom_at(&rom, main, 0x80u) : NULL;
+    if (!code) return 0;
     uint16_t found = 0;
     unsigned count = 0;
-    for (uint16_t at = start; at < start + 0x80u - 2u; at++)
-        if (rom[at] == 0xcdu && rom[at + 1u] == (uint8_t)target && rom[at + 2u] == (uint8_t)(target >> 8)) { found = (uint16_t)(at + 3u); count++; }
+    for (unsigned i = 0; i < 0x80u - 2u; i++)
+        if (code[i] == 0xcdu && code[i + 1u] == (uint8_t)target && code[i + 2u] == (uint8_t)(target >> 8)) { found = (uint16_t)(start + i + 3u); count++; }
     return count == 1u ? found : 0;
 }
 
-int oracles_guest_arm_calls(OraclesGuest *guest)
+static int arm_calls(OraclesGuest *guest)
 {
-    if (!guest || !oracles_compat_item_hotkeys(guest->profile)) return -1;
-    if (guest->calls_armed) return 0;
     const OraclesGuestTables *t = guest->tables;
-    /* Every routine of the catalogue is a bank-0 entry, which switches banks itself. */
+    /* Every routine of the catalogue is a bank-0 entry, which switches banks itself, or one of the cartridge RAM's code,
+     * mapped as mainThreadStart's own code is where it runs there. */
     for (OraclesGuestRoutine routine = ORACLES_ROUTINE_GIVE_TREASURE; routine <= ORACLES_ROUTINE_UNSET_GLOBAL_FLAG; routine++)
-        if (routine_entry(t, routine).bank != 0) return -1;
-    const uint16_t point = find_call_point(guest);
+        if (!oracles_guest_always_mapped(guest, routine_entry(t, routine))) return -1;
+    const uint16_t point = oracles_guest_find_status_bar_call(guest);
     if (!point || (guest->inventory_write_pc && guest->inventory_write_pc != point)) return -1;
     guest->inventory_write_pc = point;
     if (oracles_guest_add_hook(guest, t->check_reload_status_bar_graphics, ORACLES_EVENT_STATUS_BAR_CHECK, 0) != 0) return -1;
     guest->calls_armed = 1;
+    return 0;
+}
+
+/* The game went to the other half of its image: the calls' point in that half's mainThreadStart. */
+static void follow_half(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    if (guest->calls_follow && arm_calls(guest) != 0) guest->half_features_refused++;
+}
+
+int oracles_guest_calls_qualified(const OraclesCompatProfile *profile) { return oracles_compat_item_hotkeys(profile); }
+
+int oracles_guest_arm_calls(OraclesGuest *guest)
+{
+    if (!guest || !oracles_guest_calls_qualified(guest->profile)) return -1;
+    if (guest->calls_armed || (guest->half_left && guest->calls_follow)) return 0;
+    if (oracles_guest_listen_half(guest, follow_half) != 0) return -1;
+    if (guest->half_left) { guest->calls_follow = 1; return 0; }   /* between two halves: armed in the next */
+    if (arm_calls(guest) != 0) return -1;
+    guest->calls_follow = 1;
     return 0;
 }
 
@@ -226,6 +252,7 @@ void oracles_guest_call_point(OraclesGuest *guest, uint16_t sp)
     const OraclesGuestSym at_sp = { 0, sp };
     const uint8_t *word = oracles_guest_ptr(guest, at_sp, 2);
     if (!word || (uint16_t)(word[0] | (word[1] << 8)) != guest->inventory_write_pc) return;   /* not the call of mainThreadStart */
+    if (!oracles_guest_code_mapped(guest, guest->tables->main_thread_start)) return;   /* the same address in another half's code */
     OraclesGuestInventoryState state;
     oracles_guest_inventory_state(guest, &state);
     if (!oracles_guest_call_may_run(&state, &guest->calls[0])) return;
@@ -243,6 +270,9 @@ void oracles_guest_call_step(OraclesGuest *guest, uint16_t sp, uint8_t opcode)
     if (!word || (uint16_t)(word[0] | (word[1] << 8)) != guest->inventory_write_pc) return;
     const OraclesGuestCall call = guest->calls[0];
     const OraclesGuestSym routine = routine_entry(guest->tables, call.routine);
+    /* A routine of the cartridge RAM's code is this half's only while the RAM holds its copy: the other half's has other
+     * code at the same address.  The call waits for the next frame. */
+    if (oracles_rom_in_sram(routine.addr) && !oracles_guest_sram_code_mapped(guest, routine)) return;
     uint8_t *wram = oracles_guest_wram_writable(guest, 0);
     const uint16_t below = (uint16_t)(sp - 2u);
     if (!wram || below < 0xc000u || below > 0xcffeu) return;

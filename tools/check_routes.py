@@ -19,7 +19,9 @@ synchronous: reproducible, hashed), enhanced-threaded (the same with the ghost
 in its thread, as played: the figures that do not depend on timing),
 enhanced-zoom and enhanced-zoom-threaded (the same two with the drawn-back
 view's 480x270 surface, --zoom-out; the synchronous one never runs
-the ghost into a wrong room either).
+the ghost into a wrong room either), core (the core alone, hooks off, for an
+image without a profile, Oracles Combined's: the SHA-1 of the cartridge RAM
+at the end, held as the row's hash).
 options: extra harness flags, `-` for none (a route recorded with
 --continuous-transitions carries the option in its header, and the harness
 turns it on by itself); a --mods directory is relative to the repository; a
@@ -56,7 +58,9 @@ its faithful rows with a check that only reads (READING_CHECKS).
 
 The ROMs are found by the SHA-1 of the route's header in $ORACLES_ROM_DIR,
 a fan game's as the image a BPS patch there makes of a ROM there, replayed
-from the two as the launcher plays it (--patch); without the directory the
+from the two as the launcher plays it (--patch), or of two ROMs there joined
+(--joined-rom: Oracles Combined's, of the European ROMs); a core row whose
+image is not there is skipped, said; without the directory the
 script exits 77 (ctest: skipped).  The routes' starting SRAM
 sits beside them; no ROM data is read from the repository.
 
@@ -75,7 +79,7 @@ import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from bps import patch_report  # noqa: E402  (the offline tools' BPS applier, CRCs checked)
+from bps import number, patch_report  # noqa: E402  (the offline tools' BPS applier, CRCs checked)
 from compare_positions import Unreadable, rooms_in_common  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
@@ -100,6 +104,7 @@ ALWAYS = {
     "faithful": ["result=ok", "render.verdict=pass", "ghost.different=0", "ghost.wrong_room=0", "ghost.load_failed=0", "ghost.no_snapshot=0",
                  "ghost.reads_outside_key=0", "ghost.untraced_runs=0", "ghost.reads_dropped=0", "ghost.returns_purged=0", "ghost.returns_overflow=0"],
     "faithful-cc": ["result=ok", "render.verdict=pass"],
+    "core": ["result=ok"],
     "enhanced": ["result=ok", "enhanced.camera_jumps=0", "enhanced.window_misplaced=0", "enhanced.terrains_different=0",
                  "enhanced.live_diff_max=0", "enhanced.plain_shown_frames=0", "object_sprites.objects_wrong=0", "object_sprites.frames_wrong=0", "object_sprites.read_failures=0",
                  "sprites.shadows_unowned=0", "sprites.shadows_left=0", "sprites.shadows_grounded=0", "enhanced.text_box_frames_in_place=0",
@@ -162,6 +167,7 @@ MODE_FLAGS = {
     "faithful": lambda w: ["--render-check", str(w / "render"), "--colour-correction", "off", "--ghost-check", str(w / "ghost"), "--ghost-trace",
                            "--out", str(w / "fingerprints.tsv")],
     "faithful-cc": lambda w: ["--render-check", str(w / "render"), "--colour-correction", "on"],
+    "core": lambda w: ["--hooks", "off", "--sram-out", str(w / "sram.sav")],
     "enhanced": lambda w: ["--enhanced-check", str(w / "enhanced"), "--enhanced-camera", "2", "--out", str(w / "fingerprints.tsv")],
     "enhanced-threaded": lambda w: ["--enhanced-check", str(w / "enhanced"), "--enhanced-camera", "2", "--enhanced-threaded", "--out", str(w / "fingerprints.tsv")],
 }
@@ -220,6 +226,22 @@ EU_ROMS = {"ages": european_rom("ages"), "seasons": european_rom("seasons")}
 EU_ROMS.update({"moonrise-regalia": EU_ROMS["ages"], "gifts-of-kinomi": EU_ROMS["ages"], "temple-of-seasons": EU_ROMS["seasons"]})
 
 
+def joined_base(roms: dict, patch: bytes, source_crc) -> tuple:
+    """The two ROMs of the directory whose join, the first then the second, is the patch's source (Oracles Combined's
+    European ROMs of Ages then Seasons); None."""
+    if source_crc is None or patch[:4] != b"BPS1":
+        return None
+    size, _ = number(patch, 4)
+    paths = [Path(args[1]) for args in roms.values() if len(args) == 2]
+    sizes = {path: path.stat().st_size for path in paths}
+    for first in paths:
+        for second in paths:
+            if first != second and sizes[first] + sizes[second] == size:
+                if zlib.crc32(second.read_bytes(), zlib.crc32(first.read_bytes())) == source_crc:
+                    return first, second
+    return None
+
+
 def find_roms(rom_dir: Path) -> dict:
     """SHA-1 -> the harness's ROM arguments, for every ROM in the directory (not recursive) and every image
     a BPS patch there makes of one of them."""
@@ -236,6 +258,16 @@ def find_roms(rom_dir: Path) -> dict:
         patch = p.read_bytes()
         source_crc = int.from_bytes(patch[-12:-8], "little") if len(patch) > 16 else None
         base = crcs.get(source_crc) if source_crc is not None else None
+        joined = joined_base(roms, patch, source_crc) if base is None else None
+        if joined is not None:
+            first, second = joined
+            try:
+                image, report = patch_report(first.read_bytes() + second.read_bytes(), None, patch)
+            except (ValueError, IndexError) as error:
+                print(f"check_routes: {p.name}: does not apply to {first.name} and {second.name} joined ({error or 'cut short'}): its image is not offered")
+                continue
+            roms.setdefault(report["patched_sha1"], ["--rom", str(first), "--joined-rom", str(second), "--patch", str(p)])
+            continue
         if base is None:
             # Said, not silent: the routes of that fan game would otherwise fail as "no ROM with SHA-1 ...".
             print(f"check_routes: {p.name}: no ROM in the directory is its base (source CRC32 "
@@ -484,7 +516,8 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
         v = check(rule, values)
         if v:
             violations.append(v)
-    got_hash = values.get("enhanced.run_hash", "-") if row["mode"] in HASHED_MODES else "-"
+    got_hash = (values.get("enhanced.run_hash", "-") if row["mode"] in HASHED_MODES
+                else values.get("sram.sha1", "-") if row["mode"] == "core" else "-")
     # A run killed by a signal leaves its fingerprints cut short: the row fails by itself, compared with nothing.
     fingerprints = w / "fingerprints.tsv" if returncode >= 0 else None
     # A route recorded since the core's joypad bouncing was cut says so: the emulated state must then be the same
@@ -510,15 +543,16 @@ READING_CHECKS = ("--object-animation-check", "--beside-witness")
 def view_free(options: list) -> list:
     """The options less the view's level and shape (--view, --aspect), the screen far is fitted to (--screen), the
     status bar's width (--hud), the text box's size (--text-size), the neighbours' objects frozen (--neighbour-animation),
-    the rooms never visited kept dark (--unvisited-rooms) and the large menus (--menus-large), which do not change the
-    game, and the checks that only read: a row of a size, of the bar drawn full width, of the box twice as large, of the
-    objects frozen, of the dark rooms, or of such a check, is compared with the faithful row of its route, or without a
-    faithful row (the compact text, the wide box) with its row without them."""
+    the rooms never visited kept dark (--unvisited-rooms), the hotbar's icons forgotten (--hotbar-forget-at) and the
+    large menus (--menus-large), which do not change the game, and the checks that only read: a row of a size, of the
+    bar drawn full width, of the box twice as large, of the objects frozen, of the dark rooms, of the icons forgotten, or
+    of such a check, is compared with the faithful row of its route, or without a faithful row (the compact text, the
+    wide box) with its row without them."""
     out, skip = [], False
     for option in options:
         if skip:
             skip = False
-        elif option in ("--view", "--aspect", "--screen", "--hud", "--text-size", "--neighbour-animation", "--unvisited-rooms"):
+        elif option in ("--view", "--aspect", "--screen", "--hud", "--text-size", "--neighbour-animation", "--unvisited-rooms", "--hotbar-forget-at"):
             skip = True
         elif option == "--menus-large" or option in READING_CHECKS:
             pass
@@ -608,6 +642,13 @@ def main() -> int:
     if missing:
         print(f"check_routes: {len(missing)} row(s) in a language skipped: no European ROM of their game in {rom_dir}")
         rows = [r for r in rows if r not in missing]
+        if not rows:
+            return 77
+    # A core row plays an image without a profile, made of files a ROM directory may not hold (Oracles Combined's patch).
+    absent = [r for r in rows if r["mode"] == "core" and route_header(args.routes / r["route"]).get("rom_sha1", "") not in roms]
+    if absent:
+        print(f"check_routes: {len(absent)} core row(s) skipped: their image, or the files that make it, not in {rom_dir}")
+        rows = [r for r in rows if r not in absent]
         if not rows:
             return 77
     if not rows:

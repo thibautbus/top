@@ -8,7 +8,7 @@
 
 struct OraclesHotkeysSession {
     OraclesGuest *guest;
-    unsigned game;                       /* 0 ages, 1 seasons: the slots of settings.txt */
+    unsigned game;                       /* the slots of settings.txt: 0 ages, 1 seasons, 2 Oracles Combined */
     OraclesHotkeysMode mode, next;       /* next: the mode asked for, taken at rest */
     oracles_settings *settings;
     OraclesItemHotkeys *live;            /* NULL while a route is replayed */
@@ -73,13 +73,13 @@ static int start_live(OraclesHotkeysSession *s)
     return 1;
 }
 
-OraclesHotkeysSession *oracles_hotkeys_session_start(OraclesGuest *guest, OraclesGame game, OraclesHotkeysMode mode,
+OraclesHotkeysSession *oracles_hotkeys_session_start(OraclesGuest *guest, unsigned slots, OraclesHotkeysMode mode,
                                                      oracles_settings *settings, const OraclesRoute *route)
 {
     OraclesHotkeysSession *s = calloc(1, sizeof *s);
     if (!s) return NULL;
     s->guest = guest;
-    s->game = game == ORACLES_GAME_AGES ? 0u : 1u;
+    s->game = slots < ORACLES_HOTKEY_GAMES ? slots : 0u;
     s->mode = s->next = mode;
     s->settings = settings;
     if (route) {

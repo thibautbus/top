@@ -31,6 +31,9 @@ uint8_t *oracles_bps_read_file(const char *path, size_t *size, char *error, size
 int oracles_bps_check(const uint8_t *patch, size_t patch_size, char *error, size_t error_capacity);
 int oracles_bps_check_file(const char *patch_path, char *error, size_t error_capacity);
 
+/* The reason oracles_bps_apply gives a patch made for another base. */
+extern const char oracles_bps_other_base[];
+
 /* Applies `patch` to `source`.  Returns the target, which the caller frees,
  * and its size; NULL with the reason otherwise. */
 uint8_t *oracles_bps_apply(const uint8_t *source, size_t source_size, const uint8_t *patch, size_t patch_size,
@@ -40,6 +43,16 @@ uint8_t *oracles_bps_apply(const uint8_t *source, size_t source_size, const uint
  * Returns it, which the caller frees, and its size; NULL with the reason. */
 uint8_t *oracles_bps_apply_files(const char *base_path, const char *patch_path, size_t *size,
                                  char *error, size_t error_capacity);
+
+/* Two ROMs one after the other, the base of a patch made for them joined (Oracles Combined: the European ROMs of Ages
+ * then Seasons).  Returns it, which the caller frees; NULL with the reason. */
+uint8_t *oracles_bps_join(const uint8_t *first, size_t first_size, const uint8_t *second, size_t second_size, size_t *size,
+                          char *error, size_t error_capacity);
+
+/* oracles_bps_apply_files with the ROM at `joined_path` joined after the base before the patch applies; NULL
+ * `joined_path`: the base alone. */
+uint8_t *oracles_bps_apply_joined_files(const char *base_path, const char *joined_path, const char *patch_path, size_t *size,
+                                        char *error, size_t error_capacity);
 
 #ifdef __cplusplus
 }

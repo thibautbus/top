@@ -10,6 +10,7 @@
 #include "compositor.h"
 #include "home_choices.h"
 #include "home_fixture.h"
+#include "profile.h"
 #include "session.h"
 #include "settings.h"
 #include "state_display.h"
@@ -17,6 +18,9 @@
 #include "room_transition.h"
 #include "ui_controls_nav.h"
 #include "ui_page_nav.h"
+#include "ui_page_text.h"
+
+#include <SDL3/SDL.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -104,6 +108,46 @@ static void unknown_keys(const char *path)
     write_text(path, "profile=faithful\n");
     oracles_settings_load(&s);
     CHECK(s.unknown[0] == 0);
+}
+
+/* The item hotkeys of a settings.txt written by 1.4.0, its lines as it wrote them: each game's slots and mode read the
+ * same, Oracles Combined's empty and off; written again, the Oracles' lines unchanged, Combined's beside them. */
+static void hotkeys_of_1_4_0(const char *path)
+{
+    static const char *const lines_1_4_0[] = {
+        "item_hotkeys_ages=use\n", "item_hotkeys_seasons=equip\n",
+        "# Switch Hook\n", "hotkey_ages_1=b:0a:--\n", "# Seed Satchel\n", "hotkey_ages_2=a:19:02\n", "hotkey_ages_3=-\n", "# Harp\n", "hotkey_ages_4=b:11:03\n",
+        "# Rod of Seasons\n", "hotkey_seasons_1=b:07:--\n", "# Slingshot\n", "hotkey_seasons_2=a:13:01\n", "# Magnet Gloves\n", "hotkey_seasons_3=b:08:--\n",
+        "hotkey_seasons_4=-\n" };
+    char text[1024] = "";
+    for (unsigned i = 0; i < sizeof lines_1_4_0 / sizeof lines_1_4_0[0]; i++) strcat(text, lines_1_4_0[i]);
+    write_text(path, text);
+    for (int round = 0; round < 2; round++) {
+        oracles_settings s;
+        oracles_settings_defaults(&s);
+        snprintf(s.path, sizeof s.path, "%s", path);
+        oracles_settings_load(&s);
+        CHECK(s.item_hotkeys[0] == ORACLES_HOTKEYS_USE && s.item_hotkeys[1] == ORACLES_HOTKEYS_EQUIP && s.item_hotkeys[ORACLES_HOTKEY_GAME_COMBINED] == ORACLES_HOTKEYS_OFF);
+        const OraclesHotkeySlot *a = s.hotkeys[0], *b = s.hotkeys[1], *c = s.hotkeys[ORACLES_HOTKEY_GAME_COMBINED];
+        CHECK(a[0].set && a[0].item == 0x0a && a[0].variant == ORACLES_HOTKEY_NO_VARIANT && a[0].target == ORACLES_INVENTORY_SLOT_B);
+        CHECK(a[1].set && a[1].item == 0x19 && a[1].variant == 2 && a[1].target == ORACLES_INVENTORY_SLOT_A && !a[2].set);
+        CHECK(a[3].set && a[3].item == 0x11 && a[3].variant == 3 && a[3].target == ORACLES_INVENTORY_SLOT_B);
+        CHECK(b[0].set && b[0].item == 0x07 && b[1].set && b[1].item == 0x13 && b[1].variant == 1 && b[1].target == ORACLES_INVENTORY_SLOT_A);
+        CHECK(b[2].set && b[2].item == 0x08 && !b[3].set);
+        CHECK(!c[0].set && !c[1].set && !c[2].set && !c[3].set);
+        CHECK(s.unknown[0] == 0);
+        CHECK(oracles_settings_store(&s) == 1);
+        for (unsigned i = 0; i < sizeof lines_1_4_0 / sizeof lines_1_4_0[0]; i++) CHECK(file_has_line(path, lines_1_4_0[i]));
+        CHECK(file_has_line(path, "item_hotkeys_combined=off\n") && file_has_line(path, "hotkey_combined_1=-\n") && file_has_line(path, "hotkey_combined_4=-\n"));
+    }
+    /* Combined's own, read back. */
+    oracles_settings s;
+    oracles_settings_defaults(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    write_text(path, "item_hotkeys_combined=use\nhotkey_combined_2=b:13:01\n");
+    oracles_settings_load(&s);
+    CHECK(s.item_hotkeys[ORACLES_HOTKEY_GAME_COMBINED] == ORACLES_HOTKEYS_USE && s.hotkeys[ORACLES_HOTKEY_GAME_COMBINED][1].item == 0x13 && !s.hotkeys[0][1].set);
+    CHECK(oracles_settings_store(&s) == 1 && file_has_line(path, "# Slingshot\n") && file_has_line(path, "hotkey_combined_2=b:13:01\n"));
 }
 
 /* RetroAchievements' Unlock sound, achievements_sound=: on by default and then not written, off written and read back,
@@ -797,6 +841,122 @@ static void profile_refusals(void)
     CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_KINOMI_1_1_2) == SWIM_FAN_REFUSES);
     CHECK(oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_MOONRISE_1_0_6) == FAN_REFUSES);
     CHECK(oracles_home_refusals(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_TEMPLE_1_073) == SWIM_FAN_REFUSES);
+    /* Oracles Combined's images: Enhanced, the swim's hold, the cheats, the instant text, the text's box and size, the
+     * item hotkeys qualified. */
+    for (OraclesRomRevision r = ORACLES_ROM_REVISION_COMBINED_1_5_EN; r <= ORACLES_ROM_REVISION_COMBINED_1_5_IT; r++)
+        CHECK(oracles_home_refusals(ORACLES_GAME_AGES, r) == 0u);
+}
+
+/* Every image the launcher offers has a profile, so it plays in Enhanced, and its profile has the instant text: Ages and
+ * Seasons on their US ROMs, each fan game's image, Oracles Combined's in each of its languages, in both its halves. A
+ * game added without them fails here, not with a note on its pages. */
+static void offered_profile(OraclesGame family, OraclesRomRevision revision)
+{
+    const OraclesRomInfo info = { .game = family, .revision = revision, .known = 1 };
+    const OraclesCompatProfile *profile = oracles_compat_find(&info);
+    int ok = profile && oracles_compat_text_instant(profile) && !(oracles_home_refusals(family, revision) & ORACLES_HOME_REFUSES_TEXT_SPEED);
+    if (ok && oracles_compat_half_switch(profile)) {
+        /* The other half's profile, found by the byte that names the game running. */
+        unsigned halves = 0;
+        for (unsigned game = 0; game < 256u; game++) {
+            const OraclesCompatProfile *half = oracles_compat_half(profile, game);
+            if (!half) continue;
+            halves++;
+            ok = ok && oracles_compat_text_instant(half);
+        }
+        ok = ok && halves == 2u;
+    }
+    if (ok) return;
+    fprintf(stderr, "FAIL %s:%d: revision %d of game %d is offered without a profile or its instant text\n", __FILE__, __LINE__, (int)revision, (int)family);
+    failures++;
+}
+
+static void offered_profiles(void)
+{
+    offered_profile(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US);
+    offered_profile(ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US);
+    for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) {
+        const OraclesHomeFanGame *fan = &oracles_home_fan_games[f];
+        const OraclesGame family = fan->base == ORACLES_HOME_GAME_SEASONS ? ORACLES_GAME_SEASONS : ORACLES_GAME_AGES;
+        CHECK(oracles_home_fan_revisions[f] != ORACLES_ROM_REVISION_UNKNOWN);
+        offered_profile(family, oracles_home_fan_revisions[f]);
+        if (fan->joined)
+            for (OraclesRomRevision r = ORACLES_ROM_REVISION_COMBINED_1_5_EN; r <= ORACLES_ROM_REVISION_COMBINED_1_5_IT; r++) offered_profile(family, r);
+    }
+}
+
+/* Oracles Combined's pages on its recognized image, from its profile's own refusals: its menu, the home screen's and the
+ * pause's, with Cheats; Display in Enhanced, without a note that it plays in Faithful; Display › Text's four rows live,
+ * none with the fan games' "Ages and Seasons only for now."; Controls' Swimming and Item hotkeys applying. */
+static int has_item(const OraclesHomeNav *nav, OraclesHomeItemId id)
+{
+    OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
+    const unsigned count = oracles_home_items(nav, items);
+    for (unsigned i = 0; i < count; i++)
+        if (items[i].id == id) return !items[i].disabled;
+    return 0;
+}
+
+static void combined_offered(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    OraclesHomeGame *g = &nav.games[ORACLES_HOME_GAME_COMBINED];
+    g->fan = oracles_home_fan_game(ORACLES_HOME_GAME_COMBINED);
+    g->usable = 1;
+    g->rom = g->patch = g->image = ORACLES_ROM_ORIGINAL;
+    g->joined[0].state = g->joined[1].state = ORACLES_ROM_ORIGINAL;
+    g->image_language = "English";
+    g->refuses = oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_EN);
+    CHECK(g->refuses == 0u);
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_COMBINED;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_COMBINED);
+    CHECK(has_item(&nav, ORACLES_HOME_ITEM_CHEATS) && has_item(&nav, ORACLES_HOME_ITEM_DISPLAY) && has_item(&nav, ORACLES_HOME_ITEM_CONTROLS));
+    CHECK(!has_item(&nav, ORACLES_HOME_ITEM_MODS));
+    CHECK(oracles_page_profile(g, ORACLES_PROFILE_ENHANCED) == ORACLES_PROFILE_ENHANCED);
+    CHECK(oracles_display_played_profile(&nav) == ORACLES_PROFILE_ENHANCED);
+    CHECK(!strncmp(oracles_display_profile_note(&nav), "The wide world", 14));
+    char notes[ORACLES_PAGE_IMAGE_NOTES][ORACLES_HOME_TEXT_LENGTH];
+    CHECK(oracles_page_image_notes(g, 0, notes) == 1 && !strncmp(notes[0], "The language comes with the patch", 33));
+    for (unsigned row = ORACLES_DISPLAY_LETTERS; row <= ORACLES_DISPLAY_TEXT_SPEED; row++) {
+        CHECK(oracles_display_text_row_live(&nav, row));
+        CHECK(strcmp(oracles_display_text_note(&nav, row), oracles_display_fan_reason) != 0);
+    }
+    char summary[96];
+    oracles_display_text_summary(&nav, summary, sizeof summary);
+    CHECK(!strcmp(summary, "Classic \xc2\xb7 Standard \xc2\xb7 Normal"));
+    CHECK(!oracles_home_refuses(&nav, ORACLES_HOME_REFUSES_SWIM_HOLD) && !oracles_home_refuses(&nav, ORACLES_HOME_REFUSES_HOTKEYS));
+    /* Its pause in Enhanced: Cheats, Text size and Text speed there, Text and Text box from the home screen only. */
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_COMBINED, ORACLES_PROFILE_ENHANCED, 0);
+    CHECK(has_item(&nav, ORACLES_HOME_ITEM_CHEATS) && has_item(&nav, ORACLES_HOME_ITEM_DISPLAY) && has_item(&nav, ORACLES_HOME_ITEM_CONTROLS));
+    CHECK(oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SIZE) && oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SPEED));
+    CHECK(!oracles_display_text_row_live(&nav, ORACLES_DISPLAY_LETTERS) && !oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_BOX));
+    CHECK(!oracles_home_refuses(&nav, ORACLES_HOME_REFUSES_SWIM_HOLD) && !oracles_home_refuses(&nav, ORACLES_HOME_REFUSES_CHEATS));
+    /* Any other version of it stays in Faithful under the same refusals: an image its patch does not give (the author's
+     * web page's, its status bar at the bottom among its options), and an image of both games chosen as Ages' ROM, under
+     * Ages' own refusals. */
+    oracles_home_init(&nav);
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    g = &nav.games[ORACLES_HOME_GAME_COMBINED];
+    g->fan = oracles_home_fan_game(ORACLES_HOME_GAME_COMBINED);
+    g->usable = 1;
+    g->rom = g->patch = ORACLES_ROM_ORIGINAL;
+    g->joined[0].state = g->joined[1].state = ORACLES_ROM_ORIGINAL;
+    g->image = ORACLES_ROM_UNRECOGNISED;
+    g->refuses = oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_COMBINED_1_5_EN);
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_COMBINED;
+    CHECK(!oracles_page_profile_allowed(g, ORACLES_PROFILE_ENHANCED) && oracles_display_played_profile(&nav) == ORACLES_PROFILE_FAITHFUL);
+    OraclesHomeGame *ages = &nav.games[ORACLES_HOME_GAME_AGES];
+    ages->usable = 1;
+    ages->rom = ORACLES_ROM_UNRECOGNISED;
+    ages->combined = 1;
+    ages->refuses = oracles_home_refusals(ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US);
+    nav.entry = ORACLES_HOME_AGES;
+    CHECK(oracles_home_game(&nav) == ORACLES_HOME_GAME_AGES);
+    CHECK(!oracles_page_profile_allowed(ages, ORACLES_PROFILE_ENHANCED) && oracles_display_played_profile(&nav) == ORACLES_PROFILE_FAITHFUL);
 }
 
 /* Each game's cheats in the settings, read for its page and its Play, and written back from the page: a fan game's its
@@ -853,6 +1013,8 @@ int main(int argc, char **argv)
     fan_cheats();
     portable_row();
     profile_refusals();
+    offered_profiles();
+    combined_offered();
     achievements_sound_line(path);
 
     oracles_settings_defaults(&written);
@@ -882,6 +1044,7 @@ int main(int argc, char **argv)
     snprintf(written.patch[ORACLES_HOME_FAN_MOONRISE], sizeof written.patch[0], "C:\\Users\\sam\\Games\\Moonrise Regalia 1.0.6.bps");
     snprintf(written.patch[ORACLES_HOME_FAN_TEMPLE], sizeof written.patch[0], "/home/sam/roms/Temple_of_Seasons_1.073.bps");
     snprintf(written.patch[ORACLES_HOME_FAN_KINOMI], sizeof written.patch[0], "/home/sam/roms/Gifts_of_Kinomi_1.1.2.bps");
+    snprintf(written.patch[ORACLES_HOME_FAN_COMBINED], sizeof written.patch[0], "/home/sam/roms/Oracles Combined/en.bps");
     /* Each Oracle's European ROM and language: English, the US ROM's own, until one is chosen. */
     CHECK(written.eu_rom[ORACLES_SETTINGS_AGES][0] == 0 && written.eu_rom[ORACLES_SETTINGS_SEASONS][0] == 0);
     CHECK(written.language[ORACLES_SETTINGS_AGES] == 0 && written.language[ORACLES_SETTINGS_SEASONS] == 0);
@@ -928,6 +1091,20 @@ int main(int argc, char **argv)
     CHECK(oracles_settings_mod_active(written.mods[ORACLES_SETTINGS_AGES], "claw-game") && !oracles_settings_mod_active(written.mods[ORACLES_SETTINGS_AGES], "claw"));
     CHECK(oracles_settings_mod_set(written.mods[ORACLES_SETTINGS_SEASONS], "claw-game", 1));
     oracles_settings_store(&written);
+    /* Oracles Combined has its patch and its cheats, but no language of its own: its patch's. */
+    {
+        FILE *f = fopen(path, "r");
+        char line[1200];
+        int seen = 0;
+        while (f && fgets(line, sizeof line, f)) {
+            if (!strncmp(line, "patch_combined=", 15)) seen |= 1;
+            if (!strncmp(line, "cheats_combined=", 16)) seen |= 2;
+            if (!strncmp(line, "language_combined=", 18)) seen |= 4;
+            if (!strncmp(line, "language_kinomi=", 16)) seen |= 8;
+        }
+        if (f) fclose(f);
+        CHECK(seen == (1 | 2 | 8));
+    }
 
     oracles_settings_defaults(&read_back);
     snprintf(read_back.path, sizeof read_back.path, "%s", path);
@@ -937,6 +1114,7 @@ int main(int argc, char **argv)
     CHECK(!strcmp(read_back.patch[ORACLES_HOME_FAN_MOONRISE], written.patch[ORACLES_HOME_FAN_MOONRISE]));
     CHECK(!strcmp(read_back.patch[ORACLES_HOME_FAN_TEMPLE], written.patch[ORACLES_HOME_FAN_TEMPLE]));
     CHECK(!strcmp(read_back.patch[ORACLES_HOME_FAN_KINOMI], written.patch[ORACLES_HOME_FAN_KINOMI]));
+    CHECK(!strcmp(read_back.patch[ORACLES_HOME_FAN_COMBINED], written.patch[ORACLES_HOME_FAN_COMBINED]));
     CHECK(!strcmp(read_back.eu_rom[ORACLES_SETTINGS_AGES], written.eu_rom[ORACLES_SETTINGS_AGES]));
     CHECK(!strcmp(read_back.eu_rom[ORACLES_SETTINGS_SEASONS], written.eu_rom[ORACLES_SETTINGS_SEASONS]));
     CHECK(read_back.language[ORACLES_SETTINGS_AGES] == 2 && read_back.language[ORACLES_SETTINGS_SEASONS] == 5);
@@ -1591,6 +1769,7 @@ int main(int argc, char **argv)
     }
 
     unknown_keys(path);
+    hotkeys_of_1_4_0(path);
     relative_paths(path);
     spaces_and_case(path);
     menu_pad_resolved();

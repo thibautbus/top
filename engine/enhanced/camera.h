@@ -275,6 +275,10 @@ void oracles_enhanced_camera_shown(const OraclesEnhancedCamera *camera, unsigned
  * overworld width).  The reducer uses its pinned default configuration. */
 OraclesEnhancedCamera *oracles_enhanced_camera_start(OraclesGuest *guest);
 void oracles_enhanced_camera_stop(OraclesEnhancedCamera *camera);
+/* The guest went to the other half of an image of two games: the reducers start afresh, named after its game. */
+void oracles_enhanced_camera_switch_half(OraclesEnhancedCamera *camera);
+/* The game the horizontal reducer's observations are named after ("ages", "seasons"), as a state it saves names it. */
+const char *oracles_enhanced_camera_session(const OraclesEnhancedCamera *camera);
 
 /* Reads the guest, advances the reducer once for this frame's ordinal, and
  * returns 1 when the camera is tracking (position written, in pixels), 0 when

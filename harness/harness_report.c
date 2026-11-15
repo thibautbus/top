@@ -36,6 +36,7 @@ int harness_report_renderer(run *r, const harness_options *o, FILE *summary)
                 fprintf(summary, "render.%s.frames=%u\nrender.%s.mismatches=%u\n", oracles_frame_class_name((OraclesFrameClass)k), stats->frames[k], oracles_frame_class_name((OraclesFrameClass)k), stats->mismatches[k]);
             fprintf(summary, "render.late_scroll_lines=%u\n", stats->late_scroll_lines);
             fprintf(summary, "render.first_tile_lines=%u\n", stats->first_tile_lines);
+            if (stats->late_handler_lines) fprintf(summary, "render.late_handler_lines=%u\n", stats->late_handler_lines);
         }
         oracles_frame_check_stop(r->check);
     }
@@ -119,6 +120,7 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
                                  stats.beside_predicted, stats.beside_fallbacks, stats.beside_matched, stats.beside_mismatched, stats.beside_unchecked,
                                  stats.beside_past_frames, stats.beside_held_frames, stats.beside_wall_frames, stats.beside_crossings, oracles_guest_transition_cross_started(r->guest),
                                  stats.beside_fallback_by[ORACLES_ROOM_PREDICT_SCENE], stats.beside_returned_frames);
+            if (summary) fprintf(summary, "transitions.beside_room_code=%u\n", stats.beside_fallback_by[ORACLES_ROOM_PREDICT_ROOM_CODE]);
             fprintf(stderr, "continuous transitions: swims at the line (--continuous-line), the game's swim stepped by the policy against the game's own on %u frames of normal play, "
                             "%u different (the first at %u); scroll frames swum by that step %u (a move held %u, made across untested %u), the motion written %u\n",
                     stats.swim_model_frames, stats.swim_model_mismatched, stats.swim_model_first_mismatch, stats.swim_line_frames, stats.swim_held_frames, stats.swim_untested_frames,
@@ -144,6 +146,7 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
                                       "transitions.predict_fallbacks=%u\ntransitions.carry_predicted_frames=%u\ntransitions.carry_unknown_frames=%u\n",
                              stats.predicted_transitions, stats.predicted_matched, stats.predicted_mismatched, stats.predicted_pending, stats.predict_fallbacks,
                              stats.carry_predicted_frames, stats.carry_unknown_frames);
+        if (summary) fprintf(summary, "transitions.predict_room_code=%u\n", stats.predict_fallback_by[ORACLES_ROOM_PREDICT_ROOM_CODE]);
         if (summary) fprintf(summary, "transitions.taken=%u\ntransitions.walked_frames=%u\ntransitions.refused_frames=%u\ntransitions.unanimated_frames=%u\ntransitions.palette_refreshes=%u\ntransitions.vblank_load_writes=%u\ntransitions.vblank_scroll_writes=%u\ntransitions.vblank_other_writes=%u\n",
                              stats.transitions, stats.walked_frames, stats.refused_frames, stats.unanimated_frames, stats.palette_refreshes,
                              by_state[3] + by_state[4], by_state[5], by_state[0] + by_state[1] + by_state[2] + by_state[6] + by_state[7]);
@@ -178,8 +181,9 @@ void harness_report_checks(run *r, const harness_options *o, FILE *summary, uint
         oracles_guest_compact_counts(r->guest, &c);
         fprintf(stderr, "compact text: %u lines, %u characters in %u tile columns, %u cursor places moved, %u lines of more than sixteen characters, %u characters past a line\n",
                 c.lines, c.characters, c.columns, c.places, c.long_lines, c.overflows);
-        if (summary) fprintf(summary, "text.compact_lines=%u\ntext.compact_characters=%u\ntext.compact_columns=%u\ntext.compact_places=%u\ntext.compact_long_lines=%u\ntext.compact_overflows=%u\n",
-                             c.lines, c.characters, c.columns, c.places, c.long_lines, c.overflows);
+        if (summary) fprintf(summary, "text.compact_lines=%u\ntext.compact_characters=%u\ntext.compact_columns=%u\ntext.compact_places=%u\ntext.compact_long_lines=%u\ntext.compact_overflows=%u\n"
+                                      "text.compact_font_wrong=%d\n",
+                             c.lines, c.characters, c.columns, c.places, c.long_lines, c.overflows, oracles_guest_compact_font_wrong(r->guest));
         fprintf(stderr, "compact text's reveal: %u vblanks of a line revealed, %u tile columns written with the pixels revealed alone, %u that would show a letter cut, "
                         "%u a letter early\n", c.reveal_frames, c.partial_writes, c.cut_frames, c.early_frames);
         if (summary) fprintf(summary, "text.reveal_frames=%u\ntext.reveal_partial_writes=%u\ntext.reveal_cut_frames=%u\ntext.reveal_early_frames=%u\n",

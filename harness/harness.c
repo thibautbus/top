@@ -37,26 +37,42 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
     if (r->hotkeys) oracles_hotkeys_check_event(r->hotkeys, event);
 }
 
+/* The route's cheats and settings changed at `frame`, before it runs: the swim's hold, the instant text; the item hotkeys'
+ * mode and the window are notes, the exchanges being the `equip` lines and the window presentation alone.  A line counts
+ * at its frame only: between two halves too, where the guest arms it in the next. */
+static void route_changes(run *r, uint32_t frame)
+{
+    size_t first;
+    for (size_t n = oracles_route_cheats_at(&r->route, frame, &first), i = first; i < first + n; i++) {
+        unsigned bit = 0, cheats = oracles_guest_cheats(r->guest);
+        oracles_cheats_parse(r->route.cheats[i].name, NULL, &bit);
+        oracles_guest_set_cheats(r->guest, r->route.cheats[i].on ? cheats | bit : cheats & ~bit);   /* armed from the start: it cannot fail */
+    }
+    for (size_t n = oracles_route_settings_at(&r->route, frame, &first), i = first; i < first + n; i++) {
+        if (r->route.settings[i].name == ORACLES_ROUTE_SET_SWIM_HOLD) oracles_guest_set_swim_hold(r->guest, r->route.settings[i].value);   /* armed from the start */
+        if (r->route.settings[i].name == ORACLES_ROUTE_SET_TEXT_SPEED) oracles_guest_set_text_instant(r->guest, r->route.settings[i].value);   /* the same */
+    }
+}
+
 static void on_frame_begin(void *opaque, uint32_t frame)
 {
     run *r = opaque;
+    if (r->guest && oracles_guest_half_passage(r->guest)) {
+        oracles_guest_set_frame(r->guest, frame);
+        route_changes(r, frame);
+        if (r->check) oracles_frame_check_frame_begin(r->check, frame);
+        /* As the launcher: the colours change, F3 is refused while the game is between two halves. */
+        if (r->colour_toggle_at && frame == r->colour_toggle_at) oracles_core_set_colour_correction(r->core, !oracles_core_colour_correction(r->core));
+        for (unsigned i = 0; r->enhanced && i < r->framed_toggles; i++)
+            if (frame == r->framed_toggle[i]) fprintf(stderr, "harness: frame %u: --framed-toggle-at refused, the game is between two halves (as F3 in the launcher)\n", frame);
+        return;
+    }
     if (r->hotkeys_live && r->enhanced) oracles_hotkeys_live_hotbar(r->hotkeys_live, oracles_enhanced_check_view(r->enhanced));
     if (r->guest) oracles_guest_set_frame(r->guest, frame);
     if (r->colour_toggle_at && frame == r->colour_toggle_at) oracles_core_set_colour_correction(r->core, !oracles_core_colour_correction(r->core));
     for (unsigned i = 0; r->enhanced && i < r->framed_toggles; i++)
         if (frame == r->framed_toggle[i]) oracles_enhanced_view_toggle(oracles_enhanced_check_view(r->enhanced));   /* F3, before the frame runs */
-    size_t first;
-    for (size_t n = oracles_route_cheats_at(&r->route, frame, &first), i = first; i < first + n; i++) {   /* the route's cheats changed at this frame */
-        unsigned bit = 0, cheats = oracles_guest_cheats(r->guest);
-        oracles_cheats_parse(r->route.cheats[i].name, NULL, &bit);
-        oracles_guest_set_cheats(r->guest, r->route.cheats[i].on ? cheats | bit : cheats & ~bit);   /* armed from the start: it cannot fail */
-    }
-    /* The route's settings changed at this frame: the swim's hold, the instant text; the item hotkeys' mode and the window are notes, the
-     * exchanges being the `equip` lines and the window presentation alone. */
-    for (size_t n = oracles_route_settings_at(&r->route, frame, &first), i = first; i < first + n; i++) {
-        if (r->route.settings[i].name == ORACLES_ROUTE_SET_SWIM_HOLD) oracles_guest_set_swim_hold(r->guest, r->route.settings[i].value);   /* armed from the start */
-        if (r->route.settings[i].name == ORACLES_ROUTE_SET_TEXT_SPEED) oracles_guest_set_text_instant(r->guest, r->route.settings[i].value);   /* the same */
-    }
+    route_changes(r, frame);
     if (r->check) oracles_frame_check_frame_begin(r->check, frame);
 }
 
@@ -150,7 +166,7 @@ static void glide_frame(run *r, OraclesGuest *bus)
     OraclesSwimMotion motion = { link[ORACLES_OBJ_ANGLE], link[ORACLES_OBJ_SPEED], oracles_guest_read8(bus, t->link_speed_cap),
                                  oracles_guest_read8(bus, t->link_speed_step_counter), oracles_guest_read8(bus, t->link_speed_step_period),
                                  link[ORACLES_OBJ_VAR35], link[ORACLES_OBJ_COUNTER1], oracles_guest_read8(bus, t->link_stroke_counter), link[ORACLES_OBJ_DIRECTION] };
-    const OraclesSwimKeys none = { 0xffu, 0, 0, (uint8_t)(oracles_compat_ages_water_rules(r->profile) && (link[ORACLES_OBJ_VAR2F] & 0x40u)),
+    const OraclesSwimKeys none = { 0xffu, 0, 0, (uint8_t)(oracles_guest_tables_suit_swims(t) && (link[ORACLES_OBJ_VAR2F] & 0x40u)),
                                    (uint8_t)oracles_guest_swim_sped(bus), 0, 0 };
     r->glide_ex = r->glide_ey = 0;
     for (unsigned i = 0; i < 600u && motion.speed && !(motion.angle & 0x80u); i++) {
@@ -162,14 +178,88 @@ static void glide_frame(run *r, OraclesGuest *bus)
     }
 }
 
+/* --poke-at on an image without a profile, which no guest serves: the core's WRAM, bank 0 at $c000 and the bank named
+ * (1 for 0) at $d000, as the guest maps them. */
+static void poke_core(run *r, uint32_t frame)
+{
+    for (unsigned p = 0; p < r->poke_count; p++) if (frame == r->pokes[p].frame) {
+        const unsigned addr = r->pokes[p].addr, bank = r->pokes[p].bank;
+        size_t size = 0;
+        uint8_t *wram = oracles_core_memory(r->core, ORACLES_CORE_WRAM, &size, NULL);
+        const size_t at = addr <= 0xcfffu ? addr - 0xc000u : (bank ? bank : 1u) * 0x1000u + (addr - 0xd000u);
+        if (wram && at < size) wram[at] = r->pokes[p].value;
+        else fprintf(stderr, "harness: --poke-at %u %x:%04x: no such byte\n", frame, bank, addr);
+    }
+}
+
+/* What the game is at, whatever the core: the fingerprints, hashes of the memory, differ from one core to the other. */
+static void write_position(run *r, OraclesGuest *bus, uint32_t frame)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(bus);
+    const uint8_t *link = oracles_guest_object(bus, 0, 0);
+    r->position_group = oracles_guest_read8(bus, t->active_group);
+    r->position_room = oracles_guest_read8(bus, t->active_room);
+    r->position_frames++;
+    r->position_second_half += oracles_compat_half_game(oracles_guest_profile(bus)) != 0u;
+    fprintf(r->positions, "%u\t%u\t%u\t%u\t%u\n", frame, r->position_group, r->position_room, link ? link[ORACLES_OBJ_Y + 1] : 0u, link ? link[ORACLES_OBJ_X + 1] : 0u);
+}
+
+/* The frame's end with the game between two halves: the live state's dumps, the journal (which no check reads then)
+ * and the pokes, which read and write memory alone; the view holds the last frame it composed. */
+static void half_frame_end(run *r, OraclesGuest *bus, uint32_t frame)
+{
+    if (r->positions) write_position(r, bus, frame);
+    for (unsigned d = 0; d < r->dumps; d++) if (frame == r->dump_at[d]) {
+        FILE *dump = fopen(r->dump_path[d], "wb");
+        uint8_t live[ORACLES_GUEST_LIVE_DUMP_BYTES];
+        if (dump) { if (oracles_guest_live_dump(bus, live) == 0) fwrite(live, 1, sizeof live, dump); fclose(dump); }
+    }
+    if (r->guest && !r->check) oracles_guest_journal_clear(r->guest);
+    if (r->enhanced) {
+        OraclesEnhancedView *view = oracles_enhanced_check_view(r->enhanced);
+        const uint32_t *surface = oracles_enhanced_view_compose(view, NULL, NULL, NULL);
+        oracles_enhanced_check_held_frame(r->enhanced, surface, frame);   /* the records of --enhanced-surfaces-out stay one an eighth frame */
+        const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)oracles_enhanced_view_width(view) * oracles_enhanced_view_height(view) * sizeof *surface, ORACLES_HASH_SEED);
+        r->half_held_wrong += (unsigned)(hash != oracles_enhanced_check_last_hash(r->enhanced));
+        r->half_held_frames++;
+    }
+    poke_core(r, frame);
+}
+
+/* The guest went to the other half of an image of two games: the checks read that half from here on, their counts
+ * kept. */
+static void half_switched(void *opaque)
+{
+    run *r = opaque;
+    r->profile = oracles_guest_profile(r->guest);
+    size_t half_size = 0;
+    const uint8_t *half = oracles_rom_half(r->image, r->image_size, oracles_compat_rom_bank_base(r->profile), &half_size);
+    if (r->rom) { r->rom = half; r->rom_size = half_size; }
+    r->wall_pending = 0; r->in_transition = 0; r->landing = 0; r->swam_before = 0; r->swam_into = 0;
+    r->glide = 0; r->swim_scroll_known = 0; r->swim_load_frames = r->swim_load_off_frames = 0;
+    if (r->coverage) oracles_coverage_half_switched(r->coverage);
+    if (r->ghost && oracles_ghost_check_half_switched(r->ghost, r->image, r->image_size) != 0) r->half_checks_lost++;
+    if (r->neighbours && oracles_neighbour_check_half_switched(r->neighbours, r->image, r->image_size) != 0) r->half_checks_lost++;
+    if (r->object_animation) oracles_object_animation_check_half_switched(r->object_animation, half, half_size);
+    if (r->enhanced) oracles_enhanced_check_half_switched(r->enhanced, r->image, r->image_size);
+    if (r->animation) { oracles_animation_check_half_switched(r->animation, half, half_size); oracles_animation_check_reset(r->animation); }
+    if (r->object_sprites) { oracles_object_sprites_check_half_switched(r->object_sprites, half, half_size); oracles_object_sprites_check_reset(r->object_sprites); }
+    fprintf(stderr, "harness: frame %u: the game goes to %s\n", oracles_guest_frame(r->guest), oracles_compat_name(r->profile));
+}
+
 static void on_frame_end(void *opaque, uint32_t frame)
 {
     run *r = opaque;
     /* Fingerprints always go through a guest for the bus; a run without hooks attaches one silently here. */
     OraclesGuest *bus = r->guest;
     int transient = 0;
-    if (!bus) { bus = oracles_guest_attach(r->core, r->profile); transient = 1; }
-    if (!bus) return;
+    if (!bus) {
+        bus = oracles_guest_attach(r->core, r->profile);
+        transient = 1;
+        const OraclesCompatProfile *half = bus && oracles_compat_half_switch(r->profile) ? oracles_compat_half(r->profile, oracles_guest_read8(bus, oracles_compat_current_game(r->profile))) : NULL;
+        if (half && half != r->profile) { oracles_guest_detach(bus); bus = oracles_guest_attach(r->core, half); r->profile = half; }
+    }
+    if (!bus) { poke_core(r, frame); return; }
     if (r->corrupt_at && frame == r->corrupt_at) {
         /* The saved context of thread 1 (resumeThreadInAFrames, bank0.s): BC, DE,
          * HL then the resume address, from the saved SP up.  The resume address
@@ -180,8 +270,20 @@ static void on_frame_end(void *opaque, uint32_t frame)
         uint8_t *byte = (uint8_t *)oracles_guest_ptr(bus, sym, 1);
         if (byte) *byte ^= 0x01;
     }
-    if (r->reminder_check) reminder_frame(r, bus, frame);
+    oracles_guest_check_half(r->guest);
+    if (r->guest && !r->half_left_at && oracles_guest_half_left(r->guest)) {
+        r->half_left_at = frame;
+        fprintf(stderr, "harness: frame %u: the game leaves its half of the image\n", frame);
+    }
+    const int passage = r->guest && oracles_guest_half_passage(r->guest);
+    if (r->reminder_check && !passage) reminder_frame(r, bus, frame);
     if (r->out) oracles_guest_write_fingerprint(bus, r->core, frame, r->out);
+    if (passage) {
+        half_frame_end(r, bus, frame);
+        oracles_guest_follow_half(r->guest);
+        if (transient) oracles_guest_detach(bus);
+        return;
+    }
     if (r->guest && oracles_guest_text_instant_armed(r->guest)) oracles_text_speed_check_frame_end(&r->text_speed, r->guest);
     if (r->transition) {
         /* Link swimming into a transition swims through it: the game freezes him, and reads the tile it takes as his own
@@ -255,13 +357,7 @@ static void on_frame_end(void *opaque, uint32_t frame)
         if (state == 2u) r->swam_before = swimming;
         if (r->rom) glide_frame(r, bus);
     }
-    if (r->positions) {
-        /* What the game is at, whatever the core: the fingerprints, hashes of the memory, differ from one core to the other. */
-        const OraclesGuestTables *t = oracles_guest_tables(bus);
-        const uint8_t *link = oracles_guest_object(bus, 0, 0);
-        fprintf(r->positions, "%u\t%u\t%u\t%u\t%u\n", frame, oracles_guest_read8(bus, t->active_group), oracles_guest_read8(bus, t->active_room),
-                link ? link[ORACLES_OBJ_Y + 1] : 0u, link ? link[ORACLES_OBJ_X + 1] : 0u);
-    }
+    if (r->positions) write_position(r, bus, frame);
     if (r->keys_read) {
         /* What the game's input poll (pollInput, the one writer of wKeysPressed) read in this frame, or in the last one it
          * ran (buttons in the low nibble and directions in the high one there, the other way round in a route), and
@@ -293,6 +389,7 @@ static void on_frame_end(void *opaque, uint32_t frame)
         r->journal_writes += count;
         oracles_guest_journal_clear(r->guest);
     }
+    oracles_guest_follow_half(r->guest);   /* a reset out of the second half, which the frame's checks saw in its tables */
     for (unsigned p = 0; p < r->poke_count; p++) if (frame == r->pokes[p].frame) {   /* after the frame's checks: the next frame runs with it */
         const OraclesGuestSym sym = { r->pokes[p].bank, r->pokes[p].addr };
         uint8_t *byte = (uint8_t *)oracles_guest_ptr(bus, sym, 1);
@@ -419,6 +516,10 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
 {
     r->guest = oracles_guest_attach(r->core, r->profile);
     if (!r->guest) { fprintf(stderr, "harness: cannot attach the guest\n"); return 1; }
+    /* The checks that read the game's ROM data with the guest's tables read its half (the ghosts and the view take the
+     * whole image, for their cores). */
+    size_t half_size = 0;
+    const uint8_t *half = oracles_rom_half(rom, rom_size, oracles_compat_rom_bank_base(r->profile), &half_size);
     oracles_guest_set_event_sink(r->guest, on_event, r);
     char error[256];
     if (r->language && oracles_language_session_attach(r->language, r->guest, error, sizeof error) != 0) { fprintf(stderr, "harness: %s\n", error); return 1; }
@@ -428,7 +529,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (!r->neighbours) { fprintf(stderr, "harness: the neighbour objects check could not start\n"); return 1; }
     }
     if (o->object_animation) {
-        r->object_animation = oracles_object_animation_check_start(r->guest, rom, rom_size, o->objects_dir);
+        r->object_animation = oracles_object_animation_check_start(r->guest, half, half_size, o->objects_dir);
         if (!r->object_animation) { fprintf(stderr, "harness: the objects' animation check could not start\n"); return 1; }
         oracles_neighbour_check_set_animation(r->neighbours, r->object_animation);
     }
@@ -443,6 +544,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         r->enhanced = oracles_enhanced_check_start(r->core, r->guest, rom, rom_size, o->enhanced_dir, o->enhanced_threaded ? 0u : o->enhanced_budget);
         if (!r->enhanced) { fprintf(stderr, "harness: the Enhanced view could not start\n"); return 1; }
         if (o->enhanced_reload_at) oracles_enhanced_check_reload_at(r->enhanced, o->enhanced_reload_at);
+        if (o->hotbar_forget_at) oracles_enhanced_check_hotbar_forget_at(r->enhanced, o->hotbar_forget_at);
         if (o->enhanced_reload_in_place) oracles_enhanced_check_reload_in_place(r->enhanced);
         if (o->enhanced_surfaces_out || o->enhanced_surfaces_against) oracles_enhanced_check_surfaces(r->enhanced, o->enhanced_surfaces_out, o->enhanced_surfaces_from, o->enhanced_surfaces_against);
         for (unsigned i = 0; i < o->surfaces; i++) oracles_enhanced_check_surface_at(r->enhanced, o->surface_at[i], o->surface_path[i]);
@@ -469,8 +571,8 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (o->enhanced_objects) oracles_enhanced_check_set_neighbour_objects(r->enhanced, 1);
         oracles_enhanced_view_set_neighbour_animation(oracles_enhanced_check_view(r->enhanced), !o->enhanced_frozen);
         oracles_enhanced_view_set_unvisited_edge(oracles_enhanced_check_view(r->enhanced), !o->enhanced_frozen);   /* as the Low quality */
-        r->animation = oracles_animation_check_start(r->guest, rom, rom_size);
-        r->object_sprites = oracles_object_sprites_check_start(r->guest, rom, rom_size);
+        r->animation = oracles_animation_check_start(r->guest, half, half_size);
+        r->object_sprites = oracles_object_sprites_check_start(r->guest, half, half_size);
     }
     return 0;
 }
@@ -500,7 +602,7 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
 {
     char error[256];
     size_t rom_size = 0;
-    uint8_t *rom = o->patch_path ? oracles_bps_apply_files(o->rom_path, o->patch_path, &rom_size, error, sizeof error)
+    uint8_t *rom = o->patch_path ? oracles_bps_apply_joined_files(o->rom_path, o->joined_path, o->patch_path, &rom_size, error, sizeof error)
                                  : oracles_rom_read_file(o->rom_path, &rom_size, error, sizeof error);
     if (!rom) { fprintf(stderr, "harness: %s\n", error); return 1; }
     OraclesRomInfo info;
@@ -709,8 +811,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
     if (o->continuous_transitions && r->guest) {
         r->transition = oracles_room_transition_start(r->guest, rom, rom_size, o->continuous_swim);
         if (!r->transition) { fprintf(stderr, "harness: --continuous-transitions needs the hooks on\n"); return 1; }
-        r->rom = rom;
-        r->rom_size = rom_size;
+        r->rom = oracles_rom_half(rom, rom_size, oracles_compat_rom_bank_base(r->profile), &r->rom_size);
         if (r->enhanced) oracles_enhanced_check_set_transition(r->enhanced, r->transition);
         oracles_room_transition_set_diagonal(r->transition, o->continuous_diagonal);
         oracles_room_transition_set_steps(r->transition, o->continuous_steps);
@@ -796,9 +897,14 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         }
         if (o->mod_trace_path && !oracles_mod_session_trace(r->mod, o->mod_trace_path)) { fprintf(stderr, "harness: cannot write %s\n", o->mod_trace_path); return 1; }
     }
-    /* Only the transitions read the ROM afterwards; without them it goes, and
+    /* Only the transitions and a switch of halves read the ROM afterwards; without them it goes, and
      * the caller's pointer with it, nothing being allowed to carry it once freed. */
-    if (!r->transition) { free(rom); *rom_ref = NULL; }
+    if (r->guest && oracles_compat_half_switch(r->profile)) {
+        r->image = rom;
+        r->image_size = rom_size;
+        if (oracles_guest_add_half_listener(r->guest, half_switched, r) != 0) { fprintf(stderr, "harness: the checks cannot follow the game from half to half: the guest's listeners are full\n"); return 1; }
+    }
+    if (!r->transition && !r->image) { free(rom); *rom_ref = NULL; }
     if (o->samples_dir && !r->check) { fprintf(stderr, "harness: --render-check needs the hooks on\n"); return 1; }
     if (o->ghost_dir && !r->ghost) { fprintf(stderr, "harness: --ghost-check needs the hooks on\n"); return 1; }
     if (o->enhanced_dir && !r->enhanced) { fprintf(stderr, "harness: --enhanced-check needs the hooks on\n"); return 1; }
@@ -858,7 +964,24 @@ int main(int argc, char **argv)
         summary = fopen(o.summary_path, "w");
         if (!summary) fprintf(stderr, "harness: cannot write %s\n", o.summary_path);
         else fprintf(summary, "frames=%u\nresult=%s\nsram.sha1=%s\n", report.frames_presented, result == ORACLES_HOST_OK ? "ok" : "error", sram_sha1);
+        /* An image of two games: the frame its game left the guest's half, 0 for none. */
+        if (summary && oracles_compat_half_switch(r.profile) && r.guest)
+        {
+            OraclesGuestHalfCounts half;
+            oracles_guest_half_counts(r.guest, &half);
+            fprintf(summary, "half.left_at=%u\nhalf.held_frames=%u\nhalf.held_wrong=%u\nhalf.switches=%u\nhalf.hooks_armed=%u\nhalf.returns_dropped=%u\nhalf.checks_lost=%u\n"
+                             "half.features_refused=%u\n",
+                    r.half_left_at, r.half_held_frames, r.half_held_wrong, half.switches, half.hooks_armed, half.returns_dropped, r.half_checks_lost,
+                    half.features_refused);
+            fprintf(summary, "half.text_armed=%u\nhalf.text_lost=%u\n", half.text_armed, half.text_lost);
+            unsigned made = 0;
+            if (r.enhanced) fprintf(summary, "half.ghosts_moved=%u\nhalf.ghosts_made=%u\nhalf.cache_kept=%u\n", oracles_enhanced_view_half_ghosts(oracles_enhanced_check_view(r.enhanced), &made), made,
+                                    oracles_enhanced_view_half_cache_kept(oracles_enhanced_check_view(r.enhanced)));
+        }
     }
+    /* --positions: the room of its last line, and its lines read in the second half of an image of two games. */
+    if (summary && r.position_frames)
+        fprintf(summary, "positions.last_room=%02x:%02x\npositions.second_half_frames=%u\n", r.position_group, r.position_room, r.position_second_half);
     const int renderer_failed = harness_report_renderer(&r, &o, summary);
     const int verdict_failed = harness_report_hotkeys(&r, summary) || renderer_failed;
     harness_report_checks(&r, &o, summary, rom);

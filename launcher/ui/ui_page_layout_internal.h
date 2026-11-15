@@ -51,6 +51,10 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define STATUS_MARGIN 2.0f
 #define PATCH_LINE_GAP 8.0f    /* between the Patch row, its folder and the image's line */
 #define IMAGE_PAD_BOTTOM 4.0f
+#define IMAGE_NOTE_GAP 8.0f            /* above each line under the image's */
+#define IMAGE_NOTE_PAD_BOTTOM 2.0f
+#define JOINED_LABEL_PAD_TOP 12.0f     /* Oracles Combined's European ROM labels, on lines of JOINED_LABEL_LINE */
+#define JOINED_LABEL_LINE 28.0f
 #define EU_BUTTONS_GAP 20.0f        /* between Change… and Remove */
 #define EU_FOLDER_LINE 26.0f        /* the European ROM's folder, its line kept without a file */
 #define LANGUAGE_W 200.0f           /* each language's frame */
@@ -137,7 +141,9 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define BUTTON_GAP_4_3 14.0f
 #define DOT_4_3 14.0f
 #define DOT_GAP_4_3 12.0f
-#define IMAGE_GAP_4_3 4.0f                /* between a patch's folder and the image's line */
+#define IMAGE_GAP_4_3 4.0f                /* between a patch's folder and the image's line, and above each line under it */
+#define JOINED_ROW_PAD_Y_4_3 10.0f        /* Oracles Combined's European ROM rows */
+#define JOINED_LABEL_LINE_4_3 38.0f       /* their labels' lines */
 #define PLAY_GAP_4_3 24.0f
 #define DISPLAY_ROW_GAP_4_3 6.0f
 #define DISPLAY_LABEL_W_4_3 300.0f

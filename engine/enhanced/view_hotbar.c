@@ -29,14 +29,33 @@
 #define REFUSED_FRAMES 12u
 #define BOX_W 24u                /* the two sprites of an icon, side by side with room to spare */
 
+/* The bar's reload of its icons says when the variables they follow may have changed: armed with the hotbar, with or
+ * without the hotkeys' policy, which arms it too. */
+static void hook_bar_reload(OraclesEnhancedView *v)
+{
+    if (v->hotbar_shown && v->guest && !v->hotbar_hooked)
+        v->hotbar_hooked = oracles_guest_add_hook(v->guest, oracles_guest_tables(v->guest)->load_equipped_item_gfx, ORACLES_EVENT_EQUIPPED_GFX_LOADED, 0) == 0;
+}
+
 void oracles_enhanced_view_set_hotbar(OraclesEnhancedView *v, const OraclesEnhancedHotbar *hotbar)
 {
     v->hotbar_shown = hotbar != NULL;
     if (hotbar) v->hotbar = *hotbar;
-    /* The bar's reload of its icons says when the variables they follow may have changed: armed with the hotbar, with or
-     * without the hotkeys' policy, which arms it too. */
-    if (hotbar && v->guest && !v->hotbar_hooked)
-        v->hotbar_hooked = oracles_guest_add_hook(v->guest, oracles_guest_tables(v->guest)->load_equipped_item_gfx, ORACLES_EVENT_EQUIPPED_GFX_LOADED, 0) == 0;
+    hook_bar_reload(v);
+}
+
+int oracles_enhanced_view_hotbar_hooked(const OraclesEnhancedView *v) { return v->hotbar_hooked; }
+
+void oracles_enhanced_view_hotbar_forget(OraclesEnhancedView *v)
+{
+    memset(v->hotbar_have_icon, 0, sizeof v->hotbar_have_icon);
+    memset(v->hotbar_icon_sought, 0, sizeof v->hotbar_icon_sought);
+    memset(v->hotbar_icon_found_once, 0, sizeof v->hotbar_icon_found_once);
+    memset(v->hotbar_on_button, 0, sizeof v->hotbar_on_button);
+    v->hotbar_icons_stale = 0;
+    v->hotbar_icons_shown = 0;
+    v->hotbar_hooked = 0;
+    hook_bar_reload(v);
 }
 
 void oracles_enhanced_view_hotbar_counts(const OraclesEnhancedView *v, unsigned *captured, unsigned *shown)

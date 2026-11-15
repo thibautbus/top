@@ -175,11 +175,9 @@ void ec_check_host_text_box(OraclesEnhancedCheck *c, OraclesEnhancedMode mode, u
 static const uint8_t *image_font(OraclesEnhancedCheck *c)
 {
     const OraclesGuestTables *t = oracles_guest_tables(c->guest);
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(c->core, ORACLES_CORE_ROM, &size, &bank);
+    const OraclesGuestRom image = oracles_guest_rom(c->guest);
     const size_t at = oracles_rom_offset(t->font_start.bank, t->font_start.addr);
-    return rom && at + 16u * 0x100u <= size ? rom + at : NULL;
+    return image.data && at + 16u * 0x100u <= image.size ? image.data + at : NULL;
 }
 
 static uint32_t box_colour(const OraclesTextBoxSource *s, unsigned palette, unsigned index)

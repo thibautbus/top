@@ -5,6 +5,7 @@
 
 #include "guest_tables.h"
 #include "language.h"
+#include "profile.h"
 #include "oracles_text.h"
 
 #define FONT_FIRST 0x10u   /* the first character a text prints; below are the control codes */
@@ -44,20 +45,26 @@ struct OraclesLanguagePack {
 #define LANGUAGE_LAST_BANK 0x7fu   /* a language's banks end with it */
 
 /* The image a pack's texts are for: an original US ROM, or a fan game made on one (its compatibility profile binds its
- * text's tables, its font and the first of the banks it leaves empty for a language). */
+ * text's tables, its font and the first of the banks it leaves empty for a language); or an image whose texts are its
+ * own alone, laid out again in their language, a half of it at a time (Oracles Combined: `halves` 2, each half's
+ * profile oracles_compat_half's, its banks counted from its start). */
 typedef struct language_target {
     OraclesGame game;                    /* the family, whose European ROM the translations come from */
     OraclesRomRevision revision;         /* the image's: an original's US ROM, or the fan game's */
-    const OraclesGuestTables *tables;
+    const OraclesGuestTables *tables;    /* the first half's */
     unsigned first_bank;                 /* the language's index and texts, from it to LANGUAGE_LAST_BANK */
     int original;                        /* an original US ROM: the image may hold the mods' houses, and grows to 2 MiB */
     char sha1[41];
     const char *name;
+    const OraclesCompatProfile *profile; /* the first half's */
+    unsigned halves;                     /* 1, or 2 for an image of two games */
+    OraclesLanguage own;                 /* the language of its own texts: English, or the one an image of two games holds */
 } language_target;
 
-/* language_rom.c: the texts' source of an image whose text's tables are `tables`, of the US ROM of `game`, and of a
- * language of its European ROM; 0 or -1. */
+/* language_rom.c: the texts' source of an image whose text's tables are `tables`, of the image of a profile (its third
+ * base too), of the US ROM of `game`, and of a language of its European ROM; 0 or -1. */
 int language_source_tables(const OraclesRom *rom, const OraclesGuestTables *tables, OraclesTextSource *source);
+int language_source_profile(const OraclesRom *rom, const OraclesCompatProfile *profile, OraclesTextSource *source);
 int language_source_us(const OraclesRom *rom, OraclesGame game, OraclesTextSource *source);
 /* Text TX_`id` of a source of `groups` internal groups, decoded into `out` (ORACLES_TEXT_MAX bytes); 0, or -1 when the
  * source has none. */
@@ -221,6 +228,9 @@ unsigned language_text_inline_targets(const uint8_t *text, size_t length, uint8_
 typedef struct language_keep language_keep;
 const char *language_keep_table(OraclesRomRevision revision);
 language_keep *language_keep_load(OraclesRomRevision revision, char *error, size_t capacity);
+/* The table of the half of `family` of an image of two games, its game's: Oracles Combined's halves are Ages' and
+ * Seasons' texts, under their identifiers; the image's own for any other. */
+const char *language_keep_table_half(OraclesRomRevision revision, OraclesGame family);
 language_keep *language_keep_parse(const char *table, char *error, size_t capacity);
 int language_keep_has(const language_keep *keep, OraclesLanguage language, unsigned id);
 void language_keep_free(language_keep *keep);

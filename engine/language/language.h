@@ -52,6 +52,9 @@ const char *oracles_language_code(OraclesLanguage language);
 int oracles_language_parse(const char *code, OraclesLanguage *language);
 /* The game whose European ROM the image is (rom.h's revisions), ORACLES_GAME_UNKNOWN for any other. */
 OraclesGame oracles_language_source_game(const OraclesRomInfo *info);
+/* Whether the image holds its texts in a language of its own, which no pack translates (Oracles Combined, an image a
+ * language): 1 with it, 0 for any other image, whose texts are in English. */
+int oracles_language_image_own(const OraclesRomInfo *info, OraclesLanguage *language);
 
 /* ---- the pack ------------------------------------------------------------------------- */
 
@@ -189,7 +192,8 @@ int oracles_language_compose(const OraclesLanguagePack *pack, OraclesLanguage la
                              uint8_t **out, size_t *out_size, OraclesLanguageReport *report, char *error, size_t capacity);
 /* The same for English (US), which has no pack, laid out by `layout`: an index whose texts are the US texts laid out
  * again, the others kept in English; on the US ROM of SHA-1 `sha1` (the image, possibly with the mods' houses), or on
- * the image of a fan game made on it, whose own English is so laid out, in the banks it leaves to a language. */
+ * the image of a fan game made on it, whose own English is so laid out, in the banks it leaves to a language; or on an
+ * image that holds its own language (oracles_language_image_own), its texts so laid out in it, an index in each half. */
 int oracles_language_compose_english(const char *sha1, const uint8_t *image, size_t size, const OraclesLanguageLayout *layout, uint8_t **out,
                                      size_t *out_size, OraclesLanguageReport *report, char *error, size_t capacity);
 

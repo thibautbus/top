@@ -21,7 +21,9 @@ extern "C" {
 #define ORACLES_GUEST_GLOBAL_FLAGS 0x80u  /* global flags */
 
 typedef struct OraclesGuestSym {
-    uint8_t bank;     /* ROM bank for code, WRAM bank for $d000-$dfff, 0 otherwise; ORACLES_GUEST_ABSENT if the game has no such symbol */
+    uint8_t bank;     /* ROM bank for code (relative to the game's half of a two-game image; for code the game runs at $a000-$bfff
+                       * from the cartridge's RAM, the ROM bank it copies there), WRAM bank for $d000-$dfff, 0 otherwise;
+                       * ORACLES_GUEST_ABSENT if the game has no such symbol */
     uint16_t addr;    /* CPU address */
 } OraclesGuestSym;
 
@@ -93,7 +95,8 @@ typedef struct OraclesGuestTables {
     /* The hotbar's icons: treasureDisplayData's two tables, the page of the level variables they name, Seasons' slingshot
      * level, and the icons' graphics (bank2.s, loadEquippedItemSpriteData and loadItemIconGfx). */
     OraclesGuestSym treasure_display_data1, treasure_display_data2, c600_block, slingshot_level, spr_item_icons_1,
-        obtained_seasons, magnet_glove_polarity;   /* and drawTreasureExtraTiles' Seasons-only variables */
+        obtained_seasons, magnet_glove_polarity,   /* and drawTreasureExtraTiles' Seasons-only variables */
+        slingshot_selected_seeds, spr_extra_mags;   /* Oracles Combined's: the slingshot's own seeds, the gloves' icon outside spr_item_icons_1 */
     /* The call transaction (a mod's host scene): the game's routine that takes rupees away (giveTreasure is above), the
      * counts a mod reads before it pays or gives, and the font of the text box (ROM: character c at font_start + 16 c). */
     OraclesGuestSym remove_rupee_value, lose_treasure, play_sound, set_global_flag, unset_global_flag, num_rupees, link_health, link_max_health, num_gasha_seeds, seed_satchel_level, num_ember_seeds,
@@ -108,7 +111,9 @@ typedef struct OraclesGuestTables {
         text_table_table, text_offset1_table, text_offset2_table, gfx_header_table;
     /* The swim's hold: the routines whose reads of wGameKeysJustPressed start a stroke, the mermaid suit's (Ages; absent
      * in Seasons) and the flippers' state 0 (link.s), the keys they read, and for the suit Link's speed cap, the counter
-     * and period of his speed's steps and the frames left of his stroke (linkUpdateVelocity). */
+     * and period of his speed's steps and the frames left of his stroke (linkUpdateVelocity).  The suit's routine is also
+     * what says the game swims with the suit at all (oracles_guest_tables_suit_swims): a game whose swimming states call
+     * it binds it, even where the swim's hold is not qualified; absent, the swim is the flippers' whatever var2f says. */
     OraclesGuestSym link_update_velocity_mermaid, link_update_flippers_state0, game_keys_pressed, game_keys_just_pressed,
         link_speed_cap, link_speed_step_counter, link_speed_step_period, link_stroke_counter;
     /* The continuous transitions' swim: the ring worn (the swimmer's ring speeds a swim). */
@@ -142,6 +147,7 @@ typedef struct OraclesGuestTables {
     uint16_t vblank_function_queue_size;
     uint16_t global_flags_size, room_flags_size;   /* wGlobalFlags; the four pages of room flags */
     uint16_t obtained_treasure_flags_size, gasha_spots_planted_size;
+    uint16_t inventory_storage_size;                /* wInventoryStorage: the slots after B and A (16; 20 in Oracles Combined) */
     /* constants of the build, from the same entries */
     uint8_t oam_data_bank;                          /* BASE_OAM_DATA_BANK: the first bank of the objects' sprite data */
     uint8_t puddle_tile_first, puddle_tile_last;    /* the tiles of a puddle (tileIndices.s), where an object is drawn a pixel lower */
@@ -194,6 +200,13 @@ typedef struct OraclesGuestTables {
 
 extern const OraclesGuestTables oracles_guest_tables_ages;
 extern const OraclesGuestTables oracles_guest_tables_seasons;
+
+/* Whether the game's swimming states move Link with linkUpdateVelocity@mermaidSuit once var2f's bit 6 says the suit is
+ * obtained (overworldSwimmingState3): Ages, Gifts of Kinomi and both halves of Oracles Combined. */
+static inline int oracles_guest_tables_suit_swims(const OraclesGuestTables *t)
+{
+    return t && t->link_update_velocity_mermaid.bank != ORACLES_GUEST_ABSENT;
+}
 
 #ifdef __cplusplus
 }

@@ -9,6 +9,107 @@ static void on_view_event(void *opaque, const OraclesGuestEvent *event)
     ev_hotbar_event((OraclesEnhancedView *)opaque, event);
 }
 
+/* The hooks of the view that listens to the game. */
+static void add_hooks(OraclesEnhancedView *v)
+{
+    /* The game's animation steps, for the neighbours' own: without
+     * the hook they are stepped once a composition. */
+    v->animation_steps_counted = v->large_objects_listening
+        && oracles_guest_add_hook(v->guest, oracles_guest_tables(v->guest)->update_animations, ORACLES_EVENT_ANIMATIONS, 0) == 0;
+    /* The objects' drawing, to know a drawing the game skipped (a large room's objects). */
+    if (v->large_objects_listening && oracles_sprites_add_hooks(v->guest) != 0) {
+        oracles_guest_remove_event_listener(v->guest, on_view_event, v);
+        v->large_objects_listening = 0;
+        v->animation_steps_counted = 0;   /* no listener: one step a composition */
+    }
+}
+
+/* A ghost of the image in the half the guest is in, as a lane's. */
+static OraclesGhost *lane_ghost(const OraclesEnhancedView *v)
+{
+    OraclesGhost *ghost = oracles_ghost_create(v->image, v->image_size, v->rom_profile, v->ghost_core);
+    if (!ghost) return NULL;
+    if (oracles_ghost_state_size(ghost) != v->state_size) { oracles_ghost_destroy(ghost); return NULL; }
+    oracles_ghost_set_trace(ghost, 1);
+    oracles_ghost_set_prerun(ghost, GHOST_PRERUN_FRAMES);
+    oracles_ghost_set_capture(ghost, v->neighbour_objects);
+    oracles_ghost_set_probe(ghost, !v->poses_off);
+    return ghost;
+}
+
+/* A ghost whose thread could not follow a switch after its run (oracles_ghost_half_failed) is made again, or its lane
+ * and those after it closed. */
+static void heal_lanes(OraclesEnhancedView *v)
+{
+    int failed = 0;
+    for (unsigned l = 0; l < v->lane_count; l++) failed |= oracles_ghost_half_failed(l == v->lane_now ? v->ghost : v->lanes[l].ghost);
+    if (!failed) return;
+    ev_lane_serve(v, 0);
+    for (unsigned l = 0; l < v->lane_count && l < EV_LANES; l++) {
+        OraclesGhost **ghost = l ? &v->lanes[l].ghost : &v->ghost;
+        if (!oracles_ghost_half_failed(*ghost)) continue;
+        oracles_ghost_destroy(*ghost);
+        *ghost = lane_ghost(v);
+        v->lanes[l].pending = 0;
+        v->half_ghosts_made += *ghost != NULL;
+        if (*ghost || !l) continue;
+        for (unsigned k = l; k < v->lane_count && k < EV_LANES; k++) {
+            if (k > l && v->lanes[k].ghost) oracles_ghost_destroy(v->lanes[k].ghost);
+            free(v->lanes[k].job);
+            memset(&v->lanes[k], 0, sizeof v->lanes[k]);
+        }
+        v->lane_count = l;
+        break;
+    }
+    v->lanes[0].ghost = v->ghost;
+    if (!v->ghost) v->pending = 0;
+}
+
+/* The guest went to the other half of an image of two games (oracles_guest_add_half_listener): the ghosts, with its
+ * tables by room, are made again; the rooms the view holds are the other game's under the same numbers. */
+static void half_switched(void *opaque)
+{
+    OraclesEnhancedView *v = opaque;
+    const OraclesCompatProfile *profile = oracles_guest_profile(v->guest);
+    ev_lane_serve(v, 0);
+    const unsigned lanes = v->lane_count;
+    v->rom_profile = profile;
+    if (v->image) {
+        v->rom = oracles_rom_half(v->image, v->image_size, oracles_compat_rom_bank_base(profile), &v->rom_size);
+        oracles_ghost_rooms_read(v->image, v->image_size, profile, &v->rooms);   /* never the ghosts': theirs follow after their runs */
+    }
+    /* The ghosts' cores run the whole image: each is moved to the half, made again only where that fails; a view that
+     * started without them (no memory for its snapshot or its job) stays so, and a lane that loses its ghost ends the
+     * lanes there. */
+    for (unsigned l = 0; l < lanes && l < EV_LANES && v->image && v->snapshot && v->job; l++) {
+        OraclesGhost **ghost = l ? &v->lanes[l].ghost : &v->ghost;
+        v->lanes[l].pending = 0;
+        if (*ghost && oracles_ghost_switch_half(*ghost, v->image, v->image_size, profile) == 0) { v->half_ghosts_moved++; continue; }
+        if (*ghost) oracles_ghost_destroy(*ghost);
+        *ghost = lane_ghost(v);
+        v->half_ghosts_made += *ghost != NULL;
+        if (*ghost || !l) continue;
+        for (unsigned k = l; k < lanes && k < EV_LANES; k++) {
+            if (k > l && v->lanes[k].ghost) oracles_ghost_destroy(v->lanes[k].ghost);
+            free(v->lanes[k].job);
+            memset(&v->lanes[k], 0, sizeof v->lanes[k]);
+        }
+        v->lane_count = l;
+        break;
+    }
+    v->lanes[0].ghost = v->ghost;
+    v->pending = 0;
+    v->key_count = oracles_ghost_key_ranges(profile, v->key, sizeof v->key / sizeof v->key[0]);
+    oracles_enhanced_camera_switch_half(v->camera);
+    add_hooks(v);
+    if (v->live_sprites && (oracles_sprites_add_hooks(v->guest) != 0 || oracles_objects_add_hooks(v->guest) != 0))
+        fprintf(stderr, "oracles: the view's sprites lost their hooks at the switch of halves\n");
+    ev_half_forget(v);
+    oracles_enhanced_view_hotbar_forget(v);   /* after the guest's hooks were cleared and the view's armed again */
+    v->half_switches++;
+    v->half_cache_check = 1;
+}
+
 OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest *guest,
                                                  const uint8_t *rom, size_t rom_size)
 {
@@ -29,8 +130,12 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
     const OraclesCompatProfile *profile = oracles_guest_profile(guest);
     v->observer.map_width = oracles_compat_map_width(profile);
     if (rom && rom_size) {
-        v->rom = malloc(rom_size);
-        if (v->rom) { memcpy(v->rom, rom, rom_size); v->rom_size = rom_size; }
+        v->image = malloc(rom_size);
+        if (v->image) {
+            memcpy(v->image, rom, rom_size);
+            v->image_size = rom_size;
+            v->rom = oracles_rom_half(v->image, v->image_size, oracles_compat_rom_bank_base(profile), &v->rom_size);
+        }
         v->ghost = oracles_ghost_create(rom, rom_size, profile, oracles_core_kind(core));
         v->state_size = oracles_core_state_size(core);
         v->snapshot = malloc(v->state_size);
@@ -49,21 +154,15 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
         v->lanes[0].job = v->job;
         v->rom_profile = profile;
         v->ghost_core = oracles_core_kind(core);
+        if (v->ghost) v->rooms = *oracles_ghost_rooms(v->ghost);
     }
     v->key_count = oracles_ghost_key_ranges(oracles_guest_profile(guest), v->key, sizeof v->key / sizeof v->key[0]);
     v->colours_pipeline = -1;
     v->level_change = -1;
     v->large_objects_listening = oracles_guest_add_event_listener(guest, on_view_event, v) == 0;
-    /* The game's animation steps, for the neighbours' own: without
-     * the hook they are stepped once a composition. */
-    v->animation_steps_counted = v->large_objects_listening
-        && oracles_guest_add_hook(guest, oracles_guest_tables(guest)->update_animations, ORACLES_EVENT_ANIMATIONS, 0) == 0;
-    /* The objects' drawing, to know a drawing the game skipped (a large room's objects). */
-    if (v->large_objects_listening && oracles_sprites_add_hooks(guest) != 0) {
-        oracles_guest_remove_event_listener(guest, on_view_event, v);
-        v->large_objects_listening = 0;
-        v->animation_steps_counted = 0;   /* no listener: one step a composition */
-    }
+    add_hooks(v);
+    if (oracles_guest_add_half_listener(guest, half_switched, v) != 0)
+        fprintf(stderr, "oracles: the Enhanced view cannot follow the game to the other half of its image: the guest's listeners are full\n");
     return v;
 }
 
@@ -72,6 +171,7 @@ static void on_live_event(void *opaque, const OraclesGuestEvent *event);
 void oracles_enhanced_view_stop(OraclesEnhancedView *v)
 {
     if (!v) return;
+    oracles_guest_remove_half_listener(v->guest, half_switched, v);
     if (v->large_objects_listening) oracles_guest_remove_event_listener(v->guest, on_view_event, v);
     if (v->live_sprites) {
         oracles_guest_remove_event_listener(v->guest, on_live_event, v);
@@ -93,7 +193,7 @@ void oracles_enhanced_view_stop(OraclesEnhancedView *v)
     free(v->sea_plan);
     free(v->hotbar_icons);
     free(v->snapshot);
-    free(v->rom);
+    free(v->image);
     oracles_enhanced_camera_stop(v->camera);
     free(v);
 }
@@ -134,18 +234,14 @@ int oracles_enhanced_view_set_ghosts(OraclesEnhancedView *v, unsigned count)
     while (v->lane_count < count && v->lane_count < EV_LANES) {
         struct ev_lane *lane = &v->lanes[v->lane_count];
         memset(lane, 0, sizeof *lane);
-        lane->ghost = oracles_ghost_create(v->rom, v->rom_size, v->rom_profile, v->ghost_core);
+        lane->ghost = lane_ghost(v);
         lane->job = malloc(sizeof *lane->job);
-        if (!lane->ghost || !lane->job || oracles_ghost_state_size(lane->ghost) != v->state_size) {
+        if (!lane->ghost || !lane->job) {
             if (lane->ghost) oracles_ghost_destroy(lane->ghost);
             free(lane->job);
             memset(lane, 0, sizeof *lane);
             break;
         }
-        oracles_ghost_set_trace(lane->ghost, 1);
-        oracles_ghost_set_prerun(lane->ghost, GHOST_PRERUN_FRAMES);
-        oracles_ghost_set_capture(lane->ghost, v->neighbour_objects);
-        oracles_ghost_set_probe(lane->ghost, !v->poses_off);
         v->lane_count++;
     }
     return (int)v->lane_count;
@@ -154,6 +250,32 @@ int oracles_enhanced_view_set_ghosts(OraclesEnhancedView *v, unsigned count)
 unsigned oracles_enhanced_view_ghosts(const OraclesEnhancedView *v) { return v->lane_count; }
 void oracles_enhanced_view_toggle(OraclesEnhancedView *v) { v->framed_only = !v->framed_only; }
 int oracles_enhanced_view_framed_only(const OraclesEnhancedView *v) { return v->framed_only; }
+int oracles_enhanced_view_half_passage(const OraclesEnhancedView *v) { return v ? oracles_guest_half_passage(v->guest) : 0; }
+unsigned oracles_enhanced_view_half_ghosts(const OraclesEnhancedView *v, unsigned *made) { if (made) *made = v ? v->half_ghosts_made : 0; return v ? v->half_ghosts_moved : 0; }
+unsigned oracles_enhanced_view_half_cache_kept(const OraclesEnhancedView *v) { return v ? v->half_cache_kept : 0; }
+
+/* The game between two halves after a state was loaded: the core's image, framed, as F3 shows it, the frame held being of
+ * the moment before the load. */
+static const uint32_t *compose_core_framed(OraclesEnhancedView *v, OraclesEnhancedMode *mode_out)
+{
+    OraclesEnhancedCompose in;
+    memset(&in, 0, sizeof in);
+    in.border = BORDER_COLOUR;
+    in.size = v->size;
+    in.colours = v->colours;
+    in.mode = ORACLES_ENHANCED_FRAMED;
+    const uint32_t *core = oracles_core_pixels(v->core);
+    if (core) oracles_enhanced_compose(core, &in, v->surface);
+    v->have_view = v->framed_load = v->hotbar_framed = 0;
+    v->sub_x = v->sub_y = 0;
+    v->sub_layer_w = v->sub_layer_h = 0;
+    v->sub_fixed_count = 0;
+    v->uncovered = v->uncovered_edges = 0;
+    v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;
+    if (mode_out) *mode_out = ORACLES_ENHANCED_FRAMED;
+    return v->surface;
+}
+
 void oracles_enhanced_view_set_camera_profile(OraclesEnhancedView *v, unsigned profile) { oracles_enhanced_camera_set_profile(v->camera, profile); }
 
 /* ---- composition ----------------------------------------------------------------------- */
@@ -495,6 +617,19 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
 const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnhancedMode *mode_out, int32_t *camera_x_out, int32_t *camera_y_out)
 {
     int32_t camera_x = 0, camera_y = 0;
+    if (oracles_guest_half_passage(v->guest)) {   /* from the frame of the switch, which the host composes before its end: the last frame held */
+        if (camera_x_out) *camera_x_out = 0;
+        if (camera_y_out) *camera_y_out = 0;
+        if (v->passage_loaded) return compose_core_framed(v, mode_out);
+        if (mode_out) *mode_out = v->have_view ? ORACLES_ENHANCED_WORLD : ORACLES_ENHANCED_FRAMED;
+        return v->surface;
+    }
+    v->passage_loaded = 0;
+    heal_lanes(v);
+    if (v->half_cache_check) {   /* nothing the view held of the other half survives the switch */
+        v->half_cache_check = 0;
+        for (unsigned i = 0; i < v->slot_count; i++) v->half_cache_kept += v->slots[i].used != 0;
+    }
     v->observer.exact = oracles_enhanced_view_subpixel_on(v);
     oracles_enhanced_observe(v->guest, &v->observer, &v->observation);
     /* The interior's open edges come from the cache as it stands, for the

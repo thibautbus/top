@@ -518,6 +518,46 @@ static void test_reset(void)
     oracles_item_hotkeys_stop(m.h);
 }
 
+/* Oracles Combined's game going to its other half: a request and a press under way stop, counted, the keys count as
+ * let go; a button's item waiting to come back still comes, and `equip`'s previous item is still known, the inventory
+ * being the same across. */
+static void test_half_switch(void)
+{
+    sim m = start(ORACLES_GAME_SEASONS, ORACLES_HOTKEYS_USE);
+    m.s = playable_combined(ORACLES_GAME_AGES);
+    tap(&m, 0);
+    turns(&m, 3, 0);
+    CHECK(m.s.slots[0] == FEATHER && m.presses[0] == 1);
+    oracles_item_hotkeys_half_switched(m.h);
+    m.s.game = ORACLES_GAME_SEASONS;
+    turns(&m, ORACLES_HOTKEY_PATIENCE + 2u, 0);
+    CHECK(m.s.slots[0] == SWORD && m.exchanges == 2);                              /* the return, in the other half */
+    m.s.scroll_mode = 0x04;                                                        /* a scroll: the request waits */
+    oracles_item_hotkeys_key(m.h, 2, 1, ORACLES_HOTKEY_PLAIN);
+    turns(&m, 1, 0);
+    oracles_item_hotkeys_half_switched(m.h);
+    m.s.scroll_mode = 0;
+    turns(&m, 2u * ORACLES_HOTKEY_PATIENCE, 0);
+    OraclesItemHotkeysLiveStats stats;
+    oracles_item_hotkeys_live_stats(m.h, &stats);
+    CHECK(m.exchanges == 2 && stats.half_switches == 2 && stats.half_cancelled == 1 && oracles_item_hotkeys_filter_keys(m.h, m.frame, 0) == 0);
+    oracles_item_hotkeys_stop(m.h);
+
+    m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_EQUIP);
+    m.s = playable_combined(ORACLES_GAME_AGES);
+    tap(&m, 0);
+    turns(&m, 3, 0);
+    CHECK(m.s.slots[0] == FEATHER);
+    oracles_item_hotkeys_half_switched(m.h);
+    m.s.game = ORACLES_GAME_SEASONS;
+    tap(&m, 0);                                                                    /* already there: the sword it held in the other half */
+    turns(&m, 3, 0);
+    CHECK(m.s.slots[0] == SWORD && m.exchanges == 2);
+    oracles_item_hotkeys_live_stats(m.h, &stats);
+    CHECK(stats.half_cancelled == 0 && stats.sounds == 2);
+    oracles_item_hotkeys_stop(m.h);
+}
+
 static void test_equip_mode(void)
 {
     sim m = start(ORACLES_GAME_AGES, ORACLES_HOTKEYS_EQUIP);
@@ -645,6 +685,7 @@ int main(void)
     test_use_throw();
     test_reset();
     test_equip_mode();
+    test_half_switch();
     test_at_rest();
     test_item_buttons();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }

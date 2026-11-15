@@ -60,7 +60,7 @@ static const uint32_t tone_texts[4] = { 0xd6d3dcu, 0xecd198u, 0xf9aea7u, 0xa19ea
 
 /* The tones of the page's status lines: the ROM's, a fan game's patch's and image's, an Oracle's European ROM's, the
  * save's. */
-typedef struct page_tones { OraclesTone rom, patch, image, eu, save; } page_tones;
+typedef struct page_tones { OraclesTone rom, patch, image, eu, save, joined[2]; } page_tones;
 
 static void game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *state, page_tones *tones)
 {
@@ -72,10 +72,22 @@ static void game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *s
     t->title = oracles_home_title(hero);
     t->state = state;
     t->credit = oracles_home_credit(hero);
-    snprintf(t->rom_file, sizeof t->rom_file, "%s", oracles_page_rom_file(game));
-    oracles_page_folder(nav->android, game->rom_file[0] ? game->rom_folder : "", t->rom_folder, sizeof t->rom_folder);
-    oracles_page_rom_status(game, t->rom_status, sizeof t->rom_status, &tones->rom);
     t->patched = game->fan != NULL;
+    t->joined = game->fan && game->fan->joined;
+    /* A ROM row, or Oracles Combined's two. */
+    tones->rom = ORACLES_TONE_NONE;
+    if (!t->joined) {
+        snprintf(t->rom_file, sizeof t->rom_file, "%s", oracles_page_rom_file(game));
+        oracles_page_folder(nav->android, game->rom_file[0] ? game->rom_folder : "", t->rom_folder, sizeof t->rom_folder);
+        oracles_page_rom_status(game, t->rom_status, sizeof t->rom_status, &tones->rom);
+    }
+    for (int h = 0; t->joined && h < 2; h++) {
+        t->joined_labels[h] = oracles_page_joined_label(h);
+        t->joined_from[h] = nav->layout == ORACLES_UI_LAYOUT_4_3 ? "" : oracles_page_joined_from(game, h);
+        snprintf(t->joined_file[h], sizeof t->joined_file[h], "%s", oracles_page_joined_file(game, h));
+        oracles_page_joined_status(game, h, nav->layout == ORACLES_UI_LAYOUT_4_3, t->joined_status[h], sizeof t->joined_status[h], &tones->joined[h]);
+    }
+    t->image_notes = oracles_page_image_notes(game, nav->layout == ORACLES_UI_LAYOUT_4_3, t->image_note);
     if (game->fan) {
         snprintf(t->patch_file, sizeof t->patch_file, "%s", oracles_page_patch_file(game));
         oracles_page_folder(nav->android, game->patch_file[0] ? game->patch_folder : "", t->patch_folder, sizeof t->patch_folder);
@@ -188,6 +200,20 @@ void oracles_ui_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracle
     for (unsigned r = 0; r < ORACLES_GAME_ROWS; r++) highlight_dimmed(draw, lk, &l.rows[r], r == row, r == ORACLES_ROW_LANGUAGE ? language_opacity : 1.0f);
     text(draw, st->row_label, &l.label_rom, t.patched ? "Base ROM" : "ROM", oracles_ui_rgb(LABEL));
     text(draw, st->row_label, &l.label_save, "Save", oracles_ui_rgb(LABEL));
+    /* Oracles Combined's European ROMs: each label, file and status; Choose… while it is not set, in the accent while its
+     * row is highlighted, else where it is set (16:9). */
+    for (int h = 0; t.joined && h < 2; h++) {
+        const OraclesHomeEuropean *e = &game->joined[h];
+        wrapped(draw, st->row_label, &l.joined_labels[h], oracles_ui_rgb(LABEL));
+        text(draw, st->row_title, &l.joined_files[h], t.joined_file[h], oracles_ui_rgb(e->file[0] ? TEXT : TEXT_NONE));
+        dot(draw, &l.joined_dots[h], tones.joined[h]);
+        text(draw, st->row_status, &l.joined_status[h], t.joined_status[h], oracles_ui_rgb(tone_texts[tones.joined[h]]));
+        text(draw, st->row_note, &l.joined_from[h], t.joined_from[h], oracles_ui_rgb(NOTE_ITALIC));
+        if (oracles_page_joined_set(game, h)) continue;
+        const OraclesUiColor choose = row == (h ? ORACLES_ROW_JOINED : ORACLES_ROW_ROM) ? accent : oracles_ui_rgb(BUTTON);
+        text(draw, st->row_button, &l.joined_buttons[h], "Choose\xe2\x80\xa6", choose);
+        text(draw, st->row_button, &l.joined_button_dots[h], oracles_ui_item_dot, choose);
+    }
 
     const OraclesUiColor normal = oracles_ui_rgb(BUTTON);
     text(draw, st->row_title, &l.rom_file, t.rom_file, oracles_ui_rgb(game->rom_file[0] ? TEXT : TEXT_NONE));
@@ -197,20 +223,23 @@ void oracles_ui_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracle
     wrapped(draw, st->row_text, &l.rom_note, oracles_ui_rgb(NOTE));
     wrapped(draw, st->row_text, &l.rom_hotkeys_note, oracles_ui_rgb(NOTE));
     const OraclesUiColor rom_button = row == ORACLES_ROW_ROM ? accent : normal;
-    text(draw, st->row_button, &l.rom_button, "Choose ROM\xe2\x80\xa6", rom_button);
-    text(draw, st->row_button, &l.rom_button_dot, oracles_ui_item_dot, rom_button);
+    if (!t.joined) {
+        text(draw, st->row_button, &l.rom_button, "Choose ROM\xe2\x80\xa6", rom_button);
+        text(draw, st->row_button, &l.rom_button_dot, oracles_ui_item_dot, rom_button);
+    }
 
     if (t.patched) {
         text(draw, st->row_label, &l.label_patch, "Patch", oracles_ui_rgb(LABEL));
         text(draw, st->row_title, &l.patch_file, t.patch_file, oracles_ui_rgb(game->patch_file[0] ? TEXT : TEXT_NONE));
         dot(draw, &l.patch_dot, tones.patch);
-        text(draw, st->row_status, &l.patch_status, t.patch_status, oracles_ui_rgb(tone_texts[tones.patch]));
+        wrapped(draw, st->row_status, &l.patch_status, oracles_ui_rgb(tone_texts[tones.patch]));
         const OraclesUiColor patch_button = row == ORACLES_ROW_PATCH ? accent : normal;
         text(draw, st->row_button, &l.patch_button, "Choose patch\xe2\x80\xa6", patch_button);
         text(draw, st->row_button, &l.patch_button_dot, oracles_ui_item_dot, patch_button);
         text(draw, st->row_path, &l.patch_folder, t.patch_folder, oracles_ui_rgb(PATH));
         dot(draw, &l.image_dot, tones.image);
         text(draw, st->row_status, &l.image_status, t.image_status, oracles_ui_rgb(tone_texts[tones.image]));
+        for (unsigned i = 0; i < t.image_notes; i++) text(draw, st->row_text, &l.image_notes[i], t.image_note[i], oracles_ui_rgb(NOTE));
     }
 
     /* Save: its file, its actions (the one left and right chose in the accent while the row is highlighted, one that does

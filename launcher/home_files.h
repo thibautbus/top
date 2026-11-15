@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define ORACLES_HOME_FILES 8   /* two ROMs, two European ROMs, three patches and a file dropped */
+#define ORACLES_HOME_FILES 9   /* two ROMs, two European ROMs, four patches and a file dropped */
 
 typedef struct OraclesHomeFiles {
     struct {

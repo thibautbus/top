@@ -125,6 +125,28 @@ int main(void)
     CHECK(refused(&not_bps, source, sizeof source, "not a BPS patch"));
     CHECK(oracles_bps_check(not_bps.data, not_bps.size, error, sizeof error) != 0 && strstr(error, "not a BPS patch"));
 
+    /* A patch made for two ROMs joined (Oracles Combined's, of the two European ROMs): their halves one after the other,
+     * from memory and from files; the other order is another base. */
+    uint8_t *joined = oracles_bps_join(source, 8, source + 8, 8, &size, error, sizeof error);
+    CHECK(joined && size == sizeof source && memcmp(joined, source, sizeof source) == 0);
+    free(joined);
+    static const char *const names[3] = { "test_bps_first.gbc", "test_bps_second.gbc", "test_bps_joined.bps" };
+    const uint8_t *contents[3] = { source, source + 8, p.data };
+    const size_t sizes[3] = { 8, 8, p.size };
+    for (int i = 0; i < 3; i++) {
+        FILE *f = fopen(names[i], "wb");
+        CHECK(f && fwrite(contents[i], 1, sizes[i], f) == sizes[i]);
+        if (f) fclose(f);
+    }
+    out = oracles_bps_apply_joined_files(names[0], names[1], names[2], &size, error, sizeof error);
+    CHECK(out && size == sizeof target && memcmp(out, target, sizeof target) == 0);
+    free(out);
+    out = oracles_bps_apply_joined_files(names[1], names[0], names[2], &size, error, sizeof error);
+    CHECK(!out && strstr(error, "not for this ROM"));
+    out = oracles_bps_apply_files(names[0], names[2], &size, error, sizeof error);
+    CHECK(!out && strstr(error, "not for this ROM"));
+    for (int i = 0; i < 3; i++) remove(names[i]);
+
     if (failures) return 1;
     puts("test_bps: ok");
     return 0;

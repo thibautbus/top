@@ -40,7 +40,7 @@ void oracles_page_rom_status(const OraclesHomeGame *game, char *out, size_t capa
         case ORACLES_ROM_UNRECOGNISED:
             /* A base that is not the original: the patch, made for it, is refused on it. */
             if (game->fan) snprintf(out, capacity, "Unrecognized ROM, not %s", game->fan->base_name);
-            else snprintf(out, capacity, "Unrecognized ROM, Faithful only");
+            else snprintf(out, capacity, game->combined ? "Oracles Combined image, Faithful only; see Fan games" : "Unrecognized ROM, Faithful only");
             *tone = ORACLES_TONE_WARN;
             break;
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->rom_reason); *tone = ORACLES_TONE_ERROR; break;
@@ -54,7 +54,8 @@ void oracles_page_patch_status(const OraclesHomeGame *game, char *out, size_t ca
 {
     switch (game->patch) {
         case ORACLES_ROM_NONE:   /* the player sees which patch the game expects before choosing one */
-            snprintf(out, capacity, "No patch: the BPS patch of %s is expected", game->fan ? game->fan->image_name : "the game");
+            snprintf(out, capacity, "No patch: the BPS patch of %s is expected",
+                     !game->fan ? "the game" : game->fan->patch_expected ? game->fan->patch_expected : game->fan->image_name);
             *tone = ORACLES_TONE_NONE;
             break;
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->patch_reason); *tone = ORACLES_TONE_ERROR; break;
@@ -62,14 +63,72 @@ void oracles_page_patch_status(const OraclesHomeGame *game, char *out, size_t ca
     }
 }
 
+/* An image's language, from the ROM's tables, in its own name as the Language rows write it. */
+static const char *own_language_name(const char *language)
+{
+    static const char *const names[][2] = {
+        { "English", "English" }, { "French", "Fran\xc3\xa7" "ais" }, { "German", "Deutsch" }, { "Italian", "Italiano" }, { "Spanish", "Espa\xc3\xb1" "ol" }
+    };
+    for (size_t i = 0; i < sizeof names / sizeof names[0]; i++) if (!strcmp(language, names[i][0])) return names[i][1];
+    return language;
+}
+
 void oracles_page_image_status(const OraclesHomeGame *game, char *out, size_t capacity, OraclesTone *tone)
 {
     switch (game->image) {
-        case ORACLES_ROM_ORIGINAL: snprintf(out, capacity, "Patched image recognized: %s", game->fan ? game->fan->image_name : "?"); *tone = ORACLES_TONE_OK; break;
+        case ORACLES_ROM_ORIGINAL:
+            snprintf(out, capacity, "Patched image recognized: %s%s%s", game->fan ? game->fan->image_name : "?", game->image_language ? " \xc2\xb7 " : "",
+                     game->image_language ? own_language_name(game->image_language) : "");
+            *tone = ORACLES_TONE_OK;
+            break;
         case ORACLES_ROM_UNRECOGNISED: snprintf(out, capacity, "Patched image not recognized, Faithful only"); *tone = ORACLES_TONE_WARN; break;
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->image_reason); *tone = ORACLES_TONE_ERROR; break;
-        default: snprintf(out, capacity, "The game needs both files."); *tone = ORACLES_TONE_NONE; break;
+        default:
+            snprintf(out, capacity, "%s", game->fan && game->fan->joined ? "The game needs both European ROMs and the patch." : "The game needs both files.");
+            *tone = ORACLES_TONE_NONE;
+            break;
     }
+}
+
+unsigned oracles_page_image_notes(const OraclesHomeGame *game, int four_three, char out[ORACLES_PAGE_IMAGE_NOTES][ORACLES_HOME_TEXT_LENGTH])
+{
+    if (!game->fan || !game->fan->joined) return 0;
+    snprintf(out[0], ORACLES_HOME_TEXT_LENGTH, "%s",
+             four_three ? "The language comes with the patch." : "The language comes with the patch: choose another patch to change it.");
+    return 1;
+}
+
+static const char *const joined_names[2] = { "Ages", "Seasons" };
+
+const char *oracles_page_joined_label(int half) { return half ? "Seasons ROM (EU)" : "Ages ROM (EU)"; }
+
+const char *oracles_page_joined_file(const OraclesHomeGame *game, int half) { return game->joined[half].file[0] ? game->joined[half].file : "None"; }
+
+int oracles_page_joined_set(const OraclesHomeGame *game, int half) { return game->joined[half].state == ORACLES_ROM_ORIGINAL; }
+
+void oracles_page_joined_status(const OraclesHomeGame *game, int half, int four_three, char *out, size_t capacity, OraclesTone *tone)
+{
+    const OraclesHomeEuropean *e = &game->joined[half];
+    const char *name = joined_names[half];
+    switch (e->state) {
+        case ORACLES_ROM_ORIGINAL:
+            if (four_three) snprintf(out, capacity, "Recognized \xc2\xb7 set in Oracle of %s\xe2\x80\x99s Cartridge", name);
+            else snprintf(out, capacity, "Recognized");
+            *tone = ORACLES_TONE_OK;
+            break;
+        case ORACLES_ROM_UNRECOGNISED: snprintf(out, capacity, "Not the European ROM of Oracle of %s", name); *tone = ORACLES_TONE_ERROR; break;
+        case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", e->reason); *tone = ORACLES_TONE_ERROR; break;
+        default:
+            snprintf(out, capacity, "Not chosen yet: Oracle of %s\xe2\x80\x99s European ROM is used", name);
+            *tone = ORACLES_TONE_NONE;
+            break;
+    }
+}
+
+const char *oracles_page_joined_from(const OraclesHomeGame *game, int half)
+{
+    if (!oracles_page_joined_set(game, half)) return "";
+    return half ? "Set in Oracle of Seasons\xe2\x80\x99s Cartridge" : "Set in Oracle of Ages\xe2\x80\x99s Cartridge";
 }
 
 const char *oracles_page_rom_note(const OraclesHomeNav *nav)
@@ -209,7 +268,8 @@ int oracles_page_eu_shown(const OraclesHomeGame *game) { return !game->fan && ga
 
 int oracles_page_language_shown(const OraclesHomeNav *nav, const OraclesHomeGame *game)
 {
-    return game->fan ? nav->fan_languages : oracles_page_eu_shown(game);
+    /* Oracles Combined's language is its patch's. */
+    return game->fan ? nav->fan_languages && !game->fan->joined : oracles_page_eu_shown(game);
 }
 
 const char *const oracles_page_language_names[ORACLES_PAGE_LANGUAGES] = {
@@ -300,6 +360,7 @@ static int has_row(const OraclesHomeNav *nav, unsigned row)
     const OraclesHomeGame *game = oracles_page_game_const(nav);
     if (row == ORACLES_ROW_EU_ROM) return oracles_page_eu_shown(game);
     if (row == ORACLES_ROW_LANGUAGE) return oracles_page_language_shown(nav, game);
+    if (row == ORACLES_ROW_JOINED) return game->fan && game->fan->joined;
     return row < ORACLES_GAME_ROWS && (row != ORACLES_ROW_PATCH || game->fan);
 }
 
@@ -338,7 +399,10 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, unsigned row)
 {
     const OraclesHomeGame *game = oracles_page_game(nav);
     switch (row) {
-        case ORACLES_ROW_ROM: return ORACLES_HOME_CHOOSE_ROM;
+        /* Oracles Combined's European ROMs: Choose… while one is missing or not its game's; recognized, it is changed on its
+         * Oracle's page. */
+        case ORACLES_ROW_ROM: return game->fan && game->fan->joined && oracles_page_joined_set(game, 0) ? ORACLES_HOME_STAY : ORACLES_HOME_CHOOSE_ROM;
+        case ORACLES_ROW_JOINED: return oracles_page_joined_set(game, 1) ? ORACLES_HOME_STAY : ORACLES_HOME_CHOOSE_EU_ROM;
         case ORACLES_ROW_PATCH: return ORACLES_HOME_CHOOSE_PATCH;
         case ORACLES_ROW_SAVE:
             if (!oracles_page_save_action_live(nav, nav->save_action)) return ORACLES_HOME_STAY;

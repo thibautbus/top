@@ -98,6 +98,47 @@ static inline size_t oracles_rom_offset(unsigned bank, unsigned addr)
     return bank ? (size_t)bank * 0x4000u + (addr - 0x4000u) : (size_t)addr;
 }
 
+/* ---- address spaces ----------------------------------------------------- */
+
+/* An image of two games side by side (Oracles Combined: Ages in banks $000-$0ff, Seasons in $100-$1ff, the MBC5's ninth
+ * bank bit choosing the half): each half is a game of its own, its symbols in banks $00-$ff relative to it.  A half's
+ * reader sees it alone, from its bank 0, never more than ORACLES_ROM_HALF_SIZE; the other images are a single half,
+ * their banks based at 0, and see the whole image as before (none is larger than a half). */
+#define ORACLES_ROM_HALF_SIZE (4u * 1024u * 1024u)
+
+static inline const uint8_t *oracles_rom_half(const uint8_t *image, size_t size, unsigned rom_bank_base, size_t *half_size)
+{
+    const size_t start = (size_t)rom_bank_base * 0x4000u;
+    if (!image || start >= size) { if (half_size) *half_size = 0; return NULL; }
+    const size_t left = size - start;
+    if (half_size) *half_size = left < ORACLES_ROM_HALF_SIZE ? left : ORACLES_ROM_HALF_SIZE;
+    return image + start;
+}
+
+/* Code that runs from the cartridge's RAM: a game that copies a ROM bank of its own there and executes it at
+ * $a000-$bfff (Oracles Combined's fillBootstrappedSram: bank $41 of the half, into the RAM's bank 1).  Its symbols
+ * name that ROM bank, at their address in $a000-$bfff; the copy's bytes are the bank's first 8 KiB. */
+#define ORACLES_SRAM_CODE_START 0xa000u
+#define ORACLES_SRAM_CODE_END 0xc000u
+/* The bank it is a copy of: a code address there read in the ROM (a call's target, which names no bank). */
+#define ORACLES_SRAM_CODE_BANK 0x41u
+
+static inline int oracles_rom_in_sram(unsigned addr) { return addr >= ORACLES_SRAM_CODE_START && addr < ORACLES_SRAM_CODE_END; }
+
+/* The offset of a code address of `bank` in the image, and the end of the region its code runs on in (bank 0, its
+ * bank, or the RAM's copy of its bank); 0 when the address is not one of code (WRAM, HRAM, I/O). */
+static inline int oracles_rom_code_offset(unsigned bank, unsigned addr, size_t *offset, size_t *end)
+{
+    if (addr < 0x4000u) { *offset = addr; *end = 0x4000u; return 1; }
+    if (addr < 0x8000u) { *offset = (size_t)bank * 0x4000u + (addr - 0x4000u); *end = (size_t)bank * 0x4000u + 0x4000u; return 1; }
+    if (oracles_rom_in_sram(addr)) {
+        *offset = (size_t)bank * 0x4000u + (addr - ORACLES_SRAM_CODE_START);
+        *end = (size_t)bank * 0x4000u + (ORACLES_SRAM_CODE_END - ORACLES_SRAM_CODE_START);
+        return 1;
+    }
+    return 0;
+}
+
 /* Reads through the sequential-read convention of the game: a stream that
  * crosses 0x7fff continues at 0x4000 of the next bank, i.e. physical offsets
  * simply increase. */

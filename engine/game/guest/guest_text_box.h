@@ -85,7 +85,8 @@ typedef struct OraclesGuestTextBoxReveal {
 void oracles_guest_text_box_reveal_state(const OraclesGuest *guest, OraclesGuestTextBoxReveal *reveal);
 /* The pages laid out again at the wide box's width (oracles_language_session_laid_pages: `count` pairs of physical
  * offsets of the image, a page's first byte and past its last, increasing), copied.  At drawLineOfText's entry the line
- * starts at w7TextAddress in bank w7ActiveBank: a line of none of them is of a page laid out as the game lays it out
+ * starts at w7TextAddress in bank w7ActiveBank of the half the game runs (its bank base added): a line of none of them
+ * is of a page laid out as the game lays it out
  * for its 128 pixels (a choice, a centred line, a song, a text kept whole, English kept), and the host's line starts
  * (pixels - 128) / 2 further, centred in the wide box, its tiles, characters, steps, cursor and icons with it; the
  * game's buffers and VRAM keep it where the game draws it.  0, or -1 out of memory (the pages then none). */

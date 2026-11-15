@@ -60,6 +60,39 @@ int main(void)
 
     CHECK(oracles_rom_identify(rom, 0x100, &info, error, sizeof error) == -1);
 
+    /* Both games in one image, whatever built it: an Ages ROM the port does not know, Faithful. */
+    write_header(rom, "ZELDA CROSS");
+    CHECK(oracles_rom_identify(rom, size, &info, error, sizeof error) == 0);
+    CHECK(info.game == ORACLES_GAME_AGES);
+    CHECK(info.known == 0);
+    CHECK(oracles_rom_is_combined(&info));
+    CHECK(oracles_rom_combined_language(&info) == NULL);
+    CHECK(!oracles_rom_is_original(&info));
+    write_header(rom, "ZELDA NAYRU");
+    CHECK(oracles_rom_identify(rom, size, &info, error, sizeof error) == 0);
+    CHECK(!oracles_rom_is_combined(&info));
+    write_header(rom, "ZELDA CROSS");
+    rom[0x147] = 0x03;
+    CHECK(oracles_rom_identify(rom, size, &info, error, sizeof error) == -1);
+
+    /* The release's five images, by their SHA-1: recognised, each its language, no profile of their own. */
+    static const struct { const char *sha1; const char *language; } releases[] = {
+        { "9158458fe61ccba2ed35d4ce7e567865a2accd4a", "English" }, { "1406167e50fb4c023c07c4577dd4aee26bda9c75", "French" },
+        { "55df7c3449b7b6b8d9eddc4676f82dbe37d85b91", "German" }, { "8ef71e0daadc15939fd4db89bf92a9ab28f89ab9", "Spanish" },
+        { "679d616ef28c9f6608b85efade8536ba1f42d5c7", "Italian" } };
+    for (size_t i = 0; i < sizeof releases / sizeof releases[0]; i++) {
+        OraclesRomInfo known = { 0 };
+        CHECK(oracles_rom_known(releases[i].sha1, &known) == 0);
+        CHECK(known.game == ORACLES_GAME_AGES && known.known);
+        CHECK(known.revision == ORACLES_ROM_REVISION_COMBINED_1_5_EN + (OraclesRomRevision)i);
+        CHECK(oracles_rom_is_combined(&known));
+        CHECK(oracles_rom_combined_language(&known) && strcmp(oracles_rom_combined_language(&known), releases[i].language) == 0);
+        CHECK(!oracles_rom_is_original(&known));
+    }
+    OraclesRomInfo other = { 0 };
+    CHECK(oracles_rom_known("880374fb978b18af4aa529e2e32f7ffb4d7dd2f4", &other) == 0);
+    CHECK(!oracles_rom_is_combined(&other) && oracles_rom_combined_language(&other) == NULL);
+
     free(rom);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_rom: ok\n");

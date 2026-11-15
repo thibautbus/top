@@ -133,6 +133,75 @@ static void sets(void)
     for (unsigned i = 0; i < 2; i++) oracles_mod_free(builders[i]);
 }
 
+/* An image of two games (Oracles Combined) plays without mods, its item hotkeys' calls armed or not: a guest of either
+ * half refuses a set for that; an Oracle's guest on the same synthetic image for its calls alone.  The profile alone says
+ * the first before a core runs (the launcher, before the save with mods is copied), and the second without a profile. */
+static void two_games_refused(void)
+{
+    char error[512];
+    const size_t size = 8u * 1024u * 1024u;
+    uint8_t *image = calloc(size, 1);
+    if (!image) { failures++; return; }
+    memcpy(image + 0x134, "ZELDA NAYRU", 11);
+    image[0x143] = 0xc0; image[0x147] = 0x1b; image[0x148] = 0x08; image[0x149] = 0x03;
+    image[0x100] = 0x00; image[0x101] = 0xc3; image[0x102] = 0x50; image[0x103] = 0x01;
+    image[0x150] = 0x18; image[0x151] = 0xfe;   /* jr -2 */
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
+    OraclesCore *core = oracles_core_create(image, size, &options);
+    free(image);
+    CHECK(core != NULL);
+    if (!core) return;
+    const OraclesRomInfo combined = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_COMBINED_1_5_EN, .known = 1 };
+    const OraclesRomInfo ages = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_AGES_US, .known = 1 };
+    const OraclesCompatProfile *first = oracles_compat_find(&combined);
+    const OraclesCompatProfile *halves[3] = { first, oracles_compat_half(first, 1), oracles_compat_find(&ages) };
+    for (unsigned i = 0; i < 3u; i++) {
+        OraclesMod *mod = quick("plain", "");
+        OraclesModSet *set = mod ? oracles_mod_set_create(&mod, 1, error, sizeof error) : NULL;
+        OraclesGuest *guest = halves[i] ? oracles_guest_attach(core, halves[i]) : NULL;
+        CHECK(set != NULL && guest != NULL);
+        if (set && guest) {
+            const int attached = oracles_mod_set_attach(set, guest, error, sizeof error) == 0;
+            CHECK(!attached && (strstr(error, "an image of two games plays without mods") != NULL) == (i < 2u));   /* the Oracle's: no calls in this image */
+            error[0] = 0;
+            const int refused = oracles_mod_set_check_profile(set, halves[i], error, sizeof error) != 0;
+            CHECK(refused == (i < 2u) && (strstr(error, "an image of two games plays without mods") != NULL) == (i < 2u));
+            error[0] = 0;
+            CHECK(oracles_mod_set_check_profile(set, NULL, error, sizeof error) != 0 && strstr(error, "the game's calls cannot be armed") != NULL);
+        }
+        oracles_mod_set_free(set);
+        oracles_guest_detach(guest);
+    }
+    oracles_core_destroy(core);
+}
+
+/* A set refuses for its calls exactly the profiles whose guest cannot arm them (oracles_guest_calls_qualified): an
+ * Oracle's US ROM takes them, a fan game and a ROM without a profile (a European one) do not. */
+static void calls_refusal_follows_guest(void)
+{
+    char error[512];
+    static const OraclesRomRevision revisions[] = { ORACLES_ROM_REVISION_AGES_US, ORACLES_ROM_REVISION_SEASONS_US, ORACLES_ROM_REVISION_MOONRISE_1_0_6,
+                                                    ORACLES_ROM_REVISION_TEMPLE_1_073, ORACLES_ROM_REVISION_KINOMI_1_1_2, ORACLES_ROM_REVISION_AGES_EU,
+                                                    ORACLES_ROM_REVISION_SEASONS_EU };
+    OraclesMod *mod = quick("plain", "");
+    OraclesModSet *set = mod ? oracles_mod_set_create(&mod, 1, error, sizeof error) : NULL;
+    CHECK(set != NULL);
+    if (!set) return;
+    unsigned qualified = 0;
+    for (size_t i = 0; i < sizeof revisions / sizeof revisions[0]; i++) {
+        OraclesRomInfo info = { .game = ORACLES_GAME_AGES, .revision = revisions[i], .known = 1 };
+        const OraclesCompatProfile *profile = oracles_compat_find(&info);
+        if (!profile) { info.game = ORACLES_GAME_SEASONS; profile = oracles_compat_find(&info); }
+        CHECK((profile != NULL) == (i < 5u));
+        error[0] = 0;
+        const int refused = oracles_mod_set_check_profile(set, profile, error, sizeof error) != 0;
+        CHECK(refused == !oracles_guest_calls_qualified(profile) && (strstr(error, "the game's calls cannot be armed") != NULL) == refused);
+        qualified += (unsigned)oracles_guest_calls_qualified(profile);
+    }
+    CHECK(qualified == 2u);
+    oracles_mod_set_free(set);
+}
+
 /* mod.storage: a conversation fills it, the game's save encodes it into a slot, a load gives it back; the set's text
  * keeps the slots of a mod not loaded; what cannot be saved stops the mod, with the reason. */
 static void storage(void)
@@ -429,6 +498,8 @@ int main(int argc, char **argv)
     if (mod) oracles_mod_free(mod);
 
     /* Refusals, with their reason; an error of the engine's primitives names the mod's line. */
+    two_games_refused();
+    calls_refusal_follows_guest();
     refused("loop", "while true do end\n", "more Lua instructions");
     refused("format", "local s = string.format(\"%p\", {})\n", "%p");
     refused("keys", "for key in pairs({ [{}] = 1 }) do end\n", "no fixed order");

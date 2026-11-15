@@ -270,6 +270,8 @@ static int load_state(session *s, char *message, size_t capacity, int restart)
     if (oracles_state_deserialize(s->core, &s->state_info, data, size, &host_state, &host_state_size, error, sizeof error) == 0) {
         fprintf(stderr, "oracles: state loaded from %s\n", s->state_path);
         if (s->guest) oracles_guest_reset_execution_state(s->guest);
+        if (s->bar_reader) oracles_guest_reset_execution_state(s->bar_reader);   /* the reader follows the state's half at once */
+        oracles_session_follow_half(s, oracles_guest_frame(s->guest));   /* a state of the other half's game: the rest loads into that half's */
         const uint8_t *transition = NULL;
         size_t transition_size = 0;
         if (s->transition && oracles_state_transition_state(data, size, &transition, &transition_size) == 0 && transition_size

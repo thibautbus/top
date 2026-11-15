@@ -63,6 +63,25 @@ static void check(void)
     CHECK(!oracles_save_transfer_check(sram, sizeof sram, ORACLES_GAME_AGES, 1, out, &english));
 }
 
+/* Oracles Combined's save: 32 KiB, Ages' save in its third bank and Seasons' in its fourth, either one enough; taken as
+ * it is, its other banks (the game's copies and code) untouched; an Oracle's save or a 32 KiB file without either refused. */
+static void check_combined(void)
+{
+    static uint8_t sram[ORACLES_SAVE_COMBINED_SIZE], out[ORACLES_SAVE_COMBINED_SIZE];
+    memset(sram, 0xa5, sizeof sram);
+    build(sram + 3u * ORACLES_SAVE_SIZE, ORACLES_GAME_SEASONS, 1, 0);
+    CHECK(oracles_save_combined_valid(sram, sizeof sram) == (9u << ORACLES_SAVE_COPIES));
+    CHECK(oracles_save_transfer_check_combined(sram, sizeof sram, out) && !memcmp(out, sram, sizeof sram));
+    build(sram + 2u * ORACLES_SAVE_SIZE, ORACLES_GAME_AGES, 0, 0);
+    CHECK(oracles_save_combined_valid(sram, sizeof sram) == (9u | 9u << ORACLES_SAVE_COPIES));
+    CHECK(!oracles_save_transfer_check_combined(sram, ORACLES_SAVE_SIZE, out) && !oracles_save_combined_valid(sram, sizeof sram - 1u));
+    build(sram + 2u * ORACLES_SAVE_SIZE, ORACLES_GAME_SEASONS, 0, 0);   /* Seasons' files where Ages' are */
+    memset(sram + 3u * ORACLES_SAVE_SIZE, 0xff, ORACLES_SAVE_SIZE);
+    CHECK(!oracles_save_transfer_check_combined(sram, sizeof sram, out));
+    build(out, ORACLES_GAME_AGES, 0, 0);
+    CHECK(!oracles_save_transfer_check_combined(out, ORACLES_SAVE_SIZE, sram));
+}
+
 static void import(const char *folder)
 {
     static uint8_t first[ORACLES_SAVE_SIZE], second[ORACLES_SAVE_SIZE], third[ORACLES_SAVE_SIZE], other[16] = "another backup";
@@ -184,14 +203,20 @@ static void read_chosen(const char *folder)
     size_t size = 1;
     build(sram, ORACLES_GAME_AGES, 0, 4);
     snprintf(path, sizeof path, "%s/chosen.sav", folder);
-    CHECK(SDL_SaveFile(path, sram, sizeof sram) && oracles_save_transfer_read(path, out, &size, error, sizeof error));
+    CHECK(SDL_SaveFile(path, sram, sizeof sram) && oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error));
     CHECK(size == sizeof sram && !memcmp(out, sram, sizeof sram));
-    CHECK(SDL_SaveFile(path, sram, 100) && oracles_save_transfer_read(path, out, &size, error, sizeof error) && size == 100u);
+    CHECK(SDL_SaveFile(path, sram, 100) && oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error) && size == 100u);
     CHECK(SDL_SaveFile(path, large, ORACLES_SAVE_SIZE + 1u));
-    CHECK(!oracles_save_transfer_read(path, out, &size, error, sizeof error) && size == 0u && !strcmp(error, "larger than a save"));
-    CHECK(SDL_SaveFile(path, large, sizeof large) && !oracles_save_transfer_read(path, out, &size, error, sizeof error) && !strcmp(error, "larger than a save"));
+    CHECK(!oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error) && size == 0u && !strcmp(error, "larger than a save"));
+    CHECK(SDL_SaveFile(path, large, sizeof large) && !oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error) && !strcmp(error, "larger than a save"));
+    /* Oracles Combined's, four times as large: read whole for it, larger than a save for an Oracle. */
+    CHECK(SDL_SaveFile(path, large, ORACLES_SAVE_COMBINED_SIZE));
+    CHECK(oracles_save_transfer_read(path, out, ORACLES_SAVE_COMBINED_SIZE, &size, error, sizeof error) && size == ORACLES_SAVE_COMBINED_SIZE);
+    CHECK(!oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error) && !strcmp(error, "larger than a save"));
+    CHECK(SDL_SaveFile(path, large, ORACLES_SAVE_COMBINED_SIZE + 1u));
+    CHECK(!oracles_save_transfer_read(path, out, ORACLES_SAVE_COMBINED_SIZE, &size, error, sizeof error) && !strcmp(error, "larger than a save"));
     snprintf(path, sizeof path, "%s/none.sav", folder);
-    CHECK(!oracles_save_transfer_read(path, out, &size, error, sizeof error) && error[0]);
+    CHECK(!oracles_save_transfer_read(path, out, ORACLES_SAVE_SIZE, &size, error, sizeof error) && error[0]);
 }
 
 /* The folder the confirmation shows for a document Android's picker chose, read in its content:// address. */
@@ -244,6 +269,7 @@ int main(int argc, char **argv)
     SDL_EnumerateDirectory(argv[1], removed, NULL);
     SDL_CreateDirectory(argv[1]);
     check();
+    check_combined();
     import(argv[1]);
     read_chosen(argv[1]);
     uri_folders();

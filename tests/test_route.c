@@ -397,7 +397,7 @@ int main(int argc, char **argv)
         const OraclesRouteAction exchange = { 1840, ORACLES_ROUTE_EQUIP, 1, 0, 0x05, 5, 0x0a, 3, 0x02, 0, 0 };
         const OraclesRouteAction variant_only = { 1900, ORACLES_ROUTE_EQUIP, 0, 0, 0, 0, 0, 1, 0x01, 0, 0 };
         const OraclesRouteAction use = { 1840, ORACLES_ROUTE_USE, 0, 0, 0, 0, 0, 0, 0, 1, 0x0a };
-        const OraclesRouteAction bad = { 1, ORACLES_ROUTE_EQUIP, 1, 18, 0, 0, 0, 0, 0, 0, 0 };
+        const OraclesRouteAction bad = { 1, ORACLES_ROUTE_EQUIP, 1, 22, 0, 0, 0, 0, 0, 0, 0 };
         CHECK(oracles_route_writer_open(&w2, path, &header) == 0);
         oracles_route_writer_record(&w2, 0, 0x00);
         CHECK(oracles_route_writer_action(&w2, &exchange) == 0);
@@ -442,13 +442,30 @@ int main(int argc, char **argv)
         CHECK(route.actions[1].verb == ORACLES_ROUTE_THROW && route.actions[1].frame == 1843 && route.actions[1].button == 1);
         oracles_route_free(&route);
     }
+    {   /* Oracles Combined's storage past the sixteenth slot and the slingshot's own seeds, read in the format of the verb */
+        f = fopen(path, "w");
+        fputs("oracles-route 2\ninputs\n10 equip b=05 s19=0a slingshot=02\n12 equip s16=13 a=01\n", f);
+        fclose(f);
+        CHECK(oracles_route_read(path, &route, error, sizeof error) == 0);
+        CHECK(route.action_count == 2 && route.actions[0].slot_b == 21 && route.actions[0].item_b == 0x0a && route.actions[0].variant == 4
+              && route.actions[0].variant_value == 2 && route.actions[1].slot_a == 18 && route.actions[1].slot_b == 1);
+        OraclesRouteWriter w3;
+        CHECK(oracles_route_writer_open(&w3, path, &header) == 0);
+        CHECK(oracles_route_writer_action(&w3, &route.actions[0]) == 0 && oracles_route_writer_action(&w3, &route.actions[1]) == 0);
+        oracles_route_free(&route);
+        CHECK(oracles_route_writer_close(&w3) == 0);
+        char text[512] = { 0 };
+        f = fopen(path, "r"); const size_t got = fread(text, 1, sizeof text - 1, f); fclose(f);
+        CHECK(got > 0 && strstr(text, "10 equip b=05 s19=0a slingshot=02\n") && strstr(text, "12 equip s16=13 a=01\n"));
+    }
     static const char *const refused[] = {
         "oracles-route 2\ninputs\n10 equip b=05 s3=0a\n10 equip b=0a s3=05\n",   /* a same verb twice at a frame */
         "oracles-route 2\ninputs\n10 equip b=05 s3=0a\n9 keys 01\n",             /* a frame going back */
         "oracles-route 2\ninputs\n10 inject 1 2 3\n",                            /* an unknown verb: never ignored */
         "oracles-route 1\ninputs\n10 equip b=05 s3=0a\n",                         /* format 1 has the keys alone */
         "oracles-route 2\ninputs\n10 equip b=05\n",                               /* half an exchange */
-        "oracles-route 2\ninputs\n10 equip b=05 s16=0a\n",                        /* no such slot */
+        "oracles-route 2\ninputs\n10 equip b=05 s20=0a\n",                        /* no such slot */
+        "oracles-route 2\ninputs\n10 equip catapult=02\n",                       /* no such variant */
         "oracles-route 2\ninputs\n10 equip\n",
         "oracles-route 2\ninputs\n10 use s3 0a\n",                               /* a use is carried by a button */
         "oracles-route 2\nmods claw-game@2fd4e1c67a2d28fced849ee1bb76e7391b93eb12\ninputs\n0 keys 00\n",   /* mods need format 3 */

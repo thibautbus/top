@@ -148,12 +148,28 @@ int oracles_mod_set_compose(OraclesModSet *set, const uint8_t *rom, size_t rom_s
     return mod_compose(set->mods, set->count, rom, rom_size, out, out_size, error, capacity);
 }
 
-int oracles_mod_set_attach(OraclesModSet *set, OraclesGuest *guest, char *error, size_t capacity)
+static int calls_refused(const OraclesModSet *set, char *error, size_t capacity)
 {
-    if (oracles_guest_arm_calls(guest) != 0) {
-        snprintf(error, capacity, "mods %s: the game's calls cannot be armed in this ROM (an original US ROM is needed)", set->identity);
+    snprintf(error, capacity, "mods %s: the game's calls cannot be armed in this ROM (an original US ROM is needed)", set->identity);
+    return -1;
+}
+
+int oracles_mod_set_check_profile(const OraclesModSet *set, const OraclesCompatProfile *profile, char *error, size_t capacity)
+{
+    /* An image of two games (Oracles Combined): its calls are armed for the item hotkeys, but a mod's font, its tables of
+     * names and its watch of the game's files are its original's, none of them following the game to the other half. */
+    if (oracles_compat_half_switch(profile)) {
+        snprintf(error, capacity, "mods %s: an image of two games plays without mods", set->identity);
         return -1;
     }
+    if (!oracles_guest_calls_qualified(profile)) return calls_refused(set, error, capacity);
+    return 0;
+}
+
+int oracles_mod_set_attach(OraclesModSet *set, OraclesGuest *guest, char *error, size_t capacity)
+{
+    if (oracles_mod_set_check_profile(set, oracles_guest_profile(guest), error, capacity) != 0) return -1;
+    if (oracles_guest_arm_calls(guest) != 0) return calls_refused(set, error, capacity);
     const OraclesGuestSym files = oracles_guest_tables(guest)->file_management_function;
     if (!files.addr || oracles_guest_add_hook(guest, files, ORACLES_EVENT_FILE_OPERATION, 0) != 0) {
         snprintf(error, capacity, "mods: the game's file operations cannot be watched (mod.storage)");

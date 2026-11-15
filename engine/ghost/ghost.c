@@ -73,7 +73,7 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
         if (wram[t->active_group.addr - WRAM_BANK0_BASE] != 0) break;
         /* Not into an area whose season never changes (oracles_ghost_area_holds_season):
          * the game's own fade sets it, and the band shows what the game will. */
-        if (g->fixed_season[wram[t->loading_room_pack.addr - WRAM_BANK0_BASE]]) break;
+        if (g->rooms.fixed_season[wram[t->loading_room_pack.addr - WRAM_BANK0_BASE]]) break;
         wram[t->room_pack.addr - WRAM_BANK0_BASE] = wram[t->loading_room_pack.addr - WRAM_BANK0_BASE];
         break;
     }
@@ -111,15 +111,72 @@ static void on_event(void *opaque, const OraclesGuestEvent *event)
 
 /* ---- create / destroy ---------------------------------------------------------- */
 
-OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind)
+/* What the ghost reads of its half once: its rooms' data, the addresses it watches and those of its tables. */
+/* An image of two games' halves' rooms, read once by profile: every ghost of the image, and the view, read them again at
+ * each switch.  The profile is a revision's, whose image rom.c identifies by its SHA-1: its content, whatever its address,
+ * as long as nothing composes into that image.  What could is refused on it today: a language
+ * (oracles_language_session_start and oracles_language_session_lay_out, no language_bank in Oracles Combined's
+ * profiles), a mod's houses (oracles_mod_session_compose, an original image only) and every other mod
+ * (oracles_mod_set_attach, which refuses an image of two games).  Lifting one of those refusals means
+ * keying this cache on the composed image too, or emptying it when an image is composed. */
+typedef struct half_rooms { const OraclesCompatProfile *profile; OraclesGhostRooms rooms; } half_rooms;
+static half_rooms half_cache[4];
+static unsigned half_cache_next;
+static pthread_mutex_t half_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void oracles_ghost_rooms_read(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesGhostRooms *out)
 {
-    OraclesGhost *g = calloc(1, sizeof *g);
-    if (!g) return NULL;
-    const OraclesCoreOptions options = { 0, 0, kind, 1 };   /* no audio, raw colours, no frame drawn: the ghost is never shown */
-    g->core = oracles_core_create(rom, rom_size, &options);
-    if (!g->core) { free(g); return NULL; }
-    g->guest = oracles_guest_attach(g->core, profile);
-    if (!g->guest) { oracles_core_destroy(g->core); free(g); return NULL; }
+    const int cached = oracles_compat_half_switch(profile);
+    if (cached) {
+        pthread_mutex_lock(&half_cache_mutex);
+        for (unsigned i = 0; i < sizeof half_cache / sizeof half_cache[0]; i++)
+            if (half_cache[i].profile == profile) { *out = half_cache[i].rooms; pthread_mutex_unlock(&half_cache_mutex); return; }
+        pthread_mutex_unlock(&half_cache_mutex);
+    }
+    memset(out, 0, sizeof *out);
+    size_t half_size = 0;
+    const uint8_t *half = oracles_rom_half(rom, rom_size, oracles_compat_rom_bank_base(profile), &half_size);
+    oracles_ghost_find_fixed_seasons(out, profile, half, half_size);
+    oracles_ghost_find_open_water_rooms(out, profile, half, half_size);
+    oracles_ghost_find_map_rooms(out, profile, half, half_size);
+    oracles_ghost_find_self_routed_rooms(out, profile, half, half_size);
+    if (!cached) return;
+    pthread_mutex_lock(&half_cache_mutex);
+    half_rooms *slot = &half_cache[half_cache_next++ % (sizeof half_cache / sizeof half_cache[0])];
+    slot->profile = profile;
+    slot->rooms = *out;
+    pthread_mutex_unlock(&half_cache_mutex);
+}
+
+const OraclesGhostRooms *oracles_ghost_rooms(const OraclesGhost *g) { return &g->rooms; }
+
+static void read_data(OraclesGhost *g, const uint8_t *rom, size_t rom_size)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(g->guest);
+    memset(g->object_watch, 0, sizeof g->object_watch);
+    g->entry_side_address = 0;
+    oracles_ghost_rooms_read(rom, rom_size, oracles_guest_profile(g->guest), &g->rooms);   /* the core runs the whole image; the tables are the half's the profile names */
+    g->hold_request = g->job_hold = g->run_hold = g->primed_hold = -1;
+    g->level_request = g->job_level = g->run_level = g->await_group = -1;
+    g->state_size = oracles_core_state_size(g->core);
+    g->layout_start = t->room_layout.addr;
+    g->layout_end = (uint16_t)(t->room_layout.addr + 0x100u);   /* the search loops of the substitutions run over the whole page, past wRoomLayoutEnd into wTmpcfc0 */
+    g->stacks_start = t->main_stack.addr;
+    g->stacks_end = t->thread3_stack_top.addr;
+    OraclesGhostKeyRange watch[ORACLES_GHOST_KEY_RANGES];
+    const unsigned watched = oracles_ghost_object_watch_ranges(oracles_guest_profile(g->guest), watch, ORACLES_GHOST_KEY_RANGES);
+    for (unsigned k = 0; k < watched; k++)
+        for (unsigned b = 0; b < watch[k].length; b++) {
+            const uint16_t a = (uint16_t)(watch[k].address + b);
+            g->object_watch[a >> 3] |= (uint8_t)(1u << (a & 7u));
+        }
+    if (oracles_ghost_bank0_symbol(t->screen_transition_direction)) g->entry_side_address = t->screen_transition_direction.addr;   /* the side a room is entered by, as its own objects read it */
+}
+
+/* The ghost's hooks, in place of the guest's own: those of a room's load, its objects and their drawing.  1 when one
+ * did not fit. */
+static int arm_hooks(OraclesGhost *g)
+{
     const OraclesGuestTables *t = oracles_guest_tables(g->guest);
     oracles_guest_clear_hooks(g->guest);
     oracles_guest_add_hook(g->guest, t->initialize_room, ORACLES_EVENT_ROOM_ENTER, ORACLES_EVENT_ROOM_INITIALIZED);
@@ -142,8 +199,23 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
         const OraclesGuestSym code[5] = { t->update_enemies, t->update_parts, t->update_interactions, t->parse_object_data, t->run_room_specific_code };
         for (unsigned i = 0; i < 5u; i++) hooks_full |= oracles_guest_add_hook(g->guest, code[i], ORACLES_EVENT_ROOM_OBJECTS_CODE, ORACLES_EVENT_ROOM_OBJECTS_CODE_DONE) != 0;
     }
-    /* A language composed into the image is the game the ghost runs too: its texts served as the live instance's. */
+    hooks_full |= oracles_guest_watch_half(g->guest) != 0;   /* a run never goes through swapGame: given up there */
+    /* A language composed into the image is the game the ghost runs too: its texts served as the live instance's (armed
+     * here again at each switch of halves, the ghost's guest following none by itself). */
     hooks_full |= oracles_guest_arm_language(g->guest) != 0;
+    return hooks_full;
+}
+
+OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile, OraclesCoreKind kind)
+{
+    OraclesGhost *g = calloc(1, sizeof *g);
+    if (!g) return NULL;
+    const OraclesCoreOptions options = { 0, 0, kind, 1 };   /* no audio, raw colours, no frame drawn: the ghost is never shown */
+    g->core = oracles_core_create(rom, rom_size, &options);
+    if (!g->core) { free(g); return NULL; }
+    g->guest = oracles_guest_attach(g->core, profile);
+    if (!g->guest) { oracles_core_destroy(g->core); free(g); return NULL; }
+    int hooks_full = arm_hooks(g);
     g->objects = oracles_objects_create(g->guest);
     g->sprites = oracles_sprites_create(g->guest);
     if (hooks_full || !g->objects || !g->sprites) {
@@ -155,29 +227,46 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
         return NULL;
     }
     oracles_guest_set_event_sink(g->guest, on_event, g);
-    oracles_ghost_find_fixed_seasons(g, rom, rom_size);
-    oracles_ghost_find_open_water_rooms(g, rom, rom_size);
-    oracles_ghost_find_map_rooms(g, rom, rom_size);
-    oracles_ghost_find_self_routed_rooms(g, rom, rom_size);
-    g->hold_request = g->job_hold = g->run_hold = g->primed_hold = -1;
-    g->level_request = g->job_level = g->run_level = g->await_group = -1;
-    g->state_size = oracles_core_state_size(g->core);
-    g->layout_start = t->room_layout.addr;
-    g->layout_end = (uint16_t)(t->room_layout.addr + 0x100u);   /* the search loops of the substitutions run over the whole page, past wRoomLayoutEnd into wTmpcfc0 */
-    g->stacks_start = t->main_stack.addr;
-    g->stacks_end = t->thread3_stack_top.addr;
-    OraclesGhostKeyRange watch[ORACLES_GHOST_KEY_RANGES];
-    const unsigned watched = oracles_ghost_object_watch_ranges(profile, watch, ORACLES_GHOST_KEY_RANGES);
-    for (unsigned k = 0; k < watched; k++)
-        for (unsigned b = 0; b < watch[k].length; b++) {
-            const uint16_t a = (uint16_t)(watch[k].address + b);
-            g->object_watch[a >> 3] |= (uint8_t)(1u << (a & 7u));
-        }
-    if (oracles_ghost_bank0_symbol(t->screen_transition_direction)) g->entry_side_address = t->screen_transition_direction.addr;   /* the side a room is entered by, as its own objects read it */
+    read_data(g, rom, rom_size);
     pthread_mutex_init(&g->mutex, NULL);
     pthread_cond_init(&g->cond, NULL);
     return g;
 }
+
+/* The ghost moved to `profile`'s half, no run under way. */
+static int apply_half(OraclesGhost *g, const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile)
+{
+    if (oracles_guest_switch_to(g->guest, profile) != 0 || arm_hooks(g)) { atomic_store(&g->half_failed, 1); return -1; }
+    oracles_objects_forget(g->objects);
+    oracles_sprites_forget(g->sprites);
+    read_data(g, rom, rom_size);
+    g->active = 0;
+    g->settled_size = 0;
+    atomic_store(&g->half_failed, 0);
+    pthread_mutex_lock(&g->mutex);
+    g->hold_request = g->job_hold = g->run_hold = g->primed_hold = -1;
+    g->level_request = g->job_level = g->run_level = g->await_group = -1;
+    pthread_mutex_unlock(&g->mutex);
+    return 0;
+}
+
+int oracles_ghost_switch_half(OraclesGhost *g, const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile)
+{
+    pthread_mutex_lock(&g->mutex);
+    g->job_done = 0;   /* a result of the half left is never delivered */
+    if (g->job_pending) {   /* the worker moves the ghost once its run ends, the host not waiting for it */
+        g->half_pending = profile;
+        g->half_rom = rom;
+        g->half_rom_size = rom_size;
+        pthread_mutex_unlock(&g->mutex);
+        return 0;
+    }
+    g->half_pending = NULL;   /* a switch the worker had not made yet is this one's past */
+    pthread_mutex_unlock(&g->mutex);
+    return apply_half(g, rom, rom_size, profile);
+}
+
+int oracles_ghost_half_failed(const OraclesGhost *g) { return g ? atomic_load(&g->half_failed) : 0; }
 
 void oracles_ghost_destroy(OraclesGhost *g)
 {
@@ -221,7 +310,8 @@ int oracles_ghost_prerunnable(OraclesGuest *guest, const char **reason)
     const int room_loading = (oracles_guest_read8(guest, t->scroll_mode) & 0x7fu) != NORMAL_PLAY_SCROLL_MODE
                           || oracles_guest_read8(guest, t->screen_transition_state) != TRANSITION_STATE_IDLE;
     const int warp_under_way = oracles_guest_read8(guest, t->warp_transition) != 0;
-    if (oracles_guest_read8(guest, t->game_state) != GAME_STATE_PLAYING) why = "game state is not 2 (playing)";
+    if (oracles_guest_half_passage(guest)) why = "the game is switching halves";
+    else if (oracles_guest_read8(guest, t->game_state) != GAME_STATE_PLAYING) why = "game state is not 2 (playing)";
     else if (oracles_guest_read8(guest, t->text_is_active) != 0) why = "text is active";
     else if (oracles_guest_read8(guest, t->cutscene_index) > CUTSCENE_INGAME && !room_loading && !warp_under_way) why = "a cutscene is running";
     else if (oracles_guest_read8(guest, t->cutscene_index) != 0 && !room_loading && !warp_under_way) why = "no room is loading";
@@ -250,6 +340,7 @@ void oracles_ghost_set_level_change(OraclesGhost *g, int group)
 static const char *not_primeable(OraclesGuest *guest, int text_closed)
 {
     const OraclesGuestTables *t = oracles_guest_tables(guest);
+    if (oracles_guest_half_passage(guest)) return "the game is switching halves";
     if (oracles_guest_read8(guest, t->game_state) != GAME_STATE_PLAYING) return "game state is not 2 (playing)";
     if (oracles_guest_read8(guest, t->cutscene_index) > CUTSCENE_INGAME) return "a cutscene is running";
     /* Index 0 is the room load's own: the main loop is still in it, and a
@@ -352,7 +443,7 @@ static int prime(OraclesGhost *g, OraclesGhostDirection direction)
         /* Into a room of a fixed area from the same area the scroll sets no
          * season (checkRoomPack returns at once): the start room's own, the
          * area's, stands; from another area the fade sets it. */
-        if (!(g->fixed_season[g->room_pack_of[destination]] && g->room_pack_of[destination] == g->room_pack_of[room]))
+        if (!(g->rooms.fixed_season[g->rooms.room_pack_of[destination]] && g->rooms.room_pack_of[destination] == g->rooms.room_pack_of[room]))
             wram[t->room_state_modifier.addr - WRAM_BANK0_BASE] = (uint8_t)g->primed_hold;
     }
     /* Link placed on the edge as screenTransitionState1 places him when he
@@ -584,6 +675,7 @@ int oracles_ghost_begin_ex(OraclesGhost *g, const uint8_t *state, size_t size, O
 {
     memset(result, 0, sizeof *result);
     g->active = 0;
+    if (atomic_load(&g->half_failed)) { result->status = ORACLES_GHOST_LOAD_FAILED; g->last_reason = "the ghost could not follow the game to the other half"; return -1; }
     g->initialized = 0;
     g->settle = settle;
     g->settled = 0;
@@ -696,6 +788,14 @@ int oracles_ghost_step(OraclesGhost *g, unsigned frame_budget, unsigned max_fram
         oracles_guest_set_frame(g->guest, g->frames_run);
         oracles_core_run_frame(g->core);
         g->frames_run++;
+        if (oracles_guest_half_crossed(g->guest)) {
+            restore_warp_tiles(g);
+            g->active = 0;
+            g->last_reason = "the game is switching halves";
+            result->status = ORACLES_GHOST_INTERRUPTED;
+            result->guest_frames = g->frames_run;
+            return -1;
+        }
         /* Each object of the room entered, as it stands once its own
          * initialisation has run: what the neighbour shows. */
         oracles_objects_latch(g->objects);
@@ -784,10 +884,21 @@ static void *worker(void *arg)
          * result, whose fields would still be those of the start. */
         if (rc == 0) { result.status = ORACLES_GHOST_TIMEOUT; result.guest_frames = g->frames_run; rc = -1; }
         pthread_mutex_lock(&g->mutex);
+        /* The host switched halves during the run: its result is the half left's, dropped; a switch asked while the
+         * worker made the one before is made in turn, the last one standing. */
+        int switched = 0;
+        for (const OraclesCompatProfile *half; (half = g->half_pending) != NULL; switched = 1) {
+            const uint8_t *half_rom = g->half_rom;
+            const size_t half_rom_size = g->half_rom_size;
+            g->half_pending = NULL;
+            pthread_mutex_unlock(&g->mutex);
+            apply_half(g, half_rom, half_rom_size, half);
+            pthread_mutex_lock(&g->mutex);
+        }
         g->job_result = result;
         g->job_return = rc;
         g->job_pending = 0;
-        g->job_done = 1;
+        g->job_done = !switched;
         pthread_cond_broadcast(&g->cond);
     }
     pthread_mutex_unlock(&g->mutex);

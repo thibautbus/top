@@ -23,6 +23,7 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" # the game straigh
 | --- | --- |
 | `--save PATH` | the save file; by default the ROM's path with `.sav` (a raw SRAM image, compatible with other emulators) |
 | `--patch PATCH.bps` | a fan game's patch, applied in memory to `--rom`; it, `--rom` and `--eu-rom` may be a `.zip` holding the file ([ROMs, patches and zips](#roms-patches-and-zips)) |
+| `--joined-rom PATH` | with `--patch`, a ROM joined after `--rom` before the patch applies: Oracles Combined's, `--rom` the European ROM of Ages and `--joined-rom` Seasons' |
 | `--enhanced` | the Enhanced profile, 256x144 |
 | `--zoom-out` | the drawn-back view, 480x270, or 480x360 on a 4:3 screen (implies `--enhanced`); `--fullscreen --scale 4` fills 1920x1080 exactly; the same as `--view far` |
 | `--view near\|medium\|far` | the Enhanced view's level (implies `--enhanced`): how much of the world it shows, in the screen's shape (4:3 or 16:9), in fullscreen as in a window |
@@ -35,7 +36,7 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" # the game straigh
 | `--continuous-diagonal` | the same, and a diagonal held carries Link across the transitions' axis too (implies `--continuous-transitions`); the home screen's choice turns it on |
 | `--continuous-steps` | the same, and Link takes a step a frame through them as the keys give it (implies `--continuous-transitions`); the home screen's choice turns it on |
 | `--swim-hold` | swimming, a direction held swims at full speed where the game wants a button tapped: A with the flippers, the direction with Ages' mermaid suit (below); `swim_hold=on` in the settings |
-| `--cheats LIST` | Ages, Seasons and the three fan games: the cheats named, comma-separated, among `no-damage`, `ammo` and `rupees` (below); an empty list for none; `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` in the settings |
+| `--cheats LIST` | Ages, Seasons and the fan games: the cheats named, comma-separated, among `no-damage`, `ammo` and `rupees` (below); an empty list for none; `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=`, `cheats_temple=` and `cheats_combined=` in the settings |
 | `--text classic\|compact` | Enhanced, Ages, Seasons and the fan games: the text box's lines in the font's own widths and the texts laid out again for them (below), or as the game draws and lays them out; `text=` in the settings |
 | `--text-size normal\|large\|xlarge` | Enhanced: the text box three halves as large, in whole screen pixels, or twice as large, where it fits (below); `text_size=` in the settings |
 | `--text-speed classic\|instant` | the text box's lines letter by letter at the speed chosen on the file screen, or each line whole, A still turning the page (below); `text_speed=` in the settings |
@@ -77,6 +78,7 @@ rom_seasons=
 patch_kinomi=
 patch_moonrise=/path/to/Moonrise Regalia 1.0.6.bps
 patch_temple=
+patch_combined=
 eu_rom_ages=/path/to/Oracle of Ages (Europe).gbc
 eu_rom_seasons=
 language_ages=fr
@@ -86,6 +88,7 @@ language_moonrise=en
 language_temple=en
 item_hotkeys_ages=use
 item_hotkeys_seasons=off
+item_hotkeys_combined=off
 mods_ages=claw-game,fortune-teller
 mods_seasons=
 cheats_ages=
@@ -93,6 +96,7 @@ cheats_seasons=no-damage,rupees
 cheats_kinomi=
 cheats_moonrise=
 cheats_temple=ammo
+cheats_combined=
 profile=enhanced
 view=far
 core=sameboy
@@ -147,6 +151,10 @@ hotkey_seasons_1=-
 hotkey_seasons_2=-
 hotkey_seasons_3=-
 hotkey_seasons_4=-
+hotkey_combined_1=-
+hotkey_combined_2=-
+hotkey_combined_3=-
+hotkey_combined_4=-
 ```
 
 The file the launcher writes has comment lines too (`#`), which it writes again each time: one above each group of keys, and above a hotkey slot the name of its item.
@@ -192,24 +200,24 @@ On Windows, Linux and a macOS build run outside an application bundle, a file `p
 | `link_phase` | `0`, `1` | absent (written only as `1`) | none: a trial, Link drawn in phase on a diagonal walk, the band following him; nothing with the Smooth camera | at the next Play |
 | `aspect` | `auto`, `16:9`, `4:3` | `auto` | none: the view's shape, the screen's or the one named; the launcher's own layout follows it too | at the next launch |
 | `rom_ages`, `rom_seasons` | a path | empty | Cartridge › ROM | at the next Play |
-| `patch_kinomi`, `patch_moonrise`, `patch_temple` | a path | empty | a fan game's Cartridge › Patch | at the next Play |
+| `patch_kinomi`, `patch_moonrise`, `patch_temple`, `patch_combined` | a path | empty | a fan game's Cartridge › Patch; Oracles Combined's is applied to `eu_rom_ages` and `eu_rom_seasons` joined, Ages' first, and gives its language | at the next Play |
 | `eu_rom_ages`, `eu_rom_seasons` | a path | empty | Cartridge › European ROM | at the next Play |
 | `language_ages`, `language_seasons` | `en`, `en-eu`, `fr`, `de`, `it`, `es` | `en` | Cartridge › Language | at the next Play |
-| `language_kinomi`, `language_moonrise`, `language_temple` | the same | `en` | none: read and written, not applied (the home screen plays the fan games in English) | never |
+| `language_kinomi`, `language_moonrise`, `language_temple` | the same | `en` | none: read and written, not applied (the home screen plays the fan games in English); Oracles Combined has none, its patch giving its language | never |
 | `mods_ages`, `mods_seasons` | the mods' folder names, comma-separated, eight at most | empty | the Mods page's switches | at the Mods page's Play |
-| `cheats_ages`, `cheats_seasons`, `cheats_kinomi`, `cheats_moonrise`, `cheats_temple` | `no-damage`, `ammo`, `rupees`, comma-separated | empty | the Cheats page | at the next Play; from the pause when the game resumes |
-| `item_hotkeys_ages`, `item_hotkeys_seasons` | `off`, `use`, `equip` | `off` | Controls › Item hotkeys (Off, On: `use`; `equip` only by hand) | at the next Play; from the pause when the game resumes |
+| `cheats_ages`, `cheats_seasons`, `cheats_kinomi`, `cheats_moonrise`, `cheats_temple`, `cheats_combined` | `no-damage`, `ammo`, `rupees`, comma-separated | empty | the Cheats page | at the next Play; from the pause when the game resumes |
+| `item_hotkeys_ages`, `item_hotkeys_seasons`, `item_hotkeys_combined` | `off`, `use`, `equip` | `off` | Controls › Item hotkeys (Off, On: `use`; `equip` only by hand) | at the next Play; from the pause when the game resumes |
 | `swim_hold` | `off`, `on` | `off` | Controls › Swimming (Tap, Hold) | at the next Play; from the pause when the game resumes |
 | `touch_vibration` | `on`, `off` | `on` | Controls › Touch vibration (On, Off), on Android: a short vibration as a finger presses a touch control, a button or a direction it adds on the d-pad, when the system's touch feedback is on too; nothing elsewhere | at once, from the pause too |
 | `key_right`, `key_left`, `key_up`, `key_down`, `key_a`, `key_b`, `key_select`, `key_start` | an SDL key name, or empty for none | `Right`, `Left`, `Up`, `Down`, `X`, `Z`, `Backspace`, `Return` | Controls › Buttons, Keyboard | at once, from the pause too |
 | `pad_a`, `pad_b`, `pad_select`, `pad_start` | an SDL controller button name, or empty | `a`, `b`, `back`, `start` | Controls › Buttons, Gamepad | at once, from the pause too |
 | `menu_pad` | a button name, `lefttrigger`, `righttrigger`, or empty for Guide alone | `leftstick` | Controls › In game › Menu | at once, from the pause too |
 | `menu_tip` | `0` to `9`, `off` (`on` reads as `0`) | `0` | Controls › Reset to defaults sets it back to `0`: the games the reminder naming the menu's key was shown over; `off` once the menu was opened by its key, or after ten | written by the launcher, at the end of a game that showed it and as the menu opens by its key |
-| `hotkeys_tip` | `0` to `2`, `off` (`on` reads as `0`) | `0` | Controls › Reset to defaults sets it back to `0`: the pause menus of Ages or Seasons the line on the item hotkeys was shown in; `off` once they were turned on in Controls, or after three | written by the launcher, as a pause menu that shows it opens |
+| `hotkeys_tip` | `0` to `2`, `off` (`on` reads as `0`) | `0` | Controls › Reset to defaults sets it back to `0`: the pause menus of Ages, Seasons or Oracles Combined the line on the item hotkeys was shown in; `off` once they were turned on in Controls, or after three | written by the launcher, as a pause menu that shows it opens |
 | `key_hotkey1` to `key_hotkey4` | an SDL key name | `A`, `S`, `Q`, `W` | Controls › Hotkeys, Slot 1 to Slot 4 | at once, from the pause too |
 | `key_hotkey_bind_b`, `key_hotkey_bind_a` | an SDL key name | `Left Shift`, `Left Ctrl` | Controls › Hotkeys, Bind to B, Bind to A | at once, from the pause too |
 | `pad_hotkey1` to `pad_hotkey4` | an SDL controller button name | `x`, `y`, `leftshoulder`, `rightshoulder` | Controls › Hotkeys, Slot 1 to Slot 4, Gamepad | at once, from the pause too |
-| `hotkey_ages_1` to `hotkey_ages_4`, `hotkey_seasons_1` to `hotkey_seasons_4` | `-` for an empty slot, else `<b or a>:<item>:<variant or -->` in hexadecimal, the ROM's own identifiers (`b:0a:--`) | `-` | the slots, filled in game | written by the launcher |
+| `hotkey_ages_1` to `hotkey_ages_4`, `hotkey_seasons_1` to `hotkey_seasons_4`, `hotkey_combined_1` to `hotkey_combined_4` | `-` for an empty slot, else `<b or a>:<item>:<variant or -->` in hexadecimal, the ROM's own identifiers (`b:0a:--`) | `-` | the slots, filled in game | written by the launcher |
 | `update_check` | `on`, `off` | `on` | About › Update check | `off` at once; `on` at the next launch |
 | `launcher_window` | `WIDTHxHEIGHT` | `1280x720` | none: the home screen's window as it was left | at the next launch |
 
@@ -365,7 +373,7 @@ The game's state then differs from a native session's: a route recorded with the
 
 **The swim through them** (`--continuous-swim`, which Display's continuous transitions turn on; a separate option so that the routes recorded with `--continuous-transitions` alone replay as they were played): Link swimming at the surface, in both games, flippers or Ages' mermaid suit, diving or not, keeps swimming at his own speed through the transition, never ending it short of the pixels the game moves him itself, his swimming animation going on, and beyond the pixels the game moves him itself only into water.
 
-Ages, Seasons, Gifts of Kinomi and Temple of Seasons qualify it, Gifts of Kinomi with its flippers, its Zora scale speeding a swim where the swimmer's ring does in Ages, Temple of Seasons with its flippers, as Seasons swims (its tiles of sea water, entered with its suit, are left to the game); Moonrise Regalia, whose water stops a swim every frame, plays without it when the home screen starts it, and refuses `--continuous-swim` with `--rom`.
+Ages, Seasons, Gifts of Kinomi, Temple of Seasons and Oracles Combined qualify it, Gifts of Kinomi with its flippers, its Zora scale speeding a swim where the swimmer's ring does in Ages, Temple of Seasons with its flippers, as Seasons swims (its tiles of sea water, entered with its suit, are left to the game), Oracles Combined in both its halves, with the flippers or Ages' mermaid suit, which swims in its Seasons half too, with Ages' routine (the policy steps the suit wherever the game's swimming states move Link with it, and the flippers elsewhere); Moonrise Regalia, whose water stops a swim every frame, plays without it when the home screen starts it, and refuses `--continuous-swim` with `--rom`.
 
 On Ages' sea floor he goes on at his own speed too, onto tiles without collision, walking while a direction is held and standing without one, as the game draws him there.
 
@@ -379,9 +387,9 @@ With the option, on foot, a diagonal held toward the edge goes on as the game wa
 
 Swimming (with `--continuous-swim`, flippers or Ages' mermaid suit) and on Ages' sea floor, his motion goes on at its own angle and speed, which the game freezes through the scroll and takes up again after it, across the axis only into water swimming.
 
-While the room entered loads, its walls are read from the game's own tables, as the load will make them, so that the carry goes on through it in Ages, Seasons and the three fan games; in the few rooms whose own code changes their tiles (all of them in the fan games), nothing carries him across until the walls are known, and what those frames held back is caught up then, at his own ratio across and along, never faster than a pixel a frame across on foot.
+While the room entered loads, its walls are read from the game's own tables, as the load will make them, so that the carry goes on through it in Ages, Seasons, Oracles Combined and the fan games, the rooms whose own code changes their tiles included in the Oracles and in both halves of Oracles Combined, which keep their routines (the one each half adds, Vasu's shop, is entered by its door, never by a scroll); in the rooms whose own code changes their tiles in the fan games, nothing carries him across until the walls are known, and what those frames held back is caught up then, at his own ratio across and along, never faster than a pixel a frame across on foot.
 
-A savestate does not count it. A game whose profile does not qualify the diagonal plays without it when the home screen starts it, and refuses `--continuous-diagonal` with `--rom`; Ages, Seasons and the three fan games qualify it.
+A savestate does not count it. A game whose profile does not qualify the diagonal plays without it when the home screen starts it, and refuses `--continuous-diagonal` with `--rom`; Ages, Seasons, both halves of Oracles Combined and the three fan games made on one Oracle qualify it.
 
 **A step a frame through them** (`--continuous-steps`, which Display's continuous transitions turn on; a separate option so that the routes recorded without it replay as they were played): without it, Link walks the whole scroll at a pixel a frame whether a direction is held or not, so that a tap at a room's edge takes him through the scroll by himself, and the frame that ends the scroll leaves him still for a frame, the one the game finishes the scroll in, before he goes on, as a slight catch.
 
@@ -395,7 +403,7 @@ However far into the room entered he walked or swam, a whirlpool, a hole or a dr
 
 The frame that ends the scroll gives him his step, walking or swimming, as the frames before it, and the frame that starts a diagonal one his single step, where the game's own and the option's came together. Swimming and on Ages' sea floor, his motion is the game's, as without it.
 
-A savestate does not count it. Ages, Seasons and the three fan games qualify it.
+A savestate does not count it. Ages, Seasons and the fan games qualify it.
 
 **At the line between the rooms** (`--continuous-line`, which Display's continuous transitions turn on, with the steps; a separate option so that the routes recorded without it replay as they were played): the game starts a scroll 6 pixels before the line between two rooms (5 at the right) and never lets Link stand in those pixels, putting him back on their bound at once, so that a tap at a room's edge always takes him into the next room, and the next room always pushes him past those pixels on its side, whether a direction is still held or not.
 
@@ -403,13 +411,10 @@ With the option, on foot and on Ages' sea floor, the scroll starts as his middle
 
 - a tap at an edge takes him toward it and no further, the room unchanged;
 - on foot, a direction held toward the edge walks him on, but past the place the game's own scroll would have left him (its 15 or 16 pixels counted from where the game starts the scroll, not from the line, where his steps began), only as the game's walk would: out of a pixel where the two points `calculateAdjacentWallsBitset` tests on that side are free in the room entered (raised on Ages' floor, `$1e` left out as the game's own test leaves it), its walls as loaded or predicted (while they are neither, he stands at that place), the scroll's own steps undone where they would take him further, never moved back; so that he never ends in a wall of the room entered, at a corner's second scroll too (`transitions.line_wall_frames`, and the harness's `transitions.wall_arrivals`); his respawn in the room entered, the game's distance counted from where the scroll began on the straight path, goes to the game's own place where that from the line would leave his points on the scroll's side in a wall deeper than his walk leaves them and the place would not (`transitions.respawns_placed`); carried across by a diagonal, the carry's test that it leaves him nowhere walking straight would not looks along the axis only as far as that place, past which his walk is tested so (`transitions.carry_ahead_frames`: the frames a carry whose own step was clear was held by what lies further along).
-- on foot, a direction held toward the edge walks him on, but past the place the game's own scroll would have left him (its 15 or 16 pixels counted from where the game starts the scroll, not from the line, where his steps began), only as the game's walk would: out of a pixel where the two points `calculateAdjacentWallsBitset` tests on that side are free in the room entered (raised on Ages' floor, `$1e` left out as the game's own test leaves it), its walls as loaded or predicted (while they are neither, he stands at that place), the scroll's own steps undone where they would take him further, never moved back; so that he never ends in a wall of the room entered, at a corner's second scroll too (`transitions.line_wall_frames`, and the harness's `transitions.wall_arrivals`); carried across by a diagonal, the carry's test that it leaves him nowhere walking straight would not looks along the axis only as far as that place, past which his walk is tested so (`transitions.carry_ahead_frames`: the frames a carry whose own step was clear was held by what lies further along); where only one of the two points is in a wall, at a wall's corner, the game's walk would slide him along it (`@tileEdgeAdjust`), and he stands instead until the scroll ends, the game sliding him from there; a scroll the policy leaves to the game (Link holding his shield, running on Pegasus seeds, knocked back, using an item, in the air) starts at the line as well, and the game's own 15 or 16 pixels from there take him that much past its own place, untested; where that leaves one of the two points on the scroll's side in a wall of the room entered (a wall of its first columns or rows) and neither of them at the game's own place, the frame that ends the scroll takes him back there along the axis, once, whatever hinders him (`transitions.refused_placed`), on foot in his normal state: on an animal or jumping down a ledge, which the game's own states move, he stays where its pixels took him;
-- on foot, a direction held toward the edge walks him on, but past the place the game's own scroll would have left him (its 15 or 16 pixels counted from where the game starts the scroll, not from the line, where his steps began), only as the game's walk would: out of a pixel where the two points `calculateAdjacentWallsBitset` tests on that side are free in the room entered (raised on Ages' floor, `$1e` left out as the game's own test leaves it), its walls as loaded or predicted (while they are neither, he stands at that place), the scroll's own steps undone where they would take him further, never moved back; so that he never ends in a wall of the room entered, at a corner's second scroll too (`transitions.line_wall_frames`, and the harness's `transitions.wall_arrivals`).
 
   Where only one of the two points is in a wall, at a wall's corner, the game's walk would slide him along it (`@tileEdgeAdjust`), and he stands instead until the scroll ends, the game sliding him from there.
 
   A scroll the policy leaves to the game (Link holding his shield, running on Pegasus seeds, knocked back, using an item, in the air) starts at the line as well, and the game's own 15 or 16 pixels from there take him that much past its own place, untested; where that leaves one of the two points on the scroll's side in a wall of the room entered (a wall of its first columns or rows) deeper than the game's walk leaves it (2 pixels up, 1 elsewhere, as `transitions.wall_arrivals` counts it), and neither of them so at the game's own place, the frame that ends the scroll takes him back there along the axis, once, whatever hinders him, his respawn with him along the axis, across as the game wrote it (`transitions.refused_placed`), on foot in his normal state: on an animal or jumping down a ledge, which the game's own states move, he stays where its pixels took him;
-  A scroll the policy leaves to the game (Link holding his shield, running on Pegasus seeds, knocked back, using an item, in the air) starts at the line as well, and the game's own 15 or 16 pixels from there take him that much past its own place, untested, into a wall of the room's first columns or rows where one stands there;
 - on foot, letting go during the scroll leaves him where he is, the scroll's own move undone, however few pixels past the line, standing in the pose the game gives him with nothing held (`animateLinkStanding`: his walk's first frame, set again each frame) rather than the step the scroll froze;
 - holding the way back walks him back through the scroll across the line and into the room he left, on that room's walls and holes as normal play last had them, and the scroll back starts from where he stands at the very frame the scroll ends, with no frame of normal play between the two, without the game putting him back on the line first;
 - a wall of that room just past the line holds him at the line itself, and the scroll back starts as he crosses it; so does the line where either room has a transition of its own (`getNextActiveRoom`'s list: Seasons' Lost Woods and Onox's castle, Ages' scrambled forest, the eye puzzles), whose scroll back may lead elsewhere than the room he left.
@@ -439,7 +444,7 @@ If the transitions are disabled while he stands past the line, he walks back acr
 
 Swimming at the surface (with the swim through them), the edges are the line's as well, at the bottom where the tile the game takes as his own (y+5) is still the room's last row (y 122: past it the game would read the row beyond the room, no water, and take him out of it).
 
-Through the scroll he swims as the game's own swim routines move him in the middle of a room, a frame at a time: `updateLinkDirectionFromAngle`, then the mermaid suit's `linkUpdateVelocity` or the flippers' `linkUpdateFlippersSpeed` and `func_5933` (their speed and its cap, the counter and period of its steps, the stroke's state and frames), the swim's hold's strokes included, his move that frame read from `objectSpeedTable` on both axes, the scroll's own move undone and nothing added.
+Through the scroll he swims as the game's own swim routines move him in the middle of a room, a frame at a time: `updateLinkDirectionFromAngle`, then the mermaid suit's `linkUpdateVelocity` (where the game's swimming states call it once the suit is obtained: Ages, Gifts of Kinomi and both halves of Oracles Combined) or the flippers' `linkUpdateFlippersSpeed` and `func_5933` (their speed and its cap, the counter and period of its steps, the stroke's state and frames), the swim's hold's strokes included, his move that frame read from `objectSpeedTable` on both axes, the scroll's own move undone and nothing added.
 
 His walls and his own tile hold him as the game's would (no wall at the points `calculateAdjacentWallsBitset` tests on the side he goes, his tile in water he can swim in), and his swim's state is written back, so that the game takes it up after the scroll as it stood.
 
@@ -459,11 +464,11 @@ On a current (`wcc92`) the game's own edge and push stay. The game's own reasons
 
 On an animal, in a side view, in a dungeon's large rooms (whose transitions are the game's, its push included), at the edges of Ages' world map, and where a script disables the transitions (Maple scattering her things, the wind seed, Ricky's jump), the game's own edges stay. A fall or a drowning in the room entered brings him back where the game itself would place him after its scroll, as with the steps.
 
-Ages, Seasons and the three fan games qualify it.
+Ages, Seasons and the fan games qualify it.
 
 ### The swim's hold
 
-**The swim's hold** (`--swim-hold`, `swim_hold=on` in the settings, off by default, in Faithful and Enhanced, Ages, Seasons, Gifts of Kinomi and Temple of Seasons): swimming, Link speeds up by strokes, and the game starts a stroke only on a new press, so the player taps.
+**The swim's hold** (`--swim-hold`, `swim_hold=on` in the settings, off by default, in Faithful and Enhanced, Ages, Seasons, Gifts of Kinomi, Temple of Seasons and Oracles Combined): swimming, Link speeds up by strokes, and the game starts a stroke only on a new press, so the player taps.
 
 - With the flippers, in both games, at the surface or in a side view, A starts a stroke of 25 frames, which speeds Link up and slows him back, the presses during it read by nobody; held, A gives one stroke.
 - With Ages' mermaid suit, wherever the game swims with it (the sea floor, the surface, the side views), a direction starts a stroke of five frames, each raising Link's speed and turning him towards the direction held; a direction released during one slows him down, and on the sea floor he moves only while one is held; held, a direction gives one stroke and Link stops.
@@ -472,11 +477,11 @@ With the option, a direction held swims as the best tapping does, in both games,
 
 Held, the flippers stroke every 25 frames, Link swimming about four fifths of a pixel a frame, as fast as any tapping of A, against half a pixel with the direction alone; the suit reaches its top speed, a pixel and an eighth a frame, in about ten frames, and keeps it with a stroke every nine. Tapping still swims, as the game wants it, a little less well with the suit where a tap is released during a stroke the option started.
 
-Gifts of Kinomi and Temple of Seasons have it, with their flippers; Moonrise Regalia does not: the home screen starts it without it, and `--rom` refuses `--swim-hold` for it. A route recorded with it replays with it (`swim-hold` in its options), and one recorded without replays without it whatever the setting; a savestate does not count it.
+Gifts of Kinomi and Temple of Seasons have it, with their flippers, and Oracles Combined in both its halves, the mermaid suit in its Seasons half too; Moonrise Regalia does not: the home screen starts it without it, and `--rom` refuses `--swim-hold` for it. A route recorded with it replays with it (`swim-hold` in its options), and one recorded without replays without it whatever the setting; a savestate does not count it.
 
 ### Cheats
 
-**Cheats** (`--cheats`, `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` in the settings, none by default, in Faithful and Enhanced, Ages, Seasons and the three fan games): each cheat is on when its name is in the list.
+**Cheats** (`--cheats`, `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=`, `cheats_temple=` and `cheats_combined=` in the settings, none by default, in Faithful and Enhanced, Ages, Seasons and the fan games): each cheat is on when its name is in the list.
 
 - `no-damage`: a hit still knocks Link back, with its sound, its red flash and the frames during which nothing hits him again, but he loses no heart, and so never dies of a hit; a fall into a hole, the water or the lava sends him back where the game sends him, at no cost. The hearts the story takes itself are taken (in Ages the fairy of the bombs' upgrade, who leaves Link one heart, and the Smog's penalty; in Seasons the scripted collapse in the Moblins' keep). With full hearts, a sword of level 2 or more throws its beam at every swing, as the game has it.
 - `ammo`: a seed, a bomb or a Bombchu used is not taken from its count; with none left there is still none, the cheat giving nothing, and Ages' bomb-upgrade fairy still takes every bomb from a Link who claims the silver bomb.
@@ -486,6 +491,8 @@ The game reads nothing else differently and nothing is written into it: what a c
 
 Gifts of Kinomi keeps Ages' routines for all three, its seeds, bombs, Bombchus and prices included (777 rupees among them), and Ages' bomb-upgrade fairy; so does Moonrise Regalia, with Ages' prices. Temple of Seasons keeps Seasons' for the hits and the bombs; its seeds and its Bombchus share one count, the Bombchus' of Seasons, which `ammo` keeps as it keeps the bombs; its prices are taken from the count Seasons keeps the ore chunks in, its shops' and the ore chunks' routines alike, and `rupees` makes them cost nothing.
 
+Oracles Combined keeps in each half that game's routines, Ages' bomb-upgrade fairy in its Ages half; its prices are taken through a loader of the rupees' count that runs from the cartridge's RAM, which `rupees` follows there.
+
 A route recorded with cheats replays with them (`cheat-no-damage`, `cheat-ammo` and `cheat-rupees` in its options), and one recorded without replays without them whatever the settings; a savestate does not count them.
 
 A cheat changed from the pause menu's Cheats, which starts from the cheats the game plays with, applies from the frame the game resumes on. In a game that ran without the hooks (Faithful with no other option that needs them), the first cheat turned on attaches them, and they stay until the game ends, every cheat off again or not: a check at each instruction, which a small device may feel. A route being recorded writes the change with its frame (`6120 cheat rupees on`, [`ROUTES.md`](ROUTES.md)) and replays it there.
@@ -494,7 +501,7 @@ The end-of-session report says what they did.
 
 ### The compact text
 
-**The compact text** (Display's Text, `--text compact`, `text=compact` in the settings, classic by default, in Enhanced alone, Ages, Seasons and the three fan games; `--text` given to the home screen shows in the row, greyed, for the run): the text box draws its lines in the font's own widths, each letter as wide as its ink and a pixel, a space five pixels, instead of a cell of eight pixels a character, and the texts are laid out again for it.
+**The compact text** (Display's Text, `--text compact`, `text=compact` in the settings, classic by default, in Enhanced alone, Ages, Seasons and the fan games; `--text` given to the home screen shows in the row, greyed, for the run): the text box draws its lines in the font's own widths, each letter as wide as its ink and a pixel, a space five pixels, instead of a cell of eight pixels a character, and the texts are laid out again for it.
 
 Each box's two lines hold what their 128 pixels hold, about 18 characters instead of 12 to 14, so that a dialogue shows about a box in five fewer (from 16 % in Seasons' English to 24 % in Ages' French over all the texts, a few points more over the dialogues alone).
 
@@ -504,7 +511,7 @@ The colours, the choices, the commands and the sounds are the game's, and the di
 
 English (US) and the five languages of the European ROM are laid out alike, the corrections and the port's own texts included, in the font of the image (a language's letters too).
 
-The fan games are laid out in their English, their own texts and those they share with their Oracle, a box in five fewer too (from 16 % in Temple of Seasons to 21 % in Gifts of Kinomi over all the texts), their choices' cursor drawn where their engine draws it; a fan game started with a language (`--language` with `--patch`) refuses the compact text, its translation not being laid out.
+The fan games are laid out in their English, their own texts and those they share with their Oracle, a box in five fewer too (from 16 % in Temple of Seasons to 21 % in Gifts of Kinomi over all the texts), their choices' cursor drawn where their engine draws it; a fan game started with a language (`--language` with `--patch`) refuses the compact text, its translation not being laid out. Oracles Combined is laid out in its patch's language, each half's texts in that half (its English as English (US), its French, German, Spanish and Italian as the European ROM's), and again in the half the game goes to at each switch.
 
 It changes what the game draws and how many boxes it shows: never in Faithful, which shows the core's image as it is, where `--rom` refuses it and the home screen plays the classic text. A route recorded with it replays with it (`text-compact` in its options), and one recorded without replays without it whatever the setting: its keys follow the game's pages. A savestate taken with it loads with it only. The end-of-session report says how many lines it drew, and how many texts it laid out.
 
@@ -521,7 +528,7 @@ In the world, the box goes where the game's would, centred across the view, the 
 
 A line shows character by character at the game's pace, whole letters only, whatever its width. The pages the game lays out itself (a choice, a song, a centred line, a text of a single box) keep their lines, centred in the wide box as in the game's, a choice's cursor and an item's icon with them.
 
-In Faithful, which shows the core's image as it is, there is no wide box: `--rom` refuses it and the home screen plays the game's. The fan games made on the Oracles have it as the Oracles do, their own English laid out again for it, the pages they keep as their engine laid them out centred in it.
+In Faithful, which shows the core's image as it is, there is no wide box: `--rom` refuses it and the home screen plays the game's. The fan games made on the Oracles have it as the Oracles do, their own English laid out again for it, the pages they keep as their engine laid them out centred in it; Oracles Combined has it in its patch's language, in both halves.
 
 A route recorded with it replays with it (`text-box-wide` in its options), one recorded without replays without it; a savestate taken with it loads with it only, the box's lines and its reveal kept in it.
 
@@ -544,13 +551,13 @@ Each applies where the box so enlarged fits the view, the next size down elsewhe
 
 With `menus=large`, the menus, the map and the cutscenes keep the scale they have with Normal: both sizes are drawn there by the presentation, the enlarged rectangle widened for the box only as far as that scale holds it, and a size whose box does not fit at that scale falls to the next one down (on 640x480, where the menus show three times as large, the box stays at that scale, 432 or 624 pixels wide).
 
-The fan games have Text size too, on the game's box and on the wide box.
+The fan games have Text size too, on the game's box and on the wide box, Oracles Combined in both halves.
 
 It is presentation alone: the game, its routes and its savestates do not change, nothing more is hooked (the classic text in the game's box stays the game's, its box's pixels enlarged), and a change applies at once, from the pause too, the image behind its menu included: to or from Very large where the view draws the box twice as large (the medium and far views), that image takes the box at its new size over the world as the frame showed it, the game not drawn again.
 
 ### Text speed
 
-**Text speed** (Display › Text's Text speed, `--text-speed classic|instant`, `text_speed=` in the settings, classic by default, in Faithful and Enhanced, Ages, Seasons and the three fan games): the game shows a text letter by letter, at the speed chosen on its file screen and kept in its save, and a press of A or B shows the rest of the line at once, the next line whole too, a second press turning the page.
+**Text speed** (Display › Text's Text speed, `--text-speed classic|instant`, `text_speed=` in the settings, classic by default, in Faithful and Enhanced, Ages, Seasons and the fan games): the game shows a text letter by letter, at the speed chosen on its file screen and kept in its save, and a press of A or B shows the rest of the line at once, the next line whole too, a second press turning the page.
 
 **Instant** shows each line whole, as a press of A at its start does, through the game's own text: the first page of a box whole at once, each page after it within a fifth of a second of the A that turns it, the game's scroll of the lines kept; A still turns the page, and a player used to pressing twice will turn two. The sound is the one a press gives, a sound a line instead of a sound a letter; a character's voice (a Goron's, a Tokay's, Ricky's) is kept, the line stopping a frame on it.
 
@@ -562,7 +569,7 @@ What the game holds is kept:
 
 The file screen's speed and the save are not touched.
 
-It changes the game's pace, not its picture: Faithful has it, the text compact or classic, the box standard or wide. A ROM no profile recognises plays the classic text: Display › Text greys the row for it, on the home screen as in its pause, "Needs an original ROM.", and the summary beside Text leaves " · Instant" out.
+It changes the game's pace, not its picture: Faithful has it, the text compact or classic, the box standard or wide. A ROM no profile recognises plays the classic text: Display › Text greys the row for it, on the home screen as in its pause, "Needs an original ROM.", and the summary beside Text leaves " · Instant" out. Oracles Combined has it in both halves, in Faithful too.
 
 In a game that ran without the hooks (Faithful with no other option that needs them), turning it on attaches them until the game ends: a check at each instruction, which a small device may feel.
 
@@ -570,7 +577,7 @@ A route recorded with it replays with it (`text-instant` in its options), one re
 
 ### Unvisited rooms
 
-**Unvisited rooms** (Display › Picture's Unvisited rooms, `--unvisited-rooms shown|hidden`, `unvisited_rooms=` in the settings, shown by default, in Enhanced, Ages, Seasons and the three fan games): with `hidden`, the rooms around Link that he has never entered stay dark but for their edge, as [Unvisited rooms](PLAYING.md#unvisited-rooms) says.
+**Unvisited rooms** (Display › Picture's Unvisited rooms, `--unvisited-rooms shown|hidden`, `unvisited_rooms=` in the settings, shown by default, in Enhanced, Ages, Seasons and the fan games): with `hidden`, the rooms around Link that he has never entered stay dark but for their edge, as [Unvisited rooms](PLAYING.md#unvisited-rooms) says.
 
 Where a dark room meets a room drawn in clear, the dark one shows a soft edge along their border, inside it, a glimpse of that room as it is, its ground and whoever stands or moves there, people and enemies included:
 
@@ -588,7 +595,7 @@ The rooms are prepared as before: the dark is the view's choice, never a room wa
 
 ### Item hotkeys
 
-**Item hotkeys** (`--item-hotkeys=off|use|equip`, in Faithful and Enhanced, originals only): four keys (`A`, `S`, `Q`, `W`; `x`, `y`, `leftshoulder` and `rightshoulder` on a controller, X, Y, LB and RB) act on four slots. Held with left Shift or left Ctrl, a key takes the item of B or of A into its slot; with the inventory open on the items, it takes the item under the cursor.
+**Item hotkeys** (`--item-hotkeys=off|use|equip`, in Faithful and Enhanced, originals and Oracles Combined): four keys (`A`, `S`, `Q`, `W`; `x`, `y`, `leftshoulder` and `rightshoulder` on a controller, X, Y, LB and RB) act on four slots. Held with left Shift or left Ctrl, a key takes the item of B or of A into its slot; with the inventory open on the items, it takes the item under the cursor.
 
 In `use` mode the key is one more item button: the item moves onto one of the two buttons the game reads in the current state, that button is held for the player as long as the key is, and the button's own item comes back after thirty quiet frames.
 
@@ -617,13 +624,15 @@ Elsewhere (Near 16:9) the compact look: the icon, the key at its top right in sm
 
 The icon is there from the start of play, the item never equipped yet: the view finds the sprites the status bar would draw it with as its own routines do (`loadEquippedItemSpriteData`, `loadItemIconGfx`), in `treasureDisplayData` and the icons' graphics of the player's ROM, at the item's level as the game holds it (a slot's seeds or song for the satchel, the shooter and the harp), found again when the bar reloads its icons (`loadEquippedItemGfx`, hooked as soon as the hotbar is shown) or a treasure is given.
 
-An item on a button is checked against what the screen shows (`enhanced.hotbar_icons_decoded`, the distinct icons found, `enhanced.hotbar_icons_refound`, the times one was found again, `enhanced.hotbar_icon_wrong`, none).
+An item on a button is checked against what the screen shows (`enhanced.hotbar_icons_decoded`, the distinct icons found since the start or since the last time the view forgot them, `enhanced.hotbar_icons_refound`, the times one was found again, `enhanced.hotbar_icon_wrong`, none).
 
 Where the tables cannot say, the icon is the one the bar drew on a button, and a label until then; a dotted frame for an empty slot, a faded icon for an absent item, a frame that blinks while waiting and red after a refusal.
 
 It stays as long as the game's status bar is on screen, a dialogue, a scroll and a room's load included, its icons fading and flashing with the bar's own; it goes with the bar (the title, the file select, the menus, a cutscene that clears the bar, the blank between two rooms), and never shows on the framed core F3 switches to, its loads and scrolls included.
 
 The slots and the keys are remembered; the Controls line of a game turns them on (`use`) or off.
+
+In Oracles Combined one set of slots (`hotkey_combined_1` to `4`) and one mode (`item_hotkeys_combined`) serve both halves, whose items have the same identifiers. Each half holds both games' items: its inventory has twenty storage slots (routes name them `s0` to `s19`), the slingshot its own seeds apart from the shooter's (a route's `slingshot=` beside `satchel=`, `shooter=` and `harp=`), the harp a song in Seasons' half too. The hotbar draws each item as that half's status bar does: the harp moved right with its notes in both halves, the rod's seasons, the gloves' own icon and their S or N, the level 1 of an item held at level 0. At Vasu's door, and when a file of Seasons is loaded, a request waiting and a press under way stop (a key held is pressed again in the other half), while a button's item waiting to come back comes back there and the `equip` mode's previous item is still known: the game copies the inventory across as it was. A reset out of Seasons' half starts from a file without that copy: everything under way is dropped, as after loading a savestate.
 
 ## Files, saves and savestates
 
@@ -656,7 +665,7 @@ The save is written when it changes, about every five seconds and at exit, throu
 
 F5 saves and F7 loads a state (`<save>.state`, beside the `.sav`). A state is composite: the core's state in its own format, the host's state (the camera, empty in Faithful), the mods' storage, the continuous transitions' progress and the host's lines of the text box (each empty when unused), and the versions of the format, the core, the game, the ROM and the active mods, gameplay options included.
 
-A file made with another version, another ROM or other options is refused with a message that says which; one taken on the other core, Accurate (SameBoy) or Fast (mGBA), is refused by the core's name, the core to choose said on the standard error. Loading a state stops a route being replayed or recorded.
+A file made with another version, another ROM or other options is refused with a message that says which; Oracles Combined's names its game `ages` whichever half it was taken in, the half being the state's own, which the game loads into; one taken on the other core, Accurate (SameBoy) or Fast (mGBA), is refused by the core's name, the core to choose said on the standard error. Loading a state stops a route being replayed or recorded.
 
 A savestate taken in far at another size than far's on this screen (a 1.1.0 savestate on a 1280x960 or 1240x1080 screen) loads with Display › Picture's Far size on Fixed; the game's own save loads either way.
 
@@ -666,7 +675,7 @@ The paragraphs below describe the launcher's pages row by row, with their notes 
 
 ### The home screen
 
-Without `--rom`, `the-oracles-project` opens the home screen in a 16:9 window of 1280x720 at the first opening, resizable down to 960x540, whose size is remembered: Oracle of Ages, Oracle of Seasons and Fan games, the chosen entry on the right with its title, its state (`Ready`, with the date of its save as the last session, `ROM not found`, or for a fan game whose Oracle's ROM is chosen, `Patch not found`, `Patch refused` when its patch is there but refused) and its menu, the two others on the left.
+Without `--rom`, `the-oracles-project` opens the home screen in a 16:9 window of 1280x720 at the first opening, resizable down to 960x540, whose size is remembered: Oracle of Ages, Oracle of Seasons and Fan games, the chosen entry on the right with its title, its state (`Ready`, with the date of its save as the last session, `ROM not found`, or for a fan game whose Oracle's ROM is chosen, `Patch not found`, `Patch refused` when its patch is there but refused; Oracles Combined `ROM refused` when either ROM chosen for it is not the European ROM of its game) and its menu, the two others on the left.
 
 A window nearer 4:3 than 16:9 (a 640x480 handheld, 1024x768), or any window with `aspect=4:3` in the settings, takes the 4:3 layout, larger for a small screen:
 
@@ -787,10 +796,10 @@ An Oracle's menu and pause menu on a ROM that is not the original have no Cheats
 
 Its Cartridge page asks for both:
 
-- **Base ROM** is the ROM of its Oracle (Ages' for Gifts of Kinomi and Moonrise Regalia, Seasons' for Temple of Seasons), the same the Oracle's page shows and changes, chosen once for the Oracle and every game made on it;
+- **Base ROM** is the ROM of its Oracle (Ages' for Gifts of Kinomi and Moonrise Regalia, Seasons' for Temple of Seasons), the same the Oracle's page shows and changes, chosen once for the Oracle and every game made on it; Oracles Combined has two rows in its place, **Ages ROM (EU)** and **Seasons ROM (EU)**, the European ROMs of Ages and Seasons, joined in that order, the ones the Oracles' pages show: each says "Recognized", read-only there ("Set in Oracle of Ages's Cartridge"), or that it is missing or another file, with **Choose…**; a file chosen or dropped there goes to the Oracle it is the European ROM of, and any other is refused with a toast;
 - **Patch** is the game's `.bps` file, or a `.zip` of it (**Choose patch…**), read as a BPS patch whose checksums hold, and refused when it is the patch of another of these fan games, in the version recognized above, which makes that game from the Oracles' ROMs chosen ("Refused: the patch of Moonrise Regalia, not of Gifts of Kinomi."), the patch kept before it staying (another version, or a fan game whose Oracle's ROM is not chosen, is not told apart).
 
-Below, its folder and the image the two make, built in memory as the session builds it: recognised, unrecognised (Faithful only), refused with the reason (a patch made for another base, another fan game's patch written in `settings.txt`), or "The game needs both files."
+Below, its folder and the image the two make, built in memory as the session builds it: recognised, unrecognised (Faithful only), refused with the reason (a patch made for another base, another fan game's patch written in `settings.txt`), or "The game needs both files." ("both European ROMs and the patch" for Oracles Combined, whose page adds under it that its language comes with the patch).
 
 A patch dropped on a fan game's page becomes its patch, unless it is another of these fan games' (as above); dropped elsewhere, it goes to the fan game whose image it makes from its Oracle's ROM already chosen. The fan game's save and Open folder: [Fan games](PLAYING.md#fan-games).
 
@@ -798,7 +807,7 @@ A patch dropped on a fan game's page becomes its patch, unless it is another of 
 
 - **Import save…** ([Saves](PLAYING.md#saves)) opens the system's file dialog (Android's document picker), then asks over the page, "Replace this game's save? The current one is kept as a backup." with the file chosen and its folder (on Android, the folder of the shared storage the document picker says the file is in, `Download` for the downloads, and no folder line for a file whose picker names none, a cloud drive's): Replace or Cancel (for a game without a save yet, "Use this file as this game's save?", Import or Cancel) (left and right, Enter or A; Escape or B cancels).
 
-  The file must be a save of the game: of Oracle of Ages for Ages, Gifts of Kinomi and Moonrise Regalia, of Oracle of Seasons for Seasons and Temple of Seasons, 8 KiB with one game file at least whose checksum holds. Any other file is refused, "This file is not a save of Oracle of Ages." (or of the fan game named), and nothing is replaced; a file larger than a save (a video or a disc image chosen by mistake) is refused so without being read.
+  The file must be a save of the game: of Oracle of Ages for Ages, Gifts of Kinomi and Moonrise Regalia, of Oracle of Seasons for Seasons and Temple of Seasons, 8 KiB with one game file at least whose checksum holds; for Oracles Combined, 32 KiB whose third bank holds a game file of Ages or whose fourth holds one of Seasons, its checksum holding, taken as it is. Any other file is refused, "This file is not a save of Oracle of Ages." (or of the fan game named), and nothing is replaced; a file larger than a save (a video or a disc image chosen by mistake) is refused so without being read.
 
   The save it replaces goes to a `Backups` folder beside it, under its name and the time (`Backups/Oracle of Ages (USA) 2026-10-20 14-22.sav`), never over another backup, and the game's savestate goes there with it (`Backups/Oracle of Ages (USA) 2026-10-20 14-22.state`), even without a save: a savestate holds the save it was taken with, which a Load state would bring back over the one imported, so Load state stays greyed until a savestate of the new save is taken.
 
@@ -888,6 +897,7 @@ The launcher writes what it reports on its standard error: the terminal it runs 
 - At exit the launcher reports the late frames and, for audio, the underruns (silences heard); the core produces slightly more or fewer samples per second depending on the queue's fill, so that it never drops or starves.
 - On Android, the log says, for each controller at its first key, whether Android reports a Select and so what its Back does (`controller <name>: has Select, its Back opens the menu`, or `no Select, its Back is the game's Select`), and each Back that opens the pause menu with the device it came from.
 - On Android, the system bars that Android leaves shown (after the notification shade, a system dialog, a return to the application) are hidden again when the application has the focus back, or three seconds after they showed. Each time is written in the log, `system bars hidden again`, a line every ten seconds at most.
+- Oracles Combined: each switch from one half to the other (`frame 936: the game switches to Oracles Combined 1.5 (Oracle of Seasons)`), and, at that switch, a `WARNING` when a feature on in the half left cannot be armed in the half gone to: the swim's hold, the instant text or a cheat (on, but without effect there; the pause still shows it on), or the texts laid out again, the compact text or the wide box (its texts then show as the game lays them out). None of the five images of release 1.5 has such a half.
 - The log's `home screen opened` and `game started` lines say the margin, what it was read from (the cutout's insets, the pixels a dp) and the band it leaves, as `screen margin small (cutout insets 0 above, 0 below; 2.63 pixels a dp): band 0,63 2400x954`.
 
 ## Languages in detail

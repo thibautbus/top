@@ -105,6 +105,21 @@ OraclesGhostCheck *oracles_ghost_check_start(const uint8_t *rom, size_t rom_size
     return c;
 }
 
+int oracles_ghost_check_half_switched(OraclesGhostCheck *c, const uint8_t *rom, size_t rom_size)
+{
+    const OraclesCompatProfile *profile = oracles_guest_profile(c->guest);
+    c->pending = 0;
+    c->ring_count = c->ring_head = 0;
+    c->key_count = oracles_ghost_key_ranges(profile, c->key, sizeof c->key / sizeof c->key[0]);
+    c->exempt_count = oracles_ghost_key_exempt_ranges(profile, c->exempt, sizeof c->exempt / sizeof c->exempt[0]);
+    OraclesGhost *ghost = oracles_ghost_create(rom, rom_size, profile, oracles_core_kind(c->live));
+    if (!ghost) return -1;
+    if (c->trace) oracles_ghost_set_trace(ghost, 1);
+    oracles_ghost_destroy(c->ghost);
+    c->ghost = ghost;
+    return 0;
+}
+
 void oracles_ghost_check_stop(OraclesGhostCheck *c)
 {
     if (!c) return;

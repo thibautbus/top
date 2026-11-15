@@ -103,8 +103,71 @@ uint16_t oracles_guest_thread_sp(OraclesGuest *guest, unsigned thread)
 
 /* ---- events -------------------------------------------------------------------- */
 
+/* The game leaves the guest's half: nothing of the guest acts on the other half's game, whose memory its tables do not
+ * describe.  The returns awaited and the calls queued belong to the thread swapGame restarts. */
+static void leave_half(OraclesGuest *guest)
+{
+    guest->half_returns_dropped += guest->pending_count;
+    oracles_guest_clear_hooks(guest);
+    guest->call_count = 0;
+    guest->call_watch_sp = 0;
+    guest->half_left = guest->frame + 1u;
+}
+
+/* At swapGame's entry: the switch to another game's half, or the request of the game already running, which swapGame
+ * answers by restarting its thread alone.  A ghost's guest (oracles_guest_watch_half) only notes it. */
+static void half_switch(OraclesGuest *guest)
+{
+    const OraclesCompatProfile *p = guest->profile;
+    const unsigned asked = oracles_guest_read8(guest, oracles_compat_swap_game_request(p)), running = oracles_guest_read8(guest, oracles_compat_current_game(p));
+    if (running == oracles_compat_half_game(p) && (uint8_t)(asked - 2u) == running) return;
+    if (guest->half_watched) guest->half_crossed = 1;
+    else leave_half(guest);
+}
+
+uint32_t oracles_guest_half_left(const OraclesGuest *guest) { return guest ? guest->half_left : 0; }
+int oracles_guest_switching_half(const OraclesGuest *guest) { return guest ? guest->half_switching : 0; }
+
+int oracles_guest_check_half(OraclesGuest *guest)
+{
+    if (!guest || !oracles_compat_half_switch(guest->profile)) return 0;
+    const OraclesCompatProfile *p = guest->profile;
+    const unsigned half = oracles_compat_half_game(p), asked = oracles_guest_read8(guest, oracles_compat_swap_game_request(p));
+    /* swapGame writes the byte that names the game last: a state saved at its frame still names this half, and has
+     * passed the hook, its request for the other game standing until it ends. */
+    if (!guest->half_left && (oracles_guest_read8(guest, oracles_compat_current_game(p)) != half || (asked && (uint8_t)(asked - 2u) != half))) leave_half(guest);
+    return guest->half_left != 0;
+}
+
+int oracles_guest_half_passage(OraclesGuest *guest)
+{
+    if (!guest || !oracles_compat_half_switch(guest->profile)) return 0;
+    return guest->half_left || guest->half_settling || oracles_guest_read8(guest, oracles_compat_swap_game_request(guest->profile)) != 0;
+}
+
+/* The game's thread restarted in the half it went to: its screen still the one it left, until the LCD goes off for the
+ * first room (_initializeGame's) or, at the latest, the game plays. */
+#define HALF_SETTLE_FRAMES 60u
+
+static void half_settle(OraclesGuest *guest)
+{
+    const uint8_t *io = oracles_guest_io(guest);
+    if (oracles_guest_read8(guest, oracles_compat_swap_game_request(guest->profile))) return;
+    if ((io && !(io[0x40] & 0x80u)) || oracles_guest_read8(guest, guest->tables->game_state) != 0u || ++guest->half_settling > HALF_SETTLE_FRAMES) guest->half_settling = 0;
+}
+
+int oracles_guest_watch_half(OraclesGuest *guest)
+{
+    if (!oracles_compat_half_switch(guest->profile)) return 0;
+    guest->half_watched = 1;
+    return oracles_guest_add_hook(guest, oracles_compat_swap_game(guest->profile), ORACLES_EVENT_HALF_SWITCH, 0);
+}
+
+int oracles_guest_half_crossed(const OraclesGuest *guest) { return guest ? guest->half_crossed : 0; }
+
 static void emit(OraclesGuest *guest, OraclesGuestEventType type, uint16_t pc, uint16_t address, uint8_t value)
 {
+    if (type == ORACLES_EVENT_HALF_SWITCH) { half_switch(guest); return; }
     if (type == ORACLES_EVENT_FRAME_DONE) oracles_guest_apply_transition_entry(guest);
     if (type == ORACLES_EVENT_FRAME_DRAWN) {
         if (!guest->transition_at_entry) oracles_guest_apply_transition_policy(guest, 0);
@@ -165,11 +228,20 @@ void oracles_guest_remove_event_listener(OraclesGuest *guest, OraclesGuestEventF
     }
 }
 
-static unsigned current_rom_bank(OraclesGuest *guest)
+/* The bytes the RAM's copy is compared on: enough to tell the two halves' copies apart at a function's entry. */
+#define SRAM_COPY_CHECK 8u
+
+int oracles_guest_sram_code_mapped(OraclesGuest *guest, OraclesGuestSym entry)
 {
-    uint16_t bank = 0;
-    oracles_core_memory(guest->core, ORACLES_CORE_ROM, NULL, &bank);
-    return bank;
+    size_t ram_size = 0, rom_size = 0;
+    uint16_t ram_bank = 0, rom_bank = 0;
+    const uint8_t *ram = oracles_core_memory(guest->core, ORACLES_CORE_CART_RAM, &ram_size, &ram_bank);
+    if (!ram || ram_bank >= 8u || !(guest->sram_code_banks >> ram_bank & 1u)) return 0;
+    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &rom_size, &rom_bank);
+    const size_t within = entry.addr - ORACLES_SRAM_CODE_START;
+    const size_t left = ORACLES_SRAM_CODE_END - entry.addr, length = left < SRAM_COPY_CHECK ? left : SRAM_COPY_CHECK;
+    const size_t at_rom = ((size_t)entry.bank + guest->rom_bank_base) * 0x4000u + within, at_ram = (size_t)ram_bank * 0x2000u + within;
+    return rom && at_rom + length <= rom_size && at_ram + length <= ram_size && memcmp(rom + at_rom, ram + at_ram, length) == 0;
 }
 
 /* The word at the stack pointer, read through the bus. */
@@ -197,6 +269,10 @@ static int same_stack(const OraclesGuest *guest, uint16_t a, uint16_t b)
     }
     return 1;
 }
+
+/* Out of line: the address spaces' test is reached only for an address a hook enters at, and keeps the registers of the
+ * instruction's path to itself. */
+__attribute__((noinline)) static int hook_code_mapped(OraclesGuest *guest, OraclesGuestSym entry) { return oracles_guest_code_mapped(guest, entry); }
 
 static void on_execute(void *opaque, uint16_t pc, uint8_t opcode, uint16_t sp)
 {
@@ -249,7 +325,7 @@ static void on_execute(void *opaque, uint16_t pc, uint8_t opcode, uint16_t sp)
     for (unsigned i = 0; i < guest->hook_count; i++) {
         const hook *h = &guest->hooks[i];
         if (pc != h->entry.addr) continue;
-        if (pc >= 0x4000u && h->entry.bank != current_rom_bank(guest)) continue;
+        if (pc >= 0x4000u && !hook_code_mapped(guest, h->entry)) continue;
         if (h->on_entry) emit(guest, h->on_entry, pc, 0, 0);
         if (h->on_return) {
             if (guest->pending_count >= PENDING_RETURNS) { guest->returns_overflow++; continue; }
@@ -283,7 +359,7 @@ static void on_write(void *opaque, uint16_t address, uint8_t value)
         }
         return;
     }
-    if (!guest->boot_finished) return;
+    if (!guest->boot_finished || guest->half_left) return;
     if (address == guest->keys_pressed) { guest->keys_polls++; return; }
     if (address == guest->transition_direction) {
         /* @startTransition (bank1.s) writes state 3, scroll mode 4, then the direction: the decision. */
@@ -346,6 +422,8 @@ void oracles_guest_reset_execution_state(OraclesGuest *guest)
     guest->pending_count = 0;
     guest->interrupt_depth = 0;
     guest->boot_finished = 1;   /* a saved state is always past the boot ROM */
+    guest->half_crossed = 0;
+    guest->half_state_loaded = 1;
     guest->oam_scanned_valid = 0;
     guest->link_shown_vblanks = 0;
     {   /* where the OAM of the loaded state draws Link, not the execution it replaced: the replay is the same whatever ran before the load */
@@ -411,6 +489,11 @@ static void on_vblank(void *opaque, OraclesVblankType type)
         const uint8_t *oam = oracles_core_memory(guest->core, ORACLES_CORE_OAM, &size, &bank);
         if (oam && size >= sizeof guest->oam_scanned) { memcpy(guest->oam_scanned, oam, sizeof guest->oam_scanned); guest->oam_scanned_valid = 1; }
     }
+    /* The game between two halves: the frame for those who read the screen, nothing of the game. */
+    if (guest->half_left || (guest->half_switches && oracles_guest_half_passage(guest))) {
+        if (guest->vblank_hook) guest->vblank_hook(guest->vblank_opaque, type);
+        return;
+    }
     /* Link where the frame just scanned drew him, and where the next will: the game's vblank handler copies wOam
      * (vblankInterrupt, hOamFunc) only when the main loop waits for it, wVBlankChecker $ff; a frame whose logic ends
      * past the vblank leaves the OAM as it was, but for the transaction's moves at the vblank. */
@@ -465,6 +548,7 @@ unsigned oracles_guest_hooks_refused(const OraclesGuest *guest) { return guest ?
 int oracles_guest_add_hook(OraclesGuest *guest, OraclesGuestSym entry, OraclesGuestEventType on_entry, OraclesGuestEventType on_return)
 {
     if (entry.bank == ORACLES_GUEST_ABSENT) return 0; /* the game has no such function: nothing to hook */
+    if (guest->half_left) return -1;                  /* the game is no longer the guest's (oracles_guest_half_left) */
     /* Two consumers may ask for the same hook: it is armed once, its events reach them both. */
     for (unsigned i = 0; i < guest->hook_count; i++)
         if (guest->hooks[i].entry.bank == entry.bank && guest->hooks[i].entry.addr == entry.addr
@@ -485,16 +569,21 @@ void oracles_guest_clear_hooks(OraclesGuest *guest)
     memset(guest->hooked_pc, 0, sizeof guest->hooked_pc);
 }
 
-OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile *profile)
+/* What a guest takes of its profile: the tables and the address spaces. */
+static void bind_profile(OraclesGuest *guest, const OraclesCompatProfile *profile)
 {
-    const OraclesGuestTables *tables = oracles_compat_guest_tables(profile);
-    if (!tables) return NULL;
-    OraclesGuest *guest = calloc(1, sizeof *guest);
-    if (!guest) return NULL;
-    guest->core = core;
     guest->profile = profile;
-    guest->tables = tables;
-    const OraclesGuestTables *t = tables;
+    guest->tables = oracles_compat_guest_tables(profile);
+    guest->rom_bank_base = (uint16_t)oracles_compat_rom_bank_base(profile);
+    guest->sram_code_banks = (uint8_t)oracles_compat_sram_code_banks(profile);
+}
+
+/* The hooks of a guest's every attachment, and the addresses it watches.  A hook refused for want of room in the table
+ * would be missing in silence: -1, and the caller says so. */
+static int arm_base(OraclesGuest *guest)
+{
+    const OraclesCompatProfile *profile = guest->profile;
+    const OraclesGuestTables *t = guest->tables;
     oracles_guest_add_hook(guest, t->draw_all_sprites, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN);
     oracles_guest_add_hook(guest, t->initialize_room, ORACLES_EVENT_ROOM_ENTER, ORACLES_EVENT_ROOM_INITIALIZED);
     /* objectCreateInteraction calls getFreeInteractionSlot: one hook covers every creation. */
@@ -509,9 +598,9 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     oracles_guest_add_hook(guest, t->open_menu, ORACLES_EVENT_MENU, 0);
     oracles_guest_add_hook(guest, t->save_file, ORACLES_EVENT_SAVE, 0);
     oracles_guest_add_hook(guest, t->poll_input, 0, ORACLES_EVENT_INPUT);
-    /* A hook refused for want of room in the table would be missing in silence:
-     * the attach fails instead, and the caller sees it. */
-    if (guest->hook_count != ORACLES_GUEST_ATTACHED_HOOKS) { free(guest); return NULL; }
+    if (guest->hook_count != ORACLES_GUEST_ATTACHED_HOOKS) return -1;
+    if (oracles_compat_half_switch(profile)
+        && (oracles_compat_swap_game(profile).addr >= 0x4000u || oracles_guest_add_hook(guest, oracles_compat_swap_game(profile), ORACLES_EVENT_HALF_SWITCH, 0) != 0)) return -1;
     guest->global_flags_start = t->global_flags.addr;
     guest->global_flags_end = (uint16_t)(t->global_flags.addr + t->global_flags_size);
     guest->room_flags_start = t->group0_room_flags.addr;
@@ -522,6 +611,18 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
     guest->keys_pressed = t->keys_pressed.addr;
     guest->objects_start = ORACLES_OBJECTS_BASE;
     guest->objects_end = (uint16_t)(ORACLES_OBJECTS_BASE + ORACLES_OBJECT_SLOTS * 0x100u);
+    return 0;
+}
+
+OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile *profile)
+{
+    if (!oracles_compat_guest_tables(profile)) return NULL;
+    OraclesGuest *guest = calloc(1, sizeof *guest);
+    if (!guest) return NULL;
+    guest->core = core;
+    guest->half_state_loaded = 1;   /* attached late, to a game in another half: as after a load */
+    bind_profile(guest, profile);
+    if (arm_base(guest) != 0) { free(guest); return NULL; }
     /* Attached after the boot ROM has run (tests, late attaches): the low
      * addresses then read as the cartridge's own bytes. */
     {
@@ -538,15 +639,123 @@ OraclesGuest *oracles_guest_attach(OraclesCore *core, const OraclesCompatProfile
 
 OraclesGuest *oracles_guest_reader(OraclesCore *core, const OraclesCompatProfile *profile)
 {
-    const OraclesGuestTables *tables = oracles_compat_guest_tables(profile);
-    if (!tables) return NULL;
+    if (!oracles_compat_guest_tables(profile)) return NULL;
     OraclesGuest *guest = calloc(1, sizeof *guest);
     if (!guest) return NULL;
     guest->core = core;
-    guest->profile = profile;
-    guest->tables = tables;
+    guest->half_state_loaded = 1;
+    bind_profile(guest, profile);
     guest->reader = 1;
     return guest;
+}
+
+/* The game runs the half `half` now: the guest as attached to it, on the same address for all who hold it.  Nothing of
+ * the half left stays armed: a feature's points are armed again by whom asked for them (oracles_guest_add_half_listener). */
+static void switch_half(OraclesGuest *guest, const OraclesCompatProfile *half, int door)
+{
+    bind_profile(guest, half);
+    guest->half_left = 0;
+    if (guest->reader) return;
+    oracles_guest_clear_hooks(guest);
+    guest->calls_armed = 0;
+    guest->call_count = 0;
+    guest->call_watch_sp = 0;
+    guest->inventory_write_pc = 0;
+    guest->line_armed = 0;
+    guest->swim_hold_armed = 0;
+    guest->cheats_armed = 0;
+    guest->language_index = NULL;
+    guest->compact_armed = 0;
+    guest->text_box_armed = 0;
+    guest->text_instant_armed = 0;
+    if (arm_base(guest) != 0) { leave_half(guest); return; }   /* the table holds them at every attachment: never */
+    guest->half_switching = door ? 2 : 1;
+    oracles_guest_reset_execution_state(guest);
+    guest->half_switching = 0;
+    guest->half_switches++;
+    for (unsigned i = 0; i < guest->half_listener_count; i++) guest->half_listeners[i].fn(guest->half_listeners[i].opaque);
+    guest->half_hooks_armed += guest->hook_count;
+}
+
+int oracles_guest_switch_to(OraclesGuest *guest, const OraclesCompatProfile *half)
+{
+    if (!guest || !half || !oracles_compat_guest_tables(half)) return -1;
+    switch_half(guest, half, 0);
+    return guest->half_left ? -1 : 0;
+}
+
+/* The longest the reset's wait for the game's memory to be cleared lasts: init clears it within a few frames. */
+#define HALF_RESET_FRAMES 120u
+
+int oracles_guest_follow_half(OraclesGuest *guest)
+{
+    if (!guest || !oracles_compat_half_switch(guest->profile)) return 0;
+    oracles_guest_check_half(guest);
+    const int loaded = guest->half_state_loaded;
+    guest->half_state_loaded = 0;
+    if (guest->half_settling) { if (loaded) guest->half_settling = 0; else half_settle(guest); }
+    const OraclesCompatProfile *p = guest->profile;
+    const unsigned running = oracles_guest_read8(guest, oracles_compat_current_game(p)), asked = oracles_guest_read8(guest, oracles_compat_swap_game_request(p));
+    if (!guest->half_left) {
+        /* A state taken in swapGame's copy, its game already this half's: the guest as attached to it again, the screen
+         * held until the first room's blank, as for the switch it stands in. */
+        if (!loaded || !asked || (uint8_t)(asked - 2u) != running) return 0;
+        guest->half_settling = 1;
+        guest->half_reset_wait = 0;
+        switch_half(guest, p, 0);
+        guest->half_state_loaded = 0;   /* the switch's own reset is no load */
+        return !guest->half_left;
+    }
+    /* swapGame has not named the game it switches to yet. */
+    if (asked && (uint8_t)(asked - 2u) != running) return 0;
+    /* The reset out of the second half (sramBootstrap, no swapGame) names the first and copies its code, the game's memory
+     * still the half's it left, until init clears it; not longer than HALF_RESET_FRAMES. */
+    if (!asked && !loaded && oracles_guest_read8(guest, guest->tables->game_state) != 0u && ++guest->half_reset_wait <= HALF_RESET_FRAMES) return 0;
+    const OraclesCompatProfile *half = oracles_compat_half(p, running);
+    if (!half) return 0;
+    guest->half_settling = !loaded || asked ? 1u : 0u;
+    guest->half_reset_wait = 0;
+    switch_half(guest, half, asked && !loaded);   /* swapGame's switch, the file carried across; a reset's or a state's not */
+    guest->half_state_loaded = 0;
+    return !guest->half_left;
+}
+
+int oracles_guest_add_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque)
+{
+    if (!guest || !listener || !oracles_compat_half_switch(guest->profile)) return 0;   /* an image of one game has none to tell */
+    if (guest->half_listener_count >= sizeof guest->half_listeners / sizeof guest->half_listeners[0]) return -1;
+    guest->half_listeners[guest->half_listener_count].fn = listener;
+    guest->half_listeners[guest->half_listener_count].opaque = opaque;
+    guest->half_listener_count++;
+    return 0;
+}
+
+int oracles_guest_listen_half(OraclesGuest *guest, OraclesGuestHalfFn listener)
+{
+    for (unsigned i = 0; i < guest->half_listener_count; i++)
+        if (guest->half_listeners[i].fn == listener && guest->half_listeners[i].opaque == guest) return 0;
+    return oracles_guest_add_half_listener(guest, listener, guest);
+}
+
+void oracles_guest_remove_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque)
+{
+    if (!guest) return;
+    for (unsigned i = 0; i < guest->half_listener_count; i++) {
+        if (guest->half_listeners[i].fn != listener || guest->half_listeners[i].opaque != opaque) continue;
+        for (unsigned k = i + 1; k < guest->half_listener_count; k++) guest->half_listeners[k - 1] = guest->half_listeners[k];
+        guest->half_listener_count--;
+        return;
+    }
+}
+
+void oracles_guest_half_counts(const OraclesGuest *guest, OraclesGuestHalfCounts *out)
+{
+    out->switches = guest ? guest->half_switches : 0;
+    out->hooks_armed = guest ? guest->half_hooks_armed : 0;
+    out->returns_dropped = guest ? guest->half_returns_dropped : 0;
+    out->features_refused = guest ? guest->half_features_refused : 0;
+    out->text_armed = guest ? guest->text_armed : 0;
+    out->text_lost = guest ? guest->text_lost : 0;
 }
 
 void oracles_guest_detach(OraclesGuest *guest)

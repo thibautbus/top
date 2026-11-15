@@ -39,20 +39,30 @@ static int arm_tests(OraclesGuest *guest)
 {
     const OraclesGuestTables *t = guest->tables;
     if (!oracles_compat_swim_hold(guest->profile)) return -1;
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
+    const OraclesGuestRom image = oracles_guest_rom(guest);
+    const uint8_t *rom = image.data;
+    const size_t size = image.size;
     if (arm_test(guest, rom, size, t->link_update_velocity_mermaid, ORACLES_GAME_DIRECTIONS, ORACLES_EVENT_MERMAID_STROKE) != 0) return -1;
     if (t->link_update_flippers_state0.bank == ORACLES_GUEST_ABSENT) return -1;
     return arm_test(guest, rom, size, t->link_update_flippers_state0, ORACLES_GAME_BUTTON_A, ORACLES_EVENT_FLIPPERS_STROKE);
+}
+
+/* The game went to the other half of its image: the tests of that half's code. */
+static void follow_half(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    if (!guest->swim_hold_follows) return;
+    if (arm_tests(guest) != 0) { guest->half_features_refused++; return; }
+    guest->swim_hold_armed = 1;
 }
 
 int oracles_guest_set_swim_hold(OraclesGuest *guest, int on)
 {
     if (!guest) return -1;
     if (on && !guest->swim_hold_armed) {
-        if (arm_tests(guest) != 0) return -1;
-        guest->swim_hold_armed = 1;
+        if (oracles_guest_listen_half(guest, follow_half) != 0) return -1;
+        if (!guest->half_left && arm_tests(guest) != 0) return -1;   /* between two halves: armed in the next */
+        guest->swim_hold_armed = guest->swim_hold_follows = 1;
     }
     guest->swim_hold = on != 0;
     return 0;

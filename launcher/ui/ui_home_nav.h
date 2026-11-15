@@ -39,6 +39,7 @@ typedef enum OraclesHomeHero {
     ORACLES_HOME_HERO_KINOMI,
     ORACLES_HOME_HERO_MOONRISE,
     ORACLES_HOME_HERO_TEMPLE,
+    ORACLES_HOME_HERO_COMBINED,
     ORACLES_HOME_HEROES
 } OraclesHomeHero;
 
@@ -53,6 +54,7 @@ typedef enum OraclesHomeItemId {
     ORACLES_HOME_ITEM_KINOMI,
     ORACLES_HOME_ITEM_MOONRISE,
     ORACLES_HOME_ITEM_TEMPLE,
+    ORACLES_HOME_ITEM_COMBINED,
     /* The pause menu's (screen 6). */
     ORACLES_HOME_ITEM_RESUME,
     ORACLES_HOME_ITEM_SAVE_STATE,
@@ -77,6 +79,7 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_START_KINOMI,
     ORACLES_HOME_START_MOONRISE,
     ORACLES_HOME_START_TEMPLE,
+    ORACLES_HOME_START_COMBINED,
     ORACLES_HOME_EXIT,
     ORACLES_HOME_CHOOSE_ROM,     /* the game's page: the system's file dialog for the page's game (a fan game's base ROM) */
     ORACLES_HOME_CHOOSE_PATCH,   /* a fan game's page: the system's file dialog for its patch */
@@ -144,21 +147,23 @@ typedef enum OraclesProfile {
 #define ORACLES_HOME_TEXT_LENGTH 256
 
 /* The games of the launcher, as nav->games holds them: the two Oracles, then the fan games, each played from an
- * Oracle's ROM and its BPS patch (oracles_home_fan_games).  Only the two Oracles have item hotkeys (no fan game's
- * profile allows them yet). */
-#define ORACLES_HOME_GAMES 5
+ * Oracle's ROM and its BPS patch, or Oracles Combined's from the two European ROMs joined (oracles_home_fan_games).
+ * The two Oracles and Oracles Combined have item hotkeys (no other fan game's profile allows them yet). */
+#define ORACLES_HOME_GAMES 6
 #define ORACLES_HOME_GAME_AGES 0
 #define ORACLES_HOME_GAME_SEASONS 1
 #define ORACLES_HOME_GAME_KINOMI 2
 #define ORACLES_HOME_GAME_MOONRISE 3
 #define ORACLES_HOME_GAME_TEMPLE 4
+#define ORACLES_HOME_GAME_COMBINED 5
 #define ORACLES_HOME_HOTKEY_GAMES 2
-#define ORACLES_HOME_FAN_GAMES 3
+#define ORACLES_HOME_FAN_GAMES 4
 /* Each fan game's place in oracles_home_fan_games, which every table of fan games is indexed by: in alphabetical order,
  * the order the launcher lists them in. */
 #define ORACLES_HOME_FAN_KINOMI 0
 #define ORACLES_HOME_FAN_MOONRISE 1
-#define ORACLES_HOME_FAN_TEMPLE 2
+#define ORACLES_HOME_FAN_COMBINED 2
+#define ORACLES_HOME_FAN_TEMPLE 3
 
 /* A fan game: its game, hero, line of the list and start command, the Oracle whose ROM is its base, and the texts of
  * its pages. */
@@ -173,12 +178,19 @@ typedef struct OraclesHomeFanGame {
     const char *image_name;      /* the image its patch makes: "Moonrise Regalia 1.0.6" */
     const char *item_heading;    /* Controls' item column: "In Moonrise Regalia" */
     const char *credit;          /* its authors' handles as its release page gives them: "By PontiusStone" */
+    /* 1: its patch applies to the European ROMs of Ages and Seasons joined, Ages' first (each Oracle's eu_rom_*), not to
+     * its Oracle's ROM (Oracles Combined); `base` is Ages, the half it starts in. */
+    int joined;
+    const char *patch_expected;  /* the patch its page asks for, "an Oracles Combined release"; NULL: image_name's */
 } OraclesHomeFanGame;
 
 /* The fan games, in the order of the list, each at its ORACLES_HOME_FAN_* place: the one table of them. */
 extern const OraclesHomeFanGame oracles_home_fan_games[ORACLES_HOME_FAN_GAMES];
 /* The fan game of `game` (ORACLES_HOME_GAME_*), NULL for an Oracle or none. */
 const OraclesHomeFanGame *oracles_home_fan_game(int game);
+/* The slots a game's item hotkeys keep (settings.txt's hotkey_<game>_<n>): 0 Ages', 1 Seasons', 2 Oracles Combined's, both
+ * its halves'; -1 for a game without item hotkeys. */
+int oracles_home_hotkey_slots(int game);
 /* The fan game a start command plays, NULL for an Oracle's or another command. */
 const OraclesHomeFanGame *oracles_home_fan_game_started(OraclesHomeCommand command);
 
@@ -194,6 +206,14 @@ typedef struct OraclesHomeFont {
     uint8_t left[ORACLES_HOME_FONT_CHARACTERS], width[ORACLES_HOME_FONT_CHARACTERS], advance[ORACLES_HOME_FONT_CHARACTERS];
 } OraclesHomeFont;
 
+/* One of the European ROMs Oracles Combined is made of, as its Oracle's page keeps it: NONE, ORIGINAL when it is that
+ * Oracle's, UNRECOGNISED for another file, REFUSED when it cannot be read (`reason`, the loader's words). */
+typedef struct OraclesHomeEuropean {
+    OraclesRomState state;
+    char file[ORACLES_HOME_TEXT_LENGTH];
+    char reason[ORACLES_HOME_TEXT_LENGTH];
+} OraclesHomeEuropean;
+
 /* A game as the launcher found it, and the choice of its page. */
 typedef struct OraclesHomeGame {
     int usable;               /* a ROM is set, is there and is recognised as this game (a fan game: its image is built) */
@@ -202,6 +222,11 @@ typedef struct OraclesHomeGame {
     char rom_file[ORACLES_HOME_TEXT_LENGTH];     /* the file's name, empty without a ROM */
     char rom_folder[ORACLES_HOME_TEXT_LENGTH * 4];
     char rom_reason[ORACLES_HOME_TEXT_LENGTH];   /* the loader's words, for a refused ROM */
+    int combined;             /* an Oracle's UNRECOGNISED ROM is an image of both games (Oracles Combined, Crossworld) */
+    /* A fan game made on the two European ROMs joined: Ages' and Seasons', each on its row of the page; `rom` then sums
+     * them up for the home screen's state, ORIGINAL when both are, else the first that is not, with its file and why in
+     * rom_file and rom_reason, which the page does not show. */
+    OraclesHomeEuropean joined[2];
     /* A fan game (`fan`, NULL for an Oracle): its patch, ORIGINAL once read as a BPS patch, and the image the patch
      * makes of the base, ORIGINAL when it is the fan game's (all profiles), UNRECOGNISED for another image (Faithful),
      * REFUSED with the reason the patch does not apply, NONE while a file is missing. */
@@ -211,6 +236,7 @@ typedef struct OraclesHomeGame {
     char patch_folder[ORACLES_HOME_TEXT_LENGTH * 4];
     char patch_reason[ORACLES_HOME_TEXT_LENGTH];
     char image_reason[ORACLES_HOME_TEXT_LENGTH];
+    const char *image_language;                  /* a recognised image's language, its patch coming in several (Oracles Combined's), or NULL */
     char save_file[ORACLES_HOME_TEXT_LENGTH];    /* the save's name, empty when it does not exist yet */
     char save_written[32];                       /* "21 Sep 2026, 22:14" */
     int mods_save;                               /* an Oracle's: the save its game with mods plays on, NAME.mods.sav, is there (read with the mods) */
@@ -238,7 +264,8 @@ enum {
     ORACLES_HOME_REFUSES_TEXT_SIZE = 1u << 1,   /* Text size */
     ORACLES_HOME_REFUSES_SWIM_HOLD = 1u << 2,   /* Swimming's Hold */
     ORACLES_HOME_REFUSES_HOTKEYS = 1u << 3,     /* the item hotkeys */
-    ORACLES_HOME_REFUSES_CHEATS = 1u << 4
+    ORACLES_HOME_REFUSES_CHEATS = 1u << 4,
+    ORACLES_HOME_REFUSES_TEXT_SPEED = 1u << 5   /* Text speed's Instant */
 };
 
 /* The choices of Display, the same for every game. */
@@ -307,7 +334,7 @@ typedef struct OraclesHomeControls {
     char hotkey_keys[ORACLES_HOME_HOTKEY_ROWS][ORACLES_HOME_NAME_LENGTH];
     char hotkey_pads[ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];
     char menu_pad[ORACLES_HOME_NAME_LENGTH];   /* the controller's Escape: the pause menu in a game, Back here (settings.txt's menu_pad=) */
-    char items[2][ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];   /* the item in each slot, empty when none */
+    char items[3][ORACLES_HOME_SLOTS][ORACLES_HOME_NAME_LENGTH];   /* the item in each slot, empty when none: Ages', Seasons', Oracles Combined's */
     int swim_hold;               /* Swimming, for every game: 0 Tap, 1 Hold (settings.txt's swim_hold=) */
     int touch_vibration;         /* Touch vibration, Android's: 1 On, 0 Off (settings.txt's touch_vibration=) */
     /* The reminder naming the menu's key and the pause menu's line on the item hotkeys, as settings.txt counts them

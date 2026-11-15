@@ -127,6 +127,12 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
     if (oracles_language_parse(code, &language) != 0) { snprintf(error, capacity, "--language %s: not a language (en, en-eu, fr, de, it, es)", code); return -1; }
     if (language == ORACLES_LANGUAGE_ENGLISH) return 0;
     const OraclesCompatProfile *profile = oracles_compat_find(info);
+    OraclesLanguage own;
+    if (oracles_language_image_own(info, &own)) {
+        snprintf(error, capacity, "--language %s: this image of Oracles Combined is in %s, the language its patch gives it, and takes no other", code,
+                 oracles_language_code(own));
+        return -1;
+    }
     if (!oracles_compat_language_bank(profile)) {
         snprintf(error, capacity, "--language %s plays on the US ROM of Ages or Seasons, or a fan game made on it, which this ROM is not", code);
         return -1;
@@ -206,6 +212,7 @@ int oracles_language_session_lay_out(OraclesLanguageSession **session, const Ora
     if (!*session) {
         if (!(*session = calloc(1, sizeof **session))) { snprintf(error, capacity, "out of memory"); return -1; }
         (*session)->language = ORACLES_LANGUAGE_ENGLISH;
+        oracles_language_image_own(info, &(*session)->language);   /* an image of its own language lays out its own texts */
         snprintf((*session)->sha1, sizeof (*session)->sha1, "%s", info->sha1);
     }
     OraclesLanguageSession *s = *session;

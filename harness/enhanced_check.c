@@ -44,7 +44,25 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
     return c;
 }
 
+void oracles_enhanced_check_half_switched(OraclesEnhancedCheck *c, const uint8_t *rom, size_t rom_size)
+{
+    if (c->link_sprites) { oracles_sprites_forget(c->link_sprites); oracles_sprites_add_hooks(c->guest); }
+    c->have_camera = 0;   /* the view's camera starts afresh, as at a teleport */
+    c->have_last_observation = 0;
+    c->have_drawn_link = 0;
+    c->blurb_drawn_count = 0;
+    c->pending_transition = 0;
+    c->load_last_kind = 0;
+    memset(c->last_shown, 0, sizeof c->last_shown);
+    if (c->witness) {
+        OraclesGhost *ghost = oracles_ghost_create(rom, rom_size, oracles_guest_profile(c->guest), oracles_core_kind(c->core));
+        if (ghost) { oracles_ghost_destroy(c->witness); c->witness = ghost; oracles_ghost_set_capture(ghost, 1); }
+    }
+}
+
+uint64_t oracles_enhanced_check_last_hash(const OraclesEnhancedCheck *c) { return c->last_hash; }
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *c, uint32_t frame) { c->reload_at = frame; }
+void oracles_enhanced_check_hotbar_forget_at(OraclesEnhancedCheck *c, uint32_t frame) { c->hotbar_forget_at = frame; }
 void oracles_enhanced_check_reload_in_place(OraclesEnhancedCheck *c) { c->reload_in_place = 1; }
 
 void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *c, const char *out, uint32_t from, const char *against)
@@ -85,6 +103,8 @@ static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, i
     if (wrong) { c->against_wrong_frames++; c->against_last_wrong = frame; if (wrong > c->against_wrong_max) c->against_wrong_max = wrong; }
     if (black) { c->against_last_black = frame; if (black > c->against_black_max) c->against_black_max = black; }
 }
+void oracles_enhanced_check_held_frame(OraclesEnhancedCheck *c, const uint32_t *surface, uint32_t frame) { measure_surfaces(c, surface, 0, 0, frame); }
+
 void oracles_enhanced_check_set_transition(OraclesEnhancedCheck *c, OraclesRoomTransition *transition) { c->transition = transition; }
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *c, int paced) { c->paced = paced; }
 
@@ -259,6 +279,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
             oracles_enhanced_view_switch_subpixel(c->view, !oracles_enhanced_view_subpixel_on(c->view));
             c->subpixel_switched++;
         }
+    if (c->hotbar_forget_at == frame && frame) oracles_enhanced_view_hotbar_forget(c->view);
     const double compose_start = ec_monotonic_us();
     const uint32_t *surface = oracles_enhanced_view_compose(c->view, &mode, &camera_x, &camera_y);
     {   /* A renderer of objects is judged on the peak, which puts a frame late, not on the mean. */
@@ -272,6 +293,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     else if (c->host_box) ec_check_host_text_box(c, mode, frame);
     const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * oracles_enhanced_view_height(c->view) * sizeof *surface, ORACLES_HASH_SEED);
     c->run_hash = oracles_guest_hash((const uint8_t *)&hash, sizeof hash, c->run_hash);
+    c->last_hash = hash;
     for (unsigned i = 0; i < c->surfaces; i++) if (c->surface_at[i] == frame) write_surface(c, surface, c->surface_path[i]);
     measure_surfaces(c, surface, camera_x, camera_y, frame);
     c->frames++;

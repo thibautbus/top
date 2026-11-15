@@ -529,7 +529,7 @@ void ev_check_routing_keys(OraclesEnhancedView *v)
         if (!c->used || !c->routed || !c->routing_key_len) continue;
         const int taking = ob->in_transition && c->routed_from == v->observer.ref_room ? (int)(ob->scroll_direction & 3u) : -1;
         uint8_t live[ORACLES_GHOST_ROUTING_KEY_BYTES];
-        const size_t n = oracles_ghost_routing_key_snapshot(v->guest, oracles_ghost_room_routine(v->ghost, c->group, c->routed_from), live, sizeof live);
+        const size_t n = oracles_ghost_routing_key_snapshot(v->guest, oracles_ghost_room_routine(&v->rooms, c->group, c->routed_from), live, sizeof live);
         if (n != c->routing_key_len || !oracles_enhanced_routed_answer_holds(c->routed_dir, taking, c->routing_key, live, n)) drop_routed(c);
     }
 }

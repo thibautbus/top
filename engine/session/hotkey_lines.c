@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *const game_names[2] = { "ages", "seasons" };
+static const char *const game_names[ORACLES_HOTKEY_GAMES] = { "ages", "seasons", "combined" };
 
 static int hex_byte(const char *text, uint8_t *out)
 {
@@ -24,12 +24,12 @@ static int hex_byte(const char *text, uint8_t *out)
 int oracles_hotkey_line_parse(const char *name, const char *value, unsigned *game, unsigned *n, OraclesHotkeySlot *slot)
 {
     if (strncmp(name, "hotkey_", 7) != 0) return 0;
-    unsigned g = 2;
-    for (unsigned i = 0; i < 2u; i++) {
+    unsigned g = ORACLES_HOTKEY_GAMES;
+    for (unsigned i = 0; i < ORACLES_HOTKEY_GAMES; i++) {
         const size_t length = strlen(game_names[i]);
         if (!strncmp(name + 7, game_names[i], length) && name[7 + length] == '_') { g = i; name += 7 + length + 1; break; }
     }
-    if (g == 2u || name[0] < '1' || name[0] > '0' + (int)ORACLES_HOTKEY_SLOTS || name[1]) return 0;
+    if (g == ORACLES_HOTKEY_GAMES || name[0] < '1' || name[0] > '0' + (int)ORACLES_HOTKEY_SLOTS || name[1]) return 0;
     memset(slot, 0, sizeof *slot);
     *game = g;
     *n = (unsigned)(name[0] - '1');
@@ -48,7 +48,7 @@ int oracles_hotkey_line_parse(const char *name, const char *value, unsigned *gam
 
 size_t oracles_hotkey_line_format(char *out, size_t capacity, unsigned game, unsigned n, const OraclesHotkeySlot *slot)
 {
-    if (game > 1u || n >= ORACLES_HOTKEY_SLOTS) return 0;
+    if (game >= ORACLES_HOTKEY_GAMES || n >= ORACLES_HOTKEY_SLOTS) return 0;
     int written;
     if (!slot->set) written = snprintf(out, capacity, "hotkey_%s_%u=-", game_names[game], n + 1u);
     else if (slot->variant == ORACLES_HOTKEY_NO_VARIANT)

@@ -76,6 +76,11 @@ int oracles_mod_session_compose(OraclesModSession *session, int original, uint8_
     return 0;
 }
 
+int oracles_mod_session_check_profile(const OraclesModSession *session, const OraclesCompatProfile *profile, char *error, size_t capacity)
+{
+    return oracles_mod_set_check_profile(session->set, profile, error, capacity);
+}
+
 int oracles_mod_session_attach(OraclesModSession *session, OraclesGuest *guest, char *error, size_t capacity)
 {
     return oracles_mod_set_attach(session->set, guest, error, capacity);

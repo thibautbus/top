@@ -137,7 +137,7 @@ unsigned oracles_session_settings_changed(const oracles_settings *settings, int 
         applied->unvisited_hidden = settings->unvisited_hidden;
         changed |= ORACLES_SESSION_CHANGED_UNVISITED;
     }
-    if (applied->hotkeys_game >= 0 && applied->hotkeys_game < ORACLES_SETTINGS_GAMES && (int)settings->item_hotkeys[applied->hotkeys_game] != applied->hotkeys) {
+    if (applied->hotkeys_game >= 0 && applied->hotkeys_game < (int)ORACLES_HOTKEY_GAMES && (int)settings->item_hotkeys[applied->hotkeys_game] != applied->hotkeys) {
         applied->hotkeys = (int)settings->item_hotkeys[applied->hotkeys_game];
         changed |= ORACLES_SESSION_CHANGED_HOTKEYS;
     }

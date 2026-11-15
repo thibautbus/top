@@ -22,7 +22,9 @@ GENERATED = {"engine/game/guest/guest_tables_ages.c", "engine/game/guest/guest_t
              "engine/game/data/oracles_tables_ages.c", "engine/game/data/oracles_tables_seasons.c",
              "engine/game/profiles/moonrise-regalia/tables.c", "engine/game/profiles/moonrise-regalia/identity.h",
              "engine/game/profiles/temple-of-seasons/tables.c", "engine/game/profiles/temple-of-seasons/identity.h",
-             "engine/game/profiles/gifts-of-kinomi/tables.c", "engine/game/profiles/gifts-of-kinomi/identity.h"}
+             "engine/game/profiles/gifts-of-kinomi/tables.c", "engine/game/profiles/gifts-of-kinomi/identity.h",
+             "engine/game/profiles/oracles-combined/ages/tables.c", "engine/game/profiles/oracles-combined/ages/identity.h",
+             "engine/game/profiles/oracles-combined/seasons/tables.c", "engine/game/profiles/oracles-combined/seasons/identity.h"}
 # The Game Boy memory map and cartridge header, not game data.
 HARDWARE = {
     0x0100, 0x0104, 0x0134, 0x0143, 0x0144, 0x0147, 0x0148, 0x0149, 0x014a, 0x0150,

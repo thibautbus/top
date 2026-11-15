@@ -5,7 +5,8 @@
  * the start of the profile's first language bank (ORACLES_IMAGE_LANGUAGE_BANK in an original, oracles_rom.h; a bank a
  * fan game leaves empty, profile.h) gives, per internal group and index, the bank and address of the language's text
  * in the image: the transaction writes them in hl, a and w7ActiveBank, at the instruction the
- * routine returns to, before the caller reads them.  The index is read in the core's own copy of the ROM. */
+ * routine returns to, before the caller reads them.  The index is read in the core's own copy of the ROM, in the half
+ * the game runs in (its banks relative to it, as w7ActiveBank's). */
 #include "guest_internal.h"
 
 #include "oracles_rom.h"
@@ -13,19 +14,44 @@
 
 int oracles_guest_arm_language(OraclesGuest *guest)
 {
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
+    const OraclesGuestRom image = oracles_guest_rom(guest);
+    const uint8_t *rom = image.data;
+    const size_t size = image.size;
     const size_t at = (size_t)oracles_compat_language_bank(guest->profile) * 0x4000u;
     if (!rom || !at || size < at + 0x4000u || memcmp(rom + at, ORACLES_LANGUAGE_INDEX_MAGIC, ORACLES_LANGUAGE_INDEX_MAGIC_BYTES)) return 0;
     const uint8_t *index = rom + at;
     const OraclesGuestTables *t = guest->tables;
     if (index[16] != ORACLES_LANGUAGE_INDEX_VERSION || t->get_text_address.bank == ORACLES_GUEST_ABSENT || t->active_text_bank.bank != 7u) return -1;
-    if (oracles_guest_add_hook(guest, t->get_text_address, 0, ORACLES_EVENT_TEXT_ADDRESS) != 0) return -1;
+    if (oracles_guest_add_hook(guest, t->get_text_address, 0, ORACLES_EVENT_TEXT_ADDRESS) != 0
+        || oracles_guest_text_follow_half(guest, ORACLES_GUEST_TEXT_LANGUAGE) != 0) return -1;
     guest->language_index = index;
     memcpy(guest->language, index + ORACLES_LANGUAGE_INDEX_CODE, ORACLES_LANGUAGE_INDEX_CODE_BYTES);
     guest->language[ORACLES_LANGUAGE_INDEX_CODE_BYTES - 1u] = 0;
     return 0;
+}
+
+/* The game went to the other half of its image: the switch disarmed the text's transactions, each armed again on the
+ * half's tables and its index, its font, its points, as the game's host armed them in the half it left. */
+static void text_half_switched(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    const unsigned wanted = guest->text_wanted;
+    unsigned lost = 0;
+    if (wanted & ORACLES_GUEST_TEXT_LANGUAGE) lost += oracles_guest_arm_language(guest) != 0 || !guest->language_index;
+    if (wanted & ORACLES_GUEST_TEXT_BOX) lost += oracles_guest_arm_text_box(guest, guest->text_box_pixels) != 0;
+    if (wanted & ORACLES_GUEST_TEXT_COMPACT) {
+        const int fixed = guest->compact_fixed;
+        lost += oracles_guest_arm_compact_text(guest) != 0;
+        if (fixed) oracles_text_font_fixed(&guest->compact_font, &guest->compact_font);
+    }
+    guest->text_lost += lost;
+    if (!lost) guest->text_armed++;
+}
+
+int oracles_guest_text_follow_half(OraclesGuest *guest, unsigned armed)
+{
+    guest->text_wanted |= armed;
+    return guest->half_watched ? 0 : oracles_guest_listen_half(guest, text_half_switched);
 }
 
 const char *oracles_guest_language(const OraclesGuest *guest) { return guest && guest->language_index ? guest->language : ""; }

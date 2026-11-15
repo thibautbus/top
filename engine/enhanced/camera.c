@@ -491,6 +491,16 @@ static void set_wide_config(OraclesEnhancedCamera *c)
 }
 static const OraclesE11Config *config_for(const OraclesEnhancedCamera *c, const OraclesEnhancedWorld *world) { return whole_band(c, world) ? &c->wide : &c->config; }
 
+/* The game the reducers follow, which a state they saved names, and its map. */
+static void name_session(OraclesEnhancedCamera *c)
+{
+    const OraclesCompatProfile *profile = oracles_guest_profile(c->guest);
+    const int seasons = oracles_compat_family(profile) == ORACLES_GAME_SEASONS;
+    c->observer.map_width = oracles_compat_map_width(profile);
+    snprintf(c->session, sizeof c->session, "%s", seasons ? "seasons" : "ages");
+    snprintf(c->session_y, sizeof c->session_y, "%s-y", seasons ? "seasons" : "ages");
+}
+
 OraclesEnhancedCamera *oracles_enhanced_camera_start(OraclesGuest *guest)
 {
     OraclesEnhancedCamera *c = calloc(1, sizeof *c);
@@ -504,12 +514,22 @@ OraclesEnhancedCamera *oracles_enhanced_camera_start(OraclesGuest *guest)
     oracles_e11_state_initial(&c->state_y, &c->config);
     c->overworld_stride = 16u;   /* the addressing stride of the room byte; the real map is narrower */
     c->limits[0] = c->limits[2] = INT32_MIN; c->limits[1] = c->limits[3] = INT32_MAX;
-    const OraclesCompatProfile *profile = oracles_guest_profile(guest);
-    const int seasons = oracles_compat_family(profile) == ORACLES_GAME_SEASONS;
-    c->observer.map_width = oracles_compat_map_width(profile);
-    snprintf(c->session, sizeof c->session, "%s", seasons ? "seasons" : "ages");
-    snprintf(c->session_y, sizeof c->session_y, "%s-y", seasons ? "seasons" : "ages");
+    name_session(c);
     return c;
+}
+
+const char *oracles_enhanced_camera_session(const OraclesEnhancedCamera *c) { return c->session; }
+
+void oracles_enhanced_camera_switch_half(OraclesEnhancedCamera *c)
+{
+    name_session(c);
+    oracles_enhanced_camera_set_band(c, c->band_w, c->band_h);
+    c->restored = 0;
+    c->held_x = c->held_y = 0;
+    c->fresh_x = c->fresh_y = 0;
+    c->fed_exact = 0;
+    c->fraction_x = c->fraction_y = 0;
+    c->large_in_transition = 0;
 }
 
 void oracles_enhanced_camera_stop(OraclesEnhancedCamera *c) { free(c); }

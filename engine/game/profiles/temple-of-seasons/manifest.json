@@ -875,6 +875,8 @@
     "spr_item_icons_1": null,
     "obtained_seasons": null,
     "magnet_glove_polarity": null,
+    "slingshot_selected_seeds": null,
+    "spr_extra_mags": null,
     "vblank_function_queue": {
       "bank": 0,
       "address": "0xc400"
@@ -1188,14 +1190,17 @@
     "update_parts": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "update_interactions": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "parse_object_data": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
-    "run_room_specific_code": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read"
+    "run_room_specific_code": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
+    "slingshot_selected_seeds": "the item hotkeys not qualified for this revision",
+    "spr_extra_mags": "an Oracles Combined symbol: this game's engine has none"
   },
   "guest_table_sizes": {
     "global_flags_size": 16,
     "room_flags_size": 1024,
     "obtained_treasure_flags_size": 16,
     "gasha_spots_planted_size": 2,
-    "vblank_function_queue_size": 128
+    "vblank_function_queue_size": 128,
+    "inventory_storage_size": 16
   },
   "guest_table_constants": {
     "oam_data_bank": "0x12",

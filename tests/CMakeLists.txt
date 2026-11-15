@@ -58,6 +58,11 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-guest)
     add_test(NAME oracles-guest COMMAND oracles-test-guest)
 
+    add_executable(oracles-test-guest-space test_guest_space.c)
+    target_link_libraries(oracles-test-guest-space PRIVATE oracles_guest)
+    oracles_set_warnings(oracles-test-guest-space)
+    add_test(NAME oracles-guest-space COMMAND oracles-test-guest-space)
+
     add_executable(oracles-test-swim-hold test_swim_hold.c)
     target_link_libraries(oracles-test-swim-hold PRIVATE oracles_guest)
     oracles_set_warnings(oracles-test-swim-hold)
@@ -185,6 +190,16 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-hotbar)
     add_test(NAME oracles-hotbar COMMAND oracles-test-hotbar)
 
+    add_executable(oracles-test-hotbar-forget test_hotbar_forget.c)
+    target_link_libraries(oracles-test-hotbar-forget PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-hotbar-forget)
+    add_test(NAME oracles-hotbar-forget COMMAND oracles-test-hotbar-forget)
+
+    add_executable(oracles-test-half-switch test_half_switch.c)
+    target_link_libraries(oracles-test-half-switch PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-half-switch)
+    add_test(NAME oracles-half-switch COMMAND oracles-test-half-switch)
+
     add_executable(oracles-test-camera test_camera.c)
     target_link_libraries(oracles-test-camera PRIVATE oracles_enhanced)
     oracles_set_warnings(oracles-test-camera)
@@ -219,6 +234,10 @@ if(BUILD_TESTING)
     target_include_directories(oracles-test-cache-key PRIVATE ${ORACLES_ENHANCED_DIR})
     oracles_set_warnings(oracles-test-cache-key)
     add_test(NAME oracles-cache-key COMMAND oracles-test-cache-key)
+
+    # --joined-rom joins a ROM before a patch applies: without --patch the harness refuses it, as the launcher does.
+    add_test(NAME oracles-harness-joined-needs-patch COMMAND oracles-harness --rom ages.gbc --joined-rom seasons.gbc --route none.route)
+    set_tests_properties(oracles-harness-joined-needs-patch PROPERTIES PASS_REGULAR_EXPRESSION "--joined-rom joins a ROM before a patch applies: it needs --patch")
 
     # The routes replayed through the harness (tools/check_routes.py):
     # skipped unless ORACLES_ROM_DIR names a directory with the ROMs.
@@ -341,6 +360,30 @@ if(BUILD_TESTING)
         oracles_set_warnings(oracles-test-launcher-save-transfer)
         add_test(NAME oracles-launcher-save-transfer COMMAND oracles-test-launcher-save-transfer ${CMAKE_CURRENT_BINARY_DIR}/test_launcher_save_transfer.tmp)
 
+        # Oracles Combined as the home screen's host finds it, on the user's ROMs (skipped without them): the launcher's
+        # own sources but its main, built again with the launcher's options.
+        if(NOT ANDROID)
+            get_target_property(launcher_sources oracles SOURCES)
+            set(home_games_sources)
+            foreach(source IN LISTS launcher_sources)
+                if(NOT source MATCHES "(^|/)main\\.c$" AND source MATCHES "\\.c$")
+                    if(IS_ABSOLUTE "${source}")
+                        list(APPEND home_games_sources "${source}")
+                    else()
+                        list(APPEND home_games_sources "${ORACLES_LAUNCHER_DIR}/${source}")
+                    endif()
+                endif()
+            endforeach()
+            add_executable(oracles-test-launcher-home-games test_launcher_home_games.c ${home_games_sources})
+            target_include_directories(oracles-test-launcher-home-games PRIVATE ${ORACLES_LAUNCHER_DIR} $<TARGET_PROPERTY:oracles,INCLUDE_DIRECTORIES>)
+            target_compile_definitions(oracles-test-launcher-home-games PRIVATE $<TARGET_PROPERTY:oracles,COMPILE_DEFINITIONS>)
+            target_link_libraries(oracles-test-launcher-home-games PRIVATE $<TARGET_PROPERTY:oracles,LINK_LIBRARIES>)
+            oracles_set_warnings(oracles-test-launcher-home-games)
+            file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home-games)
+            add_test(NAME oracles-launcher-home-games COMMAND oracles-test-launcher-home-games ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home-games)
+            set_tests_properties(oracles-launcher-home-games PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+        endif()
+
         # The portable mode: the folder of the player's data it chooses, and turning it on and off.
         add_executable(oracles-test-launcher-portable test_launcher_portable.c ${ORACLES_LAUNCHER_DIR}/portable.c)
         target_include_directories(oracles-test-launcher-portable PRIVATE ${ORACLES_LAUNCHER_DIR})
@@ -395,6 +438,12 @@ if(BUILD_TESTING)
             COMMAND ${CMAKE_COMMAND} -D LAUNCHER=$<TARGET_FILE:oracles> -D WORK=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-fan-patches
                     -P ${CMAKE_CURRENT_SOURCE_DIR}/fan_patch_pages.cmake)
         set_tests_properties(oracles-launcher-fan-patch-pages PROPERTIES SKIP_REGULAR_EXPRESSION "skipped" TIMEOUT 60)
+        # A game whose profile refuses the mods (a fan game, Oracles Combined) leaves no save with mods copied from its
+        # vanilla one (skipped without the user's ROM and patches in ORACLES_ROM_DIR).
+        add_test(NAME oracles-launcher-mods-refused-before-copy
+            COMMAND ${CMAKE_COMMAND} -D LAUNCHER=$<TARGET_FILE:oracles> -D WORK=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-mods-refused
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/mods_refused_before_copy.cmake)
+        set_tests_properties(oracles-launcher-mods-refused-before-copy PROPERTIES SKIP_REGULAR_EXPRESSION "skipped" TIMEOUT 120)
         # The home screen shows it above the version at a handheld's 640x480, highlighted by Up from Start game past the
         # version number, after a controller's button (the layout reference's frame 24d).
         add_test(NAME oracles-launcher-screenshot-update-draw

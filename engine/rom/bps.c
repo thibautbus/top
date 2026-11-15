@@ -9,6 +9,8 @@
 #define MAX_TARGET_SIZE (8u * 1024u * 1024u)   /* as the loader's largest ROM */
 #define FOOTER 12u                               /* the three CRC32 */
 
+const char oracles_bps_other_base[] = "this patch is not for this ROM (the base's size or checksum differs)";
+
 static void set_error(char *error, size_t capacity, const char *message)
 {
     if (error && capacity) snprintf(error, capacity, "%s", message);
@@ -75,7 +77,7 @@ uint8_t *oracles_bps_apply(const uint8_t *source, size_t source_size, const uint
         || metadata > end - pos) { set_error(error, error_capacity, "the patch's header is cut short"); return NULL; }
     pos += (size_t)metadata;
     if (declared_source != source_size || read32le(patch + end) != oracles_crc32(source, source_size)) {
-        set_error(error, error_capacity, "this patch is not for this ROM (the base's size or checksum differs)");
+        set_error(error, error_capacity, oracles_bps_other_base);
         return NULL;
     }
     if (declared_target == 0 || declared_target > MAX_TARGET_SIZE) { set_error(error, error_capacity, "the patch makes an image of an impossible size"); return NULL; }
@@ -156,9 +158,40 @@ int oracles_bps_check_file(const char *patch_path, char *error, size_t error_cap
 
 uint8_t *oracles_bps_apply_files(const char *base_path, const char *patch_path, size_t *size, char *error, size_t error_capacity)
 {
+    return oracles_bps_apply_joined_files(base_path, NULL, patch_path, size, error, error_capacity);
+}
+
+uint8_t *oracles_bps_join(const uint8_t *first, size_t first_size, const uint8_t *second, size_t second_size, size_t *size,
+                          char *error, size_t error_capacity)
+{
+    if (first_size > MAX_TARGET_SIZE || second_size > MAX_TARGET_SIZE - first_size) {
+        set_error(error, error_capacity, "the two ROMs joined are larger than the largest ROM");
+        return NULL;
+    }
+    uint8_t *joined = malloc(first_size + second_size ? first_size + second_size : 1u);
+    if (!joined) { set_error(error, error_capacity, "out of memory"); return NULL; }
+    memcpy(joined, first, first_size);
+    memcpy(joined + first_size, second, second_size);
+    *size = first_size + second_size;
+    return joined;
+}
+
+uint8_t *oracles_bps_apply_joined_files(const char *base_path, const char *joined_path, const char *patch_path, size_t *size,
+                                        char *error, size_t error_capacity)
+{
     size_t base_size = 0, patch_size = 0;
     uint8_t *base = oracles_rom_read_file(base_path, &base_size, error, error_capacity);
     if (!base) return NULL;
+    if (joined_path) {
+        size_t second_size = 0, joined_size = 0;
+        uint8_t *second = oracles_rom_read_file(joined_path, &second_size, error, error_capacity);
+        uint8_t *joined = second ? oracles_bps_join(base, base_size, second, second_size, &joined_size, error, error_capacity) : NULL;
+        free(second);
+        free(base);
+        if (!joined) return NULL;
+        base = joined;
+        base_size = joined_size;
+    }
     uint8_t *patch = oracles_bps_read_file(patch_path, &patch_size, error, error_capacity);
     if (!patch) { free(base); return NULL; }
     uint8_t *image = oracles_bps_apply(base, base_size, patch, patch_size, size, error, error_capacity);

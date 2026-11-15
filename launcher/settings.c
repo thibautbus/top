@@ -327,6 +327,14 @@ void oracles_settings_fan_language_pack(const oracles_settings *s, unsigned f, c
 const char *oracles_settings_profile_name(OraclesProfile profile) { return profile_names[profile]; }
 const char *oracles_settings_game_name(OraclesSettingsGame game) { return game_names[game]; }
 
+extern const OraclesGuestTables oracles_guest_tables_combined_ages_en;
+
+const OraclesGuestTables *oracles_settings_hotkey_tables(unsigned game)
+{
+    /* Oracles Combined's items are named alike in its halves and its languages (TREASURE_*): its first half's English table. */
+    return game == ORACLES_HOTKEY_GAME_COMBINED ? &oracles_guest_tables_combined_ages_en : game == 1u ? &oracles_guest_tables_seasons : &oracles_guest_tables_ages;
+}
+
 void oracles_settings_defaults(oracles_settings *s)
 {
     s->colour_correction = 1;   /* SameBoy's rendering, close to an original screen */
@@ -377,7 +385,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->core = -1;
     s->achievements_sound = 1;
     s->subpixel_camera = -1;   /* not chosen: the platform's default, not written, so that another default can come */
-    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
+    for (unsigned g = 0; g < ORACLES_HOTKEY_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
     s->launcher_width = LAUNCHER_WIDTH;
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
@@ -506,12 +514,16 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
             return 1;
         }
     }
+    if (!strcmp(name, "item_hotkeys_combined")) {
+        if (!strcmp(word, "off") || !strcmp(word, "use") || !strcmp(word, "equip")) s->item_hotkeys[ORACLES_HOTKEY_GAME_COMBINED] = oracles_settings_hotkeys_mode(word);
+        return 1;
+    }
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) {
         char expected[32];
         snprintf(expected, sizeof expected, "patch_%s", oracles_home_fan_games[f].key);
         if (!strcmp(name, expected)) { oracles_settings_path_read(s->exe_dir, value, s->patch[f], sizeof s->patch[f]); return 1; }
         snprintf(expected, sizeof expected, "language_%s", oracles_home_fan_games[f].key);
-        if (!strcmp(name, expected)) {
+        if (!oracles_home_fan_games[f].joined && !strcmp(name, expected)) {
             for (int l = 0; l < ORACLES_SETTINGS_LANGUAGES; l++) if (!strcmp(word, oracles_settings_language_names[l])) s->fan_language[f] = l;
             return 1;
         }
@@ -717,7 +729,8 @@ int oracles_settings_store(const oracles_settings *s)
     char kept[ORACLES_SETTINGS_PATH_LENGTH];
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "rom_%s=%s\n", game_names[g], written_path(s, s->rom[g], kept, sizeof kept));
     put(&w, "# Each fan game's BPS patch (Cartridge's Choose patch), applied to its Oracle's ROM: Gifts of Kinomi's to\n"
-               "# rom_ages, Moonrise Regalia's to rom_ages, Temple of Seasons' to rom_seasons.\n");
+               "# rom_ages, Moonrise Regalia's to rom_ages, Temple of Seasons' to rom_seasons; Oracles Combined's to eu_rom_ages\n"
+               "# and eu_rom_seasons joined.\n");
     for (unsigned g = 0; g < ORACLES_HOME_FAN_GAMES; g++) put(&w, "patch_%s=%s\n", oracles_home_fan_games[g].key, written_path(s, s->patch[g], kept, sizeof kept));
     put(&w, "# Each Oracle's European ROM (Cartridge's European ROM), whose English and official translations it plays in, and\n"
                "# its language: en (English (US), the US ROM's own), en-eu (English (EU), the European ROM's), fr, de, it or es,\n"
@@ -727,11 +740,13 @@ int oracles_settings_store(const oracles_settings *s)
         put(&w, "language_%s=%s\n", game_names[g],
                 oracles_settings_language_names[s->language[g] > 0 && s->language[g] < ORACLES_SETTINGS_LANGUAGES ? s->language[g] : 0]);
     put(&w, "# Each fan game's language: its texts that are its Oracle's in the translation of its Oracle's European ROM, its\n"
-               "# own in English; en, en-eu, fr, de, it or es.\n");
+               "# own in English; en, en-eu, fr, de, it or es.  Oracles Combined's is its patch's.\n");
     for (unsigned g = 0; g < ORACLES_HOME_FAN_GAMES; g++)
-        put(&w, "language_%s=%s\n", oracles_home_fan_games[g].key,
-                oracles_settings_language_names[s->fan_language[g] > 0 && s->fan_language[g] < ORACLES_SETTINGS_LANGUAGES ? s->fan_language[g] : 0]);
+        if (!oracles_home_fan_games[g].joined)
+            put(&w, "language_%s=%s\n", oracles_home_fan_games[g].key,
+                    oracles_settings_language_names[s->fan_language[g] > 0 && s->fan_language[g] < ORACLES_SETTINGS_LANGUAGES ? s->fan_language[g] : 0]);
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "item_hotkeys_%s=%s\n", game_names[g], hotkey_names[s->item_hotkeys[g]]);
+    put(&w, "item_hotkeys_combined=%s\n", hotkey_names[s->item_hotkeys[ORACLES_HOTKEY_GAME_COMBINED]]);
     put(&w, "# Each game's active mods (its Mods page), the names of their folders in the mods folder beside this file.\n");
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "mods_%s=%s\n", game_names[g], s->mods[g]);
     put(&w, "# Each game's cheats, in both profiles: no-damage (Link loses no heart), ammo (seeds, bombs and Bombchus are not\n"
@@ -818,7 +833,7 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The reminder over each game started that names the key opening the menu: the games it was shown over (0 to 9),\n"
                "# or off once the menu was opened by its key; Controls' Reset to defaults brings it back.\n");
     put_tip(&w, "menu_tip", s->menu_tip);
-    put(&w, "# The line under the pause menu of Ages or Seasons while their item hotkeys are off: the pause menus it was shown\n"
+    put(&w, "# The line under the pause menu of Ages, Seasons or Oracles Combined while their item hotkeys are off: the pause menus it was shown\n"
                "# in (0 to 2), or off once they were turned on; Reset to defaults brings it back.\n");
     put_tip(&w, "hotkeys_tip", s->hotkeys_tip);
     put(&w, "# Item hotkeys (--item-hotkeys=use|equip, for the run that asks): a key per slot; held with the bind keys it takes the item of B or of A,\n"
@@ -826,12 +841,12 @@ int oracles_settings_store(const oracles_settings *s)
     for (unsigned i = 0; i < ORACLES_HOTKEY_SLOTS; i++) put(&w, "key_hotkey%u=%s\n", i + 1u, s->hotkey_key_names[i]);
     put(&w, "key_hotkey_bind_b=%s\nkey_hotkey_bind_a=%s\n", s->hotkey_bind_b, s->hotkey_bind_a);
     for (unsigned i = 0; i < ORACLES_HOTKEY_SLOTS; i++) put(&w, "pad_hotkey%u=%s\n", i + 1u, s->hotkey_pad_names[i]);
-    for (unsigned game = 0; game < 2u; game++)
+    for (unsigned game = 0; game < ORACLES_HOTKEY_GAMES; game++)
         for (unsigned i = 0; i < ORACLES_HOTKEY_SLOTS; i++) {
             char line[64];
             /* The item's name above its line, from the generated tables; an identifier they do not know (a modified ROM) stays bare. */
             const OraclesHotkeySlot *slot = &s->hotkeys[game][i];
-            const OraclesGuestTables *tables = game == 0 ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
+            const OraclesGuestTables *tables = oracles_settings_hotkey_tables(game);
             if (slot->set && slot->item < ORACLES_GUEST_ITEM_LABELS && tables->item_names[slot->item] && tables->item_names[slot->item][0])
                 put(&w, "# %s\n", tables->item_names[slot->item]);
             if (oracles_hotkey_line_format(line, sizeof line, game, i, slot)) put(&w, "%s\n", line);

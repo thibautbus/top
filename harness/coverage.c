@@ -38,6 +38,14 @@ OraclesCoverage *oracles_coverage_create(OraclesGuest *guest)
 
 void oracles_coverage_destroy(OraclesCoverage *c) { free(c); }
 
+void oracles_coverage_half_switched(OraclesCoverage *c)
+{
+    c->in_scroll = 0;
+    c->have_scroll_end = 0;
+    c->have_last_transition = 0;
+    c->killed_count = 0;
+}
+
 void oracles_coverage_frame_end(OraclesCoverage *c, uint32_t frame)
 {
     if (!c) return;

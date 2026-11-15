@@ -270,6 +270,54 @@ static void band_fraction_still(void)
     CHECK(oracles_enhanced_band_fraction(0, 1, 1, 0, 100, 0, 0, &ease) == 100 && ease == 0);
 }
 
+/* Oracles Combined's switch of halves: the reducers start afresh (a state that names another game's session is never
+ * taken up again once desynchronised), named after the game the guest follows; the band kept. */
+static void half_switch(void)
+{
+    enum { SIZE = 8 * 1024 * 1024 };
+    uint8_t *image = calloc(SIZE, 1);
+    CHECK(image != NULL);
+    if (!image) return;
+    memcpy(image + 0x134, "TWO HALVES", 10);
+    image[0x143] = 0xc0; image[0x147] = 0x1b; image[0x148] = 0x08; image[0x149] = 0x03;
+    image[0x100] = 0x00; image[0x101] = 0x18; image[0x102] = 0xfe;   /* nop ; jr -2 */
+    const OraclesCoreOptions options = { 0, 0, ORACLES_CORE_SAMEBOY, 0 };
+    OraclesCore *core = oracles_core_create(image, SIZE, &options);
+    const OraclesRomInfo info = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_COMBINED_1_5_EN, .known = 1 };
+    const OraclesCompatProfile *ages = oracles_compat_find(&info), *seasons = oracles_compat_half(ages, 1);
+    OraclesGuest *guest = core && ages ? oracles_guest_attach(core, ages) : NULL;
+    OraclesEnhancedCamera *camera = guest ? oracles_enhanced_camera_start(guest) : NULL;
+    CHECK(camera != NULL && seasons != NULL);
+    if (camera && seasons) {
+        CHECK(strcmp(oracles_enhanced_camera_session(camera), "ages") == 0);
+        oracles_enhanced_camera_set_band(camera, 480u, 254u);
+        OraclesE11State state;
+        const OraclesE11Config *config = oracles_enhanced_camera_config(camera);
+        oracles_e11_state_initial(&state, config);
+        const OraclesE11Observation o = obs_at("ages", 1, 400, 16 * 160);
+        state = oracles_e11_reduce(&state, &o, config).state;
+        CHECK(state.status == ORACLES_E11_TRACKING);
+        oracles_enhanced_camera_set_state(camera, &state, &state);
+        CHECK(oracles_enhanced_camera_state(camera)->status == ORACLES_E11_TRACKING);
+        CHECK(oracles_guest_switch_to(guest, seasons) == 0);
+        oracles_enhanced_camera_switch_half(camera);
+        CHECK(strcmp(oracles_enhanced_camera_session(camera), "seasons") == 0);
+        CHECK(oracles_enhanced_camera_state(camera)->status == ORACLES_E11_UNINITIALIZED);
+        CHECK(oracles_enhanced_camera_state_vertical(camera)->status == ORACLES_E11_UNINITIALIZED);
+        unsigned width = 0, height = 0;
+        oracles_enhanced_camera_shown(camera, &width, &height);
+        CHECK(width > 0 && height > 0);
+        /* Back in the first half's game, its name again. */
+        CHECK(oracles_guest_switch_to(guest, ages) == 0);
+        oracles_enhanced_camera_switch_half(camera);
+        CHECK(strcmp(oracles_enhanced_camera_session(camera), "ages") == 0);
+    }
+    oracles_enhanced_camera_stop(camera);
+    oracles_guest_detach(guest);
+    oracles_core_destroy(core);
+    free(image);
+}
+
 static void exact_walk(unsigned profile, const int32_t *steps, unsigned frames, int32_t *cameras)
 {
     walk_with(profile, 1, steps, NULL, frames, cameras, NULL);
@@ -277,6 +325,7 @@ static void exact_walk(unsigned profile, const int32_t *steps, unsigned frames, 
 
 int main(void)
 {
+    half_switch();
     /* ---- world-coordinate math ---- */
     OraclesEnhancedWorld w;
     /* Small overworld room, column 3 row 2, Link at (40,50): world grid. */

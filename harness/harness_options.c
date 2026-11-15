@@ -10,7 +10,7 @@
 
 int harness_usage(void)
 {
-    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--colour-toggle-at FRAME] [--framed-toggle-at FRAME]... [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
+    fprintf(stderr, "usage: oracles-harness --rom ROM [--patch PATCH.bps [--joined-rom ROM]] --route ROUTE [--frames N] [--hooks on|off] [--colour-correction on|off] [--colour-toggle-at FRAME] [--framed-toggle-at FRAME]... [--out FILE] [--corrupt-thread1-at FRAME] [--sample-rate HZ (0)] [--core sameboy|mgba]\n"
                     "                       [--frame-times FILE]   (each frame's phases in microseconds: core with its hooks, source, presentation, end with the Enhanced check)\n"
                     "                       [--sram-out FILE]   (the cartridge RAM at the end of the replay, raw, as a .sav: a save the game made on one core read on the other)\n"
                     "                       [--positions FILE]   (group, room and Link's position after every frame: tools/compare_positions.py compares the rooms of two of them, from two cores, to find where they part)\n"
@@ -52,6 +52,7 @@ int harness_usage(void)
                     "                       [--neighbour-objects-check DIR] [--neighbour-objects-lead FRAMES] [--neighbour-capture]   (the objects of every neighbour, ghost against the real entry)\n"
                     "                       [--object-animation-check]   (the objects' animation stepped from the game's data against the live game, each room entered captured as a neighbour: its poses' tiles; in DIR of --neighbour-objects-check if given)\n"
                     "                       [--hotkeys-check DIR]   (item hotkeys: the inventory frame by frame in DIR; a route's exchanges are applied either way)\n"
+                    "                       [--hotbar-forget-at FRAME]   (with --enhanced-check: the hotbar's icons forgotten at that frame, as a game's half changing under the view does; they are found again, nothing shown changes)\n"
                     "                       [--hotkeys-live use|equip] [--hotkey-slot N=<b|a>:<item>:<variant or -->]... [--hotkey-press FRAME:SLOT:FRAMES]... [--hotkeys-record ROUTE] [--hotkey-labels keys|pad]\n"
                     "                                                (the live policy with scripted keys over the route's inputs, and the format 2 route of that session)\n"
                     "                       [--surface-at FRAME FILE.ppm]...   (with --enhanced-check: the surface composed at that frame, to look at)\n"
@@ -76,6 +77,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--rom") && i + 1 < argc) o->rom_path = argv[++i];
         else if (!strcmp(argv[i], "--patch") && i + 1 < argc) o->patch_path = argv[++i];
+        else if (!strcmp(argv[i], "--joined-rom") && i + 1 < argc) o->joined_path = argv[++i];
         else if (!strcmp(argv[i], "--route") && i + 1 < argc) o->route_path = argv[++i];
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc) o->frames = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--hooks") && i + 1 < argc) o->hooks = strcmp(argv[++i], "off") != 0;
@@ -113,6 +115,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--enhanced-check") && i + 1 < argc) o->enhanced_dir = argv[++i];
         else if (!strcmp(argv[i], "--enhanced-ghost-budget") && i + 1 < argc) o->enhanced_budget = (unsigned)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-reload-at") && i + 1 < argc) o->enhanced_reload_at = (uint32_t)strtoul(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--hotbar-forget-at") && i + 1 < argc) o->hotbar_forget_at = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-reload-in-place")) o->enhanced_reload_in_place = 1;
         else if (!strcmp(argv[i], "--enhanced-surfaces-out") && i + 2 < argc) { o->enhanced_surfaces_out = argv[++i]; o->enhanced_surfaces_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
         else if (!strcmp(argv[i], "--enhanced-surfaces-against") && i + 2 < argc) { o->enhanced_surfaces_against = argv[++i]; o->enhanced_surfaces_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
@@ -243,6 +246,10 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             o->enhanced_frozen = !strcmp(animation, "off");
         }
         else return -1;
+    }
+    if (o->joined_path && !o->patch_path) {
+        fprintf(stderr, "harness: --joined-rom joins a ROM before a patch applies: it needs --patch\n");
+        return -1;
     }
     if (o->screen_w && !o->aspect_given) o->enhanced_aspect = (int)oracles_enhanced_screen_aspect(o->screen_w, o->screen_h);
     return 0;

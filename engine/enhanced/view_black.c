@@ -420,13 +420,16 @@ void ev_hidden_end(OraclesEnhancedView *v)
 }
 
 /* The game marks the room it plays visited as it gives Link the controls back after a load or a scroll
- * (setVisitedRoomFlag, cutscene00 a few frames after the load's end): counted past REFERENCE_SETTLE frames of play in a
- * row, a cutscene of the game's own (wCutsceneIndex above 1, which loads its rooms itself) aside. */
-#define REFERENCE_SETTLE 8u
+ * (setVisitedRoomFlag, cutscene00 a few frames after the load's end; after Oracles Combined's map warps to Vasu's shop, on
+ * the tenth frame of play counted here, 21 after the room's load): counted past REFERENCE_SETTLE frames of play in a
+ * row, a cutscene of the game's own (wCutsceneIndex above 1, which loads its rooms itself) and a menu aside: Oracles
+ * Combined's save holds the other game's file where the flags are read, under its menu, framed. */
+#define REFERENCE_SETTLE 16u
 void ev_check_reference_visited(OraclesEnhancedView *v)
 {
     const OraclesEnhancedObservation *ob = &v->observation;
-    const int settled = ob->playing && !ob->in_transition && !ob->cutscene && v->observer.have_reference;
+    const int settled = ob->playing && !ob->in_transition && !ob->cutscene && v->observer.have_reference
+                        && !oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->opened_menu_type);
     v->reference_settled = settled ? v->reference_settled + 1u : 0u;
     if (v->reference_settled > REFERENCE_SETTLE
         && !(ev_live_byte(v, ev_room_flags_address(v, v->observer.ref_group, v->observer.ref_room)) & oracles_guest_tables(v->guest)->roomflag_visited)) {

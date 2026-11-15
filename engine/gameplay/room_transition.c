@@ -3,6 +3,7 @@
 #include "guest_tables.h"
 #include "room_predict.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -49,7 +50,9 @@
 
 struct OraclesRoomTransition {
     OraclesGuest *guest;
-    const uint8_t *rom;
+    const uint8_t *image;               /* the image as given, which outlives the transitions */
+    size_t image_size;
+    const uint8_t *rom;                 /* the game's half of it */
     size_t rom_size;
     uint32_t last_frame;
     int have_last;
@@ -992,7 +995,7 @@ static OraclesSwimMotion swim_motion_of(const OraclesGuestTransitionState *s)
 static OraclesSwimKeys swim_keys_of(const OraclesGuestTransitionState *s)
 {
     const OraclesSwimKeys k = { s->link_input_angle, s->game_keys_pressed, s->game_keys_just_pressed,
-                                (uint8_t)(s->ages_water && (s->link_var2f & VAR2F_MERMAID_SUIT)), s->swimmers_ring, s->swim_hold,
+                                (uint8_t)(s->suit_swims && (s->link_var2f & VAR2F_MERMAID_SUIT)), s->swimmers_ring, s->swim_hold,
                                 s->link_immobilized };
     return k;
 }
@@ -2373,6 +2376,17 @@ int oracles_room_transition_load_state(OraclesRoomTransition *tr, const uint8_t 
     return 0;
 }
 
+/* The guest went to the other half of an image of two games: its banks and its tables, and its edge tests armed again;
+ * the guest's reset has emptied the transaction (reset). */
+static void half_switched(void *opaque)
+{
+    OraclesRoomTransition *tr = opaque;
+    const OraclesCompatProfile *profile = oracles_guest_profile(tr->guest);
+    tr->rom = oracles_rom_half(tr->image, tr->image_size, oracles_compat_rom_bank_base(profile), &tr->rom_size);
+    tr->data = oracles_compat_predict_collisions(profile) ? oracles_compat_data_tables(profile) : NULL;
+    if (tr->line) oracles_room_transition_set_line(tr, 1);
+}
+
 OraclesRoomTransition *oracles_room_transition_start(OraclesGuest *guest, const uint8_t *rom, size_t rom_size, int swim)
 {
     if (!guest || !rom || !rom_size || !oracles_compat_continuous_transitions(oracles_guest_profile(guest))) return NULL;
@@ -2380,12 +2394,15 @@ OraclesRoomTransition *oracles_room_transition_start(OraclesGuest *guest, const 
     OraclesRoomTransition *tr = calloc(1, sizeof *tr);
     if (!tr) return NULL;
     tr->guest = guest;
-    tr->rom = rom;
-    tr->rom_size = rom_size;
+    tr->image = rom;
+    tr->image_size = rom_size;
+    tr->rom = oracles_rom_half(rom, rom_size, oracles_compat_rom_bank_base(oracles_guest_profile(guest)), &tr->rom_size);   /* the game's banks are its half's */
     tr->swim = swim != 0;
     if (oracles_compat_predict_collisions(oracles_guest_profile(guest))) tr->data = oracles_compat_data_tables(oracles_guest_profile(guest));
     oracles_guest_set_transition_swim(guest, tr->swim);
     oracles_guest_set_transition_policy(guest, policy, reset, tr);
+    if (oracles_guest_add_half_listener(guest, half_switched, tr) != 0)
+        fprintf(stderr, "oracles: the continuous transitions cannot follow the game to the other half of its image: the guest's listeners are full\n");
     return tr;
 }
 
@@ -2417,6 +2434,7 @@ int oracles_room_transition_set_line(OraclesRoomTransition *tr, int on)
 void oracles_room_transition_stop(OraclesRoomTransition *tr)
 {
     if (!tr) return;
+    oracles_guest_remove_half_listener(tr->guest, half_switched, tr);
     oracles_guest_set_transition_policy(tr->guest, NULL, NULL, NULL);
     oracles_guest_set_transition_swim(tr->guest, 0);
     oracles_guest_set_transition_steps(tr->guest, 0);

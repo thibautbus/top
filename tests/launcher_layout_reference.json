@@ -98,13 +98,13 @@
    },
    "fan state": {
     "x": 96,
-    "w": 101.625,
+    "w": 103.141,
     "glyph_top": 425.188,
     "glyph_h": 22,
     "top": 423.188,
     "h": 26,
     "baseline": 443.188,
-    "width": 101.625,
+    "width": 103.141,
     "lines": 1
    },
    "item 0": {
@@ -428,7 +428,7 @@
     "lines": 1
    }
   },
-  "1c": {
+  "fan games list": {
    "hero over": {
     "x": 1569.25,
     "w": 254.75,
@@ -452,70 +452,98 @@
     "lines": 1
    },
    "hero state": {
-    "x": 1713.141,
-    "w": 110.859,
+    "x": 1711.484,
+    "w": 112.516,
     "glyph_top": 306,
     "glyph_h": 24,
     "top": 304,
     "h": 29,
     "baseline": 325,
-    "width": 110.859,
+    "width": 112.516,
     "lines": 1
    },
    "kinomi": {
     "x": 1092.469,
-    "y": 672,
+    "y": 588,
     "w": 795.531,
     "h": 80
    },
    "kinomi note": {
     "x": 1132.469,
     "w": 288.344,
-    "glyph_top": 699.5,
+    "glyph_top": 615.5,
     "glyph_h": 24,
-    "top": 697.5,
+    "top": 613.5,
     "h": 29,
-    "baseline": 718.5,
+    "baseline": 634.5,
     "width": 288.344,
     "lines": 1
    },
    "kinomi label": {
     "x": 1448.813,
     "w": 364.109,
-    "glyph_top": 678,
+    "glyph_top": 594,
     "glyph_h": 68,
-    "top": 678,
+    "top": 594,
     "h": 68,
-    "baseline": 731,
+    "baseline": 647,
     "width": 364.109,
     "lines": 1
    },
    "moonrise": {
     "x": 1033.938,
-    "y": 756,
+    "y": 672,
     "w": 854.063,
     "h": 80
    },
    "moonrise note": {
     "x": 1073.938,
     "w": 287.047,
-    "glyph_top": 783.5,
+    "glyph_top": 699.5,
     "glyph_h": 24,
-    "top": 781.5,
+    "top": 697.5,
     "h": 29,
-    "baseline": 802.5,
+    "baseline": 718.5,
     "width": 287.047,
     "lines": 1
    },
    "moonrise label": {
     "x": 1388.984,
     "w": 423.938,
+    "glyph_top": 678,
+    "glyph_h": 68,
+    "top": 678,
+    "h": 68,
+    "baseline": 731,
+    "width": 423.938,
+    "lines": 1
+   },
+   "combined": {
+    "x": 1015.609,
+    "y": 756,
+    "w": 872.391,
+    "h": 80
+   },
+   "combined note": {
+    "x": 1055.609,
+    "w": 279.063,
+    "glyph_top": 783.5,
+    "glyph_h": 24,
+    "top": 781.5,
+    "h": 29,
+    "baseline": 802.5,
+    "width": 279.063,
+    "lines": 1
+   },
+   "combined label": {
+    "x": 1362.672,
+    "w": 450.25,
     "glyph_top": 762,
     "glyph_h": 68,
     "top": 762,
     "h": 68,
     "baseline": 815,
-    "width": 423.938,
+    "width": 450.25,
     "lines": 1
    },
    "temple": {
@@ -1771,68 +1799,68 @@
    },
    "patch status": {
     "x": 993,
-    "w": 586.141,
+    "w": 474.203,
     "glyph_top": 235,
     "glyph_h": 25,
     "top": 233,
     "h": 30,
     "baseline": 255,
-    "width": 586.141,
-    "lines": 1
+    "width": 474.203,
+    "lines": 2
    },
    "patch row": {
     "x": 949,
     "y": 183,
-    "w": 912.797,
-    "h": 92
+    "w": 882,
+    "h": 122
    },
    "image status": {
     "x": 993,
     "w": 258.109,
-    "glyph_top": 320,
+    "glyph_top": 350,
     "glyph_h": 25,
-    "top": 318,
+    "top": 348,
     "h": 30,
-    "baseline": 340,
+    "baseline": 370,
     "width": 258.109,
     "lines": 1
    },
    "save file": {
     "x": 969,
     "w": 123.625,
-    "glyph_top": 380,
+    "glyph_top": 410,
     "glyph_h": 28,
-    "top": 377,
+    "top": 407,
     "h": 34,
-    "baseline": 402,
+    "baseline": 432,
     "width": 123.625,
     "lines": 1
    },
    "save line": {
     "x": 969,
     "w": 201.422,
-    "glyph_top": 420,
+    "glyph_top": 450,
     "glyph_h": 24,
-    "top": 418,
+    "top": 448,
     "h": 29,
-    "baseline": 439,
+    "baseline": 469,
     "width": 201.422,
     "lines": 1
    },
    "Save row": {
     "x": 949,
-    "y": 362,
+    "y": 392,
     "w": 882,
     "h": 97
    },
    "Play": {
     "x": 1680.25,
     "w": 95.672,
-    "glyph_top": 473,
+    "glyph_top": 503,
     "glyph_h": 68,
-    "top": 473,
+    "top": 503,
     "h": 68,
-    "baseline": 526,
+    "baseline": 556,
     "width": 95.672,
     "lines": 1
    },
@@ -1840,7 +1868,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 514
+    "h": 544
    }
   },
   "1n": {
@@ -2044,57 +2072,57 @@
    },
    "patch status": {
     "x": 993,
-    "w": 600.703,
+    "w": 488.781,
     "glyph_top": 235,
     "glyph_h": 25,
     "top": 233,
     "h": 30,
     "baseline": 255,
-    "width": 600.703,
-    "lines": 1
+    "width": 488.781,
+    "lines": 2
    },
    "patch row": {
     "x": 949,
     "y": 183,
-    "w": 927.359,
-    "h": 92
+    "w": 882,
+    "h": 122
    },
    "image status": {
     "x": 993,
     "w": 258.109,
-    "glyph_top": 320,
+    "glyph_top": 350,
     "glyph_h": 25,
-    "top": 318,
+    "top": 348,
     "h": 30,
-    "baseline": 340,
+    "baseline": 370,
     "width": 258.109,
     "lines": 1
    },
    "save file": {
     "x": 969,
     "w": 123.625,
-    "glyph_top": 380,
+    "glyph_top": 410,
     "glyph_h": 28,
-    "top": 377,
+    "top": 407,
     "h": 34,
-    "baseline": 402,
+    "baseline": 432,
     "width": 123.625,
     "lines": 1
    },
    "save line": {
     "x": 969,
     "w": 201.422,
-    "glyph_top": 420,
+    "glyph_top": 450,
     "glyph_h": 24,
-    "top": 418,
+    "top": 448,
     "h": 29,
-    "baseline": 439,
+    "baseline": 469,
     "width": 201.422,
     "lines": 1
    },
    "Save row": {
     "x": 949,
-    "y": 362,
+    "y": 392,
     "w": 882,
     "h": 97
    },
@@ -2102,7 +2130,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 514
+    "h": 544
    }
   },
   "1q": {
@@ -2306,57 +2334,57 @@
    },
    "patch status": {
     "x": 993,
-    "w": 558.891,
+    "w": 446.953,
     "glyph_top": 235,
     "glyph_h": 25,
     "top": 233,
     "h": 30,
     "baseline": 255,
-    "width": 558.891,
-    "lines": 1
+    "width": 446.953,
+    "lines": 2
    },
    "patch row": {
     "x": 949,
     "y": 183,
-    "w": 885.547,
-    "h": 92
+    "w": 882,
+    "h": 122
    },
    "image status": {
     "x": 993,
     "w": 258.109,
-    "glyph_top": 320,
+    "glyph_top": 350,
     "glyph_h": 25,
-    "top": 318,
+    "top": 348,
     "h": 30,
-    "baseline": 340,
+    "baseline": 370,
     "width": 258.109,
     "lines": 1
    },
    "save file": {
     "x": 969,
     "w": 123.625,
-    "glyph_top": 380,
+    "glyph_top": 410,
     "glyph_h": 28,
-    "top": 377,
+    "top": 407,
     "h": 34,
-    "baseline": 402,
+    "baseline": 432,
     "width": 123.625,
     "lines": 1
    },
    "save line": {
     "x": 969,
     "w": 201.422,
-    "glyph_top": 420,
+    "glyph_top": 450,
     "glyph_h": 24,
-    "top": 418,
+    "top": 448,
     "h": 29,
-    "baseline": 439,
+    "baseline": 469,
     "width": 201.422,
     "lines": 1
    },
    "Save row": {
     "x": 949,
-    "y": 362,
+    "y": 392,
     "w": 882,
     "h": 97
    },
@@ -2364,7 +2392,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 514
+    "h": 544
    }
   },
   "1j": {
@@ -6612,7 +6640,7 @@
     "lines": 1
    }
   },
-  "10b": {
+  "fan games list 640x480": {
    "tab 0": {
     "x": 64,
     "y": 28,
@@ -6676,70 +6704,98 @@
     "lines": 1
    },
    "hero state": {
-    "x": 1241.625,
-    "w": 134.375,
+    "x": 1239.547,
+    "w": 136.453,
     "glyph_top": 261,
     "glyph_h": 30,
     "top": 258,
     "h": 36,
     "baseline": 285,
-    "width": 134.375,
+    "width": 136.453,
     "lines": 1
    },
    "kinomi": {
     "x": 528.594,
-    "y": 598,
+    "y": 504,
     "w": 875.406,
     "h": 90
    },
    "kinomi note": {
     "x": 564.594,
     "w": 360.422,
-    "glyph_top": 628,
+    "glyph_top": 534,
     "glyph_h": 30,
-    "top": 625,
+    "top": 531,
     "h": 36,
-    "baseline": 652,
+    "baseline": 558,
     "width": 360.422,
     "lines": 1
    },
    "kinomi label": {
     "x": 949.016,
     "w": 391.078,
-    "glyph_top": 606.094,
+    "glyph_top": 512.094,
     "glyph_h": 72,
-    "top": 611.094,
+    "top": 517.094,
     "h": 63.797,
-    "baseline": 662.094,
+    "baseline": 568.094,
     "width": 391.078,
     "lines": 1
    },
    "moonrise": {
     "x": 465.938,
-    "y": 692,
+    "y": 598,
     "w": 938.063,
     "h": 90
    },
    "moonrise note": {
     "x": 501.938,
     "w": 358.813,
-    "glyph_top": 722,
+    "glyph_top": 628,
     "glyph_h": 30,
-    "top": 719,
+    "top": 625,
     "h": 36,
-    "baseline": 746,
+    "baseline": 652,
     "width": 358.813,
     "lines": 1
    },
    "moonrise label": {
     "x": 884.75,
     "w": 455.344,
+    "glyph_top": 606.094,
+    "glyph_h": 72,
+    "top": 611.094,
+    "h": 63.797,
+    "baseline": 662.094,
+    "width": 455.344,
+    "lines": 1
+   },
+   "combined": {
+    "x": 447.672,
+    "y": 692,
+    "w": 956.328,
+    "h": 90
+   },
+   "combined note": {
+    "x": 483.672,
+    "w": 348.813,
+    "glyph_top": 722,
+    "glyph_h": 30,
+    "top": 719,
+    "h": 36,
+    "baseline": 746,
+    "width": 348.813,
+    "lines": 1
+   },
+   "combined label": {
+    "x": 856.484,
+    "w": 483.609,
     "glyph_top": 700.094,
     "glyph_h": 72,
     "top": 705.094,
     "h": 63.797,
     "baseline": 756.094,
-    "width": 455.344,
+    "width": 483.609,
     "lines": 1
    },
    "temple": {
@@ -51453,6 +51509,1046 @@
     "y": 410,
     "w": 640,
     "h": 90
+   }
+  },
+  "combined cartridge": {
+   "ages row": {
+    "x": 949,
+    "y": 81,
+    "w": 882,
+    "h": 92
+   },
+   "seasons row": {
+    "x": 949,
+    "y": 183,
+    "w": 882,
+    "h": 92
+   },
+   "ages label": {
+    "x": 689,
+    "w": 209.5,
+    "glyph_top": 93,
+    "glyph_h": 27,
+    "top": 93,
+    "h": 28,
+    "baseline": 114,
+    "width": 209.5,
+    "lines": 1
+   },
+   "seasons label": {
+    "x": 689,
+    "w": 193.031,
+    "glyph_top": 195,
+    "glyph_h": 27,
+    "top": 195,
+    "h": 28,
+    "baseline": 216,
+    "width": 193.031,
+    "lines": 2
+   },
+   "ages file": {
+    "x": 969,
+    "w": 300.203,
+    "glyph_top": 96,
+    "glyph_h": 28,
+    "top": 93,
+    "h": 34,
+    "baseline": 118,
+    "width": 300.203,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 949,
+    "y": 285,
+    "w": 882,
+    "h": 92
+   },
+   "Patch": {
+    "x": 689,
+    "w": 87.828,
+    "glyph_top": 303,
+    "glyph_h": 27,
+    "top": 303,
+    "h": 27,
+    "baseline": 324,
+    "width": 87.828,
+    "lines": 1
+   },
+   "Save": {
+    "x": 689,
+    "w": 64.953,
+    "glyph_top": 521,
+    "glyph_h": 27,
+    "top": 521,
+    "h": 27,
+    "baseline": 542,
+    "width": 64.953,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 949,
+    "y": 503,
+    "w": 882,
+    "h": 97
+   },
+   "Play row": {
+    "x": 689,
+    "y": 610,
+    "w": 1142,
+    "h": 76
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 655
+   },
+   "over": {
+    "x": 96,
+    "w": 206.422,
+    "glyph_top": 148,
+    "glyph_h": 55,
+    "top": 148,
+    "h": 55,
+    "baseline": 191,
+    "width": 206.422,
+    "lines": 1
+   },
+   "title box": {
+    "x": 96,
+    "y": 203,
+    "w": 520,
+    "h": 208
+   },
+   "state": {
+    "x": 96,
+    "w": 442.609,
+    "glyph_top": 433,
+    "glyph_h": 24,
+    "top": 431,
+    "h": 29,
+    "baseline": 452,
+    "width": 442.609,
+    "lines": 1
+   },
+   "credit": {
+    "x": 96,
+    "y": 474,
+    "w": 520,
+    "h": 29
+   },
+   "credit text": {
+    "x": 96,
+    "w": 456.469,
+    "glyph_top": 476,
+    "glyph_h": 24,
+    "top": 474,
+    "h": 29,
+    "baseline": 495,
+    "width": 456.469,
+    "lines": 1
+   },
+   "ages from": {
+    "x": 1566.641,
+    "w": 244.359,
+    "glyph_top": 99,
+    "glyph_h": 22,
+    "top": 97,
+    "h": 26,
+    "baseline": 117,
+    "width": 244.359,
+    "lines": 1
+   },
+   "ages status": {
+    "x": 993,
+    "w": 111.953,
+    "glyph_top": 133,
+    "glyph_h": 25,
+    "top": 131,
+    "h": 30,
+    "baseline": 153,
+    "width": 111.953,
+    "lines": 1
+   },
+   "ages dot": {
+    "x": 969,
+    "y": 140,
+    "w": 12,
+    "h": 12
+   },
+   "seasons file": {
+    "x": 969,
+    "w": 334.891,
+    "glyph_top": 198,
+    "glyph_h": 28,
+    "top": 195,
+    "h": 34,
+    "baseline": 220,
+    "width": 334.891,
+    "lines": 1
+   },
+   "seasons from": {
+    "x": 1542.922,
+    "w": 268.078,
+    "glyph_top": 201,
+    "glyph_h": 22,
+    "top": 199,
+    "h": 26,
+    "baseline": 219,
+    "width": 268.078,
+    "lines": 1
+   },
+   "seasons status": {
+    "x": 993,
+    "w": 111.953,
+    "glyph_top": 235,
+    "glyph_h": 25,
+    "top": 233,
+    "h": 30,
+    "baseline": 255,
+    "width": 111.953,
+    "lines": 1
+   },
+   "seasons dot": {
+    "x": 969,
+    "y": 242,
+    "w": 12,
+    "h": 12
+   },
+   "patch file": {
+    "x": 969,
+    "w": 325.984,
+    "glyph_top": 300,
+    "glyph_h": 28,
+    "top": 297,
+    "h": 34,
+    "baseline": 322,
+    "width": 325.984,
+    "lines": 1
+   },
+   "patch status": {
+    "x": 993,
+    "w": 138.031,
+    "glyph_top": 337,
+    "glyph_h": 25,
+    "top": 335,
+    "h": 30,
+    "baseline": 357,
+    "width": 138.031,
+    "lines": 1
+   },
+   "Choose patch": {
+    "x": 1572.344,
+    "w": 218.094,
+    "glyph_top": 311,
+    "glyph_h": 40,
+    "top": 311,
+    "h": 40,
+    "baseline": 342,
+    "width": 218.094,
+    "lines": 1
+   },
+   "patch folder": {
+    "x": 969,
+    "w": 327.609,
+    "glyph_top": 385,
+    "glyph_h": 27,
+    "top": 385,
+    "h": 27,
+    "baseline": 406,
+    "width": 327.609,
+    "lines": 1
+   },
+   "image status": {
+    "x": 993,
+    "w": 566.578,
+    "glyph_top": 422,
+    "glyph_h": 25,
+    "top": 420,
+    "h": 30,
+    "baseline": 442,
+    "width": 566.578,
+    "lines": 1
+   },
+   "image dot": {
+    "x": 969,
+    "y": 429,
+    "w": 12,
+    "h": 12
+   },
+   "language": {
+    "x": 993,
+    "w": 653.219,
+    "glyph_top": 464,
+    "glyph_h": 24,
+    "top": 462,
+    "h": 29,
+    "baseline": 483,
+    "width": 653.219,
+    "lines": 1
+   },
+   "save file": {
+    "x": 969,
+    "w": 323.047,
+    "glyph_top": 521,
+    "glyph_h": 28,
+    "top": 518,
+    "h": 34,
+    "baseline": 543,
+    "width": 323.047,
+    "lines": 1
+   }
+  },
+  "combined cartridge missing": {
+   "ages row": {
+    "x": 949,
+    "y": 81,
+    "w": 882,
+    "h": 92
+   },
+   "seasons row": {
+    "x": 949,
+    "y": 183,
+    "w": 882,
+    "h": 98
+   },
+   "ages label": {
+    "x": 689,
+    "w": 209.5,
+    "glyph_top": 93,
+    "glyph_h": 27,
+    "top": 93,
+    "h": 28,
+    "baseline": 114,
+    "width": 209.5,
+    "lines": 1
+   },
+   "seasons label": {
+    "x": 689,
+    "w": 193.031,
+    "glyph_top": 195,
+    "glyph_h": 27,
+    "top": 195,
+    "h": 28,
+    "baseline": 216,
+    "width": 193.031,
+    "lines": 2
+   },
+   "ages file": {
+    "x": 969,
+    "w": 300.203,
+    "glyph_top": 96,
+    "glyph_h": 28,
+    "top": 93,
+    "h": 34,
+    "baseline": 118,
+    "width": 300.203,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 949,
+    "y": 291,
+    "w": 882,
+    "h": 122
+   },
+   "Patch": {
+    "x": 689,
+    "w": 87.828,
+    "glyph_top": 309,
+    "glyph_h": 27,
+    "top": 309,
+    "h": 27,
+    "baseline": 330,
+    "width": 87.828,
+    "lines": 1
+   },
+   "Save": {
+    "x": 689,
+    "w": 64.953,
+    "glyph_top": 557,
+    "glyph_h": 27,
+    "top": 557,
+    "h": 27,
+    "baseline": 578,
+    "width": 64.953,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 949,
+    "y": 539,
+    "w": 882,
+    "h": 97
+   },
+   "Play row": {
+    "x": 689,
+    "y": 646,
+    "w": 1142,
+    "h": 76
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 691
+   },
+   "state": {
+    "x": 96,
+    "w": 219.672,
+    "glyph_top": 433,
+    "glyph_h": 24,
+    "top": 431,
+    "h": 29,
+    "baseline": 452,
+    "width": 219.672,
+    "lines": 1
+   },
+   "seasons file": {
+    "x": 969,
+    "w": 59.875,
+    "glyph_top": 201,
+    "glyph_h": 28,
+    "top": 198,
+    "h": 34,
+    "baseline": 223,
+    "width": 59.875,
+    "lines": 1
+   },
+   "Choose": {
+    "x": 1663.781,
+    "w": 126.656,
+    "glyph_top": 195,
+    "glyph_h": 40,
+    "top": 195,
+    "h": 40,
+    "baseline": 226,
+    "width": 126.656,
+    "lines": 1
+   },
+   "Choose dot": {
+    "x": 1804.438,
+    "w": 6.563,
+    "glyph_top": 195,
+    "glyph_h": 40,
+    "top": 195,
+    "h": 40,
+    "baseline": 226,
+    "width": 6.563,
+    "lines": 1
+   },
+   "seasons status": {
+    "x": 993,
+    "w": 555.031,
+    "glyph_top": 241,
+    "glyph_h": 25,
+    "top": 239,
+    "h": 30,
+    "baseline": 261,
+    "width": 555.031,
+    "lines": 1
+   },
+   "seasons dot": {
+    "x": 969,
+    "y": 248,
+    "w": 12,
+    "h": 12
+   },
+   "patch file": {
+    "x": 969,
+    "w": 59.875,
+    "glyph_top": 306,
+    "glyph_h": 28,
+    "top": 303,
+    "h": 34,
+    "baseline": 328,
+    "width": 59.875,
+    "lines": 1
+   },
+   "patch status": {
+    "x": 993,
+    "w": 537.234,
+    "glyph_top": 343,
+    "glyph_h": 25,
+    "top": 341,
+    "h": 30,
+    "baseline": 363,
+    "width": 537.234,
+    "lines": 2
+   },
+   "patch dot": {
+    "x": 969,
+    "y": 365,
+    "w": 12,
+    "h": 12
+   },
+   "Choose patch": {
+    "x": 1572.344,
+    "w": 218.094,
+    "glyph_top": 332,
+    "glyph_h": 40,
+    "top": 332,
+    "h": 40,
+    "baseline": 363,
+    "width": 218.094,
+    "lines": 1
+   },
+   "patch folder": {
+    "x": 969,
+    "w": 327.609,
+    "glyph_top": 421,
+    "glyph_h": 27,
+    "top": 421,
+    "h": 27,
+    "baseline": 442,
+    "width": 327.609,
+    "lines": 1
+   },
+   "image status": {
+    "x": 993,
+    "w": 509.656,
+    "glyph_top": 458,
+    "glyph_h": 25,
+    "top": 456,
+    "h": 30,
+    "baseline": 478,
+    "width": 509.656,
+    "lines": 1
+   },
+   "language": {
+    "x": 993,
+    "w": 653.219,
+    "glyph_top": 500,
+    "glyph_h": 24,
+    "top": 498,
+    "h": 29,
+    "baseline": 519,
+    "width": 653.219,
+    "lines": 1
+   },
+   "save file": {
+    "x": 969,
+    "w": 123.625,
+    "glyph_top": 557,
+    "glyph_h": 28,
+    "top": 554,
+    "h": 34,
+    "baseline": 579,
+    "width": 123.625,
+    "lines": 1
+   }
+  },
+  "combined cartridge other base": {
+   "ages row": {
+    "x": 949,
+    "y": 81,
+    "w": 882,
+    "h": 92
+   },
+   "seasons row": {
+    "x": 949,
+    "y": 183,
+    "w": 882,
+    "h": 92
+   },
+   "ages label": {
+    "x": 689,
+    "w": 209.5,
+    "glyph_top": 93,
+    "glyph_h": 27,
+    "top": 93,
+    "h": 28,
+    "baseline": 114,
+    "width": 209.5,
+    "lines": 1
+   },
+   "seasons label": {
+    "x": 689,
+    "w": 193.031,
+    "glyph_top": 195,
+    "glyph_h": 27,
+    "top": 195,
+    "h": 28,
+    "baseline": 216,
+    "width": 193.031,
+    "lines": 2
+   },
+   "ages file": {
+    "x": 969,
+    "w": 300.203,
+    "glyph_top": 96,
+    "glyph_h": 28,
+    "top": 93,
+    "h": 34,
+    "baseline": 118,
+    "width": 300.203,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 949,
+    "y": 285,
+    "w": 882,
+    "h": 92
+   },
+   "Patch": {
+    "x": 689,
+    "w": 87.828,
+    "glyph_top": 303,
+    "glyph_h": 27,
+    "top": 303,
+    "h": 27,
+    "baseline": 324,
+    "width": 87.828,
+    "lines": 1
+   },
+   "Save": {
+    "x": 689,
+    "w": 64.953,
+    "glyph_top": 521,
+    "glyph_h": 27,
+    "top": 521,
+    "h": 27,
+    "baseline": 542,
+    "width": 64.953,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 949,
+    "y": 503,
+    "w": 882,
+    "h": 97
+   },
+   "Play row": {
+    "x": 689,
+    "y": 610,
+    "w": 1142,
+    "h": 76
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 655
+   },
+   "patch file": {
+    "x": 969,
+    "w": 418.953,
+    "glyph_top": 300,
+    "glyph_h": 28,
+    "top": 297,
+    "h": 34,
+    "baseline": 322,
+    "width": 418.953,
+    "lines": 1
+   },
+   "image status": {
+    "x": 993,
+    "w": 731.203,
+    "glyph_top": 422,
+    "glyph_h": 25,
+    "top": 420,
+    "h": 30,
+    "baseline": 442,
+    "width": 731.203,
+    "lines": 1
+   },
+   "language": {
+    "x": 993,
+    "w": 653.219,
+    "glyph_top": 464,
+    "glyph_h": 24,
+    "top": 462,
+    "h": 29,
+    "baseline": 483,
+    "width": 653.219,
+    "lines": 1
+   }
+  },
+  "combined cartridge refused": {
+   "ages row": {
+    "x": 949,
+    "y": 81,
+    "w": 882,
+    "h": 92
+   },
+   "seasons row": {
+    "x": 949,
+    "y": 183,
+    "w": 882,
+    "h": 98
+   },
+   "ages label": {
+    "x": 689,
+    "w": 209.5,
+    "glyph_top": 93,
+    "glyph_h": 27,
+    "top": 93,
+    "h": 28,
+    "baseline": 114,
+    "width": 209.5,
+    "lines": 1
+   },
+   "seasons label": {
+    "x": 689,
+    "w": 193.031,
+    "glyph_top": 195,
+    "glyph_h": 27,
+    "top": 195,
+    "h": 28,
+    "baseline": 216,
+    "width": 193.031,
+    "lines": 2
+   },
+   "ages file": {
+    "x": 969,
+    "w": 300.203,
+    "glyph_top": 96,
+    "glyph_h": 28,
+    "top": 93,
+    "h": 34,
+    "baseline": 118,
+    "width": 300.203,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 949,
+    "y": 291,
+    "w": 882,
+    "h": 92
+   },
+   "Patch": {
+    "x": 689,
+    "w": 87.828,
+    "glyph_top": 309,
+    "glyph_h": 27,
+    "top": 309,
+    "h": 27,
+    "baseline": 330,
+    "width": 87.828,
+    "lines": 1
+   },
+   "Save": {
+    "x": 689,
+    "w": 64.953,
+    "glyph_top": 527,
+    "glyph_h": 27,
+    "top": 527,
+    "h": 27,
+    "baseline": 548,
+    "width": 64.953,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 949,
+    "y": 509,
+    "w": 882,
+    "h": 97
+   },
+   "Play row": {
+    "x": 689,
+    "y": 616,
+    "w": 1142,
+    "h": 76
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 661
+   },
+   "seasons file": {
+    "x": 969,
+    "w": 300.203,
+    "glyph_top": 201,
+    "glyph_h": 28,
+    "top": 198,
+    "h": 34,
+    "baseline": 223,
+    "width": 300.203,
+    "lines": 1
+   },
+   "Choose": {
+    "x": 1663.781,
+    "w": 126.656,
+    "glyph_top": 195,
+    "glyph_h": 40,
+    "top": 195,
+    "h": 40,
+    "baseline": 226,
+    "width": 126.656,
+    "lines": 1
+   },
+   "seasons status": {
+    "x": 993,
+    "w": 419.313,
+    "glyph_top": 241,
+    "glyph_h": 25,
+    "top": 239,
+    "h": 30,
+    "baseline": 261,
+    "width": 419.313,
+    "lines": 1
+   },
+   "patch status": {
+    "x": 993,
+    "w": 335.703,
+    "glyph_top": 343,
+    "glyph_h": 25,
+    "top": 341,
+    "h": 30,
+    "baseline": 363,
+    "width": 335.703,
+    "lines": 1
+   },
+   "image status": {
+    "x": 993,
+    "w": 509.656,
+    "glyph_top": 428,
+    "glyph_h": 25,
+    "top": 426,
+    "h": 30,
+    "baseline": 448,
+    "width": 509.656,
+    "lines": 1
+   },
+   "language": {
+    "x": 993,
+    "w": 653.219,
+    "glyph_top": 470,
+    "glyph_h": 24,
+    "top": 468,
+    "h": 29,
+    "baseline": 489,
+    "width": 653.219,
+    "lines": 1
+   }
+  },
+  "combined cartridge 640x480": {
+   "ages row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 104
+   },
+   "seasons row": {
+    "x": 64,
+    "y": 320,
+    "w": 1312,
+    "h": 104
+   },
+   "ages label": {
+    "x": 84,
+    "w": 270.078,
+    "glyph_top": 218,
+    "glyph_h": 37,
+    "top": 218,
+    "h": 38,
+    "baseline": 247,
+    "width": 270.078,
+    "lines": 1
+   },
+   "seasons label": {
+    "x": 84,
+    "w": 250.016,
+    "glyph_top": 330,
+    "glyph_h": 37,
+    "top": 330,
+    "h": 38,
+    "baseline": 359,
+    "width": 250.016,
+    "lines": 2
+   },
+   "ages file": {
+    "x": 418,
+    "w": 385.969,
+    "glyph_top": 224,
+    "glyph_h": 36,
+    "top": 221,
+    "h": 43,
+    "baseline": 253,
+    "width": 385.969,
+    "lines": 1
+   },
+   "patch row": {
+    "x": 64,
+    "y": 432,
+    "w": 1312,
+    "h": 112
+   },
+   "Patch": {
+    "x": 84,
+    "w": 113.766,
+    "glyph_top": 452,
+    "glyph_h": 37,
+    "top": 452,
+    "h": 37,
+    "baseline": 481,
+    "width": 113.766,
+    "lines": 1
+   },
+   "Save": {
+    "x": 84,
+    "w": 83.766,
+    "glyph_top": 696,
+    "glyph_h": 37,
+    "top": 696,
+    "h": 37,
+    "baseline": 725,
+    "width": 83.766,
+    "lines": 1
+   },
+   "Save row": {
+    "x": 64,
+    "y": 676,
+    "w": 1312,
+    "h": 112
+   },
+   "Play row": {
+    "x": 64,
+    "y": 796,
+    "w": 1312,
+    "h": 100
+   },
+   "title": {
+    "x": 64,
+    "w": 500.281,
+    "glyph_top": 63,
+    "glyph_h": 75,
+    "top": 69,
+    "h": 63,
+    "baseline": 121,
+    "width": 500.281,
+    "lines": 1
+   },
+   "state": {
+    "x": 64,
+    "w": 481.203,
+    "glyph_top": 138,
+    "glyph_h": 27,
+    "top": 136,
+    "h": 32,
+    "baseline": 160,
+    "width": 481.203,
+    "lines": 1
+   },
+   "credit text": {
+    "x": 64,
+    "w": 513.516,
+    "glyph_top": 173,
+    "glyph_h": 27,
+    "top": 172,
+    "h": 30,
+    "baseline": 195,
+    "width": 513.516,
+    "lines": 1
+   },
+   "seasons file": {
+    "x": 418,
+    "w": 430.563,
+    "glyph_top": 336,
+    "glyph_h": 36,
+    "top": 333,
+    "h": 43,
+    "baseline": 365,
+    "width": 430.563,
+    "lines": 1
+   },
+   "ages status": {
+    "x": 444,
+    "w": 513.734,
+    "glyph_top": 269,
+    "glyph_h": 30,
+    "top": 266,
+    "h": 36,
+    "baseline": 293,
+    "width": 513.734,
+    "lines": 1
+   },
+   "seasons status": {
+    "x": 444,
+    "w": 550.203,
+    "glyph_top": 381,
+    "glyph_h": 30,
+    "top": 378,
+    "h": 36,
+    "baseline": 405,
+    "width": 550.203,
+    "lines": 1
+   },
+   "patch file": {
+    "x": 418,
+    "w": 414.266,
+    "glyph_top": 452,
+    "glyph_h": 36,
+    "top": 449,
+    "h": 43,
+    "baseline": 481,
+    "width": 414.266,
+    "lines": 1
+   },
+   "patch status": {
+    "x": 444,
+    "w": 165.641,
+    "glyph_top": 497,
+    "glyph_h": 30,
+    "top": 494,
+    "h": 36,
+    "baseline": 521,
+    "width": 165.641,
+    "lines": 1
+   },
+   "Choose patch": {
+    "x": 1089.25,
+    "w": 245.359,
+    "glyph_top": 446,
+    "glyph_h": 45,
+    "top": 446,
+    "h": 45,
+    "baseline": 481,
+    "width": 245.359,
+    "lines": 1
+   },
+   "patch folder": {
+    "x": 418,
+    "w": 421.203,
+    "glyph_top": 552,
+    "glyph_h": 36,
+    "top": 552,
+    "h": 36,
+    "baseline": 580,
+    "width": 421.203,
+    "lines": 1
+   },
+   "image status": {
+    "x": 444,
+    "w": 688.094,
+    "glyph_top": 595,
+    "glyph_h": 30,
+    "top": 592,
+    "h": 36,
+    "baseline": 619,
+    "width": 688.094,
+    "lines": 1
+   },
+   "language": {
+    "x": 444,
+    "w": 416.109,
+    "glyph_top": 635,
+    "glyph_h": 30,
+    "top": 632,
+    "h": 36,
+    "baseline": 659,
+    "width": 416.109,
+    "lines": 1
+   },
+   "save file": {
+    "x": 418,
+    "w": 410.484,
+    "glyph_top": 696,
+    "glyph_h": 36,
+    "top": 693,
+    "h": 43,
+    "baseline": 725,
+    "width": 410.484,
+    "lines": 1
    }
   }
  },

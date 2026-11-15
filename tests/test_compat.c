@@ -133,7 +133,60 @@ int main(void)
               && t->status_bar_attribute_map.addr == bar->status_bar_attribute_map.addr);
     }
     CHECK(bar->status_bar_attribute_map.bank != ORACLES_GUEST_ABSENT);
+    /* The games whose swimming states move Link with the mermaid suit's routine, which the transitions' swim steps:
+     * Ages and Gifts of Kinomi; Seasons and Temple of Seasons swim with the flippers alone, and Moonrise Regalia, whose
+     * swim no feature steps, leaves it unbound. */
+    CHECK(oracles_guest_tables_suit_swims(oracles_compat_guest_tables(ages)) && oracles_guest_tables_suit_swims(oracles_compat_guest_tables(kinomi)));
+    CHECK(!oracles_guest_tables_suit_swims(oracles_compat_guest_tables(seasons)) && !oracles_guest_tables_suit_swims(oracles_compat_guest_tables(temple))
+          && !oracles_guest_tables_suit_swims(oracles_compat_guest_tables(moonrise)) && !oracles_guest_tables_suit_swims(NULL));
+    CHECK(!oracles_compat_continuous_swim(moonrise));
     CHECK(oracles_compat_find(NULL) == NULL);
+    /* Oracles Combined's five images: the game starts in Ages' half, each language its own tables; Seasons' half is
+     * the same image's, based at bank $100; no other image has halves.  Both halves have the transitions' swim, the swim's
+     * hold, the cheats and the instant text. */
+    for (OraclesRomRevision r = ORACLES_ROM_REVISION_COMBINED_1_5_EN; r <= ORACLES_ROM_REVISION_COMBINED_1_5_IT; r++) {
+        const OraclesRomInfo info = { .game = ORACLES_GAME_AGES, .revision = r, .known = 1 };
+        const OraclesCompatProfile *first = oracles_compat_find(&info), *second = oracles_compat_half(first, 1);
+        CHECK(first && second && first != second && oracles_compat_half(first, 0) == first && oracles_compat_half(second, 0) == first);
+        CHECK(oracles_compat_half(first, 2) == NULL);
+        CHECK(first && oracles_compat_half_switch(first) && oracles_compat_half_game(first) == 0 && oracles_compat_family(first) == ORACLES_GAME_AGES);
+        CHECK(second && oracles_compat_half_game(second) == 1 && oracles_compat_family(second) == ORACLES_GAME_SEASONS);
+        CHECK(oracles_compat_rom_bank_base(first) == 0 && oracles_compat_rom_bank_base(second) == 0x100 && oracles_compat_sram_code_banks(first) == 2u
+              && oracles_compat_sram_code_banks(second) == 2u);
+        CHECK(oracles_compat_current_game(first).addr == 0xc4bd && oracles_compat_swap_game(first).bank == 0 && oracles_compat_swap_game(first).addr == 0x2526
+              && oracles_compat_swap_game_request(second).addr == 0xc4bc);
+        CHECK(oracles_compat_continuous_transitions(first) && oracles_compat_continuous_swim(first) && oracles_compat_zoom_out(first) && oracles_compat_sea_level_rules(first)
+              && oracles_compat_map_width(first) == 14 && oracles_compat_item_hotkeys(first) && oracles_compat_both_games_items(first) && oracles_compat_cheats(first) && oracles_compat_swim_hold(first)
+              && oracles_compat_compact_text(first) && oracles_compat_text_instant(first) && oracles_compat_host_text_box(first) && oracles_compat_text_size(first));
+        /* Its Seasons half swims with the suit too (overworldSwimmingState3 tests var2f in both halves). */
+        CHECK(oracles_guest_tables_suit_swims(oracles_compat_guest_tables(first)) && oracles_guest_tables_suit_swims(oracles_compat_guest_tables(second)));
+        CHECK(second && oracles_compat_continuous_transitions(second) && oracles_compat_continuous_swim(second) && oracles_compat_zoom_out(second) && oracles_compat_seasons_rules(second)
+              && oracles_compat_group_map_width(second, 1) == 11 && oracles_compat_item_hotkeys(second) && oracles_compat_both_games_items(second)
+              && oracles_compat_cheats(second) && oracles_compat_swim_hold(second)
+              && oracles_compat_compact_text(second) && oracles_compat_text_instant(second) && oracles_compat_host_text_box(second) && oracles_compat_text_size(second));
+        /* Each half's language banks from $70 of the half, and its text's third base, its language's. */
+        unsigned split = 0;
+        OraclesGuestSym third = { 0, 0 };
+        CHECK(oracles_compat_language_bank(first) == 0x70u && oracles_compat_language_bank(second) == 0x70u);
+        static const unsigned splits[5][2] = { { 0xff, 0xff }, { 0x38, 0xff }, { 0x34, 0x57 }, { 0x35, 0xff }, { 0x3b, 0xff } };
+        const unsigned language = (unsigned)(r - ORACLES_ROM_REVISION_COMBINED_1_5_EN);
+        CHECK(oracles_compat_text_third_base(first, &split, &third) && split == splits[language][0] && third.addr >= 0x4000u && third.addr < 0x8000u);
+        CHECK(oracles_compat_text_third_base(second, &split, &third) && split == splits[language][1] && third.addr >= 0x4000u && third.addr < 0x8000u);
+        CHECK(first && second && oracles_compat_guest_tables(first) != oracles_compat_guest_tables(second));
+        /* Each half replays its rooms' own code, its original's routines. */
+        CHECK(oracles_compat_room_code_replay(first) && oracles_compat_room_code_replay(second));
+        const OraclesRomInfo english = { .game = ORACLES_GAME_AGES, .revision = ORACLES_ROM_REVISION_COMBINED_1_5_EN, .known = 1 };
+        CHECK(r == ORACLES_ROM_REVISION_COMBINED_1_5_EN || oracles_compat_guest_tables(first) != oracles_compat_guest_tables(oracles_compat_find(&english)));
+        const OraclesRomInfo as_seasons = { .game = ORACLES_GAME_SEASONS, .revision = r, .known = 1 };
+        CHECK(oracles_compat_find(&as_seasons) == NULL);
+    }
+    for (size_t i = 0; i < sizeof all / sizeof all[0]; i++)
+        CHECK(!oracles_compat_half_switch(all[i]) && oracles_compat_half(all[i], 0) == NULL && oracles_compat_swap_game(all[i]).bank == ORACLES_GUEST_ABSENT);
+    for (size_t i = 0; i < sizeof all / sizeof all[0]; i++) {
+        unsigned split = 0;
+        OraclesGuestSym third = { 0, 0 };
+        CHECK(!oracles_compat_text_third_base(all[i], &split, &third));
+    }
     if (failures) return 1;
     puts("test_compat: ok");
     return 0;

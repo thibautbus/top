@@ -10,6 +10,7 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - **The fan games' authors.** Gifts of Kinomi, Moonrise Regalia and Temple of Seasons now name their authors, as their release pages do, on their **Cartridge** page and under their name on the home screen.
 - **Portable mode.** On Windows, and on Linux with the `.tar.gz`, **About > Portable mode** keeps the launcher's settings, mods and language files in a `user-data` folder beside the executable, instead of in your user folder: to play from a USB stick, or to keep several copies side by side. Turning it on copies them there, turning it off copies them back, and the row says how it went; a file named `portable.txt` beside the executable does the same by hand, copying nothing. Saves already stay beside their ROMs; ROMs and patches kept inside the launcher's folder are found again when the folder moves or the USB stick takes another drive letter, and the row reminds you of the games left outside it. To update a portable copy, copy `portable.txt`, `user-data` and your ROMs into the new version's folder before deleting the old one.
 - **About from the home screen.** The bottom left of the home screen now reads **About · v1.5.0**, so that About is easy to find: with the keyboard, a controller, the mouse or a touch.
+- **Oracles Combined.** Oracles Combined, Ages and Seasons joined in one game, is now in **Fan games**: its Cartridge page takes your two European ROMs, each on its own row, and the patch of its 1.5 release in your language, joins and patches them in memory, and names the version and language it recognises. It plays in Faithful and in Enhanced, in its Ages and its Seasons alike and from one to the other: the wide view at every size with the rooms around Link, continuous transitions on foot and swimming, the HUD's layouts, hold to swim, its own cheats, and the compact text, the wide text box, the text size and the instant text in its five languages. It keeps its own save, and **Import save…** takes its save from another emulator. The item hotkeys work in it too, with slots of their own for both its games: an item of either game in either game, from any of its inventory's twenty slots as well as B and A, and an item kept or given back through Vasu's door. The mods are not there yet. Any other build of it plays in Faithful: the patch its web page gives, on the same page, or an image you built yourself, chosen as Oracle of Ages' ROM. So does an image of Crossworld, the hack it continues, chosen as Oracle of Ages' ROM.
 
 ### Fixed
 
@@ -19,23 +20,10 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - **Vsync on a 50 Hz display.** With **Vsync** on On, a display slower than the game, such as a television at 50 Hz, no longer slows the game down: it keeps the Game Boy's pace, and vsync stays off there, as waiting for such a display could only slow the game.
 - **Recording a route into a new folder.** `--record routes\temple.route`, from a folder without a `routes` folder, no longer stops the game with "cannot write the starting SRAM": the missing folders are made. When a folder cannot be made or a file cannot be written, the message says which.
 - **Lost Woods.** In Enhanced, when Seasons' Lost Woods send Link back into the part of the woods he was leaving as he goes north or south, the view no longer jumps: the normal view no longer flashes a misplaced picture, and in the wider views Link no longer jumps a room's height across the screen before the camera catches up with him.
-
-## 1.5.0 (unreleased)
-
-### Fixed
-
 - **A bush in the wrong colours beside Link.** In Enhanced, a bush or a rock that hides an enemy in a room shown beside Link's could take the colours of Link's room when the two rooms have different colours, such as a grey bush in the woods above Ages' graveyard. It now has its own room's colours.
-
-## 1.5.0 (unreleased)
-
-### Fixed
-
 - **People of a large room as Link walks in.** In Enhanced, when Link walks into a large room from the room beside it, as in Gifts of Kinomi's castle near the start of the game, the people of the room he enters now stand where they are while the screen scrolls and on the room's first moment, instead of showing a second time above and to the left of their place before the room settles.
-
-### Fixed
-
 - **A scene lost at a room's edge.** With **Continuous transitions**, turning back or walking on just as a scroll ended could start the next scroll in the very moment a scene of that room began: the scene was lost for good and the menu stayed shut until the next scene. The scene now waits for Link's next stop, or plays at once.
-- **Stuck in a wall with the shield up.** With **Continuous transitions**, crossing into the next room with the shield up, running on Pegasus seeds or with an item in use, such as a charged sword, could leave Link inside a wall just past the room's edge, stuck there while you held the pad. He now ends the room change where the game itself puts him. Walking into the next room against such a wall, a fall there afterwards no longer brings him back inside it either.
+- **Stuck in a wall with the shield up.** With **Continuous transitions**, crossing into the next room with the shield up, running on Pegasus seeds or with an item in use, such as a charged sword, could leave Link inside a wall just past the room's edge, stuck there while you held the pad, and bring him back there after a fall. Where that would happen, he now ends the room change where the game itself puts him. Walking into the next room against such a wall, a fall there afterwards no longer brings him back inside it either.
 - **Loading a state during a dialogue.** In Enhanced, loading a state saved while a text box is open no longer leaves only the game's own screen, black all around, until the text ends: the rooms around it come back shortly after the load. During a story scene they still come back when the scene ends.
 
 ## 1.4.0 (2026-11-05)

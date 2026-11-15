@@ -322,6 +322,45 @@ static float languages_at(const OraclesUiTextStyle *style, float x, float y, flo
     return (float)lines * height + (float)(lines - 1) * LANGUAGE_GAP;
 }
 
+/* Oracles Combined's two rows from `y`, each its label on lines of JOINED_LABEL_LINE, the file on the first line with
+ * Choose… or where it is set at the right, both centred on it, and the status under them, each on one line.  Returns
+ * the y after them. */
+static float joined_16_9(OraclesUiGameTexts *t, float left, float value_x, float value_w, float y, OraclesUiGameLayout *out)
+{
+    const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w;
+    char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
+    for (int h = 0; h < 2; h++) {
+        pl_wrap_lines(&oracles_ui_row_label, t->joined_labels[h], CARTRIDGE_LABEL_W, left, y + JOINED_LABEL_PAD_TOP, JOINED_LABEL_LINE,
+                      &out->joined_labels[h]);
+        const float inner_y = y + ROW_PAD_Y;
+        float side;
+        if (t->joined_from[h][0]) {
+            out->joined_from[h] = pl_line_at(&oracles_ui_row_note, t->joined_from[h], 0.0f, 0.0f, 0.0f);
+            pl_move_line(&out->joined_from[h], right - out->joined_from[h].w, 0.0f);
+            side = out->joined_from[h].w;
+        } else {
+            pl_button("Choose\xe2\x80\xa6", right, 0.0f, 0.0f, &out->joined_buttons[h], &out->joined_button_dots[h]);
+            side = out->joined_button_dots[h].x + out->joined_button_dots[h].w - out->joined_buttons[h].x;
+        }
+        oracles_ui_fit(&oracles_ui_row_title, t->joined_file[h], inner_w - ROW_GAP - side, fitted, sizeof t->joined_file[h]);
+        memcpy(t->joined_file[h], fitted, sizeof t->joined_file[h]);
+        oracles_ui_fit(&oracles_ui_row_status, t->joined_status[h], inner_w - DOT - DOT_GAP, fitted, sizeof t->joined_status[h]);
+        memcpy(t->joined_status[h], fitted, sizeof t->joined_status[h]);
+        out->joined_files[h] = pl_line_at(&oracles_ui_row_title, t->joined_file[h], inner_x, 0.0f, 0.0f);
+        const float side_h = t->joined_from[h][0] ? out->joined_from[h].h : out->joined_buttons[h].h;
+        const float first = pl_max_f(out->joined_files[h].h, side_h);
+        pl_move_line(&out->joined_files[h], inner_x, inner_y + (first - out->joined_files[h].h) * 0.5f);
+        if (t->joined_from[h][0]) pl_move_line(&out->joined_from[h], out->joined_from[h].x, inner_y + (first - side_h) * 0.5f);
+        else pl_button("Choose\xe2\x80\xa6", right, inner_y, first, &out->joined_buttons[h], &out->joined_button_dots[h]);
+        const float status_y = inner_y + first + FILE_GAP;
+        out->joined_status[h] = pl_line_at(&oracles_ui_row_status, t->joined_status[h], inner_x + DOT + DOT_GAP, status_y, 0.0f);
+        out->joined_dots[h] = pl_box(inner_x, status_y + (out->joined_status[h].h - DOT) * 0.5f, DOT, DOT);
+        out->rows[h ? ORACLES_ROW_JOINED : ORACLES_ROW_ROM] = pl_box(value_x, y, value_w, status_y + out->joined_status[h].h + ROW_PAD_Y - y);
+        y += out->rows[h ? ORACLES_ROW_JOINED : ORACLES_ROW_ROM].h + GAME_ROW_GAP;
+    }
+    return y;
+}
+
 static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
     pl_page_head_16_9("Cartridge", t->over, t->title, t->state, &out->head);
@@ -331,35 +370,39 @@ static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
     const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w;
     float y = PANEL_Y + PANEL_BORDER + PANEL_PAD_Y;
 
-    /* ROM: the file, its folder, its status; Choose ROM at the right.  A fan game's base ROM: the file and its status. */
-    out->label_rom = pl_line_at(&oracles_ui_row_label, t->patched ? "Base ROM" : "ROM", left, y + LABEL_PAD_TOP, 0.0f);
-    float inner_y = y + ROW_PAD_Y;
-    pl_button("Choose ROM\xe2\x80\xa6", right, 0.0f, 0.0f, &out->rom_button, &out->rom_button_dot);
-    const float room = inner_w - ROW_GAP - (out->rom_button_dot.x + out->rom_button_dot.w - out->rom_button.x);
+    float inner_y = y + ROW_PAD_Y, content;
     char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
-    oracles_ui_fit(&oracles_ui_row_title, t->rom_file, room, fitted, sizeof t->rom_file); memcpy(t->rom_file, fitted, sizeof t->rom_file);
-    oracles_ui_fit(&oracles_ui_row_path, t->rom_folder, room, fitted, sizeof t->rom_folder); memcpy(t->rom_folder, fitted, sizeof t->rom_folder);
-    out->rom_file = block_at(&oracles_ui_row_title, t->rom_file, inner_x, inner_y);
-    float status_y = out->rom_file.y + out->rom_file.h + FILE_GAP;
-    if (!t->patched) {
-        out->rom_folder = block_at(&oracles_ui_row_path, t->rom_folder, inner_x, status_y);
-        status_y = out->rom_folder.y + out->rom_folder.h + FILE_GAP + STATUS_MARGIN;
+    if (t->joined) {
+        y = joined_16_9(t, left, value_x, value_w, y, out);
+    } else {
+        /* ROM: the file, its folder, its status; Choose ROM at the right.  A fan game's base ROM: the file and its status. */
+        out->label_rom = pl_line_at(&oracles_ui_row_label, t->patched ? "Base ROM" : "ROM", left, y + LABEL_PAD_TOP, 0.0f);
+        pl_button("Choose ROM\xe2\x80\xa6", right, 0.0f, 0.0f, &out->rom_button, &out->rom_button_dot);
+        const float room = inner_w - ROW_GAP - (out->rom_button_dot.x + out->rom_button_dot.w - out->rom_button.x);
+        oracles_ui_fit(&oracles_ui_row_title, t->rom_file, room, fitted, sizeof t->rom_file); memcpy(t->rom_file, fitted, sizeof t->rom_file);
+        oracles_ui_fit(&oracles_ui_row_path, t->rom_folder, room, fitted, sizeof t->rom_folder); memcpy(t->rom_folder, fitted, sizeof t->rom_folder);
+        out->rom_file = block_at(&oracles_ui_row_title, t->rom_file, inner_x, inner_y);
+        float status_y = out->rom_file.y + out->rom_file.h + FILE_GAP;
+        if (!t->patched) {
+            out->rom_folder = block_at(&oracles_ui_row_path, t->rom_folder, inner_x, status_y);
+            status_y = out->rom_folder.y + out->rom_folder.h + FILE_GAP + STATUS_MARGIN;
+        }
+        /* The status broken into lines beside its dot, which is centred on them. */
+        oracles_ui_wrap(&oracles_ui_row_status, t->rom_status, room - DOT - DOT_GAP, inner_x + DOT + DOT_GAP, status_y, &out->rom_status);
+        out->rom_dot = pl_box(inner_x, status_y + (out->rom_status.h - DOT) * 0.5f, DOT, DOT);
+        /* A ROM that plays in Faithful with Enhanced chosen, or without the item hotkeys Controls has on: a line or two each
+         * under the status. */
+        float rom_bottom = status_y + out->rom_status.h;
+        oracles_ui_wrap(&oracles_ui_row_text, t->rom_note, room, inner_x, rom_bottom + FILE_GAP, &out->rom_note);
+        if (out->rom_note.count) rom_bottom = out->rom_note.lines[0].y + out->rom_note.h;
+        oracles_ui_wrap(&oracles_ui_row_text, t->rom_hotkeys_note, room, inner_x, rom_bottom + FILE_GAP, &out->rom_hotkeys_note);
+        if (out->rom_hotkeys_note.count) rom_bottom = out->rom_hotkeys_note.lines[0].y + out->rom_hotkeys_note.h;
+        content = rom_bottom - inner_y;
+        if (content < out->rom_button.h) content = out->rom_button.h;
+        pl_button("Choose ROM\xe2\x80\xa6", right, inner_y, content, &out->rom_button, &out->rom_button_dot);
+        out->rows[ORACLES_ROW_ROM] = pl_box(value_x, y, value_w, content + 2.0f * ROW_PAD_Y);
+        y += out->rows[ORACLES_ROW_ROM].h + GAME_ROW_GAP;
     }
-    /* The status broken into lines beside its dot, which is centred on them. */
-    oracles_ui_wrap(&oracles_ui_row_status, t->rom_status, room - DOT - DOT_GAP, inner_x + DOT + DOT_GAP, status_y, &out->rom_status);
-    out->rom_dot = pl_box(inner_x, status_y + (out->rom_status.h - DOT) * 0.5f, DOT, DOT);
-    /* A ROM that plays in Faithful with Enhanced chosen, or without the item hotkeys Controls has on: a line or two each
-     * under the status. */
-    float rom_bottom = status_y + out->rom_status.h;
-    oracles_ui_wrap(&oracles_ui_row_text, t->rom_note, room, inner_x, rom_bottom + FILE_GAP, &out->rom_note);
-    if (out->rom_note.count) rom_bottom = out->rom_note.lines[0].y + out->rom_note.h;
-    oracles_ui_wrap(&oracles_ui_row_text, t->rom_hotkeys_note, room, inner_x, rom_bottom + FILE_GAP, &out->rom_hotkeys_note);
-    if (out->rom_hotkeys_note.count) rom_bottom = out->rom_hotkeys_note.lines[0].y + out->rom_hotkeys_note.h;
-    float content = rom_bottom - inner_y;
-    if (content < out->rom_button.h) content = out->rom_button.h;
-    pl_button("Choose ROM\xe2\x80\xa6", right, inner_y, content, &out->rom_button, &out->rom_button_dot);
-    out->rows[ORACLES_ROW_ROM] = pl_box(value_x, y, value_w, content + 2.0f * ROW_PAD_Y);
-    y += out->rows[ORACLES_ROW_ROM].h + GAME_ROW_GAP;
 
     if (t->patched) {
         /* Patch: the file and its status, Choose patch at the right; under the row, the patch's folder (its line kept
@@ -369,12 +412,13 @@ static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
         pl_button("Choose patch\xe2\x80\xa6", right, 0.0f, 0.0f, &out->patch_button, &out->patch_button_dot);
         const float patch_room = inner_w - ROW_GAP - (out->patch_button_dot.x + out->patch_button_dot.w - out->patch_button.x);
         oracles_ui_fit(&oracles_ui_row_title, t->patch_file, patch_room, fitted, sizeof t->patch_file); memcpy(t->patch_file, fitted, sizeof t->patch_file);
-        oracles_ui_fit(&oracles_ui_row_status, t->patch_status, patch_room - DOT - DOT_GAP, fitted, sizeof t->patch_status); memcpy(t->patch_status, fitted, sizeof t->patch_status);
         out->patch_file = block_at(&oracles_ui_row_title, t->patch_file, inner_x, inner_y);
+        /* The status broken into lines beside its dot, which is centred on them. */
         const float patch_status_y = out->patch_file.y + out->patch_file.h + FILE_GAP;
-        out->patch_status = pl_line_at(&oracles_ui_row_status, t->patch_status, inner_x + DOT + DOT_GAP, patch_status_y, 0.0f);
+        oracles_ui_wrap_pretty(&oracles_ui_row_status, t->patch_status, patch_room - DOT - DOT_GAP, inner_x + DOT + DOT_GAP, patch_status_y,
+                               &out->patch_status);
         out->patch_dot = pl_box(inner_x, patch_status_y + (out->patch_status.h - DOT) * 0.5f, DOT, DOT);
-        content = out->patch_status.y + out->patch_status.h - inner_y;
+        content = patch_status_y + out->patch_status.h - inner_y;
         if (content < out->patch_button.h) content = out->patch_button.h;
         pl_button("Choose patch\xe2\x80\xa6", right, inner_y, content, &out->patch_button, &out->patch_button_dot);
         out->rows[ORACLES_ROW_PATCH] = pl_box(value_x, y, value_w, content + 2.0f * ROW_PAD_Y);
@@ -385,7 +429,15 @@ static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
         const float image_y = out->patch_folder.y + out->patch_folder.h + PATCH_LINE_GAP;
         out->image_status = pl_line_at(&oracles_ui_row_status, t->image_status, inner_x + DOT + DOT_GAP, image_y, 0.0f);
         out->image_dot = pl_box(inner_x, image_y + (out->image_status.h - DOT) * 0.5f, DOT, DOT);
-        y = out->image_status.y + out->image_status.h + IMAGE_PAD_BOTTOM + GAME_ROW_GAP;
+        y = out->image_status.y + out->image_status.h + IMAGE_PAD_BOTTOM;
+        /* Its notes under it, each on its line, in line with its text. */
+        for (unsigned i = 0; i < t->image_notes; i++) {
+            oracles_ui_fit(&oracles_ui_row_text, t->image_note[i], line_w - DOT - DOT_GAP, fitted, sizeof t->image_note[i]);
+            memcpy(t->image_note[i], fitted, sizeof t->image_note[i]);
+            out->image_notes[i] = pl_line_at(&oracles_ui_row_text, t->image_note[i], inner_x + DOT + DOT_GAP, y + IMAGE_NOTE_GAP, 0.0f);
+            y = out->image_notes[i].y + out->image_notes[i].h + IMAGE_NOTE_PAD_BOTTOM;
+        }
+        y += GAME_ROW_GAP;
     }
 
     /* Save: the file and its actions, the line about it, then the status or the note. */
@@ -614,6 +666,30 @@ OraclesUiBox pl_play_4_3_row(const char *note, float y, OraclesUiLine *note_out,
 
 #define FIT(style, field, room) do { oracles_ui_fit(style, field, room, fitted, sizeof field); memcpy(field, fitted, sizeof field); } while (0)
 
+/* Oracles Combined's two rows from `y`: each its label on lines of JOINED_LABEL_LINE_4_3 from the row's top, the file and
+ * Choose… on one baseline (Choose… laid out where the ROM is set too, where it is not drawn), the status under them.
+ * Returns the y after them. */
+static float joined_4_3(OraclesUiGameTexts *t, float y, OraclesUiGameLayout *out)
+{
+    char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
+    const float span = RIGHT_4_3 - GAME_VALUE_X_4_3;
+    for (int h = 0; h < 2; h++) {
+        const unsigned row = h ? ORACLES_ROW_JOINED : ORACLES_ROW_ROM;
+        pl_wrap_lines(&oracles_ui_row_label_4_3, t->joined_labels[h], CARTRIDGE_LABEL_W_4_3, LEFT_4_3, y + JOINED_ROW_PAD_Y_4_3,
+                      JOINED_LABEL_LINE_4_3, &out->joined_labels[h]);
+        const float room = pl_file_room_4_3(GAME_VALUE_X_4_3, pl_place_button_4_3("Choose\xe2\x80\xa6", &out->joined_buttons[h], &out->joined_button_dots[h]));
+        FIT(&oracles_ui_row_title_4_3, t->joined_file[h], room);
+        FIT(&oracles_ui_row_text_4_3, t->joined_status[h], span - DOT_4_3 - DOT_GAP_4_3);
+        out->joined_files[h] = pl_line_at(&oracles_ui_row_title_4_3, t->joined_file[h], GAME_VALUE_X_4_3, 0.0f, 0.0f);
+        OraclesUiLine *const lines[3] = { &out->joined_files[h], &out->joined_buttons[h], &out->joined_button_dots[h] };
+        const float bottom = status_4_3(t->joined_status[h], pl_baseline_row(lines, 3, y + JOINED_ROW_PAD_Y_4_3) + GRID_ROW_GAP_4_3,
+                                        &out->joined_status[h], &out->joined_dots[h]);
+        out->rows[row] = pl_box(ROWS_X_4_3, y, ROWS_W_4_3, pl_max_f(ROW_MIN_H_4_3, bottom + JOINED_ROW_PAD_Y_4_3 - y));
+        y += out->rows[row].h + ROW_GAP_4_3;
+    }
+    return y;
+}
+
 static void game_4_3(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
     pl_page_head_4_3("Cartridge", t->over, t->title, t->state, &out->head);
@@ -624,41 +700,57 @@ static void game_4_3(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
     const float span = RIGHT_4_3 - GAME_VALUE_X_4_3;   /* a line under the first, across the file's column and the button's */
     float y = ROWS_Y_4_3;
 
-    /* ROM: the file, its folder, its status, a note or two; a fan game's base ROM: the file and its status. */
-    float room = pl_file_room_4_3(GAME_VALUE_X_4_3, pl_place_button_4_3("Choose ROM\xe2\x80\xa6", &out->rom_button, &out->rom_button_dot));
-    FIT(&oracles_ui_row_title_4_3, t->rom_file, room);
-    FIT(&oracles_ui_row_path_4_3, t->rom_folder, span);
-    float bottom = file_line_4_3(t->patched ? "Base ROM" : "ROM", &out->label_rom, t->rom_file, &out->rom_file, &out->rom_button,
-                                 &out->rom_button_dot, y);
-    if (!t->patched) {
-        out->rom_folder = block_at(&oracles_ui_row_path_4_3, t->rom_folder, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3);
-        bottom = out->rom_folder.y + out->rom_folder.h;
+    float room, bottom;
+    if (t->joined) {
+        y = joined_4_3(t, y, out);
+    } else {
+        /* ROM: the file, its folder, its status, a note or two; a fan game's base ROM: the file and its status. */
+        room = pl_file_room_4_3(GAME_VALUE_X_4_3, pl_place_button_4_3("Choose ROM\xe2\x80\xa6", &out->rom_button, &out->rom_button_dot));
+        FIT(&oracles_ui_row_title_4_3, t->rom_file, room);
+        FIT(&oracles_ui_row_path_4_3, t->rom_folder, span);
+        bottom = file_line_4_3(t->patched ? "Base ROM" : "ROM", &out->label_rom, t->rom_file, &out->rom_file, &out->rom_button,
+                                     &out->rom_button_dot, y);
+        if (!t->patched) {
+            out->rom_folder = block_at(&oracles_ui_row_path_4_3, t->rom_folder, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3);
+            bottom = out->rom_folder.y + out->rom_folder.h;
+        }
+        /* The status broken into lines beside its dot, centred on them, and a note or two under it. */
+        const float status_y = bottom + GRID_ROW_GAP_4_3;
+        oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_status, span - DOT_4_3 - DOT_GAP_4_3, GAME_VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3, status_y, &out->rom_status);
+        out->rom_dot = pl_box(GAME_VALUE_X_4_3, status_y + (out->rom_status.h - DOT_4_3) * 0.5f, DOT_4_3, DOT_4_3);
+        bottom = status_y + out->rom_status.h;
+        oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_note, span, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, &out->rom_note);
+        if (out->rom_note.count) bottom = out->rom_note.lines[0].y + out->rom_note.h;
+        oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_hotkeys_note, span, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, &out->rom_hotkeys_note);
+        if (out->rom_hotkeys_note.count) bottom = out->rom_hotkeys_note.lines[0].y + out->rom_hotkeys_note.h;
+        out->rows[ORACLES_ROW_ROM] = pl_row_4_3(y, bottom);
+        y += out->rows[ORACLES_ROW_ROM].h + ROW_GAP_4_3;
     }
-    /* The status broken into lines beside its dot, centred on them, and a note or two under it. */
-    const float status_y = bottom + GRID_ROW_GAP_4_3;
-    oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_status, span - DOT_4_3 - DOT_GAP_4_3, GAME_VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3, status_y, &out->rom_status);
-    out->rom_dot = pl_box(GAME_VALUE_X_4_3, status_y + (out->rom_status.h - DOT_4_3) * 0.5f, DOT_4_3, DOT_4_3);
-    bottom = status_y + out->rom_status.h;
-    oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_note, span, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, &out->rom_note);
-    if (out->rom_note.count) bottom = out->rom_note.lines[0].y + out->rom_note.h;
-    oracles_ui_wrap(&oracles_ui_row_text_4_3, t->rom_hotkeys_note, span, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, &out->rom_hotkeys_note);
-    if (out->rom_hotkeys_note.count) bottom = out->rom_hotkeys_note.lines[0].y + out->rom_hotkeys_note.h;
-    out->rows[ORACLES_ROW_ROM] = pl_row_4_3(y, bottom);
-    y += out->rows[ORACLES_ROW_ROM].h + ROW_GAP_4_3;
 
     if (t->patched) {
         /* Patch: the file and its status; under the row, the patch's folder and the image the two files make. */
         room = pl_file_room_4_3(GAME_VALUE_X_4_3, pl_place_button_4_3("Choose patch\xe2\x80\xa6", &out->patch_button, &out->patch_button_dot));
         FIT(&oracles_ui_row_title_4_3, t->patch_file, room);
-        FIT(&oracles_ui_row_text_4_3, t->patch_status, span - DOT_4_3 - DOT_GAP_4_3);
         bottom = file_line_4_3("Patch", &out->label_patch, t->patch_file, &out->patch_file, &out->patch_button, &out->patch_button_dot, y);
-        bottom = status_4_3(t->patch_status, bottom + GRID_ROW_GAP_4_3, &out->patch_status, &out->patch_dot);
+        /* The status broken into lines beside its dot, which is centred on them. */
+        const float status_y = bottom + GRID_ROW_GAP_4_3;
+        oracles_ui_wrap_pretty(&oracles_ui_row_text_4_3, t->patch_status, span - DOT_4_3 - DOT_GAP_4_3, GAME_VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3,
+                               status_y, &out->patch_status);
+        out->patch_dot = pl_box(GAME_VALUE_X_4_3, status_y + (out->patch_status.h - DOT_4_3) * 0.5f, DOT_4_3, DOT_4_3);
+        bottom = status_y + out->patch_status.h;
         out->rows[ORACLES_ROW_PATCH] = pl_row_4_3(y, bottom);
         y += out->rows[ORACLES_ROW_PATCH].h + ROW_GAP_4_3;
         FIT(&oracles_ui_row_path_4_3, t->patch_folder, span);
         FIT(&oracles_ui_row_text_4_3, t->image_status, span - DOT_4_3 - DOT_GAP_4_3);
         out->patch_folder = block_at(&oracles_ui_row_path_4_3, t->patch_folder, GAME_VALUE_X_4_3, y);
-        y = status_4_3(t->image_status, out->patch_folder.y + out->patch_folder.h + IMAGE_GAP_4_3, &out->image_status, &out->image_dot) + ROW_GAP_4_3;
+        y = status_4_3(t->image_status, out->patch_folder.y + out->patch_folder.h + IMAGE_GAP_4_3, &out->image_status, &out->image_dot);
+        /* Its notes under it, each on its line, in line with its text. */
+        for (unsigned i = 0; i < t->image_notes; i++) {
+            FIT(&oracles_ui_row_text_4_3, t->image_note[i], span - DOT_4_3 - DOT_GAP_4_3);
+            out->image_notes[i] = pl_line_at(&oracles_ui_row_text_4_3, t->image_note[i], GAME_VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3, y + IMAGE_GAP_4_3, 0.0f);
+            y = out->image_notes[i].y + out->image_notes[i].h;
+        }
+        y += ROW_GAP_4_3;
     }
 
     /* Save: the label, the file and its actions on one baseline; under them the line about it and the note, or the

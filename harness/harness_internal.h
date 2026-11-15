@@ -63,6 +63,8 @@ typedef struct run {
     OraclesRoute route;
     FILE *out;
     FILE *positions;          /* --positions */
+    uint8_t position_group, position_room;   /* its last line's room */
+    unsigned position_frames, position_second_half;   /* its lines, and those read with the tables of an image's second half */
     FILE *keys_read;          /* --keys-read */
     FILE *frame_times;        /* --frame-times */
     uint32_t keys_polls;      /* the game's input polls counted by the guest at the last frame's end */
@@ -119,6 +121,14 @@ typedef struct run {
     int scene_walks_taken;    /* a route of a format before scene walks were left to the game: the transitions take them */
     int text_speed_changed;   /* the route's `set text-speed` lines change the instant text, its points armed from the start */
     OraclesTextSpeedCheck text_speed;   /* with the instant text armed: its lines and pages */
+    /* An image of two games: the whole image, which a switch of halves reads again, and the first frame the game left
+     * its half (oracles_guest_half_left), 0 for none.  Between two halves the checks that read the game through the
+     * guest's tables wait; the fingerprints and the pokes go on. */
+    uint8_t *image;
+    size_t image_size;
+    uint32_t half_left_at;
+    unsigned half_held_frames, half_held_wrong;       /* the view's frames between two halves, and those not the frame it last composed */
+    unsigned half_checks_lost;                        /* checks that could not follow a switch */
 } run;
 
 /* harness_report.c: each check's figures, to the standard error and the summary (--summary): the renderer's verdict (1

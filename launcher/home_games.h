@@ -28,6 +28,8 @@ typedef struct OraclesHomeFound {
     long long size, modified;
     OraclesRomState state;
     char reason[ORACLES_HOME_TEXT_LENGTH];
+    int combined;            /* a ROM: an image of both games (oracles_rom_is_combined) */
+    const char *language;    /* a fan game's image, recognised: its language when its patch comes in several (Oracles Combined's) */
 } OraclesHomeFound;
 
 typedef struct OraclesHomeGames {
@@ -56,6 +58,7 @@ typedef struct OraclesHomeGames {
      * Oracle's ROM (kept with that ROM, and forgotten with the patch). */
     OraclesHomeFound rom_found[ORACLES_SETTINGS_GAMES], eu_found[ORACLES_SETTINGS_GAMES];
     OraclesHomeFound patch_found[ORACLES_HOME_FAN_GAMES], image_found[ORACLES_HOME_FAN_GAMES];
+    OraclesHomeFound joined_found;   /* Seasons' European ROM, which Oracles Combined's image is kept with too */
     /* The files a refresh, and the choice or the drop before it, read: each once, forgotten at its end. */
     OraclesHomeFiles files;
     /* Each Oracle's text box font, read with its original ROM (rom_found), for Display › Text's preview. */
@@ -64,7 +67,8 @@ typedef struct OraclesHomeGames {
      * its confirmation is open there. */
     struct {
         int game, english;
-        uint8_t data[ORACLES_SAVE_SIZE];
+        size_t size;                                 /* the game's save's: Oracles Combined's 32 KiB, else 8 */
+        uint8_t data[ORACLES_SAVE_COMBINED_SIZE];
     } import;
     /* A game to start again with its savestate's Display, the savestate loaded at its start, what changed, and the
      * choices as they were before, put back if it is refused after all. */

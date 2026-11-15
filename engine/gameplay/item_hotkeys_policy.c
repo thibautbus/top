@@ -37,7 +37,8 @@ struct OraclesItemHotkeys {
     struct { int waiting; uint8_t used, original, variant; unsigned quiet, overdue; } returns[2];   /* by button slot; overdue: write points past its quiet spell */
     struct { int valid; uint8_t item; } previous[2];             /* `equip`: what the target held before the last exchange */
     unsigned player_mask, sent_mask;                             /* the player's keys, and what went to the core, at the last frame */
-    uint8_t sound;                                               /* SND_SELECTITEM, which the inventory plays as it equips; 0: none */
+    uint8_t sound;                                               /* SND_SELECTITEM, which the inventory plays as it equips (the
+                                                                    game's at the start; looked up again in each half); 0: none */
     int sound_pending;                                           /* an item was equipped or taken: the sound goes at the next frame's start */
     OraclesItemHotkeysLiveStats stats;
 };
@@ -281,14 +282,22 @@ void oracles_item_hotkeys_on_event(OraclesItemHotkeys *h, const OraclesGuestEven
 
 /* The sound goes through playSound, which the call transaction runs at the frame's write point once the state allows
  * it: a route notes it at the frame it was handed over, and its replay hands it over at the same frame. */
+/* SND_SELECTITEM in the tables of the half the game runs (an image of two games names its sounds in each half). */
+static uint8_t select_item_sound(const OraclesGuestTables *t)
+{
+    for (unsigned i = 1; i < ORACLES_GUEST_SOUNDS; i++) if (t->sound_names[i] && !strcmp(t->sound_names[i], "snd_selectitem")) return (uint8_t)i;
+    return 0;
+}
+
 static void hand_the_sound(OraclesItemHotkeys *h, uint32_t frame)
 {
     if (!h->sound_pending) return;
     h->sound_pending = 0;
-    const OraclesGuestCall call = { ORACLES_ROUTINE_PLAY_SOUND, h->sound, 0, 1 };
-    if (h->guest && (!h->sound || oracles_guest_queue_call(h->guest, &call, NULL) != 0)) return;
+    const uint8_t sound = h->guest && h->sound ? select_item_sound(oracles_guest_tables(h->guest)) : h->sound;
+    const OraclesGuestCall call = { ORACLES_ROUTINE_PLAY_SOUND, sound, 0, 1 };
+    if (h->guest && (!sound || oracles_guest_queue_call(h->guest, &call, NULL) != 0)) return;
     h->stats.sounds++;
-    if (h->sink.sound) h->sink.sound(h->sink.opaque, frame, h->sound);
+    if (h->sink.sound) h->sink.sound(h->sink.opaque, frame, sound);
 }
 
 static unsigned filtered(OraclesItemHotkeys *h, uint32_t frame, unsigned mask)
@@ -383,6 +392,22 @@ void oracles_item_hotkeys_reset(OraclesItemHotkeys *h)
     h->sound_pending = 0;
 }
 
+void oracles_item_hotkeys_half_switched(OraclesItemHotkeys *h)
+{
+    if (!h) return;
+    /* What was under way stops: a request, the simulated press, the keys held (pressed again in the new half, they ask
+     * anew).  The inventory and the variants came across as they were (swapGame copies them, and the items' identifiers
+     * are the same in both halves): a button's item waiting to come back still does, and `equip`'s previous item stays. */
+    if (h->request.active || h->press.active) h->stats.half_cancelled++;
+    memset(&h->request, 0, sizeof h->request);
+    memset(&h->press, 0, sizeof h->press);
+    memset(h->key_down, 0, sizeof h->key_down);
+    memset(h->key_order, 0, sizeof h->key_order);
+    for (unsigned b = 0; b < 2u; b++) h->returns[b].quiet = 0;
+    h->asked = ASKED_NOTHING;
+    h->stats.half_switches++;
+}
+
 int oracles_item_hotkeys_idle(const OraclesItemHotkeys *h)
 {
     return !h->request.active && !h->press.active && !h->returns[0].waiting && !h->returns[1].waiting && !h->previous[0].valid && !h->previous[1].valid
@@ -398,7 +423,12 @@ int oracles_item_hotkeys_at_rest(const OraclesItemHotkeys *h)
 
 static void guest_policy(void *opaque, const OraclesGuestInventoryState *state, OraclesGuestInventoryOp *op) { oracles_item_hotkeys_on_write_point(opaque, state, op); }
 static void guest_result(void *opaque, const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op, OraclesGuestInventoryVerdict verdict) { oracles_item_hotkeys_on_result(opaque, before, op, verdict); }
-static void guest_reset(void *opaque) { oracles_item_hotkeys_reset(opaque); }
+static void guest_reset(void *opaque)
+{
+    OraclesItemHotkeys *h = opaque;
+    /* swapGame carries the inventory across: what was waiting stays; a reset or a state loads another inventory. */
+    if (oracles_guest_switching_half(h->guest) == 2) oracles_item_hotkeys_half_switched(h); else oracles_item_hotkeys_reset(h);
+}
 static void guest_event(void *opaque, const OraclesGuestEvent *event)
 {
     OraclesItemHotkeys *h = opaque;
@@ -415,8 +445,7 @@ OraclesItemHotkeys *oracles_item_hotkeys_start(OraclesGuest *guest, OraclesHotke
     if (oracles_guest_set_inventory_policy(guest, guest_policy, guest_result, guest_reset, h) != 0) { free(h); return NULL; }
     if (oracles_guest_add_event_listener(guest, guest_event, h) != 0) { oracles_guest_set_inventory_policy(guest, NULL, NULL, NULL, NULL); free(h); return NULL; }
     /* The game's own sound through its own routine; without the call transaction the hotkeys go on, silent. */
-    const OraclesGuestTables *t = oracles_guest_tables(guest);
-    for (unsigned i = 1; i < ORACLES_GUEST_SOUNDS && !h->sound; i++) if (t->sound_names[i] && !strcmp(t->sound_names[i], "snd_selectitem")) h->sound = (uint8_t)i;
+    h->sound = select_item_sound(oracles_guest_tables(guest));
     if (h->sound && oracles_guest_arm_calls(guest) != 0) h->sound = 0;
     return h;
 }

@@ -11,9 +11,10 @@
 
 typedef struct OraclesHotkeysSession OraclesHotkeysSession;
 
-/* `route` is the route being replayed, or NULL: while it lasts its exchanges are applied and the keys do nothing.
- * NULL when the inventory's write point cannot be armed on this ROM (the option is then refused). */
-OraclesHotkeysSession *oracles_hotkeys_session_start(OraclesGuest *guest, OraclesGame game, OraclesHotkeysMode mode,
+/* `slots`: the settings' slots the game plays with (oracles_session_hotkey_slots).  `route` is the route being replayed,
+ * or NULL: while it lasts its exchanges are applied and the keys do nothing.  NULL when the inventory's write point
+ * cannot be armed on this ROM (the option is then refused). */
+OraclesHotkeysSession *oracles_hotkeys_session_start(OraclesGuest *guest, unsigned slots, OraclesHotkeysMode mode,
                                                      oracles_settings *settings, const OraclesRoute *route);
 void oracles_hotkeys_session_stop(OraclesHotkeysSession *session, FILE *report);
 /* The route writer of a recording, or NULL when it stops. */

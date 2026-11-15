@@ -73,7 +73,7 @@ static entry *loop_return_entry(OraclesEnhancedView *v, entry *e, const OraclesG
 static int reject_other_season(OraclesEnhancedView *v, entry *e, const OraclesGhostResult *r)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
-    if (!(oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) && (r->group & 7u) == 0u && oracles_ghost_area_holds_season(v->ghost, r->room_pack)
+    if (!(oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) && (r->group & 7u) == 0u && oracles_ghost_area_holds_season(&v->rooms, r->room_pack)
           && (oracles_guest_read8(v->guest, t->active_group) & 7u) == 0u
           && oracles_guest_read8(v->guest, t->room_state_modifier) != r->room_state_modifier && v->fade_effective == 0)) return 0;
     const long at = ev_key_offset(v, t->room_state_modifier.addr);
@@ -109,7 +109,7 @@ static void record_entry_reads(OraclesEnhancedView *v, entry *e, const OraclesGh
     }
     e->season = r->room_state_modifier;
     /* Not the rooms of an area whose season never changes (no stump, or packs $f0 and up: Natzu's byte is its companion). */
-    e->season_dependent = oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) && (r->group & 7u) == 0u && oracles_ghost_area_holds_season(v->ghost, r->room_pack);
+    e->season_dependent = oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) && (r->group & 7u) == 0u && oracles_ghost_area_holds_season(&v->rooms, r->room_pack);
     e->key_len = r->key_len;
     memcpy(e->key_snapshot, r->key, r->key_len);
     if (overflow) e->read_count = ENTRY_READS + 1u;   /* compare the whole key instead */
@@ -569,7 +569,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     if (chained) v->chained++;
     if (across) v->sea_runs++;
     /* An answer holds while the live bytes its routine reads keep these values. */
-    if (e->routed) e->routing_key_len = (uint8_t)oracles_ghost_routing_key_snapshot(v->guest, oracles_ghost_room_routine(v->ghost, e->group, e->routed_from), e->routing_key, sizeof e->routing_key);
+    if (e->routed) e->routing_key_len = (uint8_t)oracles_ghost_routing_key_snapshot(v->guest, oracles_ghost_room_routine(&v->rooms, e->group, e->routed_from), e->routing_key, sizeof e->routing_key);
     if (chained) memcpy(v->pending_killed_list, parent->killed_list, sizeof v->pending_killed_list);
     else note_live_killed_list(v);
     note_live_key(v);

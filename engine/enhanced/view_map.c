@@ -47,7 +47,7 @@ static int map_rules(const OraclesEnhancedView *v)
 int ev_off_map(const OraclesEnhancedView *v, uint8_t group, uint8_t room)
 {
     if ((group & 7u) > 1u || !map_rules(v)) return 0;
-    return !oracles_ghost_room_on_map(v->ghost, group, room);
+    return !oracles_ghost_room_on_map(&v->rooms, group, room);
 }
 
 unsigned ev_map_width(const OraclesEnhancedView *v, uint8_t group)
@@ -163,7 +163,7 @@ int ev_on_map(const OraclesEnhancedView *v)
  * under it (their tilesets indoors) stand alone like any house. */
 int ev_open_water(const OraclesEnhancedView *v, uint8_t group, uint8_t room)
 {
-    return v->ghost && oracles_ghost_room_open_water(v->ghost, group, room);
+    return v->ghost && oracles_ghost_room_open_water(&v->rooms, group, room);
 }
 
 int ev_on_overworld(const OraclesEnhancedView *v)
@@ -194,7 +194,7 @@ int ev_sea_other_side(const OraclesEnhancedView *v, uint8_t *group)
  * read from the user's ROM at the ghost's creation; docs/GAME_HOOKS.md, section 4.3). */
 int ev_self_routed(const OraclesEnhancedView *v, uint8_t group, uint8_t room)
 {
-    return v->ghost && oracles_ghost_room_self_routed(v->ghost, group, room);
+    return v->ghost && oracles_ghost_room_self_routed(&v->rooms, group, room);
 }
 
 /* Whether the room in play is one of them, and the band a map of small rooms
@@ -491,7 +491,7 @@ void ev_update_reference_edges(OraclesEnhancedView *v)
      * (oracles_enhanced_world_extend_to_sea); the normal band keeps the
      * rooms of the sea beside this one. */
     v->observer.sea = ev_on_map(v) && ev_open_water(v, v->observer.ref_group, v->observer.ref_room)
-                   && oracles_ghost_open_water_extent(v->ghost, v->observer.ref_group, v->observer.sea_extent);
+                   && oracles_ghost_open_water_extent(&v->rooms, v->observer.ref_group, v->observer.sea_extent);
     if (ev_on_map(v) && ev_open_water(v, v->observer.ref_group, v->observer.ref_room)) {
         /* The sea's extent: the rooms of the sea beside this one, cached or not. */
         for (unsigned d = 0; d < 4; d++) {

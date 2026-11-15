@@ -94,7 +94,8 @@ const OraclesEnhancedHudPlace *ev_hud_place(OraclesEnhancedView *v, OraclesEnhan
     if (v->hud != ORACLES_ENHANCED_HUD_WIDE || mode != ORACLES_ENHANCED_WORLD || !core || !ev_status_bar(v, &bar)) return NULL;
     const OraclesEnhancedBarLayout map = oracles_enhanced_bar_layout(&bar), last = v->hud_layout;
     OraclesEnhancedBarLayout layout = ORACLES_ENHANCED_BAR_NONE;
-    if (map != ORACLES_ENHANCED_BAR_NONE && oracles_enhanced_bar_layout_shown(&bar, map, core_colour, v, core)) layout = map;
+    const int shown = map != ORACLES_ENHANCED_BAR_NONE && oracles_enhanced_bar_layout_shown(&bar, map, core_colour, v, core);
+    if (shown) layout = map;
     else if (last != ORACLES_ENHANCED_BAR_NONE && (last == map || oracles_enhanced_bar_layout_shown(&bar, last, core_colour, v, core))) layout = last;
     v->hud_layout = layout;
     if (layout == ORACLES_ENHANCED_BAR_NORMAL || layout == ORACLES_ENHANCED_BAR_TIGHT) {
@@ -117,7 +118,7 @@ const OraclesEnhancedHudPlace *ev_hud_place(OraclesEnhancedView *v, OraclesEnhan
         }
     }
     if (counted && !v->load_band) {
-        if (laid) v->hud_wide_frames++;
+        if (laid) { v->hud_wide_frames++; v->hud_layout_frames[layout]++; v->hud_layout_shown[layout] += (unsigned)shown; }
         else v->hud_wide_centred++;
         if (laid && v->hud_place.one_row) v->hud_wide_one_row++;
     }
@@ -160,4 +161,11 @@ void oracles_enhanced_view_hud_wide_counts(const OraclesEnhancedView *v, unsigne
     if (laid) *laid = v->hud_wide_frames;
     if (centred) *centred = v->hud_wide_centred;
     if (one_row) *one_row = v->hud_wide_one_row;
+}
+
+void oracles_enhanced_view_hud_layout_counts(const OraclesEnhancedView *v, OraclesEnhancedBarLayout layout, unsigned *laid, unsigned *shown)
+{
+    const int known = layout >= ORACLES_ENHANCED_BAR_NONE && layout <= ORACLES_ENHANCED_BAR_BIGGORON;
+    if (laid) *laid = known ? v->hud_layout_frames[layout] : 0u;
+    if (shown) *shown = known ? v->hud_layout_shown[layout] : 0u;
 }

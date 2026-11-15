@@ -57,12 +57,22 @@ static int arm_points(OraclesGuest *guest)
     return 0;
 }
 
+/* The game went to the other half of its image: the points of that half's code. */
+static void follow_half(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    if (!guest->text_instant_follows) return;
+    if (arm_points(guest) != 0) { guest->half_features_refused++; return; }
+    guest->text_instant_armed = 1;
+}
+
 int oracles_guest_set_text_instant(OraclesGuest *guest, int on)
 {
     if (!guest) return -1;
     if (on && !guest->text_instant_armed) {
-        if (arm_points(guest) != 0) return -1;
-        guest->text_instant_armed = 1;
+        if (oracles_guest_listen_half(guest, follow_half) != 0) return -1;
+        if (!guest->half_left && arm_points(guest) != 0) return -1;   /* between two halves: armed in the next */
+        guest->text_instant_armed = guest->text_instant_follows = 1;
     }
     guest->text_instant = on != 0;
     return 0;

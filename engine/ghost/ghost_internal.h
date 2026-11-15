@@ -14,6 +14,7 @@
 #include "ppu.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -63,12 +64,12 @@ struct OraclesGhost {
     int release_request;                /* a run lets go of what holds its state (oracles_ghost_set_release) */
     int job_release;                    /* the request's, copied under the mutex */
     int run_release;                    /* the run's */
+    const OraclesCompatProfile *half_pending;   /* a switch of halves asked during the run in flight, made by the worker after it */
+    const uint8_t *half_rom;
+    size_t half_rom_size;
+    atomic_int half_failed;             /* the ghost could not follow the game to its other half: no run (written on its thread) */
     int await_group;                    /* the group the run primes in once its warp has taken it there, -1 any */
-    uint8_t fixed_season[256];          /* Seasons: 1 for a room pack whose season never changes (no stump, or $f0 and up) */
-    uint8_t room_pack_of[256];          /* Seasons: the pack of each overworld room (roomPackData) */
-    uint8_t open_water_room[8][256];    /* Ages: 1 for a room of the open sea (under water and outdoors, not one of its houses) */
-    uint8_t map_room[2][256];           /* under the profile's tileset map rules, 1 for a room of an overworld group on its map */
-    uint8_t self_routed_room[8][256];   /* for a room whose transitions the game routes itself (mapTransitionGroupTable), its routine's case plus one; 0 otherwise */
+    OraclesGhostRooms rooms;            /* its half's rooms (oracles_ghost_rooms_read) */
     unsigned primed_at;                 /* frames run when it was */
     unsigned prerun_max;                /* frames a pre-run may take, 0: a state that cannot be primed is refused */
     OraclesGhostDirection direction;
@@ -126,9 +127,9 @@ void oracles_ghost_probe_animation(OraclesGhost *g, OraclesGhostResult *result);
 void oracles_ghost_probe_update(OraclesGhost *g);
 
 /* ghost_data.c */
-void oracles_ghost_find_fixed_seasons(OraclesGhost *g, const uint8_t *rom, size_t rom_size);
-void oracles_ghost_find_open_water_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size);
-void oracles_ghost_find_map_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size);
-void oracles_ghost_find_self_routed_rooms(OraclesGhost *g, const uint8_t *rom, size_t rom_size);
+void oracles_ghost_find_fixed_seasons(OraclesGhostRooms *rooms, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size);
+void oracles_ghost_find_open_water_rooms(OraclesGhostRooms *rooms, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size);
+void oracles_ghost_find_map_rooms(OraclesGhostRooms *rooms, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size);
+void oracles_ghost_find_self_routed_rooms(OraclesGhostRooms *rooms, const OraclesCompatProfile *profile, const uint8_t *rom, size_t rom_size);
 
 #endif

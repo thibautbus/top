@@ -15,6 +15,7 @@ static unsigned variant_kind(const OraclesGuestInventoryState *s, uint8_t item)
 {
     if (item == s->item_seed_satchel) return ORACLES_VARIANT_SATCHEL;
     if (item == s->item_seed_shooter) return ORACLES_VARIANT_SHOOTER;
+    if (item && item == s->item_slingshot && s->slingshot_seeds != 0xffu) return ORACLES_VARIANT_SLINGSHOT;
     if (item == s->item_harp && s->harp_song != 0xffu) return ORACLES_VARIANT_HARP;
     return ORACLES_VARIANT_NONE;
 }
@@ -23,7 +24,8 @@ void oracles_item_hotkeys_ask_variant(const OraclesGuestInventoryState *s, uint8
 {
     const unsigned kind = variant_kind(s, item);
     if (kind == ORACLES_VARIANT_NONE || variant == ORACLES_HOTKEY_NO_VARIANT) return;
-    const uint8_t current = kind == ORACLES_VARIANT_SATCHEL ? s->satchel_seeds : kind == ORACLES_VARIANT_SHOOTER ? s->shooter_seeds : s->harp_song;
+    const uint8_t current = kind == ORACLES_VARIANT_SATCHEL ? s->satchel_seeds : kind == ORACLES_VARIANT_SHOOTER ? s->shooter_seeds
+                          : kind == ORACLES_VARIANT_SLINGSHOT ? s->slingshot_seeds : s->harp_song;
     if (variant == current) return;
     op->variant = (uint8_t)kind;
     op->variant_value = variant;
@@ -45,7 +47,7 @@ int oracles_item_hotkeys_restore(const OraclesGuestInventoryState *s, unsigned b
     if (button > ORACLES_INVENTORY_SLOT_A || !used || s->slots[button] != used) return 0;   /* the game or the player changed the button: nothing to give back */
     int from = -1;
     if (original) from = slot_of(s, original);
-    else for (unsigned i = 2; i < ORACLES_INVENTORY_SLOTS && from < 0; i++) if (!s->slots[i]) from = (int)i;   /* an empty button: the menu unequips into the first empty slot */
+    else for (unsigned i = 2; i < s->slot_count && from < 0; i++) if (!s->slots[i]) from = (int)i;   /* an empty button: the menu unequips into the first empty slot */
     if (from < 0) return 0;
     if ((unsigned)from == button) { oracles_item_hotkeys_ask_variant(s, used, used_variant, op); return 1; }   /* the use only changed the variant of the button's own item */
     op->swap = 1; op->slot_a = (uint8_t)button; op->slot_b = (uint8_t)from;
@@ -94,6 +96,7 @@ static void result(void *opaque, const OraclesGuestInventoryState *before, const
 static void reset(void *opaque)
 {
     OraclesItemHotkeysReplay *r = opaque;
+    if (oracles_guest_switching_half(r->guest)) return;   /* the game in its other half: the route goes on */
     r->stopped = 1;   /* a savestate load: the route has diverged, by construction */
 }
 

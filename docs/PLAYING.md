@@ -25,6 +25,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 
 - Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge. The port recognises the original US ROMs by their SHA-1, which the [README](../README.md) lists, and plays them with every option.
 - Any other ROM of an Oracle plays too, in Faithful only: without the wide view and without the gameplay options.
+- For Oracles Combined, both games in one, its release's BPS patch in your language and the two European ROMs ([Oracles Combined](#oracles-combined)).
 - A `.zip` that holds the ROM works as well as the ROM itself. 7z and RAR archives are not read.
 - For the languages, the European ROM of the same game ([Languages](#languages)).
 - For a fan game, its BPS patch in the version listed under [Fan games](#fan-games), and the ROM of the Oracle it is built on.
@@ -44,9 +45,9 @@ The game starts in Enhanced, the wide view, in fullscreen; [Display](#display) c
 
 ## The home screen
 
-The home screen has three entries: **Oracle of Ages**, **Oracle of Seasons** and **Fan games**. The chosen entry shows its title, its state and its menu. The state is **Ready** (with the date of the last session), **ROM not found**, or for a fan game whose Oracle's ROM is chosen, **Patch not found**, or **Patch refused** when its patch is there but refused (not a BPS patch, or another fan game's).
+The home screen has three entries: **Oracle of Ages**, **Oracle of Seasons** and **Fan games**. The chosen entry shows its title, its state and its menu. The state is **Ready** (with the date of the last session), **ROM not found**, or for a fan game whose Oracle's ROM is chosen, **Patch not found**, or **Patch refused** when its patch is there but refused (not a BPS patch, or another fan game's); Oracles Combined says **ROM refused** when a ROM chosen for it is not the European ROM of its game.
 
-A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods greyed. A greyed entry says why when it is highlighted.
+A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia, Oracles Combined and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods greyed. A greyed entry says why when it is highlighted.
 
 Move with the arrows, Enter and Escape on the keyboard; with the d-pad, A and B on a controller, where the menu's button and Guide act as Escape; or with the mouse, or by touch. **F11** switches fullscreen on and off. The key hints at the bottom of each page, the pause menu's included, show the keys of the device you used last.
 
@@ -221,8 +222,7 @@ These options change how Link moves and what the keys do. Each says below where 
 
 In the wide view, the game's own scroll from one room to the next no longer shows: without this option, Link stands frozen while it runs. With **Display › Advanced › Continuous transitions** on (the default), he keeps walking through the scroll, his walk animated, and he keeps swimming through it at his own speed.
 
-He moves through the scroll as the keys say, his sprite with him from its first frame, while the game is still preparing the next room, with either camera. A direction held walks him on at the game's own speed; a diagonal held carries him across too, onto ground he can walk on, and a wall holds him as the game would. With his shield up, running on Pegasus seeds or with an item in use (a charged sword), the scroll is the game's own, and where it would leave him inside a wall just past the edge, he ends it where the game itself puts him. The next room starts only as he crosses the line between the two, so a tap at an edge takes him toward it and leaves him in his room. When you let go, he stops where he is and stands; turned back, he walks back, and across the line into the room he left. Swimming, at the surface or on Ages' sea floor, he swims through the scroll as anywhere else: the pad and his strokes speed him up and turn him, and let go he glides and slows down as in the middle of a room, so a tap at an edge glides him no further than it would there, the next room starting only if his glide takes him across the line; turned back, he swims back across it. At a corner, a diagonal takes him on into the room across as on foot, at the surface and on Ages' sea floor alike. Swimming up into a room, he never ends the scroll in its last rows at the bottom, where the game would take him out of the water: a glide too slow to leave them is carried on just past them, and turned back there he swims back into the room he left. A current still carries him over as the game has it. On an animal, in the cart, in a side view, in a dungeon's large rooms, or when the game itself walks him into the next room during a scene, rooms change as the game has them, so that the scene goes on from where the game puts him. At the corner where four rooms meet, a diagonal takes him on into the room across at his own pace, the scroll to it following the first at once, his sprite whole and steady all the way, past the edge of the game's own screen too, where the game draws none of him; where the game might lead that scroll elsewhere (the Lost Woods, the edges of the map), where someone or something there may take over as he arrives (a scene, a character who stops him), or where the room across reworks its own ground once it is drawn (a few rooms, a Gasha spot with something planted among them), he slows across instead. A whirlpool or a hole just past an edge brings him back where the game would, not right next to it.
-He moves through the scroll as the keys say, his sprite with him from its first frame, while the game is still preparing the next room, with either camera. A direction held walks him on at the game's own speed; a diagonal held carries him across too, onto ground he can walk on, and a wall holds him as the game would.
+He moves through the scroll as the keys say, his sprite with him from its first frame, while the game is still preparing the next room, with either camera. A direction held walks him on at the game's own speed; a diagonal held carries him across too, onto ground he can walk on, and a wall holds him as the game would. With his shield up, running on Pegasus seeds or with an item in use (a charged sword), the scroll is the game's own, and where it would leave him inside a wall just past the edge, he ends it where the game itself puts him.
 
 The next room starts only as he crosses the line between the two, so a tap at an edge takes him toward it and leaves him in his room. When you let go, he stops where he is and stands; turned back, he walks back, and across the line into the room he left.
 
@@ -240,7 +240,7 @@ At the corner where four rooms meet, a diagonal takes him on into the room acros
 
 A whirlpool or a hole just past an edge brings him back where the game would, not right next to it.
 
-The option plays in Enhanced only. The three fan games have it, the diagonal included, but there a tap at a room's edge takes Link through the whole scroll by himself, and a whirlpool or a hole just past an edge brings him back where the scroll left him. A savestate taken with the option on loads only with it on. Its exact rules, for route authors, are in [`REFERENCE.md`](REFERENCE.md#continuous-transitions).
+The option plays in Enhanced only. The three fan games made on one Oracle have it, the diagonal included, but there a tap at a room's edge takes Link through the whole scroll by himself, and a whirlpool or a hole just past an edge brings him back where the scroll left him. A savestate taken with the option on loads only with it on. Its exact rules, for route authors, are in [`REFERENCE.md`](REFERENCE.md#continuous-transitions).
 
 ### Hold to swim
 
@@ -258,7 +258,7 @@ Taking an item into a slot, and equipping one in that other mode, plays the game
 
 In Enhanced, a hotbar beside the status bar shows the four slots: each item's icon, from the start of play, its key and the button it is on. In Medium and Far each slot looks like the game's own B and A, the key's letter then the item between brackets, drawn where B and A draw it with its count or level as they show it (bombs and seeds counted, a sword's "L-3") ("LB" shows a big L with a small B under it, which the button's badge replaces while the item is on B or A); in Near it is more compact. An empty slot has dotted brackets or frame, an item Link does not have a faded icon; a slot blinks while it waits, and turns red when the game refuses. The hotbar comes and goes with the status bar, and never shows on the game's own screen that F3 switches to. In Near on a 4:3 screen there is no room for it, but the keys work all the same, and **Controls › Hotkeys** shows the slots' items.
 
-The keys hold for every game, and each game keeps its own slots. Loading a savestate cancels an exchange under way, and the hotkeys go on working after it. Item hotkeys play in Faithful and Enhanced, in Ages and Seasons on their original ROMs; the fan games do not have them yet. From the pause, a change applies when the game resumes.
+The keys hold for every game, and each game keeps its own slots, Oracles Combined one set for both its games. Loading a savestate cancels an exchange under way, and the hotkeys go on working after it. Item hotkeys play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in [Oracles Combined](#oracles-combined); the other fan games do not have them yet. From the pause, a change applies when the game resumes.
 
 ## Cheats
 
@@ -274,7 +274,7 @@ The Cheats page is in the menu of Ages, Seasons and the fan games, after Mods; e
 - **Ammo never runs out**: a seed, a bomb or a Bombchu used is not taken from its count. With none left there is still none.
 - **Rupees never run out**: a price is free, as long as the wallet holds it, which the game checks first. A mod's prices still apply.
 
-The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in the three fan games. In Temple of Seasons, **Ammo never runs out** keeps its seeds as it keeps its bombs, and **Rupees never run out** makes every purchase free. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
+The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in the fan games, in both halves of Oracles Combined. In Temple of Seasons, **Ammo never runs out** keeps its seeds as it keeps its bombs, and **Rupees never run out** makes every purchase free. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
 
 ## Languages
 
@@ -315,10 +315,11 @@ To try the two examples, [`mods/claw-game`](../mods/claw-game/) and [`mods/fortu
 
 ## Fan games
 
-The Fan games entry lists three games, each with its state:
+The Fan games entry lists four games, each with its state:
 
 - Gifts of Kinomi 1.1.2, built on Oracle of Ages;
 - Moonrise Regalia 1.0.6, built on Oracle of Ages;
+- Oracles Combined 1.5, both Oracles in one, built on their European ROMs ([below](#oracles-combined));
 - Temple of Seasons 1.073, built on Oracle of Seasons.
 
 A fan game comes as a BPS patch: you keep the original ROM it is built on, and the patch. Picked, a fan game has the menu of a game, and Escape or B goes back to the list.
@@ -327,7 +328,40 @@ Its Cartridge page asks for both files. **Base ROM** is the ROM of its Oracle, t
 
 The launcher refuses the patch of another of these fan games, and says which game it is for ("Refused: the patch of Moonrise Regalia, not of Gifts of Kinomi."); the patch chosen before stays. A patch dropped on a fan game's page becomes its patch; dropped elsewhere, it goes to the fan game it makes. The patch is applied in memory each time the game starts, and the patched game is never written. The save goes beside the patch, under its name (`Moonrise Regalia 1.0.6.sav`), not beside the base ROM, whose save is the Oracle's; **Open folder** opens the patch's folder.
 
-The three fan games play in Faithful and Enhanced, in every view, with continuous transitions, the compact text and the instant text. They have the cheats. From the home screen they do not have hold to swim, the item hotkeys, the languages or the mods yet.
+Gifts of Kinomi, Moonrise Regalia and Temple of Seasons play in Faithful and Enhanced, in every view, with continuous transitions and every row of Display › Text. They have the cheats, and Gifts of Kinomi and Temple of Seasons hold to swim. From the home screen they do not have the item hotkeys, the languages or the mods yet.
+
+### Oracles Combined
+
+Oracles Combined, by soaresden, joins Ages and Seasons in one game, with one save and a way from one to the other. It continues Crossworld, by vinheim3. It comes as a BPS patch, one for each language (English, French, German, Spanish and Italian), made for the two European ROMs joined, Ages' first: the port joins them and applies the patch in memory at each start, as it does for the other fan games. It recognises the five patches of release 1.5, from the `.zip` of its GitHub release: take the `.bps` of your language out of it, since a zip of several patches is refused.
+
+| Patch of release 1.5 | SHA-1 |
+| --- | --- |
+| English | `15029267980b902b15f348b89c5f9142f4684051` |
+| French | `6a5acc359ec80dbabc5976978b0afd8414610e9c` |
+| German | `9a790e0d11ccc3f2c28d255d77f1d6f0f8604718` |
+| Spanish | `78b1c38906be09e8c6bb3fad3cbc8dfa17e7e617` |
+| Italian | `86b99d43ffc60d6d67d126f662b2066f5d5b190b` |
+
+Its Cartridge page asks for:
+
+- **Ages ROM (EU)** and **Seasons ROM (EU)**, the European ROMs of Ages and Seasons, the same ones their own pages show for the languages: chosen once, they serve both. A row says "Recognized" once its ROM is there, which is then changed on its Oracle's page ("Set in Oracle of Ages's Cartridge"); else it says the ROM is missing ("Not chosen yet: Oracle of Seasons's European ROM is used") or not its game's ("Not the European ROM of Oracle of Seasons"), and its **Choose…** picks one. **Choose…**, or a file dropped on the page, takes either European ROM and files it under its game; any other file is refused, "Refused: Oracles Combined is made of the European ROMs of Ages and Seasons".
+- **Patch**, the `.bps` of your language.
+
+Below them, the page names the game the two make and its language, "Patched image recognized: Oracles Combined v1.5 · English", or says what is missing ("The game needs both European ROMs and the patch.") or that the patch is made for other ROMs ("Refused: this patch is not made for the European ROMs of Ages and Seasons."). Under it, "The language comes with the patch: choose another patch to change it." ("The language comes with the patch." in the 4:3 layout). Its save goes beside the patch, under its name, 32 KiB, the four banks of its cartridge. **Import save…** takes a save of Oracles Combined from another emulator, as it is: 32 KiB, with a game file of Ages or of Seasons whose checksum holds.
+
+It plays in Faithful and in Enhanced, in both games it joins: from the Ages it starts in, through Vasu's door to Seasons and back, and from a file of Seasons chosen on its file screen. What works there, as in Ages and Seasons:
+
+- **Display**: every view, Near, Medium and Far, the rooms around Link, the continuous transitions on foot and swimming, with the flippers or the mermaid suit, diagonals included, the unvisited rooms hidden or shown, and the HUD's Original, Full width and Wide layout, the game's own icon staying beside the rupees;
+- **Display › Text**: Compact, the Wide box, Text size and Instant, in the language of its patch;
+- **Controls › Swimming**: Hold, with the mermaid suit, in both games;
+- **Controls › Item hotkeys**, with slots of its own that serve both games: an item of either game, in either game, from any of its inventory's twenty slots as well as B and A (the slingshot keeping its own seeds); an item it gave back a moment after a use comes back in the other game too when you go through Vasu's door, and a key pressed as you go through is cancelled;
+- **Cheats**, its own, apart from those of Ages and Seasons;
+- savestates, F5 and F7, in either game.
+
+At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the item hotkeys (Controls says that fan games refuse them), the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
+At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the continuous transitions while swimming (a scroll in the water stays the game's own), the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
+
+Any other version of Oracles Combined, such as the image its author's web page builds with the options you pick there (the status bar at the bottom of the screen among them, which Enhanced does not lay out), plays too, in Faithful only: through the same page, its image "not recognized", or as an image you built yourself, chosen as **Oracle of Ages**' ROM or dropped on the home screen, where the Cartridge page says "Oracles Combined image, Faithful only; see Fan games". Chosen under Oracle of Seasons, such an image is refused: "an image of both games, which plays under Oracle of Ages". An image of Crossworld, the hack it continues, is not a patch of the European ROMs: it plays in Faithful only as an image chosen as **Oracle of Ages**' ROM, where the page says the same. Only the release's patches are recognised: they alone have the Enhanced view.
 
 ## In game
 
@@ -337,9 +371,9 @@ Escape pauses a game the home screen started, as the controller's menu button an
 
 From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are greyed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
 
-A fan game shows **Swimming** and **Item hotkeys** greyed, "Ages and Seasons only for now."; a game on an unrecognised ROM shows them greyed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
+A fan game other than Oracles Combined shows **Item hotkeys** greyed, "Ages and Seasons only for now.", and so does Moonrise Regalia for **Swimming**; a game on an unrecognised ROM shows them greyed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
 
-In Ages and Seasons with the item hotkeys off, a discreet line under the menu says where to turn them on: "Item hotkeys are off · Controls › Item hotkeys". It shows the first three times you open the menu, and goes for good once they are on. It is not there for a fan game, nor where the menu leaves Controls out.
+In Ages, Seasons and Oracles Combined with the item hotkeys off, a discreet line under the menu says where to turn them on: "Item hotkeys are off · Controls › Item hotkeys". It shows the first three times you open the menu, and goes for good once they are on. It is not there for the other fan games, nor where the menu leaves Controls out.
 
 ### Keys
 
@@ -371,7 +405,7 @@ Options given on the command line stay as given, and so does the view's shape (`
 
 ## Saves
 
-A game's save is the `.sav` beside its ROM, under the same name, or for a fan game beside its patch. It holds the cartridge's 8 KiB of battery memory, as other emulators write it. The launcher writes it every few seconds while it changes, and when the game ends. Cartridge's **Save** row shows it with its date.
+A game's save is the `.sav` beside its ROM, under the same name, or for a fan game beside its patch. It holds the cartridge's 8 KiB of battery memory (32 KiB for Oracles Combined), as other emulators write it. The launcher writes it every few seconds while it changes, and when the game ends. Cartridge's **Save** row shows it with its date.
 
 - **Import save…** brings in a save from elsewhere: another emulator, another device, or the European game. It opens the system's file dialog, or Android's document picker, then asks: "Replace this game's save? The current one is kept as a backup.", with the file and its folder. For a game without a save yet, it asks "Use this file as this game's save?". The file must be a save of that game, with at least one game file whose checksum holds; anything else is refused ("This file is not a save of Oracle of Ages.") and nothing is replaced.
 - The save it replaces goes to a `Backups` folder beside it, under its name and the time, never over another backup, and the game's savestate goes there with it. A savestate holds the save it was taken with, so **Load state** stays greyed until you take a savestate of the new save. The row then says what was imported and what went to Backups.
@@ -428,7 +462,7 @@ The Android application is the same launcher, in landscape and fullscreen: F11 a
 - **The picture is cut off at the top or the bottom**, the status bar or the top of the inventory hidden while no system bar shows. Set **Display › Picture › Screen margin** to **Auto**, which keeps clear of a notch or a curved edge that Android reports. Where it is not enough, choose **Small**, or **Large** where the picture is still cut.
 - **Menus and texts are hard to read on a small screen.** Set **Display › Picture › Menus & scenes** to **Large**, and **Display › Text › Text size** to Large or Very large.
 - **A savestate is refused.** When only Display's settings differ, **Load state** in the pause menu loads it, starting the game again with them; otherwise its message names what loads it, such as a core, a profile, a view's size or a text: choose that from the home screen. The game's own save always loads.
-- **A ROM is refused, or plays in Faithful only.** The port needs the original US ROM; the README lists their SHA-1. Any other ROM of an Oracle plays in Faithful only. A zip must hold one ROM, and 7z and RAR archives are not read.
+- **A ROM is refused, or plays in Faithful only.** The port needs the original US ROM; the README lists their SHA-1. Any other ROM of an Oracle plays in Faithful only. Oracles Combined has Enhanced only when made from its release's patch on the two European ROMs; any other version of it, or an image you built yourself under Oracle of Ages, plays in Faithful only. A zip must hold one ROM, and 7z and RAR archives are not read.
 - **The pause menu does not open with a controller.** L3, the left stick's click, opens it by default, and so does Guide where the system leaves it to the application. **Controls › In game › Menu** takes another free button or a trigger.
 - **The Linux AppImage does not start.** Take the `.tar.gz`, or run the AppImage with `--appimage-extract-and-run`: a system without FUSE cannot mount it.
 

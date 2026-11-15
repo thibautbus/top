@@ -115,7 +115,7 @@ OraclesLanguagePack *oracles_language_pack_derive(const OraclesLanguagePack *bas
         return NULL;
     }
     if (oracles_rom_identify(image, size, &info, error, capacity) != 0) return NULL;
-    if (language_target_of(info.sha1, &target) != 0 || target.original || target.game != base->game) {
+    if (language_target_of(info.sha1, &target) != 0 || target.original || target.game != base->game || target.halves > 1u) {
         snprintf(error, capacity, "not a fan game made on %s whose texts the port knows (SHA-1 %s)", oracles_game_name(base->game), info.sha1);
         return NULL;
     }

@@ -22,6 +22,8 @@ OraclesModSession *oracles_mod_session_start(const char *const *dirs, size_t cou
  * `original`, the user's ROM being one of the US ROMs the port recognises.  -1 with the reason when a house cannot be
  * placed. */
 int oracles_mod_session_compose(OraclesModSession *session, int original, uint8_t **rom, size_t *rom_size, char *error, size_t capacity);
+/* oracles_mod_set_check_profile: the game's profile refusing the mods, said before a file is written for them. */
+int oracles_mod_session_check_profile(const OraclesModSession *session, const OraclesCompatProfile *profile, char *error, size_t capacity);
 int oracles_mod_session_attach(OraclesModSession *session, OraclesGuest *guest, char *error, size_t capacity);
 const char *oracles_mod_session_identity(const OraclesModSession *session);
 /* Whether a route recorded with `route_mods` (its header's `mods`, empty for none) replays with this session's mods

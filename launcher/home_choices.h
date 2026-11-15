@@ -27,6 +27,9 @@ void oracles_home_store_controls(const OraclesHomeControls *c, oracles_settings 
 /* What the profile of a game's own image does not qualify (OraclesHomeGame's refuses), by its revision: the image a fan
  * game's patch is made to give, built or not. */
 unsigned oracles_home_refusals(OraclesGame family, OraclesRomRevision revision);
+/* The image each fan game's patch is made to give, by fan game (ORACLES_HOME_FAN_*); Oracles Combined's in English, its
+ * release's patch in each of its five languages giving its own. */
+extern const OraclesRomRevision oracles_home_fan_revisions[ORACLES_HOME_FAN_GAMES];
 /* The cheats of game `game` (ORACLES_HOME_GAME_*) in the settings: an Oracle's cheats_<game>=, a fan game's own. */
 unsigned oracles_home_cheats(const oracles_settings *settings, int game);
 /* The cheats the Cheats page changed (nav->cheats_changed), each game's into its own key; never --cheats'. */

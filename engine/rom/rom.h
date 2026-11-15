@@ -31,7 +31,14 @@ typedef enum OraclesRomRevision {
     /* The European ROMs (English, French, German, Spanish, Italian): never played, the sources of a language for the
      * US ROM of their game (engine/language). */
     ORACLES_ROM_REVISION_AGES_EU,
-    ORACLES_ROM_REVISION_SEASONS_EU
+    ORACLES_ROM_REVISION_SEASONS_EU,
+    /* Oracles Combined 1.5, both games in one image, as its release's BPS patch of each language makes it of the two
+     * European ROMs joined, Ages' first. */
+    ORACLES_ROM_REVISION_COMBINED_1_5_EN,
+    ORACLES_ROM_REVISION_COMBINED_1_5_FR,
+    ORACLES_ROM_REVISION_COMBINED_1_5_DE,
+    ORACLES_ROM_REVISION_COMBINED_1_5_ES,
+    ORACLES_ROM_REVISION_COMBINED_1_5_IT
 } OraclesRomRevision;
 
 typedef struct OraclesRomInfo {
@@ -54,6 +61,11 @@ int oracles_rom_identify(const uint8_t *rom, size_t size, OraclesRomInfo *info, 
 int oracles_rom_known(const char *sha1, OraclesRomInfo *info);
 
 const char *oracles_game_name(OraclesGame game);
+/* An image of both games in one (Oracles Combined, or the Crossworld it continues), recognised or not: 8 MiB, Ages'
+ * half first, the header's own title.  It plays as an Ages ROM, the half it starts in. */
+int oracles_rom_is_combined(const OraclesRomInfo *info);
+/* The language of a recognised Oracles Combined image, "English" to "Italian"; NULL for any other image. */
+const char *oracles_rom_combined_language(const OraclesRomInfo *info);
 /* One of the two original US ROMs, not another authenticated image of their family (a fan game's). */
 int oracles_rom_is_original(const OraclesRomInfo *info);
 

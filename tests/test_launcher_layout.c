@@ -1,8 +1,8 @@
 /* The home screen's layout against the layout reference,
  * tests/launcher_layout_reference.json (layout_reference.h), the test's
- * argument, in its frames 1a (Ages), 1c (Fan games), 1d (Moonrise Regalia
+ * argument, in its frames 1a (Ages), fan games list (the four fan games), 1d (Moonrise Regalia
  * picked in the list), 1f (Seasons, no ROM) and 8e (Moonrise Regalia's Mods,
- * greyed), and a toast; in the 4:3 layout, 10a (Ages), 10b (Fan games), 10c
+ * greyed), and a toast; in the 4:3 layout, 10a (Ages), fan games list 640x480, 10c
  * (Seasons, no ROM), a toast, and the pause menu, 10n, and 10t in a 640x480
  * window; the toast after a game that ran slowly, 11c, 11f and 11h; the language beside Cartridge, 14f, 15d and
  * 16f; the reminder over a game started, 18d and 18e, and with each device and HUD, 37c to 37f; the pause menu's line on
@@ -76,7 +76,7 @@ static void frame_1a(void)
     layout_line("1a", "hero state", &hero.state);
     layout_box("1a", "hero", &hero.box);
 
-    const char *over[2] = { "Oracle of", "Community" }, *title[2] = { "Seasons", "Fan games" }, *states[2] = { "ROM not found", "3 games" };
+    const char *over[2] = { "Oracle of", "Community" }, *title[2] = { "Seasons", "Fan games" }, *states[2] = { "ROM not found", "4 games" };
     OraclesUiTitleLayout others[2];
     oracles_ui_layout_others(over, title, states, others);
     layout_line("1a", "seasons over", &others[0].over);
@@ -158,39 +158,47 @@ static void frame_language(const char *frame, int game, int language, const char
     CHECK(it[1].note == NULL);
 }
 
-static void frame_1c(void)
+/* The list of fan games, Oracles Combined highlighted: the four in the order of their names, each with its state beside
+ * it (ready, Moonrise Regalia played on 18 September, Gifts of Kinomi and Temple of Seasons on the 27th, Oracles Combined
+ * on 1 November), the list anchored at the bottom, Exit last; in 16:9 (fan games list), and in 4:3 under the tabs at
+ * 640x480 (fan games list 640x480). */
+static void tabs_4_3(const char *frame);
+
+static void fan_games_list(const char *frame, OraclesUiLayout layout)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
+    nav.layout = layout;
     nav.entry = ORACLES_HOME_FAN;
-    /* Each fan game with its state beside it, as frame 1c holds them: ready, Moonrise Regalia played on 18 September,
-     * Temple of Seasons and Gifts of Kinomi on the 27th. */
-    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_MOONRISE].last_session, sizeof nav.games[0].last_session, "18 Sep 2026");
-    nav.games[ORACLES_HOME_GAME_TEMPLE].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_TEMPLE].last_session, sizeof nav.games[0].last_session, "27 Sep 2026");
-    nav.games[ORACLES_HOME_GAME_KINOMI].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_KINOMI].last_session, sizeof nav.games[0].last_session, "27 Sep 2026");
+    nav.focus = 2;
+    static const struct { int game; const char *name, *date; } rows[4] = {
+        { ORACLES_HOME_GAME_KINOMI, "kinomi", "27 Sep 2026" }, { ORACLES_HOME_GAME_MOONRISE, "moonrise", "18 Sep 2026" },
+        { ORACLES_HOME_GAME_COMBINED, "combined", "1 Nov 2026" }, { ORACLES_HOME_GAME_TEMPLE, "temple", "27 Sep 2026" },
+    };
+    for (int i = 0; i < 4; i++) {
+        nav.games[rows[i].game].usable = 1;
+        snprintf(nav.games[rows[i].game].last_session, sizeof nav.games[0].last_session, "%s", rows[i].date);
+    }
     char state[ORACLES_HOME_STATE_LENGTH];
     oracles_home_state(&nav, ORACLES_HOME_HERO_FAN, state);
+    CHECK(!strcmp(state, "4 games"));
+    if (layout == ORACLES_UI_LAYOUT_4_3) tabs_4_3(frame);
     OraclesUiTitleLayout hero;
-    oracles_ui_layout_hero(ORACLES_UI_LAYOUT_16_9, 0, oracles_home_over(ORACLES_HOME_HERO_FAN), oracles_home_title(ORACLES_HOME_HERO_FAN), state, &hero);
-    layout_line("1c", "hero over", &hero.over);
-    layout_line("1c", "hero title", &hero.title);
-    layout_line("1c", "hero state", &hero.state);   /* "3 games" */
+    oracles_ui_layout_hero(layout, 0, oracles_home_over(ORACLES_HOME_HERO_FAN), oracles_home_title(ORACLES_HOME_HERO_FAN), state, &hero);
+    if (layout == ORACLES_UI_LAYOUT_4_3) CHECK(hero.over.h == 0.0f);
+    else layout_line(frame, "hero over", &hero.over);
+    layout_line(frame, "hero title", &hero.title);
+    layout_line(frame, "hero state", &hero.state);
     OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
-    if (menu(&nav, items) != 4) { fprintf(stderr, "FAIL 1c: four items expected\n"); layout_fail(); return; }
-    layout_box("1c", "kinomi", &items[0].box);
-    layout_line("1c", "kinomi note", &items[0].note);
-    layout_line("1c", "kinomi label", &items[0].label);
-    layout_box("1c", "moonrise", &items[1].box);
-    layout_line("1c", "moonrise note", &items[1].note);
-    layout_line("1c", "moonrise label", &items[1].label);
-    layout_box("1c", "temple", &items[2].box);
-    layout_line("1c", "temple note", &items[2].note);
-    layout_line("1c", "temple label", &items[2].label);
-    if (items[0].note_box.w != 0.0f) { fprintf(stderr, "FAIL 1c: the note has a background, as a reason\n"); layout_fail(); }
-    layout_box("1c", "exit", &items[3].box);
+    if (menu(&nav, items) != 5) { fprintf(stderr, "FAIL %s: five items expected\n", frame); layout_fail(); return; }
+    for (int i = 0; i < 4; i++) {
+        char name[32];
+        snprintf(name, sizeof name, "%s", rows[i].name); layout_box(frame, name, &items[i].box);
+        snprintf(name, sizeof name, "%s note", rows[i].name); layout_line(frame, name, &items[i].note);
+        snprintf(name, sizeof name, "%s label", rows[i].name); layout_line(frame, name, &items[i].label);
+    }
+    layout_box(frame, "exit", &items[4].box);
+    if (items[0].note_box.w != 0.0f) { fprintf(stderr, "FAIL %s: the note has a background, as a reason\n", frame); layout_fail(); }
 }
 
 static void frame_1d(void)
@@ -371,17 +379,19 @@ static void reminders(void)
     reminder_frame("37f 16:9", ORACLES_UI_LAYOUT_16_9, text, 64.0f);
 }
 
-/* A fan game's state "Patch refused" takes no more room than "Patch not found", as the hero's state and as its note in
- * the list of fan games, in both layouts. */
+/* A fan game's states "Patch refused" and "ROM refused" take no more room than "Patch not found", as the hero's state
+ * and as its note in the list of fan games, in both layouts. */
 static void patch_refused(void)
 {
     for (int layout = 0; layout < 2; layout++) {
         const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9);
-        if (oracles_ui_text_width(st->hero_state, "Patch refused") > oracles_ui_text_width(st->hero_state, "Patch not found")
-            || oracles_ui_text_width(st->item_note, "Patch refused") > oracles_ui_text_width(st->item_note, "Patch not found")) {
-            fprintf(stderr, "FAIL patch refused: wider than \"Patch not found\" in %s\n", layout ? "4:3" : "16:9");
-            layout_fail();
-        }
+        static const char *const refusals[2] = { "Patch refused", "ROM refused" };
+        for (int r = 0; r < 2; r++)
+            if (oracles_ui_text_width(st->hero_state, refusals[r]) > oracles_ui_text_width(st->hero_state, "Patch not found")
+                || oracles_ui_text_width(st->item_note, refusals[r]) > oracles_ui_text_width(st->item_note, "Patch not found")) {
+                fprintf(stderr, "FAIL %s: wider than \"Patch not found\" in %s\n", refusals[r], layout ? "4:3" : "16:9");
+                layout_fail();
+            }
     }
 }
 
@@ -640,38 +650,6 @@ static void credits(void)
     OraclesUiTitleLayout hero;
     oracles_ui_layout_hero_credited(ORACLES_UI_LAYOUT_16_9, 0, "Oracle of", "Ages", "Ready", oracles_home_credit(ORACLES_HOME_HERO_AGES), &hero);
     CHECK(hero.credit.w == 0.0f && hero.credit.h == 0.0f);
-}
-
-static void frame_10b(void)
-{
-    OraclesHomeNav nav;
-    oracles_home_init(&nav);
-    nav.layout = ORACLES_UI_LAYOUT_4_3;
-    nav.entry = ORACLES_HOME_FAN;
-    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_MOONRISE].last_session, sizeof nav.games[0].last_session, "18 Sep 2026");
-    nav.games[ORACLES_HOME_GAME_TEMPLE].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_TEMPLE].last_session, sizeof nav.games[0].last_session, "27 Sep 2026");
-    nav.games[ORACLES_HOME_GAME_KINOMI].usable = 1;
-    snprintf(nav.games[ORACLES_HOME_GAME_KINOMI].last_session, sizeof nav.games[0].last_session, "27 Sep 2026");
-    tabs_4_3("10b");
-    char state[ORACLES_HOME_STATE_LENGTH];
-    oracles_home_state(&nav, ORACLES_HOME_HERO_FAN, state);
-    OraclesUiTitleLayout hero;
-    oracles_ui_layout_hero(ORACLES_UI_LAYOUT_4_3, 0, oracles_home_over(ORACLES_HOME_HERO_FAN), oracles_home_title(ORACLES_HOME_HERO_FAN), state, &hero);
-    CHECK(hero.over.h == 0.0f);
-    layout_line("10b", "hero title", &hero.title);
-    layout_line("10b", "hero state", &hero.state);
-    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
-    if (menu(&nav, items) != 4) { fprintf(stderr, "FAIL 10b: four items expected\n"); layout_fail(); return; }
-    static const char *const names[3] = { "kinomi", "moonrise", "temple" };
-    for (int i = 0; i < 3; i++) {
-        char name[32];
-        snprintf(name, sizeof name, "%s", names[i]); layout_box("10b", name, &items[i].box);
-        snprintf(name, sizeof name, "%s note", names[i]); layout_line("10b", name, &items[i].note);
-        snprintf(name, sizeof name, "%s label", names[i]); layout_line("10b", name, &items[i].label);
-    }
-    layout_box("10b", "exit", &items[3].box);
 }
 
 static void frame_10c(void)
@@ -1109,7 +1087,7 @@ int main(int argc, char **argv)
     frame_language("14f", ORACLES_HOME_GAME_AGES, 2, "Fran\xc3\xa7" "ais");
     frame_language("15d", ORACLES_HOME_GAME_AGES, 1, "English (EU)");
     frame_language("16f", ORACLES_HOME_GAME_MOONRISE, 2, "Fran\xc3\xa7" "ais");
-    frame_1c();
+    fan_games_list("fan games list", ORACLES_UI_LAYOUT_16_9);
     frame_1d();
     frame_fan_pick("1m", ORACLES_HOME_GAME_TEMPLE, ORACLES_HOME_HERO_TEMPLE, "27 Sep 2026");
     frame_fan_pick("1p", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI, "27 Sep 2026");
@@ -1124,7 +1102,7 @@ int main(int argc, char **argv)
     hotkeys_line_rules();
     slow_toast("11c", 1920, 1080, 1);
     frame_10a();
-    frame_10b();
+    fan_games_list("fan games list 640x480", ORACLES_UI_LAYOUT_4_3);
     frame_10c();
     credit_4_3("credit home 640x480 kinomi", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI, "27 Sep 2026");
     credit_4_3("credit home 640x480 temple", ORACLES_HOME_GAME_TEMPLE, ORACLES_HOME_HERO_TEMPLE, "27 Sep 2026");

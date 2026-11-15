@@ -37,6 +37,8 @@ typedef struct OraclesObjectAnimationCheck OraclesObjectAnimationCheck;
 
 /* `dir`, may be NULL: where object_animation.tsv is written, a line per captured object. */
 OraclesObjectAnimationCheck *oracles_object_animation_check_start(OraclesGuest *guest, const uint8_t *rom, size_t rom_size, const char *dir);
+/* The guest went to the other half of an image of two games: that half's banks. */
+void oracles_object_animation_check_half_switched(OraclesObjectAnimationCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_object_animation_check_stop(OraclesObjectAnimationCheck *c);
 /* A return of updateAllObjects in the live instance, its objects as the collector numbers them. */
 void oracles_object_animation_check_updated(OraclesObjectAnimationCheck *c, const OraclesObjectRecord *now, unsigned count, uint32_t frame);

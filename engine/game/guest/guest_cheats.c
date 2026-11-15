@@ -17,7 +17,11 @@
  * removeOreChunkValue jumping to its call with hl on wNumOreChunks.  At the call, with hl on wNumRupees, the value
  * becomes 0, whose amount is none (getRupeeValue@rupeeValues' first word): nothing is taken away.  The ore chunks
  * are left as they are, and so is a call the call transaction made (a mod's game.pay), its return address on the
- * stack the transaction's write point. */
+ * stack the transaction's write point.  Oracles Combined's removeRupeeValue loads hl by a call (ldhl_wNumRupees, `ld
+ * hl,wNumRupees / ret` in the cartridge RAM's code, each half its own variable): the same call of getRupeeValue follows.
+ *
+ * In an image of two games each half has its points: those armed in the half left are armed again in the half the game
+ * goes to (oracles_guest_add_half_listener). */
 #include "guest_internal.h"
 
 #include <stdio.h>
@@ -65,9 +69,8 @@ uint16_t oracles_guest_find_in_routine(const uint8_t *rom, size_t size, OraclesG
 uint16_t oracles_guest_find_in_routine_within(const uint8_t *rom, size_t size, OraclesGuestSym routine, const uint8_t *sequence, size_t length,
                                               size_t window)
 {
-    if (!rom || routine.bank == ORACLES_GUEST_ABSENT || routine.addr >= 0x8000u) return 0;
-    const size_t base = routine.addr < 0x4000u ? routine.addr : (size_t)routine.bank * 0x4000u + (routine.addr - 0x4000u);
-    const size_t bank_end = routine.addr < 0x4000u ? 0x4000u : base + (0x8000u - routine.addr);
+    size_t base = 0, bank_end = 0;
+    if (!rom || routine.bank == ORACLES_GUEST_ABSENT || !oracles_rom_code_offset(routine.bank, routine.addr, &base, &bank_end)) return 0;
     uint16_t found = 0;
     unsigned count = 0;
     for (size_t i = 0; i < window && base + i + length <= size && base + i + length <= bank_end; i++) {
@@ -78,7 +81,32 @@ uint16_t oracles_guest_find_in_routine_within(const uint8_t *rom, size_t size, O
     return count == 1u ? found : 0;
 }
 
-uint16_t oracles_guest_find_cheat_point(const OraclesGuestTables *t, const uint8_t *rom, size_t size, OraclesGuestCheat cheat)
+/* removeRupeeValue's `call <ld hl,wNumRupees / ret> / call getRupeeValue`, the loader in bank 0, or in the cartridge RAM's
+ * code where the game runs code there (`sram_code`): the address of the second call, or 0 when it is not there once, or
+ * when the routine holds `direct` (`ld hl,wNumRupees / call getRupeeValue`) at all. */
+static uint16_t find_loaded_rupee_call(const OraclesGuestTables *t, const uint8_t *rom, size_t size, int sram_code, const uint8_t *direct, size_t direct_length)
+{
+    size_t base = 0, bank_end = 0;
+    if (!oracles_rom_code_offset(t->remove_rupee_value.bank, t->remove_rupee_value.addr, &base, &bank_end)) return 0;
+    const uint8_t loader[] = { 0x21, (uint8_t)t->num_rupees.addr, (uint8_t)(t->num_rupees.addr >> 8), 0xc9 };
+    uint16_t found = 0;
+    unsigned count = 0;
+    for (size_t i = 0; i < 0x40u && base + i + 6u <= size && base + i + 6u <= bank_end; i++) {
+        const uint8_t *code = rom + base + i;
+        if (base + i + direct_length <= bank_end && memcmp(code, direct, direct_length) == 0) return 0;
+        if (code[0] != 0xcd || code[3] != 0xcd || code[4] != (uint8_t)t->get_rupee_value.addr || code[5] != (uint8_t)(t->get_rupee_value.addr >> 8)) continue;
+        const unsigned target = code[1] | (unsigned)code[2] << 8;
+        size_t at = 0, end = 0;
+        if ((target >= 0x4000u && (!sram_code || !oracles_rom_in_sram(target))) || !oracles_rom_code_offset(target < 0x4000u ? 0u : ORACLES_SRAM_CODE_BANK, target, &at, &end)
+            || at + sizeof loader > end || at + sizeof loader > size || memcmp(rom + at, loader, sizeof loader) != 0)
+            continue;
+        found = (uint16_t)(t->remove_rupee_value.addr + i + 3u);
+        count++;
+    }
+    return count == 1u ? found : 0;
+}
+
+uint16_t oracles_guest_find_cheat_point(const OraclesGuestTables *t, const uint8_t *rom, size_t size, OraclesGuestCheat cheat, int sram_code)
 {
     if (cheat == ORACLES_CHEAT_NO_DAMAGE) {
         if (t->link_damage_to_apply.bank == ORACLES_GUEST_ABSENT) return 0;
@@ -92,11 +120,14 @@ uint16_t oracles_guest_find_cheat_point(const OraclesGuestTables *t, const uint8
         return at ? (uint16_t)(at + 4u) : 0;
     }
     if (cheat == ORACLES_CHEAT_RUPEES) {
-        if (t->num_rupees.bank == ORACLES_GUEST_ABSENT || t->get_rupee_value.bank != 0) return 0;
+        /* getRupeeValue called from any bank: bank 0, or the cartridge RAM's code in a game that runs code there. */
+        if (t->num_rupees.bank == ORACLES_GUEST_ABSENT || t->get_rupee_value.bank == ORACLES_GUEST_ABSENT
+            || (t->get_rupee_value.bank != 0 && !oracles_rom_in_sram(t->get_rupee_value.addr))) return 0;
         const uint8_t call[] = { 0x21, (uint8_t)t->num_rupees.addr, (uint8_t)(t->num_rupees.addr >> 8),
                                  0xcd, (uint8_t)t->get_rupee_value.addr, (uint8_t)(t->get_rupee_value.addr >> 8) };   /* ld hl,wNumRupees / call getRupeeValue */
         const uint16_t at = oracles_guest_find_in_routine(rom, size, t->remove_rupee_value, call, sizeof call);
-        return at ? (uint16_t)(at + 3u) : 0;
+        if (at) return (uint16_t)(at + 3u);
+        return find_loaded_rupee_call(t, rom, size, sram_code, call, sizeof call);
     }
     return 0;
 }
@@ -121,21 +152,40 @@ static int find_scripted_ammo(OraclesGuest *guest, const OraclesGuestRom *rom)
     return 0;
 }
 
+/* The points of `cheats` not armed yet, in the code of the half the game runs, each for itself: those refused counted. */
+static unsigned arm_points(OraclesGuest *guest, unsigned cheats)
+{
+    const OraclesGuestRom rom = oracles_guest_rom(guest);
+    static const OraclesGuestEventType events[ORACLES_CHEATS] = { ORACLES_EVENT_CHEAT_DAMAGE, ORACLES_EVENT_CHEAT_AMMO, ORACLES_EVENT_CHEAT_RUPEES };
+    unsigned refused = 0;
+    for (unsigned index = 0; index < ORACLES_CHEATS; index++) {
+        const unsigned cheat = 1u << index;
+        if (!(cheats & cheat) || (guest->cheats_armed & cheat)) continue;
+        /* The rupees' value 0 must take none away, as the game's table has it. */
+        if ((cheat == ORACLES_CHEAT_RUPEES && oracles_guest_rupee_amount(guest->tables, &rom, 0) != 0)
+            || (cheat == ORACLES_CHEAT_AMMO && find_scripted_ammo(guest, &rom) != 0)) { refused++; continue; }
+        const uint16_t point = oracles_guest_find_cheat_point(guest->tables, rom.data, rom.size, (OraclesGuestCheat)cheat, guest->sram_code_banks != 0);
+        const OraclesGuestSym at = { cheat_routine(guest->tables, index).bank, point };
+        if (!point || oracles_guest_add_hook(guest, at, events[index], 0) != 0) { refused++; continue; }
+        guest->cheats_armed |= cheat;
+    }
+    return refused;
+}
+
+/* The game went to the other half of its image: the points armed in the half left, in that half's code, each refused
+ * counted. */
+static void follow_half(void *opaque)
+{
+    OraclesGuest *guest = opaque;
+    guest->half_features_refused += arm_points(guest, guest->cheats_follow);
+}
+
 int oracles_guest_set_cheats(OraclesGuest *guest, unsigned cheats)
 {
     if (!guest || (cheats & ~((1u << ORACLES_CHEATS) - 1u)) || (cheats && !oracles_compat_cheats(guest->profile))) return -1;
-    const OraclesGuestRom rom = oracles_guest_rom(guest);
-    /* The rupees' value 0 must take none away, as the game's table has it. */
-    if ((cheats & ORACLES_CHEAT_RUPEES) && oracles_guest_rupee_amount(guest->tables, &rom, 0) != 0) return -1;
-    if ((cheats & ORACLES_CHEAT_AMMO) && !(guest->cheats_armed & ORACLES_CHEAT_AMMO) && find_scripted_ammo(guest, &rom) != 0) return -1;
-    static const OraclesGuestEventType events[ORACLES_CHEATS] = { ORACLES_EVENT_CHEAT_DAMAGE, ORACLES_EVENT_CHEAT_AMMO, ORACLES_EVENT_CHEAT_RUPEES };
-    for (unsigned index = 0; index < ORACLES_CHEATS; index++) {
-        if (!(cheats & 1u << index) || (guest->cheats_armed & 1u << index)) continue;
-        const uint16_t point = oracles_guest_find_cheat_point(guest->tables, rom.data, rom.size, (OraclesGuestCheat)(1u << index));
-        const OraclesGuestSym at = { cheat_routine(guest->tables, index).bank, point };
-        if (!point || oracles_guest_add_hook(guest, at, events[index], 0) != 0) return -1;
-        guest->cheats_armed |= 1u << index;
-    }
+    if (cheats && oracles_guest_listen_half(guest, follow_half) != 0) return -1;
+    if (!guest->half_left && arm_points(guest, cheats) != 0) return -1;   /* between two halves: armed in the next */
+    guest->cheats_follow |= cheats;
     guest->cheats = cheats;
     return 0;
 }
@@ -168,10 +218,8 @@ void oracles_guest_cheat_point(OraclesGuest *guest, OraclesGuestEventType type)
         const OraclesGuestSym counter = { 0, r.hl }, at_sp = { 0, r.sp };
         const uint8_t *count = oracles_guest_ptr(guest, counter, 1), *word = oracles_guest_ptr(guest, at_sp, 2);
         if (!(guest->cheats & ORACLES_CHEAT_AMMO) || !count || *count == a) return;
-        uint16_t bank = 0;
-        oracles_core_memory(guest->core, ORACLES_CORE_ROM, NULL, &bank);
         if (guest->ammo_scripted_return.bank != ORACLES_GUEST_ABSENT && word && (uint16_t)(word[0] | word[1] << 8) == guest->ammo_scripted_return.addr
-            && bank == guest->ammo_scripted_return.bank)
+            && oracles_guest_code_mapped(guest, guest->ammo_scripted_return))
             return;   /* the story's own loss (Ages' bomb-upgrade fairy); a game without it has nothing to leave */
         set_a(guest, &r, *count);
         guest->cheat_counts.ammo_kept++;

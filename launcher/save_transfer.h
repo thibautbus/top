@@ -15,18 +15,21 @@
 #include <stdint.h>
 #include <time.h>
 
-/* The most a file chosen as a save is read of: a save and a byte, which tells a larger file. */
-#define ORACLES_SAVE_TRANSFER_READ (ORACLES_SAVE_SIZE + 1u)
+/* The most a file chosen as a save is read of: the largest save, Oracles Combined's, and a byte, which tells a larger
+ * file. */
+#define ORACLES_SAVE_TRANSFER_READ (ORACLES_SAVE_COMBINED_SIZE + 1u)
 
 /* The file at `path` (on Android, its content:// address) into `out`, ORACLES_SAVE_TRANSFER_READ bytes, *size the bytes
- * read: a file larger than a save (a video, a disc image chosen by mistake) refused unread, with "larger than a save"
- * in `error`, and never more than ORACLES_SAVE_TRANSFER_READ bytes read of one whose size is not known.  1, or 0 with
- * the reason in `error`. */
-int oracles_save_transfer_read(const char *path, uint8_t *out, size_t *size, char *error, size_t error_capacity);
+ * read: a file larger than the game's save of `largest` bytes (a video, a disc image chosen by mistake) refused unread,
+ * with "larger than a save" in `error`, and never more than `largest` and a byte read of one whose size is not known.
+ * 1, or 0 with the reason in `error`. */
+int oracles_save_transfer_read(const char *path, uint8_t *out, size_t largest, size_t *size, char *error, size_t error_capacity);
 
 /* The `size` bytes of a file as the save of a game on `engine`, into `out` (ORACLES_SAVE_SIZE bytes): 1 when they are
  * one, *english then 1 when `oracle` set a language other than English to it; 0 when they are not one. */
 int oracles_save_transfer_check(const uint8_t *data, size_t size, OraclesGame engine, int oracle, uint8_t *out, int *english);
+/* The same for Oracles Combined, into `out` (ORACLES_SAVE_COMBINED_SIZE bytes), taken as it is: 1 when they are its save. */
+int oracles_save_transfer_check_combined(const uint8_t *data, size_t size, uint8_t *out);
 
 /* What an import kept in Backups, each path empty when there was no such file: the save it replaced, its savestate, and
  * the game with mods' save, savestate and mods' storage. */

@@ -97,7 +97,9 @@ typedef enum OraclesGuestEventType {
     ORACLES_EVENT_EDGE_TEST_UP,            /* screenTransitionState2's `cp (hl)` of the top edge, with the line armed: its transaction runs here, */
     ORACLES_EVENT_EDGE_TEST_RIGHT,         /* the right edge's, */
     ORACLES_EVENT_EDGE_TEST_DOWN,          /* the bottom edge's, */
-    ORACLES_EVENT_EDGE_TEST_LEFT           /* and the left edge's */
+    ORACLES_EVENT_EDGE_TEST_LEFT,          /* and the left edge's */
+    ORACLES_EVENT_HALF_SWITCH              /* entry of swapGame, in a half of an image of two games: the guest leaves the game there
+                                              when it switches to the other half (oracles_guest_half_left); never sent */
 } OraclesGuestEventType;
 
 typedef struct OraclesGuestEvent {
@@ -179,7 +181,8 @@ typedef struct OraclesGuestTransitionState {
      * game read this frame, the swimmer's ring worn, the swim's hold on. */
     uint8_t link_speed_tmp, link_speed_counter, link_speed_period, link_counter1, link_mermaid_stroke;
     uint8_t game_keys_pressed, game_keys_just_pressed, swimmers_ring, swim_hold;
-    uint8_t ages_water;                                                        /* the water of Ages' engine: the mermaid suit, sea water and whirlpools (its profile) */
+    uint8_t ages_water;                                                        /* the water of Ages' engine: deep water and sea water swum with the suit alone, whirlpools (its profile) */
+    uint8_t suit_swims;                                                        /* the swimming states move Link with linkUpdateVelocity@mermaidSuit when var2f's bit 6 is set (oracles_guest_tables_suit_swims) */
     uint8_t game_frame;                                                       /* wFrameCounter: the game's frame, which a vblank of an unfinished one shares */
     uint8_t screen_transition_delay, disable_screen_transitions, hole_or_conveyor;   /* wScreenTransitionDelay, wDisableScreenTransitions, wcc92 */
     uint8_t menu_disabled, disabled_objects;                                  /* wMenuDisabled, wDisabledObjects */
@@ -309,24 +312,27 @@ void oracles_guest_set_transition_last_state(OraclesGuest *guest, uint8_t state)
  * write path.  At the return of checkReloadStatusBarGraphics from its one
  * call in mainThreadStart (after the frame's only clearing of
  * wStatusBarNeedsRefresh, before resumeThreadNextFrame), a policy receives a
- * snapshot of the eighteen inventory slots, the variants and what says
+ * snapshot of the inventory's slots, the variants and what says
  * whether the player could open the inventory, and may ask for one
  * operation: an exchange of two slots, one of them a button, and a variant.
  * The guest applies it only after its own checks, to states the game's own
  * menu can produce, and tells the policy what it did. */
-#define ORACLES_INVENTORY_SLOTS 18u        /* 0: B, 1: A, 2 to 17: wInventoryStorage */
+#define ORACLES_INVENTORY_SLOTS 22u        /* at most: 0 B, 1 A, then wInventoryStorage, sixteen slots (2 to 17), twenty in Oracles Combined */
 #define ORACLES_INVENTORY_SLOT_B 0u
 #define ORACLES_INVENTORY_SLOT_A 1u
 #define ORACLES_BUTTON_A 0x01u             /* the joypad bits the game keeps in Item.var03 */
 #define ORACLES_BUTTON_B 0x02u
 
-typedef enum OraclesGuestVariant { ORACLES_VARIANT_NONE = 0, ORACLES_VARIANT_SATCHEL, ORACLES_VARIANT_SHOOTER, ORACLES_VARIANT_HARP } OraclesGuestVariant;
+/* The slingshot's own seeds: Oracles Combined's (wSlingshotSelectedSeeds); elsewhere the slingshot is the shooter of its game. */
+typedef enum OraclesGuestVariant { ORACLES_VARIANT_NONE = 0, ORACLES_VARIANT_SATCHEL, ORACLES_VARIANT_SHOOTER, ORACLES_VARIANT_HARP, ORACLES_VARIANT_SLINGSHOT } OraclesGuestVariant;
 
 typedef struct OraclesGuestInventoryState {
     OraclesGame game;
     uint32_t frame;
     uint8_t slots[ORACLES_INVENTORY_SLOTS];
+    uint8_t slot_count;                                    /* the game's: 18, 22 in Oracles Combined; the slots past it are empty */
     uint8_t satchel_seeds, shooter_seeds, harp_song;       /* harp_song 0xff when the game has no harp */
+    uint8_t slingshot_seeds;                               /* 0xff when the slingshot has none of its own */
     uint8_t obtained_seeds, obtained_songs;                /* bit n: seed n (0 to 4), song n + 1 (1 to 3) obtained */
     uint8_t game_state, cutscene_index, opened_menu_type, text_is_active, link_death_trigger, intro_done,
             use_simulated_input, in_boxing_match, minigame_controller, scroll_mode, menu_disabled,
@@ -337,6 +343,7 @@ typedef struct OraclesGuestInventoryState {
             tileset_flags, link_swimming_state, link_var2f, disabled_objects, link_object_index, companion_id, palette_thread_mode;
     /* constants of the game, for the policies (generated tables) */
     uint8_t num_inventory_items, item_biggoron_sword, item_seed_satchel, item_seed_shooter, item_harp, cutscene_ingame, cutscene_onox_final_form,
+            item_slingshot,   /* the item of ORACLES_VARIANT_SLINGSHOT, where it has its own seeds */
             item_bomb, item_bracelet,   /* the two items that lift an object over Link's head */
             tilesetflag_bit_sidescroll, tilesetflag_bit_underwater,   /* the second 0xff in Seasons, which has no underwater tileset */
             menu_inventory, specialobject_minecart, specialobject_raft, cutscene_loading_room;
@@ -383,22 +390,25 @@ uint8_t oracles_guest_item_variant(const OraclesGuestInventoryState *state, uint
  * of A or B, whatever their items (bombsBraceletParent.s, the bracelet's state 3), which checkUseItems leaves to the
  * item in use while Link grabs.  The button the holding item answers to, B when it answers to none.  Pure. */
 unsigned oracles_guest_item_throw(const OraclesGuestInventoryState *state);
-/* Whether every non-empty identifier of the eighteen slots stands once. */
+/* Whether every non-empty identifier of the slots stands once. */
 int oracles_guest_inventory_consistent(const uint8_t slots[ORACLES_INVENTORY_SLOTS]);
 
 typedef void (*OraclesGuestInventoryFn)(void *opaque, const OraclesGuestInventoryState *state, OraclesGuestInventoryOp *op);
 /* What the guest did with the operation asked at this write point (not called when none was asked). */
 typedef void (*OraclesGuestInventoryResultFn)(void *opaque, const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op, OraclesGuestInventoryVerdict verdict);
+/* Called by oracles_guest_reset_execution_state: after a savestate's load, and when the game goes to the other half of
+ * its image (oracles_guest_switching_half answers then, 2 for swapGame's switch, the inventory copied across). */
 typedef void (*OraclesGuestInventoryResetFn)(void *opaque);
 /* Installs the policy (NULL removes it) and arms the write point, found in the
- * user's ROM: the one `call checkReloadStatusBarGraphics` of mainThreadStart.
+ * user's ROM: the one `call checkReloadStatusBarGraphics` of mainThreadStart; in an image of two games, again in each
+ * half the game goes to (armed in the next when given between two halves).
  * Returns -1 when the ROM has none or several, or the hook table is full. */
 int oracles_guest_set_inventory_policy(OraclesGuest *guest, OraclesGuestInventoryFn policy, OraclesGuestInventoryResultFn result,
                                        OraclesGuestInventoryResetFn reset, void *opaque);
 /* The snapshot the policy would receive now (any moment: the harness, the launcher's bindings). */
 void oracles_guest_inventory_state(OraclesGuest *guest, OraclesGuestInventoryState *out);
 /* The inventory open on its item submenu and waiting for an input (point 7): 1 with the storage slot under the cursor
- * (2 to 17), 0 otherwise — the seed and song submenus included, whose ranks are the game's own computation. */
+ * (2 to 17, to 21 in Oracles Combined), 0 otherwise — the seed and song submenus included, whose ranks are the game's own computation. */
 int oracles_guest_inventory_cursor(OraclesGuest *guest, unsigned *slot);
 /* The sprites the status bar draws an item with on a button, found as loadEquippedItemSpriteData and loadItemIconGfx find
  * them (bank2.s): treasureDisplayData's entry for the item at its level (the variable the first table names, read
@@ -461,13 +471,17 @@ typedef struct OraclesGuestCall {
  * image's profile does not qualify the inventory's addresses, the ROM has no
  * such point, or the hook table is full.  Called once, before any call is queued. */
 int oracles_guest_arm_calls(OraclesGuest *guest);
-/* The ROM image the core runs, flat (bank n from n * $4000), as the call transaction reads the treasures' tables in it. */
+/* Whether a guest of `profile` may arm the calls, the profile's part of oracles_guest_arm_calls: known before a core runs. */
+int oracles_guest_calls_qualified(const OraclesCompatProfile *profile);
+/* The ROM image the core runs, flat (bank n from n * $4000), as the call transaction reads the treasures' tables in it:
+ * the half of it the game's banks are relative to, for an image of two (oracles_rom.h, address spaces). */
 typedef struct OraclesGuestRom {
     const uint8_t *data;
     size_t size;
 } OraclesGuestRom;
 OraclesGuestRom oracles_guest_rom(OraclesGuest *guest);
-/* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000. */
+/* A symbol's `length` bytes in the ROM image, or NULL outside it: bank 0 from 0, bank n from n * $4000, a symbol of the
+ * cartridge RAM's code ($a000-$bfff) from its ROM bank's start, where the game copies it from. */
 const uint8_t *oracles_guest_rom_at(const OraclesGuestRom *rom, OraclesGuestSym sym, size_t length);
 /* Pure: how giveTreasure applies `treasure`'s parameter, read in `rom` (the low nibble of the second byte of its
  * treasureCollectionBehaviourTable entry); -1 when the treasure or the table is out of the image. */
@@ -549,7 +563,9 @@ uint16_t oracles_guest_find_stroke_test(const uint8_t *rom, size_t size, Oracles
 int oracles_guest_arm_swim_hold(OraclesGuest *guest);
 /* Turns the hold on or off from the next test it meets, arming the tests the first time it is on (the same -1 as
  * above, the hold unchanged); once armed they stay so, and answer only while it is on.  A stroke under way when it
- * goes off is the game's to finish. */
+ * goes off is the game's to finish.  In an image of two games, the tests are armed again in each half the game goes to,
+ * and turned on between two halves, in the next, unchecked until then: a half without them counts the hold refused
+ * (oracles_guest_half_counts), on and without effect there. */
 int oracles_guest_set_swim_hold(OraclesGuest *guest, int on);
 int oracles_guest_swim_hold(const OraclesGuest *guest);
 /* The strokes the transaction started since the attach, with the mermaid suit and with the flippers. */
@@ -646,17 +662,23 @@ int oracles_cheats_parse(const char *list, const char *prefix, unsigned *cheats)
 /* Pure: `cheats` as such a list, each name after `prefix` (NULL for none), in `out`; returns `out`. */
 const char *oracles_cheats_format(unsigned cheats, const char *prefix, char *out, size_t capacity);
 /* Pure: the address of the one occurrence of `sequence` starting within the first $40 bytes of `routine` in `rom` (the
- * flat image, bank n from n * $4000), inside its bank; 0 when there is none or several. */
+ * flat image, bank n from n * $4000), inside its bank (inside the RAM's copy for a routine of the cartridge RAM's code,
+ * read in its ROM bank, the address in $a000-$bfff); 0 when there is none or several. */
 uint16_t oracles_guest_find_in_routine(const uint8_t *rom, size_t size, OraclesGuestSym routine, const uint8_t *sequence, size_t length);
 /* The same within the routine's first `window` bytes. */
 uint16_t oracles_guest_find_in_routine_within(const uint8_t *rom, size_t size, OraclesGuestSym routine, const uint8_t *sequence, size_t length,
                                               size_t window);
 /* Pure: the instruction `cheat` answers at in `rom`: `ld h,d / ld l,<w1Link.damageToApply / ld a,(hl) / ld (hl),$00 /
  * or a` in linkApplyDamage, its `or a`; `ld a,(hl) / sub $01 / daa / ld (hl),a / or h / ret` in decNumBombs, its
- * `ld (hl),a`; `ld hl,wNumRupees / call getRupeeValue` in removeRupeeValue, its call; 0 when not found once. */
-uint16_t oracles_guest_find_cheat_point(const OraclesGuestTables *tables, const uint8_t *rom, size_t size, OraclesGuestCheat cheat);
+ * `ld (hl),a`; `ld hl,wNumRupees / call getRupeeValue` in removeRupeeValue, its call, or else `call <ld hl,wNumRupees /
+ * ret> / call getRupeeValue` (the loader in bank 0, or in the cartridge RAM's code for a game that runs code there,
+ * `sram_code`), its second call; 0 when not found once. */
+uint16_t oracles_guest_find_cheat_point(const OraclesGuestTables *tables, const uint8_t *rom, size_t size, OraclesGuestCheat cheat, int sram_code);
 /* Sets the cheats on (a mask of OraclesGuestCheat, 0 for none), arming the point of each the first time; -1, the cheats
- * unchanged, when the profile does not qualify them, a point is not found once, or the hook table is full. */
+ * unchanged, when the profile does not qualify them, a point is not found once, or the hook table is full (the others'
+ * points armed all the same).  In an image of two games, the points armed are armed again in each half the game goes
+ * to, and those turned on between two halves, in the next, unchecked until then: a point the half has not is counted
+ * (oracles_guest_half_counts), the cheat on and without effect there. */
 int oracles_guest_set_cheats(OraclesGuest *guest, unsigned cheats);
 unsigned oracles_guest_cheats(const OraclesGuest *guest);
 /* What the cheats did since the attach. */
@@ -756,7 +778,8 @@ void oracles_guest_compact_vblank(OraclesGuest *guest);
 uint16_t oracles_guest_find_reveal_point(const OraclesGuestTables *tables, const uint8_t *rom, size_t size);
 uint16_t oracles_guest_find_cursor_place_point(const OraclesGuestTables *tables, const uint8_t *rom, size_t size);
 /* Arms the transaction, the font's widths read in the image the core runs (a language's glyphs included); -1 when the
- * profile does not qualify it, a point is not found once, or the hook table is full. */
+ * profile does not qualify it, a point is not found once, the hook table is full, or an image of two games has no room
+ * left for the listener that arms it again in the other half. */
 int oracles_guest_arm_compact_text(OraclesGuest *guest);
 typedef struct OraclesGuestCompactCounts {
     unsigned lines, characters;   /* lines composed, and their characters */
@@ -771,6 +794,9 @@ typedef struct OraclesGuestCompactCounts {
     unsigned resumed;             /* lines a savestate's load gave back within drawLineOfText's call */
 } OraclesGuestCompactCounts;
 void oracles_guest_compact_counts(const OraclesGuest *guest, OraclesGuestCompactCounts *counts);
+/* Whether the transaction's font is not the one its layout asks for: at the fixed advance for the classic text in the
+ * wide box, the font's own widths otherwise (armed again in another half, the fixed advance must be applied again). */
+int oracles_guest_compact_font_wrong(const OraclesGuest *guest);
 /* The line drawLineOfText is composing, for a savestate taken within its call: its bytes in `out`, at most
  * ORACLES_GUEST_COMPACT_STATE_SIZE; 0 outside a call, or without the compact text. */
 #define ORACLES_GUEST_COMPACT_STATE_SIZE (7u + ORACLES_GUEST_LINE_CHARACTERS * sizeof(OraclesGuestCompactCharacter))
@@ -805,7 +831,8 @@ uint8_t oracles_guest_text_skip_flags(uint8_t flags, uint8_t sound_effect);
 uint16_t oracles_guest_find_text_skip_test(const OraclesGuestTables *tables, const uint8_t *rom, size_t size);
 uint16_t oracles_guest_find_text_skip_loop(const OraclesGuestTables *tables, const uint8_t *rom, size_t size);
 /* Turns the instant text on or off from the next test it meets, arming the points the first time it is on; -1, the
- * text unchanged, when the profile does not qualify it, a point is not found once, or the hook table is full. */
+ * text unchanged, when the profile does not qualify it, a point is not found once, or the hook table is full.  In an
+ * image of two games, as the swim's hold. */
 int oracles_guest_set_text_instant(OraclesGuest *guest, int on);
 int oracles_guest_text_instant(const OraclesGuest *guest);
 /* Whether its points are armed: on now, or once. */
@@ -928,6 +955,46 @@ uint16_t oracles_guest_thread_sp(OraclesGuest *guest, unsigned thread);
  * describe an execution that no longer exists: the host calls this right
  * after the load, on the live guest as on a ghost's. */
 void oracles_guest_reset_execution_state(OraclesGuest *guest);
+
+/* A half of an image of two games (oracles_compat_half_switch): the guest stops where the game switches to the other
+ * half, at swapGame's entry, before it changes a byte (its tables are its half's alone).  From there no hook fires, no
+ * write is watched, no vblank is seen, the calls queued and the returns awaited are dropped; the bus still reads.  Its
+ * frame (oracles_guest_set_frame's) plus 1, or 0 while the guest is in its half.  After a savestate's load the host asks
+ * again (oracles_guest_check_half): a state of the other half's game stops it as well, or of a game already switching to
+ * it.  Returns whether it is stopped. */
+uint32_t oracles_guest_half_left(const OraclesGuest *guest);
+int oracles_guest_check_half(OraclesGuest *guest);
+/* Whether the execution's reset under way is the one of a switch of halves (oracles_guest_follow_half), not a load's:
+ * 2 when swapGame made it, the game's file carried across with its inventory (Vasu's door, a file of the other game
+ * loaded), 1 for another (the reset out of the second half, a state of the other half's game), 0 otherwise. */
+int oracles_guest_switching_half(const OraclesGuest *guest);
+/* Between two frames, and after a savestate's load: the guest follows the game.  It stops as oracles_guest_check_half
+ * does; once the byte that names the game names the half the game has gone to, while swapGame still copies its code and
+ * before its thread starts again (or at once for a state, or after the reset that starts the game on its first half),
+ * the guest is the one of that half, on the same address: its tables, its hooks, nothing else armed, the execution reset;
+ * then each listener arms again what it asked of the guest and reads its half's data, in the order they asked.  1 when
+ * it switched, 0 otherwise, every image of one game. */
+int oracles_guest_follow_half(OraclesGuest *guest);
+/* The guest of `half` from now on, whatever the game runs: what oracles_guest_follow_half does once it knows the half (a
+ * ghost's, which the view moves to the half the live game is in); 0, or -1 when its hooks do not fit. */
+int oracles_guest_switch_to(OraclesGuest *guest, const OraclesCompatProfile *half);
+typedef void (*OraclesGuestHalfFn)(void *opaque);
+int oracles_guest_add_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque);
+void oracles_guest_remove_half_listener(OraclesGuest *guest, OraclesGuestHalfFn listener, void *opaque);
+/* Whether the game is between two halves: from swapGame's entry to the LCD off of its first room in the other half,
+ * its memory neither half's at first, its screen the one it left. */
+int oracles_guest_half_passage(OraclesGuest *guest);
+/* The switches followed, the hooks armed after them, the returns awaited when the guest stopped, and the features armed
+ * in the half left whose points the half gone to does not have: the swim's hold, the instant text, and each cheat for
+ * itself; the text's transactions (the language, the compact text, the host's box) armed again in the half gone to, and
+ * those that could not be. */
+typedef struct OraclesGuestHalfCounts { unsigned switches, hooks_armed, returns_dropped, features_refused, text_armed, text_lost; } OraclesGuestHalfCounts;
+void oracles_guest_half_counts(const OraclesGuest *guest, OraclesGuestHalfCounts *out);
+/* A ghost's guest: swapGame hooked to note a run that reached it (oracles_guest_half_crossed, until the next load's
+ * oracles_guest_reset_execution_state), which never leaves its half nor changes a hook: the run is given up.  -1 when its
+ * hook does not fit. */
+int oracles_guest_watch_half(OraclesGuest *guest);
+int oracles_guest_half_crossed(const OraclesGuest *guest);
 
 /* ---- ghost instance ---------------------------------------------------------- */
 /* Read trace: `fn` receives every CPU read outside the interrupt handlers

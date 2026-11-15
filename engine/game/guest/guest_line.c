@@ -76,9 +76,10 @@ void oracles_guest_find_map_edges(const OraclesGuestTables *t, const uint8_t *ro
     if (!t || t->screen_transition_state2.bank == ORACLES_GUEST_ABSENT) return;
     const uint8_t right[] = { 0x20, 0x04, 0x79, 0xfe, 0x01, 0xc8, 0x7b, 0xfe };
     const uint16_t at = oracles_guest_find_in_routine_within(rom, size, t->screen_transition_state2, right, sizeof right, 0xc0u);
-    if (!at || at < 0x4002u) return;
-    const size_t base = (size_t)t->screen_transition_state2.bank * 0x4000u + (at - 0x4000u);
-    if (base + sizeof right + 1u > size || rom[base - 2u] != 0xfeu) return;
+    size_t base = 0, region_end = 0;   /* the two bytes before the match in its own bank, or the RAM's code */
+    if (!at || at < 0x4002u || (oracles_rom_in_sram(at) && at < ORACLES_SRAM_CODE_START + 2u)) return;
+    if (!oracles_rom_code_offset(t->screen_transition_state2.bank, at, &base, &region_end)) return;
+    if (base + sizeof right + 1u > size || base + sizeof right + 1u > region_end || rom[base - 2u] != 0xfeu) return;
     *column = rom[base - 1u];
     *row = rom[base + sizeof right];
 }
@@ -87,9 +88,9 @@ static int arm_tests(OraclesGuest *guest)
 {
     const OraclesGuestTables *t = guest->tables;
     if (!oracles_compat_continuous_line(guest->profile)) return -1;
-    size_t size = 0;
-    uint16_t bank = 0;
-    const uint8_t *rom = oracles_core_memory(guest->core, ORACLES_CORE_ROM, &size, &bank);
+    const OraclesGuestRom image = oracles_guest_rom(guest);
+    const uint8_t *rom = image.data;
+    const size_t size = image.size;
     uint16_t at[4];
     for (unsigned d = 0; d < 4u; d++) if (!(at[d] = oracles_guest_find_edge_test(t, rom, size, d))) return -1;
     for (unsigned d = 0; d < 4u; d++)

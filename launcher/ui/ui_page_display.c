@@ -498,6 +498,7 @@ void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h
 
 const char *oracles_display_profile_note(const OraclesHomeNav *nav)
 {
+    /* An image no profile recognises, which plays in Faithful. */
     if (oracles_display_played_profile(nav) != nav->display.profile) return "Enhanced needs an original ROM: this game plays in Faithful.";
     return profile_notes[nav->display.profile == ORACLES_PROFILE_ENHANCED];
 }

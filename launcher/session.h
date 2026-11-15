@@ -22,6 +22,8 @@ struct OraclesEnhancedSize;
 typedef struct OraclesSessionOptions {
     const char *rom_path;
     const char *patch_path;          /* a BPS patch applied to rom_path in memory (a fan game), or NULL */
+    const char *joined_path;         /* with patch_path, a ROM joined after rom_path before the patch applies (Oracles Combined:
+                                      * Seasons' European ROM after Ages'), or NULL */
     const char *save_path;           /* NULL: next to the ROM, or to the patch when there is one */
     const char *screenshot;          /* PATH.ppm of the last frame, or NULL */
     const char *record_path, *play_path;

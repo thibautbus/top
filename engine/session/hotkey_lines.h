@@ -10,7 +10,12 @@
 
 #include <stddef.h>
 
-/* `name` and `value` are the two sides of a settings line.  Returns 1 with the game (0 ages, 1 seasons), the slot
+/* The games with slots of their own: Ages, Seasons, and Oracles Combined, whose two halves share theirs (`hotkey_combined_<n>`,
+ * its items the same in both). */
+#define ORACLES_HOTKEY_GAMES 3u
+#define ORACLES_HOTKEY_GAME_COMBINED 2u
+
+/* `name` and `value` are the two sides of a settings line.  Returns 1 with the game (0 ages, 1 seasons, 2 combined), the slot
  * (0 to 3) and its content when the line is a hotkey's and well formed; 0 otherwise, a malformed value included. */
 int oracles_hotkey_line_parse(const char *name, const char *value, unsigned *game, unsigned *n, OraclesHotkeySlot *slot);
 /* Writes `hotkey_<game>_<n>=…` without a newline; returns the length, 0 when `capacity` is too small. */

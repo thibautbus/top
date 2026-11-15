@@ -110,8 +110,11 @@ const char *oracles_mod_set_identity(const OraclesModSet *set);
  * when no mod adds a house, the game then running `rom` itself.  -1 with the reason (the mod and its house) when a
  * house cannot be placed. */
 int oracles_mod_set_compose(OraclesModSet *set, const uint8_t *rom, size_t rom_size, uint8_t **out, size_t *out_size, char *error, size_t capacity);
+/* -1 with the reason when the game's profile cannot take the set (an image of two games, or no calls for the item
+ * hotkeys): known before the core runs, before anything is written for the mods. */
+int oracles_mod_set_check_profile(const OraclesModSet *set, const OraclesCompatProfile *profile, char *error, size_t capacity);
 /* Listens to the guest's texts and arms its call transaction; -1 with the reason when the game's profile does not
- * qualify it. */
+ * qualify it (oracles_mod_set_check_profile's reasons first). */
 int oracles_mod_set_attach(OraclesModSet *set, OraclesGuest *guest, char *error, size_t capacity);
 unsigned oracles_mod_set_frame(OraclesModSet *set, uint32_t frame, unsigned keys);
 const uint32_t *oracles_mod_set_present(OraclesModSet *set, const uint32_t *pixels, uint32_t width, uint32_t height);

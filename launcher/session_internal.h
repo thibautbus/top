@@ -135,6 +135,12 @@ void oracles_session_replay_over(session *s);
  * settled on; the surface a window is a whole multiple of, and the window Display chose (window_scale=: 2 to 4, 0
  * fullscreen) opened as Play opens it. */
 int oracles_session_ensure_guest(session *s, uint32_t frame);
+/* The settings' item hotkey slots and mode of the game the session plays (settings.txt's hotkey_<game>_<n>): Oracles
+ * Combined's in either half. */
+unsigned oracles_session_hotkey_slots(const session *s);
+/* After a frame and after a savestate's load: an image of two games whose game went to its other half has its guest
+ * follow it (oracles_guest_follow_half), the view and the transitions with it. */
+void oracles_session_follow_half(session *s, uint32_t frame);
 void oracles_session_change_cheats(session *s, uint32_t frame, unsigned cheats);
 void oracles_session_change_swim_hold(session *s, uint32_t frame, int on);
 void oracles_session_change_text_speed(session *s, uint32_t frame, int instant);

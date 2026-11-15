@@ -64,7 +64,8 @@
 /* The rows in the page's order; a game that is not a patch has no Patch row, and only an Oracle whose ROM is the
  * original has the European ROM and Language rows. */
 typedef enum OraclesGameRow {
-    ORACLES_ROW_ROM,             /* a fan game's: its base ROM */
+    ORACLES_ROW_ROM,             /* a fan game's: its base ROM; Oracles Combined's: Ages' European ROM */
+    ORACLES_ROW_JOINED,          /* Oracles Combined's: Seasons' European ROM */
     ORACLES_ROW_PATCH,
     ORACLES_ROW_SAVE,
     ORACLES_ROW_EU_ROM,
@@ -98,6 +99,18 @@ void oracles_page_rom_status(const OraclesHomeGame *game, char *out, size_t capa
 const char *oracles_page_patch_file(const OraclesHomeGame *game);
 void oracles_page_patch_status(const OraclesHomeGame *game, char *out, size_t capacity, OraclesTone *tone);
 void oracles_page_image_status(const OraclesHomeGame *game, char *out, size_t capacity, OraclesTone *tone);
+/* The lines under the image's (none but a fan game made on the two European ROMs joined): that its language comes
+ * with the patch, shorter in 4:3. Returns how many. */
+#define ORACLES_PAGE_IMAGE_NOTES 1
+unsigned oracles_page_image_notes(const OraclesHomeGame *game, int four_three, char out[ORACLES_PAGE_IMAGE_NOTES][ORACLES_HOME_TEXT_LENGTH]);
+/* Oracles Combined's rows, Ages' European ROM (`half` 0) and Seasons' (1): the file ("None" without one); its status,
+ * in 4:3 where a recognized one is set too; and, recognized, where it is set ("Set in Oracle of Ages’s Cartridge"), the
+ * row then read-only, else empty, the row's Choose… picking one. */
+const char *oracles_page_joined_label(int half);   /* "Ages ROM (EU)" */
+const char *oracles_page_joined_file(const OraclesHomeGame *game, int half);
+void oracles_page_joined_status(const OraclesHomeGame *game, int half, int four_three, char *out, size_t capacity, OraclesTone *tone);
+const char *oracles_page_joined_from(const OraclesHomeGame *game, int half);
+int oracles_page_joined_set(const OraclesHomeGame *game, int half);
 /* Under the status: that the ROM plays in Faithful, when Enhanced is chosen and the ROM does not allow it; else empty. */
 const char *oracles_page_rom_note(const OraclesHomeNav *nav);
 /* Under it: that the ROM plays without the item hotkeys Controls has on, when a session found they could not attach

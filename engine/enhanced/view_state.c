@@ -147,8 +147,72 @@ int oracles_enhanced_view_save_state(const OraclesEnhancedView *v, uint8_t *out,
     return 0;
 }
 
+/* What the view remembered of the frames before a load or a switch of halves is about another place: the room a
+ * scroll came from (an unrelated room would be drawn as connected), the captures, the reference room's edges and
+ * object, the place and the pre-runs of a load, the sprite bookkeeping, the objects' (the image of the room left, the
+ * fade and the hand-off of an entry, the live numbering and tags, a large room's drawings). */
+static void forget_frames(OraclesEnhancedView *v)
+{
+    v->have_last_ref = 0; v->have_came_from = 0; v->have_last_scroll_dir = 0;
+    v->source_valid = 0; v->large_capture_valid = 0; v->large_prev_valid = 0; v->large_was_in_scroll = 0;
+    v->have_ref_collisions = 0; v->ref_maku = 0; v->ref_maku_arrival = 0; v->maku_pending = 0; v->maku_pending_run = 0; v->load_area_held = 0;
+    v->blind_mask = 0; v->blind_epoch = 0;
+    v->have_live_tiles_prev = 0; v->have_wave = 0; v->shake_history = 0; v->blurb_shown = 0; v->blurb_mask = 0;
+    memset(v->blurb_drawings, 0, sizeof v->blurb_drawings);   /* drawings of another moment */
+    ev_scroll_reset(v);   /* a scroll's animation (view_scroll.c): the one under way stays frozen, as the state loaded has it */
+    v->strip_valid = 0;
+    v->left_valid = 0; v->vanish_active = 0; v->ref_entered_side = 0;
+    v->appear_active = 0; v->appear_ready = 0; v->appear_ended = 0;
+    v->handoff_count = 0; v->handoff_armed = 0;
+    oracles_sprites_forget(v->live_sprites);
+    oracles_objects_forget(v->live_objects);
+    for (unsigned i = 0; i < LARGE_OBJECT_FRAMES; i++) v->large_objects[i].valid = 0;
+}
+
+void ev_half_forget(OraclesEnhancedView *v)
+{
+    const unsigned map_width = oracles_compat_map_width(oracles_guest_profile(v->guest)), band_width = v->observer.band_width;
+    const uint64_t epoch = v->observer.epoch;
+    memset(&v->observer, 0, sizeof v->observer);
+    v->observer.map_width = map_width;
+    v->observer.band_width = band_width;
+    v->observer.epoch = epoch + 1u;
+    forget_frames(v);
+    /* The same numbers are other rooms there, and the same identifiers other objects. */
+    for (unsigned i = 0; i < v->slot_count; i++) {   /* given up, not cleared: a slot claimed again is cleared then (claim_slot) */
+        entry *e = &v->slots[i];
+        ev_drop_entry(e);
+        e->used = 0;
+        e->in_flight = 0;
+        e->queued = 0;
+    }
+    v->generation++;
+    memset(v->routes_elsewhere, 0, sizeof v->routes_elsewhere);
+    memset(v->animated, 0, sizeof v->animated);
+    memset(v->tile_changes, 0, sizeof v->tile_changes);
+    v->tiles_settling = 0;
+    memset(v->drawn_places, 0, sizeof v->drawn_places);
+    v->black_run_count = 0;
+    v->black_episode_count = 0;
+    memset(v->black_place_since, 0, sizeof v->black_place_since);
+    v->black_have_ref = 0;
+    v->black_loaded = 1;
+    v->black_cold_from = 0;
+    v->scroll_from_valid = 0; v->was_in_transition = 0;
+    v->level_change = -1;
+    v->coarse_len = 0;
+    v->faded_run = 0;
+    v->transition_mix = 0;
+    oracles_enhanced_tint_forget(v->tint_memories);
+    ev_hidden_forget(v);
+}
+
 int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data, size_t size)
 {
+    if (oracles_guest_half_passage(v->guest)) {   /* nothing of the view to take up: the core's image until the game is in play */
+        v->passage_loaded = 1;
+        return 0;
+    }
     /* The wire state names its configuration by digest: a state saved under
      * the other profile resumes under that profile, the savestate wins. */
     OraclesE11State state, vertical;
@@ -207,27 +271,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
     v->observer.map_width = map_width;
     v->observer.band_width = band_width;
     v->observer.epoch = state.epoch / 8u;
-    /* What the view remembered of the frames before the load is about
-     * another place: the room a scroll came from (an unrelated room would be
-     * drawn as connected), the captures, the reference room's edges and
-     * object, the place and the pre-runs of a load, the sprite bookkeeping. */
-    v->have_last_ref = 0; v->have_came_from = 0; v->have_last_scroll_dir = 0;
-    v->source_valid = 0; v->large_capture_valid = 0; v->large_prev_valid = 0; v->large_was_in_scroll = 0;
-    v->have_ref_collisions = 0; v->ref_maku = 0; v->ref_maku_arrival = 0; v->maku_pending = 0; v->maku_pending_run = 0; v->load_area_held = 0;
-    v->blind_mask = 0; v->blind_epoch = 0;
-    v->have_live_tiles_prev = 0; v->have_wave = 0; v->shake_history = 0; v->blurb_shown = 0; v->blurb_mask = 0;
-    memset(v->blurb_drawings, 0, sizeof v->blurb_drawings);   /* drawings of another moment */
-    ev_scroll_reset(v);   /* a scroll's animation (view_scroll.c): the one under way stays frozen, as the state loaded has it */
-    v->strip_valid = 0;
-    /* The objects' bookkeeping: the image of the room left,
-     * the fade and the hand-off of an entry, the live numbering and tags,
-     * a large room's drawings. */
-    v->left_valid = 0; v->vanish_active = 0; v->ref_entered_side = 0;
-    v->appear_active = 0; v->appear_ready = 0; v->appear_ended = 0;
-    v->handoff_count = 0; v->handoff_armed = 0;
-    oracles_sprites_forget(v->live_sprites);
-    oracles_objects_forget(v->live_objects);
-    for (unsigned i = 0; i < LARGE_OBJECT_FRAMES; i++) v->large_objects[i].valid = 0;
+    forget_frames(v);
     if (have_loops) {
         const uint8_t *loop = data + 2u * ORACLES_E11_STATE_WIRE_SIZE;
         uint32_t cols = 0, rows = 0;

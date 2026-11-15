@@ -8,7 +8,9 @@
  * its texts that are US texts translated, its own in its English, each language composed in the banks its profile
  * leaves to it; each language, English (US) included, laid out for the compact text, every text laid out again
  * checked and the boxes counted; and each fan game's compact text: its routines the US ones, its English laid out
- * and checked the same way.  Exit 77 when the directory holds no game's ROMs. */
+ * and checked the same way; and each image of Oracles Combined made by a patch of the directory on the European ROMs,
+ * which holds its own language, its texts laid out in it a half at a time.  Exit 77 when the directory holds no game's
+ * ROMs. */
 #include "bps.h"
 #include "guest.h"
 #include "language_internal.h"
@@ -953,6 +955,186 @@ static void check_fans(const char *dir, const char *work, const OraclesLanguageP
     }
 }
 
+/* ---- Oracles Combined ------------------------------------------------------------------------------------------ */
+
+/* An image of Oracles Combined, as measured: per half (Ages', Seasons'), its texts and those the European ROM of its game
+ * holds alike in its language; and laid out for the compact text (128 pixels), the texts laid out again, those kept by
+ * the half's game's table or a call within a line, the boxes of all its texts before and after. */
+typedef struct expected_combined {
+    OraclesRomRevision revision;
+    OraclesLanguage language;
+    unsigned texts[2], same[2];
+    expected_layout layout[2];
+} expected_combined;
+
+static const expected_combined combined_expected[] = {
+    { ORACLES_ROM_REVISION_COMBINED_1_5_EN, ORACLES_LANGUAGE_ENGLISH, { 2851, 1919 }, { 2822, 1885 }, { { 1649, 0, 0, 6474, 4971, 20 }, { 951, 0, 0, 3815, 3069, 3 } } },
+    { ORACLES_ROM_REVISION_COMBINED_1_5_FR, ORACLES_LANGUAGE_FRENCH, { 2851, 1919 }, { 2813, 1881 }, { { 1767, 0, 0, 6977, 5027, 10 }, { 1041, 0, 0, 4278, 3153, 6 } } },
+    { ORACLES_ROM_REVISION_COMBINED_1_5_DE, ORACLES_LANGUAGE_GERMAN, { 2851, 1919 }, { 2808, 1883 }, { { 1771, 0, 0, 7307, 5751, 1130 }, { 1055, 0, 0, 4334, 3433, 706 } } },
+    { ORACLES_ROM_REVISION_COMBINED_1_5_ES, ORACLES_LANGUAGE_SPANISH, { 2851, 1919 }, { 2818, 1882 }, { { 1738, 0, 0, 7087, 5319, 0 }, { 1018, 0, 0, 4144, 3224, 0 } } },
+    { ORACLES_ROM_REVISION_COMBINED_1_5_IT, ORACLES_LANGUAGE_ITALIAN, { 2851, 1919 }, { 2819, 1883 }, { { 1664, 0, 0, 6404, 4797, 131 }, { 980, 0, 0, 3901, 3003, 165 } } },
+};
+
+/* One half of a Combined image laid out by `layout` (its own language, its own font, its index at bank $70 of the half):
+ * every text laid out again fits the width and keeps its text's commands and boxes; the index names the language. */
+static void check_combined_half(const char *name, const expected_combined *e, unsigned h, const OraclesCompatProfile *half, const uint8_t *image,
+                                const uint8_t *composed, size_t size, const OraclesLanguageLayout *layout, int pinned)
+{
+    size_t half_size = 0, composed_size = 0;
+    const uint8_t *before = oracles_rom_half(image, size, oracles_compat_rom_bank_base(half), &half_size);
+    const uint8_t *after = oracles_rom_half(composed, size, oracles_compat_rom_bank_base(half), &composed_size);
+    const OraclesRom rom = { before, half_size }, laid = { after, composed_size };
+    OraclesTextSource source;
+    CHECK(language_source_profile(&rom, half, &source) == 0);
+    const unsigned groups = oracles_text_groups(&rom, &source);
+    const OraclesGuestTables *t = oracles_compat_guest_tables(half);
+    OraclesTextFont font;
+    CHECK(oracles_text_font(&laid, oracles_rom_offset(t->font_start.bank, t->font_start.addr), &font) == ORACLES_OK);
+    if (layout->fixed) oracles_text_font_fixed(&font, &font);
+    language_wrap *wrap = language_wrap_new(&font, layout->width, e->language);
+    const size_t first = (size_t)oracles_compat_language_bank(half) * 0x4000u;
+    CHECK(first == (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u && !memcmp(after + first, ORACLES_LANGUAGE_INDEX_MAGIC, ORACLES_LANGUAGE_INDEX_MAGIC_BYTES));
+    CHECK(!strcmp((const char *)after + first + ORACLES_LANGUAGE_INDEX_CODE, oracles_language_code(e->language)));
+    const layout_count n = count_layout(after, composed_size, first, &rom, &source, groups, NULL, ORACLES_LANGUAGE_ENGLISH, wrap);
+    unsigned changed = 0;
+    const size_t end = (LANGUAGE_LAST_BANK + 1u) * 0x4000u;
+    for (size_t i = 0; i < half_size; i++) changed += after[i] != before[i] && (i < first || i >= end) && !(i >= 0x14du && i <= 0x14fu && !h);
+    printf("%s half %u laid out on %u pixels%s: %u texts laid out again, %u that did not hold; the texts of the box without a choice, a call, a "
+           "secret or a jump: %u boxes for %u; %u hyphens joined; %u bytes changed outside its language's banks\n",
+           name, h, layout->width, layout->fixed ? " (classic)" : "", n.flagged, n.unheld, n.boxes_laid_out, n.boxes, n.joined, changed);
+    CHECK(wrap && n.flagged > 0 && n.unheld == 0 && changed == 0);
+    if (pinned) {
+        const expected_layout *x = &e->layout[h];
+        CHECK(n.flagged == x->laid_out && n.boxes == x->boxes && n.boxes_laid_out == x->boxes_laid_out && n.joined == x->joined);
+    }
+    language_wrap_free(wrap);
+}
+
+/* Each image of Oracles Combined made by a BPS patch of `dir` on the European ROMs of Ages and Seasons joined: each half's
+ * texts read from its three bases, its font the European ROM of its game's in every printed character, its texts those
+ * of that ROM in its language but a few, under their identifiers; laid out in its own language (no pack: Combined holds
+ * one) at the game's 128 pixels and the wide box's 192, classic and compact, both halves composed, every text laid out
+ * again held, none failed, no page lost; a pack's language refused. */
+static unsigned check_combined(const char *dir)
+{
+    rom_file eu[2] = { find(dir, ORACLES_ROM_REVISION_AGES_EU), find(dir, ORACLES_ROM_REVISION_SEASONS_EU) }, us = find(dir, ORACLES_ROM_REVISION_AGES_US);
+    unsigned checked = 0;
+    char error[256];
+    size_t joined_size = 0;
+    uint8_t *joined = eu[0].data && eu[1].data ? oracles_bps_join(eu[0].data, eu[0].size, eu[1].data, eu[1].size, &joined_size, error, sizeof error) : NULL;
+    DIR *listing = joined ? opendir(dir) : NULL;
+    struct dirent *entry;
+    static uint32_t ranges[2u * 16384u];
+    while (listing && (entry = readdir(listing))) {
+        const size_t length = strlen(entry->d_name);
+        if (length < 4 || strcmp(entry->d_name + length - 4, ".bps")) continue;
+        char path[1024];
+        snprintf(path, sizeof path, "%s/%s", dir, entry->d_name);
+        size_t patch_size = 0, size = 0;
+        uint8_t *patch = oracles_rom_read_file(path, &patch_size, error, sizeof error);
+        uint8_t *image = patch ? oracles_bps_apply(joined, joined_size, patch, patch_size, &size, error, sizeof error) : NULL;
+        free(patch);
+        OraclesRomInfo info;
+        const expected_combined *e = NULL;
+        if (image && oracles_rom_identify(image, size, &info, error, sizeof error) == 0)
+            for (size_t i = 0; i < sizeof combined_expected / sizeof combined_expected[0]; i++)
+                if (info.known && combined_expected[i].revision == info.revision) e = &combined_expected[i];
+        if (!e) { free(image); continue; }
+        checked++;
+        char name[32];
+        snprintf(name, sizeof name, "combined %s", oracles_language_code(e->language));
+        OraclesLanguage own = ORACLES_LANGUAGE_COUNT;
+        CHECK(oracles_language_image_own(&info, &own) == 1 && own == e->language);
+        const OraclesCompatProfile *halves[2] = { oracles_compat_find(&info), NULL };
+        halves[1] = oracles_compat_half(halves[0], 1);
+        CHECK(halves[0] && halves[1] && oracles_compat_half_game(halves[0]) == 0);
+        if (!halves[0] || !halves[1]) { free(image); continue; }
+        /* Each half: its texts, its font. */
+        for (unsigned h = 0; h < 2u; h++) {
+            size_t half_size = 0;
+            const uint8_t *half = oracles_rom_half(image, size, oracles_compat_rom_bank_base(halves[h]), &half_size);
+            const OraclesRom rom = { half, half_size }, original = { eu[h].data, eu[h].size };
+            OraclesTextSource source, european;
+            CHECK(language_source_profile(&rom, halves[h], &source) == 0);
+            const OraclesGame game = h ? ORACLES_GAME_SEASONS : ORACLES_GAME_AGES;
+            CHECK(language_source_european(&original, game, e->language == ORACLES_LANGUAGE_ENGLISH ? ORACLES_LANGUAGE_ENGLISH_EU : e->language, &european) == 0);
+            const unsigned groups = oracles_text_groups(&rom, &source), european_groups = oracles_text_groups(&original, &european);
+            unsigned texts = 0, same = 0, unread = 0;
+            for (unsigned g = ORACLES_TEXT_DICTIONARY_GROUPS; g < groups; g++) {
+                const int count = oracles_text_count(&rom, &source, g), european_count = g < european_groups ? oracles_text_count(&original, &european, g) : 0;
+                for (int i = 0; i < count; i++) {
+                    uint8_t text[ORACLES_TEXT_MAX], other[ORACLES_TEXT_MAX];
+                    size_t text_length = 0, other_length = 0;
+                    texts++;
+                    if (oracles_text_decode(&rom, &source, g, (unsigned)i, text, sizeof text, &text_length) != ORACLES_OK) { unread++; continue; }
+                    same += i < european_count && oracles_text_decode(&original, &european, g, (unsigned)i, other, sizeof other, &other_length) == ORACLES_OK
+                            && other_length == text_length && !memcmp(text, other, text_length);
+                }
+            }
+            const OraclesGuestTables *t = oracles_compat_guest_tables(halves[h]);
+            const size_t font = oracles_rom_offset(t->font_start.bank, t->font_start.addr), european_font = language_font_european(game);
+            const int glyphs = !memcmp(half + font + FONT_FIRST * GLYPH_BYTES, eu[h].data + european_font + FONT_FIRST * GLYPH_BYTES, FONT_GLYPHS * GLYPH_BYTES);
+            printf("%s half %u: %u groups, %u texts, %u not read, %u those of the European ROM in its language; its font's printed glyphs the "
+                   "European ROM's: %s\n", name, h, groups, texts, unread, same, glyphs ? "yes" : "no");
+            CHECK(texts == e->texts[h] && unread == 0 && same == e->same[h] && glyphs);
+        }
+        /* Laid out: the game's line, then the wide box's, compact and classic. */
+        const struct { unsigned width; int fixed; } layouts[] = { { 128u, 0 }, { 192u, 0 }, { 192u, 1 } };
+        for (size_t l = 0; l < sizeof layouts / sizeof layouts[0]; l++) {
+            OraclesLanguagePages pages = { ranges, 16384u, 0, 0 };
+            const OraclesLanguageLayout layout = { layouts[l].width, layouts[l].fixed, 0u, &pages };
+            uint8_t *composed = NULL;
+            size_t composed_size = 0;
+            OraclesLanguageReport report;
+            CHECK(oracles_language_compose_english(info.sha1, image, size, &layout, &composed, &composed_size, &report, error, sizeof error) == 0);
+            if (!composed) { fprintf(stderr, "%s: %s\n", name, error); continue; }
+            unsigned second = 0, sorted = 1;
+            for (unsigned p = 0; p < pages.count; p++) {
+                second += ranges[2u * p] >= ORACLES_ROM_HALF_SIZE;
+                if (p) sorted &= ranges[2u * p] >= ranges[2u * p - 1u];
+            }
+            printf("%s laid out on %u pixels%s: %u texts laid out again, %u kept, %u that did not hold, %u missing; %u boxes for %u; %u pages, %u "
+                   "of them in the second half, %u lost\n", name, layouts[l].width, layouts[l].fixed ? " (classic)" : "", report.laid_out, report.layout_kept,
+                   report.layout_failed, report.missing, report.boxes_laid_out, report.boxes, pages.count, second, pages.overflowed);
+            CHECK(composed_size == size && report.layout_failed == 0 && report.missing == 0 && pages.overflowed == 0 && second > 0 && second < pages.count && sorted);
+            CHECK(report.laid_out + report.english == e->texts[0] + e->texts[1] && report.served == report.laid_out);
+            for (unsigned h = 0; h < 2u; h++) check_combined_half(name, e, h, halves[h], image, composed, size, &layout, l == 0);
+            free(composed);
+        }
+        /* Its language is its own: no pack composes into it, no fan game's pack derives for it. */
+        language_target target;
+        CHECK(language_target_of(info.sha1, &target) == 0 && target.halves == 2u && target.own == e->language && !target.original);
+        {
+            static const uint8_t text[] = { 'A', 0 };
+            OraclesLanguagePack *pack = language_pack_new(ORACLES_GAME_AGES, info.sha1, info.sha1);
+            CHECK(pack && language_pack_add(pack, ORACLES_LANGUAGE_GERMAN, 0x0000, ORACLES_LANGUAGE_SOURCE_SAME, text, sizeof text) == 0);
+            uint8_t *composed = NULL;
+            size_t composed_size = 0;
+            OraclesLanguageReport report;
+            CHECK(pack && oracles_language_compose(pack, ORACLES_LANGUAGE_GERMAN, image, size, NULL, &composed, &composed_size, &report, error, sizeof error) == -1
+                  && !composed);
+            free(composed);
+            oracles_language_pack_free(pack);
+            OraclesRomInfo us_info;
+            CHECK(us.data != NULL);
+            if (us.data && oracles_rom_identify(us.data, us.size, &us_info, error, sizeof error) == 0) {
+                OraclesLanguagePack *base = language_pack_new(ORACLES_GAME_AGES, us_info.sha1, us_info.sha1);
+                OraclesLanguagePack *derived = base ? oracles_language_pack_derive(base, us.data, us.size, image, size, error, sizeof error) : NULL;
+                CHECK(base && !derived);
+                oracles_language_pack_free(derived);
+                oracles_language_pack_free(base);
+            }
+        }
+        free(image);
+    }
+    if (listing) closedir(listing);
+    free(joined);
+    free(eu[0].data);
+    free(eu[1].data);
+    free(us.data);
+    return checked;
+}
+
 static int check_game(const char *dir, const char *work, const expected *e)
 {
     const OraclesGame game = e->game;
@@ -1086,6 +1268,9 @@ int main(int argc, char **argv)
     if (!dir || !*dir) { printf("language-roms: ORACLES_ROM_DIR is not set: skipped\n"); return 77; }
     unsigned checked = 0;
     for (size_t i = 0; i < sizeof games / sizeof games[0]; i++) checked += (unsigned)check_game(dir, argc > 1 ? argv[1] : ".", &games[i]);
+    const unsigned combined = check_combined(dir);
+    printf("Oracles Combined: %u image(s) of its release checked\n", combined);
+    checked += combined;
     if (failures) fprintf(stderr, "%d failure(s)\n", failures);
     if (!failures && !checked) { printf("language-roms: no game's US and European ROMs in %s: skipped\n", dir); return 77; }
     return failures ? 1 : 0;

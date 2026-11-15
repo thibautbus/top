@@ -26,7 +26,8 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
  * text on a line of the game's text box, 128 pixels; the classic or the compact text on a line of the host's wide box,
  * 192.  For English (US), *session NULL, a session of its own, whose index serves the US texts laid out again.  The US
  * ROM of Ages or Seasons in any language, or a fan game made on it in its English alone and in the game's box alone
- * (`info`, as read).  0, or -1 with the reason. */
+ * (`info`, as read), or an image of its own language (oracles_language_image_own) in that language alone, *session NULL
+ * too: its own texts laid out, an index in each half.  0, or -1 with the reason. */
 int oracles_language_session_lay_out(OraclesLanguageSession **session, const OraclesRomInfo *info, const OraclesLanguageLayout *layout, char *error,
                                      size_t capacity);
 /* The language composed into the image (after the mods' houses), which it replaces. */

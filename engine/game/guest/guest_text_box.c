@@ -68,6 +68,7 @@ int oracles_guest_arm_text_box(OraclesGuest *guest, unsigned pixels)
     if (oracles_guest_add_hook(guest, t->draw_line_of_text, ORACLES_EVENT_TEXT_LINE, ORACLES_EVENT_TEXT_LINE_DRAWN) != 0
         || oracles_guest_add_hook(guest, t->dma_text_gfx_buffer, ORACLES_EVENT_TEXT_GFX_DMA, 0) != 0
         || oracles_guest_add_hook(guest, t->vblank_dma_function, ORACLES_EVENT_VBLANK_DMA, 0) != 0) return -1;
+    if (oracles_guest_text_follow_half(guest, ORACLES_GUEST_TEXT_BOX) != 0) return -1;
     guest->text_box_pixels = pixels;
     oracles_guest_text_box_fixed_font(&guest->text_box_fixed);
     forget(guest);
@@ -121,7 +122,7 @@ static void line_place(OraclesGuest *guest)
     const OraclesGuestTables *t = guest->tables;
     guest->text_box_centre = 0;
     if (guest->text_box_pixels <= GAME_PIXELS || !oracles_guest_wram_writable(guest, 7)) return;
-    const unsigned bank = oracles_guest_read8(guest, t->active_text_bank), addr = oracles_guest_read16(guest, t->text_address);
+    const unsigned bank = oracles_guest_read8(guest, t->active_text_bank) + guest->rom_bank_base, addr = oracles_guest_read16(guest, t->text_address);
     const uint32_t at = addr < 0x4000u ? addr : addr < 0x8000u ? (uint32_t)bank * 0x4000u + (addr - 0x4000u) : 0xffffffffu;
     guest->text_box_centre = at != 0xffffffffu && !oracles_guest_text_box_in_pages(guest->text_box_pages, guest->text_box_page_count, at);
 }

@@ -43,7 +43,7 @@ static int text_speed_refused(const OraclesHomeNav *nav)
 {
     if (nav->in_game) return nav->text_speed_refused;
     const OraclesHomeGame *game = oracles_page_game_const(nav);
-    return (game->fan ? game->image : game->rom) == ORACLES_ROM_UNRECOGNISED;
+    return (game->fan ? game->image : game->rom) == ORACLES_ROM_UNRECOGNISED || (game->refuses & ORACLES_HOME_REFUSES_TEXT_SPEED);
 }
 
 static int clamp(int value, int count) { return value < 0 ? 0 : value >= count ? count - 1 : value; }
@@ -163,7 +163,8 @@ static preview_box preview_of(const OraclesHomeNav *nav)
 
 const char *oracles_display_text_note(const OraclesHomeNav *nav, unsigned row)
 {
-    if (row == ORACLES_DISPLAY_TEXT_SPEED) return oracles_display_text_row_live(nav, row) ? "" : original_reason;
+    if (row == ORACLES_DISPLAY_TEXT_SPEED)
+        return oracles_display_text_row_live(nav, row) ? "" : oracles_home_refuses(nav, ORACLES_HOME_REFUSES_TEXT_SPEED) ? oracles_display_fan_reason : original_reason;
     if (row == ORACLES_DISPLAY_TEXT_SIZE ? !oracles_display_hud_applies(nav) : !oracles_display_text_applies(nav)) return enhanced_reason;
     if ((row == ORACLES_DISPLAY_TEXT_BOX && box_refused(nav)) || (row == ORACLES_DISPLAY_TEXT_SIZE && size_refused(nav))) return oracles_display_fan_reason;
     if (oracles_display_pause_locked(nav, row)) return oracles_display_pause_reason;

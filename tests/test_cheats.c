@@ -49,7 +49,7 @@ static void put(uint8_t *rom, size_t at, const uint8_t *bytes, size_t count) { m
 
 static void test_find(const OraclesGuestTables *t)
 {
-    const size_t size = 1024u * 1024u;
+    const size_t size = 2u * 1024u * 1024u;
     uint8_t *rom = calloc(size, 1);
     if (!rom) { failures++; return; }
     const uint8_t damage[] = { 0x62, 0x2e, (uint8_t)t->link_damage_to_apply.addr, 0x7e, 0x36, 0x00, 0xb7 };
@@ -58,25 +58,51 @@ static void test_find(const OraclesGuestTables *t)
                                0xcd, (uint8_t)t->get_rupee_value.addr, (uint8_t)(t->get_rupee_value.addr >> 8) };
     const size_t damage_at = oracles_rom_offset(t->link_apply_damage.bank, t->link_apply_damage.addr);
     const size_t ammo_at = t->dec_num_bombs.addr, rupees_at = t->remove_rupee_value.addr;
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE) == 0);   /* none */
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO) == 0);
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES) == 0);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE, 0) == 0);   /* none */
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO, 0) == 0);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);
     put(rom, damage_at, damage, sizeof damage);   /* where the games have them */
     put(rom, ammo_at + 6u, ammo, sizeof ammo);
     put(rom, rupees_at, rupees, sizeof rupees);
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE) == t->link_apply_damage.addr + 6u);
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO) == t->dec_num_bombs.addr + 10u);
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES) == t->remove_rupee_value.addr + 3u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE, 0) == t->link_apply_damage.addr + 6u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO, 0) == t->dec_num_bombs.addr + 10u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == t->remove_rupee_value.addr + 3u);
     put(rom, damage_at + 0x20u, damage, sizeof damage);   /* twice: none taken */
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE) == 0);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE, 0) == 0);
     memset(rom + damage_at + 0x20u, 0, sizeof damage);
     put(rom, damage_at + 0x40u, damage, sizeof damage);   /* past the routine's first $40 bytes: not looked at */
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE) == t->link_apply_damage.addr + 6u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_NO_DAMAGE, 0) == t->link_apply_damage.addr + 6u);
     rom[ammo_at + 6u + 2u] = 0x02;   /* another routine: sub $02 */
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO) == 0);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_AMMO, 0) == 0);
     rom[rupees_at + 1u] ^= 0x01;   /* another counter: the ore chunks' */
-    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES) == 0);
-    CHECK(oracles_guest_find_cheat_point(t, rom, damage_at + 4u, ORACLES_CHEAT_NO_DAMAGE) == 0);   /* an image too short */
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);
+    CHECK(oracles_guest_find_cheat_point(t, rom, damage_at + 4u, ORACLES_CHEAT_NO_DAMAGE, 0) == 0);   /* an image too short */
+    /* hl loaded by a call, `ld hl,wNumRupees / ret` in bank 0 or in the cartridge RAM's code (Oracles Combined's
+     * ldhl_wNumRupees, its copy in bank $41): the call of getRupeeValue after it. */
+    const uint8_t loader[] = { 0x21, (uint8_t)t->num_rupees.addr, (uint8_t)(t->num_rupees.addr >> 8), 0xc9 };
+    const uint8_t loaded[] = { 0xcd, 0x4e, 0xa2, 0xcd, (uint8_t)t->get_rupee_value.addr, (uint8_t)(t->get_rupee_value.addr >> 8) };
+    const size_t loader_at = ORACLES_SRAM_CODE_BANK * 0x4000u + 0x24eu;
+    put(rom, rupees_at, loaded, sizeof loaded);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);   /* a call of nothing that loads it */
+    put(rom, loader_at, loader, sizeof loader);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == t->remove_rupee_value.addr + 3u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 0) == 0);   /* a game without code in the RAM: never read there */
+    rom[loader_at + 1u] ^= 0x01;   /* a loader of another counter */
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);
+    rom[loader_at + 1u] ^= 0x01;
+    rom[rupees_at + 2u] = 0x62;   /* a call into the switched banks, whose bank the code does not say */
+    put(rom, 0x41u * 0x4000u + 0x224eu, loader, sizeof loader);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);
+    rom[rupees_at + 2u] = 0x3f;   /* a loader in bank 0 */
+    put(rom, 0x3f4eu, loader, sizeof loader);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == t->remove_rupee_value.addr + 3u);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 0) == t->remove_rupee_value.addr + 3u);
+    /* With `ld hl,wNumRupees / call getRupeeValue` in the routine: that one once, the loader's call not looked at; twice,
+     * neither. */
+    put(rom, rupees_at + 0x10u, rupees, sizeof rupees);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == t->remove_rupee_value.addr + 0x13u);
+    put(rom, rupees_at + 0x20u, rupees, sizeof rupees);
+    CHECK(oracles_guest_find_cheat_point(t, rom, size, ORACLES_CHEAT_RUPEES, 1) == 0);
     free(rom);
 }
 

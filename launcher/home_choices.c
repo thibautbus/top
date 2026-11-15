@@ -13,13 +13,18 @@
 #include <stdio.h>
 #include <string.h>
 
+const OraclesRomRevision oracles_home_fan_revisions[ORACLES_HOME_FAN_GAMES] = {
+    [ORACLES_HOME_FAN_KINOMI] = ORACLES_ROM_REVISION_KINOMI_1_1_2, [ORACLES_HOME_FAN_MOONRISE] = ORACLES_ROM_REVISION_MOONRISE_1_0_6,
+    [ORACLES_HOME_FAN_COMBINED] = ORACLES_ROM_REVISION_COMBINED_1_5_EN, [ORACLES_HOME_FAN_TEMPLE] = ORACLES_ROM_REVISION_TEMPLE_1_073 };
+
 unsigned oracles_home_refusals(OraclesGame family, OraclesRomRevision revision)
 {
     const OraclesRomInfo info = { .game = family, .revision = revision, .known = 1 };
     const OraclesCompatProfile *profile = oracles_compat_find(&info);
     return (oracles_compat_host_text_box(profile) ? 0u : ORACLES_HOME_REFUSES_TEXT_BOX) | (oracles_compat_text_size(profile) ? 0u : ORACLES_HOME_REFUSES_TEXT_SIZE)
            | (oracles_compat_swim_hold(profile) ? 0u : ORACLES_HOME_REFUSES_SWIM_HOLD)
-           | (oracles_compat_item_hotkeys(profile) ? 0u : ORACLES_HOME_REFUSES_HOTKEYS) | (oracles_compat_cheats(profile) ? 0u : ORACLES_HOME_REFUSES_CHEATS);
+           | (oracles_compat_item_hotkeys(profile) ? 0u : ORACLES_HOME_REFUSES_HOTKEYS) | (oracles_compat_cheats(profile) ? 0u : ORACLES_HOME_REFUSES_CHEATS)
+           | (oracles_compat_text_instant(profile) ? 0u : ORACLES_HOME_REFUSES_TEXT_SPEED);
 }
 
 unsigned oracles_home_cheats(const oracles_settings *settings, int game)
@@ -117,8 +122,8 @@ void oracles_home_inspect_controls(const oracles_settings *settings, OraclesHome
     c->touch_vibration = settings->touch_vibration;
     c->menu_tip = settings->menu_tip;
     c->hotkeys_tip = settings->hotkeys_tip;
-    for (int g = 0; g < 2; g++) {
-        const OraclesGuestTables *tables = g == 0 ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
+    for (unsigned g = 0; g < ORACLES_HOTKEY_GAMES; g++) {
+        const OraclesGuestTables *tables = oracles_settings_hotkey_tables(g);
         for (int i = 0; i < ORACLES_HOME_SLOTS; i++) {
             const OraclesHotkeySlot *slot = &settings->hotkeys[g][i];
             const char *name = slot->set && slot->item < ORACLES_GUEST_ITEM_LABELS ? tables->item_names[slot->item] : NULL;

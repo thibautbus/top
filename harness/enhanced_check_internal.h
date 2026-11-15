@@ -357,6 +357,8 @@ struct OraclesEnhancedCheck {
     int last_playing, last_mode_world;
     /* the reload check */
     uint32_t reload_at;
+    uint64_t last_hash;              /* the surface's of the last frame the check composed */
+    uint32_t hotbar_forget_at;
     int reload_in_place;
     FILE *surfaces_out, *surfaces_against;
     uint32_t surfaces_from;

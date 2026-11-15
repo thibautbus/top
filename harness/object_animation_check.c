@@ -25,6 +25,11 @@ OraclesObjectAnimationCheck *oracles_object_animation_check_start(OraclesGuest *
     return c;
 }
 
+void oracles_object_animation_check_half_switched(OraclesObjectAnimationCheck *c, const uint8_t *rom, size_t rom_size)
+{
+    memcpy(c->rom, rom, rom_size < c->rom_size ? rom_size : c->rom_size);
+}
+
 void oracles_object_animation_check_stop(OraclesObjectAnimationCheck *c)
 {
     if (!c) return;

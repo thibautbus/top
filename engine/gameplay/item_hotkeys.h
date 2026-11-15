@@ -26,7 +26,7 @@ extern "C" {
  * the exchange that puts `item` on `target` (from the storage as @equipItem,
  * or from the other button), and its variant when the item has one.  Returns
  * 1 with `op` filled (possibly an operation that changes nothing), 0 when
- * the item is in none of the eighteen slots. */
+ * the item is in none of the game's slots. */
 int oracles_item_hotkeys_equip(const OraclesGuestInventoryState *state, uint8_t item, uint8_t variant, unsigned target, OraclesGuestInventoryOp *op);
 /* `restore` (button P, the used item X, the original item Y or 0, X's
  * variant before the use or ORACLES_HOTKEY_NO_VARIANT): gives P its item
@@ -104,6 +104,7 @@ typedef struct OraclesItemHotkeysLiveStats {
     unsigned throws;                   /* presses of the `use` mode that threw what Link held, apart from the uses */
     unsigned returns_pending;          /* still waiting when the figures are read */
     unsigned return_longest_delay;     /* write points the latest return came after its quiet spell was over */
+    unsigned half_switches, half_cancelled;   /* switches of halves seen, and those that stopped a request or a press under way */
     unsigned dropped_by[ORACLES_INVENTORY_VERDICTS];   /* the condition that refused a request, or the last one that postponed it */
     OraclesGuestInventoryVerdict last_verdict;
 } OraclesItemHotkeysLiveStats;
@@ -125,6 +126,11 @@ OraclesHotkeyOutcome oracles_item_hotkeys_key(OraclesItemHotkeys *hotkeys, unsig
 unsigned oracles_item_hotkeys_filter_keys(OraclesItemHotkeys *hotkeys, uint32_t frame, unsigned mask);
 /* A savestate was loaded: the pending request, the simulated press, the returns and the memory of the previous item go. */
 void oracles_item_hotkeys_reset(OraclesItemHotkeys *hotkeys);
+/* The game went to the other half of its image through Oracles Combined's swapGame (Vasu's door, a file of the other
+ * game loaded): the pending request and the simulated press go, the keys held count as released; a return waiting and
+ * the memory of the previous item stay, swapGame copying the inventory across.  A reset out of the second half, which
+ * starts from a file, resets the policy as a load does. */
+void oracles_item_hotkeys_half_switched(OraclesItemHotkeys *hotkeys);
 /* Nothing pending and no simulated press held: what a reset must leave. */
 int oracles_item_hotkeys_idle(const OraclesItemHotkeys *hotkeys);
 /* At rest: no exchange under way, neither a request, nor a simulated press, nor a button's item waiting to come back

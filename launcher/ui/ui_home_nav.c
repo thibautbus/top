@@ -10,23 +10,38 @@
 #include <string.h>
 
 /* The home screen's texts: each hero's line above its title, and its title. */
-static const char *const overs[ORACLES_HOME_HEROES] = { "Oracle of", "Oracle of", "Community", "Fan games", "Fan games", "Fan games" };
-static const char *const titles[ORACLES_HOME_HEROES] = { "Ages", "Seasons", "Fan games", "Gifts of Kinomi", "Moonrise Regalia", "Temple of Seasons" };
+static const char *const overs[ORACLES_HOME_HEROES] = { "Oracle of", "Oracle of", "Community", "Fan games", "Fan games", "Fan games", "Fan games" };
+static const char *const titles[ORACLES_HOME_HEROES] = { "Ages", "Seasons", "Fan games", "Gifts of Kinomi", "Moonrise Regalia", "Temple of Seasons",
+                                                         "Oracles Combined" };
 
 const OraclesHomeFanGame oracles_home_fan_games[ORACLES_HOME_FAN_GAMES] = {
-    [ORACLES_HOME_FAN_KINOMI] = { "kinomi", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI, ORACLES_HOME_ITEM_KINOMI, ORACLES_HOME_START_KINOMI,
-      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Gifts of Kinomi 1.1.2", "In Gifts of Kinomi", "By ZerotoKoops, Stewmath, Gamma and Ralfaro" },
-    [ORACLES_HOME_FAN_MOONRISE] = { "moonrise", ORACLES_HOME_GAME_MOONRISE, ORACLES_HOME_HERO_MOONRISE, ORACLES_HOME_ITEM_MOONRISE, ORACLES_HOME_START_MOONRISE,
-      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Moonrise Regalia 1.0.6", "In Moonrise Regalia", "By PontiusStone" },
-    [ORACLES_HOME_FAN_TEMPLE] = { "temple", ORACLES_HOME_GAME_TEMPLE, ORACLES_HOME_HERO_TEMPLE, ORACLES_HOME_ITEM_TEMPLE, ORACLES_HOME_START_TEMPLE,
-      ORACLES_HOME_GAME_SEASONS, "Oracle of Seasons (USA)", "Temple of Seasons 1.073", "In Temple of Seasons",
-      "By Jay (like the bird, not the letter) and Ralfaro" },
+    [ORACLES_HOME_FAN_KINOMI] = { .key = "kinomi", .game = ORACLES_HOME_GAME_KINOMI, .hero = ORACLES_HOME_HERO_KINOMI,
+      .item = ORACLES_HOME_ITEM_KINOMI, .start = ORACLES_HOME_START_KINOMI, .base = ORACLES_HOME_GAME_AGES,
+      .base_name = "Oracle of Ages (USA)", .image_name = "Gifts of Kinomi 1.1.2", .item_heading = "In Gifts of Kinomi",
+      .credit = "By ZerotoKoops, Stewmath, Gamma and Ralfaro" },
+    [ORACLES_HOME_FAN_MOONRISE] = { .key = "moonrise", .game = ORACLES_HOME_GAME_MOONRISE, .hero = ORACLES_HOME_HERO_MOONRISE,
+      .item = ORACLES_HOME_ITEM_MOONRISE, .start = ORACLES_HOME_START_MOONRISE, .base = ORACLES_HOME_GAME_AGES,
+      .base_name = "Oracle of Ages (USA)", .image_name = "Moonrise Regalia 1.0.6", .item_heading = "In Moonrise Regalia",
+      .credit = "By PontiusStone" },
+    [ORACLES_HOME_FAN_COMBINED] = { .key = "combined", .game = ORACLES_HOME_GAME_COMBINED, .hero = ORACLES_HOME_HERO_COMBINED,
+      .item = ORACLES_HOME_ITEM_COMBINED, .start = ORACLES_HOME_START_COMBINED, .base = ORACLES_HOME_GAME_AGES,
+      .base_name = "Oracle of Ages and Seasons (Europe)", .image_name = "Oracles Combined v1.5", .item_heading = "In Oracles Combined",
+      .credit = "By soaresden, continuing Crossworld by vinheim3", .joined = 1, .patch_expected = "an Oracles Combined release" },
+    [ORACLES_HOME_FAN_TEMPLE] = { .key = "temple", .game = ORACLES_HOME_GAME_TEMPLE, .hero = ORACLES_HOME_HERO_TEMPLE,
+      .item = ORACLES_HOME_ITEM_TEMPLE, .start = ORACLES_HOME_START_TEMPLE, .base = ORACLES_HOME_GAME_SEASONS,
+      .base_name = "Oracle of Seasons (USA)", .image_name = "Temple of Seasons 1.073", .item_heading = "In Temple of Seasons",
+      .credit = "By Jay (like the bird, not the letter) and Ralfaro" },
 };
 
 const OraclesHomeFanGame *oracles_home_fan_game_started(OraclesHomeCommand command)
 {
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) if (oracles_home_fan_games[f].start == command) return &oracles_home_fan_games[f];
     return NULL;
+}
+
+int oracles_home_hotkey_slots(int game)
+{
+    return game == ORACLES_HOME_GAME_AGES ? 0 : game == ORACLES_HOME_GAME_SEASONS ? 1 : game == ORACLES_HOME_GAME_COMBINED ? 2 : -1;
 }
 
 const OraclesHomeFanGame *oracles_home_fan_game(int game)
@@ -114,10 +129,16 @@ void oracles_home_state(const OraclesHomeNav *nav, OraclesHomeHero hero, char ou
     const OraclesHomeGame *game = &nav->games[hero_game(hero)];
     /* A fan game whose Oracle's ROM is there misses its patch. */
     const int fan = hero != ORACLES_HOME_HERO_AGES && hero != ORACLES_HOME_HERO_SEASONS;
-    const int base_found = fan && (game->rom == ORACLES_ROM_ORIGINAL || game->rom == ORACLES_ROM_UNRECOGNISED);
+    /* One made on the two European ROMs joined needs both to be theirs: another ROM chosen for either is refused. */
+    const OraclesHomeFanGame *made = fan ? oracles_home_fan_game(hero_game(hero)) : NULL;
+    const int joined = made && made->joined;
+    const int base_found = fan && (game->rom == ORACLES_ROM_ORIGINAL || (!joined && game->rom == ORACLES_ROM_UNRECOGNISED));
+    const int rom_refused = joined && (game->rom == ORACLES_ROM_UNRECOGNISED || game->rom == ORACLES_ROM_REFUSED);
     /* A patch there but refused (not a BPS patch, another fan game's) says so. */
     const int patch_refused = base_found && (game->patch == ORACLES_ROM_REFUSED || game->image == ORACLES_ROM_REFUSED);
-    if (!game->usable) snprintf(out, ORACLES_HOME_STATE_LENGTH, "%s", patch_refused ? "Patch refused" : base_found ? "Patch not found" : "ROM not found");
+    if (!game->usable)
+        snprintf(out, ORACLES_HOME_STATE_LENGTH, "%s",
+                 patch_refused ? "Patch refused" : base_found ? "Patch not found" : rom_refused ? "ROM refused" : "ROM not found");
     else if (game->last_session[0]) snprintf(out, ORACLES_HOME_STATE_LENGTH, "Ready \xc2\xb7 last session %s", game->last_session);
     else snprintf(out, ORACLES_HOME_STATE_LENGTH, "Ready");
 }

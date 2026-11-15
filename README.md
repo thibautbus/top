@@ -16,7 +16,7 @@ Your own ROM, untouched · Item hotkeys · European languages · Lua mods · Fan
 
 ## What it is
 
-The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, untouched, in a Game Boy Color emulator core, and adds what the original screen could not show: a widescreen view with the rooms around Link, options that make the game easier to play and to read, languages, mods and three fan games. Nothing of the game's code is rewritten, so it plays as it always did; [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) says how.
+The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, untouched, in a Game Boy Color emulator core, and adds what the original screen could not show: a widescreen view with the rooms around Link, options that make the game easier to play and to read, languages, mods and four fan games, Oracles Combined among them. Nothing of the game's code is rewritten, so it plays as it always did; [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) says how.
 
 - **Widescreen**: Enhanced shows the rooms around Link in the shape of your screen, at three distances, Near, Medium and Far; Faithful keeps the original picture, 160x144, exactly what the game draws.
 - **Easier to play**: item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped, continuous transitions (Link keeps walking as the screen scrolls), and cheats if you want them (no damage, ammo and rupees that never run out).
@@ -24,7 +24,7 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 - **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
 - **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.
 - **Lua mods**: houses, characters who talk and minigames, which act on the game through the game's own routines and replay exactly.
-- **Fan games** from their BPS patch, applied in memory to your ROM: Gifts of Kinomi and Moonrise Regalia on Oracle of Ages, Temple of Seasons on Oracle of Seasons.
+- **Fan games** from their BPS patch, applied in memory to your ROM: Gifts of Kinomi and Moonrise Regalia on Oracle of Ages, Temple of Seasons on Oracle of Seasons, and Oracles Combined, both Oracles in one, on their two European ROMs.
 - **Two emulator cores**: [SameBoy](https://sameboy.github.io/), the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices.
 
 ![The launcher's home screen: Oracle of Ages chosen, with its menu (Start game, Cartridge, Controls, Display, Mods, Cheats, Exit), and Oracle of Seasons and the fan games beside it](docs/assets/launcher-home.png)
@@ -39,8 +39,8 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 
 The project is also listed on:
 
-- [gamewave.digital](https://gamewave.digital/biblioteca/ports/community-thibautbus-top-the-oracles-project) (Spanish)
 - [decompdex.com](https://decompdex.com/port/top/)
+- [gamewave.digital](https://gamewave.digital/biblioteca/ports/community-thibautbus-top-the-oracles-project) (Spanish)
 - [openportsgames.com](https://openportsgames.com/en/ports/the-oracles-project/)
 - [pcport.org](https://pcport.org/en/game/the-legend-of-zelda-oracle-of-ages-oracle-of-seasons-pc-port)
 - [playported.com](https://playported.com/ports/879-the-legend-of-zelda-oracle-of-ages/)
@@ -65,7 +65,7 @@ The [latest release](https://github.com/thibautbus/top/releases/latest) has a fi
 
 ## What you need
 
-Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on. A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
+Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on (Oracles Combined, the two European ROMs). A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
 
 | File you provide | Expected SHA-1 |
 |---|---|
@@ -76,6 +76,7 @@ Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, whic
 | Gifts of Kinomi 1.1.2 patch (`.bps`), on Ages (US) | `bb0837fd2c62a8b3ea05da22ed6049ab57cfa1e2` |
 | Moonrise Regalia 1.0.6 patch (`.bps`), on Ages (US) | `fcef50de31ce3e57d3e23cd846c0749e42098e08` |
 | Temple of Seasons 1.073 patch (`.bps`), on Seasons (US) | `0646e0a8fd6830198e453fdfeeea4a0a7c01cdf4` |
+| Oracles Combined 1.5 patch (`.bps`, one per language), on Ages (EU) and Seasons (EU) joined | in [Oracles Combined](docs/PLAYING.md#oracles-combined) |
 
 ## Getting started
 
@@ -98,7 +99,7 @@ In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace 
 
 **Will an update keep my saves and settings?** Yes. Your saves stay beside your ROMs and your settings in your user folder, so the new version finds both: on Windows, unzip it where you like; on macOS and Linux, put it in place of the old one; on Android, install the new APK over the old one. On Android, 1.1.0 and earlier were a different application, which the new one installs beside and does not read: copy your save from the old application's `files/roms` folder over USB, bring it in with **Import save…**, then uninstall the old application. Each release's notes say whether the savestates (F5) of the version before still load. The home screen says when a newer version is out.
 
-**Where do I get the fan games?** From their authors, as BPS patches. The port needs the exact versions in the table of [What you need](#what-you-need), and applies the patch in memory to your own US ROM: the game's **Cartridge** page asks for both files. [Fan games](docs/PLAYING.md#fan-games) says more.
+**Where do I get the fan games?** From their authors, as BPS patches. The port needs the exact versions in the table of [What you need](#what-you-need), and applies the patch in memory to your own US ROM (Oracles Combined, to your two European ROMs joined): the game's **Cartridge** page asks for the files. [Fan games](docs/PLAYING.md#fan-games) says more.
 
 **Something went wrong: what should I send?** Open an [issue](https://github.com/thibautbus/top/issues/new/choose) with your system, your device, the version (at the bottom left of the home screen) and the log, and never a ROM. On Windows, a console window opens with the launcher: play until the problem shows, choose **Quit to launcher** in the pause menu, which writes the end-of-game report, then copy the console's text before you close the launcher, since closing the console closes the launcher too. On macOS and Linux, start the launcher from a terminal and copy what it prints. On Android, it is `Android/data/org.theoraclesproject/files/the-oracles-project.log`, reachable from a computer over USB.
 
@@ -130,10 +131,7 @@ This repository was developed with AI assistance. Every change, whoever writes i
 - [oracles-disasm](https://github.com/Stewmath/oracles-disasm), the disassembly of both games by Stewmath and its contributors: the addresses and symbol names the host reads and hooks are generated from its symbol files.
 - [SameBoy](https://sameboy.github.io/) by Lior Halphon: the emulator core the game runs in, unmodified, the accurate one.
 - [mGBA](https://mgba.io/) by Vicki Pfau and its contributors: the lighter core the game can run in, for small devices.
-- The fan games the port recognises, and their authors:
-  - Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro;
-  - Moonrise Regalia, by PontiusStone;
-  - Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro.
+- The fan games the port recognises, and their authors: Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro; Moonrise Regalia, by PontiusStone; Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro; Oracles Combined, by soaresden, continuing Crossworld, by vinheim3.
 
 ## Licence
 

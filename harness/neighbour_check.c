@@ -78,6 +78,19 @@ OraclesNeighbourCheck *oracles_neighbour_check_start(const uint8_t *rom, size_t 
     return c;
 }
 
+int oracles_neighbour_check_half_switched(OraclesNeighbourCheck *c, const uint8_t *rom, size_t rom_size)
+{
+    c->pending = c->awaiting_settle = 0;
+    c->ring_count = c->ring_head = 0;
+    OraclesGhost *ghost = oracles_ghost_create(rom, rom_size, oracles_guest_profile(c->guest), oracles_core_kind(c->live));
+    if (!ghost) return -1;
+    oracles_ghost_destroy(c->ghost);
+    c->ghost = ghost;
+    oracles_objects_forget(c->live_objects);
+    oracles_sprites_forget(c->live_sprites);
+    return oracles_objects_add_hooks(c->guest) != 0 || oracles_sprites_add_hooks(c->guest) != 0 ? -1 : 0;
+}
+
 void oracles_neighbour_check_stop(OraclesNeighbourCheck *c)
 {
     if (!c) return;

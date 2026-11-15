@@ -16,7 +16,29 @@ int oracles_session_ensure_guest(session *s, uint32_t frame)
     s->guest = oracles_guest_attach(s->core, s->profile);
     if (!s->guest) return 0;
     oracles_guest_set_frame(s->guest, frame);
+    oracles_session_follow_half(s, frame);   /* a game already in the other half of its image */
     return 1;
+}
+
+void oracles_session_follow_half(session *s, uint32_t frame)
+{
+    if (s->bar_reader) oracles_guest_follow_half(s->bar_reader);
+    if (!s->guest) return;
+    OraclesGuestHalfCounts before, after;
+    oracles_guest_half_counts(s->guest, &before);
+    const int switched = oracles_guest_follow_half(s->guest);
+    if (!switched) return;
+    s->profile = oracles_guest_profile(s->guest);
+    fprintf(stderr, "oracles: frame %u: the game switches to %s\n", frame, oracles_compat_name(s->profile));
+    /* What the half gone to could not arm again, said once a switch: the pause still shows those features on, without
+     * effect in this half. */
+    oracles_guest_half_counts(s->guest, &after);
+    if (after.features_refused > before.features_refused)
+        fprintf(stderr, "oracles: WARNING: frame %u: %u feature(s) on (the swim's hold, the instant text, a cheat) found no point in %s: on, but without effect there\n",
+                frame, after.features_refused - before.features_refused, oracles_compat_name(s->profile));
+    if (after.text_lost > before.text_lost)
+        fprintf(stderr, "oracles: WARNING: frame %u: the texts laid out again, the compact text or the wide box could not be armed again in %s: its texts show as the game lays them out\n",
+                frame, oracles_compat_name(s->profile));
 }
 
 /* Why a feature turned on from the pause found no point to hook: the guest's table of hooks full, when it refused one
@@ -97,7 +119,7 @@ void oracles_session_change_hotkeys(session *s, uint32_t frame, OraclesHotkeysMo
     if (mode == ORACLES_HOTKEYS_OFF) return;
     if (!oracles_session_ensure_guest(s, frame)) { fprintf(stderr, "oracles: the hooks cannot be armed in this ROM: the item hotkeys stay off\n"); return; }
     const unsigned refused = oracles_guest_hooks_refused(s->guest);
-    s->hotkeys = oracles_hotkeys_session_start(s->guest, s->info.game, mode, s->settings, NULL);
+    s->hotkeys = oracles_hotkeys_session_start(s->guest, oracles_session_hotkey_slots(s), mode, s->settings, NULL);
     if (!s->hotkeys) {
         fprintf(stderr, "oracles: the item hotkeys cannot be armed (%s): they stay off\n", hooks_why(s, refused, "the inventory's write point is not in this ROM"));
         return;

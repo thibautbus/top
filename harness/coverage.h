@@ -19,6 +19,8 @@ typedef struct OraclesCoverage OraclesCoverage;
 
 OraclesCoverage *oracles_coverage_create(OraclesGuest *guest);
 void oracles_coverage_destroy(OraclesCoverage *c);
+/* The guest went to the other half of an image of two games: the same numbers are other rooms there. */
+void oracles_coverage_half_switched(OraclesCoverage *c);
 
 /* Every guest event of the run, and the end of every frame. */
 void oracles_coverage_event(OraclesCoverage *c, const OraclesGuestEvent *event);

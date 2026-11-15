@@ -238,6 +238,16 @@ typedef struct OraclesEnhancedHotbarSlot {
 } OraclesEnhancedHotbarSlot;
 typedef struct OraclesEnhancedHotbar { OraclesEnhancedHotbarSlot slots[ORACLES_ENHANCED_HOTBAR_SLOTS]; } OraclesEnhancedHotbar;
 void oracles_enhanced_view_set_hotbar(OraclesEnhancedView *view, const OraclesEnhancedHotbar *hotbar);
+/* Another game's half under the same view (Oracles Combined): the icons kept are the last half's, found again from the
+ * guest's tables, and the bar's reload of its icons hooked again there.  To be called once the new half's guest is
+ * attached, after oracles_guest_clear_hooks and the hooks armed again: called before the clear, the hook is lost for good
+ * (the view believes it armed); called while the guest has left its half (oracles_guest_half_left), the hook is refused.
+ * The slots are the caller's: the launcher's hold the items of Ages' half, and their mapping in Seasons' half is not
+ * this function's.  The status bar's own state stays: it is read each frame from the map and the image, and holds
+ * through the door's fade. */
+void oracles_enhanced_view_hotbar_forget(OraclesEnhancedView *view);
+/* Whether the bar's reload of its icons is hooked for the hotbar. */
+int oracles_enhanced_view_hotbar_hooked(const OraclesEnhancedView *view);
 /* Icons captured from the game's status bar so far, and slots drawn with an icon at the last composition. */
 void oracles_enhanced_view_hotbar_counts(const OraclesEnhancedView *view, unsigned *icons_captured, unsigned *icons_shown);
 /* What the view does without, for want of a hook it could not install (the guest's table full): a description in `out`,
@@ -287,6 +297,8 @@ int oracles_enhanced_view_hud(const OraclesEnhancedView *view);
 int oracles_enhanced_view_redraw_hud(OraclesEnhancedView *view);
 void oracles_enhanced_view_hud_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *lines_kept);
 void oracles_enhanced_view_hud_wide_counts(const OraclesEnhancedView *view, unsigned *laid, unsigned *centred, unsigned *one_row);
+/* Of the frames laid out, those in `layout`, and those among them whose map signs it and whose core image shows its frame. */
+void oracles_enhanced_view_hud_layout_counts(const OraclesEnhancedView *view, OraclesEnhancedBarLayout layout, unsigned *laid, unsigned *shown);
 /* A room's load (a door, stairs) drawn under the HUD band the world frames draw, the game area alone where the world
  * shows it: whether the last composition drew one, and the surface's place of the game area's top-left pixel there or in
  * the last world frame.  The counts: the load's frames drawn so, and those left framed whole for showing one colour
@@ -323,6 +335,15 @@ int oracles_enhanced_view_beside_orphans(const OraclesEnhancedView *view, unsign
  * the two looks of the profile without a restart. */
 void oracles_enhanced_view_toggle(OraclesEnhancedView *view);
 int oracles_enhanced_view_framed_only(const OraclesEnhancedView *view);
+/* The game is between two halves of an image of two games (oracles_guest_half_passage): the view holds its last frame
+ * (the core's, framed, after a state's load), reads nothing of the game, runs no ghost and loads no state of its own.  It follows the guest to
+ * the other half by itself (oracles_guest_add_half_listener): its ghosts moved there, counted, everything it held of the
+ * rooms forgotten, its camera started afresh. */
+int oracles_enhanced_view_half_passage(const OraclesEnhancedView *view);
+/* The ghosts moved to the other half at the switches, and in `made` those made again where that failed. */
+unsigned oracles_enhanced_view_half_ghosts(const OraclesEnhancedView *view, unsigned *made);
+/* The rooms of the cache still held at the first composition after a switch, every switch summed: none expected. */
+unsigned oracles_enhanced_view_half_cache_kept(const OraclesEnhancedView *view);
 
 /* Advances the camera and the neighbours for this frame and returns the
  * composed surface (width*height 0xffRRGGBB).  `mode`, `camera_x` and

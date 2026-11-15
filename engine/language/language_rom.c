@@ -80,6 +80,17 @@ int language_source_tables(const OraclesRom *rom, const OraclesGuestTables *t, O
     return 0;
 }
 
+int language_source_profile(const OraclesRom *rom, const OraclesCompatProfile *profile, OraclesTextSource *source)
+{
+    if (language_source_tables(rom, oracles_compat_guest_tables(profile), source) != 0) return -1;
+    unsigned split = 0;
+    OraclesGuestSym third;
+    if (!oracles_compat_text_third_base(profile, &split, &third)) return 0;
+    source->bases[2] = oracles_rom_offset(third.bank, third.addr);
+    source->splits[1] = split;
+    return source->bases[2] < rom->size ? 0 : -1;
+}
+
 int language_source_us(const OraclesRom *rom, OraclesGame game, OraclesTextSource *source)
 {
     return language_source_tables(rom, tables_of(game), source);
@@ -102,7 +113,26 @@ int language_target_of(const char *sha1, language_target *target)
     target->original = oracles_rom_is_original(&info);
     snprintf(target->sha1, sizeof target->sha1, "%s", sha1);
     target->name = oracles_compat_name(profile);
+    target->profile = profile;
+    target->halves = oracles_compat_half_switch(profile) ? 2u : 1u;
+    target->own = ORACLES_LANGUAGE_ENGLISH;
+    oracles_language_image_own(&info, &target->own);
+    for (unsigned h = 1; h < target->halves; h++) {
+        const OraclesCompatProfile *half = oracles_compat_half(profile, h);
+        const OraclesGuestTables *ht = oracles_compat_guest_tables(half);
+        if (!ht || oracles_compat_language_bank(half) != bank || ht->get_text_address.bank == ORACLES_GUEST_ABSENT || ht->font_start.bank == ORACLES_GUEST_ABSENT)
+            return -1;
+    }
     return 0;
+}
+
+int oracles_language_image_own(const OraclesRomInfo *info, OraclesLanguage *language)
+{
+    static const OraclesLanguage combined[] = { ORACLES_LANGUAGE_ENGLISH, ORACLES_LANGUAGE_FRENCH, ORACLES_LANGUAGE_GERMAN, ORACLES_LANGUAGE_SPANISH,
+                                                ORACLES_LANGUAGE_ITALIAN };
+    if (!info || !info->known || info->revision < ORACLES_ROM_REVISION_COMBINED_1_5_EN || info->revision > ORACLES_ROM_REVISION_COMBINED_1_5_IT) return 0;
+    *language = combined[info->revision - ORACLES_ROM_REVISION_COMBINED_1_5_EN];
+    return 1;
 }
 
 int language_text_of(const OraclesRom *rom, const OraclesTextSource *source, unsigned groups, unsigned id, uint8_t *out, size_t *length)

@@ -2,6 +2,8 @@
 #include "moonrise-regalia/identity.h"
 #include "temple-of-seasons/identity.h"
 #include "gifts-of-kinomi/identity.h"
+#include "oracles-combined/ages/identity.h"
+#include "oracles-combined/seasons/identity.h"
 
 extern const OraclesGuestTables oracles_guest_tables_moonrise;
 extern const OraclesTables oracles_tables_moonrise;
@@ -9,13 +11,61 @@ extern const OraclesGuestTables oracles_guest_tables_temple;
 extern const OraclesTables oracles_tables_temple;
 extern const OraclesGuestTables oracles_guest_tables_kinomi;
 extern const OraclesTables oracles_tables_kinomi;
+extern const OraclesGuestTables oracles_guest_tables_combined_ages_en, oracles_guest_tables_combined_ages_fr, oracles_guest_tables_combined_ages_de,
+    oracles_guest_tables_combined_ages_es, oracles_guest_tables_combined_ages_it;
+extern const OraclesGuestTables oracles_guest_tables_combined_seasons_en, oracles_guest_tables_combined_seasons_fr, oracles_guest_tables_combined_seasons_de,
+    oracles_guest_tables_combined_seasons_es, oracles_guest_tables_combined_seasons_it;
+extern const OraclesTables oracles_tables_combined_ages, oracles_tables_combined_seasons;
+
+/* Oracles Combined's halves as the address spaces see them (oracles_rom.h): a half of the image each, the RAM's bank 1
+ * holding its copy of bank $41. */
+_Static_assert(ORACLES_COMBINED_AGES_HALF_SIZE == ORACLES_ROM_HALF_SIZE && ORACLES_COMBINED_SEASONS_HALF_SIZE == ORACLES_ROM_HALF_SIZE, "a half of the image");
+_Static_assert(ORACLES_COMBINED_AGES_IMAGE_OFFSET == ORACLES_COMBINED_AGES_ROM_BANK_BASE * 0x4000u
+               && ORACLES_COMBINED_SEASONS_IMAGE_OFFSET == ORACLES_COMBINED_SEASONS_ROM_BANK_BASE * 0x4000u, "a half starts at its bank base");
+_Static_assert(ORACLES_COMBINED_AGES_SRAM_CODE_RAM_BANK < 8u && ORACLES_COMBINED_SEASONS_SRAM_CODE_RAM_BANK < 8u, "a bank of the cartridge's RAM");
+_Static_assert(ORACLES_COMBINED_AGES_SRAM_CODE_BANK == ORACLES_SRAM_CODE_BANK && ORACLES_COMBINED_SEASONS_SRAM_CODE_BANK == ORACLES_SRAM_CODE_BANK,
+               "the bank the cartridge's RAM runs a copy of");
+_Static_assert(ORACLES_COMBINED_AGES_ROM_SIZE == 2u * ORACLES_ROM_HALF_SIZE && ORACLES_COMBINED_SEASONS_ROM_SIZE == ORACLES_COMBINED_AGES_ROM_SIZE, "two halves");
 
 static const uint8_t ages_room_flag_pages[8] = { 0, 1, 0, 1, 2, 3, 2, 3 };
 static const uint8_t seasons_room_flag_pages[8] = { 0, 1, 1, 1, 2, 3, 2, 3 };
 static const uint8_t moonrise_room_flag_pages[8] = { 0, 1, 0, 1, 2, 3, 2, 3 };
 static const uint8_t temple_room_flag_pages[8] = { 0, 1, 1, 1, 2, 3, 2, 3 };   /* hack-base's flagLocationGroupTable, as Seasons' */
 static const uint8_t kinomi_room_flag_pages[8] = { 0, 1, 0, 1, 2, 3, 2, 3 };   /* its source's flagLocationGroupTable, as Ages' */
+/* Oracles Combined's flagLocationGroupTable in each half, read in the five images: Ages' and Seasons'. */
+static const uint8_t combined_ages_room_flag_pages[8] = { 0, 1, 0, 1, 2, 3, 2, 3 };
+static const uint8_t combined_seasons_room_flag_pages[8] = { 0, 1, 1, 1, 2, 3, 2, 3 };
 /* OVERWORLD_WIDTH/HEIGHT from constants/common/other.s. */
+
+/* Each half's applyRoomSpecificTileChanges runs its original's routines for the original's rooms, compared instruction
+ * by instruction in the five images (the loads `call lda_*` makes of the variables, the room flags' pages read from the
+ * cartridge's RAM, and Ages' checkTreasureObtained_body, whose new branch takes treasures $60 to $67 alone, the same for
+ * Ricky's gloves): their replay is the originals' (room_code_replay).  The routines it adds, past the original's jump
+ * table, are not among them and stay refused: Ages' $38 for 2:ee and Seasons' $2f, which runs in 3:91 alone (Vasu's
+ * shop; Seasons' applyAllTileSubstitutions skips group 2's, 2:91's entry too, as the prediction does). */
+
+#define COMBINED_HALF(HALF, LANG) \
+    .revision = ORACLES_ROM_REVISION_COMBINED_1_5_##LANG, .rom_bank_base = ORACLES_COMBINED_##HALF##_ROM_BANK_BASE, \
+    .sram_code_banks = 1u << ORACLES_COMBINED_##HALF##_SRAM_CODE_RAM_BANK, .half_switch = 1, .half_game = ORACLES_COMBINED_##HALF##_HALF, \
+    .current_game = ORACLES_COMBINED_##HALF##_CURRENT_GAME, .swap_game = ORACLES_COMBINED_##HALF##_SWAP_GAME, \
+    .swap_game_request = ORACLES_COMBINED_##HALF##_SWAP_GAME_REQUEST, .late_line_writes = 1, \
+    .text_split_index_2 = ORACLES_COMBINED_##HALF##_TEXT_SPLIT_INDEX_2_##LANG, .text_offset_3 = ORACLES_COMBINED_##HALF##_TEXT_OFFSET_3_##LANG, \
+    .compact_text = 1, .host_text_box = 1, .text_size = 1, .language_bank = ORACLES_IMAGE_LANGUAGE_BANK, \
+    .item_hotkeys = 1, .both_games_items = 1, .room_code_replay = 1
+#define COMBINED_AGES(LANG, lang) \
+    { .id = "combined-1.5-" #lang "-ages", .name = "Oracles Combined 1.5 (Oracle of Ages)", .family = ORACLES_GAME_AGES, COMBINED_HALF(AGES, LANG), \
+      .continuous_transitions = 1, .continuous_swim = 1, .zoom_out = 1, .continuous_diagonal = 1, .predict_collisions = 1, .continuous_steps = 1, .continuous_line = 1, \
+      .swim_hold = 1, .cheats = 1, .text_instant = 1, \
+      .guest_tables = &oracles_guest_tables_combined_ages_##lang, .data_tables = &oracles_tables_combined_ages, .room_flag_pages = combined_ages_room_flag_pages, \
+      .map_width = 14, .map_height = 14, \
+      .open_water_rules = 1, .maku_tree_rules = 1, .maku_isolation_rules = 1, .sea_level_rules = 1, .forest_scrambler_rules = 1, .ages_water_rules = 1 }
+#define COMBINED_SEASONS(LANG, lang) \
+    { .id = "combined-1.5-" #lang "-seasons", .name = "Oracles Combined 1.5 (Oracle of Seasons)", .family = ORACLES_GAME_SEASONS, COMBINED_HALF(SEASONS, LANG), \
+      .continuous_transitions = 1, .continuous_swim = 1, .zoom_out = 1, .continuous_diagonal = 1, .predict_collisions = 1, .continuous_steps = 1, .continuous_line = 1, \
+      .swim_hold = 1, .cheats = 1, .text_instant = 1, \
+      .guest_tables = &oracles_guest_tables_combined_seasons_##lang, .data_tables = &oracles_tables_combined_seasons, .room_flag_pages = combined_seasons_room_flag_pages, \
+      .map_width = 16, .map_height = 16, .second_map_width = 11, .second_map_height = 8, \
+      .maku_tree_rules = 1, .seasons_rules = 1, .lost_woods_rules = 1, .tileset_map_rules = 1 }
 
 static const OraclesCompatProfile profiles[] = {
     { .id = "ages-original", .name = "Oracle of Ages", .revision = ORACLES_ROM_REVISION_AGES_US, .family = ORACLES_GAME_AGES,
@@ -66,14 +116,28 @@ static const OraclesCompatProfile profiles[] = {
       .text_size = 1, .host_text_box = 1,
       .map_width = 8, .map_height = 8,
       .open_water_rules = 1, .maku_tree_rules = 1, .tileset_map_rules = 1, .own_routing_rules = 1, .interior_area_rules = 1, .tileset_override_rules = ORACLES_TILESET_OVERRIDE_SEASONS, .ages_water_rules = 1,
-      .language_bank = 0x72 }   /* banks $70 and $71 hold its data; $72 to $7f are empty */
+      .language_bank = 0x72 },   /* banks $70 and $71 hold its data; $72 to $7f are empty */
+    /* Oracles Combined 1.5, the release's five images: Ages' game in the first half, Seasons' in the second, the game
+     * switching halves at Vasu's doors and when a file of Seasons is loaded (swapGame).  A half's tables are the same
+     * in the five languages but for the text's bases.  Each half: the wide view, its transitions, neighbours and
+     * zoom, with its game's rules (oracles-combined/ages/manifest.json, seasons/manifest.json), those of the sea, the
+     * scrambled forest, the water, the seasons' rod and the Lost Woods taken from the game, no route of them there yet;
+     * the transitions' swim (the flippers and the mermaid suit, which Seasons' half swims with as Ages' does), the swim's
+     * hold, the cheats, the instant text and the item hotkeys in each half; the compact text, the host's box and the text's size,
+     * in the language the image holds, its texts laid out a half at a time in the banks from $70 of each half (and read
+     * from the three bases of its language); the other features not qualified yet.  The guest, the view and the
+     * transitions follow the game from half to half (oracles_guest_follow_half), and so do the features the guest armed. */
+    COMBINED_AGES(EN, en), COMBINED_AGES(FR, fr), COMBINED_AGES(DE, de), COMBINED_AGES(ES, es), COMBINED_AGES(IT, it),
+    COMBINED_SEASONS(EN, en), COMBINED_SEASONS(FR, fr), COMBINED_SEASONS(DE, de), COMBINED_SEASONS(ES, es), COMBINED_SEASONS(IT, it)
 };
 
 const OraclesCompatProfile *oracles_compat_find(const OraclesRomInfo *info)
 {
     if (!info || !info->known) return NULL;
+    /* An image of two games always starts in its first half's game (Oracles Combined's sramBootstrap): that half's. */
     for (size_t i = 0; i < sizeof profiles / sizeof profiles[0]; i++)
-        if (profiles[i].revision == info->revision && profiles[i].family == info->game) return &profiles[i];
+        if (profiles[i].revision == info->revision && profiles[i].family == info->game && (!profiles[i].half_switch || profiles[i].half_game == 0u))
+            return &profiles[i];
     return NULL;
 }
 
@@ -87,6 +151,10 @@ int oracles_compat_continuous_transitions(const OraclesCompatProfile *profile)
 int oracles_compat_item_hotkeys(const OraclesCompatProfile *profile)
 {
     return profile ? profile->item_hotkeys : 0;
+}
+int oracles_compat_both_games_items(const OraclesCompatProfile *profile)
+{
+    return profile ? profile->both_games_items : 0;
 }
 int oracles_compat_continuous_swim(const OraclesCompatProfile *profile)
 {
@@ -229,6 +297,10 @@ int oracles_compat_tileset_override_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->tileset_override_rules : 0;
 }
+int oracles_compat_late_line_writes(const OraclesCompatProfile *profile)
+{
+    return profile ? profile->late_line_writes : 0;
+}
 int oracles_compat_scene_wait_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->scene_wait_rules : 0;
@@ -236,4 +308,34 @@ int oracles_compat_scene_wait_rules(const OraclesCompatProfile *profile)
 unsigned oracles_compat_language_bank(const OraclesCompatProfile *profile)
 {
     return profile ? profile->language_bank : 0;
+}
+
+unsigned oracles_compat_rom_bank_base(const OraclesCompatProfile *profile) { return profile ? profile->rom_bank_base : 0; }
+unsigned oracles_compat_sram_code_banks(const OraclesCompatProfile *profile) { return profile ? profile->sram_code_banks : 0; }
+
+int oracles_compat_half_switch(const OraclesCompatProfile *profile) { return profile ? profile->half_switch : 0; }
+unsigned oracles_compat_half_game(const OraclesCompatProfile *profile) { return profile ? profile->half_game : 0; }
+
+static const OraclesGuestSym absent = { ORACLES_GUEST_ABSENT, 0 };
+OraclesGuestSym oracles_compat_current_game(const OraclesCompatProfile *profile) { return profile && profile->half_switch ? profile->current_game : absent; }
+OraclesGuestSym oracles_compat_swap_game(const OraclesCompatProfile *profile) { return profile && profile->half_switch ? profile->swap_game : absent; }
+OraclesGuestSym oracles_compat_swap_game_request(const OraclesCompatProfile *profile)
+{
+    return profile && profile->half_switch ? profile->swap_game_request : absent;
+}
+
+int oracles_compat_text_third_base(const OraclesCompatProfile *profile, unsigned *split, OraclesGuestSym *base)
+{
+    if (!profile || !profile->text_split_index_2) return 0;
+    *split = profile->text_split_index_2;
+    *base = profile->text_offset_3;
+    return 1;
+}
+
+const OraclesCompatProfile *oracles_compat_half(const OraclesCompatProfile *profile, unsigned game)
+{
+    if (!profile || !profile->half_switch) return NULL;
+    for (size_t i = 0; i < sizeof profiles / sizeof profiles[0]; i++)
+        if (profiles[i].half_switch && profiles[i].revision == profile->revision && profiles[i].half_game == game) return &profiles[i];
+    return NULL;
 }

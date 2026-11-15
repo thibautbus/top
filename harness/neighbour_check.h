@@ -31,6 +31,8 @@ void oracles_neighbour_check_frame_end(OraclesNeighbourCheck *check, uint32_t fr
 void oracles_neighbour_check_report(OraclesNeighbourCheck *check, FILE *out);
 /* The figures as key=value lines (objects.*), for tools/check_routes.py. */
 void oracles_neighbour_check_summary(const OraclesNeighbourCheck *check, FILE *out);
+/* The guest went to the other half of an image of two games: a ghost of that half, the hooks armed again; -1 without. */
+int oracles_neighbour_check_half_switched(OraclesNeighbourCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_neighbour_check_stop(OraclesNeighbourCheck *check);
 /* The objects' animation judged along (object_animation_check.h), not owned: every update of the live objects, and
  * each capture of a room entered, which the check then runs. */

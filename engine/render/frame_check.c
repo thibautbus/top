@@ -90,7 +90,9 @@ static void write_samples(OraclesFrameCheck *c, OraclesFrameClass cls, int misma
  * callback before it catches its PPU up), so such a line, a scroll write in
  * mode 3 after a write in the previous line's hblank that changes the value,
  * is marked in `late` and left out of the comparison.  Ages' underwater waves do it on line 16,
- * whose handler (lcdInterrupt, behaviour 0) follows the status bar's.
+ * whose handler (lcdInterrupt, behaviour 0) follows the status bar's.  A game whose handler reads a byte of its own
+ * before that write (oracles_compat_late_line_writes) starts it late on every line: each such line is left out, counted
+ * apart from the late writes the ceiling below bounds.
  *
  * "Before the fetcher has read anything" is SameBoy's timing.  mGBA starts
  * drawing a line sooner (its first pixel five dots into mode 3, plus the fine
@@ -112,6 +114,7 @@ static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[
     memset(late, 0, ORACLES_PPU_HEIGHT);
     memset(first_tile, 0, ORACLES_PPU_HEIGHT);
     uint8_t hblank_write[ORACLES_PPU_HEIGHT] = { 0 };
+    const int late_writes = oracles_compat_late_line_writes(oracles_guest_profile(c->guest));
     for (size_t i = 0; i < count; i++) if (journal[i].ly < ORACLES_PPU_HEIGHT && journal[i].stat_mode == 0) hblank_write[journal[i].ly] = 1;
     /* A rising edge of LCDC bit 7 anywhere in the period: the core paints the first frame after it white. */
     {
@@ -145,6 +148,7 @@ static void build_lines(OraclesFrameCheck *c, OraclesPpuInput *in, uint8_t late[
             const int scroll_changes = (w->reg == IO_SCX && w->value != regs.scx) || (w->reg == IO_SCY && w->value != regs.scy);
             if (w->stat_mode == 3 && scroll_changes) {
                 if (ly > 0 && hblank_write[ly - 1]) late[ly] = 1;
+                else if (late_writes) late[ly] = 2;
                 else first_tile[ly] = 1;
             }
             switch (w->reg) {
@@ -229,7 +233,7 @@ static void on_vblank(void *opaque, OraclesVblankType type)
         int mismatch = 0;
         for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) {
             c->stats.compared_lines++;
-            if (late[ly]) { c->stats.late_scroll_lines++; continue; }
+            if (late[ly]) { if (late[ly] == 2) c->stats.late_handler_lines++; else c->stats.late_scroll_lines++; continue; }
             const size_t from = first_tile[ly] ? 8u : 0u, row = (size_t)ly * ORACLES_PPU_WIDTH + from;
             if (first_tile[ly]) c->stats.first_tile_lines++;
             if (memcmp(c->native + row, c->core_pixels + row, (ORACLES_PPU_WIDTH - from) * sizeof c->native[0])) mismatch = 1;
@@ -341,5 +345,6 @@ void oracles_frame_check_report(const OraclesFrameCheck *c, FILE *out)
             total ? 100.0 * unsupported / total : 0.0, total ? 100.0 * (unsupported + s->frames[ORACLES_FRAME_NO_SCAN]) / total : 0.0);
     fprintf(out, "  lines with a late scroll write, not compared: %u, %.3f%% of the compared frames' lines (ceiling 1%%)\n",
             s->late_scroll_lines, s->compared_lines ? 100.0 * s->late_scroll_lines / s->compared_lines : 0.0);
+    if (s->late_handler_lines) fprintf(out, "  lines whose scroll write the game's handler starts late on every line, not compared: %u\n", s->late_handler_lines);
     fprintf(out, "  lines whose scroll changed at the start of their drawing, compared from pixel 8: %u\n", s->first_tile_lines);
 }

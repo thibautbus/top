@@ -273,6 +273,7 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->swimmers_ring = (uint8_t)oracles_guest_swim_sped(guest);
     s->swim_hold = guest->swim_hold;
     s->ages_water = (uint8_t)oracles_compat_ages_water_rules(oracles_guest_profile(guest));
+    s->suit_swims = (uint8_t)oracles_guest_tables_suit_swims(t);
     s->game_frame = oracles_guest_read8(guest, t->frame_counter);
     s->screen_transition_delay = oracles_guest_read8(guest, t->screen_transition_delay);
     s->menu_disabled = oracles_guest_read8(guest, t->menu_disabled);

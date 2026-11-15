@@ -64,6 +64,13 @@ typedef struct OraclesUiGameTexts {
     const char *eu_button_labels[2];
     const char *language_explanation;
     char language_note[ORACLES_HOME_TEXT_LENGTH];
+    /* A fan game made on the two European ROMs joined (`joined`): a row for each, Ages' and Seasons', in Base ROM's
+     * place, its label, file and status, and where it is set (empty: Choose… in its place); the lines under the image's. */
+    int joined;
+    const char *joined_labels[2], *joined_from[2];
+    char joined_file[2][ORACLES_HOME_TEXT_LENGTH], joined_status[2][ORACLES_HOME_TEXT_LENGTH];
+    unsigned image_notes;
+    char image_note[ORACLES_PAGE_IMAGE_NOTES][ORACLES_HOME_TEXT_LENGTH];
 } OraclesUiGameTexts;
 
 typedef struct OraclesUiGameLayout {
@@ -72,7 +79,7 @@ typedef struct OraclesUiGameLayout {
     OraclesUiLine label_rom, label_patch, label_save;   /* "ROM", or "Base ROM" and "Patch" */
     OraclesUiLine label_eu, label_language;            /* "European ROM", "Language" */
     /* Each row's highlight, the pointer's target; no Patch row but a fan game's, no European ROM row but an Oracle's
-     * with its original ROM, no Language row but that Oracle's and a fan game's.  They keep their heights whatever the
+     * with its original ROM, no Language row but that Oracle's and a fan game's, no Seasons ROM row but Oracles Combined's.  They keep their heights whatever the
      * choices and the highlight. */
     OraclesUiBox rows[ORACLES_GAME_ROWS];
     OraclesUiLine rom_file, rom_folder, rom_button, rom_button_dot;
@@ -87,8 +94,17 @@ typedef struct OraclesUiGameLayout {
     OraclesUiBox eu_dot, eu_button_boxes[2];
     OraclesUiOptionLayout languages[ORACLES_PAGE_LANGUAGES];
     OraclesUiLine language_explanation, language_note;
-    OraclesUiLine patch_file, patch_status, patch_button, patch_button_dot, patch_folder, image_status;
+    /* Patch: its status broken into lines beside its dot, the image's line, and the lines under it. */
+    OraclesUiLine patch_file, patch_button, patch_button_dot, patch_folder, image_status;
+    OraclesUiWrapped patch_status;
     OraclesUiBox patch_dot, image_dot;
+    OraclesUiLine image_notes[ORACLES_PAGE_IMAGE_NOTES];
+    /* Oracles Combined's European ROMs, in rows[ORACLES_ROW_ROM] and rows[ORACLES_ROW_JOINED]: each label on its lines
+     * in the labels' column, the file, Choose… and its dot or where it is set at the right, the status beside its dot;
+     * 4:3 lays Choose… out, not drawn, where it is set. */
+    OraclesUiWrapped joined_labels[2];
+    OraclesUiLine joined_files[2], joined_from[2], joined_buttons[2], joined_button_dots[2], joined_status[2];
+    OraclesUiBox joined_dots[2];
     /* Save: its file and its actions with their dots on the first line, each action's box the pointer's target; the line
      * about it; the note, wrapped in 16:9 and on one line in 4:3, or the status beside its dot, its second line under
      * it, in the note's place (4:3: in the line's too). */

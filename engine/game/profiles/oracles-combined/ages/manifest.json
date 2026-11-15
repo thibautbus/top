@@ -1,0 +1,1940 @@
+{
+ "id": "oracles-combined-1.5-ages",
+ "half": "ages",
+ "rom_sha1": {
+  "en": "9158458fe61ccba2ed35d4ce7e567865a2accd4a",
+  "fr": "1406167e50fb4c023c07c4577dd4aee26bda9c75",
+  "de": "55df7c3449b7b6b8d9eddc4676f82dbe37d85b91",
+  "es": "8ef71e0daadc15939fd4db89bf92a9ab28f89ab9",
+  "it": "679d616ef28c9f6608b85efade8536ba1f42d5c7"
+ },
+ "rom_size": 8388608,
+ "half_switch": {
+  "current_game": {
+   "bank": 0,
+   "address": "0xc4bd"
+  },
+  "swap_game_request": {
+   "bank": 0,
+   "address": "0xc4bc"
+  },
+  "swap_game": {
+   "bank": 0,
+   "address": "0x2526"
+  },
+  "main_thread_start": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xa333"
+  }
+ },
+ "guest_table": {
+  "draw_all_sprites": {
+   "bank": 0,
+   "address": "0x0ff1"
+  },
+  "update_all_objects": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb548"
+  },
+  "initialize_room": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb236"
+  },
+  "load_tileset_and_room_layout": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb992"
+  },
+  "object_create_interaction": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xa610"
+  },
+  "get_free_interaction_slot": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xbbdc"
+  },
+  "get_free_enemy_slot": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xaf5f"
+  },
+  "get_free_enemy_slot_uncounted": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xaf6c"
+  },
+  "get_free_part_slot": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xbf7b"
+  },
+  "object_data_op6": {
+   "bank": 18,
+   "address": "0x56dd"
+  },
+  "object_data_op7": {
+   "bank": 18,
+   "address": "0x5734"
+  },
+  "parse_given_object_data": {
+   "bank": 18,
+   "address": "0x55d4"
+  },
+  "draw_object": {
+   "bank": 0,
+   "address": "0x10bd"
+  },
+  "draw_object_terrain_effects": {
+   "bank": 0,
+   "address": "0x1156"
+  },
+  "update_animations": {
+   "bank": 4,
+   "address": "0x5906"
+  },
+  "draw_raw_oam_block": {
+   "bank": 0,
+   "address": "0x1127"
+  },
+  "enemy_standard_update": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xaa48"
+  },
+  "screen_transition_state2": {
+   "bank": 1,
+   "address": "0x4105"
+  },
+  "apply_warp_dest": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb4f3"
+  },
+  "show_text": {
+   "bank": 0,
+   "address": "0x1a1f"
+  },
+  "give_treasure": {
+   "bank": 0,
+   "address": "0x18bf"
+  },
+  "open_menu": {
+   "bank": 0,
+   "address": "0x1c51"
+  },
+  "save_file": {
+   "bank": 0,
+   "address": "0x0b23"
+  },
+  "poll_input": {
+   "bank": 0,
+   "address": "0x0272"
+  },
+  "main_thread_start": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xa333"
+  },
+  "apply_all_tile_substitutions": {
+   "bank": 4,
+   "address": "0x5fef"
+  },
+  "check_room_pack": {
+   "bank": 1,
+   "address": "0x5faa"
+  },
+  "load_object_gfx_header_to_slot4": {
+   "bank": 0,
+   "address": "0x1808"
+  },
+  "update_enemies": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xafdd"
+  },
+  "update_parts": {
+   "bank": 17,
+   "address": "0x5e58"
+  },
+  "update_interactions": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xbc23"
+  },
+  "parse_object_data": {
+   "bank": 18,
+   "address": "0x55b7"
+  },
+  "run_room_specific_code": {
+   "bank": 18,
+   "address": "0x5872"
+  },
+  "check_reload_status_bar_graphics": {
+   "bank": 0,
+   "address": "0x1c12"
+  },
+  "load_equipped_item_gfx": {
+   "bank": 2,
+   "address": "0x5215"
+  },
+  "check_use_items": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xad63"
+  },
+  "initialize_parent_item": {
+   "bank": 6,
+   "address": "0x4997"
+  },
+  "remove_rupee_value": {
+   "bank": 0,
+   "address": "0x1925"
+  },
+  "lose_treasure": {
+   "bank": 0,
+   "address": "0x18d6"
+  },
+  "play_sound": {
+   "bank": 0,
+   "address": "0x0eec"
+  },
+  "set_global_flag": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb331"
+  },
+  "unset_global_flag": {
+   "space": "sram",
+   "bank": 65,
+   "address": "0xb337"
+  },
+  "file_management_function": {
+   "bank": 7,
+   "address": "0x4000"
+  },
+  "get_text_address": {
+   "bank": 63,
+   "address": "0x4fb7"
+  },
+  "link_update_velocity_mermaid": {
+   "bank": 5,
+   "address": "0x58fd"
+  },
+  "link_update_flippers_state0": {
+   "bank": 5,
+   "address": "0x57aa"
+  },
+  "link_apply_damage": {
+   "bank": 6,
+   "address": "0x46d2"
+  },
+  "dec_num_bombs": {
+   "bank": 0,
+   "address": "0x1975"
+  },
+  "get_rupee_value": {
+   "bank": 0,
+   "address": "0x192e"
+  },
+  "bomb_fairy_lose_all_bombs": {
+   "bank": 21,
+   "address": "0x6fd2"
+  },
+  "draw_line_of_text": {
+   "bank": 63,
+   "address": "0x50be"
+  },
+  "set_line_text_buffers": {
+   "bank": 63,
+   "address": "0x510f"
+  },
+  "display_next_text_character": {
+   "bank": 63,
+   "address": "0x5244"
+  },
+  "text_control_code_option": {
+   "bank": 63,
+   "address": "0x5951"
+  },
+  "dma_text_gfx_buffer": {
+   "bank": 63,
+   "address": "0x5135"
+  },
+  "vblank_dma_function": {
+   "bank": 0,
+   "address": "0x0d36"
+  },
+  "update_character_display_timer": {
+   "bank": 63,
+   "address": "0x5222"
+  },
+  "active_group": {
+   "bank": 0,
+   "address": "0xcc2d"
+  },
+  "active_room": {
+   "bank": 0,
+   "address": "0xcc30"
+  },
+  "loading_room": {
+   "bank": 0,
+   "address": "0xcc2f"
+  },
+  "room_is_large": {
+   "bank": 0,
+   "address": "0xcc2e"
+  },
+  "room_state_modifier": {
+   "bank": 0,
+   "address": "0xcc32"
+  },
+  "room_layout": {
+   "bank": 0,
+   "address": "0xcf00"
+  },
+  "room_collisions": {
+   "bank": 0,
+   "address": "0xce00"
+  },
+  "tileset_flags": {
+   "bank": 0,
+   "address": "0xcc34"
+  },
+  "dungeon_index": {
+   "bank": 0,
+   "address": "0xcc39"
+  },
+  "toggle_blocks_state": {
+   "bank": 0,
+   "address": "0xcdd2"
+  },
+  "portal_group": {
+   "bank": 0,
+   "address": "0xc63e"
+  },
+  "portal_room": {
+   "bank": 0,
+   "address": "0xc63f"
+  },
+  "scroll_mode": {
+   "bank": 0,
+   "address": "0xcd00"
+  },
+  "screen_transition_direction": {
+   "bank": 0,
+   "address": "0xcd02"
+  },
+  "disabled_objects": {
+   "bank": 0,
+   "address": "0xcc8a"
+  },
+  "screen_transition_state": {
+   "bank": 0,
+   "address": "0xcd04"
+  },
+  "screen_transition_substate": {
+   "bank": 0,
+   "address": "0xcd05"
+  },
+  "screen_transition_phase": {
+   "bank": 0,
+   "address": "0xcd06"
+  },
+  "screen_scroll_delta": {
+   "bank": 0,
+   "address": "0xcd14"
+  },
+  "screen_scroll_counter": {
+   "bank": 0,
+   "address": "0xcd13"
+  },
+  "screen_scroll_row": {
+   "bank": 0,
+   "address": "0xcd10"
+  },
+  "screen_scroll_column_right": {
+   "bank": 0,
+   "address": "0xcd12"
+  },
+  "link_grab_state": {
+   "bank": 0,
+   "address": "0xcc5a"
+  },
+  "link_swimming_state": {
+   "bank": 0,
+   "address": "0xcc5d"
+  },
+  "magnet_glove_state": {
+   "bank": 0,
+   "address": "0xcc5e"
+  },
+  "link_immobilized": {
+   "bank": 0,
+   "address": "0xcc61"
+  },
+  "link_pushing_direction": {
+   "bank": 0,
+   "address": "0xcc65"
+  },
+  "pegasus_seed_counter": {
+   "bank": 0,
+   "address": "0xcc6c"
+  },
+  "link_playing_instrument": {
+   "bank": 0,
+   "address": "0xcc8d"
+  },
+  "link_turning_disabled": {
+   "bank": 0,
+   "address": "0xcc60"
+  },
+  "force_link_push_animation": {
+   "bank": 0,
+   "address": "0xcc66"
+  },
+  "using_shield": {
+   "bank": 0,
+   "address": "0xcc6f"
+  },
+  "link_id": {
+   "bank": 1,
+   "address": "0xd001"
+  },
+  "link_state": {
+   "bank": 1,
+   "address": "0xd004"
+  },
+  "link_visible": {
+   "bank": 1,
+   "address": "0xd01a"
+  },
+  "link_anim_counter": {
+   "bank": 1,
+   "address": "0xd020"
+  },
+  "link_anim_parameter": {
+   "bank": 1,
+   "address": "0xd021"
+  },
+  "link_anim_pointer": {
+   "bank": 1,
+   "address": "0xd022"
+  },
+  "link_anim_mode": {
+   "bank": 1,
+   "address": "0xd030"
+  },
+  "link_animation_frame": {
+   "bank": 1,
+   "address": "0xd031"
+  },
+  "link_invincibility_counter": {
+   "bank": 1,
+   "address": "0xd02b"
+  },
+  "link_knockback_counter": {
+   "bank": 1,
+   "address": "0xd02d"
+  },
+  "link_stun_counter": {
+   "bank": 1,
+   "address": "0xd02e"
+  },
+  "parent_item2_enabled": {
+   "bank": 1,
+   "address": "0xd200"
+  },
+  "parent_item3_enabled": {
+   "bank": 1,
+   "address": "0xd300"
+  },
+  "parent_item4_enabled": {
+   "bank": 1,
+   "address": "0xd400"
+  },
+  "parent_item5_enabled": {
+   "bank": 1,
+   "address": "0xd500"
+  },
+  "weapon_item_enabled": {
+   "bank": 1,
+   "address": "0xd600"
+  },
+  "special_object_animation_table": {
+   "bank": 6,
+   "address": "0x4479"
+  },
+  "tile_types_table": {
+   "bank": 5,
+   "address": "0x7c74"
+  },
+  "screen_transition_delay": {
+   "bank": 0,
+   "address": "0xcd15"
+  },
+  "active_tile_index": {
+   "bank": 0,
+   "address": "0xcc9a"
+  },
+  "screen_transition_boundary_x": {
+   "bank": 0,
+   "address": "0xcd0c"
+  },
+  "screen_transition_boundary_y": {
+   "bank": 0,
+   "address": "0xcd0d"
+  },
+  "disable_screen_transitions": {
+   "bank": 0,
+   "address": "0xcc91"
+  },
+  "disable_warp_tiles": {
+   "bank": 0,
+   "address": "0xcc90"
+  },
+  "link_force_state": {
+   "bank": 0,
+   "address": "0xcc4f"
+  },
+  "link_in_air": {
+   "bank": 0,
+   "address": "0xcc5c"
+  },
+  "palette_thread_mode": {
+   "bank": 0,
+   "address": "0xc4ab"
+  },
+  "palette_thread_parameter": {
+   "bank": 0,
+   "address": "0xc4ae"
+  },
+  "cutscene_trigger": {
+   "bank": 0,
+   "address": "0xcc04"
+  },
+  "room_width": {
+   "bank": 0,
+   "address": "0xcd0a"
+  },
+  "room_height": {
+   "bank": 0,
+   "address": "0xcd0b"
+  },
+  "tileset_unique_gfx": {
+   "bank": 0,
+   "address": "0xcd20"
+  },
+  "active_collisions": {
+   "bank": 0,
+   "address": "0xcc33"
+  },
+  "dungeon_floor": {
+   "bank": 0,
+   "address": "0xcc3b"
+  },
+  "dungeon_map_position": {
+   "bank": 0,
+   "address": "0xcc3a"
+  },
+  "dungeon_layout": {
+   "bank": 2,
+   "address": "0xdc00"
+  },
+  "warp_transition": {
+   "bank": 0,
+   "address": "0xcc49"
+  },
+  "warp_dest_pos": {
+   "bank": 0,
+   "address": "0xcc4a"
+  },
+  "link_time_warp_tile": {
+   "bank": 0,
+   "address": "0xcddc"
+  },
+  "warp_dest_group": {
+   "bank": 0,
+   "address": "0xcc47"
+  },
+  "warp_dest_room": {
+   "bank": 0,
+   "address": "0xcc48"
+  },
+  "warp_transition2": {
+   "bank": 0,
+   "address": "0xcc4b"
+  },
+  "active_tile_pos": {
+   "bank": 0,
+   "address": "0xcc99"
+  },
+  "lost_woods_transition_counter1": {
+   "bank": 0,
+   "address": "0xcc37"
+  },
+  "lost_woods_transition_counter2": {
+   "bank": 0,
+   "address": "0xcc38"
+  },
+  "active_file_slot": {
+   "bank": 0,
+   "address": "0xff9a"
+  },
+  "text_index_h": {
+   "bank": 0,
+   "address": "0xcba3"
+  },
+  "text_index_l": {
+   "bank": 0,
+   "address": "0xcba2"
+  },
+  "active_text_bank": {
+   "bank": 7,
+   "address": "0xd0d4"
+  },
+  "text_table_table": {
+   "bank": 63,
+   "address": "0x504c"
+  },
+  "text_offset1_table": {
+   "bank": 63,
+   "address": "0x501c"
+  },
+  "text_offset2_table": {
+   "bank": 63,
+   "address": "0x5034"
+  },
+  "gfx_header_table": {
+   "bank": 66,
+   "address": "0x46de"
+  },
+  "game_keys_pressed": {
+   "bank": 0,
+   "address": "0xcc29"
+  },
+  "game_keys_just_pressed": {
+   "bank": 0,
+   "address": "0xcc2a"
+  },
+  "link_speed_cap": {
+   "bank": 1,
+   "address": "0xd011"
+  },
+  "link_speed_step_counter": {
+   "bank": 1,
+   "address": "0xd012"
+  },
+  "link_speed_step_period": {
+   "bank": 1,
+   "address": "0xd013"
+  },
+  "link_stroke_counter": {
+   "bank": 1,
+   "address": "0xd03e"
+  },
+  "active_ring": {
+   "bank": 0,
+   "address": "0xc6cb"
+  },
+  "is_linked_game": {
+   "bank": 0,
+   "address": "0xcc01"
+  },
+  "switch_state": {
+   "bank": 0,
+   "address": "0xcdd3"
+  },
+  "rom_bank": {
+   "bank": 0,
+   "address": "0xff97"
+  },
+  "jabu_water_level": {
+   "bank": 0,
+   "address": "0xc6e9"
+  },
+  "gameboy_type": {
+   "bank": 0,
+   "address": "0xff96"
+  },
+  "twinrova_tile_replacement_mode": {
+   "bank": 0,
+   "address": "0xcca9"
+  },
+  "seed_tree_refilled_bitset": {
+   "bank": 0,
+   "address": "0xcc4d"
+  },
+  "ricky_state": {
+   "bank": 0,
+   "address": "0xc646"
+  },
+  "essences_obtained": {
+   "bank": 0,
+   "address": "0xc6bf"
+  },
+  "animal_companion": {
+   "bank": 0,
+   "address": "0xc610"
+  },
+  "num_placed_slates": null,
+  "changed_tile_queue_head": {
+   "bank": 0,
+   "address": "0xccdf"
+  },
+  "changed_tile_queue_tail": {
+   "bank": 0,
+   "address": "0xcce0"
+  },
+  "tileset_layout_group": {
+   "bank": 0,
+   "address": "0xcd24"
+  },
+  "tileset_layout": {
+   "bank": 0,
+   "address": "0xcd23"
+  },
+  "loaded_tileset_layout": {
+   "bank": 0,
+   "address": "0xcd2a"
+  },
+  "gasha_spots_planted": {
+   "bank": 0,
+   "address": "0xc64d"
+  },
+  "tileset_gfx": {
+   "bank": 0,
+   "address": "0xcd21"
+  },
+  "tileset_palette": {
+   "bank": 0,
+   "address": "0xcd22"
+  },
+  "loaded_tileset_unique_gfx": {
+   "bank": 0,
+   "address": "0xcd28"
+  },
+  "loaded_tileset_palette": {
+   "bank": 0,
+   "address": "0xcd29"
+  },
+  "dirty_bg_palettes": {
+   "bank": 0,
+   "address": "0xffa6"
+  },
+  "room_pack": {
+   "bank": 0,
+   "address": "0xcc31"
+  },
+  "loading_room_pack": {
+   "bank": 0,
+   "address": "0xcc45"
+  },
+  "room_pack_data": {
+   "bank": 4,
+   "address": "0x475c"
+  },
+  "moblin_keep_rooms": null,
+  "map_transition_group_table": {
+   "bank": 1,
+   "address": "0x603c"
+  },
+  "season_reload": {
+   "bank": 0,
+   "address": "0xcc4c"
+  },
+  "link_angle": {
+   "bank": 0,
+   "address": "0xcc2b"
+  },
+  "link_local_respawn": {
+   "bank": 0,
+   "address": "0xcc21"
+  },
+  "hole_or_conveyor": {
+   "bank": 0,
+   "address": "0xcc92"
+  },
+  "screen_offset_x": {
+   "bank": 0,
+   "address": "0xcd09"
+  },
+  "screen_offset_y": {
+   "bank": 0,
+   "address": "0xcd08"
+  },
+  "screen_shake_counter_y": {
+   "bank": 0,
+   "address": "0xcd18"
+  },
+  "screen_shake_counter_x": {
+   "bank": 0,
+   "address": "0xcd19"
+  },
+  "camera_x": {
+   "bank": 0,
+   "address": "0xffac"
+  },
+  "camera_y": {
+   "bank": 0,
+   "address": "0xffaa"
+  },
+  "keys_pressed": {
+   "bank": 0,
+   "address": "0xc481"
+  },
+  "keys_just_pressed": {
+   "bank": 0,
+   "address": "0xc482"
+  },
+  "frame_counter": {
+   "bank": 0,
+   "address": "0xcc00"
+  },
+  "text_is_active": {
+   "bank": 0,
+   "address": "0xcba0"
+  },
+  "selected_text_option": {
+   "bank": 0,
+   "address": "0xcba5"
+  },
+  "opened_menu_type": {
+   "bank": 0,
+   "address": "0xcbcb"
+  },
+  "minimap_group": {
+   "bank": 0,
+   "address": "0xc63a"
+  },
+  "global_flags": {
+   "bank": 0,
+   "address": "0xc6d0"
+  },
+  "bought_shop_items1": {
+   "bank": 0,
+   "address": "0xc642"
+  },
+  "group0_room_flags": {
+   "bank": 0,
+   "address": "0xc700"
+  },
+  "link_object_index": {
+   "bank": 0,
+   "address": "0xcc2c"
+  },
+  "objects_to_draw": {
+   "bank": 0,
+   "address": "0xc500"
+  },
+  "oam": {
+   "bank": 0,
+   "address": "0xcb00"
+  },
+  "oam_tail": {
+   "bank": 0,
+   "address": "0xff9f"
+  },
+  "terrain_effects_used": {
+   "bank": 0,
+   "address": "0xffa0"
+  },
+  "link_raised_floor_offset": {
+   "bank": 0,
+   "address": "0xcc69"
+  },
+  "textbox_flags": {
+   "bank": 0,
+   "address": "0xcbae"
+  },
+  "shadow_animation": {
+   "bank": 20,
+   "address": "0x4000"
+  },
+  "green_grass_animation": {
+   "bank": 20,
+   "address": "0x4005"
+  },
+  "puddle_animation_pointer": {
+   "bank": 0,
+   "address": "0xc4ba"
+  },
+  "grass_animation_modifier": {
+   "bank": 0,
+   "address": "0xcc36"
+  },
+  "enemies_killed_list": {
+   "bank": 0,
+   "address": "0xcdc0"
+  },
+  "animation_state": {
+   "bank": 0,
+   "address": "0xcd30"
+  },
+  "tileset_animation": {
+   "bank": 0,
+   "address": "0xcd25"
+  },
+  "animation_counters": {
+   "bank": 0,
+   "address": "0xcd31"
+  },
+  "animation_queue": {
+   "bank": 2,
+   "address": "0xdb90"
+  },
+  "animation_queue_head": {
+   "bank": 0,
+   "address": "0xcce4"
+  },
+  "animation_queue_tail": {
+   "bank": 0,
+   "address": "0xcce5"
+  },
+  "animation_group_table": {
+   "bank": 4,
+   "address": "0x5b52"
+  },
+  "animation_gfx_headers": {
+   "bank": 4,
+   "address": "0x5be9"
+  },
+  "interaction_animation_table": {
+   "bank": 22,
+   "address": "0x58d1"
+  },
+  "interaction_oam_data_table": {
+   "bank": 22,
+   "address": "0x5a9f"
+  },
+  "enemy_animation_table": {
+   "bank": 13,
+   "address": "0x6e19"
+  },
+  "enemy_oam_data_table": {
+   "bank": 13,
+   "address": "0x6f19"
+  },
+  "part_animation_table": {
+   "bank": 22,
+   "address": "0x76e4"
+  },
+  "part_oam_data_table": {
+   "bank": 22,
+   "address": "0x779a"
+  },
+  "gfx_regs1": {
+   "bank": 0,
+   "address": "0xc485"
+  },
+  "gfx_regs2": {
+   "bank": 0,
+   "address": "0xc48b"
+  },
+  "gfx_regs3": {
+   "bank": 0,
+   "address": "0xc491"
+  },
+  "vblank_checker": {
+   "bank": 0,
+   "address": "0xc49d"
+  },
+  "lcd_interrupt_behaviour": {
+   "bank": 0,
+   "address": "0xff9b"
+  },
+  "big_buffer": {
+   "bank": 0,
+   "address": "0xc300"
+  },
+  "tile_mapping_data": {
+   "bank": 3,
+   "address": "0xd000"
+  },
+  "tile_mapping_indices": {
+   "bank": 3,
+   "address": "0xdc00"
+  },
+  "tile_collisions": {
+   "bank": 3,
+   "address": "0xdb00"
+  },
+  "vram_tiles": {
+   "bank": 3,
+   "address": "0xd800"
+  },
+  "vram_attributes": {
+   "bank": 3,
+   "address": "0xdc00"
+  },
+  "bg_palettes_buffer": {
+   "bank": 2,
+   "address": "0xdf00"
+  },
+  "spr_palettes_buffer": {
+   "bank": 2,
+   "address": "0xdf40"
+  },
+  "tileset_bg_palettes": {
+   "bank": 2,
+   "address": "0xde80"
+  },
+  "wave_scroll_values": {
+   "bank": 2,
+   "address": "0xd800"
+  },
+  "status_bar_tile_map": {
+   "bank": 4,
+   "address": "0xd240"
+  },
+  "status_bar_attribute_map": {
+   "bank": 4,
+   "address": "0xd640"
+  },
+  "textbox_map": {
+   "bank": 7,
+   "address": "0xd000"
+  },
+  "thread_state_buffer": {
+   "bank": 0,
+   "address": "0xc2e0"
+  },
+  "main_stack": {
+   "bank": 0,
+   "address": "0xc0b0"
+  },
+  "main_stack_top": {
+   "bank": 0,
+   "address": "0xc110"
+  },
+  "thread0_stack": {
+   "bank": 0,
+   "address": "0xc110"
+  },
+  "thread0_stack_top": {
+   "bank": 0,
+   "address": "0xc180"
+  },
+  "thread1_stack": {
+   "bank": 0,
+   "address": "0xc180"
+  },
+  "thread1_stack_top": {
+   "bank": 0,
+   "address": "0xc220"
+  },
+  "thread2_stack": {
+   "bank": 0,
+   "address": "0xc220"
+  },
+  "thread2_stack_top": {
+   "bank": 0,
+   "address": "0xc270"
+  },
+  "thread3_stack": {
+   "bank": 0,
+   "address": "0xc270"
+  },
+  "thread3_stack_top": {
+   "bank": 0,
+   "address": "0xc2c0"
+  },
+  "inventory_b": {
+   "bank": 0,
+   "address": "0xc684"
+  },
+  "inventory_a": {
+   "bank": 0,
+   "address": "0xc685"
+  },
+  "inventory_storage": {
+   "bank": 0,
+   "address": "0xc686"
+  },
+  "satchel_selected_seeds": {
+   "bank": 0,
+   "address": "0xc6f7"
+  },
+  "shooter_selected_seeds": {
+   "bank": 0,
+   "address": "0xc6f8"
+  },
+  "selected_harp_song": {
+   "bank": 0,
+   "address": "0xc6b7"
+  },
+  "obtained_treasure_flags": {
+   "bank": 0,
+   "address": "0xc69a"
+  },
+  "status_bar_needs_refresh": {
+   "bank": 0,
+   "address": "0xcbe9"
+  },
+  "dont_update_status_bar": {
+   "bank": 0,
+   "address": "0xcbe7"
+  },
+  "menu_disabled": {
+   "bank": 0,
+   "address": "0xcc02"
+  },
+  "disable_link_collisions_and_menu": {
+   "bank": 0,
+   "address": "0xcbca"
+  },
+  "link_death_trigger": {
+   "bank": 0,
+   "address": "0xcdd5"
+  },
+  "use_simulated_input": {
+   "bank": 0,
+   "address": "0xcbc3"
+  },
+  "in_boxing_match": null,
+  "items_disabled": {
+   "bank": 0,
+   "address": "0xcc63"
+  },
+  "in_shop": {
+   "bank": 0,
+   "address": "0xccd3"
+  },
+  "link_in_spinner": {
+   "bank": 0,
+   "address": "0xcc95"
+  },
+  "link_grabbed": {
+   "bank": 0,
+   "address": "0xccd8"
+  },
+  "link_climbing_vine": {
+   "bank": 0,
+   "address": "0xcc68"
+  },
+  "menu_load_state": {
+   "bank": 0,
+   "address": "0xcbcc"
+  },
+  "menu_active_state": {
+   "bank": 0,
+   "address": "0xcbcd"
+  },
+  "inventory_submenu": {
+   "bank": 0,
+   "address": "0xcbcf"
+  },
+  "inventory_submenu0_cursor_pos": {
+   "bank": 0,
+   "address": "0xcbd0"
+  },
+  "treasure_display_data1": {
+   "bank": 63,
+   "address": "0x6e15"
+  },
+  "treasure_display_data2": {
+   "bank": 63,
+   "address": "0x6e45"
+  },
+  "c600_block": {
+   "bank": 0,
+   "address": "0xc600"
+  },
+  "slingshot_level": {
+   "bank": 0,
+   "address": "0xc6ff"
+  },
+  "spr_item_icons_1": {
+   "bank": 25,
+   "address": "0x4000"
+  },
+  "obtained_seasons": {
+   "bank": 0,
+   "address": "0xc6f1"
+  },
+  "magnet_glove_polarity": {
+   "bank": 0,
+   "address": "0xc6f2"
+  },
+  "slingshot_selected_seeds": {
+   "bank": 0,
+   "address": "0xc6f9"
+  },
+  "spr_extra_mags": {
+   "bank": 63,
+   "address": "0x7e6d"
+  },
+  "vblank_function_queue": {
+   "bank": 0,
+   "address": "0xc400"
+  },
+  "vblank_function_queue_tail": {
+   "bank": 0,
+   "address": "0xffa5"
+  },
+  "num_rupees": {
+   "bank": 0,
+   "address": "0xc6ad"
+  },
+  "link_health": {
+   "bank": 0,
+   "address": "0xc6aa"
+  },
+  "link_max_health": {
+   "bank": 0,
+   "address": "0xc6ab"
+  },
+  "num_gasha_seeds": {
+   "bank": 0,
+   "address": "0xc6be"
+  },
+  "seed_satchel_level": {
+   "bank": 0,
+   "address": "0xc6b4"
+  },
+  "num_ember_seeds": {
+   "bank": 0,
+   "address": "0xc6b9"
+  },
+  "link_damage_to_apply": {
+   "bank": 1,
+   "address": "0xd025"
+  },
+  "text_gfx_buffer": {
+   "bank": 7,
+   "address": "0xd200"
+  },
+  "line_text_buffer": {
+   "bank": 7,
+   "address": "0xd400"
+  },
+  "line_attributes_buffer": {
+   "bank": 7,
+   "address": "0xd410"
+  },
+  "line_delays_buffer": {
+   "bank": 7,
+   "address": "0xd420"
+  },
+  "line_sounds_buffer": {
+   "bank": 7,
+   "address": "0xd430"
+  },
+  "line_sound_effects_buffer": {
+   "bank": 7,
+   "address": "0xd440"
+  },
+  "next_text_column": {
+   "bank": 7,
+   "address": "0xd0d0"
+  },
+  "text_line_tiles": {
+   "bank": 7,
+   "address": "0xd0d3"
+  },
+  "textbox_column": {
+   "bank": 7,
+   "address": "0xd0cc"
+  },
+  "text_display_state": {
+   "bank": 7,
+   "address": "0xd0c0"
+  },
+  "text_display_mode": {
+   "bank": 0,
+   "address": "0xcba1"
+  },
+  "textbox_attributes": {
+   "bank": 7,
+   "address": "0xd100"
+  },
+  "textbox_option_positions": {
+   "bank": 7,
+   "address": "0xd0e0"
+  },
+  "secret_text": {
+   "bank": 7,
+   "address": "0xd460"
+  },
+  "secret_text_end": {
+   "bank": 7,
+   "address": "0xd478"
+  },
+  "textbox_vram_pos": {
+   "bank": 7,
+   "address": "0xd0d8"
+  },
+  "character_display_timer": {
+   "bank": 7,
+   "address": "0xd0c6"
+  },
+  "text_address": {
+   "bank": 7,
+   "address": "0xd0d5"
+  },
+  "text_flags": {
+   "bank": 7,
+   "address": "0xd0c1"
+  },
+  "text_slowdown_timer": {
+   "bank": 7,
+   "address": "0xd0d7"
+  },
+  "general_purpose_hram": {
+   "bank": 0,
+   "address": "0xff8a"
+  },
+  "general_purpose_hram_end": {
+   "bank": 0,
+   "address": "0xff94"
+  },
+  "tmp_cec0": {
+   "bank": 0,
+   "address": "0xcec0"
+  },
+  "tmp_cec0_end": {
+   "bank": 0,
+   "address": "0xcf00"
+  },
+  "game_state": {
+   "bank": 0,
+   "address": "0xc2ee"
+  },
+  "cutscene_index": {
+   "bank": 0,
+   "address": "0xc2ef"
+  },
+  "maku_tree_tileset_room_flags": {
+   "bank": 0,
+   "address": "0xc848"
+  },
+  "veran_room_flags": {
+   "bank": 0,
+   "address": "0xc9fc"
+  },
+  "font_start": {
+   "bank": 28,
+   "address": "0x4720"
+  },
+  "treasure_collection_behaviours": {
+   "bank": 63,
+   "address": "0x6ca7"
+  },
+  "treasure_object_data": {
+   "bank": 22,
+   "address": "0x5332"
+  },
+  "rupee_values": {
+   "bank": 0,
+   "address": "0x193e"
+  },
+  "treasure_object_lists_end": {
+   "bank": 22,
+   "address": "0x57e2"
+  }
+ },
+ "guest_table_absent": {
+  "num_placed_slates": "a fan game's symbol: neither half has it",
+  "moblin_keep_rooms": "a Seasons symbol: Ages' engine, which this half keeps, has none",
+  "in_boxing_match": "a Seasons symbol: Ages' engine, which this half keeps, has none"
+ },
+ "guest_table_sizes": {
+  "global_flags_size": 16,
+  "room_flags_size": 1024,
+  "obtained_treasure_flags_size": 16,
+  "gasha_spots_planted_size": 2,
+  "vblank_function_queue_size": 128,
+  "inventory_storage_size": 20
+ },
+ "guest_table_constants": {
+  "oam_data_bank": "0x13",
+  "puddle_tile_first": "0xf9",
+  "puddle_tile_last": "0xf9",
+  "grass_tile_first": "0xf8",
+  "grass_tile_last": "0xf8",
+  "grass_tile_last_other_groups": "0xf8",
+  "shutter_tile_first": "0x78",
+  "shutter_tile_last": "0x7f",
+  "num_inventory_items": "0x20",
+  "first_upgrade_treasure": "0x60",
+  "item_biggoron_sword": "0x0c",
+  "item_seed_satchel": "0x19",
+  "item_bomb": "0x03",
+  "item_bracelet": "0x16",
+  "item_shooter": "0x0f",
+  "item_slingshot": "0x13",
+  "item_harp": "0x11",
+  "treasure_ember_seeds": "0x20",
+  "treasure_tune_of_echoes": "0x25",
+  "globalflag_intro_done": "0x0a",
+  "cutscene_ingame": "0x01",
+  "cutscene_loading_room": "0x00",
+  "cutscene_onox_final_form": "0x13",
+  "cutscene_pregame_intro": "0x0d",
+  "cutscene_din_imprisoned": "0xff",
+  "cutscene_temple_sinking": "0xff",
+  "cutscene_onox_taunting": "0xff",
+  "cutscene_black_tower_explanation": "0x08",
+  "cutscene_black_tower_escape": "0x09",
+  "cutscene_flame_of_sorrow": "0x11",
+  "cutscene_flame_of_despair": "0x20",
+  "cutscene_black_tower_complete": "0x21",
+  "cutscene_din_crystal_descending": "0xff",
+  "cutscene_flame_of_destruction": "0xff",
+  "cutscene_princess_kidnapped": "0xff",
+  "cutscene_room_of_rites_collapse": "0x0f",
+  "cutscene_credits": "0x0a",
+  "cutscene_the_end_screen": "0xff",
+  "cutscene_03": "0x03",
+  "cutscene_04": "0x04",
+  "cutscene_05": "0x05",
+  "interac_wild_tokay_controller": "0x70",
+  "interac_golden_cave_subrosian": "0xff",
+  "tilesetflag_bit_sidescroll": "0x05",
+  "tilesetflag_bit_underwater": "0x06",
+  "menu_inventory": "0x01",
+  "specialobject_minecart": "0x0a",
+  "specialobject_raft": "0x13",
+  "first_dynamic_interaction_index": "0xd2",
+  "roomflag_visited": "0x10",
+  "tileindex_chest_opened": "0xf0",
+  "roomflag_item": "0x20",
+  "transition_dest_timewarp": "0x06",
+  "globalflag_water_pollution_fixed": "0x30",
+  "treasure_rupees": "0x28",
+  "treasure_heart_refill": "0x29",
+  "treasure_ring": "0x2d",
+  "treasure_ring_box": "0x2c",
+  "treasure_gasha_seed": "0x34",
+  "treasure_seed_satchel": "0x19",
+  "num_rings": "0x40",
+  "swimmers_ring": "0x15",
+  "swim_speed_treasure": "0xff",
+  "coarse_flag_finished_game": "0x14",
+  "coarse_flag_temple_lava": "0xff",
+  "coarse_flag_moblins_keep": "0xff",
+  "coarse_flag_pirate_ship": "0xff",
+  "coarse_flag_intro_done": "0xff",
+  "treasure_collection_behaviour_count": "0x7a",
+  "treasure_object_count": "0x7b",
+  "rupee_value_count": "0x15",
+  "coarse_flag_intro_done_room": "0xff"
+ },
+ "guest_table_empty": {
+  "ring_names": "mods not qualified for this revision: they play on the original ROMs only",
+  "treasure_names": "mods not qualified for this revision: they play on the original ROMs only",
+  "global_flag_names": "mods not qualified for this revision: they play on the original ROMs only"
+ },
+ "guest_table_texts": {
+  "item_labels": [
+   "",
+   "SHIE",
+   "",
+   "BOMB",
+   "CANE",
+   "SWOR",
+   "BOOM",
+   "RODO",
+   "MAGN",
+   "",
+   "SWIT",
+   "",
+   "BIGG",
+   "CHUS",
+   "FLUT",
+   "SHOO",
+   "",
+   "HARP",
+   "",
+   "SLIN",
+   "",
+   "SHOV",
+   "BRAC",
+   "FEAT",
+   "",
+   "SEED",
+   "",
+   "",
+   "",
+   "",
+   "FOOL",
+   ""
+  ],
+  "item_names": [
+   "",
+   "Shield",
+   "",
+   "Bombs",
+   "Cane of Somaria",
+   "Sword",
+   "Boomerang",
+   "Rod of Seasons",
+   "Magnet Gloves",
+   "",
+   "Switch Hook",
+   "",
+   "Biggoron Sword",
+   "Bombchus",
+   "Flute",
+   "Shooter",
+   "",
+   "Harp",
+   "",
+   "Slingshot",
+   "",
+   "Shovel",
+   "Bracelet",
+   "Feather",
+   "",
+   "Seed Satchel",
+   "",
+   "",
+   "",
+   "",
+   "Fools Ore",
+   ""
+  ],
+  "sound_names": [
+   "mus_none",
+   "mus_titlescreen",
+   "mus_minigame",
+   "mus_overworld_pres",
+   "mus_overworld_past",
+   "mus_crescent",
+   "mus_essence",
+   "mus_ambi_palace",
+   "mus_nayru",
+   "mus_gameover",
+   "mus_lynna_city",
+   "mus_lynna_village",
+   "mus_zora_village",
+   "mus_essence_room",
+   "mus_indoors",
+   "mus_fairy",
+   "mus_get_essence",
+   "mus_file_select",
+   "mus_maku_path",
+   "mus_level1",
+   "mus_level2",
+   "mus_level3",
+   "mus_level4",
+   "mus_level5",
+   "mus_level6",
+   "mus_level7",
+   "mus_level8",
+   "mus_final_dungeon",
+   "mus_onox_castle",
+   "mus_room_of_rites",
+   "mus_maku_tree",
+   "mus_sadness",
+   "mus_triumphant",
+   "mus_disaster",
+   "mus_underwater",
+   "mus_pirates",
+   "mus_symmetry_present",
+   "mus_symmetry_past",
+   "mus_tokay_house",
+   "mus_rosa_date",
+   "mus_black_tower",
+   "mus_credits_1",
+   "mus_credits_2",
+   "mus_maple_theme",
+   "mus_maple_game",
+   "mus_miniboss",
+   "mus_boss",
+   "mus_ladx_sideview",
+   "mus_fairy_forest",
+   "mus_crazy_dance",
+   "mus_final_boss",
+   "mus_twinrova",
+   "mus_ganon",
+   "mus_ralph",
+   "mus_cave",
+   "mus_37",
+   "mus_zelda_saved",
+   "mus_great_moblin",
+   "mus_3a",
+   "mus_3b",
+   "mus_syrup",
+   "mus_3d",
+   "mus_goron_cave",
+   "mus_intro_1",
+   "mus_intro_2",
+   "mus_41",
+   "mus_42",
+   "mus_43",
+   "mus_44",
+   "mus_45",
+   "mus_black_tower_entrance",
+   "mus_47",
+   "mus_48",
+   "mus_49",
+   "mus_precredits",
+   "mus_4b",
+   "snd_getitem",
+   "snd_solvepuzzle",
+   "snd_damage_enemy",
+   "snd_charge_sword",
+   "snd_clink",
+   "snd_throw",
+   "snd_bomb_land",
+   "snd_jump",
+   "snd_openmenu",
+   "snd_closemenu",
+   "snd_selectitem",
+   "snd_gainheart",
+   "snd_clink2",
+   "snd_fallinhole",
+   "snd_error",
+   "snd_solvepuzzle_2",
+   "snd_energything",
+   "snd_swordbeam",
+   "snd_getseed",
+   "snd_damage_link",
+   "snd_heartbeep",
+   "snd_rupee",
+   "snd_heart_ladx",
+   "snd_boss_damage",
+   "snd_link_dead",
+   "snd_link_fall",
+   "snd_text",
+   "snd_boss_dead",
+   "snd_unknown3",
+   "snd_unknown4",
+   "snd_slash",
+   "snd_swordspin",
+   "snd_openchest",
+   "snd_cutgrass",
+   "snd_entercave",
+   "snd_explosion",
+   "snd_doorclose",
+   "snd_moveblock",
+   "snd_lighttorch",
+   "snd_killenemy",
+   "snd_swordslash",
+   "snd_unknown5",
+   "snd_switchhook",
+   "snd_dropessence",
+   "snd_boomerang",
+   "snd_big_explosion",
+   "snd_magnet_gloves",
+   "snd_mystery_seed",
+   "snd_aquamentus_hover",
+   "snd_open_gate",
+   "snd_switch",
+   "snd_move_block_2",
+   "snd_minecart",
+   "snd_strong_pound",
+   "snd_roller",
+   "snd_magic_powder",
+   "snd_menu_move",
+   "snd_scent_seed",
+   "snd_86",
+   "snd_splash",
+   "snd_link_swim",
+   "snd_text_2",
+   "snd_pop",
+   "snd_cranegame",
+   "snd_unknown7",
+   "snd_teleport",
+   "snd_switch2",
+   "snd_enemy_jump",
+   "snd_gale_seed",
+   "snd_fairycutscene",
+   "snd_92",
+   "snd_93",
+   "snd_94",
+   "snd_warp_start",
+   "snd_ghost",
+   "snd_97",
+   "snd_poof",
+   "snd_baseball",
+   "snd_become_baby",
+   "snd_jingle",
+   "snd_pickup",
+   "snd_flute_ricky",
+   "snd_flute_dimitri",
+   "snd_flute_moosh",
+   "snd_chicken",
+   "snd_monkey",
+   "snd_compass",
+   "snd_land",
+   "snd_beam",
+   "snd_break_rock",
+   "snd_strike",
+   "snd_switch_hook",
+   "snd_veran_fairy_attack",
+   "snd_dig",
+   "snd_wave",
+   "snd_sword_obtained",
+   "snd_shock",
+   "snd_echo",
+   "snd_current",
+   "snd_ages",
+   "snd_opening",
+   "snd_bigsword",
+   "snd_makudisappear",
+   "snd_rumble",
+   "snd_fadeout",
+   "snd_tingle",
+   "snd_tokay",
+   "snd_b7",
+   "snd_rumble2",
+   "snd_endless",
+   "snd_beam1",
+   "snd_beam2",
+   "snd_big_explosion_2",
+   "snd_bd",
+   "snd_veran_projectile",
+   "snd_charge",
+   "snd_transform",
+   "snd_restore",
+   "snd_floodgates",
+   "snd_ricky",
+   "snd_dimitri",
+   "snd_moosh",
+   "snd_deku_scrub",
+   "snd_goron",
+   "snd_ding",
+   "snd_circling",
+   "snd_ca",
+   "snd_seedshooter",
+   "snd_whistle",
+   "snd_goron_dance_b",
+   "snd_maku_tree_past",
+   "snd_cf",
+   "snd_pirate_bell",
+   "snd_timewarp_initiated",
+   "snd_lightning",
+   "snd_wind",
+   "snd_timewarp_completed",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ]
+ },
+ "data_tables": {
+  "room_layout_group_table": {
+   "bank": 4,
+   "address": "0x4f6c"
+  },
+  "tileset_data": {
+   "bank": 4,
+   "address": "0x4f9c"
+  },
+  "tileset_layout_table": {
+   "bank": 66,
+   "address": "0x55cc"
+  },
+  "tileset_layout_dictionary_table": {
+   "bank": 66,
+   "address": "0x55be"
+  },
+  "tile_mapping_table": {
+   "bank": 24,
+   "address": "0x4004"
+  },
+  "tile_mapping_index_data_pointer": {
+   "bank": 24,
+   "address": "0x4000"
+  },
+  "tile_mapping_attribute_data_pointer": {
+   "bank": 24,
+   "address": "0x4002"
+  },
+  "gfx_header_table": {
+   "bank": 66,
+   "address": "0x46de"
+  },
+  "unique_gfx_headers_start": {
+   "bank": 4,
+   "address": "0x59d0"
+  },
+  "room_tilesets_group_table": {
+   "bank": 4,
+   "address": "0x52d4"
+  },
+  "palette_header_table": {
+   "bank": 66,
+   "address": "0x4000"
+  },
+  "animation_group_table": {
+   "bank": 4,
+   "address": "0x5b52"
+  },
+  "animation_gfx_headers": {
+   "bank": 4,
+   "address": "0x5be9"
+  },
+  "object_gfx_header_table": {
+   "bank": 63,
+   "address": "0x5b1c"
+  },
+  "single_tile_change_group_table": {
+   "bank": 4,
+   "address": "0x632e"
+  },
+  "standard_tile_substitutions": {
+   "bank": 4,
+   "address": "0x60f5"
+  },
+  "chest_data_group_table": {
+   "bank": 22,
+   "address": "0x5108"
+  },
+  "room_tile_changer_code_group_table": {
+   "bank": 4,
+   "address": "0x64a9"
+  },
+  "tile_changes_after_gfx_group_table": {
+   "bank": 2,
+   "address": "0x792a"
+  },
+  "gasha_spot_rooms": {
+   "bank": 2,
+   "address": "0x78dd"
+  },
+  "object_speed_table": {
+   "bank": 3,
+   "address": "0x409b"
+  },
+  "timewarp_entry_tile_replacement_dict": {
+   "bank": 4,
+   "address": "0x6063"
+  },
+  "timewarp_return_tile_replacement_dict": {
+   "bank": 4,
+   "address": "0x6033"
+  },
+  "pollution_above_water": {
+   "bank": 4,
+   "address": "0x6090"
+  },
+  "pollution_below_water": {
+   "bank": 4,
+   "address": "0x6093"
+  }
+ },
+ "data_tables_empty": {
+  "num_gfx_headers": "a count only the originals' data check reads",
+  "num_unique_gfx_headers": "a count only the originals' data check reads",
+  "num_palette_headers": "a count only the originals' data check reads",
+  "num_tileset_layouts": "a count only the originals' data check reads",
+  "expanded_tileset_mappings_table": "the originals' tileset layouts: no expanded tilesets in this image",
+  "layout_group_table": "the originals' tileset layouts: no expanded tilesets in this image",
+  "opened_chest_exceptions": "none in the originals' engine",
+  "warp_sources_table": "mods not qualified for this revision: they play on the original ROMs only",
+  "warp_dest_table": "mods not qualified for this revision: they play on the original ROMs only",
+  "object_data_group_table": "mods not qualified for this revision: they play on the original ROMs only",
+  "music_assignment_group_table": "mods not qualified for this revision: they play on the original ROMs only",
+  "parse_object_data": "mods not qualified for this revision: they play on the original ROMs only",
+  "warp_bank_free": "mods not qualified for this revision: they play on the original ROMs only",
+  "object_bank_free": "mods not qualified for this revision: they play on the original ROMs only"
+ },
+ "languages": {
+  "en": {
+   "guest_table_constants": {
+    "text_offset_split_index": "0x30"
+   },
+   "text": {
+    "split_index_2": "0xff",
+    "offset_3": {
+     "bank": 71,
+     "address": "0x5986"
+    }
+   }
+  },
+  "fr": {
+   "guest_table_constants": {
+    "text_offset_split_index": "0x1f"
+   },
+   "text": {
+    "split_index_2": "0x38",
+    "offset_3": {
+     "bank": 75,
+     "address": "0x4b08"
+    }
+   }
+  },
+  "de": {
+   "guest_table_constants": {
+    "text_offset_split_index": "0x17"
+   },
+   "text": {
+    "split_index_2": "0x34",
+    "offset_3": {
+     "bank": 75,
+     "address": "0x52b1"
+    }
+   }
+  },
+  "es": {
+   "guest_table_constants": {
+    "text_offset_split_index": "0x19"
+   },
+   "text": {
+    "split_index_2": "0x35",
+    "offset_3": {
+     "bank": 75,
+     "address": "0x4247"
+    }
+   }
+  },
+  "it": {
+   "guest_table_constants": {
+    "text_offset_split_index": "0x21"
+   },
+   "text": {
+    "split_index_2": "0x3b",
+    "offset_3": {
+     "bank": 75,
+     "address": "0x4d88"
+    }
+   }
+  }
+ }
+}

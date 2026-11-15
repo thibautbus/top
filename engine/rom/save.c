@@ -37,6 +37,13 @@ unsigned oracles_save_valid(const uint8_t *sram, size_t size, OraclesGame game)
     return valid;
 }
 
+unsigned oracles_save_combined_valid(const uint8_t *sram, size_t size)
+{
+    if (size != ORACLES_SAVE_COMBINED_SIZE) return 0;
+    return oracles_save_valid(sram + 2u * ORACLES_SAVE_SIZE, ORACLES_SAVE_SIZE, ORACLES_GAME_AGES)
+           | oracles_save_valid(sram + 3u * ORACLES_SAVE_SIZE, ORACLES_SAVE_SIZE, ORACLES_GAME_SEASONS) << ORACLES_SAVE_COPIES;
+}
+
 unsigned oracles_save_set_english(uint8_t *sram, size_t size, OraclesGame game)
 {
     const unsigned valid = oracles_save_valid(sram, size, game);

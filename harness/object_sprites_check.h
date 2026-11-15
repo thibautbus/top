@@ -18,6 +18,8 @@
 typedef struct OraclesObjectSpritesCheck OraclesObjectSpritesCheck;
 
 OraclesObjectSpritesCheck *oracles_object_sprites_check_start(OraclesGuest *guest, const uint8_t *rom, size_t rom_size);
+/* The guest went to the other half of an image of two games: that half's banks. */
+void oracles_object_sprites_check_half_switched(OraclesObjectSpritesCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_object_sprites_check_stop(OraclesObjectSpritesCheck *c);
 /* Every event of the live instance's bus. */
 void oracles_object_sprites_check_event(OraclesObjectSpritesCheck *c, const OraclesGuestEvent *event);

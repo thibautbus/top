@@ -22,7 +22,14 @@ struct OraclesHotkeysLive {
     uint8_t grab_before;
     unsigned lifts, throws;
     unsigned calls_seen, sounds_in_inventory;   /* the game's routines run, and those run with the inventory open */
+    unsigned applied_seasons_half, uses_seasons_half;   /* an image of two games: those made in its second half (Seasons') */
 };
+
+static int in_second_half(const OraclesHotkeysLive *l)
+{
+    const OraclesCompatProfile *p = oracles_guest_profile(l->guest);
+    return oracles_compat_half_switch(p) && oracles_compat_half_game(p) == 1u;
+}
 
 int oracles_hotkeys_live_parse_press(OraclesHotkeysLiveOptions *o, const char *text)
 {
@@ -44,6 +51,7 @@ int oracles_hotkeys_live_parse_press(OraclesHotkeysLiveOptions *o, const char *t
 static void on_applied(void *opaque, const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op)
 {
     OraclesHotkeysLive *l = opaque;
+    if (in_second_half(l)) l->applied_seasons_half++;
     if (!l->recording) return;
     OraclesRouteAction action;
     oracles_route_action_of_exchange(before, op, &action);
@@ -54,6 +62,7 @@ static void on_use_started(void *opaque, uint32_t frame, unsigned button_slot, u
 {
     OraclesHotkeysLive *l = opaque;
     l->watch.waiting = 1; l->watch.item = item; l->watch.until = frame + 60u;
+    if (in_second_half(l)) l->uses_seasons_half++;
     if (!l->recording) return;
     OraclesRouteAction action;
     memset(&action, 0, sizeof action);
@@ -181,6 +190,9 @@ void oracles_hotkeys_live_summary(OraclesHotkeysLive *l, FILE *out)
             stats.returns_pending, stats.return_longest_delay, l->lifts, l->throws, stats.sounds, l->sounds_in_inventory, stats.throws);
     for (unsigned v = 0; v < ORACLES_INVENTORY_VERDICTS; v++)
         if (stats.dropped_by[v]) fprintf(out, "hotkeys.live.dropped.%s=%u\n", oracles_guest_inventory_verdict_name((OraclesGuestInventoryVerdict)v), stats.dropped_by[v]);
+    if (stats.half_switches || oracles_compat_half_switch(oracles_guest_profile(l->guest)))
+        fprintf(out, "hotkeys.live.half_switches=%u\nhotkeys.live.half_cancelled=%u\nhotkeys.live.applied_seasons_half=%u\nhotkeys.live.uses_seasons_half=%u\n",
+                stats.half_switches, stats.half_cancelled, l->applied_seasons_half, l->uses_seasons_half);
 }
 
 int oracles_hotkeys_live_stop(OraclesHotkeysLive *l, FILE *report)

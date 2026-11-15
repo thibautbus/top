@@ -147,6 +147,7 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.hotbar_fade_checked=%u\nenhanced.hotbar_cutscene_frames=%u\n", oracles_enhanced_view_hotbar_fade_checked(c->view), c->hotbar_cutscene_frames);
         fprintf(out, "enhanced.framed_only_frames=%u\nenhanced.hotbar_framed_only_frames=%u\n", c->framed_only_frames, c->hotbar_framed_only_frames);
         fprintf(out, "enhanced.hotbar_icons_decoded=%u\nenhanced.hotbar_icons_refound=%u\n", oracles_enhanced_view_hotbar_decoded(c->view), oracles_enhanced_view_hotbar_refound(c->view));
+        fprintf(out, "enhanced.hotbar_hooked=%d\n", oracles_enhanced_view_hotbar_hooked(c->view));
         unsigned pictures = 0, pictures_wrong = 0;
         oracles_enhanced_view_hotbar_pictures(c->view, &pictures, &pictures_wrong);
         fprintf(out, "enhanced.hotbar_pictures_checked=%u\nenhanced.hotbar_picture_wrong=%u\n", pictures, pictures_wrong);
@@ -160,6 +161,12 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         unsigned laid = 0, centred = 0, one_row = 0;
         oracles_enhanced_view_hud_wide_counts(c->view, &laid, &centred, &one_row);
         fprintf(out, "enhanced.hud_wide_frames=%u\nenhanced.hud_wide_centred=%u\nenhanced.hud_wide_one_row=%u\n", laid, centred, one_row);
+        static const char *const names[] = { [ORACLES_ENHANCED_BAR_NORMAL] = "normal", [ORACLES_ENHANCED_BAR_TIGHT] = "tight", [ORACLES_ENHANCED_BAR_BIGGORON] = "biggoron" };
+        for (OraclesEnhancedBarLayout l = ORACLES_ENHANCED_BAR_NORMAL; l <= ORACLES_ENHANCED_BAR_BIGGORON; l++) {
+            unsigned frames = 0, shown = 0;
+            oracles_enhanced_view_hud_layout_counts(c->view, l, &frames, &shown);
+            fprintf(out, "enhanced.hud_%s_frames=%u\nenhanced.hud_%s_shown=%u\n", names[l], frames, names[l], shown);
+        }
     }
     {   /* a room's load drawn under the world's HUD band */
         unsigned band = 0, blank = 0;

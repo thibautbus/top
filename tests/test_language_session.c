@@ -4,7 +4,8 @@
  * when the European ROM is given and refused without it; without the European ROM or its pack, or on another ROM, the
  * language is refused, with the loader's reason for a European ROM it refuses (a zip of two ROMs, a zip cut short); a
  * pack that cannot be written serves all the same, and the session says so.  The compact text's layout: English (US)
- * composed laid out, a language's identity with the layout's, the European ROM refused. */
+ * composed laid out, a language's identity with the layout's, the European ROM refused.  Oracles Combined, without its
+ * ROMs: a language refused, its own laid out. */
 #include "language_internal.h"
 #include "language_session.h"
 
@@ -114,6 +115,21 @@ int main(int argc, char **argv)
     /* English (US) is the cartridge's own: no session, whatever is given. */
     CHECK(oracles_language_session_start(&session, "en", NULL, NULL, NULL, &none, NULL, 0, error, sizeof error) == 0 && session == NULL);
     CHECK(oracles_language_session_start(&session, "klingon", NULL, NULL, NULL, &none, NULL, 0, error, sizeof error) == -1 && session == NULL);
+    /* Oracles Combined holds its own language: no pack's is composed into it; its own texts are laid out, in it. */
+    {
+        OraclesRomInfo combined;
+        CHECK(oracles_rom_known("1406167e50fb4c023c07c4577dd4aee26bda9c75", &combined) == 0);
+        OraclesLanguage own = ORACLES_LANGUAGE_COUNT;
+        CHECK(oracles_language_image_own(&combined, &own) == 1 && own == ORACLES_LANGUAGE_FRENCH && oracles_language_image_own(&none, &own) == 0);
+        session = (OraclesLanguageSession *)&failures;
+        CHECK(oracles_language_session_start(&session, "de", "/nowhere", NULL, NULL, &combined, NULL, 0, error, sizeof error) == -1 && session == NULL);
+        CHECK(strstr(error, "Oracles Combined") && strstr(error, " fr,"));
+        const OraclesLanguageLayout layout = { 128u, 0, 0u, NULL };
+        CHECK(oracles_language_session_lay_out(&session, &combined, &layout, error, sizeof error) == 0 && session);
+        CHECK(!oracles_language_session_translated(session) && !strncmp(oracles_language_session_identity(session), "text-compact@", 13));
+        oracles_language_session_stop(session);
+        session = NULL;
+    }
 
     const char *dir = getenv("ORACLES_ROM_DIR");
     rom_file ages = { NULL, 0 }, ages_eu = { NULL, 0 }, seasons = { NULL, 0 }, seasons_eu = { NULL, 0 };

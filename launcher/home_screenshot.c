@@ -98,13 +98,13 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
     int reminder = 0;
     /* The inputs move the navigation only: a game is not started, the launcher does not exit.  `slow` is the return
      * from a game that ran slowly, its toast shown until the next input; `key` and `pad`, a key or a controller's
-     * button as the device used last, which the hints follow; `android`, the screens as Android has them; `moonrise`,
-     * over a game's frame, the pause of Moonrise Regalia rather than Ages'; `import`, on a game's page, the import's
-     * confirmation as the page's own save chosen would open it; `imported`, there, the row's status after an import
-     * that kept the save and its savestate in Backups and set the language to English; `mods` before either, the game
-     * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too, and which
-     * Mods' Save row (`android`) exports; `reminder`,
-     * over a game's frame, the game in play with the reminder over it that names the menu's key, in place of the pause. */
+     * button as the device used last, which the hints follow; `android`, the screens as Android has them; `moonrise`
+     * and `combined`, over a game's frame, the pause of Moonrise Regalia or of Oracles Combined rather than Ages';
+     * `import`, on a game's page, the import's confirmation as the page's own save chosen would open it; `imported`,
+     * there, the row's status after an import that kept the save and its savestate in Backups and set the language to
+     * English; `mods` before either, the game with mods having a save, a savestate and mods' data of its own, which the
+     * import puts in Backups too, and which Mods' Save row (`android`) exports; `reminder`, over a game's frame, the game
+     * in play with the reminder over it that names the menu's key, in place of the pause. */
     int mods = 0, offline = 0;
     for (const char *p = inputs; p && *p;) {
         const size_t length = strcspn(p, ",");
@@ -114,6 +114,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         else if (length == 3 && !strncmp(p, "pad", 3)) oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
         else if (length == 7 && !strncmp(p, "android", 7)) nav.android = nav.display.fullscreen_only = 1;
         else if (length == 8 && !strncmp(p, "moonrise", 8) && frame) pause(&nav, ORACLES_HOME_GAME_MOONRISE, width);
+        else if (length == 8 && !strncmp(p, "combined", 8) && frame) pause(&nav, ORACLES_HOME_GAME_COMBINED, width);
         else if (length == 4 && !strncmp(p, "mods", 4)) mods = nav.games[ORACLES_HOME_GAME_AGES].mods_save = nav.games[ORACLES_HOME_GAME_SEASONS].mods_save = 1;
         else if (length == 8 && !strncmp(p, "reminder", 8) && frame) reminder = 1;
 #ifdef ORACLES_RETROACHIEVEMENTS
@@ -138,7 +139,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
                                      nav.save_flow.text, nav.save_flow.text2);
         }
         else if (!parse_action(p, length, &action)) {
-            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, mods, import, imported, reminder%s)",
+            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, combined, mods, import, imported, reminder%s)",
                      (int)length, p, ORACLES_SCREENSHOT_MORE_INPUTS);
             return 1;
         }

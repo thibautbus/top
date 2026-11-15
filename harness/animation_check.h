@@ -15,6 +15,8 @@
 typedef struct OraclesAnimationCheck OraclesAnimationCheck;
 
 OraclesAnimationCheck *oracles_animation_check_start(OraclesGuest *guest, const uint8_t *rom, size_t rom_size);
+/* The guest went to the other half of an image of two games: that half's banks. */
+void oracles_animation_check_half_switched(OraclesAnimationCheck *check, const uint8_t *rom, size_t rom_size);
 void oracles_animation_check_stop(OraclesAnimationCheck *c);
 /* After every frame of the live instance. */
 void oracles_animation_check_frame(OraclesAnimationCheck *c, uint32_t frame);

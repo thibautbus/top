@@ -74,14 +74,21 @@ static int check_patch(OraclesHomeGames *games, const char *path, char *error, s
     return patch ? oracles_bps_check(patch, size, error, capacity) : -1;
 }
 
-/* The image a patch makes of a base ROM, as a session builds it, the two files read once; the caller frees it.  NULL
- * with the reason. */
-static uint8_t *build_image(OraclesHomeGames *games, const char *base_path, const char *patch_path, size_t *size, char *error, size_t capacity)
+/* The image a patch makes of a base ROM, with the ROM at `joined_path` joined after it (NULL: none), as a session builds
+ * it, the files read once; the caller frees it.  NULL with the reason. */
+static uint8_t *build_image(OraclesHomeGames *games, const char *base_path, const char *joined_path, const char *patch_path, size_t *size,
+                            char *error, size_t capacity)
 {
-    size_t base_size = 0, patch_size = 0;
+    size_t base_size = 0, second_size = 0, patch_size = 0;
     const uint8_t *base = oracles_home_file(&games->files, base_path, ORACLES_ZIP_ROM, &base_size, error, capacity);
-    const uint8_t *patch = base ? oracles_home_file(&games->files, patch_path, ORACLES_ZIP_PATCH, &patch_size, error, capacity) : NULL;
-    return patch ? oracles_bps_apply(base, base_size, patch, patch_size, size, error, capacity) : NULL;
+    const uint8_t *second = base && joined_path ? oracles_home_file(&games->files, joined_path, ORACLES_ZIP_ROM, &second_size, error, capacity) : NULL;
+    if (!base || (joined_path && !second)) return NULL;
+    uint8_t *joined = second ? oracles_bps_join(base, base_size, second, second_size, &base_size, error, capacity) : NULL;
+    if (second && !joined) return NULL;
+    const uint8_t *patch = oracles_home_file(&games->files, patch_path, ORACLES_ZIP_PATCH, &patch_size, error, capacity);
+    uint8_t *image = patch ? oracles_bps_apply(joined ? joined : base, base_size, patch, patch_size, size, error, capacity) : NULL;
+    free(joined);
+    return image;
 }
 
 static OraclesGame game_of(OraclesSettingsGame game) { return game == ORACLES_SETTINGS_AGES ? ORACLES_GAME_AGES : ORACLES_GAME_SEASONS; }
@@ -99,17 +106,26 @@ static void split_path(const char *path, char *file, size_t file_capacity, char 
 
 static void find_save(const char *path, OraclesHomeGame *state);
 
-/* The image each fan game's patch is made to give, by fan game. */
-static const OraclesRomRevision fan_revisions[ORACLES_HOME_FAN_GAMES] = {
-    [ORACLES_HOME_FAN_KINOMI] = ORACLES_ROM_REVISION_KINOMI_1_1_2, [ORACLES_HOME_FAN_MOONRISE] = ORACLES_ROM_REVISION_MOONRISE_1_0_6,
-    [ORACLES_HOME_FAN_TEMPLE] = ORACLES_ROM_REVISION_TEMPLE_1_073 };
 static unsigned fan_index(const OraclesHomeFanGame *fan) { return (unsigned)(fan - oracles_home_fan_games); }
+/* Whether an image is the one fan game `f`'s patch is made to give. */
+static int fan_made(unsigned f, const OraclesRomInfo *info)
+{
+    if (f == ORACLES_HOME_FAN_COMBINED) return oracles_rom_combined_language(info) != NULL;
+    return info->known && info->revision == oracles_home_fan_revisions[f];
+}
 static const char *fan_title(const OraclesHomeFanGame *fan) { return oracles_home_title(fan->hero); }
 /* The setting a game's page chooses the ROM of: a fan game's base ROM is its Oracle's. */
 static OraclesSettingsGame rom_setting(int game)
 {
     const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
     return (fan ? fan->base : game) == ORACLES_HOME_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES;
+}
+/* The file a fan game's patch applies to: its Oracle's ROM, or for one made on the two European ROMs joined Ages', with
+ * Seasons' in *joined (else NULL). */
+static const char *fan_base(const OraclesHomeGames *games, const OraclesHomeFanGame *fan, const char **joined)
+{
+    *joined = fan->joined ? games->settings->eu_rom[ORACLES_SETTINGS_SEASONS] : NULL;
+    return fan->joined ? games->settings->eu_rom[ORACLES_SETTINGS_AGES] : games->settings->rom[rom_setting(fan->base)];
 }
 
 /* The file at `path` now (*there 0 when it is not), and whether `found` holds it as it is. */
@@ -129,27 +145,42 @@ static void keep_found(OraclesHomeFound *found, const char *path, const struct s
     found->modified = (long long)file->st_mtime;
     found->state = state;
     snprintf(found->reason, sizeof found->reason, "%s", reason);
+    found->combined = 0;
+    found->language = NULL;
+}
+
+/* Why a ROM identified as `info` is not one of `game`'s: the other game's, or an image of both, which plays under Ages. */
+static void other_game(const OraclesRomInfo *info, OraclesGame game, char *reason, size_t capacity)
+{
+    if (oracles_rom_is_combined(info)) snprintf(reason, capacity, "an image of both games, which plays under %s", oracles_game_name(info->game));
+    else snprintf(reason, capacity, "the header says %s, not %s", oracles_game_name(info->game), oracles_game_name(game));
 }
 
 /* A game's ROM: ORIGINAL, UNRECOGNISED for another ROM of the game, REFUSED with the reason (the loader's, or that it
- * is the other game's); kept in games->rom_found[g] while the file is the same. */
-static OraclesRomState rom_found(OraclesHomeGames *games, OraclesSettingsGame g, const char *path, char *reason, size_t capacity)
+ * is the other game's); kept in games->rom_found[g] while the file is the same, with whether it is an image of both
+ * games (*combined). */
+static OraclesRomState rom_found(OraclesHomeGames *games, OraclesSettingsGame g, const char *path, char *reason, size_t capacity, int *combined)
 {
     struct stat file;
     int there;
     OraclesHomeFound *found = &games->rom_found[g];
+    *combined = 0;
     if (!still_found(found, path, &file, &there)) {
         OraclesRomInfo info;
         OraclesRomState state = ORACLES_ROM_REFUSED;
+        int both = 0;
         if (identify(games, path, &info, &games->rom_font[g], reason, capacity)) {
             if (info.game == game_of(g)) state = oracles_rom_is_original(&info) ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
             /* A ROM of the other game, chosen under this one (or written so in settings.txt). */
-            else snprintf(reason, capacity, "the header says %s, not %s", oracles_game_name(info.game), oracles_game_name(game_of(g)));
+            else other_game(&info, game_of(g), reason, capacity);
+            both = state == ORACLES_ROM_UNRECOGNISED && oracles_rom_is_combined(&info);
         }
         keep_found(found, path, &file, there, state, state == ORACLES_ROM_REFUSED ? reason : "");
+        found->combined = both;
         if (!there) return state;
     }
     snprintf(reason, capacity, "%s", found->reason);
+    *combined = found->combined;
     return found->state;
 }
 
@@ -176,7 +207,7 @@ static void inspect(OraclesHomeGames *games, OraclesSettingsGame g, OraclesHomeG
     if (!path[0]) return;
     state->hotkeys_failed = !strcmp(games->hotkeys_failed[g], path);
     split_path(path, state->rom_file, sizeof state->rom_file, state->rom_folder, sizeof state->rom_folder);
-    state->rom = rom_found(games, g, path, state->rom_reason, sizeof state->rom_reason);
+    state->rom = rom_found(games, g, path, state->rom_reason, sizeof state->rom_reason, &state->combined);
     state->usable = state->rom != ORACLES_ROM_REFUSED;
     if (state->rom == ORACLES_ROM_ORIGINAL) state->font = games->rom_font[g];
     find_save(path, state);
@@ -231,6 +262,34 @@ static void inspect_eu(OraclesHomeGames *games, OraclesSettingsGame g, OraclesHo
     if (state->eu == ORACLES_ROM_ORIGINAL) state->language = games->settings->language[g];
 }
 
+/* Oracles Combined's base, the European ROMs of Ages and Seasons as their pages show them, each in state->joined: ORIGINAL
+ * when both are their game's, else the state of the first that is not, with its file and why in rom_reason (NONE: none
+ * chosen). */
+static void inspect_joined(OraclesHomeGames *games, OraclesHomeGame *state)
+{
+    memset(state, 0, sizeof *state);
+    state->rom = ORACLES_ROM_ORIGINAL;
+    for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
+        OraclesHomeGame oracle;
+        memset(&oracle, 0, sizeof oracle);
+        inspect_eu(games, (OraclesSettingsGame)g, &oracle);
+        OraclesHomeEuropean *half = &state->joined[g];
+        half->state = oracle.eu;
+        snprintf(half->file, sizeof half->file, "%s", oracle.eu_file);
+        snprintf(half->reason, sizeof half->reason, "%s", oracle.eu_reason);
+        /* Ages' file shown while both are theirs, else the first that is not. */
+        if (state->rom != ORACLES_ROM_ORIGINAL || (oracle.eu == ORACLES_ROM_ORIGINAL && g)) continue;
+        const char *name = oracles_game_name(game_of((OraclesSettingsGame)g));
+        snprintf(state->rom_file, sizeof state->rom_file, "%s", oracle.eu_file);
+        snprintf(state->rom_folder, sizeof state->rom_folder, "%s", oracle.eu_folder);
+        state->rom = oracle.eu;
+        if (oracle.eu == ORACLES_ROM_NONE) snprintf(state->rom_reason, sizeof state->rom_reason, "No European ROM of %s chosen", name);
+        else if (oracle.eu == ORACLES_ROM_UNRECOGNISED) snprintf(state->rom_reason, sizeof state->rom_reason, "Not the European ROM of %s", name);
+        else snprintf(state->rom_reason, sizeof state->rom_reason, "%s", oracle.eu_reason);
+    }
+    state->usable = state->rom == ORACLES_ROM_ORIGINAL;
+}
+
 /* A fan game as the launcher finds it: its base, its Oracle's ROM as the Oracle's page shows it; its patch, read; the
  * image the patch makes of the base, identified, as a session builds it at each start; its save, beside the patch; with
  * the fan games' languages on, its language, with the state of its Oracle's European ROM, and the share of its texts a
@@ -240,8 +299,9 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     const oracles_settings *settings = games->settings;
     const unsigned f = fan_index(fan);
     const OraclesSettingsGame base = rom_setting(fan->base);
-    inspect(games, base, state);
-    if (games->fan_languages) {
+    if (fan->joined) inspect_joined(games, state);
+    else inspect(games, base, state);
+    if (games->fan_languages && !fan->joined) {
         OraclesHomeGame oracle;
         inspect_eu(games, base, &oracle);
         state->eu = oracle.eu;
@@ -250,8 +310,11 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     const int base_usable = state->usable;
     state->usable = 0;
     state->fan = fan;
-    state->refuses = oracles_home_refusals(game_of(base), fan_revisions[f]);
-    if (state->refuses & ORACLES_HOME_REFUSES_HOTKEYS) state->hotkeys = state->hotkeys_failed = 0;   /* off where its profile refuses them */
+    state->refuses = oracles_home_refusals(game_of(base), oracles_home_fan_revisions[f]);
+    /* Its own item hotkeys' mode where it has slots of its own (Oracles Combined), off where its profile refuses them. */
+    const int slots = oracles_home_hotkey_slots(fan->game);
+    if (state->refuses & ORACLES_HOME_REFUSES_HOTKEYS) state->hotkeys = state->hotkeys_failed = 0;
+    else if (slots >= 0) { state->hotkeys = (int)settings->item_hotkeys[slots]; state->hotkeys_failed = 0; }
     state->cheats = oracles_home_cheats(settings, fan->game);   /* its own, not its Oracle's */
     state->save_file[0] = state->save_written[0] = state->last_session[0] = 0;
     const char *patch = games->refused_patch[f].path[0] ? games->refused_patch[f].path : settings->patch[f];
@@ -277,25 +340,37 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
     if (state->patch == ORACLES_ROM_REFUSED) return;
     find_save(patch, state);
     if (!base_usable) return;
+    /* The image, kept with its base: Oracles Combined's with both European ROMs, Seasons' in joined_found. */
+    const char *joined, *base_path = fan_base(games, fan, &joined);
     found = &games->image_found[f];
-    if (!still_found(found, settings->rom[base], &file, &there)) {
+    struct stat second;
+    int second_there = 0;
+    const int second_same = !joined || still_found(&games->joined_found, joined, &second, &second_there);
+    if (!still_found(found, base_path, &file, &there) || !second_same) {
         size_t size = 0;
-        uint8_t *image = build_image(games, settings->rom[base], patch, &size, state->image_reason, sizeof state->image_reason);
+        uint8_t *image = build_image(games, base_path, joined, patch, &size, state->image_reason, sizeof state->image_reason);
         OraclesRomInfo info;
         state->image = ORACLES_ROM_REFUSED;
         if (image && oracles_rom_identify(image, size, &info, state->image_reason, sizeof state->image_reason) == 0) {
-            state->image = info.revision == fan_revisions[f] ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
+            state->image = fan_made(f, &info) ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
+            if (state->image == ORACLES_ROM_ORIGINAL) state->image_language = oracles_rom_combined_language(&info);
             /* Another fan game's patch (written so in settings.txt): refused, the game it makes named. */
             for (unsigned o = 0; o < ORACLES_HOME_FAN_GAMES; o++)
-                if (o != f && info.revision == fan_revisions[o]) {
+                if (o != f && fan_made(o, &info)) {
                     state->image = ORACLES_ROM_REFUSED;
                     snprintf(state->image_reason, sizeof state->image_reason, "the patch of %s, not of %s", fan_title(&oracles_home_fan_games[o]), fan_title(fan));
                 }
         }
+        /* A patch made for other ROMs than the two joined says which it needs. */
+        if (!image && joined && !strcmp(state->image_reason, oracles_bps_other_base))
+            snprintf(state->image_reason, sizeof state->image_reason, "this patch is not made for the European ROMs of Ages and Seasons");
         free(image);
-        keep_found(found, settings->rom[base], &file, there, state->image, state->image == ORACLES_ROM_REFUSED ? state->image_reason : "");
+        keep_found(found, base_path, &file, there, state->image, state->image == ORACLES_ROM_REFUSED ? state->image_reason : "");
+        found->language = state->image == ORACLES_ROM_ORIGINAL ? state->image_language : NULL;
+        if (joined) keep_found(&games->joined_found, joined, &second, second_there, state->image, "");
     } else {
         state->image = found->state;
+        state->image_language = found->language;
         snprintf(state->image_reason, sizeof state->image_reason, "%s", found->reason);
     }
     state->usable = state->image != ORACLES_ROM_REFUSED;
@@ -476,8 +551,9 @@ static void store(void *opaque, const OraclesHomeNav *nav)
 {
     OraclesHomeGames *games = opaque;
     oracles_settings *prefs = games->settings;
-    for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
-        prefs->item_hotkeys[g] = (OraclesHotkeysMode)nav->games[g].hotkeys;
+    for (int g = 0; g < ORACLES_HOME_GAMES; g++) {
+        const int slots = oracles_home_hotkey_slots(g);
+        if (slots >= 0 && !(nav->games[g].refuses & ORACLES_HOME_REFUSES_HOTKEYS)) prefs->item_hotkeys[slots] = (OraclesHotkeysMode)nav->games[g].hotkeys;
     }
     oracles_home_store_cheats(nav, prefs);   /* the page's, never --cheats' */
     oracles_home_store_controls(&nav->controls, prefs);
@@ -508,7 +584,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     }
     for (unsigned f = 0; nav->fan_languages && f < ORACLES_HOME_FAN_GAMES; f++) {
         const OraclesHomeGame *game = &nav->games[oracles_home_fan_games[f].game];
-        if (oracles_page_language_available(game, 1)) prefs->fan_language[f] = game->language;
+        if (!oracles_home_fan_games[f].joined && oracles_page_language_available(game, 1)) prefs->fan_language[f] = game->language;
     }
     oracles_settings_store(games->settings);
 }
@@ -521,7 +597,7 @@ static int offer(OraclesHomeGames *games, OraclesSettingsGame g, const char *pat
     char error[ORACLES_HOME_TEXT_LENGTH];
     int ok = identify(games, path, &info, NULL, error, sizeof error);
     if (ok && info.game != game_of(g)) {
-        snprintf(error, sizeof error, "the header says %s, not %s", oracles_game_name(info.game), oracles_game_name(game_of(g)));
+        other_game(&info, game_of(g), error, sizeof error);
         ok = 0;
     }
     if (!ok) {
@@ -533,7 +609,8 @@ static int offer(OraclesHomeGames *games, OraclesSettingsGame g, const char *pat
     games->refused[g].path[0] = 0;
     snprintf(games->settings->rom[g], sizeof games->settings->rom[g], "%s", path);
     oracles_settings_store(games->settings);
-    fprintf(stderr, "oracles: %s ROM set to %s (%s)\n", oracles_game_name(info.game), path, oracles_rom_is_original(&info) ? "original US" : "not an original, header accepted");
+    fprintf(stderr, "oracles: %s ROM set to %s (%s)\n", oracles_game_name(info.game), path,
+            oracles_rom_is_original(&info) ? "original US" : oracles_rom_is_combined(&info) ? "an image of both games, header accepted" : "not an original, header accepted");
     return 1;
 }
 
@@ -549,6 +626,22 @@ static OraclesRomState offer_eu(OraclesHomeGames *games, OraclesSettingsGame g, 
     fprintf(stderr, "oracles: %s European ROM set to %s (%s)\n", oracles_game_name(game_of(g)), path,
             state == ORACLES_ROM_ORIGINAL ? "recognized" : state == ORACLES_ROM_UNRECOGNISED ? "not its European ROM" : reason);
     return state;
+}
+
+/* A ROM for Oracles Combined's base: the European ROM of the game it is, kept as that Oracle's, or refused with a toast
+ * saying why.  Returns 1 when it is kept. */
+static int offer_joined(OraclesHomeGames *games, const char *path, char *message, size_t capacity)
+{
+    const OraclesGame game = european_game(games, path);
+    if (game == ORACLES_GAME_UNKNOWN) {
+        snprintf(message, capacity, "Refused: Oracles Combined is made of the European ROMs of Ages and Seasons");
+        fprintf(stderr, "oracles: %s refused for Oracles Combined: not a European ROM of Ages or Seasons\n", path);
+        return 0;
+    }
+    /* Kept as its Oracle's, the row it was chosen on whichever: the toast says which, as a European ROM dropped does. */
+    offer_eu(games, game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS, path);
+    snprintf(message, capacity, "%s European ROM set", oracles_game_name(game));
+    return 1;
 }
 
 static const OraclesHomeFanGame *fan_of_patch(OraclesHomeGames *games, const char *path);
@@ -583,13 +676,13 @@ static int offer_patch(OraclesHomeGames *games, const OraclesHomeFanGame *fan, i
 static const OraclesHomeFanGame *fan_of_patch(OraclesHomeGames *games, const char *path)
 {
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) {
-        const char *base = games->settings->rom[rom_setting(oracles_home_fan_games[f].base)];
-        if (!base[0]) continue;
+        const char *joined, *base = fan_base(games, &oracles_home_fan_games[f], &joined);
+        if (!base[0] || (joined && !joined[0])) continue;
         char error[ORACLES_HOME_TEXT_LENGTH];
         size_t size = 0;
-        uint8_t *image = build_image(games, base, path, &size, error, sizeof error);
+        uint8_t *image = build_image(games, base, joined, path, &size, error, sizeof error);
         OraclesRomInfo info;
-        const int made = image && oracles_rom_identify(image, size, &info, error, sizeof error) == 0 && info.revision == fan_revisions[f];
+        const int made = image && oracles_rom_identify(image, size, &info, error, sizeof error) == 0 && fan_made(f, &info);
         free(image);
         if (made) return &oracles_home_fan_games[f];
     }
@@ -607,7 +700,11 @@ static void choose(struct SDL_Window *window, OraclesDialogKind kind, const char
 static void choose_rom(void *opaque, int game, struct SDL_Window *window)
 {
     const OraclesHomeGames *games = opaque;
-    choose(window, ORACLES_DIALOG_ROM, games->settings->rom[rom_setting(game)], game);
+    /* Oracles Combined's Ages ROM row: a European ROM's dialog, where Ages' European ROM is, or else where Ages' ROM is. */
+    const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    const char *joined, *current = fan ? fan_base(games, fan, &joined) : "";
+    if (!fan || !current[0]) current = games->settings->rom[rom_setting(game)];
+    choose(window, fan && fan->joined ? ORACLES_DIALOG_EU_ROM : ORACLES_DIALOG_ROM, current, game);
 }
 
 static void choose_patch(void *opaque, int game, struct SDL_Window *window)
@@ -617,17 +714,20 @@ static void choose_patch(void *opaque, int game, struct SDL_Window *window)
     if (!fan) return;
     /* The dialog opens where the patch is, or else where its Oracle's ROM is. */
     const unsigned f = fan_index(fan);
-    const char *current = games->settings->patch[f][0] ? games->settings->patch[f] : games->settings->rom[rom_setting(game)];
+    const char *joined, *base = fan_base(games, fan, &joined);
+    const char *current = games->settings->patch[f][0] ? games->settings->patch[f] : base[0] ? base : games->settings->rom[rom_setting(game)];
     choose(window, ORACLES_DIALOG_PATCH, current, game);
 }
 
 static void choose_eu_rom(void *opaque, int game, struct SDL_Window *window)
 {
     const OraclesHomeGames *games = opaque;
-    if (oracles_home_fan_game(game)) return;
+    /* Oracles Combined's Seasons ROM row: where Seasons' European ROM is, or else Ages'. */
+    const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    const OraclesSettingsGame g = fan ? ORACLES_SETTINGS_SEASONS : rom_setting(game);
+    const char *other = fan ? games->settings->eu_rom[ORACLES_SETTINGS_AGES] : games->settings->rom[g];
     /* The dialog opens where the European ROM is, or else where the game's ROM is. */
-    const OraclesSettingsGame g = rom_setting(game);
-    choose(window, ORACLES_DIALOG_EU_ROM, games->settings->eu_rom[g][0] ? games->settings->eu_rom[g] : games->settings->rom[g], game);
+    choose(window, ORACLES_DIALOG_EU_ROM, games->settings->eu_rom[g][0] ? games->settings->eu_rom[g] : other, game);
 }
 
 static void file_chosen(void *opaque, int game, int kind, int result, const char *path, int copied, char *message, size_t capacity)
@@ -645,14 +745,17 @@ static void file_chosen(void *opaque, int game, int kind, int result, const char
         case ORACLES_DIALOG_CANCELLED: return;
         case ORACLES_DIALOG_CHOSEN: break;
     }
-    /* A European ROM is kept whatever it is, its page saying whether it is the game's: a copy made for it stays. */
-    if (kind == ORACLES_DIALOG_EU_ROM) {
-        if (!oracles_home_fan_game(game)) offer_eu(games, rom_setting(game), path);
+    /* An Oracle's European ROM is kept whatever it is, its page saying whether it is the game's: a copy made for it stays. */
+    const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    if (kind == ORACLES_DIALOG_EU_ROM && !fan) {
+        offer_eu(games, rom_setting(game), path);
         return;
     }
-    const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    /* Oracles Combined's rows take a European ROM of either Oracle, kept as that Oracle's. */
     const int kept = kind == ORACLES_DIALOG_PATCH ? fan && offer_patch(games, fan, 0, path, error, sizeof error)   /* the page's fan game */
-                                                  : offer(games, rom_setting(game), path);
+                   : fan && fan->joined ? offer_joined(games, path, message, capacity)
+                   : kind == ORACLES_DIALOG_EU_ROM ? 0
+                                                   : offer(games, rom_setting(game), path);
     /* A copy made for this choice and refused goes (Android): the application's folder keeps only what it uses. */
     if (!kept && copied && remove(path) == 0) fprintf(stderr, "oracles: %s removed, refused\n", path);
 }
@@ -722,7 +825,12 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
     }
     /* On a game's page a file dropped is a ROM for that game, as Choose ROM's (a fan game's base ROM): refused, it
      * shows there with why. */
-    if (page_game >= 0) { offer(games, rom_setting(page_game), path); return -1; }
+    if (page_game >= 0) {
+        const OraclesHomeFanGame *fan = oracles_home_fan_game(page_game);
+        if (fan && fan->joined) offer_joined(games, path, message, capacity);
+        else offer(games, rom_setting(page_game), path);
+        return -1;
+    }
     /* On the home screen it goes under the game it is, or a toast says why it is none. */
     OraclesRomInfo info;
     if (!identify(games, path, &info, NULL, error, sizeof error)) {
@@ -732,7 +840,8 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
     }
     const OraclesSettingsGame g = info.game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS;
     offer(games, g, path);
-    snprintf(message, capacity, "%s ROM set%s", oracles_game_name(info.game), oracles_rom_is_original(&info) ? "" : ": unrecognized, Faithful only");
+    snprintf(message, capacity, "%s ROM set%s", oracles_game_name(info.game),
+             oracles_rom_is_original(&info) ? "" : oracles_rom_is_combined(&info) ? ": Oracles Combined, Faithful only; see Fan games" : ": unrecognized, Faithful only");
     return g == ORACLES_SETTINGS_AGES ? ORACLES_HOME_AGES : ORACLES_HOME_SEASONS;
 }
 
@@ -748,6 +857,7 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     const char *name = fan ? fan_title(fan) : oracles_game_name(game_of(g));
     OraclesSessionOptions o = *games->options;
     o.rom_path = games->settings->rom[g];
+    if (fan && fan->joined) o.rom_path = fan_base(games, fan, &o.joined_path);
     o.patch_path = fan ? games->settings->patch[fan_index(fan)] : NULL;
     /* --record given to the home screen records the first session it starts, then is spent. */
     if (games->route_recorded) o.record_path = NULL;
@@ -772,9 +882,9 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
      * file.  A European ROM gone, or another file there since, plays in English, and the toast says why. */
     char pack[ORACLES_SETTINGS_PATH_LENGTH], language_note[ORACLES_HOME_TEXT_LENGTH + 128] = "";
     OraclesHomeGame oracle = state;
-    if (fan && games->fan_languages) inspect_eu(games, g, &oracle);
+    if (fan && games->fan_languages && !fan->joined) inspect_eu(games, g, &oracle);
     oracles_home_files_forget(&games->files);   /* the files read for the page: none kept through the session */
-    const int language = !fan ? games->settings->language[g] : games->fan_languages ? games->settings->fan_language[fan_index(fan)] : 0;
+    const int language = !fan ? games->settings->language[g] : games->fan_languages && !fan->joined ? games->settings->fan_language[fan_index(fan)] : 0;
     const int recognized = fan ? state.image == ORACLES_ROM_ORIGINAL : state.rom == ORACLES_ROM_ORIGINAL;
     const char *oracle_name = oracles_game_name(game_of(g));
     if (fan) oracles_settings_fan_language_pack(games->settings, fan_index(fan), pack, sizeof pack);

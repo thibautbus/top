@@ -83,6 +83,8 @@ static void on_event(void *opaque, const OraclesGuestEvent *e)
         case ORACLES_EVENT_EDGE_TEST_DOWN:
         case ORACLES_EVENT_EDGE_TEST_LEFT:
             break;   /* the line's points */
+        case ORACLES_EVENT_HALF_SWITCH:
+            break;   /* never sent */
         case ORACLES_EVENT_CHEAT_DAMAGE:
         case ORACLES_EVENT_CHEAT_AMMO:
         case ORACLES_EVENT_CHEAT_RUPEES:

@@ -245,8 +245,9 @@ static const RoomCode room_code_seasons[] = {
 
 #define GLOBAL_FLAGS_READ 6u                /* the bytes of wGlobalFlags the routines' flags lie in, $28 the last */
 
-/* The routine `index` of the room, where the image's code is the original game's (`room_code_replay`, the US profiles:
- * a fan game's or a hack's routines may differ) and every byte it reads is given; NULL otherwise. */
+/* The routine `index` of the room, where the image's code is the original game's (`room_code_replay`, the US profiles
+ * and Oracles Combined's halves: a fan game's or a hack's routines may differ, and a routine an image adds past the
+ * original's indices is none of these) and every byte it reads is given; NULL otherwise. */
 static const RoomCode *room_code_known(const OraclesGuestTransitionState *s, unsigned index, unsigned group, unsigned room)
 {
     if (!s->load.room_code_replay) return NULL;

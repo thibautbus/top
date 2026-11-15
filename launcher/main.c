@@ -107,7 +107,7 @@ JNIEXPORT void JNICALL Java_org_theoraclesproject_OraclesActivity_nativeLog(JNIE
 
 static int usage(void)
 {
-    fprintf(stderr, "usage: the-oracles-project [--rom PATH [--patch PATCH.bps]] [--save PATH] [--scale N] [--fullscreen] [--colour-correction on|off]\n"
+    fprintf(stderr, "usage: the-oracles-project [--rom PATH [--patch PATCH.bps [--joined-rom PATH]]] [--save PATH] [--scale N] [--fullscreen] [--colour-correction on|off]\n"
                     "                           [--vsync auto|on|off] [--camera 1|2] [--mute] [--frames N] [--no-window] [--screenshot PATH.ppm]\n"
                     "                           [--record ROUTE] [--play ROUTE] [--diagnostics] [--native-renderer] [--enhanced] [--neighbours off|static (static)] [--continuous-transitions]\n"
                     "                           [--continuous-swim]   (the continuous transitions with Link swimming at the surface too; implies --continuous-transitions)\n"
@@ -137,15 +137,18 @@ static int usage(void)
                     "                           [--item-hotkeys=off|use|equip]   (item hotkeys: four keys that use or equip an item without the menu, for this run; the slots and the keys are remembered)\n"
                     "                           [--pretend-slow]   (each game in Enhanced counts as one that ran slowly: the home screen suggests a lighter quality)\n"
                     "       --patch: a fan game, the BPS patch applied to --rom in memory at each start; its save beside the patch\n"
+                    "       --joined-rom: with --patch, a ROM joined after --rom before the patch applies (Oracles Combined: --rom Ages' European ROM,\n"
+                    "       --joined-rom Seasons')\n"
                     "       without --rom, the home screen opens; the game options apply to the games it starts, --record to the first,\n"
                     "       --language-pack to none: each game keeps its pack beside settings.txt\n"
-                    "       the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,left,right,ok,back,slow,key,pad,android,moonrise,mods,import,imported,reminder]\n"
+                    "       the-oracles-project --launcher-screenshot PATH.ppm [--launcher-size WxH] [--launcher-input up,down,left,right,ok,back,slow,key,pad,android,moonrise,combined,mods,import,imported,reminder]\n"
                     "                           [--launcher-frame GAME.ppm]\n"
                     "                           (the home screen drawn offscreen, 1920x1080 by default, and written as a PPM, Display's sizes those\n"
                     "                           of a screen that size; with a game's image\n"
                     "                           from --screenshot, the pause menu over it, as the game's window shows it; slow: the return from a\n"
                     "                           game that ran slowly, its toast suggesting something lighter; key, pad: the device used last,\n"
-                    "                           which the key hints follow; android: the screens as Android has them; reminder: over the game's\n"
+                    "                           which the key hints follow; android: the screens as Android has them; moonrise, combined: over the\n"
+                    "                           game's image, the pause of that fan game rather than Ages'; reminder: over the game's\n"
                     "                           image, the reminder that names the menu's key in place of the pause)\n");
     return 2;
 }
@@ -165,6 +168,7 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
         const int more = i + 1 < argc;
         if (!strcmp(argv[i], "--rom") && more) o->rom_path = argv[++i];
         else if (!strcmp(argv[i], "--patch") && more) o->patch_path = argv[++i];
+        else if (!strcmp(argv[i], "--joined-rom") && more) o->joined_path = argv[++i];
         else if (!strcmp(argv[i], "--save") && more) o->save_path = argv[++i];
         else if (!strcmp(argv[i], "--scale") && more) { o->sdl.scale = (unsigned)strtoul(argv[++i], NULL, 10); l->window_given = 1; }
         else if (!strcmp(argv[i], "--fullscreen")) { o->sdl.fullscreen = 1; l->window_given = 1; }
@@ -283,6 +287,7 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
      * the game --rom starts: the home screen's games have their own save and no end.  The view and gameplay options
      * stay, and --record records the first game the home screen starts. */
     if (!o->rom_path && (o->no_window || o->save_path || o->play_path || o->frames || o->screenshot || o->patch_path)) return 1;
+    if (o->joined_path && !o->patch_path) return 1;
     /* The update check is the home screen's: a game --rom starts asks nothing. */
     if (o->rom_path && l->update_source) return 1;
     if (l->achievements_login && (o->rom_path || o->no_window || l->screenshot)) return 1;
