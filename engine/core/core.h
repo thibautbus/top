@@ -82,6 +82,9 @@ const uint32_t *oracles_core_pixels(const OraclesCore *core);
 /* Moves up to max_samples interleaved stereo int16 samples produced since the
  * last call into out; returns the number of samples written (always even). */
 size_t oracles_core_take_audio(OraclesCore *core, int16_t *out, size_t max_samples);
+/* The host dropped the audio it had queued, its output silent (the pause): the samples not taken yet are dropped too,
+ * and those of the next frames fade in from silence, as after a load. */
+void oracles_core_audio_cleared(OraclesCore *core);
 
 /* Cartridge RAM (battery-backed): raw bytes for the Oracle games, which have
  * no clock, the same on every core. */

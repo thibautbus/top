@@ -1,7 +1,8 @@
-/* The SDL 3 backend's own (sdl_backend.c, sdl_window.c, sdl_input.c, sdl_present.c): its state and what its files share. */
+/* The SDL 3 backend's own (sdl_backend.c, sdl_window.c, sdl_input.c, sdl_present.c, sdl_audio.c): its state and what its files share. */
 #ifndef ORACLES_SDL_BACKEND_INTERNAL_H
 #define ORACLES_SDL_BACKEND_INTERNAL_H
 
+#include "audio_fade.h"
 #include "backends.h"
 #include "compositor.h"
 #include "safe_area.h"
@@ -90,10 +91,15 @@ typedef struct sdl_backend {
     void *on_suspend_opaque;
     int suspended;   /* the watch saw a suspension, which the next poll hands to the host */
     SDL_AudioStream *audio;          /* bound to the device, which pulls from it */
+    OraclesAudioRecent recent;       /* the frames put in it last, from which what the device is about to play fades out */
     OraclesSdlPads pads;               /* every gamepad plugged in (oracles_sdl_pads_open) */
     unsigned pads_at_start;            /* those open when the game started */
     uint32_t sample_rate_hz;
     int audio_started;
+    int audio_cut;   /* the host cut the sound (cut_audio): the device plays the fade, until the next chunk */
+    size_t ramp_done;                /* the frames faded in since the last underrun (sb_sdl_queue_audio) */
+    int16_t *ramped;                 /* the chunk as faded in */
+    size_t ramped_capacity;          /* in samples */
     unsigned audio_underruns;
     unsigned audio_drops;
     uint64_t last_chunk_ns;          /* when the previous chunk was queued, and what the queue held after it */
@@ -151,6 +157,20 @@ bool SDLCALL sb_suspension(void *opaque, SDL_Event *e);
 void sb_present_as(sdl_backend *backend, int logical_w, int logical_h);
 int sb_window_fullscreen(const sdl_backend *backend);
 uint64_t sb_sdl_monotonic_ns(void *opaque);
+/* sdl_audio.c: the stream opened at the start (0 when it could not be) and closed at the stop; a
+ * chunk queued, the frames queued; the sound cut (the host's cut_audio). */
+int sb_audio_open(sdl_backend *backend, uint32_t sample_rate_hz);
+void sb_audio_close(sdl_backend *backend);
+int sb_sdl_queue_audio(void *opaque, const oracles_host_audio_chunk *chunk);
+uint32_t sb_sdl_audio_queued_frames(void *opaque);
+void sb_sdl_cut_audio(void *opaque);
+/* A suspension's sound (sb_suspension): faded out from where the device plays, silence after it, the frames of that
+ * silence the device may still hold past the stream when it has played the rest (0: it plays nothing); then, once it
+ * has played that far or after a short wait, the device paused and its stream emptied. */
+size_t sb_audio_fade_away(sdl_backend *backend);
+void sb_audio_silenced(sdl_backend *backend, size_t playing);
+/* The device plays the stream (its prebuffer was queued, it is not paused). */
+int oracles_sdl_backend_audio_plays(const oracles_host_backend *backend);
 /* sdl_input.c: the keys, the controller's buttons, the item hotkeys and the menu's input taken from the options; an
  * event polled. */
 void sb_resolve_bindings(sdl_backend *backend, const oracles_sdl_options *options);

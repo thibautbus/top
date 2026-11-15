@@ -55,9 +55,49 @@ void oracles_core_set_sample_rate(OraclesCore *core, unsigned sample_rate_hz)
     if (sample_rate_hz) core->ops->set_sample_rate(core, sample_rate_hz);
 }
 
-void oracles_core_run_frame(OraclesCore *core) { core->ops->run_frame(core); }
+/* The samples the frame added after `queued`, the `frame`th of a fade in: from fade_from, the last sample the host had,
+ * to their own, by a gain cubed, low while the pop of a load lasts. */
+static void fade_audio(OraclesCore *core, size_t queued, unsigned frame)
+{
+    const size_t count = core->audio_count - queued;
+    for (size_t i = 0; i < count; i++) {
+        const double t = (frame + (double)i / count) / ORACLES_CORE_FADE_IN_FRAMES;
+        const double gain = t * t * t;
+        const size_t index = (core->audio_head + queued + i) % ORACLES_CORE_AUDIO_FRAMES;
+        for (unsigned side = 0; side < 2; side++) {
+            int16_t *sample = &core->audio[index * 2 + side];
+            *sample = (int16_t)(*sample * gain + core->fade_from[side] * (1 - gain));
+        }
+    }
+}
+
+void oracles_core_run_frame(OraclesCore *core)
+{
+    const size_t queued = core->audio_count;
+    core->ops->run_frame(core);
+    if (core->power_on_frames < ORACLES_CORE_POWER_ON_QUIET_FRAMES) {
+        core->power_on_frames++;
+        for (size_t i = queued; i < core->audio_count; i++) {
+            const size_t index = (core->audio_head + i) % ORACLES_CORE_AUDIO_FRAMES;
+            core->audio[index * 2] = core->audio[index * 2 + 1] = 0;
+        }
+    }
+    else if (core->fade_in_frames) {
+        fade_audio(core, queued, ORACLES_CORE_FADE_IN_FRAMES - core->fade_in_frames--);
+    }
+}
 
 const uint32_t *oracles_core_pixels(const OraclesCore *core) { return core->pixels; }
+
+void oracles_core_audio_cleared(OraclesCore *core)
+{
+    /* The samples not taken yet are dropped with the host's, and the last one, which a load fades from, is silence. */
+    core->audio_count = 0;
+    const size_t last = (core->audio_head + ORACLES_CORE_AUDIO_FRAMES - 1) % ORACLES_CORE_AUDIO_FRAMES;
+    core->audio[last * 2] = core->audio[last * 2 + 1] = 0;
+    core->fade_from[0] = core->fade_from[1] = 0;
+    core->fade_in_frames = ORACLES_CORE_FADE_IN_FRAMES;
+}
 
 size_t oracles_core_take_audio(OraclesCore *core, int16_t *out, size_t max_samples)
 {
@@ -97,7 +137,17 @@ int oracles_core_save_state(OraclesCore *core, uint8_t *buffer, size_t size)
 
 int oracles_core_load_state(OraclesCore *core, const uint8_t *buffer, size_t size)
 {
-    return core->ops->load_state(core, buffer, size);
+    const int result = core->ops->load_state(core, buffer, size);
+    if (result == 0) {
+        /* The ring keeps the samples already taken: its last one, taken or not, is the last the host has. */
+        const size_t last = (core->audio_head + core->audio_count + ORACLES_CORE_AUDIO_FRAMES - 1)
+                            % ORACLES_CORE_AUDIO_FRAMES;
+        core->fade_from[0] = core->audio[last * 2];
+        core->fade_from[1] = core->audio[last * 2 + 1];
+        core->power_on_frames = ORACLES_CORE_POWER_ON_QUIET_FRAMES;
+        core->fade_in_frames = ORACLES_CORE_FADE_IN_FRAMES;
+    }
+    return result;
 }
 
 const char *oracles_core_version(const OraclesCore *core) { return core->ops->version; }

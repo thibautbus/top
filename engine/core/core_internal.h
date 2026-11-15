@@ -10,6 +10,15 @@
 
 /* About a quarter of a second of audio at 48 kHz; the host drains it every frame. */
 #define ORACLES_CORE_AUDIO_FRAMES 16384u
+/* The boot ROM turns the sound circuits on in its third frame: their DACs, at rest, move the output by a step the
+ * high-pass brings back within a few frames, heard as a pop a second before the boot sound (on both cores).  The audio
+ * of the frames until then is silence; the boot sound starts in frame 66. */
+#define ORACLES_CORE_POWER_ON_QUIET_FRAMES 16u
+/* A loaded state leaves out part of the emulator's audio output (on SameBoy, its high-pass and its channels' levels),
+ * which starts again from the core's own: a step heard as a pop, louder than the one at power on.  The audio of the
+ * frames after a load fades in, from the last sample the host had; after the host cleared its audio (the pause), from
+ * silence. */
+#define ORACLES_CORE_FADE_IN_FRAMES 3u
 
 typedef struct OraclesCoreOps {
     void (*destroy)(OraclesCore *core);
@@ -47,6 +56,10 @@ struct OraclesCore {
     int16_t audio[ORACLES_CORE_AUDIO_FRAMES * 2];
     size_t audio_head;
     size_t audio_count;
+    /* The frames run since power on, counted to ORACLES_CORE_POWER_ON_QUIET_FRAMES; that many once a state is loaded. */
+    unsigned power_on_frames;
+    unsigned fade_in_frames;           /* the frames of the fade in still to run */
+    int16_t fade_from[2];              /* the sample it fades in from, left and right */
 };
 
 /* One stereo frame into the ring; dropped when the host fell behind. */

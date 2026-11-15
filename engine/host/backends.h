@@ -218,8 +218,6 @@ oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backen
 unsigned oracles_sdl_backend_pads_at_start(const oracles_host_backend *backend);
 /* The vibration's ticks the touch controls asked for in the session (touch_vibration), whether the device gave them or not. */
 unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend);
-/* The sound stops and its queue empties; it starts again with the next frames, from its prebuffer. */
-void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend);
 #ifdef ORACLES_RETROACHIEVEMENTS
 /* An achievement's unlock heard (launcher/ui/ui_achievements_sound.h), from its start, mixed on top of the game's sound in
  * the chunks queued from now on, the core's own left as they are; nothing where the sound is not open (--mute, no

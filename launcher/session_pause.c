@@ -283,7 +283,6 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
     SDL_Texture *frame;
     int width, height;
     oracles_sdl_backend_pause_view(&s->backend, &window, &renderer, &frame, &width, &height);
-    oracles_sdl_backend_suspend_audio(&s->backend);
     oracles_sdl_backend_hold(&s->backend, 1);
     const oracles_sdl_menu_source source = oracles_sdl_backend_menu_source(&s->backend);
     const int device = oracles_home_menu_device((int)source);

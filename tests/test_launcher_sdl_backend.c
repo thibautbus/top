@@ -10,11 +10,13 @@
  * names settings.txt keeps for buttons are SDL 3's too.  Under Linux, SDL's
  * file dialog through zenity (a fake one on the PATH) answers on the queue: the
  * path chosen, a cancel, and a zenity that cannot open, which is no dialog, not
- * a cancel; it opens in the ROM's folder. */
+ * a cancel; it opens in the ROM's folder.  Android's background leaves the sound's device paused and empty, SDL
+ * starting it again as the application comes back. */
 #include "backends.h"
 #include "file_dialog.h"
 #include "floating.h"
 #include "hotkeys_session.h"
+#include "sdl_backend_internal.h"
 #include "sdl_filter.h"
 #include "text_box_enlarge.h"
 #include "touch_controls.h"
@@ -1170,6 +1172,87 @@ static int lend(SDL_Window *window, SDL_Renderer *renderer, const char *audio_dr
     return started;
 }
 
+static void stored(void *opaque) { (*(int *)opaque)++; }
+
+/* A square wave's frames at 48 kHz queued as the host queues a frame's, `frames` times. */
+static void queue_tone(oracles_host_backend *backend, unsigned frames)
+{
+    static int16_t tone[800 * 2];
+    for (unsigned i = 0; i < 800; i++) tone[i * 2] = tone[i * 2 + 1] = (int16_t)((i / 50) % 2 ? 6000 : -6000);
+    const oracles_host_audio_chunk chunk = { tone, 1600, 48000 };
+    for (unsigned i = 0; i < frames; i++) CHECK(backend->queue_audio(backend->opaque, &chunk));
+}
+
+/* Android's background with the sound playing (SDL's dummy device pulls it in time): SDL stops the device as it is and
+ * starts it again as the application comes back, so the backend leaves it paused, its stream empty, by the end of the
+ * suspension's watch, the save stored there; the host's cut at the suspension finds it so, and the next frames start it
+ * again from their prebuffer, without a gap counted.  The host's cut at the pause lets the device play a short fade.
+ * After an underrun the sound starts again faded in. */
+static void background_audio(SDL_Window *window, SDL_Renderer *renderer)
+{
+    SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    options.pause_menu = 1;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
+    if (backend.start(backend.opaque, 160, 144, 48000, 1)) {
+        int stores = 0;
+        backend.watch_suspend(backend.opaque, stored, &stores);
+        queue_tone(&backend, 4);
+        CHECK(oracles_sdl_backend_audio_plays(&backend) && backend.audio_queued_frames(backend.opaque) > 0);
+        SDL_Event e;
+        SDL_zero(e);
+        e.type = SDL_EVENT_WILL_ENTER_BACKGROUND;
+        const uint64_t since = SDL_GetTicksNS();
+        SDL_PushEvent(&e);
+        printf("the suspension's watch: %.1f ms\n", (double)(SDL_GetTicksNS() - since) / 1e6);
+        CHECK(stores == 1 && !oracles_sdl_backend_audio_plays(&backend) && backend.audio_queued_frames(backend.opaque) == 0);
+        queue_tone(&backend, 1);   /* a frame run back from the background, before the poll hands the suspension */
+        CHECK(!oracles_sdl_backend_audio_plays(&backend));
+        oracles_host_event event;
+        int has_event = 0;
+        CHECK(backend.poll_event(backend.opaque, &event, &has_event) && has_event && event.type == ORACLES_HOST_EVENT_SUSPEND);
+        backend.cut_audio(backend.opaque);
+        CHECK(!oracles_sdl_backend_audio_plays(&backend) && backend.audio_queued_frames(backend.opaque) == 0);
+        queue_tone(&backend, 4);
+        CHECK(oracles_sdl_backend_audio_plays(&backend));
+        /* The pause: the device plays on the sound's first 10 ms faded out, then silence, and waits for its prebuffer
+         * again from the next frame, without a gap counted. */
+        SDL_AudioStream *stream = ((const sdl_backend *)backend.opaque)->audio;
+        SDL_LockAudioStream(stream);
+        backend.cut_audio(backend.opaque);
+        const uint32_t fade = backend.audio_queued_frames(backend.opaque);
+        SDL_UnlockAudioStream(stream);
+        CHECK(oracles_sdl_backend_audio_plays(&backend) && fade > 0 && fade <= 480);
+        SDL_Delay(60);
+        CHECK(oracles_sdl_backend_audio_plays(&backend) && backend.audio_queued_frames(backend.opaque) == 0);
+        queue_tone(&backend, 1);
+        CHECK(!oracles_sdl_backend_audio_plays(&backend) && backend.audio_queued_frames(backend.opaque) == 800);
+        queue_tone(&backend, 3);
+        CHECK(oracles_sdl_backend_audio_plays(&backend));
+        unsigned underruns, drops, peak, average;
+        oracles_sdl_backend_audio_report(&backend, &underruns, &drops, &peak, &average);
+        CHECK(underruns == 0 && drops == 0);
+        /* An underrun: the device played all it had; the frames that start it again fade in from silence. */
+        SDL_Delay(150);
+        queue_tone(&backend, 1);
+        oracles_sdl_backend_audio_report(&backend, &underruns, &drops, &peak, &average);
+        CHECK(underruns == 1);
+        const OraclesAudioRecent *recent = &((const sdl_backend *)backend.opaque)->recent;
+        for (unsigned i = 0; i < 800; i++) {
+            const int16_t v = recent->samples[((recent->end + ORACLES_AUDIO_RECENT_FRAMES - 800 + i) % ORACLES_AUDIO_RECENT_FRAMES) * 2];
+            const double t = i < 480 ? i / 480.0 : 1.0;
+            CHECK(abs(v - (int)(((i / 50) % 2 ? 6000 : -6000) * t * t * t)) <= 1);
+        }
+        backend.watch_suspend(backend.opaque, NULL, NULL);
+    } else CHECK(0);
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
+}
+
 /* The home screen's window and renderer still work: the window found by its id, SDL's video on, a frame drawn. */
 /* The gamepads a game started on the lent window finds open at its start. */
 static unsigned pads_at_start(SDL_Window *window, SDL_Renderer *renderer)
@@ -2122,6 +2205,8 @@ int main(int argc, char **argv)
 
     /* The dummy driver: the session starts, and its stop quits only the audio it started. */
     CHECK(lend(window, renderer, "dummy") == 1);
+    CHECK(intact(window, id, renderer));
+    background_audio(window, renderer);
     CHECK(intact(window, id, renderer));
     CHECK(!(SDL_WasInit(SDL_INIT_AUDIO) & SDL_INIT_AUDIO));
     CHECK(SDL_WasInit(SDL_INIT_GAMEPAD) & SDL_INIT_GAMEPAD);

@@ -299,11 +299,14 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
                 const int stored = store_if_changed(config, &save);
                 if (stored < 0) { result = ORACLES_HOST_SAVE_FAILED; set_error(error, error_capacity, "save failed"); goto done; }
                 if (stored == 0) local.saves_written++;
-                if (!config->on_pause) {
-                    if (event.type == ORACLES_HOST_EVENT_SUSPEND) continue;
-                    quit = 1;
-                    break;
+                if (!config->on_pause && event.type != ORACLES_HOST_EVENT_SUSPEND) { quit = 1; break; }
+                /* The sound resumes from silence, a load in the pause's menu fading in from it too; without a menu (a
+                 * suspension with --rom) the game goes on at once. */
+                if (backend->cut_audio) {
+                    backend->cut_audio(backend->opaque);
+                    oracles_core_audio_cleared(config->core);
                 }
+                if (!config->on_pause) continue;
                 local.pauses++;
                 if (config->on_pause(config->pause_opaque) == ORACLES_HOST_PAUSE_QUIT) { quit = 1; break; }
                 /* Between two frames: no frame ran, none is counted.  The keys held when the pause came were let go

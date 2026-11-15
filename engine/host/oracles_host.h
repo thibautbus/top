@@ -135,6 +135,10 @@ typedef struct oracles_host_backend {
      * background), whatever the backend is doing then, a present or a poll, and before the system may block the thread
      * or end the process: the host stores the save there.  A NULL callback withdraws it.  NULL: no system suspends. */
     void (*watch_suspend)(void *opaque, void (*callback)(void *callback_opaque), void *callback_opaque);
+    /* The pause and a suspension, before the pause's menu if any: the sound the device has not played yet is dropped,
+     * faded out where it plays, and the device starts again from silence with the next chunks, which the host fades in
+     * (oracles_core_audio_cleared).  NULL: the device's sound goes on, and the core's with it. */
+    void (*cut_audio)(void *opaque);
     void (*stop)(void *opaque);
 } oracles_host_backend;
 

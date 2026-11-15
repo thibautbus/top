@@ -539,6 +539,7 @@ The Android application is the same launcher, in landscape and fullscreen: F11 a
 ## Troubleshooting
 
 - **The game runs slowly or stutters.** Choose a lighter **Display › Quality**, or a nearer **View**; after a game that ran slowly, the home screen suggests one. **Fast (mGBA)**, in **Display › Advanced › Core**, is lighter than Accurate.
+- **Some sounds crackle, such as the three notes at the end of a text.** On **Accurate (SameBoy)**, the default on computers, you hear the pops the Game Boy Color itself makes when a game turns a sound channel off and on between two notes. **Fast (mGBA)**, in **Display › Advanced › Core**, plays those sounds without them.
 - **The picture is cut off at the top or the bottom**, the status bar or the top of the inventory hidden while no system bar shows. Set **Display › Picture › Screen margin** to **Auto**, which keeps clear of a notch or a curved edge that Android reports. Where it is not enough, choose **Small**, or **Large** where the picture is still cut.
 - **Menus and texts are hard to read on a small screen.** Set **Display › Picture › Menus & scenes** to **Large**, and **Display › Text › Text size** to Large or Very large.
 - **A savestate is refused.** When only Display's settings differ, **Load state** in the pause menu loads it, starting the game again with them; otherwise its message names what loads it, such as a core, a profile, a view's size or a text: choose that from the home screen. The game's own save always loads.
