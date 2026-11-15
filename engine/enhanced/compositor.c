@@ -641,6 +641,42 @@ unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uin
     return stray;
 }
 
+unsigned oracles_enhanced_outside_lit(const OraclesEnhancedCompose *in, const uint32_t *out, int32_t room_left, int32_t room_top,
+                                      int32_t room_width, int32_t room_height, unsigned *bare)
+{
+    unsigned lit = 0, uncovered = 0;
+    if (in->mode == ORACLES_ENHANCED_WORLD) {
+        const OraclesEnhancedSize size = in->size.width ? in->size : oracles_enhanced_size(0);
+        const unsigned W = size.width, top = oracles_enhanced_band_top(in->floating), band_h = oracles_enhanced_world_height(size, in->floating);
+        const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
+        const unsigned x0 = (W - shown_w) / 2u, y0 = (band_h - shown_h) / 2u;
+        const uint32_t black = gutter_pixel(in, 0xff000000u);
+        for (unsigned y = y0; y < y0 + shown_h; y++) {
+            int32_t shift_x, shift_y;
+            const int32_t world_y = row_shift(in, y, &shift_x, &shift_y), left = in->world_left + shift_x, wy = world_y + shift_y;
+            const int32_t line = world_y - in->window_world_top;
+            const int window_row = line >= 0 && line < (int32_t)AREA_H;
+            const int room_row = wy >= room_top && wy < room_top + room_height;
+            for (unsigned x = x0; x < x0 + shown_w; x++) {
+                const int32_t wx = left + (int32_t)x;
+                const int32_t bx = (int32_t)x + in->world_left;
+                if (window_row && bx >= in->window_world_left && bx < in->window_world_left + (int32_t)CORE_W) continue;
+                if (!room_row || wx < room_left || wx >= room_left + room_width) { lit += out[(top + y) * W + x] != black; continue; }
+                if (!bare) continue;
+                int covered = 0;
+                for (unsigned n = 0; n < in->neighbour_count && !covered; n++) {
+                    const OraclesEnhancedNeighbour *nb = &in->neighbours[n];
+                    covered = nb->game_area && nb->veil < 256u && wx >= nb->world_left && wx < nb->world_left + (int32_t)source_width(nb)
+                              && wy >= nb->world_top && wy < nb->world_top + (int32_t)source_height(nb);
+                }
+                uncovered += !covered;
+            }
+        }
+    }
+    if (bare) *bare = uncovered;
+    return lit;
+}
+
 void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out)
 {
     if (!in->floating) compose_hud(core, in, in->size.width ? in->size : oracles_enhanced_size(0), out);

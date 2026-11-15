@@ -114,7 +114,7 @@ static int pause_settings_changed(void *opaque)
     }
     if (changed & ORACLES_SESSION_CHANGED_UNVISITED) {   /* the image behind the pause stays as it was composed: the game resuming shows it */
         oracles_enhanced_view_set_unvisited_hidden(s->view, applied.unvisited_hidden);
-        fprintf(stderr, "oracles: unvisited rooms %s\n", applied.unvisited_hidden == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? "hidden in a dungeon"
+        fprintf(stderr, "oracles: unvisited rooms %s\n", applied.unvisited_hidden == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? "dungeons"
                                                          : applied.unvisited_hidden ? "hidden" : "shown");
     }
     if (changed & ORACLES_SESSION_CHANGED_TEXT_SIZE) {

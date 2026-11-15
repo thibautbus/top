@@ -363,15 +363,15 @@ const char *oracles_display_colour_explanation(const OraclesHomeNav *nav, int fo
  * size fills badly or kept at its own, a row only where far is fitted to the screen (oracles_display_far_size_shown:
  * aspect=auto, 1280x960 or 1240x1080); Menus & scenes, "View" or "Large" (menus=view|large, Large Android's default),
  * the game's menus, map, cutscenes and file screen framed at the view's scale or shown alone at their own largest one;
- * Unvisited rooms, "Shown", "Dungeons" or "Hidden" (unvisited_rooms=shown|dungeons|hidden), the rooms around Link he has
- * never entered drawn, kept dark in a dungeon alone, or kept dark everywhere.  The three apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's):
+ * Unvisited rooms, "Shown", "Dungeons" or "Hidden" (unvisited_rooms=shown|dungeons|hidden, Dungeons the default), every
+ * room around Link drawn, in a dungeon the room he is in alone, or that and elsewhere the rooms he never entered dark.  The three apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's):
  * dimmed and inert elsewhere, "Enhanced only.".  From the pause Menus & scenes applies at once and Unvisited rooms when
  * the game resumes ("Applies when the game resumes."); Far size, which changes the view, is dimmed there, and Unvisited
  * rooms where --unvisited-rooms gave it for the run.  A row's note, under its explanation (16:9) or on the help's note
  * line (4:3): those reasons, else Far size's sizes on this screen, "Here Fitted is 426x320 at 3x; Fixed is 480x360 at
  * 2x."; empty for none.  Picture's summary: the scaling, the margin and the colors, "Sharp · No margin · Color off", then
  * the extras that apply and differ from the platform's default, " · Far fixed", " · Large menus" (" · View menus" on
- * Android) and " · Rooms hidden", named while they hold on the line (twelve characters in the 16:9 layout, 23 in 4:3's),
+ * Android) and " · Rooms shown" or " · Rooms hidden", named while they hold on the line (twelve characters in the 16:9 layout, 23 in 4:3's),
  * else counted, " · 2 more". */
 int oracles_display_far_size_shown(const OraclesHomeNav *nav);
 void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_t capacity);

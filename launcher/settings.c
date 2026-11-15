@@ -390,7 +390,8 @@ void oracles_settings_defaults(oracles_settings *s)
     s->view = 2;   /* far: the view drawn back, as Enhanced was before the levels */
     s->aspect = ORACLES_ASPECT_AUTO;
     s->far_fixed = 0;   /* fitted to the screen */
-    s->unvisited_hidden = 0;   /* every room around shown */
+    s->unvisited_hidden = 2;   /* dungeons: the room in play alone in a dungeon, every room around shown elsewhere */
+    s->unvisited_old_shown = 0;
     s->ghosts = 0;   /* auto */
     s->hud = 1;   /* full: the bar across the whole view, not a strip between two dark bands */
     s->hud_panel = 0;   /* floating, the panels in the bar's colour */
@@ -512,8 +513,11 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     if (!strcmp(name, "unvisited_rooms")) {
         if (!strcmp(word, "shown") || !strcmp(word, "hidden") || !strcmp(word, "dungeons"))
             s->unvisited_hidden = !strcmp(word, "hidden") ? 1 : !strcmp(word, "dungeons") ? 2 : 0;
+        else s->unvisited_hidden = 2;
+        if (s->unvisited_old_shown != 2) s->unvisited_old_shown = s->unvisited_hidden == 0;
         return 1;
     }
+    if (!strcmp(name, "unvisited_rooms_default")) { s->unvisited_old_shown = 2; return 1; }
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
         char expected[32];
         snprintf(expected, sizeof expected, "rom_%s", game_names[g]);
@@ -680,6 +684,9 @@ void oracles_settings_load(oracles_settings *s)
         else keep_unknown(s, after, kept);
     }
     fclose(f);
+    /* Shown was the default of a file written without unvisited_rooms_default=: read as the default it now is. */
+    if (s->unvisited_old_shown == 1) s->unvisited_hidden = 2;
+    s->unvisited_old_shown = 0;
 }
 
 /* settings.txt as it is written: after each key's line, the unknown lines read after that key (oracles_settings.unknown). */
@@ -819,9 +826,12 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The far view: screen (fitted to a screen its size fills badly, 426x320 on 1280x960 and 412x360 on 1240x1080,\n"
                "# three times, with aspect=auto) or fixed (480x270 or 480x360, whatever the screen).\n");
     put(&w, "far=%s\n", s->far_fixed ? "fixed" : "screen");
-    put(&w, "# The rooms around Link that he has never entered, in enhanced: shown, hidden (kept dark until he enters\n"
-               "# them, as on the game's map), or dungeons (kept dark in a dungeon, shown elsewhere).\n");
-    put(&w, "unvisited_rooms=%s\n", s->unvisited_hidden == 2 ? "dungeons" : s->unvisited_hidden ? "hidden" : "shown");
+    put(&w, "# The rooms around Link in enhanced: dungeons (in a dungeon, the room he is in alone, as in the game; every room\n"
+               "# shown elsewhere), hidden (the same in a dungeon; elsewhere the rooms he has never entered kept dark until he\n"
+               "# enters them, as on the game's map) or shown (every room).  unvisited_rooms_default= names the default the\n"
+               "# file was written under: without it, shown, the default before, reads as dungeons.\n");
+    put(&w, "unvisited_rooms=%s\n", s->unvisited_hidden == 2 ? "dungeons" : s->unvisited_hidden == 1 ? "hidden" : "shown");
+    put(&w, "unvisited_rooms_default=dungeons\n");
     put(&w, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
                "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
     if (s->ghosts == 1 || s->ghosts == 2) put(&w, "ghosts=%d\n", s->ghosts); else put(&w, "ghosts=auto\n");

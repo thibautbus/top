@@ -679,8 +679,10 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
             }
         }
     }
-    if (v->large_prev_valid && !v->large_prev_drawn && v->large_prev_epoch == ob->epoch && v->large_prev_pipeline == v->colours_pipeline)
+    if (v->large_prev_valid && !v->large_prev_drawn && v->large_prev_epoch == ob->epoch && v->large_prev_pipeline == v->colours_pipeline) {
         add_source(&nbs[count++], v->large_prev_left, v->large_prev_top, v->large_prev, LARGE_ROOM_W, LARGE_ROOM_H, 0);
+        if (v->room_only && ev_room_hidden(v, v->large_prev_group, v->large_prev_room)) nbs[count - 1u].veil = 256u;
+    }
     return count;
 }
 
@@ -875,7 +877,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
             if (!nbs[n].game_area || nbs[n].veil >= 256u) b->drawn = 0;
             v->background_count = n + 1u;
         }
-        in.soft_edges = !v->unvisited_hard;
+        in.soft_edges = !v->unvisited_hard && !v->room_only;
         in.edge_seed = v->observer.ref_group;
         in.shown_width = v->shown_width;
         in.shown_height = v->shown_height;
@@ -906,6 +908,27 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     const int dark_read = v->dark_check && v->hidden_count && in.mode == ORACLES_ENHANCED_WORLD && !load_band;
     v->dark_lit = dark_read ? oracles_enhanced_dark_lit(&in, v->surface) : 0u;
     v->dark_stray = dark_read ? oracles_enhanced_dark_stray(&in, v->surface) : 0u;
+    if (v->dark_check && v->room_only && in.mode == ORACLES_ENHANCED_WORLD && !load_band && v->observation.playing && !v->observation.in_transition) {
+        unsigned bare = 0;
+        const unsigned lit = oracles_enhanced_outside_lit(&in, v->surface, v->observation.world.origin_x, v->observation.world.origin_y,
+                                                          (int32_t)LARGE_ROOM_W, (int32_t)LARGE_ROOM_H, &bare);
+        v->room_only_frames++;
+        if (lit) v->room_only_lit_frames++;
+        if (lit > v->room_only_lit_max) v->room_only_lit_max = lit;
+        if (bare) v->room_only_bare_frames++;
+    }
+    if (v->dark_check && v->room_only && in.mode == ORACLES_ENHANCED_WORLD && !load_band && v->observation.playing && v->observation.in_scroll) {
+        /* A scroll: the room left and the room it enters, side by side, alone. */
+        const OraclesEnhancedObservation *ob = &v->observation;
+        const unsigned d = ob->scroll_direction & 3u;
+        const int entering = ev_scroll_enters_room(v);
+        const unsigned lit = oracles_enhanced_outside_lit(&in, v->surface, ob->world.origin_x - (entering && d == 3u ? (int32_t)LARGE_ROOM_W : 0),
+                                                          ob->world.origin_y - (entering && d == 0u ? (int32_t)LARGE_ROOM_H : 0),
+                                                          (int32_t)LARGE_ROOM_W * (entering && (d & 1u) ? 2 : 1), (int32_t)LARGE_ROOM_H * (entering && !(d & 1u) ? 2 : 1), NULL);
+        v->room_only_scroll_frames++;
+        if (lit) v->room_only_scroll_lit_frames++;
+        if (lit > v->room_only_scroll_lit_max) v->room_only_scroll_lit_max = lit;
+    }
     if (load_band) { in.mode = ORACLES_ENHANCED_FRAMED; v->uncovered = 0; v->uncovered_edges = 0; }
     v->hotbar_framed = in.mode == ORACLES_ENHANCED_FRAMED && !load_band;   /* this frame's, which the floating pad reads too */
     v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;

@@ -255,6 +255,8 @@ static void layouts(void)
 
     /* 35a, 35b: Unvisited rooms, the page's last row, Shown, then Hidden; Quality and the summary of the menus unmoved. */
     ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080, 0);
+    CHECK(nav.display.unvisited == 2);   /* Dungeons, the default */
+    nav.display.unvisited = 0;
     picture(&nav, ORACLES_DISPLAY_UNVISITED);
     lay_out(&nav, &t, &l);
     CHECK(!t.size_notes[2][0] && oracles_display_size_row_live(&nav, ORACLES_DISPLAY_UNVISITED));
@@ -278,7 +280,7 @@ static void layouts(void)
     lay_out(&nav, &t, &l);
     rows("35c", &t, &l, 1);
     layout_line("35c", "help text", &l.help);
-    CHECK(!strcmp(t.help, "Unentered rooms stay dark: in dungeons, or everywhere.") && !t.help_note);
+    CHECK(!strcmp(t.help, "Dungeons: Link's room alone. Hidden: unentered dark too.") && !t.help_note);
     /* 35d: 640x480 on Android with a controller. */
     ages(&nav, ORACLES_UI_LAYOUT_4_3, 640, 480, 1);
     nav.android = 1;
@@ -321,14 +323,17 @@ static void layouts(void)
     layout_text("35g", "picture summary text", &l.picture_summary);
     layout_text("35g", "picture explanation", &l.picture_explanation.lines[0]);
     layout_box("35g", "panel", &l.panel);
-    /* 48l: Dungeons, counted in 16:9 past its twelve characters, named in 4:3. */
+    /* Dungeons, the default, no extra; Shown named in 16:9 and in 4:3. */
     nav.display.unvisited = 2;
     lay_out(&nav, &t, &l);
-    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 1 more"));
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off"));
+    nav.display.unvisited = 0;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Rooms shown"));
     char named[96];
     nav.layout = ORACLES_UI_LAYOUT_4_3;
     oracles_display_picture_summary(&nav, named, sizeof named);
-    CHECK(!strcmp(named, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Dungeons hidden"));
+    CHECK(!strcmp(named, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Rooms shown"));
     nav.layout = ORACLES_UI_LAYOUT_16_9;
     nav.display.unvisited = 1;
     nav.display.menus = 1;
@@ -355,7 +360,7 @@ static void layouts(void)
     layout_box("37a", "picture link", &l.picture_link);
     layout_line("37a", "picture summary text", &l.picture_summary);
     /* In 4:3 two still hold on the line, as turn 34 named them. */
-    nav.display.unvisited = 0;
+    nav.display.unvisited = 2;
     oracles_display_picture_summary(&nav, t.picture_summary, sizeof t.picture_summary);
     CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Far fixed \xc2\xb7 View menus"));
 

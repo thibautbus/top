@@ -674,8 +674,9 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         /* The rooms never entered: the command line's, else the settings'; presentation alone. */
         oracles_enhanced_view_set_unvisited_hidden(s->view, o->unvisited_hidden ? o->unvisited_hidden - 1 : s->settings->unvisited_hidden);
         if (oracles_enhanced_view_unvisited_hidden(s->view))
-            fprintf(stderr, "oracles: unvisited rooms hidden: the rooms around Link that he has never entered stay dark%s (%s)\n",
-                    oracles_enhanced_view_unvisited_hidden(s->view) == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? " in a dungeon" : "",
+            fprintf(stderr, "oracles: unvisited rooms %s: in a dungeon the room Link is in alone%s (%s)\n",
+                    oracles_enhanced_view_unvisited_hidden(s->view) == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? "dungeons" : "hidden",
+                    oracles_enhanced_view_unvisited_hidden(s->view) == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? "" : ", elsewhere the rooms he has never entered dark",
                     o->unvisited_hidden ? "--unvisited-rooms" : "unvisited_rooms= in the settings");
         if (s->text_box_wide) oracles_enhanced_view_set_text_box(s->view, ORACLES_TEXT_BOX_WIDE_PIXELS, ORACLES_TEXT_BOX_GAME_LINES);
         /* Text size: the command line's, else the settings'; presentation alone, which the pause changes at once.  A

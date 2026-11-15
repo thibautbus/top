@@ -523,6 +523,14 @@ struct OraclesEnhancedView {
      * in that epoch, and those drawn so now; the rooms fading in since, from the frame each was shown. */
     int unvisited_mode;               /* the setting, ORACLES_ENHANCED_UNVISITED_* */
     int unvisited_hidden;             /* kept dark where Link is now: everywhere, or in a dungeon */
+    int room_only;                    /* in a dungeon, Dungeons or Hidden: the room in play alone, every other dark, cut straight, none fading in */
+    unsigned room_only_frames;        /* frames of normal play composed so, in the world band */
+    unsigned room_only_lit_frames;    /* those showing a pixel outside the room in play, the game's window aside, other than the band's black */
+    unsigned room_only_lit_max;       /* the most such pixels in one frame */
+    unsigned room_only_bare_frames;   /* those leaving a pixel of the room in play that the band shows uncovered by its picture */
+    unsigned room_only_scroll_frames; /* frames of a scroll in play composed so, in the world band */
+    unsigned room_only_scroll_lit_frames;   /* those showing a pixel outside the room left and the room entered, the game's window aside */
+    unsigned room_only_scroll_lit_max;      /* the most such pixels in one frame */
     int unvisited_hard;               /* their edge toward the rooms drawn in clear cut hard (the Low quality) */
     int dark_check;                   /* the harness's check of the rooms kept dark past their edge */
     unsigned dark_lit;                /* the rooms the last composition kept dark and showed in clear past their edge */

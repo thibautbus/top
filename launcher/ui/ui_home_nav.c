@@ -60,6 +60,7 @@ void oracles_home_init(OraclesHomeNav *nav)
     nav->display.profile = ORACLES_PROFILE_ENHANCED;
     nav->display.transitions = 1;
     nav->display.hud = 1;   /* Full width, settings.txt's default */
+    nav->display.unvisited = 2;   /* Dungeons, settings.txt's default */
     nav->display.camera = -1;   /* the platform's default */
     nav->display.view = 2;
     nav->display.window = 2;

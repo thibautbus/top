@@ -325,6 +325,11 @@ unsigned oracles_enhanced_dark_lit(const OraclesEnhancedCompose *in, const uint3
  * edge's depth from either end aside, where nothing drawn in clear stands just beyond it (another room kept dark, nothing,
  * the world's end): an edge where there is no frontier. */
 unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uint32_t *out);
+/* The part of the band `out` shows outside the world rectangle `room_left`, `room_top`, `room_width` x `room_height`, the
+ * core's window aside: its pixels other than the band's black, returned; and, in `bare`, the pixels of the rectangle shown
+ * that no source drawn in clear nor the window covers. */
+unsigned oracles_enhanced_outside_lit(const OraclesEnhancedCompose *in, const uint32_t *out, int32_t room_left, int32_t room_top,
+                                      int32_t room_width, int32_t room_height, unsigned *bare);
 /* The HUD band alone, the world mode's sixteen lines at the top of `out`, the rest left as it is; nothing floating. */
 void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out);
 /* An RGB555 colour of a source that does not carry the game's palette fade, as the compose draws it: the fade

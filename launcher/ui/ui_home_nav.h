@@ -321,7 +321,7 @@ typedef struct OraclesHomeDisplay {
                                  * fills it badly; in Enhanced only, not from a game */
     int menus;                  /* Menus: 0 View, 1 Large, the settings' menus= (Large Android's default); in Enhanced only, from a game
                                  * too, where it applies at once */
-    int unvisited;              /* Unvisited rooms: 0 Shown (the default), 1 Hidden, 2 Dungeons, the settings' unvisited_rooms=; in Enhanced only,
+    int unvisited;              /* Unvisited rooms: 0 Shown, 1 Hidden, 2 Dungeons (the default), the settings' unvisited_rooms=; in Enhanced only,
                                  * from a game too, where it applies when the game resumes */
     int unvisited_fixed;        /* --unvisited-rooms gave it for the run: the row shows it, dimmed and inert, and it is never stored */
     int filter;                 /* Filter: an index of oracles_display_filter_names, 0 Off (the default), the settings' filter=; in either

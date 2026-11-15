@@ -515,7 +515,7 @@ int oracles_enhanced_view_room_whole(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_shake_frames(const OraclesEnhancedView *view);
 /* World frames where the band shows an overworld room beside the reference room, diagonals included, that no delivered terrain covers yet. */
 unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
-/* The rooms never visited kept dark (ORACLES_ENHANCED_UNVISITED_HIDDEN, or _DUNGEONS in a dungeon): a room of the band that the game's own record says Link has never
+/* The rooms never visited kept dark (ORACLES_ENHANCED_UNVISITED_HIDDEN outside a dungeon): a room of the band that the game's own record says Link has never
  * entered (the visited bit of its flags, from which the game's map draws its squares) is drawn in the band's black, its
  * objects with it, the reference room and the room a scroll enters always shown.  Shown by default.  The ghost
  * prepares every room as before, so that a room shows as soon as it is visited: drawn in the band after a composition
@@ -526,15 +526,31 @@ unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
  * most rooms so in a frame, the rooms that faded in, and, whatever the setting, the frames of normal play (the first
  * after a transition aside) whose reference room the game had not marked visited, with the first of them. */
 #define ORACLES_ENHANCED_REVEAL_FRAMES 16u
-/* The setting: every room shown, the rooms never entered kept dark everywhere, or in a dungeon alone (its large rooms,
- * the rooms outside shown); the view applies it at each composition, by where Link is. */
+/* The setting: every room shown (Shown); in a dungeon (its large rooms), the room in play alone, as the game shows it,
+ * the rooms outside shown (Dungeons) or the rooms never entered kept dark there (Hidden); the view applies it at each
+ * composition, by where Link is.  The room in play alone: every other room of the dungeon kept dark, visited or not
+ * (the game's record unread), cut straight at the room's edge with nothing of it shown, none fading in; the room a
+ * scroll enters shows from the scroll's first frame beside the room left, which goes dark as the scroll ends. */
 enum { ORACLES_ENHANCED_UNVISITED_SHOWN, ORACLES_ENHANCED_UNVISITED_HIDDEN, ORACLES_ENHANCED_UNVISITED_DUNGEONS };
 void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *view, int mode);
 int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *view);
-/* A room kept dark beside a room drawn in clear shows its edge (ORACLES_ENHANCED_EDGE_DEPTH, compositor.h): a band of
- * its own terrain along their frontier, in full over a wave, then darker, then black, the fade in going from that look
- * to the room whole (`soft` 1, the default); or the black cut straight (0, the Low quality).  A room laid dark before
- * its pixels came has no edge yet: it comes in with them, over ORACLES_ENHANCED_REVEAL_FRAMES compositions. */
+/* The room in play shown alone where Link is now. */
+int oracles_enhanced_view_room_only(const OraclesEnhancedView *view);
+/* The room in play alone, at each composition of normal play in the world band (no transition, no load): the frames,
+ * those showing a pixel other than the band's black outside the room in play, the game's window aside (none), the
+ * most such pixels in one, and those leaving a pixel of the room in play the band shows uncovered by its picture (none:
+ * the large room whole); and at each composition of a scroll in play, the frames, and those showing a pixel other than
+ * the band's black outside the room left and the room entered, the game's window aside (none). */
+typedef struct OraclesEnhancedRoomOnlyCounts {
+    unsigned frames, lit_frames, lit_max, bare_frames;
+    unsigned scroll_frames, scroll_lit_frames, scroll_lit_max;
+} OraclesEnhancedRoomOnlyCounts;
+void oracles_enhanced_view_room_only_counts(const OraclesEnhancedView *view, OraclesEnhancedRoomOnlyCounts *out);
+/* Outside the room in play alone, a room kept dark beside a room drawn in clear shows its edge
+ * (ORACLES_ENHANCED_EDGE_DEPTH, compositor.h): a band of its own terrain along their frontier, in full over a wave, then
+ * darker, then black, the fade in going from that look to the room whole (`soft` 1, the default); or the black cut
+ * straight (0, the Low quality).  A room laid dark before its pixels came has no edge yet: it comes in with them, over
+ * ORACLES_ENHANCED_REVEAL_FRAMES compositions. */
 void oracles_enhanced_view_set_unvisited_edge(OraclesEnhancedView *view, int soft);
 /* The harness's check: after each composition, the rooms it kept dark read past their edge (oracles_enhanced_dark_lit)
  * and along their sides where nothing in clear stands beyond (oracles_enhanced_dark_stray), and how many of them the

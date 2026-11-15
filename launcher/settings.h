@@ -158,9 +158,12 @@ typedef struct oracles_settings {
                                    * default) two on a device of four processor threads or more, else one; Display's Neighbour
                                    * workers, in its Advanced rows */
     int aspect;                   /* an OraclesAspect: aspect=auto|16:9|4:3, the view's shape: the screen's (auto, the default), or the one named; not in Display */
-    int unvisited_hidden;         /* unvisited_rooms=shown|hidden|dungeons: the rooms around Link he has never entered drawn (shown, the default),
-                                   * kept dark as the game's map keeps them (hidden), or kept dark in a dungeon alone (dungeons), in Enhanced:
-                                   * ORACLES_ENHANCED_UNVISITED_* */
+    int unvisited_hidden;         /* unvisited_rooms=shown|hidden|dungeons, in Enhanced: every room around Link drawn (shown); in a dungeon
+                                   * the room he is in alone, as the game shows it, every room shown elsewhere (dungeons, the default), or
+                                   * the rooms he has never entered kept dark there as the game's map keeps them (hidden):
+                                   * ORACLES_ENHANCED_UNVISITED_*; a value the launcher does not know is the default.  Shown read from a
+                                   * file without unvisited_rooms_default=, which every store writes, was the default before: dungeons. */
+    int unvisited_old_shown;      /* while settings.txt is read: 1 shown read, 2 unvisited_rooms_default= read */
     int far_fixed;                /* far=screen|fixed: the far view fitted to the screen where its size fills it badly (screen, the default;
                                    * compositor.h, oracles_enhanced_far_fitting), or at its size whatever the screen (fixed); not in Display */
     OraclesHotkeysMode item_hotkeys[ORACLES_HOTKEY_GAMES];   /* item_hotkeys_<game>=off|use (equip reads too); item_hotkeys_combined= for Oracles Combined */

@@ -610,6 +610,7 @@ static void check_drawn_rooms(OraclesEnhancedCheck *c, const OraclesEnhancedObse
     if (!oracles_enhanced_view_drawn_rooms(c->view, &group, dark, shown)) return;
     c->shown_unvisited += oracles_enhanced_view_dark_lit(c->view);
     c->dark_edge_stray += oracles_enhanced_view_dark_stray(c->view);
+    if (oracles_enhanced_view_room_only(c->view)) return;   /* the room in play alone: every other dark, visited or not */
     for (unsigned r = 0; r < 256u; r++) {
         const uint32_t bit = 1u << (r & 31u);
         if (dark[r >> 5u] & bit) { if (room_visited(c, group, (uint8_t)r)) c->dark_visited++; }

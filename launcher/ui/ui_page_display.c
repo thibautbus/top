@@ -251,7 +251,7 @@ void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_
     unsigned count = 0, length = 0;
     if (enhanced && nav->display.far_fixed && oracles_display_far_size_shown(nav)) extras[count++] = "Far fixed";
     if (enhanced && !nav->display.menus != !nav->android) extras[count++] = nav->display.menus ? "Large menus" : "View menus";
-    if (enhanced && nav->display.unvisited) extras[count++] = nav->display.unvisited == 2 ? "Dungeons hidden" : "Rooms hidden";
+    if (enhanced && nav->display.unvisited != 2) extras[count++] = nav->display.unvisited ? "Rooms hidden" : "Rooms shown";
     for (unsigned i = 0; i < count; i++) length += (unsigned)strlen(extras[i]) + (i ? 3u : 0u);   /* " · " is three characters */
     /* A filter other than Off after the scaling, which takes its room from the extras: in 16:9 they are then neither named
      * nor counted, the row keeping its two lines. */
@@ -617,7 +617,7 @@ const char *oracles_display_explanation(unsigned row)
             return "Large: menus, map, cutscenes and the file screen alone, at their own largest scale, easier to read on a small screen. View: "
                    "at the view's scale.";
         case ORACLES_DISPLAY_FAR_SIZE: return "Fitted: Far takes a size made for this screen. Fixed: Far's usual size.";
-        case ORACLES_DISPLAY_UNVISITED: return "Rooms you never entered stay dark, as on the map: in dungeons only, or everywhere.";
+        case ORACLES_DISPLAY_UNVISITED: return "In dungeons, only Link's room shows, as in the game. Hidden: unentered rooms dark outside too.";
         default: return "";   /* Quality's says what is in effect: oracles_display_quality_text */
     }
 }

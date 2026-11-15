@@ -95,8 +95,10 @@ POSES = ["enhanced.poses_drawn_wrong=0", "enhanced.pose_lines_wrong=0", "enhance
 # The game marks visited the room it plays by the first frame of play after a load or a scroll (setVisitedRoomFlag):
 # the rooms never visited the view keeps dark (--unvisited-rooms hidden) are the game's own map's, none of them visited
 # and none drawn in clear unvisited, the room in play aside; a room kept dark lit only along a side where something in
-# clear stands beyond it.
-UNVISITED = ["enhanced.unvisited_reference=0", "enhanced.dark_visited=0", "enhanced.shown_unvisited=0", "enhanced.dark_edge_stray=0"]
+# clear stands beyond it.  In a dungeon under Dungeons or Hidden, the room in play alone: nothing but the band's black
+# around it at rest, the game's window aside, and the room whole; in a scroll, the room left and the room entered alone.
+UNVISITED = ["enhanced.unvisited_reference=0", "enhanced.dark_visited=0", "enhanced.shown_unvisited=0", "enhanced.dark_edge_stray=0",
+             "enhanced.room_only_lit_frames=0", "enhanced.room_only_bare_frames=0", "enhanced.room_only_scroll_lit_frames=0"]
 ALWAYS = {
     # The floors say the check ran at all: a check that stopped measuring counts
     # zero difference and would satisfy every rule above it.  What a

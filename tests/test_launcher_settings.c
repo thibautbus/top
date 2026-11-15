@@ -1400,9 +1400,10 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.far_fixed == 0);
-    /* The rooms never entered: shown at the first opening, hidden and dungeons written and read back, an unknown value shown. */
+    /* The rooms never entered: dungeons at the first opening, hidden and dungeons written and read back, an unknown value
+     * dungeons; shown from a file without unvisited_rooms_default=, the default before, dungeons, and kept from one with it. */
     oracles_settings_defaults(&read_back);
-    CHECK(read_back.unvisited_hidden == 0);
+    CHECK(read_back.unvisited_hidden == 2);
     write_text(path, "unvisited_rooms=hidden\n");
     oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 1);
@@ -1419,11 +1420,26 @@ int main(int argc, char **argv)
     CHECK(read_back.unvisited_hidden == 2);
     write_text(path, "unvisited_rooms = SHOWN\n");
     oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 2);
+    write_text(path, "unvisited_rooms=hidden\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 1);
+    write_text(path, "unvisited_rooms=shown\nunvisited_rooms_default=dungeons\n");
+    oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 0);
-    write_text(path, "unvisited_rooms=dark\n");
+    write_text(path, "unvisited_rooms_default=dungeons\nunvisited_rooms=shown\n");
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 0);
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 0);
+    CHECK(file_has_line(path, "unvisited_rooms=shown\n") && file_has_line(path, "unvisited_rooms_default=dungeons\n"));
+    write_text(path, "unvisited_rooms=dark\n");
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 2);
     /* Display's Filter: off at the first opening, each of the eight written and read back by its name, case aside, an
      * unknown one off. */
     oracles_settings_defaults(&read_back);

@@ -637,7 +637,7 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         "Accurate: the reference. Fast: lighter.", "Rooms scroll into one another, swimming too.", VSYNC_SHORT, "Two fill the view faster, on one more core.",
         "Sharp: exact pixels. Fill: the whole screen.", "Smooth: diagonal walks glide.", "Keeps the picture clear of hidden screen edges.", NULL, NULL,
         NULL, NULL, "Scaling, filter, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
-        "Fitted: a Far made for this screen.", "Unentered rooms stay dark: in dungeons, or everywhere.", NULL,
+        "Fitted: a Far made for this screen.", "Dungeons: Link's room alone. Hidden: unentered dark too.", NULL,
         "Bar color: the bar's own color. Neutral: light gray.",
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;

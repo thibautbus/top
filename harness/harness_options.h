@@ -69,7 +69,7 @@ typedef struct harness_options {
     int aspect_given;                         /* --aspect named the shape */
     unsigned screen_w, screen_h;              /* --screen: the screen the view's shape comes from, which far fits to; 0: none */
     int enhanced_hud;                         /* --hud full|wide: the status bar drawn full width, or laid out (OraclesEnhancedHud); original (0) by default, which every row hashed before it keeps */
-    int unvisited_hidden;                     /* --unvisited-rooms hidden|dungeons: the rooms never visited kept dark, everywhere or in a dungeon alone, as the launcher's unvisited_rooms= (ORACLES_ENHANCED_UNVISITED_*) */
+    int unvisited_hidden;                     /* --unvisited-rooms hidden|dungeons: in a dungeon the room in play alone, and with hidden the rooms never visited kept dark elsewhere, as the launcher's unvisited_rooms= (ORACLES_ENHANCED_UNVISITED_*); shown without it */
     int hooks, colour_correction, ghost_threaded, ghost_trace, ghost_trace_load, compare_session;
     int core_kind;                            /* --core: an OraclesCoreKind; without it, the route's (SameBoy, or mGBA for a route that says so) */
     int core_given;

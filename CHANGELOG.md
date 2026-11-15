@@ -18,6 +18,7 @@ What changed in each version of The Oracles Project, the newest first. The relea
 
 ### Improved
 
+- **The rooms around Link in a dungeon.** In Enhanced, **Display › Picture › Unvisited rooms** has a new choice and default, **Dungeons**: in a dungeon, only the room Link is in shows, as in the original game, whole even where it is larger than the screen, every other room dark with a clean edge; as Link walks into the next room, it scrolls into view beside his, as in the game. Outside dungeons, every room around him shows. **Hidden** does the same in dungeons and keeps the rooms he has never entered dark outside, as on the map. With **Shown**, a dungeon's room now shows beside it the rooms it opens onto, through a door or an open side, as the rooms around Link do outside.
 - **The rooms around Link in a dungeon.** In Enhanced, a dungeon's room now shows beside it the rooms it opens onto, through a door or an open side, as the rooms around Link do outside, instead of black around it. With **Display › Picture › Unvisited rooms** on **Hidden**, those Link has never entered stay dark, as on the dungeon's map; its new choice, **Dungeons**, keeps them dark in dungeons only and shows every room outside.
 - **Why a row is grayed.** A row or a menu entry grayed because the game does not have it now says "Not available for this game", where it named the games that had it, such as "Ages and Seasons only for now." or "Mods play on the original ROMs". One that waits for an original ROM says "Needs an original ROM": choose one in Cartridge. With Moonrise Regalia chosen, **Controls > Swimming** now says "Not available for this game." on wide screens too, not only on 4:3 screens; the setting stays live, as it applies to every game.
 
@@ -43,6 +44,7 @@ What changed in each version of The Oracles Project, the newest first. The relea
 
 ### Notes
 
+- **Defaults.** RetroAchievements stay off until you log in, **Filter** stays Off and **Portable mode** Off. **HUD** stays Full width. **Unvisited rooms** is now **Dungeons**, unless you chose **Hidden**. On Android, the touch controls now vibrate as Android's touch feedback setting says; **Controls › Touch vibration** turns that off. With **Vsync** on Auto, a computer with a display of 100 Hz or more now keeps vsync on.
 - **Defaults.** RetroAchievements stay off until you log in, **Filter** stays Off and **Portable mode** Off. On Android, the touch controls now vibrate as Android's touch feedback setting says; **Controls > Touch vibration** turns that off. With **Vsync** on Auto, a computer with a display of 100 Hz or more now keeps vsync on.
 - **About is now in Settings.** The version at the bottom left of the home screen no longer opens a page: the **Settings** button beside it does, with **Update check**, **Portable mode** on Windows and on Linux with the `.tar.gz`, and **About**.
 - **Saves, settings and savestates.** Installed over 1.4.0, 1.5.0 keeps your saves and `settings.txt`, on Android too. Savestates made with 1.4.0 load.

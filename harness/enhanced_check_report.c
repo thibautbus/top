@@ -133,6 +133,12 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
                 "enhanced.dark_visited=%u\nenhanced.shown_unvisited=%u\nenhanced.dark_edge_stray=%u\nenhanced.unvisited_reference=%u\n", u.hidden_frames, u.hidden_rooms_max,
                 u.reveal_fades, u.edge_fades, c->transitions_dark, c->dark_visited, c->shown_unvisited, c->dark_edge_stray, u.unvisited_reference);
         if (u.unvisited_reference) fprintf(out, "enhanced.unvisited_reference_first=%u:%u:%02x\n", u.first_frame, u.first_group, u.first_room);
+        OraclesEnhancedRoomOnlyCounts a;
+        oracles_enhanced_view_room_only_counts(c->view, &a);
+        fprintf(out, "enhanced.room_only_frames=%u\nenhanced.room_only_lit_frames=%u\nenhanced.room_only_lit_max=%u\nenhanced.room_only_bare_frames=%u\n", a.frames, a.lit_frames,
+                a.lit_max, a.bare_frames);
+        fprintf(out, "enhanced.room_only_scroll_frames=%u\nenhanced.room_only_scroll_lit_frames=%u\nenhanced.room_only_scroll_lit_max=%u\n", a.scroll_frames,
+                a.scroll_lit_frames, a.scroll_lit_max);
     }
     fprintf(out, "enhanced.continued_wave_frames=%u\n", oracles_enhanced_view_continued_wave_frames(c->view));
     fprintf(out, "enhanced.sway_frames=%u\n", oracles_enhanced_view_sway_frames(c->view));

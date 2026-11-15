@@ -296,6 +296,7 @@ int ev_room_hidden(OraclesEnhancedView *v, uint8_t group, uint8_t room)
     if (!v->unvisited_hidden) return 0;
     if (group == v->observer.ref_group && room == v->observer.ref_room) return 0;
     if (group == v->observation.group && room == v->observation.room) return 0;
+    if (v->room_only) return 1;
     const int was_reference = v->have_hidden_places && group == v->hidden_group && (v->referenced[room >> 5u] & (1u << (room & 31u)));
     const int unmarked = !(ev_live_byte(v, ev_room_flags_address(v, group, room)) & oracles_guest_tables(v->guest)->roomflag_visited);
     return unmarked && !was_reference;
@@ -347,6 +348,7 @@ unsigned ev_room_veil(OraclesEnhancedView *v, uint8_t room)
         return 256u;
     }
     v->shown_now[room >> 5u] |= bit;
+    if (v->room_only) return 0;
     unsigned i = 0;
     while (i < v->reveal_count && v->reveals[i].room != room) i++;
     if (i == v->reveal_count) {
@@ -442,13 +444,15 @@ void ev_check_reference_visited(OraclesEnhancedView *v)
     }
 }
 
-/* The setting where Link is: in a dungeon alone, a large room of one (its groups 4 to 7, as the band's large grid). */
+/* The setting where Link is: in a dungeon, a large room of one (its groups 4 to 7, as the band's large grid), Dungeons
+ * and Hidden show the room in play alone, as the game does; outside, Hidden keeps the rooms never entered dark. */
 void ev_unvisited_apply(OraclesEnhancedView *v)
 {
-    const int hidden = v->unvisited_mode == ORACLES_ENHANCED_UNVISITED_HIDDEN
-                    || (v->unvisited_mode == ORACLES_ENHANCED_UNVISITED_DUNGEONS && v->observation.large_grid);
-    if (v->unvisited_hidden == hidden) return;
+    const int only = v->unvisited_mode != ORACLES_ENHANCED_UNVISITED_SHOWN && v->observation.large_grid;
+    const int hidden = v->unvisited_mode == ORACLES_ENHANCED_UNVISITED_HIDDEN || only;
+    if (v->unvisited_hidden == hidden && v->room_only == only) return;
     v->unvisited_hidden = hidden;
+    v->room_only = only;
     v->have_hidden_places = 0;   /* switched: the rooms as they are, none fading in */
     v->reveal_count = 0;
     v->edge_fade_count = 0;
@@ -462,6 +466,18 @@ void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *v, int mode
 
 int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *v) { return v->unvisited_mode; }
 void oracles_enhanced_view_set_unvisited_edge(OraclesEnhancedView *v, int soft) { v->unvisited_hard = !soft; }
+int oracles_enhanced_view_room_only(const OraclesEnhancedView *v) { return v->room_only; }
+
+void oracles_enhanced_view_room_only_counts(const OraclesEnhancedView *v, OraclesEnhancedRoomOnlyCounts *out)
+{
+    out->frames = v->room_only_frames;
+    out->lit_frames = v->room_only_lit_frames;
+    out->lit_max = v->room_only_lit_max;
+    out->bare_frames = v->room_only_bare_frames;
+    out->scroll_frames = v->room_only_scroll_frames;
+    out->scroll_lit_frames = v->room_only_scroll_lit_frames;
+    out->scroll_lit_max = v->room_only_scroll_lit_max;
+}
 void oracles_enhanced_view_check_dark(OraclesEnhancedView *v, int enabled) { v->dark_check = enabled != 0; }
 unsigned oracles_enhanced_view_dark_lit(const OraclesEnhancedView *v) { return v->dark_lit; }
 unsigned oracles_enhanced_view_dark_stray(const OraclesEnhancedView *v) { return v->dark_stray; }
