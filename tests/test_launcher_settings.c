@@ -451,8 +451,8 @@ static void pause_live_changes(void)
     OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, s.swim_hold, ORACLES_SETTINGS_SEASONS,
                                       (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
-    /* Vsync, at once: off, then on, then auto again; it presents in step with a display near 60 Hz alone on auto
-     * (never on Android), always on on, never on off. */
+    /* Vsync, at once: off, then on, then auto again; it presents in step with a display of 59 to 61 Hz or of 100 Hz or
+     * more alone on auto (never on Android), on any but a display slower than the game on on, never on off. */
     snprintf(s.vsync, sizeof s.vsync, "off");
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_VSYNC && applied.vsync == 2);
     snprintf(s.vsync, sizeof s.vsync, "on");
@@ -463,9 +463,29 @@ static void pause_live_changes(void)
 #ifdef __ANDROID__
     CHECK(!oracles_session_vsync_on("auto", 60u));
 #else
-    CHECK(oracles_session_vsync_on("auto", 60u) && !oracles_session_vsync_on("auto", 144u));
+    CHECK(oracles_session_vsync_on("auto", 60u) && oracles_session_vsync_on("auto", 144u) && !oracles_session_vsync_on("auto", 50u));
+    CHECK(!oracles_session_vsync_on("auto", 75u) && !oracles_session_vsync_on("auto", 0u));   /* 0: a rate SDL does not know */
 #endif
     CHECK(oracles_session_vsync_on("on", 144u) && !oracles_session_vsync_on("off", 60u));
+    CHECK(!oracles_session_vsync_on("on", 50u) && !oracles_session_vsync_on("on", 58u) && oracles_session_vsync_on("on", 0u));
+    {   /* Who paces, for each setting on each display: the renderer under vsync (r), the display pacing (d). */
+        static const unsigned rates[] = { 0u, 50u, 58u, 59u, 60u, 61u, 62u, 75u, 99u, 100u, 120u, 144u, 240u };
+        static const char *const settings_names[] = { "auto", "on", "off" };
+        for (size_t v = 0; v < 3; v++)
+            for (size_t i = 0; i < sizeof rates / sizeof rates[0]; i++) {
+                const unsigned hz = rates[i];
+                int r = -1, d = -1;
+                oracles_session_pacing(settings_names[v], hz, &r, &d);
+#ifdef __ANDROID__
+                const int auto_on = 0;
+#else
+                const int auto_on = (hz >= 59u && hz <= 61u) || hz >= 100u;
+#endif
+                const int want_r = v == 0 ? auto_on : v == 1 && (hz == 0u || hz >= 59u);   /* never under 59 Hz */
+                CHECK(r == want_r);
+                CHECK(d == (want_r && (hz == 0u || (hz >= 59u && hz <= 61u))));   /* the display paces about 60 Hz; the host elsewhere */
+            }
+    }
     /* The large menus, at once, in a game with the Enhanced view; none without it. */
     s.menus_large = !s.menus_large;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_MENUS && applied.menus_large == s.menus_large);
@@ -1378,8 +1398,18 @@ int main(int argc, char **argv)
     CHECK(oracles_settings_default_quality(0, 4, 8192) == ORACLES_QUALITY_MAX);
     CHECK(oracles_settings_default_quality(1, 4, 4096) == ORACLES_QUALITY_MEDIUM);    /* the RG DS */
     CHECK(oracles_settings_default_quality(1, 8, 5800) == ORACLES_QUALITY_HIGH);      /* a "6 GB" device */
-    CHECK(oracles_settings_auto_vsync(60u, 0) && oracles_settings_auto_vsync(59u, 0) && !oracles_settings_auto_vsync(120u, 0));
+    CHECK(oracles_settings_auto_vsync(60u, 0) && oracles_settings_auto_vsync(59u, 0) && oracles_settings_auto_vsync(61u, 0));
+    CHECK(oracles_settings_auto_vsync(100u, 0) && oracles_settings_auto_vsync(120u, 0) && oracles_settings_auto_vsync(144u, 0));
+    CHECK(!oracles_settings_auto_vsync(58u, 0) && !oracles_settings_auto_vsync(50u, 0) && !oracles_settings_auto_vsync(0u, 0));
+    CHECK(!oracles_settings_auto_vsync(62u, 0) && !oracles_settings_auto_vsync(75u, 0) && !oracles_settings_auto_vsync(99u, 0));
     CHECK(!oracles_settings_auto_vsync(60u, 1) && !oracles_settings_auto_vsync(120u, 1));   /* Android: off */
+    /* Under vsync a display of 59 to 61 Hz, or of a rate unknown, paces the frames; the host paces them on a faster one.
+     * A display under 59 Hz (a television at 50 Hz) is slower than the game: vsync stays off there. */
+    CHECK(oracles_settings_display_paces(59u) && oracles_settings_display_paces(60u) && oracles_settings_display_paces(61u));
+    CHECK(oracles_settings_display_paces(0u) && !oracles_settings_display_paces(50u) && !oracles_settings_display_paces(58u));
+    CHECK(!oracles_settings_display_paces(62u) && !oracles_settings_display_paces(120u) && !oracles_settings_display_paces(144u));
+    CHECK(oracles_settings_display_slower(50u) && oracles_settings_display_slower(58u) && !oracles_settings_display_slower(59u));
+    CHECK(!oracles_settings_display_slower(0u) && !oracles_settings_display_slower(144u));
     CHECK(oracles_settings_default_quality(1, 8, 4096) == ORACLES_QUALITY_MEDIUM);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MAX) == ORACLES_QUALITY_HIGH);
     CHECK(oracles_settings_lighter_quality(ORACLES_QUALITY_MEDIUM) == ORACLES_QUALITY_LOW);

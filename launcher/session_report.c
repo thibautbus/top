@@ -48,8 +48,8 @@ static void report_slow(const session *s, const oracles_host_run_report *report)
 void oracles_session_report_frames(const session *s, const oracles_host_run_report *report)
 {
     fprintf(stderr, "oracles: version %s, build %s, core %s\n", ORACLES_VERSION, ORACLES_BUILD, oracles_core_version(s->core));
-    fprintf(stderr, "oracles: %u frames, %u late, %u resyncs, %u saves written to %s\n",
-            report->frames_presented, report->frames_late, report->pacing_resyncs, report->saves_written, s->save.path);
+    fprintf(stderr, "oracles: %u frames, %u late (and %u light ones late waiting for the display's refresh), %u resyncs, %u saves written to %s\n",
+            report->frames_presented, report->frames_late, report->frames_late_waiting, report->pacing_resyncs, report->saves_written, s->save.path);
     /* The pause holds the loop between frames: its time is in no frame's; none of its glyphs should be rasterised here. */
     if (s->pause)
         fprintf(stderr, "oracles: pause menu opened %u times; glyphs rasterised during the session's pauses: %u\n",
@@ -160,7 +160,12 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o)
         fprintf(stderr, "oracles: vsync %s: renderer %s (vsync %s), %u frames presented in %.1f s, %.2f Hz; ",
                 s->sdl.vsync ? "on" : "off", renderer, renderer_vsync ? "reported" : "not reported",
                 presents, seconds, seconds > 0.0 ? (double)(presents - 1u) / seconds : 0.0);
-        if (!s->sdl.vsync) fprintf(stderr, "the host paced the whole run\n");
+        if (s->present_unwaited_frame) {
+            fprintf(stderr, "the host paced the whole run; waiting for the display's refresh seemed to slow the game: vsync off from frame %u",
+                    s->present_unwaited_frame);
+            if (s->present_rewaited_frame) fprintf(stderr, ", on again from frame %u, the game no faster without it", s->present_rewaited_frame);
+            fprintf(stderr, "; vsync %s at the end%s\n", s->present_waits_end ? "on" : "off", !s->sdl.vsync ? ", turned off from the pause" : "");
+        } else if (!s->display_paces) fprintf(stderr, "the host paced the whole run%s\n", s->sdl.vsync ? ", each frame shown at the display's next refresh" : "");
         else if (s->display_unpaced_frame)
             fprintf(stderr, "the presentation did not wait for the display: vsync off and the host paced from frame %u\n", s->display_unpaced_frame);
         else fprintf(stderr, "the display paced the whole run\n");

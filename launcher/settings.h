@@ -203,10 +203,23 @@ void oracles_settings_apply_quality(oracles_settings *settings, OraclesQuality q
 /* The profile a first opening takes: Max on a desktop; where the window is always fullscreen (Android), High on a
  * device of 8 processor threads and 6 GB or more (`ram_mb` as SDL_GetSystemRAM gives it), Medium otherwise. */
 OraclesQuality oracles_settings_default_quality(int fullscreen_only, int processor_threads, int ram_mb);
-/* Whether vsync=auto presents in step with the display: on a desktop when the display refreshes at 59 to 61 Hz, close
- * enough to the Game Boy's 59.7275 Hz; never on Android (`android`), whose system composes the frames itself, where
- * presenting in step with the display only adds latency. */
+/* Whether vsync=auto presents each frame at a refresh of the display, whole on the screen: on a desktop when the display
+ * refreshes at 59 to 61 Hz, or at 100 Hz or more, where a frame waits for the next refresh 10 ms at most and the
+ * frames the display shows once more than the others go by fast (oracles_settings_display_paces says who paces the
+ * frames then); between them, as at 75 Hz, a frame in four would stay twice as long, and auto leaves the tearing to
+ * that stutter; never on Android (`android`), whose system composes the frames itself, where presenting in step with
+ * the display only adds latency. */
 int oracles_settings_auto_vsync(unsigned display_hz, int android);
+/* Whether, under vsync, a display of `display_hz` paces the frames: at 59 to 61 Hz, close enough to the Game Boy's
+ * 59.7275 Hz for the audio rate control to absorb the difference, and at a rate SDL does not know (0), the host
+ * watching that the presentation waits.  On a faster display the host paces the frames at 59.7275 Hz, and vsync only
+ * shows each of them at the display's next refresh, whole, instead of torn across it (where waiting for its refresh
+ * slows the game, the host turns vsync off). */
+int oracles_settings_display_paces(unsigned display_hz);
+/* Whether a display of `display_hz` refreshes slower than the game, under 59 Hz, as a television at 50 Hz: waiting
+ * for its refresh could only slow the game, by a sixth at 50 Hz, more than the audio rate control absorbs, and vsync
+ * stays off there whatever the setting, the host pacing. */
+int oracles_settings_display_slower(unsigned display_hz);
 /* The profile just lighter than `quality`, the one a game that ran slowly is suggested: Custom for Low and Custom. */
 OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality);
 /* A game ran slowly when it played in Enhanced (`enhanced`) for a minute at least, ORACLES_SLOW_FRAMES of its `frames`,

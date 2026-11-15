@@ -80,12 +80,19 @@ OraclesProfile oracles_session_display_options(OraclesSessionOptions *o, const o
 
 int oracles_session_vsync_on(const char *vsync, unsigned display_hz)
 {
+    if (oracles_settings_display_slower(display_hz)) return 0;
     if (!strcmp(vsync, "on")) return 1;
 #ifdef __ANDROID__
     return !strcmp(vsync, "auto") && oracles_settings_auto_vsync(display_hz, 1);
 #else
     return !strcmp(vsync, "auto") && oracles_settings_auto_vsync(display_hz, 0);
 #endif
+}
+
+void oracles_session_pacing(const char *vsync, unsigned display_hz, int *renderer_vsync, int *display_paces)
+{
+    *renderer_vsync = oracles_session_vsync_on(vsync, display_hz);
+    *display_paces = *renderer_vsync && oracles_settings_display_paces(display_hz);
 }
 
 void oracles_session_far_screen(const OraclesSessionOptions *o, const oracles_settings *settings, struct SDL_Window *window, unsigned *width, unsigned *height,

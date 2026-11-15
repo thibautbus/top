@@ -526,7 +526,7 @@ const char *oracles_display_explanation(unsigned row)
 #ifdef __ANDROID__
         case ORACLES_DISPLAY_VSYNC: return "Auto: off on Android, which composes the frames itself.";
 #else
-        case ORACLES_DISPLAY_VSYNC: return "Auto: follows your display when it is close to 60 Hz.";
+        case ORACLES_DISPLAY_VSYNC: return "Auto: on at 60 Hz, and at 100 Hz or more.";
 #endif
         case ORACLES_DISPLAY_CORE: return "Accurate: the reference. Fast: lighter, for small devices.";
         case ORACLES_DISPLAY_WORKERS:

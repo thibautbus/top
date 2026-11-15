@@ -109,9 +109,17 @@ typedef struct oracles_host_backend {
     /* Monotonic nanoseconds; zero reports a clock error. */
     uint64_t (*monotonic_ns)(void *opaque);
     int (*sleep_ns)(void *opaque, uint64_t duration_ns);
-    /* The display did not pace (display_paces): present without waiting for
-     * it from now on, the host pacing; NULL when there is nothing to turn off. */
-    void (*present_unpaced)(void *opaque);
+    /* The display did not pace (display_paces), or, the host pacing, waiting
+     * for its refresh slowed the game (present_waits): present without
+     * waiting for it from now on, the host pacing; NULL when there is nothing
+     * to turn off.  Returns 0 when the presentation keeps waiting (a driver
+     * that forces vsync). */
+    int (*present_unpaced)(void *opaque);
+    /* After present_unpaced under present_waits, not waiting having made the
+     * game no faster, or at the pause: wait for the display's refresh again,
+     * as before; 0 when it could not.  The host watches a presentation that
+     * waits (present_waits) only with both. */
+    int (*present_waits_again)(void *opaque);
     /* Asks to be called back on the host's thread the moment the system is about to suspend the application (Android's
      * background), whatever the backend is doing then, a present or a poll, and before the system may block the thread
      * or end the process: the host stores the save there.  A NULL callback withdraws it.  NULL: no system suspends. */
@@ -196,7 +204,12 @@ typedef struct oracles_host_run_config {
      * there), the host then watching that it does as with display_paces; 0 when it no longer does (turned off), the host
      * pacing; -1 when the pause left it as it was. */
     int (*display_paces_now)(void *opaque);
-    void *pause_opaque;   /* for on_started, on_pause and display_paces_now */
+    /* With pace_frames: the presentation waits for the display's refresh (vsync on a display the host paces), which the
+     * host watches does not slow the game (present_unpaced, present_waits_again).  present_waits_now, after a pause: whether it waits
+     * from now on, vsync turned on again or off there; -1 when it stays. */
+    int present_waits;
+    int (*present_waits_now)(void *opaque);
+    void *pause_opaque;   /* for on_started, on_pause, display_paces_now and present_waits_now */
 } oracles_host_run_config;
 
 typedef struct oracles_host_run_report {
@@ -207,6 +220,18 @@ typedef struct oracles_host_run_report {
     /* display_paces: the frame from which the host paced, the display having
      * not; 0 when the display paced the whole run. */
     uint32_t display_unpaced_frame;
+    /* With present_waits: the first frame from which the host asked the presentation not to wait for the display any
+     * more (present_unpaced), its waits for the display's refresh seeming to slow the game; 0 when it never asked.
+     * present_rewaited_frame: the first frame from which it had it wait again (present_waits_again), the game no
+     * faster without the waits; 0: never.  present_waits_end: whether the presentation still waited at the end (never
+     * asked, or asked to wait again, by the host or a pause).  frames_late_waiting: the frames late while the
+     * presentation waited whose work fitted in a frame, in a slot of two frames at most, the wait's (the frames
+     * measured held the Game Boy's rate, or did once the presentation no longer waited), counted apart from
+     * frames_late; the others are in frames_late. */
+    uint32_t present_unwaited_frame;
+    uint32_t present_rewaited_frame;
+    int present_waits_end;
+    uint32_t frames_late_waiting;
     uint32_t saves_written;
     /* Time from the start of a frame (events polled) to its presentation,
      * measured with the backend clock when pacing; zero otherwise. */

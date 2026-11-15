@@ -129,8 +129,12 @@ struct OraclesEnhancedSize oracles_session_view_size(const OraclesSessionOptions
  * OraclesSessionOptions holds it, 0 for none), else the settings' screen_margin=. */
 int oracles_session_screen_margin(int option, const oracles_settings *settings);
 /* Whether a game presents in step with the display for vsync= `vsync` ("auto", "on" or "off") on a display of
- * `display_hz`: on, off, or auto's (oracles_settings_auto_vsync, never on Android). */
+ * `display_hz`: on, off, or auto's (oracles_settings_auto_vsync, never on Android), never on a display slower than the
+ * game (oracles_settings_display_slower); who paces the frames then is oracles_settings_display_paces's. */
 int oracles_session_vsync_on(const char *vsync, unsigned display_hz);
+/* For vsync= `vsync` on a display of `display_hz`: whether the renderer presents under vsync (oracles_session_vsync_on)
+ * and whether the display then paces the frames (oracles_settings_display_paces), the host pacing them otherwise. */
+void oracles_session_pacing(const char *vsync, unsigned display_hz, int *renderer_vsync, int *display_paces);
 
 /* What a running game shows of the settings the pause applies while it runs: the colour correction as the settings
  * had it when the game last took it, Scaling's Fill, the HUD (OraclesEnhancedHud, -1 without the Enhanced view, which alone

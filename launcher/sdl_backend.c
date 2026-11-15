@@ -106,10 +106,14 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
         backend->window = oracles_sdl_create_window((int)(width * backend->scale), (int)(height * backend->scale), flags);
         if (!backend->window) return 0;
         /* Without vsync the host paces frames at the exact Game Boy rate, 59.7275 Hz;
-         * with it, the display paces (a 60 Hz display runs the game 0.45% fast, which
-         * the audio rate control absorbs), and a continuous scroll has no periodic
-         * hiccup from the two clocks beating.  A present that does not wait is
-         * caught by the host, which then turns vsync off (sdl_present_unpaced). */
+         * with it, on a display of 59 to 61 Hz, the display paces (a 60 Hz display
+         * runs the game 0.45% fast, which the audio rate control absorbs), and a
+         * continuous scroll has no periodic hiccup from the two clocks beating; on
+         * another display the host still paces, vsync only keeping each frame whole.
+         * A present that does not wait for a display that paces, or whose waits slow
+         * the game the host paces, is caught by the host, which then turns vsync off
+         * (sdl_present_unpaced), and on again should the game run no faster without
+         * it (sdl_present_waits_again). */
         backend->renderer = oracles_sdl_create_renderer(backend->window, backend->vsync);
         if (!backend->renderer) return 0;
         /* Created in points: --scale N is N times the surface in pixels on a Retina display too. */
@@ -333,12 +337,21 @@ static int sdl_sleep_ns(void *opaque, uint64_t duration_ns)
     return 1;
 }
 
-/* The host caught a present that does not wait for the display.  The home screen's renderer, lent to the
- * session, gets its vsync back when the home screen takes its window again. */
-static void sdl_present_unpaced(void *opaque)
+/* The host caught a present that does not wait for a display that paces, or whose waits for the display's refresh
+ * slowed the game it paces.  The home screen's renderer, lent to the session, gets its vsync back when the home screen takes its
+ * window again. */
+static int sdl_present_unpaced(void *opaque)
 {
     sdl_backend *backend = opaque;
-    if (backend->renderer) SDL_SetRenderVSync(backend->renderer, 0);
+    return backend->renderer && SDL_SetRenderVSync(backend->renderer, 0);
+}
+
+/* Turning vsync off made the game it paces no faster, the waits were not the cause, or the game resumes from the
+ * pause. */
+static int sdl_present_waits_again(void *opaque)
+{
+    sdl_backend *backend = opaque;
+    return backend->renderer && SDL_SetRenderVSync(backend->renderer, backend->vsync ? 1 : 0);
 }
 
 /* SDL calls its event watches on the thread that sends the event, the host's here, at the moment it sends it: on
@@ -420,15 +433,17 @@ int oracles_sdl_backend_init(oracles_host_backend *backend, const oracles_sdl_op
     backend->monotonic_ns = sb_sdl_monotonic_ns;
     backend->sleep_ns = sdl_sleep_ns;
     backend->present_unpaced = sdl_present_unpaced;
+    backend->present_waits_again = sdl_present_waits_again;
     backend->watch_suspend = sdl_watch_suspend;
     backend->stop = sdl_stop;
     return 1;
 }
 
-unsigned oracles_sdl_display_refresh_hz(void)
+unsigned oracles_sdl_display_refresh_hz(struct SDL_Window *window)
 {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return 0;
-    const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+    const SDL_DisplayID display = window ? SDL_GetDisplayForWindow(window) : 0;
+    const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(display ? display : SDL_GetPrimaryDisplay());
     if (!mode || mode->refresh_rate <= 0.0f) return 0;
     return (unsigned)lroundf(mode->refresh_rate);   /* whole hertz, as SDL 2 gave them */
 }

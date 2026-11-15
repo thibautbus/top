@@ -180,11 +180,11 @@ The room Link is in always shows, and a room he enters for the first time fades 
 | --- | --- | --- | --- | --- | --- |
 | **Core** | Accurate (SameBoy), Fast (mGBA) | Fast on Android, Accurate elsewhere | The emulator the game runs on. Accurate: the reference. Fast: lighter, for small devices. A savestate loads only on the core it was taken on. | both | greyed |
 | **Continuous transitions** | Off, On | On | Rooms scroll into one another instead of stopping at each edge, Link walking and swimming through. A savestate taken with it on needs it on. | Enhanced | greyed |
-| **Vsync** | Auto, On, Off | Auto | Shows each frame in step with the display. Auto: on when the display runs close to 60 Hz; off on Android, which composes the frames itself. | both | when the game resumes |
+| **Vsync** | Auto, On, Off | Auto | Shows each frame in step with the display, whole instead of torn across the screen. Auto: on at 60 Hz and at 100 Hz or more, such as 120 or 144 Hz; off on Android, which composes the frames itself. | both | when the game resumes |
 | **Neighbor workers** | Auto, 1, 2 | Auto | The background workers that prepare the rooms around Link, each on a processor core of its own. Two fill the view faster after a warp or a load. Auto takes two on a device of four processor threads or more, and says which. | Enhanced | greyed |
 | **Camera** | Pixel, Smooth | the platform's | Smooth: the camera moves by fractions of a pixel at the screen's resolution, so diagonal walks and stairs glide. Pixel: whole pixels, as the game does. Smooth is the default on computers; on Android, where the game is shown at three times its size or more. | Enhanced | at once |
 
-**Core** decides which emulator runs the game. Accurate (SameBoy) is the reference; Fast (mGBA) is lighter, for small devices. A game's save is the same file on both cores, but a savestate loads only on the core it was taken on. **Neighbor workers** on Auto says how many it takes ("Auto · 2"). With **Vsync** on, the launcher checks that the display really waits for each frame, and paces the game itself if it does not.
+**Core** decides which emulator runs the game. Accurate (SameBoy) is the reference; Fast (mGBA) is lighter, for small devices. A game's save is the same file on both cores, but a savestate loads only on the core it was taken on. **Neighbor workers** on Auto says how many it takes ("Auto · 2"). With **Vsync** on, the launcher checks that the display really waits for each frame, and paces the game itself if it does not. On a display faster than 60 Hz it always paces the game itself, and turns vsync off should waiting for the display slow the game down; on a display slower than the game, such as a television at 50 Hz, vsync stays off, on On too.
 
 ## Controls
 

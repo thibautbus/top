@@ -11,7 +11,12 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - **Portable mode.** On Windows, and on Linux with the `.tar.gz`, **About > Portable mode** keeps the launcher's settings, mods and language files in a `user-data` folder beside the executable, instead of in your user folder: to play from a USB stick, or to keep several copies side by side. Turning it on copies them there, turning it off copies them back, and the row says how it went; a file named `portable.txt` beside the executable does the same by hand, copying nothing. Saves already stay beside their ROMs; ROMs and patches kept inside the launcher's folder are found again when the folder moves or the USB stick takes another drive letter, and the row reminds you of the games left outside it. To update a portable copy, copy `portable.txt`, `user-data` and your ROMs into the new version's folder before deleting the old one.
 - **About from the home screen.** The bottom left of the home screen now reads **About · v1.5.0**, so that About is easy to find: with the keyboard, a controller, the mouse or a touch.
 
+### Fixed
+
+- **Tearing on a fast display.** On a computer with a display of 100 Hz or more, such as 120 Hz or 144 Hz, **Display > Advanced > Vsync** now keeps each frame whole, on Auto as on On, instead of letting a line run down the screen. On used to turn itself off on such a display, and Auto stayed off there; both now keep vsync, and the game keeps the Game Boy's own pace. On a computer that cannot keep up with waiting for the display, vsync turns itself off so that the game does not slow down, and tries again after each pause. On also keeps it on a display between 60 and 100 Hz, where some frames stay on the screen longer than others, which is why Auto stays off there.
+- **Vsync on a 50 Hz display.** With **Vsync** on On, a display slower than the game, such as a television at 50 Hz, no longer slows the game down: it keeps the Game Boy's pace, and vsync stays off there, as waiting for such a display could only slow the game.
 - **Recording a route into a new folder.** `--record routes\temple.route`, from a folder without a `routes` folder, no longer stops the game with "cannot write the starting SRAM": the missing folders are made. When a folder cannot be made or a file cannot be written, the message says which.
+
 ## 1.4.0 (2026-11-05)
 
 ### New

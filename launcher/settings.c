@@ -68,7 +68,17 @@ OraclesQuality oracles_settings_default_quality(int fullscreen_only, int process
 
 int oracles_settings_auto_vsync(unsigned display_hz, int android)
 {
-    return !android && display_hz >= 59u && display_hz <= 61u;
+    return !android && ((display_hz >= 59u && display_hz <= 61u) || display_hz >= 100u);
+}
+
+int oracles_settings_display_paces(unsigned display_hz)
+{
+    return display_hz == 0u || (display_hz >= 59u && display_hz <= 61u);
+}
+
+int oracles_settings_display_slower(unsigned display_hz)
+{
+    return display_hz != 0u && display_hz < 59u;
 }
 
 OraclesQuality oracles_settings_lighter_quality(OraclesQuality quality)

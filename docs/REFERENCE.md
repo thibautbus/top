@@ -337,8 +337,11 @@ A change applies at once, from the pause too, the band and Link taking up or giv
 
 Colour correction off is the raw RGB555 conversion; on, SameBoy's "modern balanced" rendering, close to an original screen.
 
-`vsync auto` presents each frame at the display's rate when it refreshes between 59 and 61 Hz, close enough to the Game Boy's 59.7275 Hz for the audio rate control to absorb the difference; on another display, or with `off`, the host paces at 59.7275 Hz. Under vsync the host checks that the presentation waits for the display, and if it does not, turns vsync off and paces itself for the rest of the session. Vsync changed from the pause applies when the game resumes: turned on, the host checks the display again from there; turned off, it paces.
+Under vsync each frame is presented at a refresh of the display, whole instead of torn across the screen. `vsync auto` is on with a display of 59 to 61 Hz or of 100 Hz or more on the desktops, off on another and on Android; `on` is on everywhere but on a display slower than the game, under 59 Hz, as a television at 50 Hz, where waiting for each refresh could only slow the game down, by a sixth at 50 Hz: vsync stays off there and the host paces, as with `off`. Who paces the frames under vsync depends on the display:
+
+- At 59 to 61 Hz, the display paces them: that is close enough to the Game Boy's 59.7275 Hz for the audio rate control to absorb the difference. So it does on a display whose rate is unknown. The host checks that the presentation waits for the display, and if it does not, turns vsync off and paces itself for the rest of the session.
 - On a faster display, the host paces at 59.7275 Hz, and each frame waits for the display's next refresh, one refresh at most. Some frames stay on the screen a refresh longer than others: little seen at 120 Hz or 144 Hz, a stutter between 62 and 99 Hz, as at 75 Hz, where `auto` is off.
+
   Where those waits make a second of frames more than 2 % longer than it would take without them, the Game Boy's second or the frames' own work where that is longer (frames of much work, with a renderer whose presentation blocks until the refresh), the host turns vsync off and goes on pacing; a frame of more than two frames' time (an event, a window being moved, a presentation that takes that long) is left out of that measure.
 
   Should the next second run no faster without vsync, the slowness was not the waits' (a presentation bound by the graphics processor, a driver that keeps vsync), and the host turns vsync on again.
@@ -350,6 +353,7 @@ Colour correction off is the raw RGB555 conversion; on, SameBoy's "modern balanc
   - the others count when the game ran more than half a percent slower than the Game Boy over the seconds measured, the waits not being the cause, and not when turning vsync off made the game faster;
   - a frame that took more than two frames' time always counts.
 
+With `off` the host paces at 59.7275 Hz and shows each frame as soon as it is ready. Vsync changed from the pause applies when the game resumes: on a display of 59 to 61 Hz, turned on, the host checks the display again from there; turned off, it paces.
 
 ### Continuous transitions
 
@@ -691,7 +695,7 @@ Each key keeps the width of its widest label, so that the hints stay in place wh
 
 ### Display's defaults and the slow-game suggestion
 
-At the first opening Display is on Enhanced, fullscreen, with colour correction and continuous transitions on, vsync auto (in step with a display of 59 to 61 Hz on the desktops, off on Android, where it only added latency), the scaling on Sharp, Android included, and the device's quality: Max on the desktops, on Android, whose devices go down to small handhelds, High on a device of 8 processor threads and 6 GB or more, Medium otherwise; the item hotkeys start off.
+At the first opening Display is on Enhanced, fullscreen, with colour correction and continuous transitions on, vsync auto (on with a display of 59 to 61 Hz or of 100 Hz or more on the desktops, off on Android, where it only added latency), the scaling on Sharp, Android included, and the device's quality: Max on the desktops, on Android, whose devices go down to small handhelds, High on a device of 8 processor threads and 6 GB or more, Medium otherwise; the item hotkeys start off.
 
 After a game in Enhanced that ran slowly, more than 2 % of its frames late over a minute of play or more, the home screen suggests the quality just lighter in a toast at the bottom left ("The game ran slowly at High: Medium may play smoother."), or under Custom the view just nearer; nothing changes by itself. A click on the toast opens Display on that row, and the first key or button takes it away. It comes once for a quality (`quality_hint=` in the settings) until the view, the core or the workers change; the end-of-game report says it too, in one line.
 

@@ -26,6 +26,57 @@
 #define DISPLAY_WINDOW_FRAMES 60u
 #define DISPLAY_MAX_MILLIHZ UINT64_C(61500)
 
+/* Pacing a presentation that waits for the display (present_waits: vsync on a display the host paces): a present that
+ * returns at the display's next refresh shows each frame whole, and the pacing keeps the Game Boy's rate as long as
+ * the waits average out over the frames, some late, the next on time again.  Where they do not, a renderer whose
+ * presentation blocks rather than queues, with frames of much work though under a frame each, the game itself slows
+ * down.  The host measures the frames' slots, from the end of one frame's pacing to the next's, and their work but
+ * the presentation, over windows of PRESENT_WINDOW_FRAMES frames: when a window runs slower by more than the audio
+ * rate control absorbs than it would without the waits, the Game Boy's rate or the frames' own work where that is
+ * longer, it asks the presentation not to wait any more (present_unpaced), as when the display does not pace.  A slot
+ * of more than two frames (time spent outside the frames: an event, a window being moved) is left out of the window,
+ * which goes on.  The window after the one that made it ask must then run faster by PRESENT_GAIN_PERCENT at least,
+ * else the slowness was not the waits' (a presentation bound by the graphics processor, a driver that keeps vsync)
+ * and the host has the presentation wait again (present_waits_again).  Each pause watches again a presentation that
+ * is to wait, waiting again if the host had asked it not to: a slowness that passed does not keep vsync off.
+ *
+ * A light frame late, whose work but the presentation fits in a frame, while the presentation waits, in a slot of two
+ * frames at most (a wait lasts a refresh at most), is held (pending_late) until the host can tell whose it is: the
+ * wait's if the windows measured held the Game Boy's rate within PRESENT_HELD_PERMILLE, or if not waiting made the
+ * game faster; the game's otherwise, a presentation or a loop slower than a frame without any wait. */
+#define PRESENT_WINDOW_FRAMES 60u
+#define PRESENT_SLOW_PERCENT 102u
+#define PRESENT_GAIN_PERCENT 1u
+#define PRESENT_HELD_PERMILLE 1005u
+
+enum {
+    PRESENT_IDLE,       /* not watched: the presentation does not wait, or waits again until the next pause */
+    PRESENT_WATCHED,    /* it waits (present_waits, present_waits_now): the windows are judged */
+    PRESENT_UNWAITED    /* the host asked it not to wait (present_unpaced): the next window judges that */
+};
+
+typedef struct present_guard {
+    uint64_t slot_start_ns;   /* the end of the previous frame's pacing; 0: none yet */
+    uint64_t window_ns;
+    uint64_t window_work_ns;  /* the work of the window's frames, each up to its slot */
+    uint32_t window_frames;
+    int state;
+    int wanted;   /* the presentation is to wait for the display (present_waits, present_waits_now) */
+    int waits;    /* and does: the host has not asked it not to, or has asked it to wait again */
+    uint64_t asked_window_ns;   /* the window that made the host ask */
+    uint32_t pending_late;
+    uint64_t held_ns;           /* the full windows that did not make it ask, and their frames */
+    uint32_t held_frames;
+} present_guard;
+
+/* The light frames held late go to the wait (`waits`) or to the game. */
+static void guard_settle(present_guard *g, oracles_host_run_report *report, int waits)
+{
+    if (waits) report->frames_late_waiting += g->pending_late;
+    else report->frames_late += g->pending_late;
+    g->pending_late = 0;
+}
+
 typedef struct pacer {
     uint64_t deadline_ns;
     uint64_t remainder;
@@ -173,6 +224,10 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
     save_state save = { NULL, NULL, 0, 0 };
     pacer p = { 0, 0 };
     display_watch watch = { 0, 0, 0 };
+    const int can_unwait = backend->present_unpaced && backend->present_waits_again;
+    const int wants = config->pace_frames && config->present_waits;
+    present_guard guard = { 0, 0, 0, 0, wants && can_unwait ? PRESENT_WATCHED : PRESENT_IDLE, wants, wants, 0, 0, 0, 0 };
+    uint64_t work_ns = UINT64_MAX;   /* the last frame's work but its presentation, when it was timed */
     uint64_t budget_ns = 0;
     unsigned buttons = 0;
     int started = 0, quit = 0;
@@ -267,6 +322,16 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
                     if (p.deadline_ns == 0) { set_error(error, error_capacity, "backend clock failed"); goto done; }
                 }
                 if (watching && !watch_resume(backend, &watch)) { set_error(error, error_capacity, "backend clock failed"); goto done; }
+                /* A window from the resume, the presentation that is to wait watched again, waiting again if the host
+                 * had asked it not to; the pause may have turned vsync on or off.  A window that was to judge not
+                 * waiting is not measured: the frames held go to the wait, as asked. */
+                const int waits = config->present_waits_now ? config->present_waits_now(config->pause_opaque) : -1;
+                guard.slot_start_ns = guard.window_ns = guard.window_work_ns = 0;
+                guard.window_frames = 0;
+                if (guard.state == PRESENT_UNWAITED) guard_settle(&guard, &local, 1);
+                if (waits >= 0) guard.wanted = guard.waits = waits && pacing;
+                else if (guard.wanted && !guard.waits && can_unwait && backend->present_waits_again(backend->opaque)) guard.waits = 1;
+                guard.state = guard.wanted && guard.waits && can_unwait ? PRESENT_WATCHED : PRESENT_IDLE;
                 continue;
             }
             if (event.type == ORACLES_HOST_EVENT_COMMAND) {
@@ -351,6 +416,7 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
             const uint64_t spent = now > frame_started_ns ? now - frame_started_ns : 0;
             const uint64_t core_ns = core_done_ns - frame_started_ns, source_ns = source_done_ns - source_started_ns;
             const uint64_t present_ns = present_done_ns - source_done_ns, end_ns = now - present_done_ns;
+            work_ns = spent - present_ns;
             local.frame_ns_total += spent;
             local.present_ns_total += present_ns;
             if (spent > local.frame_ns_max) {
@@ -384,16 +450,72 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
                 watching = 0;
                 pacing = 1;
                 local.display_unpaced_frame = local.frames_presented;
-                if (backend->present_unpaced) backend->present_unpaced(backend->opaque);
+                if (backend->present_unpaced) (void)backend->present_unpaced(backend->opaque);
+                guard.state = PRESENT_IDLE;
+                guard.wanted = guard.waits = 0;
                 p.deadline_ns = backend->monotonic_ns(backend->opaque);
                 p.remainder = 0;
                 if (p.deadline_ns == 0) { set_error(error, error_capacity, "backend clock failed"); goto done; }
             }
         } else if (pacing) {
             pacer_advance(&p);
-            if (!pace_frame(backend, &p, budget_ns, &local.frames_late, &local.pacing_resyncs)) {
+            uint32_t late = 0;
+            if (!pace_frame(backend, &p, budget_ns, &late, &local.pacing_resyncs)) {
                 set_error(error, error_capacity, "backend pacing failed");
                 goto done;
+            }
+            const int guarded = guard.state == PRESENT_WATCHED || guard.state == PRESENT_UNWAITED;
+            uint64_t now = 0, slot = 0;
+            if (guarded) {
+                now = backend->monotonic_ns(backend->opaque);
+                if (now == 0) { set_error(error, error_capacity, "backend clock failed"); goto done; }
+                slot = guard.slot_start_ns && now > guard.slot_start_ns ? now - guard.slot_start_ns : 0;
+                guard.slot_start_ns = now;
+            }
+            const int timed = slot != 0 && slot <= 2u * FRAME_NOMINAL_NS;
+            /* A light frame late under a presentation that waits may be the wait's, not the game's: held, it makes the
+             * game one that ran slowly only if the wait was not the cause.  The first after a resume has no slot. */
+            const int held = guard.state == PRESENT_WATCHED && work_ns <= FRAME_NOMINAL_NS && slot <= 2u * FRAME_NOMINAL_NS;
+            *(held ? &guard.pending_late : &local.frames_late) += late;
+            if (guarded) {
+                if (local.frames_presented <= ORACLES_HOST_WARMUP_FRAMES) {
+                    guard_settle(&guard, &local, 1);   /* a window being opened, as the display watch leaves it */
+                    guard.window_ns = guard.window_work_ns = 0;
+                    guard.window_frames = 0;
+                } else if (timed) {
+                    guard.window_ns += slot;
+                    guard.window_work_ns += work_ns < slot ? work_ns : slot;
+                    if (++guard.window_frames >= PRESENT_WINDOW_FRAMES) {
+                        const uint64_t nominal_ns = (uint64_t)PRESENT_WINDOW_FRAMES * FRAME_NOMINAL_NS;
+                        const uint64_t unwaited_ns = guard.window_work_ns > nominal_ns ? guard.window_work_ns : nominal_ns;
+                        if (guard.state == PRESENT_UNWAITED) {
+                            const int faster = guard.window_ns * 100u < guard.asked_window_ns * (100u - PRESENT_GAIN_PERCENT);
+                            if (!faster && backend->present_waits_again(backend->opaque)) {
+                                guard.waits = 1;
+                                if (!local.present_rewaited_frame) local.present_rewaited_frame = local.frames_presented;
+                            }
+                            guard.state = PRESENT_IDLE;
+                            guard_settle(&guard, &local, faster);
+                        } else if (guard.window_ns * 100u <= unwaited_ns * PRESENT_SLOW_PERCENT) {
+                            guard.held_ns += guard.window_ns;
+                            guard.held_frames += guard.window_frames;
+                        } else if (backend->present_unpaced(backend->opaque)) {
+                            guard.waits = 0;
+                            if (!local.present_unwaited_frame) local.present_unwaited_frame = local.frames_presented;
+                            guard.state = PRESENT_UNWAITED;
+                            guard.asked_window_ns = guard.window_ns;
+                            /* The time the waits lost stays lost: no catching up of it, as at the display watch's takeover. */
+                            p.deadline_ns = now;
+                            p.remainder = 0;
+                        } else {
+                            /* Vsync kept by the driver: the waits stay, and the frames late with them are the game's. */
+                            guard.state = PRESENT_IDLE;
+                            guard_settle(&guard, &local, 0);
+                        }
+                        guard.window_ns = guard.window_work_ns = 0;
+                        guard.window_frames = 0;
+                    }
+                }
             }
         }
     }
@@ -407,6 +529,9 @@ int oracles_host_run(const oracles_host_run_config *config, const oracles_host_b
 
 done:
     local.final_buttons = buttons;
+    local.present_waits_end = guard.waits;
+    guard_settle(&guard, &local, guard.state == PRESENT_UNWAITED || guard.held_frames == 0
+                 || guard.held_ns * 1000u <= (uint64_t)guard.held_frames * FRAME_NOMINAL_NS * PRESENT_HELD_PERMILLE);
     if (report) *report = local;
     if (started && backend->watch_suspend) backend->watch_suspend(backend->opaque, NULL, NULL);
     if (started) backend->stop(backend->opaque);

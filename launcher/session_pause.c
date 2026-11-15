@@ -104,13 +104,20 @@ static int pause_settings_changed(void *opaque)
     if (changed & ORACLES_SESSION_CHANGED_VSYNC) {
         s->vsync_setting = applied.vsync;
         s->vsync = s->settings->vsync;   /* --vsync's gives way */
-        const int on = oracles_session_vsync_on(s->vsync, s->display_hz);
+        int on = 0, display_paces = 0;
+        oracles_session_pacing(s->vsync, s->display_hz, &on, &display_paces);
         fprintf(stderr, "oracles: vsync %s (setting %s, display %u Hz)\n", on ? "on" : "off", s->vsync, s->display_hz);
-        if (on != s->sdl.vsync) {
+        /* On again on a display the host paces: vsync back, should the host have turned it off for frames it made late. */
+        if (on != s->sdl.vsync || (on && !display_paces)) {
             s->sdl.vsync = on;
             oracles_sdl_backend_set_vsync(&s->backend, on);
+        }
+        if (display_paces != s->display_paces) {
+            s->display_paces = display_paces;
             s->paces_changed = 1;
         }
+        s->present_waits = on && !display_paces;
+        s->waits_changed = 1;
     }
     if (changed & ORACLES_SESSION_CHANGED_SWIM) {
         s->swim_setting = s->swim_next = applied.swim_hold;
@@ -201,14 +208,23 @@ static unsigned windows_refused(const session *s, SDL_Window *window)
     return oracles_session_windows_refused(scales, (int)surface.width, (int)surface.height, s->settings->aspect);
 }
 
-/* After the pause: whether the display paces the frames from now on, vsync turned on or off there; -1 when it stays. */
+int oracles_session_present_waits_now(void *opaque)
+{
+    session *s = opaque;
+    if (!s->waits_changed) return -1;
+    s->waits_changed = 0;
+    return s->present_waits;
+}
+
+/* After the pause: whether the display paces the frames from now on, vsync turned on or off there on a display of about
+ * 60 Hz; -1 when it stays. */
 int oracles_session_display_paces_now(void *opaque)
 {
     session *s = opaque;
     if (!s->paces_changed) return -1;
     s->paces_changed = 0;
-    fprintf(stderr, "oracles: %s\n", s->sdl.vsync ? "the display paces the frames from here" : "the host paces the frames at 59.7275 Hz from here");
-    return s->sdl.vsync;
+    fprintf(stderr, "oracles: %s\n", s->display_paces ? "the display paces the frames from here" : "the host paces the frames at 59.7275 Hz from here");
+    return s->display_paces;
 }
 
 oracles_host_pause_result oracles_session_pause(void *opaque)

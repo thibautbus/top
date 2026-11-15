@@ -25,7 +25,7 @@ typedef struct oracles_sdl_options {
      * as it found it, without destroying either.  NULL: its own window. */
     struct SDL_Window *window;
     struct SDL_Renderer *renderer;
-    int vsync;           /* present in step with the display; the host then does not pace unless the present does not wait, the audio rate control absorbs the difference */
+    int vsync;           /* present each frame at a refresh of the display; who paces the frames is the host's configuration (display_paces) */
     /* SDL key names (SDL_GetKeyFromName) per button; NULL keeps the default, an empty name leaves the button without
      * a key (Controls gave it to another). */
     const char *key_names[ORACLES_BINDINGS];
@@ -75,8 +75,9 @@ enum {
 
 /* SDL 3 window, keyboard, gamepad and audio. */
 int oracles_sdl_backend_init(oracles_host_backend *backend, const oracles_sdl_options *options);
-/* The refresh rate of the main display, in Hz, or 0 if unknown (initialises SDL's video subsystem). */
-unsigned oracles_sdl_display_refresh_hz(void);
+/* The refresh rate, in Hz, of the display `window` is on (NULL: the main display), or 0 if unknown (initialises SDL's
+ * video subsystem). */
+unsigned oracles_sdl_display_refresh_hz(struct SDL_Window *window);
 /* The SDL_WindowFlags every window of the launcher is created with (SDL_WINDOW_HIGH_PIXEL_DENSITY on macOS). */
 uint64_t oracles_sdl_window_flags(void);
 /* 1 where a window is always the whole screen (Android): the launcher and the games open fullscreen, and F11 and the

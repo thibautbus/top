@@ -98,7 +98,85 @@ static oracles_host_pause_result two_second_pause(void *opaque)
     return ORACLES_HOST_PAUSE_RESUME;
 }
 
-static void count_unpaced(void *opaque) { (void)opaque; unpaced_calls++; }
+static int count_unpaced(void *opaque) { (void)opaque; unpaced_calls++; return 1; }
+
+/* A display that refreshes every refresh_ns (0: a present that never waits): until the host asks it not to wait
+ * (refresh_unwaited), the present returns at its next refresh, as a renderer under vsync whose presentation blocks
+ * does, after present_cost_ns of drawing; each frame's work but its presentation takes frame_work_ns before it, as the
+ * frame source's and the view's do, and heavy_ns more every heavy_every frames. */
+static uint64_t (*original_clock)(void *);
+static uint64_t refresh_ns, frame_work_ns, hitch_ns, present_cost_ns, heavy_ns;
+static uint32_t hitch_frame;   /* the frame whose work takes hitch_ns more (0: none) */
+static uint32_t heavy_every;
+static int refresh_unwaited, waits_after_pause = -1, rewait_calls;
+static int refresh_forced;   /* a driver that keeps vsync: the present goes on waiting, present_unpaced fails */
+static uint32_t refresh_late_waiting;   /* the last run's frames_late_waiting */
+static uint32_t refresh_rewaited;       /* its present_rewaited_frame */
+static int refresh_waits_end;           /* and its present_waits_end */
+static OraclesCore *refresh_core;
+static void *refresh_opaque;
+
+static int refresh_present(void *opaque, const oracles_host_video_frame *frame)
+{
+    display_presents++;
+    if (!original_present(opaque, frame)) return 0;
+    if (present_cost_ns && !original_sleep(opaque, present_cost_ns)) return 0;
+    if (refresh_unwaited || refresh_ns == 0) return 1;
+    const uint64_t now = original_clock(opaque);
+    return original_sleep(opaque, refresh_ns - now % refresh_ns);
+}
+
+static int refresh_unpaced(void *opaque) { (void)opaque; unpaced_calls++; if (!refresh_forced) refresh_unwaited = 1; return !refresh_forced; }
+static int refresh_waits_again(void *opaque) { (void)opaque; rewait_calls++; refresh_unwaited = 0; return 1; }
+static const uint32_t *frame_work(void *opaque)
+{
+    (void)opaque;
+    const uint32_t frame = display_presents;
+    if (frame_work_ns) original_sleep(refresh_opaque, frame_work_ns);
+    if (hitch_frame && frame == hitch_frame) original_sleep(refresh_opaque, hitch_ns);
+    if (heavy_every && frame % heavy_every == heavy_every - 1u) original_sleep(refresh_opaque, heavy_ns);
+    return oracles_core_pixels(refresh_core);
+}
+
+/* The pause turned vsync on again (1), the presents waiting again, or off (0); -1: it left it. */
+static int waits_now(void *opaque) { (void)opaque; if (waits_after_pause == 1) refresh_unwaited = 0; return waits_after_pause; }
+
+/* A run of 600 frames on that display, the host pacing (`host_paces`) or watching the display pace: the frame the host
+ * took over from (0: none), its late frames, the frame from which it asked the presents not to wait (`unwaited`), and
+ * how long the run took on the null backend's clock. */
+static uint32_t refresh_run(oracles_host_backend *backend, OraclesCore *core, int host_paces, uint32_t *late, uint32_t *unwaited, uint64_t *run_ns)
+{
+    oracles_host_run_config config;
+    oracles_host_run_report report;
+    char error[128];
+    memset(&config, 0, sizeof config);
+    config.core = core;
+    config.quit_after_frames = 600;
+    config.pace_frames = host_paces;
+    config.display_paces = !host_paces;
+    config.present_waits = host_paces;
+    config.measure_frames = 1;
+    config.frame_source = frame_work;
+    config.on_pause = two_second_pause;
+    config.present_waits_now = waits_now;
+    config.pause_opaque = backend->opaque;
+    display_presents = 0;
+    display_paused = 0;
+    unpaced_calls = rewait_calls = 0;
+    refresh_unwaited = 0;
+    const uint64_t start = original_clock(backend->opaque);
+    CHECK(oracles_host_run(&config, backend, &report, error, sizeof error) == ORACLES_HOST_OK && report.frames_presented == 600);
+    *run_ns = original_clock(backend->opaque) - start;
+    *late = report.frames_late;
+    *unwaited = report.present_unwaited_frame;
+    refresh_late_waiting = report.frames_late_waiting;
+    refresh_rewaited = report.present_rewaited_frame;
+    refresh_waits_end = report.present_waits_end;
+    if (getenv("HOST_DEBUG")) fprintf(stderr, "DEBUG refresh %.0f Hz work %.1f ms: unpaced %u calls %d/%d unwaited %u rewaited %u late %u waiting %u end %d run %.3f s\n",
+        refresh_ns ? 1e9 / (double)refresh_ns : 0.0, frame_work_ns / 1e6, report.display_unpaced_frame, unpaced_calls, rewait_calls, *unwaited, refresh_rewaited, *late,
+        refresh_late_waiting, refresh_waits_end, *run_ns / 1e9);
+    return report.display_unpaced_frame;
+}
 
 /* A run under vsync whose presentation waits display_period_ns per frame: the display paces. */
 static uint32_t unpaced_frame(oracles_host_backend *backend, OraclesCore *core, uint64_t period_ns, uint32_t *late)
@@ -318,6 +396,163 @@ int main(void)
         CHECK(vsync_changed_frame(&display, core, 1, -1, 90) == 120);
         display.present_unpaced = NULL;   /* optional */
         CHECK(unpaced_frame(&display, core, 0, &late) == 120);
+    }
+
+    {   /* A display of 144 Hz, whose presents under vsync return at its next refresh (6.94 ms at most).  Watched, it is
+         * no display that paces at about 60 Hz: the floor's 62.5 Hz shows through, and the host takes over after the
+         * window that ends at frame 120, which is why the launcher leaves a display above 61 Hz to the host. */
+        oracles_host_backend display = backend;
+        uint32_t late = 0, unwaited = 0;
+        uint64_t run_ns = 0;
+        const uint64_t game_ns = UINT64_C(600) * 16742706u;
+        original_present = backend.present_frame;
+        original_sleep = backend.sleep_ns;
+        original_clock = backend.monotonic_ns;
+        display.present_frame = refresh_present;
+        display.present_unpaced = refresh_unpaced;
+        display.present_waits_again = refresh_waits_again;
+        refresh_core = core;
+        refresh_opaque = display.opaque;
+        refresh_ns = 6944444u;
+        frame_work_ns = 4000000u;
+        CHECK(refresh_run(&display, core, 0, &late, &unwaited, &run_ns) == 120 && unpaced_calls == 1 && unwaited == 0);
+        /* Paced by the host, 144 and 120 Hz: with 4 ms of work a frame, and with 12, some frames late for the wait
+         * but the next on time again, the game keeps the Game Boy's rate and vsync stays on; the frames late for the
+         * wait are counted apart from the game's. */
+        static const uint64_t refreshes[] = { 6944444u, 8333333u };
+        static const uint64_t works[] = { 4000000u, 12000000u };
+        for (size_t r = 0; r < 2; r++)
+            for (size_t w = 0; w < 2; w++) {
+                refresh_ns = refreshes[r];
+                frame_work_ns = works[w];
+                CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 0 && unwaited == 0 && refresh_waits_end);
+                CHECK(late == 0 && run_ns <= game_ns + UINT64_C(2) * 16742706u);
+            }
+        /* 15 ms at 144 Hz: each frame waits for the third refresh, 48 frames a second; the host turns vsync off after
+         * its first window past the first second, and the game keeps its rate from there. */
+        refresh_ns = 6944444u;
+        frame_work_ns = 15000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0 && !refresh_waits_end);
+        CHECK(unwaited > 100u && unwaited <= 130u && late == 0 && refresh_late_waiting > 0 && refresh_rewaited == 0);
+        CHECK(run_ns <= game_ns + UINT64_C(40) * 16742706u);
+        /* A driver that keeps vsync: the host cannot turn it off, says nothing of it, and the frames late are the
+         * game's. */
+        refresh_forced = 1;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0 && unwaited == 0);
+        CHECK(refresh_waits_end && late > 400u);
+        refresh_forced = 0;
+        /* 14 ms with a frame of 18 every 30: a heavy frame weighs no more than its work, and the host turns vsync off
+         * as soon. */
+        frame_work_ns = 14000000u;
+        heavy_every = 30;
+        heavy_ns = 4000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0);
+        CHECK(unwaited > 100u && unwaited <= 130u && run_ns <= game_ns + UINT64_C(40) * 16742706u);
+        heavy_every = 0;
+        /* A presentation slower than its share of a frame without waiting, 15 ms of work and 2 ms of drawing in a
+         * present that returns at once: the game runs 1.5 % slow, too little to turn anything off, and its frames late
+         * are the game's. */
+        refresh_ns = 0;
+        frame_work_ns = 15000000u;
+        present_cost_ns = 2000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 0 && unwaited == 0 && late > 400u);
+        /* A presentation bound by the graphics processor, 12 ms of work and 6 of drawing, none of it waiting: the host
+         * turns vsync off after the first window judged, the next runs no faster, and it turns vsync on again, the
+         * frames late the game's. */
+        frame_work_ns = 12000000u;
+        present_cost_ns = 6000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 1 && refresh_waits_end);
+        CHECK(unwaited > 100u && unwaited <= 130u && refresh_rewaited > unwaited && refresh_rewaited <= unwaited + 70u && late > 500u);
+        /* The same, a pause leaving vsync as it was: watched again from the resume, the host turns vsync off and on
+         * once more, each hook called twice. */
+        display.poll_event = display_poll;
+        display_base_poll = backend.poll_event;
+        display_pause_before = 300;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 2 && rewait_calls == 2 && refresh_waits_end && late > 400u);
+        display_pause_before = 0;
+        display.poll_event = backend.poll_event;
+        /* A presentation that takes two frames and more, 4 ms of work and 30 of drawing: the slots too long to be
+         * judged, its frames late are the game's. */
+        frame_work_ns = 4000000u;
+        present_cost_ns = 30000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 0 && unwaited == 0 && late > 500u);
+        present_cost_ns = 0;
+        refresh_ns = 6944444u;
+        /* Work that does not fit in a frame, 18 ms, waiting for the third refresh at 144 Hz: the game is slow of
+         * itself, and slower still for the waits, 48 frames a second against 55.5 without them; the host turns vsync
+         * off, the frames late the game's. */
+        frame_work_ns = 18000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0 && unwaited > 100u && unwaited <= 130u);
+        CHECK(late > 500u && !refresh_waits_end);
+        /* A single long frame, 60 ms, and the frames that catch up after it: vsync stays, on a display whose presents
+         * wait as on one whose presents queue. */
+        frame_work_ns = 4000000u;
+        hitch_frame = 300;
+        hitch_ns = 60000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 0 && unwaited == 0);
+        refresh_unwaited = 1;   /* presents that queue, never waiting */
+        {
+            oracles_host_run_config config;
+            oracles_host_run_report report;
+            char error[128];
+            memset(&config, 0, sizeof config);
+            config.core = core;
+            config.quit_after_frames = 600;
+            config.pace_frames = config.present_waits = config.measure_frames = 1;
+            config.frame_source = frame_work;
+            unpaced_calls = 0;
+            CHECK(oracles_host_run(&config, &display, &report, error, sizeof error) == ORACLES_HOST_OK && report.present_unwaited_frame == 0 && unpaced_calls == 0);
+        }
+        hitch_frame = 0;
+        /* A display slower than the game, a television at 50 Hz, should vsync be on there: the game would run at the
+         * display's rate; the host turns vsync off after its first window. */
+        refresh_ns = 20000000u;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0 && unwaited > 100u && unwaited <= 130u);
+        CHECK(run_ns <= game_ns + UINT64_C(40) * 16742706u);
+        /* A pause after the host had turned vsync off: watched again, the presents waiting again, whether the pause
+         * turned vsync on again or left it, the host turns it off again, the report keeping the first frame. */
+        refresh_ns = 6944444u;
+        frame_work_ns = 15000000u;
+        display.poll_event = display_poll;
+        display_base_poll = backend.poll_event;
+        display_pause_before = 400;
+        waits_after_pause = 1;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 2 && rewait_calls == 0 && unwaited <= 130u && !refresh_waits_end);
+        waits_after_pause = -1;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 2 && rewait_calls == 1 && unwaited <= 130u && !refresh_waits_end);
+        /* Vsync turned off from the pause while the host judged a window without the waits: the presents are not
+         * asked to wait again, and the frames held late are the wait's. */
+        display_pause_before = 150;
+        waits_after_pause = 0;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unpaced_calls == 1 && rewait_calls == 0 && !refresh_waits_end);
+        CHECK(unwaited <= 130u && late == 0 && refresh_late_waiting > 0 && refresh_rewaited == 0);
+        waits_after_pause = -1;
+        display_pause_before = 0;
+        display.poll_event = backend.poll_event;
+        /* Without present_waits (vsync off, the host pacing), nothing is asked and every late frame is the game's. */
+        {
+            oracles_host_run_config config;
+            oracles_host_run_report report;
+            char error[128];
+            memset(&config, 0, sizeof config);
+            config.core = core;
+            config.quit_after_frames = 300;
+            config.pace_frames = config.measure_frames = 1;
+            config.frame_source = frame_work;
+            unpaced_calls = 0;
+            refresh_unwaited = 0;
+            CHECK(oracles_host_run(&config, &display, &report, error, sizeof error) == ORACLES_HOST_OK && report.present_unwaited_frame == 0 && unpaced_calls == 0);
+            CHECK(report.frames_late_waiting == 0 && report.frames_late > 0 && !report.present_waits_end);
+        }
+        /* Without the backend's present_unpaced, or its present_waits_again, nothing to ask, the presents waiting to
+         * the end, and the frames late are the game's. */
+        display.present_waits_again = NULL;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unwaited == 0 && unpaced_calls == 0 && refresh_late_waiting == 0 && late > 500u);
+        CHECK(refresh_waits_end);
+        display.present_waits_again = refresh_waits_again;
+        display.present_unpaced = NULL;
+        CHECK(refresh_run(&display, core, 1, &late, &unwaited, &run_ns) == 0 && unwaited == 0 && refresh_late_waiting == 0 && late > 500u && refresh_waits_end);
+        frame_work_ns = 0;
     }
 
     /* The core has rendered frames: every pixel went through the encoder (opaque alpha). */

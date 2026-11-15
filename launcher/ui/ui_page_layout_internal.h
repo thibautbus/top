@@ -8,7 +8,7 @@
 #ifdef __ANDROID__
 #define VSYNC_SHORT "Auto: off on Android."
 #else
-#define VSYNC_SHORT "Auto: follows a display near 60 Hz."
+#define VSYNC_SHORT "Auto: at 60 or 100+ Hz."
 /* 4:3's: the room a file's value has beside its button; a button placed at the rows' right; a row's box; the Play row with
  * its note. */
 float pl_file_room_4_3(float value_x, float button_w);

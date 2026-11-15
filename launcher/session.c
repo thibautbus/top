@@ -15,13 +15,18 @@
  * (implies it) takes Link swimming through them too; a route records it
  * beside the transitions, a savestate does not (attach).
  *
- * Vsync: "auto" (the default) presents in step with the display when it
- * refreshes at 59 to 61 Hz, close enough to the Game Boy's 59.7275 Hz for
- * the audio rate control to absorb the difference; the host then does not
- * pace, so a scroll has no periodic hiccup from the two clocks beating.  On
- * any other display the host paces, as with "off".  Under vsync the host
- * checks that the presentation waits for the display, and paces itself from
- * the first second it did not.  On Android "auto" is off: the system
+ * Vsync: "auto" (the default) presents in step with a display that
+ * refreshes at 59 to 61 Hz, or at 100 Hz or more.  At 59 to 61 Hz, close enough to the Game
+ * Boy's 59.7275 Hz for the audio rate control to absorb the difference, the
+ * display paces the frames and the host does not, so a scroll has no
+ * periodic hiccup from the two clocks beating; the host checks that the
+ * presentation waits for the display, and paces itself from the first
+ * second it did not.  On a faster display (120, 144 Hz) the host paces at
+ * 59.7275 Hz, as with "off", and vsync shows each frame at the display's
+ * next refresh, whole instead of torn across it, unless those waits slow the
+ * game, where the host turns it off.  On a display slower than the game
+ * (50 Hz) vsync stays off, "on" too: waiting for it could only slow the
+ * game.  On Android "auto" is off: the system
  * composes the frames, and presenting in step with the display there only
  * added latency on a handheld.  The launcher owns every file: the
  * core and the host only see buffers. */
@@ -421,8 +426,10 @@ static void window_options(session *s, const OraclesSessionOptions *o)
     s->sdl = o->sdl;
     oracles_settings *prefs = s->settings;
     if (!o->no_window) {
-        s->display_hz = oracles_sdl_display_refresh_hz();
-        if (oracles_session_vsync_on(s->vsync, s->display_hz)) s->sdl.vsync = 1;
+        s->display_hz = oracles_sdl_display_refresh_hz(s->sdl.window);   /* the home screen's, lent, where it stands */
+        int renderer_vsync = 0;
+        oracles_session_pacing(s->vsync, s->display_hz, &renderer_vsync, &s->display_paces);
+        if (renderer_vsync) s->sdl.vsync = 1;
     }
     s->sdl.pause_menu = s->pause != NULL && !o->no_window;
     /* Over the first frames in play, the pause's reminder when one is due (oracles_pause_reminder); dropped at once when
@@ -712,8 +719,10 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
     config->core = s->core;
     config->sample_rate_hz = o->mute || o->no_window ? 0u : SAMPLE_RATE_HZ;
     config->quit_after_frames = o->frames;
-    config->pace_frames = !o->no_window && !s->sdl.vsync;   /* with vsync the display paces */
-    config->display_paces = !o->no_window && s->sdl.vsync;  /* as long as the host sees it do so */
+    config->pace_frames = !o->no_window && !s->display_paces;   /* under vsync a display of about 60 Hz paces */
+    config->display_paces = !o->no_window && s->display_paces;  /* as long as the host sees it do so */
+    s->present_waits = !o->no_window && s->sdl.vsync && !s->display_paces;
+    config->present_waits = s->present_waits;   /* on a faster display, as long as the wait makes no frame late */
     config->measure_frames = !o->no_window;                   /* the work is timed either way */
     if (!o->play_path) {
         config->save_interval_frames = SAVE_INTERVAL_FRAMES;
@@ -734,6 +743,7 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
         config->on_started = oracles_session_started;
         config->on_pause = oracles_session_pause;
         config->display_paces_now = oracles_session_display_paces_now;
+        config->present_waits_now = oracles_session_present_waits_now;
         config->pause_opaque = s;
     }
     if (s->view) {
@@ -757,7 +767,10 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
             s->colour_applied ? "on" : "off", s->settings->path[0] ? s->settings->path : "(no settings directory)", s->state_path);
     if (!o->no_window)
         fprintf(stderr, "oracles: vsync %s (setting %s, display %u Hz): %s\n", s->sdl.vsync ? "on" : "off", s->vsync, s->display_hz,
-                s->sdl.vsync ? "the display paces the frames" : "the host paces the frames at 59.7275 Hz");
+                s->display_paces ? "the display paces the frames"
+                : s->sdl.vsync   ? "the host paces the frames at 59.7275 Hz, each shown at the display's next refresh"
+                : oracles_settings_display_slower(s->display_hz) ? "the host paces the frames at 59.7275 Hz, the display slower than the game"
+                                 : "the host paces the frames at 59.7275 Hz");
 }
 
 /* The frames late as the slow game's suggestion counts them (OraclesSessionResult). */
@@ -832,6 +845,9 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
         const int status = oracles_host_run(&config, &s->backend, &report, error, sizeof error);
         s->ran = 1;
         s->display_unpaced_frame = report.display_unpaced_frame;
+        s->present_unwaited_frame = report.present_unwaited_frame;
+        s->present_rewaited_frame = report.present_rewaited_frame;
+        s->present_waits_end = report.present_waits_end;
         if (status != ORACLES_HOST_OK) ok = failed(result, "%s", error);
         oracles_session_report_frames(s, &report);
         result->enhanced = s->enhanced;

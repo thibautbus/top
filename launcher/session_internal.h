@@ -66,10 +66,14 @@ typedef struct session {
     OraclesHotkeysMode hotkeys_mode;
     oracles_sdl_options sdl;
     unsigned display_hz;
+    int display_paces;       /* under vsync, the display paces the frames (oracles_settings_display_paces); else the host does */
     oracles_host_backend backend;
     int backend_ready;
     int ran;                 /* the host ran: the end-of-session reports have something to say */
     uint32_t display_unpaced_frame;   /* under vsync, the frame from which the host paced; 0: the display paced */
+    uint32_t present_unwaited_frame;  /* the host pacing, the first frame from which vsync was off, its waits slowing the game; 0: none */
+    uint32_t present_rewaited_frame;  /* and the first from which it was on again, the game no faster without it; 0: none */
+    int present_waits_end;            /* and whether vsync was on again at the end */
     OraclesRoomTransition *transition;
     oracles_settings *settings;
     OraclesRoute play;
@@ -96,7 +100,9 @@ typedef struct session {
     int colour_setting;      /* the settings' as the session last saw it: a change in the pause's Display applies */
     const char *vsync;       /* the vsync asked for: the option's, or the settings' */
     int vsync_setting;       /* the settings' vsync= as the session last saw it (0 auto, 1 on, 2 off): a change in the pause's Display applies */
-    int paces_changed;       /* the pause turned vsync on or off: the host learns it at the resume (display_paces_now) */
+    int paces_changed;       /* the pause changed who paces the frames: the host learns it at the resume (display_paces_now) */
+    int present_waits;       /* the renderer presents under vsync while the host paces (present_waits_now) */
+    int waits_changed;       /* the pause changed vsync: the host learns present_waits at the resume */
     int menus_large;         /* the Enhanced view's menus shown alone at their own scale (menus=large), as the pause may change it */
     int screen_margin_option;   /* --screen-margin's, an OraclesScreenMargin plus one, which holds for the run; 0: the settings' */
     int text_size_option;       /* --text-size's, the size plus one, which holds for the run; 0: the settings' */
@@ -144,6 +150,9 @@ void oracles_session_hotkey_keys(session *s, int on);
 void oracles_session_started(void *opaque);
 oracles_host_pause_result oracles_session_pause(void *opaque);
 int oracles_session_display_paces_now(void *opaque);
+/* After the pause: whether the presentation waits for the display's refresh from now on, the host pacing (vsync on
+ * there, on a display faster than 61 Hz); -1 when the pause left vsync alone. */
+int oracles_session_present_waits_now(void *opaque);
 /* session_report.c: the frames a run presented late; its report on the standard error; the session ended, its save
  * written, its screenshot taken and its resources freed. */
 uint32_t oracles_session_late_frames(const oracles_host_run_report *report);
