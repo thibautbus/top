@@ -6,7 +6,9 @@
  * (w2DungeonLayout, $40 bytes a floor) at the map position beside the
  * room's (wDungeonMapPosition, sampled by the observer), the game's own
  * lookup for its transitions (getRoomInDungeon); 0 in the layout is no
- * room.  A dungeon's rooms are not placed by their index. */
+ * room.  A dungeon's rooms are not placed by their index.  The layout is
+ * read at the floor sampled with the position, not the live one, which the
+ * game changes before a fall's or a staircase's fade out of the room. */
 static int dungeon_room_toward(const OraclesEnhancedView *v, uint8_t room, OraclesGhostDirection dir, uint8_t *out)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
@@ -20,7 +22,7 @@ static int dungeon_room_toward(const OraclesEnhancedView *v, uint8_t room, Oracl
     case ORACLES_DIR_DOWN: if (row == 7u) return 0; row++; break;
     default: return 0;
     }
-    const unsigned floor = oracles_guest_read8(v->guest, t->dungeon_floor) & 3u;
+    const unsigned floor = o->ref_cell_floor & 3u;
     const OraclesGuestSym cell = { t->dungeon_layout.bank, (uint16_t)(t->dungeon_layout.addr + floor * 0x40u + row * 8u + col) };
     const uint8_t beside = oracles_guest_read8(v->guest, cell);
     if (beside == 0) return 0;
@@ -198,7 +200,7 @@ int ev_self_routed(const OraclesEnhancedView *v, uint8_t group, uint8_t room)
 }
 
 /* Whether the room in play is one of them, and the band a map of small rooms
- * (a large room deliberately shows no neighbour anyway): its four
+ * (a large room's neighbours are a dungeon's, by its layout): its four
  * directions are then asked of the ghost from the room in play and from
  * nowhere else, never chained, because the answer can depend on the live
  * state (the sequence of directions the Lost Woods counts). */
@@ -371,17 +373,86 @@ int ev_scroll_enters_room(const OraclesEnhancedView *v)
     return mode == ORACLES_SCROLL_MODE_DECIDED || mode == ORACLES_SCROLL_MODE_TRANSITION;
 }
 
+/* The sides a dungeon's large room opens on, a bit by direction: a free cell
+ * on its outer ring (an open edge, a doorway), or a door there whatever its
+ * state, tiles $70 to $7f (the key doors, the boss key doors, the shutters and
+ * the cart's), so that a shutter closing behind Link leaves the room beyond it
+ * shown. */
+static unsigned large_openings(const uint8_t *collisions, const uint8_t *layout)
+{
+    enum { COLS = LARGE_ROOM_W / 16u, ROWS = LARGE_ROOM_H / 16u };
+    unsigned bits = 0;
+    for (unsigned c = 0; c < COLS; c++) {
+        const unsigned top = c, bottom = (ROWS - 1u) * 16u + c;
+        if (collisions[top] == 0 || (layout[top] & 0xf0u) == 0x70u) bits |= 1u << ORACLES_DIR_UP;
+        if (collisions[bottom] == 0 || (layout[bottom] & 0xf0u) == 0x70u) bits |= 1u << ORACLES_DIR_DOWN;
+    }
+    for (unsigned r = 0; r < ROWS; r++) {
+        const unsigned left = r * 16u, right = r * 16u + COLS - 1u;
+        if (collisions[left] == 0 || (layout[left] & 0xf0u) == 0x70u) bits |= 1u << ORACLES_DIR_LEFT;
+        if (collisions[right] == 0 || (layout[right] & 0xf0u) == 0x70u) bits |= 1u << ORACLES_DIR_RIGHT;
+    }
+    return bits;
+}
+
+/* The room of a dungeon beside the reference room that the band shows around
+ * it: the floor's layout names one that way, and the reference room opens
+ * onto it (large_openings), or it is the room the last scroll came from.
+ * Never one in a direction the ghost found leading elsewhere: a dungeon's
+ * entrance, whose edge the game turns into a warp out
+ * (findScreenEdgeWarpSource), or one of its loops back into the room. */
+int ev_dungeon_neighbour(const OraclesEnhancedView *v, OraclesGhostDirection dir, uint8_t *out)
+{
+    const uint8_t group = v->observer.ref_group, ref = v->observer.ref_room;
+    if (!v->observation.large_grid || oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->dungeon_index) == 0xffu) return 0;
+    if (!dungeon_room_toward(v, ref, dir, out) || *out == ref || (v->routes_elsewhere[group & 7u][ref] & (1u << (unsigned)dir))) return 0;
+    if (v->have_came_from && v->came_from_dir == dir && v->came_from_room == *out) return 1;
+    return v->have_ref_collisions && v->ref_collisions_group == group && v->ref_collisions_room == ref && (v->ref_openings & (1u << (unsigned)dir));
+}
+
+unsigned oracles_enhanced_view_dungeon_neighbours(const OraclesEnhancedView *v, uint8_t *room, uint8_t beside[4])
+{
+    unsigned sides = 0;
+    *room = v->observer.ref_room;
+    for (unsigned d = 0; d < 4; d++) {
+        beside[d] = 0;
+        if (ev_dungeon_neighbour(v, (OraclesGhostDirection)d, &beside[d])) sides |= 1u << d;
+    }
+    return sides;
+}
+
+/* What a run from the room in play toward a dungeon's room beside it brought
+ * back: another room than the layout's (a warp out, a loop) keeps that
+ * direction from being shown; the room asked for, shown again. */
+void ev_note_dungeon_answer(OraclesEnhancedView *v, uint8_t group, uint8_t from_room, OraclesGhostDirection dir, int elsewhere)
+{
+    if ((group & 4u) == 0) return;
+    uint8_t *const byte = &v->routes_elsewhere[group & 7u][from_room];
+    const uint8_t bit = (uint8_t)(1u << (unsigned)dir);
+    if (elsewhere) *byte |= bit; else *byte &= (uint8_t)~bit;
+}
+
 /* On the overworld every cached room of the group is at its place; in an
  * interior only a room the reference room opens onto. */
 int ev_entry_connected(const OraclesEnhancedView *v, const entry *e, OraclesGhostDirection *dir_out)
 {
-    /* A large room (a dungeon) deliberately shows no neighbour,
-     * except the room a scroll is entering, whole, as the game's window
-     * slides into it: the game's own transition, the room extended. */
+    /* A large room (a dungeon): the room a scroll is entering, whole, as the
+     * game's window slides into it, the game's own transition, the room
+     * extended; and the rooms of the dungeon it opens onto, at rest and
+     * through a scroll. */
     if (v->observation.large_grid) {
-        if (!ev_scroll_enters_room(v) || e->room != v->observation.room || e->group != v->observation.group) return 0;
-        if (dir_out) *dir_out = (OraclesGhostDirection)(v->observation.scroll_direction & 3u);
-        return 1;
+        if (ev_scroll_enters_room(v) && e->room == v->observation.room && e->group == v->observation.group) {
+            if (dir_out) *dir_out = (OraclesGhostDirection)(v->observation.scroll_direction & 3u);
+            return 1;
+        }
+        if (e->routed || e->group != v->observer.ref_group) return 0;
+        for (unsigned d = 0; d < 4; d++) {
+            uint8_t target;
+            if (!ev_dungeon_neighbour(v, (OraclesGhostDirection)d, &target) || target != e->room) continue;
+            if (dir_out) *dir_out = (OraclesGhostDirection)d;
+            return 1;
+        }
+        return 0;
     }
     /* In the zone the game routes itself, a neighbour is what it would load
      * that way, and nothing else: the grid's rooms are where Link would not
@@ -442,6 +513,8 @@ void ev_update_reference_edges(OraclesEnhancedView *v)
             memcpy(v->ref_collisions, collisions, sizeof v->ref_collisions);
             v->have_ref_collisions = 1;
             v->ref_collisions_group = ob->group; v->ref_collisions_room = ob->room;
+            const uint8_t *layout = ob->large_grid ? oracles_guest_ptr(v->guest, t->room_layout, ORACLES_GHOST_LAYOUT_BYTES) : NULL;
+            v->ref_openings = layout ? (uint8_t)large_openings(collisions, layout) : 0u;
         }
         v->ref_maku = maku_tree_slot(v) != 0;
         v->ref_maku_arrival = 0;
@@ -515,7 +588,8 @@ void ev_update_reference_edges(OraclesEnhancedView *v)
             if (ev_room_toward(v, v->observer.ref_room, (OraclesGhostDirection)d, &target) && ev_open_water(v, v->observer.ref_group, target)) edges |= 1u << d;
         }
     }
-    if (ev_on_map(v) && !ev_on_overworld(v) && !ev_open_water(v, v->observer.ref_group, v->observer.ref_room)) {
+    /* A large room's camera keeps the game's framing whatever its extent: the rooms it opens onto widen nothing. */
+    if (ev_on_map(v) && !ev_on_overworld(v) && !ev_open_water(v, v->observer.ref_group, v->observer.ref_room) && !ob->large_grid) {
         for (unsigned i = 0; i < v->slot_count; i++) {
             const entry *e = &v->slots[i];
             OraclesGhostDirection dir;

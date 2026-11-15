@@ -140,6 +140,7 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.%s_wave_frames=%u\nenhanced.%s_rippled_frames=%u\nenhanced.%s_edge_moves=%u\n", name, r->wave_frames, name, r->rippled_frames, name, r->edge_moves);
         fprintf(out, "enhanced.%s_row_changes_moving=%u\nenhanced.%s_row_changes_still=%u\nenhanced.%s_row_changes_max=%u\n", name,
                 r->moving_frames ? 100u * r->moving_changes / r->moving_frames : 0u, name, r->still_frames ? 100u * r->still_changes / r->still_frames : 0u, name, r->changes_max);
+        fprintf(out, "enhanced.%s_moving_frames=%u\nenhanced.%s_still_frames=%u\n", name, r->moving_frames, name, r->still_frames);   /* the frames those two rates are of */
     }
     fprintf(out, "enhanced.routed_neighbours=%u\n", oracles_enhanced_view_routed_delivered(c->view));
     {   /* the hotbar of the item hotkeys, when the run shows one */
@@ -239,6 +240,13 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
                 image_frames, image_longest);   /* a room drawn with the people of another side's entry; the room left drawn from its frozen image */
     }
     fprintf(out, "enhanced.self_beside_frames=%u\n", oracles_enhanced_view_self_beside_frames(c->view));   /* a dungeon's room drawn beside itself */
+    {
+        OraclesEnhancedDungeonCounts d;
+        oracles_enhanced_view_dungeon_counts(c->view, &d);
+        fprintf(out, "enhanced.dungeon_neighbour_frames=%u\nenhanced.dungeon_dark_frames=%u\nenhanced.dungeon_neighbours_max=%u\nenhanced.dungeon_waiting_frames=%u\n",
+                d.neighbour_frames, d.dark_frames, d.neighbours_max, d.waiting_frames);   /* the rooms a dungeon's large room opens onto, at rest */
+        fprintf(out, "enhanced.dungeon_neighbours_off_floor=%u\n", c->dungeon_neighbours_off_floor);   /* and never another floor's */
+    }
     fprintf(out, "enhanced.sea_runs=%u\n", oracles_enhanced_view_sea_runs(c->view));   /* runs across the sea's surface, ahead of a dive or a return (Ages) */
     fprintf(out, "enhanced.uncovered_frames=%u\nenhanced.uncovered_max=%u\nenhanced.live_diff_max=%u\nenhanced.plain_renders=%u\nenhanced.stale_results=%u\nenhanced.season_rejected=%u\nenhanced.coarse_drops=%u\n",
             c->uncovered_frames, c->uncovered_max, oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_stale_results(c->view), oracles_enhanced_view_season_rejected(c->view),

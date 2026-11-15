@@ -147,6 +147,9 @@ typedef struct OraclesEnhancedObserver {
     uint8_t ref_cell;                        /* the reference room's grid cell, sampled in normal play (a dungeon's map position) */
     int have_ref_cell;
     uint8_t ref_cell_group, ref_cell_room;
+    uint8_t ref_cell_floor;                  /* in a dungeon, the floor whose layout names the room at that cell: the game
+                                              * changes wDungeonFloor before it leaves the room (a fall into a hole,
+                                              * Ages' stairs without a warp of their own), the room's fade still to come */
     /* Scrolls of a large room that came back into the room they left (the
      * game's loops: screenTransitionEyePuzzle, screenTransitionOnoxDungeon's
      * up), in rooms along each axis: the room re-entered is placed beside the

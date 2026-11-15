@@ -602,6 +602,8 @@ static void pause_live_changes(void)
     s.unvisited_hidden = 1;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_UNVISITED && applied.unvisited_hidden == 1);
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
+    s.unvisited_hidden = 2;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_UNVISITED && applied.unvisited_hidden == 2);
     applied.unvisited_hidden = -1;
     s.unvisited_hidden = 0;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0 && applied.unvisited_hidden == -1);
@@ -1390,7 +1392,7 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.far_fixed == 0);
-    /* The rooms never entered: shown at the first opening, hidden written and read back, an unknown value shown. */
+    /* The rooms never entered: shown at the first opening, hidden and dungeons written and read back, an unknown value shown. */
     oracles_settings_defaults(&read_back);
     CHECK(read_back.unvisited_hidden == 0);
     write_text(path, "unvisited_rooms=hidden\n");
@@ -1400,6 +1402,13 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 1);
+    write_text(path, "unvisited_rooms=dungeons\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 2);   /* hidden in a dungeon alone */
+    oracles_settings_store(&read_back);
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.unvisited_hidden == 2);
     write_text(path, "unvisited_rooms = SHOWN\n");
     oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 0);

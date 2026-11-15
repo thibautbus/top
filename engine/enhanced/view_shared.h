@@ -59,6 +59,9 @@ void ev_routed_run_order(const OraclesEnhancedView *v, uint8_t ref, unsigned out
 int ev_on_overworld(const OraclesEnhancedView *v);
 int ev_scroll_enters_room(const OraclesEnhancedView *v);
 int ev_entry_connected(const OraclesEnhancedView *v, const entry *e, OraclesGhostDirection *dir_out);
+void ev_unvisited_apply(OraclesEnhancedView *v);
+int ev_dungeon_neighbour(const OraclesEnhancedView *v, OraclesGhostDirection dir, uint8_t *out);
+void ev_note_dungeon_answer(OraclesEnhancedView *v, uint8_t group, uint8_t from_room, OraclesGhostDirection dir, int elsewhere);
 void ev_update_reference_edges(OraclesEnhancedView *v);
 void ev_update_neighbours(OraclesEnhancedView *v);
 /* view_ghost.c, for the run order (view_schedule.c): a run started for an

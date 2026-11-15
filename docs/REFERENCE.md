@@ -41,7 +41,7 @@ build/the-oracles-project --rom "/path/to/Oracle of Ages.gbc" # the game straigh
 | `--text-size normal\|large\|xlarge` | Enhanced: the text box three halves as large, in whole screen pixels, or twice as large, where it fits (below); `text_size=` in the settings |
 | `--text-speed classic\|instant` | the text box's lines letter by letter at the speed chosen on the file screen, or each line whole, A still turning the page (below); `text_speed=` in the settings |
 | `--text-box standard\|wide` | Enhanced, Ages, Seasons and the fan games: the game's text box, or a wider one the port draws, 192 pixels of text, the texts laid out again for it, classic or compact (below); `text_box=` in the settings |
-| `--unvisited-rooms shown\|hidden` | Enhanced: the rooms around Link that he has never entered, drawn (`shown`) or kept dark until he enters them, as on the game's map (`hidden`, below), for this run; `unvisited_rooms=` in the settings |
+| `--unvisited-rooms shown\|hidden\|dungeons` | Enhanced: the rooms around Link that he has never entered, drawn (`shown`) or kept dark until he enters them, as on the game's map (`hidden`, below), or kept dark in a dungeon alone (`dungeons`), for this run; `unvisited_rooms=` in the settings |
 | `--item-hotkeys=off\|use\|equip` | the item hotkeys for this run |
 | `--camera 1\|2` | the Enhanced camera's profile |
 | `--mods DIR` | a mod, repeated for several ([`MODDING.md`](MODDING.md)) |
@@ -194,7 +194,7 @@ On Windows, Linux and a macOS build run outside an application bundle, a file `p
 | `colour_correction` | `0`, `1` | `1` | Display › Picture › Color correction (F2 in game) | at once, from the pause too |
 | `far` | `screen`, `fixed` | `screen` | Display › Picture › Far size (Fitted, Fixed) | at the next Play |
 | `menus` | `view`, `large` | `large` on Android, `view` elsewhere | Display › Picture › Menus & scenes | at once, from the pause too |
-| `unvisited_rooms` | `shown`, `hidden` | `shown` | Display › Picture › Unvisited rooms | at the next Play; from the pause when the game resumes |
+| `unvisited_rooms` | `shown`, `hidden`, `dungeons` | `shown` | Display › Picture › Unvisited rooms | at the next Play; from the pause when the game resumes |
 | `filter` | `off`, `scanlines`, `crt`, `lcd`, `smooth`, `xbr`, `hq2x`, `omniscale` | `off` | Display › Picture › Filter; an unknown value is `off` | at once, from the pause too |
 | `transitions` | `on`, `off` | `on` | Display › Advanced › Continuous transitions | at the next Play |
 | `vsync` | `auto`, `on`, `off` | `auto` | Display › Advanced › Vsync | at the next Play; from the pause when the game resumes |
@@ -251,7 +251,7 @@ A key's name and its value may have spaces around them and capitals, as in `upda
 - `swim_hold=` (`off` or `on`) is the swim's hold for every game the home screen starts, Controls' Swimming row (`Tap` or `Hold`).
 - `text=` (`classic` or `compact`) is the compact text for every game the home screen starts in Enhanced (below), `text_box=` (`standard` or `wide`) its text box (below); both apply at the next Play, the texts being laid out when the game starts, and change from the home screen only, the pause showing them greyed.
 - `text_size=` (`normal`, `large` or `xlarge`) is the text box's size (below), which applies at once, from the pause too.
-- `unvisited_rooms=` (`shown` or `hidden`) is Display › Picture's Unvisited rooms, the rooms around never entered kept dark in Enhanced (below), for every game, `--unvisited-rooms` overriding it for a run without changing it.
+- `unvisited_rooms=` (`shown`, `hidden` or `dungeons`) is Display › Picture's Unvisited rooms, the rooms around never entered kept dark in Enhanced (below), for every game, `--unvisited-rooms` overriding it for a run without changing it.
 - `cheats_ages=`, `cheats_seasons=`, `cheats_kinomi=`, `cheats_moonrise=` and `cheats_temple=` are each game's Cheats page, the cheats it starts with from the home screen (below), a fan game's its own and not its Oracle's, a list of their names; a cheat the launcher does not know (a later version's) is dropped, with a line on the standard error, the others kept.
 - `core=sameboy` or `core=mgba` appears once the player chooses a core in Display's Advanced rows: without it, the application's default plays (Accurate on the desktops, Fast on Android), so that an update that changes the default reaches a player who never chose. A game's save (`.sav`, the cartridge's RAM) is the same file on both cores: a game saved on one opens on the other; a savestate does not.
 
@@ -271,7 +271,7 @@ Offline, a refusal, GitHub's rate limit, an answer it cannot read, a draft or a 
 
 ### The Enhanced view
 
-**Enhanced** shows a wide surface, 256x144: the status bar in a band of sixteen lines at the top, centred, and below it the world, the play area placed by a smooth camera in world coordinates with the neighbouring rooms drawn around it, computed and peopled as [Faithful and Enhanced](PLAYING.md#faithful-and-enhanced) says. Large rooms (dungeons) are shown whole, centred, their scrolls sliding the band; interiors of one room are centred and still.
+**Enhanced** shows a wide surface, 256x144: the status bar in a band of sixteen lines at the top, centred, and below it the world, the play area placed by a smooth camera in world coordinates with the neighbouring rooms drawn around it, computed and peopled as [Faithful and Enhanced](PLAYING.md#faithful-and-enhanced) says. Large rooms (dungeons) are shown whole, centred, their scrolls sliding the band, with the rooms of the dungeon beside them that they open onto (the floor's layout, a free cell or a door on the shared side, or the room the last scroll came from; never past a side the game turns into a warp out, nor one of its loops); interiors of one room are centred and still.
 
 - Menus, cutscenes and the file select show the core's image framed: at the view's scale, or alone at its own largest whole scale, as Faithful shows it, with `menus=large` in the settings (Display › Picture's Menus & scenes), the default on Android, where the view's scale on a small screen makes them hard to read (`menus=view` keeps the view's), which changes from the pause too, at once.
 - A room's load (a door, stairs: the room left's last frames, the reveal, Link walking in until the camera takes him) stays at the view's scale, the status bar's band at the top as in play (its background, the hotbar) and below it the play area alone, where the world shows it before and after (but a room Link walks into from its edge, which the camera frames once he is in), the screen's blank between them (the LCD off, a full fade) framed as the game shows it, at the large menus' scale where it follows a screen they enlarge (a cutscene's picture fading out, the map) until the room shows.
@@ -587,7 +587,7 @@ A route recorded with it replays with it (`text-instant` in its options), one re
 
 ### Unvisited rooms
 
-**Unvisited rooms** (Display › Picture's Unvisited rooms, `--unvisited-rooms shown|hidden`, `unvisited_rooms=` in the settings, shown by default, in Enhanced, Ages, Seasons and the fan games): with `hidden`, the rooms around Link that he has never entered stay dark but for their edge, as [Unvisited rooms](PLAYING.md#unvisited-rooms) says.
+**Unvisited rooms** (Display › Picture's Unvisited rooms, `--unvisited-rooms shown|hidden|dungeons`, `unvisited_rooms=` in the settings, shown by default, in Enhanced, Ages, Seasons and the fan games): with `hidden`, the rooms around Link that he has never entered stay dark but for their edge, as [Unvisited rooms](PLAYING.md#unvisited-rooms) says; with `dungeons`, so do those of a dungeon (its large rooms), every room shown outside.
 
 Where a dark room meets a room drawn in clear, the dark one shows a soft edge along their border, inside it, a glimpse of that room as it is, its ground and whoever stands or moves there, people and enemies included:
 
@@ -715,7 +715,7 @@ Each key keeps the width of its widest label, so that the hints stay in place wh
 - the view in Enhanced, Near, Medium or Far, each with its size in the screen's shape, the one the game will take: Far's fitted to the screen where far fits it (below, `far=`), 426x320 on 1280x960 and 412x360 on 1240x1080, which Enhanced's size, the windows, Scaling and the diagram follow too, and in the 4:3 layout View's help adds "Far fits this screen: 426x320 at 3x."; greyed in Faithful;
 - the HUD in Enhanced, Original, Full width or Wide layout (`hud=`, below), greyed in Faithful, and from the pause in a game running in Faithful whatever the profile chosen;
 - Text, which opens Display › Text as Advanced opens its rows and sums up beside it what applies ("Compact · Wide · Normal", "As the game" in Faithful, and " · Instant" after it when Text speed is Instant);
-- Picture, which opens Display › Picture likewise and sums up beside it its scaling, margin and colors ("Sharp · No margin · Color off", then " · Far fixed", " · Large menus" (" · View menus" on Android) and " · Rooms hidden" after it where they apply and differ from the platform's default, named while they hold on the line, else counted: " · 2 more").
+- Picture, which opens Display › Picture likewise and sums up beside it its scaling, margin and colors ("Sharp · No margin · Color off", then " · Far fixed", " · Large menus" (" · View menus" on Android) and " · Rooms hidden" (" · Dungeons hidden") after it where they apply and differ from the platform's default, named while they hold on the line, else counted: " · 2 more").
 
 ### Display's defaults and the slow-game suggestion
 
@@ -749,7 +749,7 @@ Display › Picture, the diagram kept beside it, says how the game's picture sho
 - colour correction, the three in either profile;
 - Far size, Fitted or Fixed (`far=`, below), Far at a size made for the screen or at its usual size, a row only on a screen where they differ (1280x960, 1240x1080), its note giving both ("Here Fitted is 426x320 at 3x; Fixed is 480x360 at 2x.");
 - Menus & scenes, View or Large (`menus=`, below), the game's menus, map, cutscenes and file screen at the view's scale or alone at their own largest scale, easier to read on a small screen, Large chosen at the first opening on Android and View on the desktops;
-- Unvisited rooms, Shown or Hidden (`unvisited_rooms=`, below), the rooms around Link that he has never entered drawn or kept dark, Shown by default, from the pause applying when the game resumes ("Applies when the game resumes."), dimmed for the run where `--unvisited-rooms` gave it.
+- Unvisited rooms, Shown, Dungeons or Hidden (`unvisited_rooms=`, below), the rooms around Link that he has never entered drawn, kept dark in a dungeon alone, or kept dark everywhere, Shown by default, from the pause applying when the game resumes ("Applies when the game resumes."), dimmed for the run where `--unvisited-rooms` gave it.
 
 The last three in Enhanced, greyed in Faithful, "Enhanced only.".
 

@@ -451,9 +451,9 @@ int oracles_enhanced_view_room_whole(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_shake_frames(const OraclesEnhancedView *view);
 /* World frames where the band shows an overworld room beside the reference room, diagonals included, that no delivered terrain covers yet. */
 unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
-/* The rooms never visited kept dark (`hidden` 1): a room of the band that the game's own record says Link has never
+/* The rooms never visited kept dark (ORACLES_ENHANCED_UNVISITED_HIDDEN, or _DUNGEONS in a dungeon): a room of the band that the game's own record says Link has never
  * entered (the visited bit of its flags, from which the game's map draws its squares) is drawn in the band's black, its
- * objects with it, the reference room and the room a scroll enters always shown.  Off (0) by default.  The ghost
+ * objects with it, the reference room and the room a scroll enters always shown.  Shown by default.  The ghost
  * prepares every room as before, so that a room shows as soon as it is visited: drawn in the band after a composition
  * that kept it dark, it fades in from the black over ORACLES_ENHANCED_REVEAL_FRAMES compositions (the veil of its
  * age, the frame it is first shown 1), never on the first composition of an epoch (a warp, a time travel, a load) nor
@@ -462,7 +462,10 @@ unsigned oracles_enhanced_view_waiting_frames(const OraclesEnhancedView *view);
  * most rooms so in a frame, the rooms that faded in, and, whatever the setting, the frames of normal play (the first
  * after a transition aside) whose reference room the game had not marked visited, with the first of them. */
 #define ORACLES_ENHANCED_REVEAL_FRAMES 16u
-void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *view, int hidden);
+/* The setting: every room shown, the rooms never entered kept dark everywhere, or in a dungeon alone (its large rooms,
+ * the rooms outside shown); the view applies it at each composition, by where Link is. */
+enum { ORACLES_ENHANCED_UNVISITED_SHOWN, ORACLES_ENHANCED_UNVISITED_HIDDEN, ORACLES_ENHANCED_UNVISITED_DUNGEONS };
+void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *view, int mode);
 int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *view);
 /* A room kept dark beside a room drawn in clear shows its edge (ORACLES_ENHANCED_EDGE_DEPTH, compositor.h): a band of
  * its own terrain along their frontier, in full over a wave, then darker, then black, the fade in going from that look
@@ -633,6 +636,19 @@ unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *view
  * scroll (wScrollMode neither at its decision nor at its transition): none, the scroll a door at its edge turns into a
  * warp out of the dungeon entering no room. */
 unsigned oracles_enhanced_view_self_beside_frames(const OraclesEnhancedView *view);
+/* A dungeon's large room in normal play and the rooms of the dungeon it opens onto: the frames one was drawn beside it,
+ * those with one kept dark (never visited, Unvisited rooms hidden), the most drawn in one frame, and the frames one the
+ * band shows was not drawn yet, the ghost's run of it to come. */
+typedef struct OraclesEnhancedDungeonCounts {
+    unsigned neighbour_frames, dark_frames, neighbours_max, waiting_frames;
+} OraclesEnhancedDungeonCounts;
+void oracles_enhanced_view_dungeon_counts(const OraclesEnhancedView *view, OraclesEnhancedDungeonCounts *out);
+/* The sides of a dungeon's large room where the last composition drew a room of the dungeon, a bit by the game's
+ * direction (0 up, 1 right, 2 down, 3 left). */
+unsigned oracles_enhanced_view_dungeon_sides(const OraclesEnhancedView *view);
+/* The rooms of the dungeon the reference room opens onto, drawn or not, as the band chooses them: the reference room's
+ * index, each room by direction in `beside`, the result a bit by direction set where there is one. */
+unsigned oracles_enhanced_view_dungeon_neighbours(const OraclesEnhancedView *view, uint8_t *room, uint8_t beside[4]);
 /* The frames the room a scroll left was drawn from its image, out of a transition, in place of an entry the cache
  * could draw (its terrain or its side out of date, waiting for its run again), and the longest run of them. */
 void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *longest);

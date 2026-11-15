@@ -289,7 +289,7 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiOptionLayout camera[2];
     /* Display › Picture's Menus & scenes, Far size and Unvisited rooms: their choices, explanations (16:9, two lines kept)
      * and notes (16:9, under them; 4:3 says them on the help's note line). */
-    OraclesUiOptionLayout menus[2], far_size[2], unvisited[2];
+    OraclesUiOptionLayout menus[2], far_size[2], unvisited[3];
     OraclesUiWrapped size_explanations[3];
     OraclesUiLine size_notes[3];
     OraclesUiWrapped camera_explanation;              /* 16:9 */

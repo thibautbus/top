@@ -562,7 +562,7 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         for (int c = 0; c < 2; c++)
             option(draw, st, lk, &l.colour[c], 0, oracles_display_colour_choices[c], NULL, c == nav->display.colour, row == ORACLES_DISPLAY_COLOUR, accent,
                    CHOICE_OFF, 1.0f);
-        const int values[3] = { nav->display.menus, nav->display.far_fixed, nav->display.unvisited };
+        const int values[3] = { nav->display.menus, nav->display.far_fixed, oracles_display_unvisited_choice(nav->display.unvisited) };
         static const unsigned size_rows[3] = { ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
         const char *const *const size_names[3] = { oracles_display_far_size_choices, oracles_display_menus_choices, oracles_display_unvisited_choices };
         const OraclesUiOptionLayout *const size_options[3] = { l.far_size, l.menus, l.unvisited };
@@ -573,7 +573,8 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
             const OraclesUiOptionLayout *options = size_options[i];
             wrapped(draw, st->row_text, &l.size_explanations[n], oracles_ui_rgba(NOTE, opacity));
             text(draw, st->row_note, &l.size_notes[n], t.size_notes[n], oracles_ui_rgba(NOTE_ITALIC, opacity));
-            for (int c = 0; c < 2; c++) option(draw, st, lk, &options[c], 0, names[c], NULL, c == values[n], r == row, accent, CHOICE_OFF, opacity);
+            for (int c = 0; c < (r == ORACLES_DISPLAY_UNVISITED ? 3 : 2); c++)
+                option(draw, st, lk, &options[c], 0, names[c], NULL, c == values[n], r == row, accent, CHOICE_OFF, opacity);
         }
         return;
     }
@@ -702,7 +703,7 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         for (int c = 0; c < 2; c++) if (inside(&l.colour[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_COLOUR; }
         for (int c = 0; t.far_size && c < 2; c++) if (inside(&l.far_size[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_FAR_SIZE; }
         for (int c = 0; c < 2; c++) if (inside(&l.menus[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_MENUS; }
-        for (int c = 0; c < 2; c++) if (inside(&l.unvisited[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_UNVISITED; }
+        for (int c = 0; c < 3; c++) if (inside(&l.unvisited[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_UNVISITED; }
         if (inside(&l.filter_prev, x, y)) { *option = 0; return ORACLES_DISPLAY_FILTER; }
         if (inside(&l.filter_next, x, y)) { *option = 1; return ORACLES_DISPLAY_FILTER; }
         const unsigned rows[7] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_FILTER, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE,

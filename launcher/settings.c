@@ -505,7 +505,8 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
         return 1;
     }
     if (!strcmp(name, "unvisited_rooms")) {
-        if (!strcmp(word, "shown") || !strcmp(word, "hidden")) s->unvisited_hidden = !strcmp(word, "hidden");
+        if (!strcmp(word, "shown") || !strcmp(word, "hidden") || !strcmp(word, "dungeons"))
+            s->unvisited_hidden = !strcmp(word, "hidden") ? 1 : !strcmp(word, "dungeons") ? 2 : 0;
         return 1;
     }
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -812,9 +813,9 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The far view: screen (fitted to a screen its size fills badly, 426x320 on 1280x960 and 412x360 on 1240x1080,\n"
                "# three times, with aspect=auto) or fixed (480x270 or 480x360, whatever the screen).\n");
     put(&w, "far=%s\n", s->far_fixed ? "fixed" : "screen");
-    put(&w, "# The rooms around Link that he has never entered, in enhanced: shown, or hidden (kept dark until he enters\n"
-               "# them, as on the game's map).\n");
-    put(&w, "unvisited_rooms=%s\n", s->unvisited_hidden ? "hidden" : "shown");
+    put(&w, "# The rooms around Link that he has never entered, in enhanced: shown, hidden (kept dark until he enters\n"
+               "# them, as on the game's map), or dungeons (kept dark in a dungeon, shown elsewhere).\n");
+    put(&w, "unvisited_rooms=%s\n", s->unvisited_hidden == 2 ? "dungeons" : s->unvisited_hidden ? "hidden" : "shown");
     put(&w, "# The ghosts that prepare the rooms around in Enhanced, each on its own processor core: auto (two on a device of\n"
                "# four processor threads or more), 1 or 2. Two fill the view faster after a warp or a load.\n");
     if (s->ghosts == 1 || s->ghosts == 2) put(&w, "ghosts=%d\n", s->ghosts); else put(&w, "ghosts=auto\n");

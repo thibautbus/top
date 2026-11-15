@@ -442,16 +442,25 @@ void ev_check_reference_visited(OraclesEnhancedView *v)
     }
 }
 
-void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *v, int hidden)
+/* The setting where Link is: in a dungeon alone, a large room of one (its groups 4 to 7, as the band's large grid). */
+void ev_unvisited_apply(OraclesEnhancedView *v)
 {
-    if (v->unvisited_hidden == (hidden != 0)) return;
-    v->unvisited_hidden = hidden != 0;
+    const int hidden = v->unvisited_mode == ORACLES_ENHANCED_UNVISITED_HIDDEN
+                    || (v->unvisited_mode == ORACLES_ENHANCED_UNVISITED_DUNGEONS && v->observation.large_grid);
+    if (v->unvisited_hidden == hidden) return;
+    v->unvisited_hidden = hidden;
     v->have_hidden_places = 0;   /* switched: the rooms as they are, none fading in */
     v->reveal_count = 0;
     v->edge_fade_count = 0;
 }
 
-int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *v) { return v->unvisited_hidden; }
+void oracles_enhanced_view_set_unvisited_hidden(OraclesEnhancedView *v, int mode)
+{
+    v->unvisited_mode = mode == ORACLES_ENHANCED_UNVISITED_HIDDEN || mode == ORACLES_ENHANCED_UNVISITED_DUNGEONS ? mode : ORACLES_ENHANCED_UNVISITED_SHOWN;
+    ev_unvisited_apply(v);
+}
+
+int oracles_enhanced_view_unvisited_hidden(const OraclesEnhancedView *v) { return v->unvisited_mode; }
 void oracles_enhanced_view_set_unvisited_edge(OraclesEnhancedView *v, int soft) { v->unvisited_hard = !soft; }
 void oracles_enhanced_view_check_dark(OraclesEnhancedView *v, int enabled) { v->dark_check = enabled != 0; }
 unsigned oracles_enhanced_view_dark_lit(const OraclesEnhancedView *v) { return v->dark_lit; }

@@ -39,7 +39,7 @@ typedef struct OraclesEnhancedDrawnCounts {
 
 typedef struct EcRipple {
     unsigned wave_frames, edge_moves, rippled_frames;
-    int have_edge;
+    int have_edge, right;             /* the edge measured, the room's left one or (a room of a dungeon drawn left of it) its right one */
     int32_t edge, camera_x, camera_y, window_left, window_top;
     int16_t row_edge[512];            /* each band line's edge at the last such frame, -1 none */
     unsigned moving_frames, moving_changes, still_frames, still_changes, changes_max;
@@ -254,6 +254,7 @@ struct OraclesEnhancedCheck {
     unsigned transitions_dark;             /* of the rooms entered not shown, those kept dark as never visited, not black */
     unsigned dark_visited;                 /* rooms kept dark, frame by frame of play, whose flags the game says visited */
     unsigned dark_edge_stray;              /* rooms kept dark, frame by frame of play, lit on a side where nothing in clear stands beyond it */
+    unsigned dungeon_neighbours_off_floor;  /* compositions whose rooms a dungeon's room opens onto are not those of its own floor's layout */
     unsigned shown_unvisited;              /* rooms drawn in clear, frame by frame of play, whose flags the game says never visited, the room in play aside, and rooms kept dark shown in clear past their edge */
     unsigned transitions_other_room;  /* entered while another room was shown that way: a wrong neighbour, never allowed */
     char other_room_list[256];        /* "from>to=shown" */

@@ -471,6 +471,7 @@ struct OraclesEnhancedView {
     uint8_t ref_collisions[ORACLES_GHOST_LAYOUT_BYTES];
     int have_ref_collisions;
     uint8_t ref_collisions_group, ref_collisions_room;
+    uint8_t ref_openings;            /* a dungeon's large room: the sides it opens on, a bit by direction, sampled with them */
     /* The room the last scrolling transition came from: connected to the
      * reference room by that very fact, before the ghost has run it. */
     int32_t view_left, view_top;     /* the world band of the last composition, for the run order */
@@ -508,9 +509,15 @@ struct OraclesEnhancedView {
     unsigned other_animation_copies;  /* of those, into a neighbour whose tileset or animation is not the live room's */
     unsigned curtain_frames;          /* frames the curtain of a warp was extended over the band */
     unsigned waiting_frames;          /* frames an existing overworld neighbour in view was still black */
+    unsigned dungeon_neighbour_frames;   /* frames of normal play in a dungeon's large room with a room it opens onto drawn beside it */
+    unsigned dungeon_dark_frames;     /* those with one kept dark, never visited */
+    unsigned dungeon_waiting_frames;  /* frames of normal play in a dungeon's large room with a room it opens onto in view and not drawn yet */
+    unsigned dungeon_neighbours_max;  /* the most such rooms drawn in one frame */
+    unsigned dungeon_sides;           /* the sides of the room in play where the last composition drew one, a bit by direction */
     /* The rooms never visited kept dark (view_black.c): the rooms of the reference's group the last composition drew so,
      * in that epoch, and those drawn so now; the rooms fading in since, from the frame each was shown. */
-    int unvisited_hidden;
+    int unvisited_mode;               /* the setting, ORACLES_ENHANCED_UNVISITED_* */
+    int unvisited_hidden;             /* kept dark where Link is now: everywhere, or in a dungeon */
     int unvisited_hard;               /* their edge toward the rooms drawn in clear cut hard (the Low quality) */
     int dark_check;                   /* the harness's check of the rooms kept dark past their edge */
     unsigned dark_lit;                /* the rooms the last composition kept dark and showed in clear past their edge */
@@ -541,7 +548,8 @@ struct OraclesEnhancedView {
      * mapTransitionGroupTable routes only under the game's own condition
      * (Ages' forest scrambler stops once the forest is unscrambled), which
      * the host does not read: it asks, and believes the answer. */
-    uint8_t routes_elsewhere[8][256];   /* by room: a bit by direction */
+    uint8_t routes_elsewhere[8][256];   /* by room: a bit by direction; in a dungeon's groups, the directions whose
+                                         * run from the room came back as another room than the layout's (ev_note_dungeon_answer) */
     unsigned plain_shown_frames;      /* frames a neighbour holding a fade's palettes was drawn in the band */
     unsigned text_box_frames;         /* frames a text box was moved to the middle of the band */
     unsigned text_box_trail;          /* compositions left where the box is still the box after the game's text flag fell */
@@ -709,10 +717,13 @@ struct OraclesEnhancedView {
     uint64_t large_capture_epoch;
     int large_capture_pipeline;
     uint8_t large_capture_group, large_capture_room;
-    /* The room left by the last scroll, kept drawn at its place while the
-     * camera still shows part of it (the pan to Link after the rebase). */
+    /* The room left by the last scroll, as Link left it, drawn at its place
+     * in the same epoch until the ghost's room stands there, a room it opens
+     * onto (ev_dungeon_neighbour). */
     uint32_t large_prev[LARGE_ROOM_W * LARGE_ROOM_H];
     int large_prev_valid;
+    uint8_t large_prev_group, large_prev_room;
+    int large_prev_drawn;            /* the composition under way drew the ghost's room there */
     uint32_t popup_frame[ORACLES_PPU_WIDTH * ORACLES_PPU_HEIGHT];   /* the LCD frame rendered again by the software PPU: without the blurb's sprites, those that appear, or a text box */
     blurb_drawing blurb_drawings[BLURB_DRAWINGS];
     unsigned blurb_drawings_head;

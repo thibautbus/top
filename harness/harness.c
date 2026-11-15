@@ -539,7 +539,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (r->ghost && o->ghost_trace_load) oracles_ghost_check_trace_load(r->ghost);
         if (!r->ghost) { fprintf(stderr, "harness: the ghost instance could not start\n"); return 1; }
     }
-    if (o->unvisited_hidden && !o->enhanced_dir) { fprintf(stderr, "harness: --unvisited-rooms hidden is the Enhanced view's: it needs --enhanced-check\n"); return 1; }
+    if (o->unvisited_hidden && !o->enhanced_dir) { fprintf(stderr, "harness: --unvisited-rooms hidden or dungeons is the Enhanced view's: it needs --enhanced-check\n"); return 1; }
     if (o->enhanced_dir) {
         r->enhanced = oracles_enhanced_check_start(r->core, r->guest, rom, rom_size, o->enhanced_dir, o->enhanced_threaded ? 0u : o->enhanced_budget);
         if (!r->enhanced) { fprintf(stderr, "harness: the Enhanced view could not start\n"); return 1; }

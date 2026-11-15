@@ -35,7 +35,11 @@ const char *const oracles_display_camera_choices[2] = { "Pixel", "Smooth" };
 const char *const oracles_display_quality_names[ORACLES_DISPLAY_QUALITIES + 1] = { "Low", "Medium", "High", "Max", "Custom" };
 const char *const oracles_display_menus_choices[2] = { "View", "Large" };
 const char *const oracles_display_far_size_choices[2] = { "Fitted", "Fixed" };
-const char *const oracles_display_unvisited_choices[2] = { "Shown", "Hidden" };
+const char *const oracles_display_unvisited_choices[3] = { "Shown", "Dungeons", "Hidden" };
+/* The choices from the least hidden: settings.txt's values unvisited_rooms=shown (0), dungeons (2) and hidden (1). */
+static const int unvisited_values[3] = { 0, 2, 1 };
+int oracles_display_unvisited_value(int choice) { return unvisited_values[(choice % 3 + 3) % 3]; }
+int oracles_display_unvisited_choice(int value) { return value == 2 ? 1 : value == 1 ? 2 : 0; }
 int oracles_display_transitions_apply(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
 int oracles_display_hud_applies(const OraclesHomeNav *nav)
 {
@@ -243,7 +247,7 @@ void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_
     unsigned count = 0, length = 0;
     if (enhanced && nav->display.far_fixed && oracles_display_far_size_shown(nav)) extras[count++] = "Far fixed";
     if (enhanced && !nav->display.menus != !nav->android) extras[count++] = nav->display.menus ? "Large menus" : "View menus";
-    if (enhanced && nav->display.unvisited) extras[count++] = "Rooms hidden";
+    if (enhanced && nav->display.unvisited) extras[count++] = nav->display.unvisited == 2 ? "Dungeons hidden" : "Rooms hidden";
     for (unsigned i = 0; i < count; i++) length += (unsigned)strlen(extras[i]) + (i ? 3u : 0u);   /* " · " is three characters */
     /* A filter other than Off after the scaling, which takes its room from the extras: in 16:9 they are then neither named
      * nor counted, the row keeping its two lines. */
@@ -609,7 +613,7 @@ const char *oracles_display_explanation(unsigned row)
             return "Large: menus, map, cutscenes and the file screen alone, at their own largest scale, easier to read on a small screen. View: "
                    "at the view's scale.";
         case ORACLES_DISPLAY_FAR_SIZE: return "Fitted: Far takes a size made for this screen. Fixed: Far's usual size.";
-        case ORACLES_DISPLAY_UNVISITED: return "Hidden keeps the rooms you have never entered dark around the game, as on the map.";
+        case ORACLES_DISPLAY_UNVISITED: return "Rooms you never entered stay dark, as on the map: in dungeons only, or everywhere.";
         default: return "";   /* Quality's says what is in effect: oracles_display_quality_text */
     }
 }
@@ -622,7 +626,7 @@ const char *oracles_display_explanation(unsigned row)
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
     static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 0, 4, 3, 3, 0, 2, 0, 2, 2, 3, 3, 2, 2, ORACLES_DISPLAY_MARGINS,
-                                                      2, 2, ORACLES_DISPLAY_TEXT_SIZES, 2, 0, 2, 2, 2, ORACLES_DISPLAY_FILTERS };
+                                                      2, 2, ORACLES_DISPLAY_TEXT_SIZES, 2, 0, 2, 2, 3, ORACLES_DISPLAY_FILTERS };
     int profile = (int)nav->display.profile;
     int *fields[ORACLES_DISPLAY_ROWS] = { &profile, NULL, &nav->display.window, &nav->display.view, &nav->display.hud, NULL,
                                           &nav->display.colour, NULL, &nav->display.core, &nav->display.transitions, &nav->display.vsync,
@@ -652,6 +656,7 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
         || oracles_display_row_fixed(nav, row) || (row == ORACLES_DISPLAY_WINDOW && oracles_display_one_size(nav)))
         return ORACLES_HOME_STAY;
     value = (value % counts[row] + counts[row]) % counts[row];
+    if (row == ORACLES_DISPLAY_UNVISITED) value = oracles_display_unvisited_value(value);
     if (*fields[row] == value || (row == ORACLES_DISPLAY_WINDOW && (nav->display.windows_refused >> value & 1u))) return ORACLES_HOME_STAY;
     *fields[row] = value;
     if (row == ORACLES_DISPLAY_WINDOW) nav->display.window_chosen = 1;
@@ -665,7 +670,7 @@ static int display_value(const OraclesHomeNav *nav, unsigned row)
                                                nav->display.colour, 0, nav->display.core, nav->display.transitions, nav->display.vsync, nav->display.workers,
                                                nav->display.scaling, oracles_display_camera(nav), nav->display.margin, nav->display.text, nav->display.text_box,
                                                nav->display.text_size, nav->display.text_speed, 0, nav->display.menus, nav->display.far_fixed,
-                                               nav->display.unvisited, oracles_display_filter_shown(nav) };
+                                               oracles_display_unvisited_choice(nav->display.unvisited), oracles_display_filter_shown(nav) };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 

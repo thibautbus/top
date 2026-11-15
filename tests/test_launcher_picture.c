@@ -18,7 +18,7 @@
 
 static const char *const ids[5] = { "scaling", "margin", "color", "menus", "unvisited" };
 static const unsigned rows_of[5] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
-static const char *const choice_ids[5][4] = { { "sharp", "fill" }, { "off", "auto", "small", "large" }, { "off", "on" }, { "view", "large" }, { "shown", "hidden" } };
+static const char *const choice_ids[5][4] = { { "sharp", "fill" }, { "off", "auto", "small", "large" }, { "off", "on" }, { "view", "large" }, { "shown", "dungeons", "hidden" } };
 
 /* Oracle of Ages with its original ROM; Display at a `width` x `height` screen's sizes, after a key (or a controller's
  * button, `gamepad`). */
@@ -72,7 +72,7 @@ static void hints(const char *frame, const OraclesHomeNav *nav, unsigned count)
 static void rows(const char *frame, const OraclesUiDisplayTexts *t, const OraclesUiDisplayLayout *l, int four_three)
 {
     const OraclesUiOptionLayout *options[5] = { l->scaling, l->margin, l->colour, l->menus, l->unvisited };
-    const unsigned counts[5] = { 2, ORACLES_DISPLAY_MARGINS, 2, 2, 2 };
+    const unsigned counts[5] = { 2, ORACLES_DISPLAY_MARGINS, 2, 2, 3 };
     char what[48];
     for (unsigned i = 0; i < 5u; i++) {
         const unsigned row = rows_of[i];
@@ -84,9 +84,11 @@ static void rows(const char *frame, const OraclesUiDisplayTexts *t, const Oracle
             snprintf(what, sizeof what, "%s %s", ids[i], choice_ids[i][c]); layout_box(frame, what, &options[i][c].box);
         }
     }
-    for (unsigned c = 0; c < 2u; c++) {
-        snprintf(what, sizeof what, "menus %s text", choice_ids[3][c]);
-        if (four_three) layout_line(frame, what, &l->menus[c].name); else layout_text(frame, what, &l->menus[c].name);
+    for (unsigned c = 0; c < 3u; c++) {
+        if (c < 2u) {
+            snprintf(what, sizeof what, "menus %s text", choice_ids[3][c]);
+            if (four_three) layout_line(frame, what, &l->menus[c].name); else layout_text(frame, what, &l->menus[c].name);
+        }
         snprintf(what, sizeof what, "unvisited %s text", choice_ids[4][c]);
         if (four_three) layout_line(frame, what, &l->unvisited[c].name); else layout_text(frame, what, &l->unvisited[c].name);
     }
@@ -258,16 +260,25 @@ static void layouts(void)
     CHECK(!t.size_notes[2][0] && oracles_display_size_row_live(&nav, ORACLES_DISPLAY_UNVISITED));
     rows("35a", &t, &l, 0);
     hints("35a", &nav, 4);
-    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    nav.display.unvisited = 1;
     lay_out(&nav, &t, &l);
     rows("35b", &t, &l, 0);
+    /* From the least hidden (turn 48): Shown, Dungeons (settings.txt's 2), Hidden (1), then round to Shown. */
+    nav.display.unvisited = 0;
+    CHECK(!strcmp(oracles_display_unvisited_choices[1], "Dungeons") && !strcmp(oracles_display_unvisited_choices[2], "Hidden"));
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.unvisited == 2);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.unvisited == 0);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 1) == ORACLES_HOME_STORE && nav.display.unvisited == 2);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 2) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
     /* 35c: 4:3, its short help. */
     ages(&nav, ORACLES_UI_LAYOUT_4_3, 1440, 1080, 0);
     picture(&nav, ORACLES_DISPLAY_UNVISITED);
     lay_out(&nav, &t, &l);
     rows("35c", &t, &l, 1);
     layout_line("35c", "help text", &l.help);
-    CHECK(!strcmp(t.help, "Hidden: rooms you never entered stay dark.") && !t.help_note);
+    CHECK(!strcmp(t.help, "Unentered rooms stay dark: in dungeons, or everywhere.") && !t.help_note);
     /* 35d: 640x480 on Android with a controller. */
     ages(&nav, ORACLES_UI_LAYOUT_4_3, 640, 480, 1);
     nav.android = 1;
@@ -310,6 +321,16 @@ static void layouts(void)
     layout_text("35g", "picture summary text", &l.picture_summary);
     layout_text("35g", "picture explanation", &l.picture_explanation.lines[0]);
     layout_box("35g", "panel", &l.panel);
+    /* 48l: Dungeons, counted in 16:9 past its twelve characters, named in 4:3. */
+    nav.display.unvisited = 2;
+    lay_out(&nav, &t, &l);
+    CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 1 more"));
+    char named[96];
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    oracles_display_picture_summary(&nav, named, sizeof named);
+    CHECK(!strcmp(named, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 Dungeons hidden"));
+    nav.layout = ORACLES_UI_LAYOUT_16_9;
+    nav.display.unvisited = 1;
     nav.display.menus = 1;
     lay_out(&nav, &t, &l);
     CHECK(!strcmp(t.picture_summary, "Sharp \xc2\xb7 No margin \xc2\xb7 Color off \xc2\xb7 2 more"));
@@ -428,7 +449,7 @@ static void keys(void)
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_MENUS, 0) == ORACLES_HOME_STORE && nav.display.menus == 0);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_SCALING, 0) == ORACLES_HOME_STORE && nav.display.scaling == 0);
     /* Unvisited rooms from the pause: it changes, when the game resumes; held by --unvisited-rooms, it does not, and says nothing. */
-    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 1) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_UNVISITED, 2) == ORACLES_HOME_STORE && nav.display.unvisited == 1);
     oracles_display_size_note(&nav, ORACLES_DISPLAY_UNVISITED, note, sizeof note);
     CHECK(!strcmp(note, "Applies when the game resumes."));
     nav.display.unvisited_fixed = 1;

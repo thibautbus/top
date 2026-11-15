@@ -39176,9 +39176,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 666.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 666.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -39210,7 +39216,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 671.5,
     "glyph_h": 31,
@@ -39218,6 +39224,17 @@
     "h": 31,
     "baseline": 695.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 671.5,
+    "glyph_h": 31,
+    "top": 671.5,
+    "h": 31,
+    "baseline": 695.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -39305,13 +39322,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 660,
     "glyph_h": 24,
     "top": 658,
     "h": 29,
     "baseline": 679,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -39656,8 +39673,14 @@
     "w": 153.953,
     "h": 90
    },
-   "unvisited hidden": {
+   "unvisited dungeons": {
     "x": 573.953,
+    "y": 743,
+    "w": 209.953,
+    "h": 90
+   },
+   "unvisited hidden": {
+    "x": 795.906,
     "y": 743,
     "w": 166.313,
     "h": 90
@@ -39695,8 +39718,19 @@
     "width": 105.953,
     "lines": 1
    },
-   "unvisited hidden text": {
+   "unvisited dungeons text": {
     "x": 597.953,
+    "w": 161.953,
+    "glyph_top": 765.297,
+    "glyph_h": 45,
+    "top": 767.297,
+    "h": 41.391,
+    "baseline": 800.297,
+    "width": 161.953,
+    "lines": 1
+   },
+   "unvisited hidden text": {
+    "x": 819.906,
     "w": 118.313,
     "glyph_top": 765.297,
     "glyph_h": 45,
@@ -39958,8 +39992,14 @@
     "w": 153.953,
     "h": 90
    },
-   "unvisited hidden": {
+   "unvisited dungeons": {
     "x": 573.953,
+    "y": 743,
+    "w": 209.953,
+    "h": 90
+   },
+   "unvisited hidden": {
+    "x": 795.906,
     "y": 743,
     "w": 166.313,
     "h": 90
@@ -39997,8 +40037,19 @@
     "width": 105.953,
     "lines": 1
    },
-   "unvisited hidden text": {
+   "unvisited dungeons text": {
     "x": 597.953,
+    "w": 161.953,
+    "glyph_top": 765.297,
+    "glyph_h": 45,
+    "top": 767.297,
+    "h": 41.391,
+    "baseline": 800.297,
+    "width": 161.953,
+    "lines": 1
+   },
+   "unvisited hidden text": {
+    "x": 819.906,
     "w": 118.313,
     "glyph_top": 765.297,
     "glyph_h": 45,
@@ -40361,8 +40412,14 @@
     "w": 153.953,
     "h": 90
    },
-   "unvisited hidden": {
+   "unvisited dungeons": {
     "x": 573.953,
+    "y": 849,
+    "w": 209.953,
+    "h": 90
+   },
+   "unvisited hidden": {
+    "x": 795.906,
     "y": 849,
     "w": 166.313,
     "h": 90
@@ -40378,8 +40435,19 @@
     "width": 105.953,
     "lines": 1
    },
-   "unvisited hidden text": {
+   "unvisited dungeons text": {
     "x": 597.953,
+    "w": 161.953,
+    "glyph_top": 871.297,
+    "glyph_h": 45,
+    "top": 873.297,
+    "h": 41.391,
+    "baseline": 906.297,
+    "width": 161.953,
+    "lines": 1
+   },
+   "unvisited hidden text": {
+    "x": 819.906,
     "w": 118.313,
     "glyph_top": 871.297,
     "glyph_h": 45,
@@ -40698,9 +40766,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 708.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 708.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -40732,7 +40806,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 713.5,
     "glyph_h": 31,
@@ -40740,6 +40814,17 @@
     "h": 31,
     "baseline": 737.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 713.5,
+    "glyph_h": 31,
+    "top": 713.5,
+    "h": 31,
+    "baseline": 737.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -40827,13 +40912,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 688,
     "glyph_h": 24,
     "top": 686,
     "h": 29,
     "baseline": 707,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -41037,9 +41122,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 708.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 708.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -41071,7 +41162,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 713.5,
     "glyph_h": 31,
@@ -41079,6 +41170,17 @@
     "h": 31,
     "baseline": 737.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 713.5,
+    "glyph_h": 31,
+    "top": 713.5,
+    "h": 31,
+    "baseline": 737.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -41166,13 +41268,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 688,
     "glyph_h": 24,
     "top": 686,
     "h": 29,
     "baseline": 707,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -42048,9 +42150,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 666.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 666.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -42082,7 +42190,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 671.5,
     "glyph_h": 31,
@@ -42090,6 +42198,17 @@
     "h": 31,
     "baseline": 695.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 671.5,
+    "glyph_h": 31,
+    "top": 671.5,
+    "h": 31,
+    "baseline": 695.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -42177,13 +42296,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 660,
     "glyph_h": 24,
     "top": 658,
     "h": 29,
     "baseline": 679,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -42512,9 +42631,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 666.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 666.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -42546,7 +42671,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 671.5,
     "glyph_h": 31,
@@ -42554,6 +42679,17 @@
     "h": 31,
     "baseline": 695.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 671.5,
+    "glyph_h": 31,
+    "top": 671.5,
+    "h": 31,
+    "baseline": 695.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -42641,13 +42777,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 660,
     "glyph_h": 24,
     "top": 658,
     "h": 29,
     "baseline": 679,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -42845,8 +42981,14 @@
     "w": 153.953,
     "h": 90
    },
-   "unvisited hidden": {
+   "unvisited dungeons": {
     "x": 573.953,
+    "y": 743,
+    "w": 209.953,
+    "h": 90
+   },
+   "unvisited hidden": {
+    "x": 795.906,
     "y": 743,
     "w": 166.313,
     "h": 90
@@ -42884,8 +43026,19 @@
     "width": 105.953,
     "lines": 1
    },
-   "unvisited hidden text": {
+   "unvisited dungeons text": {
     "x": 597.953,
+    "w": 161.953,
+    "glyph_top": 765.297,
+    "glyph_h": 45,
+    "top": 767.297,
+    "h": 41.391,
+    "baseline": 800.297,
+    "width": 161.953,
+    "lines": 1
+   },
+   "unvisited hidden text": {
+    "x": 819.906,
     "w": 118.313,
     "glyph_top": 765.297,
     "glyph_h": 45,
@@ -42949,13 +43102,13 @@
    },
    "help text": {
     "x": 64,
-    "w": 604.594,
+    "w": 780.563,
     "glyph_top": 74,
     "glyph_h": 36,
     "top": 69,
     "h": 47,
     "baseline": 103,
-    "width": 604.594,
+    "width": 780.563,
     "lines": 1
    }
   },
@@ -43147,8 +43300,14 @@
     "w": 153.953,
     "h": 90
    },
-   "unvisited hidden": {
+   "unvisited dungeons": {
     "x": 573.953,
+    "y": 743,
+    "w": 209.953,
+    "h": 90
+   },
+   "unvisited hidden": {
+    "x": 795.906,
     "y": 743,
     "w": 166.313,
     "h": 90
@@ -43186,8 +43345,19 @@
     "width": 105.953,
     "lines": 1
    },
-   "unvisited hidden text": {
+   "unvisited dungeons text": {
     "x": 597.953,
+    "w": 161.953,
+    "glyph_top": 765.297,
+    "glyph_h": 45,
+    "top": 767.297,
+    "h": 41.391,
+    "baseline": 800.297,
+    "width": 161.953,
+    "lines": 1
+   },
+   "unvisited hidden text": {
+    "x": 819.906,
     "w": 118.313,
     "glyph_top": 765.297,
     "glyph_h": 45,
@@ -43251,13 +43421,13 @@
    },
    "help text": {
     "x": 64,
-    "w": 604.594,
+    "w": 780.563,
     "glyph_top": 74,
     "glyph_h": 36,
     "top": 69,
     "h": 47,
     "baseline": 103,
-    "width": 604.594,
+    "width": 780.563,
     "lines": 1
    },
    "hint 0": {
@@ -43580,9 +43750,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 708.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 708.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -43614,7 +43790,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 713.5,
     "glyph_h": 31,
@@ -43622,6 +43798,17 @@
     "h": 31,
     "baseline": 737.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 713.5,
+    "glyph_h": 31,
+    "top": 713.5,
+    "h": 31,
+    "baseline": 737.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -43709,13 +43896,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 688,
     "glyph_h": 24,
     "top": 686,
     "h": 29,
     "baseline": 707,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {
@@ -43930,9 +44117,15 @@
     "h": 41
    },
    "unvisited shown": {
-    "x": 1579.266,
+    "x": 1424.797,
     "y": 708.5,
     "w": 107.578,
+    "h": 41
+   },
+   "unvisited dungeons": {
+    "x": 1540.375,
+    "y": 708.5,
+    "w": 146.469,
     "h": 41
    },
    "unvisited hidden": {
@@ -43964,7 +44157,7 @@
     "lines": 1
    },
    "unvisited shown text": {
-    "x": 1596.266,
+    "x": 1441.797,
     "w": 73.578,
     "glyph_top": 713.5,
     "glyph_h": 31,
@@ -43972,6 +44165,17 @@
     "h": 31,
     "baseline": 737.5,
     "width": 73.578,
+    "lines": 1
+   },
+   "unvisited dungeons text": {
+    "x": 1557.375,
+    "w": 112.469,
+    "glyph_top": 713.5,
+    "glyph_h": 31,
+    "top": 713.5,
+    "h": 31,
+    "baseline": 737.5,
+    "width": 112.469,
     "lines": 1
    },
    "unvisited hidden text": {
@@ -44059,13 +44263,13 @@
    },
    "unvisited explanation": {
     "x": 929,
-    "w": 597.844,
+    "w": 466.734,
     "glyph_top": 688,
     "glyph_h": 24,
     "top": 686,
     "h": 29,
     "baseline": 707,
-    "width": 597.844,
+    "width": 466.734,
     "lines": 2
    },
    "diagram": {

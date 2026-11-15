@@ -90,6 +90,8 @@ int oracles_enhanced_view_load_scroll_state(OraclesEnhancedView *v, const uint8_
     o.last_link_epoch = o.epoch * 8u + (uint64_t)(int64_t)scroll_field(data, n++);
     /* And the game loaded is in that scroll, in the reference's group, which a scroll does not change. */
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    /* A scroll keeps the floor: the cell's is the game's (the record, whose format stays, has none). */
+    o.ref_cell_floor = (uint8_t)(oracles_guest_read8(v->guest, t->dungeon_floor) & 3u);
     const uint8_t mode = oracles_guest_read8(v->guest, t->scroll_mode) & 0x7fu, state = oracles_guest_read8(v->guest, t->screen_transition_state);
     const int scrolling = (state >= 3u && state <= 5u) || mode == ORACLES_SCROLL_MODE_DECIDED || mode == ORACLES_SCROLL_MODE_TRANSITION;
     if (!sane || !scrolling || oracles_guest_read8(v->guest, t->active_group) != o.ref_group) return -1;

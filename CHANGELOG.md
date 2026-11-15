@@ -17,6 +17,7 @@ What changed in each version of The Oracles Project, the newest first. The relea
 
 ### Improved
 
+- **The rooms around Link in a dungeon.** In Enhanced, a dungeon's room now shows beside it the rooms it opens onto, through a door or an open side, as the rooms around Link do outside, instead of black around it. With **Display › Picture › Unvisited rooms** on **Hidden**, those Link has never entered stay dark, as on the dungeon's map; its new choice, **Dungeons**, keeps them dark in dungeons only and shows every room outside.
 - **Why a row is grayed.** A row or a menu entry grayed because the game does not have it now says "Not available for this game", where it named the games that had it, such as "Ages and Seasons only for now." or "Mods play on the original ROMs". One that waits for an original ROM says "Needs an original ROM": choose one in Cartridge. With Moonrise Regalia chosen, **Controls > Swimming** now says "Not available for this game." on wide screens too, not only on 4:3 screens; the setting stays live, as it applies to every game.
 
 ### Fixed

@@ -216,7 +216,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PICTURE,       /* the link to Display › Picture, its settings summed up beside it */
     ORACLES_DISPLAY_MENUS,         /* Display › Picture's Menus & scenes: View or Large */
     ORACLES_DISPLAY_FAR_SIZE,      /* its Far size: Fitted or Fixed, where it changes something */
-    ORACLES_DISPLAY_UNVISITED,     /* its Unvisited rooms, the last: Shown or Hidden */
+    ORACLES_DISPLAY_UNVISITED,     /* its Unvisited rooms, the last: Shown, Dungeons or Hidden */
     ORACLES_DISPLAY_FILTER,        /* its Filter, after Scaling: one of ORACLES_DISPLAY_FILTERS, stepped */
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
@@ -351,8 +351,8 @@ const char *oracles_display_colour_explanation(const OraclesHomeNav *nav, int fo
  * size fills badly or kept at its own, a row only where far is fitted to the screen (oracles_display_far_size_shown:
  * aspect=auto, 1280x960 or 1240x1080); Menus & scenes, "View" or "Large" (menus=view|large, Large Android's default),
  * the game's menus, map, cutscenes and file screen framed at the view's scale or shown alone at their own largest one;
- * Unvisited rooms, "Shown" or "Hidden" (unvisited_rooms=shown|hidden), the rooms around Link he has never entered drawn
- * or kept dark.  The three apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's):
+ * Unvisited rooms, "Shown", "Dungeons" or "Hidden" (unvisited_rooms=shown|dungeons|hidden), the rooms around Link he has
+ * never entered drawn, kept dark in a dungeon alone, or kept dark everywhere.  The three apply in Enhanced, as the HUD does (the profile chosen, from the pause the running game's):
  * dimmed and inert elsewhere, "Enhanced only.".  From the pause Menus & scenes applies at once and Unvisited rooms when
  * the game resumes ("Applies when the game resumes."); Far size, which changes the view, is dimmed there, and Unvisited
  * rooms where --unvisited-rooms gave it for the run.  A row's note, under its explanation (16:9) or on the help's note
@@ -365,7 +365,11 @@ int oracles_display_far_size_shown(const OraclesHomeNav *nav);
 void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_t capacity);
 extern const char *const oracles_display_menus_choices[2];
 extern const char *const oracles_display_far_size_choices[2];
-extern const char *const oracles_display_unvisited_choices[2];
+extern const char *const oracles_display_unvisited_choices[3];
+/* Unvisited rooms' choice, by its place in the row, and nav->display.unvisited's value (settings.txt's: 0 shown, 1 hidden,
+ * 2 dungeons), each of the other. */
+int oracles_display_unvisited_value(int choice);
+int oracles_display_unvisited_choice(int value);
 int oracles_display_size_row_live(const OraclesHomeNav *nav, unsigned row);
 void oracles_display_size_note(const OraclesHomeNav *nav, unsigned row, char *out, size_t capacity);
 /* Display › Picture's Filter: Off, Scanlines, CRT, LCD, Smooth, xBR, HQ2x and OmniScale (settings.txt's filter=, in that

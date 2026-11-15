@@ -325,22 +325,34 @@ void ec_measure_window_darker(OraclesEnhancedCheck *c, const OraclesEnhancedObse
  * on the frames the game's window moved inside the room and on those it stood still: a ripple anchored to the room
  * changes as many lines either way, one that crawls over it with the game's window more where it moves
  * (enhanced.whole_room_row_changes_moving and _still, per hundred frames; the most lines in one frame, _max).  The same
- * over every frame under the waves, the band's camera still from one to the next (enhanced.water_*). */
-static void measure_ripple(OraclesEnhancedCheck *c, EcRipple *r, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y)
+ * over every frame under the waves, the band's camera still from one to the next (enhanced.water_*).  Where a room of a
+ * dungeon is drawn left of the room in play, its line's start is that room's, not the band's outside: the room's right
+ * edge is measured instead, the last pixel other than the band's outside at the line's end, unless a room is drawn
+ * right of it too (the frame not measured); the frames of the two rates are counted (_moving_frames, _still_frames). */
+static void measure_ripple(OraclesEnhancedCheck *c, EcRipple *r, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y,
+                           int right)
 {
     static int32_t edges[512];
     static int16_t row_edge[512];
     unsigned count = 0;
-    const unsigned height = oracles_enhanced_view_height(c->view);
+    const unsigned height = oracles_enhanced_view_height(c->view), half = c->width / 2u;
     for (unsigned y = ORACLES_ENHANCED_HUD_HEIGHT; y < height && y < 512u; y++) {
-        const uint32_t *row = surface + (size_t)y * c->width, outside = row[0];
-        unsigned x = 0;
-        while (x < c->width / 2u && row[x] == outside) x++;
-        row_edge[y] = x > 0 && x < c->width / 2u ? (int16_t)x : -1;
-        if (row_edge[y] >= 0) edges[count++] = (int32_t)x;
+        const uint32_t *row = surface + (size_t)y * c->width;
+        if (right) {
+            const uint32_t outside = row[c->width - 1u];
+            unsigned x = c->width - 1u;
+            while (x > half && row[x] == outside) x--;
+            row_edge[y] = x > half && x < c->width - 1u ? (int16_t)x : -1;
+        } else {
+            const uint32_t outside = row[0];
+            unsigned x = 0;
+            while (x < half && row[x] == outside) x++;
+            row_edge[y] = x > 0 && x < half ? (int16_t)x : -1;
+        }
+        if (row_edge[y] >= 0) edges[count++] = row_edge[y];
     }
     if (!count) { r->have_edge = 0; return; }
-    const int same = r->have_edge && r->epoch == ob->epoch && r->camera_x == camera_x && r->camera_y == camera_y;
+    const int same = r->have_edge && r->right == right && r->epoch == ob->epoch && r->camera_x == camera_x && r->camera_y == camera_y;
     if (same) {
         unsigned changed = 0;
         for (unsigned y = ORACLES_ENHANCED_HUD_HEIGHT; y < height && y < 512u; y++)
@@ -357,7 +369,7 @@ static void measure_ripple(OraclesEnhancedCheck *c, EcRipple *r, const OraclesEn
     r->wave_frames++;
     if (edges[0] != edges[count - 1u]) r->rippled_frames++;
     if (same && edge != r->edge) r->edge_moves++;
-    r->have_edge = 1; r->edge = edge; r->epoch = ob->epoch; r->camera_x = camera_x; r->camera_y = camera_y;
+    r->have_edge = 1; r->right = right; r->edge = edge; r->epoch = ob->epoch; r->camera_x = camera_x; r->camera_y = camera_y;
 }
 
 void ec_measure_whole_room(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, const uint32_t *surface,
@@ -366,10 +378,12 @@ void ec_measure_whole_room(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
     const unsigned waves = oracles_enhanced_view_wave_frames(c->view);
     const int rippled = waves != c->whole_last_waves;
     c->whole_last_waves = waves;
-    const int world = mode == ORACLES_ENHANCED_WORLD && surface && rippled && !ob->in_transition;
-    if (world && oracles_enhanced_view_room_whole(c->view)) measure_ripple(c, &c->whole, ob, surface, camera_x, camera_y);
+    const unsigned sides = oracles_enhanced_view_dungeon_sides(c->view);
+    const int right = (sides & (1u << ORACLES_DIR_LEFT)) != 0;
+    const int world = mode == ORACLES_ENHANCED_WORLD && surface && rippled && !ob->in_transition && !(right && (sides & (1u << ORACLES_DIR_RIGHT)));
+    if (world && oracles_enhanced_view_room_whole(c->view)) measure_ripple(c, &c->whole, ob, surface, camera_x, camera_y, right);
     else c->whole.have_edge = 0;
-    if (world) measure_ripple(c, &c->water, ob, surface, camera_x, camera_y);
+    if (world) measure_ripple(c, &c->water, ob, surface, camera_x, camera_y, right);
     else c->water.have_edge = 0;
 }
 

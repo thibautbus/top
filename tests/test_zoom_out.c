@@ -1898,6 +1898,13 @@ static void unvisited_rooms(void)
     oracles_enhanced_view_unvisited_counts(view, &u);
     CHECK(u.hidden_frames == hidden_frames && oracles_enhanced_view_uncovered(view) == W * BAND_H - 160u * 128u && surface[16u * W] == dark);
     CHECK(!oracles_enhanced_view_neighbour_dark(view, 3, NULL));
+    /* Kept dark in a dungeon alone: outdoors, the band as Shown. */
+    oracles_enhanced_view_set_unvisited_hidden(view, ORACLES_ENHANCED_UNVISITED_DUNGEONS);
+    CHECK(oracles_enhanced_view_unvisited_hidden(view) == ORACLES_ENHANCED_UNVISITED_DUNGEONS);
+    frames(&r, view, 5, &mode, &cam, &cam_y);
+    oracles_enhanced_view_unvisited_counts(view, &u);
+    CHECK(u.hidden_frames == hidden_frames && oracles_enhanced_view_uncovered(view) == W * BAND_H - 160u * 128u && !oracles_enhanced_view_neighbour_dark(view, 3, NULL));
+    oracles_enhanced_view_set_unvisited_hidden(view, 0);
     #undef W0
     oracles_enhanced_view_stop(view);
     rig_stop(&r);

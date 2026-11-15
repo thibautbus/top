@@ -439,7 +439,10 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
 {
     const int32_t reach = wave_reach(v);
     int plain_shown = 0, side_stale_shown = 0, left_entry_held = 0, self_beside = 0;   /* the room left's entry, drawable, given way to its image */
+    unsigned dungeon_shown = 0, dungeon_dark = 0;
     memset(v->drawn_places, 0, sizeof v->drawn_places);
+    v->large_prev_drawn = 0;
+    v->dungeon_sides = 0;
     ev_hidden_begin(v);
     /* The image of the room left, drawn where no capture of that room is
      * while it stays in the band (the first source of a place wins); dropped
@@ -502,12 +505,23 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         add_source(&nbs[count++], left, top, pixels, (unsigned)w, (unsigned)h, 1);
         nbs[count - 1u].veil = ev_room_veil(v, e->room);
         if (nbs[count - 1u].veil >= 256u) nbs[count - 1u].edge_veil = ev_room_edge_veil(v, e->room);
+        if (v->observation.large_grid && !e->routed && e->room != v->observer.ref_room) {
+            if (v->large_prev_valid && e->group == v->large_prev_group && e->room == v->large_prev_room) v->large_prev_drawn = 1;
+            v->dungeon_sides |= 1u << (unsigned)dir;
+            dungeon_shown++;
+            if (nbs[count - 1u].veil >= 256u) dungeon_dark++;
+        }
         if (!e->routed && !v->observation.large_grid) v->drawn_places[e->room >> 5u] |= 1u << (e->room & 31u);
         if (nbs[count - 1u].veil < 256u && oracles_enhanced_capture_blank(e->bg_palettes, e->base_bg_palettes, e->palette_offset, NULL, 0)) plain_shown = 1;
     }
     if (plain_shown) v->plain_shown_frames++;
     if (side_stale_shown) v->side_stale_frames++;
     if (self_beside) v->self_beside_frames++;
+    if (v->observation.large_grid && !v->observation.in_transition && dungeon_shown) {
+        v->dungeon_neighbour_frames++;
+        if (dungeon_dark) v->dungeon_dark_frames++;
+        if (dungeon_shown > v->dungeon_neighbours_max) v->dungeon_neighbours_max = dungeon_shown;
+    }
     for (unsigned d = 0; d < 4; d++)
         if (v->shown_slot[d] < SLOTS && !ev_room_hidden(v, v->slots[v->shown_slot[d]].group, v->slots[v->shown_slot[d]].room)) v->shown[d] = 1;
     const entry *captured = ev_on_map(v) && v->source_valid ? ev_find_entry(v, v->source_group, v->source_room) : NULL;
@@ -542,8 +556,8 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
  * vblank that follows drains them into the VRAM (the DMA queue) and the live
  * render would show the room left beside the window for that frame; else
  * the live render of the whole room, captured for the next scroll; and the
- * room left by the last scroll, kept drawn at its place while the camera
- * still shows part of it. */
+ * room left by the last scroll, as Link left it, drawn at its place until the
+ * ghost's room stands there (a room the room in play opens onto). */
 /* A room of the overworld beside the reference room, the diagonals
  * included, that the band shows but no delivered terrain covers yet: the
  * black patch the ghost has not filled, counted by frame
@@ -582,6 +596,23 @@ static int room_waiting_in_view(OraclesEnhancedView *v, int32_t camera_x, int32_
     return 0;
 }
 
+/* The same in a dungeon's large room at rest: a room it opens onto, in the band shown, that the ghost has not
+ * delivered yet (black where it will stand). */
+static int dungeon_room_waiting(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y)
+{
+    if (!v->observation.large_grid || v->observation.in_transition) return 0;
+    for (unsigned d = 0; d < 4; d++) {
+        uint8_t room;
+        if (!ev_dungeon_neighbour(v, (OraclesGhostDirection)d, &room)) continue;
+        const int32_t left = v->observation.world.origin_x + (d == ORACLES_DIR_RIGHT ? (int32_t)LARGE_ROOM_W : d == ORACLES_DIR_LEFT ? -(int32_t)LARGE_ROOM_W : 0);
+        const int32_t top = v->observation.world.origin_y + (d == ORACLES_DIR_DOWN ? (int32_t)LARGE_ROOM_H : d == ORACLES_DIR_UP ? -(int32_t)LARGE_ROOM_H : 0);
+        if (!ev_shown_meets(v, camera_x, camera_y, left, top, (int32_t)LARGE_ROOM_W, (int32_t)LARGE_ROOM_H, 0)) continue;
+        if (ev_room_hidden(v, v->observer.ref_group, room)) continue;
+        if (!ev_entry_drawable(v, ev_find_entry(v, v->observer.ref_group, room))) return 1;
+    }
+    return 0;
+}
+
 static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count)
 {
     const OraclesEnhancedObservation *ob = &v->observation;
@@ -590,6 +621,7 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
     if (v->large_capture_valid && !capture_is_this_room) {
         /* The reference changed (a scroll ended): the capture is the room left. */
         memcpy(v->large_prev, v->large_capture, sizeof v->large_prev);
+        v->large_prev_group = v->large_capture_group; v->large_prev_room = v->large_capture_room;
         v->large_prev_left = v->large_capture_left; v->large_prev_top = v->large_capture_top;
         v->large_prev_epoch = v->large_capture_epoch; v->large_prev_pipeline = v->large_capture_pipeline;
         v->large_prev_valid = 1;
@@ -626,7 +658,7 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
             }
         }
     }
-    if (v->large_prev_valid && v->large_prev_epoch == ob->epoch && v->large_prev_pipeline == v->colours_pipeline)
+    if (v->large_prev_valid && !v->large_prev_drawn && v->large_prev_epoch == ob->epoch && v->large_prev_pipeline == v->colours_pipeline)
         add_source(&nbs[count++], v->large_prev_left, v->large_prev_top, v->large_prev, LARGE_ROOM_W, LARGE_ROOM_H, 0);
     return count;
 }
@@ -649,6 +681,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     }
     v->observer.exact = oracles_enhanced_view_subpixel_on(v);
     oracles_enhanced_observe(v->guest, &v->observer, &v->observation);
+    ev_unvisited_apply(v);
     if (!v->observation.in_scroll) v->scroll_loaded = 0;
     /* The interior's open edges come from the cache as it stands, for the
      * reference room this observation settled on: at the end of a scroll the
@@ -759,6 +792,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         unsigned count = add_grid_sources(v, nbs, 0, camera_x, camera_y);
         count = add_large_room_sources(v, nbs, count);
         if (room_waiting_in_view(v, camera_x, camera_y)) v->waiting_frames++;
+        if (dungeon_room_waiting(v, camera_x, camera_y)) v->dungeon_waiting_frames++;
         v->large_was_in_scroll = !v->observation.grid && v->observation.large && v->observation.in_scroll;
         v->large_scroll_epoch = v->observation.epoch;
         v->wave_held = 0;
@@ -825,7 +859,8 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         in.shown_height = v->shown_height;
         if (v->observation.large_grid && ev_drawn_back(v)) {
             /* The whole large room, and during a scroll the room it enters: black
-             * there is waiting; around them it is decided (no neighbours shown). */
+             * there is waiting; around them the rooms it opens onto have their
+             * own count (dungeon_waiting_frames), the rest is decided. */
             const OraclesEnhancedObservation *ob = &v->observation;
             const unsigned d = ob->scroll_direction & 3u;
             const int entering = ev_scroll_enters_room(v);
@@ -992,6 +1027,12 @@ unsigned oracles_enhanced_view_terrain_given_up(const OraclesEnhancedView *v) { 
 unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *v) { return v->left_stale_frames; }
 unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *v) { return v->side_stale_frames; }
 unsigned oracles_enhanced_view_self_beside_frames(const OraclesEnhancedView *v) { return v->self_beside_frames; }
+unsigned oracles_enhanced_view_dungeon_sides(const OraclesEnhancedView *v) { return v->dungeon_sides; }
+void oracles_enhanced_view_dungeon_counts(const OraclesEnhancedView *v, OraclesEnhancedDungeonCounts *out)
+{
+    out->neighbour_frames = v->dungeon_neighbour_frames; out->dark_frames = v->dungeon_dark_frames;
+    out->neighbours_max = v->dungeon_neighbours_max; out->waiting_frames = v->dungeon_waiting_frames;
+}
 void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *v, unsigned *frames, unsigned *longest) { *frames = v->left_image_frames; *longest = v->left_image_longest; }
 unsigned oracles_enhanced_view_objects_refresh_put_off(const OraclesEnhancedView *v) { return v->objects_refresh_put_off; }
 unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *v) { return v->refresh_given_up; }

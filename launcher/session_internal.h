@@ -106,7 +106,7 @@ typedef struct session {
     int menus_large;         /* the Enhanced view's menus shown alone at their own scale (menus=large), as the pause may change it */
     int screen_margin_option;   /* --screen-margin's, an OraclesScreenMargin plus one, which holds for the run; 0: the settings' */
     int text_size_option;       /* --text-size's, the size plus one, which holds for the run; 0: the settings' */
-    int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, which holds for the run; 0: the settings' */
+    int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, 3 dungeons, which holds for the run; 0: the settings' */
     OraclesEnhancedFarChoice far_choice;   /* what decided the far view's size at the start, for a savestate's refusal */
     int subpixel_followed;      /* in a window: the view's sub-pixel camera follows the settings at the scale the screen shows it */
     uint32_t frames_presented;  /* the run's, once it ended: a run that presented none keeps no last picture */

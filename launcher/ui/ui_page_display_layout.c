@@ -190,7 +190,8 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
             OraclesUiLine *const notes_out[1] = { &out->size_notes[n] };
             y += DISPLAY_ROW_GAP;
             y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[row], left, t->size_explanations[n], ADVANCED_EXPLANATION_H, notes,
-                                        t->size_notes[n][0] ? 1 : 0, size_choices[i], NULL, 2, &out->labels[row], &out->size_explanations[n], notes_out,
+                                        t->size_notes[n][0] ? 1 : 0, size_choices[i], NULL, row == ORACLES_DISPLAY_UNVISITED ? 3 : 2, &out->labels[row],
+                                        &out->size_explanations[n], notes_out,
                                         size_options[i], &out->rows[row]);
         }
         out->panel = pl_box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
@@ -417,7 +418,7 @@ static void display_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *
         if (t->far_size)
             y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_FAR_SIZE, oracles_display_far_size_choices, NULL, NULL, 2, out->far_size, out) + DISPLAY_ROW_GAP_4_3;
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_MENUS, oracles_display_menus_choices, NULL, NULL, 2, out->menus, out) + DISPLAY_ROW_GAP_4_3;
-        oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_UNVISITED, oracles_display_unvisited_choices, NULL, NULL, 2, out->unvisited, out);
+        oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_UNVISITED, oracles_display_unvisited_choices, NULL, NULL, 3, out->unvisited, out);
     } else if (t->advanced) {
         const char *workers[3];
         for (int i = 0; i < 3; i++) workers[i] = t->workers_names[i];
@@ -546,7 +547,7 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         "Accurate: the reference. Fast: lighter.", "Rooms scroll into one another, swimming too.", VSYNC_SHORT, "Two fill the view faster, on one more core.",
         "Sharp: exact pixels. Fill: the whole screen.", "Smooth: diagonal walks glide.", "Keeps the picture clear of hidden screen edges.", NULL, NULL,
         NULL, NULL, "Scaling, filter, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
-        "Fitted: a Far made for this screen.", "Hidden: rooms you never entered stay dark.", NULL,
+        "Fitted: a Far made for this screen.", "Unentered rooms stay dark: in dungeons, or everywhere.", NULL,
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;
     t->help = row == ORACLES_DISPLAY_COLOUR ? oracles_display_colour_explanation(nav, 1) : help_4_3[row];

@@ -585,6 +585,23 @@ static void large_entry_margin(entry *e, const OraclesPpuInput *in, uint8_t lcdc
     }
 }
 
+/* Whether an OAM entry before `upto`, which the PPU draws over the later ones, has a pixel of its own at (x, ly) on the
+ * screen (the status bar's lines included). */
+static int earlier_sprite_at(const OraclesPpuInput *in, unsigned upto, unsigned height, int x, int ly)
+{
+    for (unsigned q = 0; q < upto && q < 40u; q++) {
+        const uint8_t *o = in->oam + q * 4u;
+        const int top = (int)o[0] - 16, left = (int)o[1] - 8;
+        if (!o[0] || ly < top || ly >= top + (int)height || x < left || x >= left + 8) continue;
+        const uint8_t attr = o[3], *tiles = in->vram + ((attr & 0x08u) ? 0x2000u : 0u);
+        const unsigned line = (attr & 0x40u) ? height - 1u - (unsigned)(ly - top) : (unsigned)(ly - top);
+        const unsigned tile = height == 16u ? (o[2] & 0xfeu) + (line >> 3) : o[2];
+        const unsigned col = (unsigned)(x - left), bit = (attr & 0x20u) ? col : 7u - col;
+        if (((tiles[tile * 16u + (line & 7u) * 2u] >> bit) & 1u) | ((tiles[tile * 16u + (line & 7u) * 2u + 1u] >> bit) & 1u)) return 1;
+    }
+    return 0;
+}
+
 /* With the harness's check, a large room's entry just rendered with its
  * objects: what lay past each edge of the ghost's window brought onto the LCD
  * by the PPU itself, the ghost's OAM and its scroll registers shifted by 8
@@ -657,9 +674,9 @@ static void large_entry_objects(OraclesEnhancedView *v, entry *e, OraclesPpuInpu
 /* With the harness's check, a large room's entry just rendered with its
  * objects: each object whose capture shows the pose its record holds, that
  * pose built where the ghost's window placed it, its pixels looked for in the
- * room's render at their place there (those the background hides aside, a
- * puddle lowering it a pixel); found at fewer than half, it is drawn
- * elsewhere, or not at all. */
+ * room's render at their place there (those the background hides aside, and
+ * those another object drawn over it covers, a puddle lowering it a pixel);
+ * found at fewer than half, it is drawn elsewhere, or not at all. */
 static void check_large_entry_people(OraclesEnhancedView *v, const entry *e, const OraclesPpuInput *in, uint8_t lcdc)
 {
     if (!large_entry_window(e)) return;
@@ -703,6 +720,7 @@ static void check_large_entry_people(OraclesEnhancedView *v, const entry *e, con
                     const unsigned bit = (attr & 0x20u) ? col : 7u - col, colour = ((lo >> bit) & 1u) | (((hi >> bit) & 1u) << 1);
                     if (!colour || x < 0 || x >= (int)ORACLES_ENHANCED_CORE_WIDTH) continue;
                     if (oracles_ppu_hides_object(lcdc, oracles_ppu_background_at(&maps, &r, (unsigned)x, (unsigned)ly), attr)) continue;
+                    if (earlier_sprite_at(in, tag->first, height, x, ly)) continue;
                     const unsigned at = (attr & 7u) * 8u + colour * 2u;
                     const uint32_t want = in->colours[(in->obj_palettes[at] | (in->obj_palettes[at + 1u] << 8)) & 0x7fffu];
                     seen++;

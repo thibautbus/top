@@ -64,8 +64,8 @@ typedef struct OraclesSessionOptions {
                                       * it); 0: settings.txt's text_size= */
     int text_instant;                /* --text-speed: 1 classic, 2 instant (each line of the text box whole, in either profile); 0 for a game
                                       * the home screen starts: settings.txt's text_speed= */
-    int unvisited_hidden;            /* --unvisited-rooms: 1 shown, 2 hidden (the rooms never entered kept dark, in Enhanced), for the run;
-                                      * 0: settings.txt's unvisited_rooms= */
+    int unvisited_hidden;            /* --unvisited-rooms: 1 shown, 2 hidden (the rooms never entered kept dark, in Enhanced), 3 dungeons (kept
+                                      * dark in a dungeon alone), for the run; 0: settings.txt's unvisited_rooms= */
     int text_box_wide;               /* --text-box: 1 standard, 2 wide (the host's box, 192 pixels of text, in Enhanced alone); 0 for a game
                                       * the home screen starts: settings.txt's text_box= */
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
@@ -157,7 +157,7 @@ typedef struct OraclesSessionApplied {
     int text_instant;   /* the instant text (-1 where the game's profile has none), as the settings had it when the game last took it */
     int vsync;
     int menus_large;   /* menus=large (-1 without the Enhanced view) */
-    int unvisited_hidden;   /* unvisited_rooms=hidden (-1 without the Enhanced view, or while --unvisited-rooms holds it for the run) */
+    int unvisited_hidden;   /* unvisited_rooms= (ORACLES_ENHANCED_UNVISITED_*; -1 without the Enhanced view, or while --unvisited-rooms holds it for the run) */
     int filter;             /* filter= (oracles_settings_filter_names), which the renderer draws the game through; 0 for the tests that leave it */
 } OraclesSessionApplied;
 #define ORACLES_SESSION_CHANGED_COLOUR 1u

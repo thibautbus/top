@@ -464,6 +464,8 @@ static void finish_job(OraclesEnhancedView *v, const OraclesGhostResult *r, int 
             || parent->accepted_at != v->pending_parent_accepted) { v->stale++; return; }   /* delivered again meanwhile, by another ghost */
     }
     const int delivered = rc == 1 && r->status == ORACLES_GHOST_OK && r->settled;
+    if (!v->pending_chained && rc == 1 && r->status == ORACLES_GHOST_OK && r->from_group == v->pending_group)
+        ev_note_dungeon_answer(v, r->from_group, r->from_room, v->pending_dir, r->group != v->pending_group || r->room != v->pending_room);
     if (put_off_objects_refresh(v, e)) return;
     if (delivered && !v->pending_chained && r->group == v->pending_group && r->room != v->pending_room
         && r->group == r->from_group && r->room == r->from_room) {

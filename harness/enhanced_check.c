@@ -301,6 +301,32 @@ static void check_drawn_rooms(OraclesEnhancedCheck *c, const OraclesEnhancedObse
     }
 }
 
+/* The rooms of a dungeon the view gives as those its room in play opens onto, against the layout of that room's own
+ * floor (w2DungeonLayout, $40 bytes a floor), wherever the layout names it, whatever the floor the game is on: each must
+ * be the room the layout names beside it that way.  The game changes wDungeonFloor before it leaves the room by a hole
+ * or Ages' stairs without a warp of their own, the room in play still the reference through the fade; the rooms
+ * around it are still that floor's (enhanced.dungeon_neighbours_off_floor, compositions with one that is not). */
+static void check_dungeon_neighbours(OraclesEnhancedCheck *c)
+{
+    uint8_t room, beside[4], layout[0x100];
+    const unsigned sides = oracles_enhanced_view_dungeon_neighbours(c->view, &room, beside);
+    if (!sides) return;
+    const OraclesGuestTables *t = oracles_guest_tables(c->guest);
+    for (unsigned i = 0; i < sizeof layout; i++)
+        layout[i] = oracles_guest_read8(c->guest, (OraclesGuestSym){ t->dungeon_layout.bank, (uint16_t)(t->dungeon_layout.addr + i) });
+    for (unsigned d = 0; d < 4; d++) {
+        if (!(sides & (1u << d))) continue;
+        int found = 0;
+        for (unsigned i = 0; i < sizeof layout && !found; i++) {
+            if (layout[i] != room) continue;
+            const unsigned col = i & 7u, row = (i >> 3) & 7u, floor = i & ~0x3fu;
+            const int to_col = (int)col + (d == ORACLES_DIR_RIGHT) - (d == ORACLES_DIR_LEFT), to_row = (int)row + (d == ORACLES_DIR_DOWN) - (d == ORACLES_DIR_UP);
+            found = to_col >= 0 && to_col < 8 && to_row >= 0 && to_row < 8 && layout[floor + (unsigned)to_row * 8u + (unsigned)to_col] == beside[d];
+        }
+        if (!found) { c->dungeon_neighbours_off_floor++; return; }
+    }
+}
+
 void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
 {
     OraclesEnhancedMode mode;
@@ -378,6 +404,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     const unsigned uncovered = oracles_enhanced_view_uncovered(c->view);
     if (mode == ORACLES_ENHANCED_WORLD && uncovered) ec_measure_coverage(c, frame, uncovered);
     if (mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->in_transition) check_drawn_rooms(c, ob);   /* before a reload replaces the state composed */
+    check_dungeon_neighbours(c);
     ec_reload_step(c, frame, mode, camera_x, shown, room);
     ec_measure_scroll(c, ob, mode, uncovered);
     ec_measure_seams(c, frame, ob, mode);

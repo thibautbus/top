@@ -23,7 +23,7 @@ int harness_usage(void)
                     "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/REFERENCE.md)\n"
                     "                       [--screen WxH]   (with --enhanced-check: the screen's shape, unless --aspect names one, and the far view fitted to that screen, as the launcher's far=screen)\n"
                     "                       [--hud original|full|wide]   (with --enhanced-check: the gutters beside the status bar dark, or the bar's own background, or the bar laid out on it, as the launcher's hud=; original by default)\n"
-                    "                       [--unvisited-rooms shown|hidden]   (with --enhanced-check: the rooms the game has never seen Link enter drawn, or kept dark, as the launcher's unvisited_rooms=; shown by default)\n"
+                    "                       [--unvisited-rooms shown|hidden|dungeons]   (with --enhanced-check: the rooms the game has never seen Link enter drawn, or kept dark, or kept dark in a dungeon alone, as the launcher's unvisited_rooms=; shown by default)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
                     "                       [--language en|en-eu|fr|de|it|es|ja|pl [--eu-rom FILE|DIR] [--language-pack FILE]]   (the European ROM's English or a translation, the Japanese ROM's Japanese (ja), or Kaxus's Polish (pl) from the Polish ROM or his patch, which --eu-rom then names, from that ROM or its pack, served at getTextAddress; a fan game's too, with --patch, but for Japanese and Polish)\n"
                     "                       (--enhanced-paced holds each frame to the Game Boy's period by a busy wait: a core a replay, as in play)\n"
@@ -156,8 +156,12 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         }
         else if (!strcmp(argv[i], "--unvisited-rooms") && i + 1 < argc) {
             const char *name = argv[++i];
-            if (strcmp(name, "shown") && strcmp(name, "hidden")) { fprintf(stderr, "harness: --unvisited-rooms is shown or hidden, not %s\n", name); return -1; }
-            o->unvisited_hidden = !strcmp(name, "hidden");
+            if (strcmp(name, "shown") && strcmp(name, "hidden") && strcmp(name, "dungeons")) {
+                fprintf(stderr, "harness: --unvisited-rooms is shown, hidden or dungeons, not %s\n", name);
+                return -1;
+            }
+            o->unvisited_hidden = !strcmp(name, "hidden") ? ORACLES_ENHANCED_UNVISITED_HIDDEN : !strcmp(name, "dungeons") ? ORACLES_ENHANCED_UNVISITED_DUNGEONS
+                                                                                          : ORACLES_ENHANCED_UNVISITED_SHOWN;
         }
         else if (!strcmp(argv[i], "--enhanced-camera") && i + 1 < argc) {
             const char *camera = argv[++i];

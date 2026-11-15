@@ -227,7 +227,11 @@ static void update_reference(OraclesGuest *guest, const OraclesGuestTables *t, O
  * as soon as the floor's layout names the room at it (w2DungeonLayout, the
  * game's own lookup): after a warp the room byte is set a few frames before
  * the position, and the room's index stood in for the cell meanwhile, two
- * rows off. */
+ * rows off.  The floor is kept with the cell: a fall into a hole
+ * (initiateFallDownHoleWarp) and Ages' stairs without a warp of their own
+ * (findWarpSourceAndDest's warpSourceNotFound) change wDungeonFloor while
+ * the room is still the reference, its fade to come, whose layout there
+ * names other rooms. */
 static void sample_reference_cell(OraclesGuest *guest, const OraclesGuestTables *t, OraclesEnhancedObserver *o, const OraclesEnhancedObservation *out, uint8_t is_large)
 {
     if (out->group != o->ref_group || out->room != o->ref_room) return;
@@ -237,6 +241,7 @@ static void sample_reference_cell(OraclesGuest *guest, const OraclesGuestTables 
         const OraclesGuestSym at = { t->dungeon_layout.bank, (uint16_t)(t->dungeon_layout.addr + (floor & 3u) * 0x40u + (pos & 0x3fu)) };
         if (oracles_guest_read8(guest, at) == out->room) {
             o->ref_cell = (uint8_t)(((pos >> 3) & 7u) << 4 | (pos & 7u)); o->have_ref_cell = 1; o->ref_cell_group = o->ref_group; o->ref_cell_room = o->ref_room;
+            o->ref_cell_floor = (uint8_t)(floor & 3u);
         }
     } else if (!out->in_transition) {
         o->ref_cell = o->ref_room; o->have_ref_cell = 1; o->ref_cell_group = o->ref_group; o->ref_cell_room = o->ref_room;
