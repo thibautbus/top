@@ -70,6 +70,8 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.camera_jumps=%u\nenhanced.largest_jump=%" PRId32 "\nenhanced.camera_jumps_y=%u\nenhanced.largest_jump_y=%" PRId32 "\n", c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
     fprintf(out, "enhanced.loop_rebases=%u\n", c->loop_rebases);
     fprintf(out, "enhanced.return_glide_frames=%u\nenhanced.return_glide_pixels=%u\n", c->return_glide_frames, c->return_glide_pixels);
+    fprintf(out, "enhanced.unheld_apart_frames=%u\nenhanced.unheld_held_frames=%u\nenhanced.unheld_rejoin_longest=%u\nenhanced.unheld_apart_max=%" PRId32 "\n",
+            c->unheld_apart_frames, c->unheld_held_frames, c->unheld_rejoin_longest, c->unheld_apart_max);
     fprintf(out, "enhanced.band_still_glide_frames=%u\n", c->band_still_glide_frames);
     fprintf(out, "enhanced.link_jumps=%u\nenhanced.link_jumps_y=%u\nenhanced.window_jumps=%u\n", c->link_jumps, c->link_jumps_y, c->window_jumps);
     fprintf(out, "enhanced.link_drawn_steps=%u\nenhanced.link_backsteps=%u\nenhanced.link_backsteps_y=%u\n", c->link_drawn_steps, c->link_backsteps, c->link_backsteps_y);
@@ -104,6 +106,7 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.link_edge_margin_min=%" PRId32 "\nenhanced.link_near_edge_frames=%u\n", c->link_edge_margin_min, c->link_near_edge_frames);
     fprintf(out, "enhanced.ghost_requested=%u\nenhanced.ghost_completed=%u\nenhanced.ghost_failed=%u\nenhanced.ghost_not_primeable=%u\nenhanced.ghost_load_failed=%u\nenhanced.ghost_never_settled=%u\nenhanced.ghost_wrong_room=%u\nenhanced.ghost_other=%u\n",
             requested, completed, failed, reasons[0], reasons[1], reasons[2], reasons[3], reasons[4]);
+    fprintf(out, "enhanced.ghost_busy=%u\n", oracles_enhanced_view_busy_refusals(c->view));
 }
 
 /* The figures of what the band showed: the neighbours entered, the scrolls,
@@ -182,6 +185,12 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         unsigned people = 0, off = 0, off_renders = 0;
         oracles_enhanced_view_large_entry_people(c->view, &people, &off, &off_renders);
         fprintf(out, "enhanced.large_entry_people=%u\nenhanced.large_entry_people_off=%u\nenhanced.large_entry_off_renders=%u\n", people, off, off_renders);
+        unsigned scroll_frames = 0, scroll_missing = 0, edge_sprites = 0, edge_pixels = 0, edge_wrong = 0, edge_background_wrong = 0;
+        oracles_enhanced_view_large_scroll_people(c->view, &scroll_frames, &scroll_missing);
+        oracles_enhanced_view_large_entry_edges(c->view, &edge_sprites, &edge_pixels, &edge_wrong, &edge_background_wrong);
+        fprintf(out, "enhanced.large_scroll_people_frames=%u\nenhanced.large_scroll_people_missing=%u\nenhanced.large_entry_edge_sprites=%u\n"
+                "enhanced.large_entry_edge_object_pixels=%u\nenhanced.large_entry_edge_object_wrong=%u\nenhanced.large_entry_edge_background_wrong=%u\n",
+                scroll_frames, scroll_missing, edge_sprites, edge_pixels, edge_wrong, edge_background_wrong);
         fprintf(out, "enhanced.neighbour_objects_outdated=%u\nenhanced.refresh_given_up=%u\nenhanced.parents_run_for_kills=%u\n", oracles_enhanced_view_objects_outdated(c->view), oracles_enhanced_view_refresh_given_up(c->view), oracles_enhanced_view_parents_run_for_kills(c->view));
         fprintf(out, "enhanced.objects_story_refreshes=%u\nenhanced.objects_story_dropped=%u\nenhanced.objects_stale_frames=%u\n", oracles_enhanced_view_objects_story_refreshes(c->view),
                 oracles_enhanced_view_objects_story_dropped(c->view), oracles_enhanced_view_objects_stale_frames(c->view));
@@ -248,6 +257,11 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.reload=%s\nenhanced.reload_settled_after=%u\nenhanced.reload_camera_delta=%" PRId32 "\nenhanced.reload_camera_frozen=%u\nenhanced.reload_transition_frames=%u\nenhanced.reload_transition_differing=%u\n",
                 !c->reload_done ? "not-performed" : c->reload_settled == 1 ? "neighbours-back" : "neighbours-not-back", c->reload_settled_after, c->reload_camera_delta,
                 c->reload_done && c->reload_link_travel > 16 && c->reload_camera_travel == 0 ? 1u : 0u, c->reload_track_compared, c->reload_track_differing);
+    if (c->reload_at)
+        fprintf(out, "enhanced.reload_black_frames=%u\nenhanced.reload_black_last=%u\n", c->reload_black_frames, c->reload_black_last);
+    if (c->reload_at)
+        fprintf(out, "enhanced.reload_scroll_frames=%u\nenhanced.reload_scroll_framed=%u\nenhanced.reload_scroll_origin_moved=%u\n",
+                c->reload_scroll_frames, c->reload_scroll_framed, c->reload_scroll_origin_moved);
 }
 
 void oracles_enhanced_check_summary(OraclesEnhancedCheck *c, FILE *out)
@@ -258,6 +272,8 @@ void oracles_enhanced_check_summary(OraclesEnhancedCheck *c, FILE *out)
         free(c->surface_other);
         fprintf(out, "enhanced.against_frames=%u\nenhanced.against_camera_apart=%u\nenhanced.against_faded=%u\nenhanced.against_compared=%u\nenhanced.against_wrong_frames=%u\nenhanced.against_wrong_max=%u\nenhanced.against_last_wrong=%u\nenhanced.against_black_max=%u\nenhanced.against_last_black=%u\nenhanced.against_unmatched=%u\n",
                 c->against_frames, c->against_camera_apart, c->against_faded, c->against_compared, c->against_wrong_frames, c->against_wrong_max, c->against_last_wrong, c->against_black_max, c->against_last_black, c->against_unmatched);
+        fprintf(out, "enhanced.against_near_compared=%u\nenhanced.against_near_wrong_frames=%u\nenhanced.against_near_wrong_max=%u\nenhanced.against_near_last_wrong=%u\nenhanced.against_near_black_max=%u\nenhanced.against_near_last_black=%u\n",
+                c->against_near_compared, c->against_near_wrong_frames, c->against_near_wrong_max, c->against_near_last_wrong, c->against_near_black_max, c->against_near_last_black);
     }
     summary_of_the_band(c, out);
     summary_of_what_was_shown(c, out);
@@ -370,6 +386,9 @@ static void report_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         if (c->reload_track_compared)
             fprintf(out, "  reload in a transition: Link's place on the %u frames after the load to its end, against the run before the load: %u different\n",
                     c->reload_track_compared, c->reload_track_differing);
+        if (c->reload_scroll_frames)
+            fprintf(out, "  reload in a scroll: %u frames after the load to its end, %u framed, %u with the reference room elsewhere than at the save\n",
+                    c->reload_scroll_frames, c->reload_scroll_framed, c->reload_scroll_origin_moved);
         if (!c->reload_done) fprintf(out, "  reload at frame %u: not performed (the route is shorter, or the state could not be saved)\n", c->reload_at);
         else if (!c->reload_saved_in_scroll)
             fprintf(out, "  reload at frame %u, loaded back at %u: camera %" PRId32 " px from the saved point on the next frame; neighbours %s after %u frames (saved %s%02x %s%02x); over the 300 frames after: Link moved %" PRId32 " px, the camera %" PRId32 " px%s\n",

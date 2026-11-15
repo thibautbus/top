@@ -376,6 +376,8 @@ void oracles_enhanced_view_ghost_failures(const OraclesEnhancedView *view, unsig
 const char *oracles_enhanced_view_failure_log(const OraclesEnhancedView *view);
 /* Results dropped because the cache key changed while the ghost ran. */
 unsigned oracles_enhanced_view_stale_results(const OraclesEnhancedView *view);
+/* Requests the thread's ghost refused while it still ran a run of its own, each counted: not failures, the rooms asked again. */
+unsigned oracles_enhanced_view_busy_refusals(const OraclesEnhancedView *view);
 /* Neighbours computed ahead from another neighbour's settled state, and renders of a neighbour with the live tiles. */
 unsigned oracles_enhanced_view_chained_results(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_live_renders(const OraclesEnhancedView *view);
@@ -639,6 +641,17 @@ void oracles_enhanced_view_large_object_counts(const OraclesEnhancedView *view, 
  * its record's pose looked for at its place in the room (its pixels the background leaves); those found at fewer than
  * half of them, and the renders with one at least. */
 void oracles_enhanced_view_large_entry_people(const OraclesEnhancedView *view, unsigned *people, unsigned *off, unsigned *renders);
+/* With oracles_enhanced_view_pose_verify: the frames after a scroll into a large room before a drawing kept matches the
+ * OAM on screen, with objects in the drawing the game has just made beyond its window (and, on the frame the room's entry
+ * is shown, beyond the ghost's window too), and those of them where one of their sprites was not found at its place in
+ * the band (at fewer than half of the pixels the background leaves). */
+void oracles_enhanced_view_large_scroll_people(const OraclesEnhancedView *view, unsigned *frames, unsigned *missing);
+/* With oracles_enhanced_view_pose_verify, at each render of a large room's entry: its sprites that cross the edge of the
+ * ghost's window (its sides, the status bar, its bottom) into the room; and the ghost's OAM rendered again by the PPU
+ * with the sprites and the background shifted by 8 pixels or 16 lines, so that what lay past each edge falls on the
+ * LCD: the objects' pixels there, those the render of the entry does not show, and the background's pixels it shows
+ * otherwise. */
+void oracles_enhanced_view_large_entry_edges(const OraclesEnhancedView *view, unsigned *sprites, unsigned *object_pixels, unsigned *object_wrong, unsigned *background_wrong);
 /* Sprite palettes of the rooms delivered that their objects had copied from the room left's background palettes, taken again from their own. */
 unsigned oracles_enhanced_view_obj_palettes_retaken(const OraclesEnhancedView *view);
 /* Copies a neighbour's own animation wrote into its tiles; `other`: into a neighbour whose tileset or animation is not the live room's;
@@ -730,6 +743,8 @@ void oracles_enhanced_view_black(const OraclesEnhancedView *view, OraclesEnhance
  * first that fit. */
 const char *oracles_enhanced_black_kind_name(unsigned kind);
 const char *oracles_enhanced_view_black_log(const OraclesEnhancedView *view);
+/* The rooms of the grid the band showed black in the last frame composed (the episodes under way). */
+unsigned oracles_enhanced_view_black_rooms(const OraclesEnhancedView *view);
 /* Whether a neighbour's settled state may start a run of the room whose
  * own flags sit at `own` in the key, the live state unable to prime the
  * ghost (a cutscene): its key the live one but for the flags of other rooms
@@ -816,6 +831,16 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *view, const uint8_t *d
  * reason in `why` when at the other (a state of the drawn-back view in the
  * normal one, or the reverse), which the launcher refuses whole. */
 int oracles_enhanced_view_check_state(const OraclesEnhancedView *view, const uint8_t *data, size_t size, char *why, size_t capacity);
+/* A state saved in a scroll: what the observer knew of it, which the game's state does not say (until the scroll ends
+ * Link's coordinates are the room left's, the game's active room already the one entered), saved beside the host
+ * state in a field of its own of the composite savestate (engine/core/state.h), which builds before it ignore, so that
+ * the host state's format stays.  Saved empty (`written` 0) outside a scroll.  Loaded after
+ * oracles_enhanced_view_load_state: 0 when the view goes on from the room left as the state had it, -1 when the record
+ * is refused (malformed, or the game loaded in no scroll or in another group), the observer then rebuilt from the guest. */
+#define ORACLES_ENHANCED_SCROLL_STATE_FIELDS 46u
+#define ORACLES_ENHANCED_SCROLL_STATE_SIZE (4u + 4u * ORACLES_ENHANCED_SCROLL_STATE_FIELDS)
+int oracles_enhanced_view_save_scroll_state(const OraclesEnhancedView *view, uint8_t *out, size_t capacity, size_t *written);
+int oracles_enhanced_view_load_scroll_state(OraclesEnhancedView *view, const uint8_t *data, size_t size);
 /* The surface a host state was taken at: the normal one for a state that names none. */
 OraclesEnhancedSize oracles_enhanced_view_state_surface(const uint8_t *data, size_t size);
 /* What decided the far view's size when the game started, as the launcher chose it: far=fixed, a shape named (aspect=),

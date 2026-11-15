@@ -48,6 +48,7 @@
 #define OFFSET_RECORD_TAG "SHOW"
 #define OFFSET_RECORD_SIZE 12u       /* the tag, the camera's whole offsets across and down (int32, little-endian; OFFSET_NONE: none) */
 #define OFFSET_NONE INT32_MIN
+#define SCROLL_RECORD_TAG "SCRL"       /* the observer in a scroll (view_state.c, ORACLES_ENHANCED_SCROLL_STATE_SIZE) */
 #define INTERAC_ERA_OR_SEASON_INFO 0xe0u   /* constants/common/interactions.s: the blurb shown at the top of the screen on entering an area */
 #define GHOST_SETTLE_FRAMES 160u     /* a load (4 frames) and a scroll (about 45) with margin */
 #define GHOST_BLIND_SETTLE_FRAMES 320u   /* a pre-run primes as soon as play looks normal, while an arrival (the time travel's) still holds the transition back */
@@ -254,6 +255,9 @@ typedef struct large_object_frame {
     unsigned count;
     uint64_t entries;                /* the OAM entries its sprites account for (bit per entry) */
     uint8_t group, room;             /* the room it was drawn in */
+    int16_t camera_x, camera_y;      /* the game's camera the objects were placed by */
+    uint8_t object_of[LARGE_OBJECT_SPRITES];   /* each sprite's object, kind << 4 | slot, 0xff for a shadow (none named) */
+    uint32_t kept_at;                /* the view's frame count when kept: the composition after it shows its wOam next */
     int valid;
 } large_object_frame;
 
@@ -309,6 +313,7 @@ struct OraclesEnhancedView {
     uint32_t black_cold_from;
     int black_have_ref, black_loaded;
     int since_load;                  /* a state was loaded, the band not filled since in play: a text box does not wait for it */
+    int scroll_loaded;               /* a state saved in a scroll was loaded, and that scroll goes on: pre-runs play its end (view_ghost.c) */
     uint32_t load_frame;             /* the view's frame of that load */
     int release_live;                /* the runs from the live state close the box (oracles_ghost_set_release) */
     uint8_t black_ref_group, black_ref_room;
@@ -449,6 +454,8 @@ struct OraclesEnhancedView {
     int shown[4];                    /* a neighbour's terrain shown this frame, by the game's direction (0 up, 1 right, 2 down, 3 left) */
     unsigned shown_slot[4];
     unsigned requested, completed, failed, stale, chained, refreshed, live_renders;
+    unsigned busy_refused;           /* requests the thread's ghost refused, still running a run of its own: no failure */
+    int ghost_busy;                  /* the ghost of the lane scheduled is busy or refused one this frame: its order waits for the next */
     unsigned live_lines_kept;        /* lines of those renders not drawn again, their tiles unchanged */
     unsigned live_renders_kept;      /* renders the key asked for whose inputs had not changed: not made */
     unsigned season_rejected;        /* results of a room of the live area in another season than the live one (Seasons): not kept */
@@ -743,6 +750,16 @@ struct OraclesEnhancedView {
     unsigned sea_runs;               /* runs started across the sea's surface, ahead of a dive or a return to it */
     unsigned large_object_sprites_drawn;   /* sprites drawn beyond the window, over the run */
     unsigned large_object_frames_unmatched;  /* compositions in a large room whose OAM on screen matched no drawing kept */
+    uint32_t large_entry_shown_at;   /* the frame the large room's entry was last drawn in its place, a scroll into it just ended */
+    int large_entry_camera_x, large_entry_camera_y;   /* its ghost's window in the room, where its objects stand */
+    const entry *large_entry_drawn;     /* that entry, for its objects' records, valid in the composition that drew it */
+    int large_after_scroll;          /* a scroll into the large room in play ended, and no drawing kept has matched the OAM on screen since */
+    unsigned large_scroll_people_frames;   /* with the harness's check: frames of it with objects beyond the window in the drawing the game just made */
+    unsigned large_scroll_people_missing;  /* of them, frames with one not found at its place in the band */
+    unsigned large_entry_edge_sprites;     /* with the harness's check: sprites of a large room's entry across the ghost's window's edge, at its renders */
+    unsigned large_entry_edge_object_pixels;   /* the pixels of objects past that edge, the ghost's OAM rendered again by the PPU shifted onto them */
+    unsigned large_entry_edge_object_wrong;    /* of them, those the entry's render does not show */
+    unsigned large_entry_edge_background_wrong;   /* and the background's pixels there that differ */
     unsigned large_entry_people;     /* objects a large room's entry drew, looked for at their place in the room (check_large_entry_people) */
     unsigned large_entry_people_off; /* of them, those not found there */
     unsigned large_entry_off_renders; /* renders with one at least */

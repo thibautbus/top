@@ -313,7 +313,10 @@ An object of Link's the game is making anew (its first state, in the room's corn
 Toward a neighbouring room still being prepared or waiting for the ghost, or past an edge it shows black, it goes no further than Link himself, without looking ahead, until the room is there. So it seldom shows more black than before, a little more only:
 
 - when the ghosts run far behind, in a thread on a busy device;
-- where Link stands beside the black past the map's edge, framed without the look-ahead the previous camera kept.
+- where Link stands beside the black past the map's edge, framed without the look-ahead the previous camera kept;
+- as it comes back from such a hold toward a room nothing has asked for yet.
+
+Once the room is there, it comes back to the very path it would have followed had it never been held, rather than staying a few pixels off it: a pixel a frame at most, never one that would send Link's sprite back on the screen against the step it has just taken there, the two axes together on a diagonal. From there it follows that path until the next hold.
 
 With the Pixel camera its whole pixels step with Link's:
 

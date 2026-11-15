@@ -200,6 +200,11 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-half-switch)
     add_test(NAME oracles-half-switch COMMAND oracles-test-half-switch)
 
+    add_executable(oracles-test-ghost-busy test_ghost_busy.c)
+    target_link_libraries(oracles-test-ghost-busy PRIVATE oracles_enhanced)
+    oracles_set_warnings(oracles-test-ghost-busy)
+    add_test(NAME oracles-ghost-busy COMMAND oracles-test-ghost-busy)
+
     add_executable(oracles-test-camera test_camera.c)
     target_link_libraries(oracles-test-camera PRIVATE oracles_enhanced)
     oracles_set_warnings(oracles-test-camera)

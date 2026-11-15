@@ -26,6 +26,13 @@
  *   text box state: u32 length, bytes          the host's lines of the text box (engine/game/guest,
  *                                              oracles_guest_text_box_save_state), empty without the host's text box;
  *                                              absent from the states written before it, which read as empty
+ *   view's scroll: u32 length, bytes           what the Enhanced view knew of a scroll the state was taken in
+ *                                              (engine/enhanced, oracles_enhanced_view_save_scroll_state), empty outside
+ *                                              one and in Faithful; absent from the states written before it, which read
+ *                                              as empty
+ *
+ * A field is read by its index, and nothing past the host state is needed to load one: a build that knows fewer
+ * fields loads a state with more whole, its last fields left aside.
  */
 #ifndef ORACLES_STATE_H
 #define ORACLES_STATE_H
@@ -55,6 +62,8 @@ typedef struct OraclesStateInfo {
     size_t compact_text_state_size;
     const uint8_t *text_box_state;     /* written only: read back by oracles_state_text_box_state */
     size_t text_box_state_size;
+    const uint8_t *view_scroll_state;  /* written only: read back by oracles_state_view_scroll_state */
+    size_t view_scroll_state_size;
 } OraclesStateInfo;
 
 /* Serialises a composite savestate into a buffer the caller frees. Returns 0, or -1 with a message. */
@@ -94,6 +103,8 @@ int oracles_state_transition_state(const uint8_t *data, size_t size, const uint8
 int oracles_state_compact_text_state(const uint8_t *data, size_t size, const uint8_t **compact_text_state, size_t *compact_text_state_size);
 /* The text box's state of a composite savestate, read in place the same way. */
 int oracles_state_text_box_state(const uint8_t *data, size_t size, const uint8_t **text_box_state, size_t *text_box_state_size);
+/* The Enhanced view's record of the scroll a state was taken in, read in place the same way. */
+int oracles_state_view_scroll_state(const uint8_t *data, size_t size, const uint8_t **view_scroll_state, size_t *view_scroll_state_size);
 
 #ifdef __cplusplus
 }

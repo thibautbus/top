@@ -266,6 +266,14 @@ int oracles_ghost_switch_half(OraclesGhost *g, const uint8_t *rom, size_t rom_si
     return apply_half(g, rom, rom_size, profile);
 }
 
+int oracles_ghost_busy(OraclesGhost *g)
+{
+    pthread_mutex_lock(&g->mutex);
+    const int busy = g->job_pending;
+    pthread_mutex_unlock(&g->mutex);
+    return busy;
+}
+
 int oracles_ghost_half_failed(const OraclesGhost *g) { return g ? atomic_load(&g->half_failed) : 0; }
 
 void oracles_ghost_destroy(OraclesGhost *g)
@@ -399,8 +407,9 @@ static void release_text(OraclesGhost *g)
  * checks the warp tile under Link (func_60e9, initiateWarp) before
  * getNextActiveRoom: with Link standing on the door he has just come out
  * of, the ghost would warp instead of scrolling.  wDisableWarpTiles inhibits
- * that check; the ghost raises it for its run and restores the value before
- * keeping its settled state, so a chained run starts from a normal state.
+ * that check; the ghost raises it for its run (hold_warp_tiles) and restores
+ * the value before keeping its settled state, so a chained run starts from a
+ * normal state.
  * The live instance is never touched. */
 static int prime(OraclesGhost *g, OraclesGhostDirection direction)
 {
@@ -543,6 +552,20 @@ static void restore_warp_tiles(OraclesGhost *g)
     uint8_t *wram = oracles_guest_wram_writable(g->guest, 0);
     if (wram && oracles_ghost_bank0_symbol(warp)) wram[warp.addr - WRAM_BANK0_BASE] = g->prior_warp_tiles;
     g->warp_tiles_guarded = 0;
+}
+
+/* The scroll clears wDisableWarpTiles with the rest of the transition's
+ * variables (func_49c9): raised again before every frame of the run, so that
+ * Link, carried by a chained run where the game's own Link never stands (his
+ * coordinate wrapped past the room's far edge), settles on a warp tile of the
+ * room reached without taking it (Seasons' 0:f9, its cave's entrance, from
+ * 0:fa: the settled state already warping, a run from it went into the cave). */
+static void hold_warp_tiles(OraclesGhost *g)
+{
+    if (!g->warp_tiles_guarded) return;
+    const OraclesGuestSym warp = oracles_guest_tables(g->guest)->disable_warp_tiles;
+    uint8_t *wram = oracles_guest_wram_writable(g->guest, 0);
+    if (wram && oracles_ghost_bank0_symbol(warp)) wram[warp.addr - WRAM_BANK0_BASE] = 1;
 }
 
 /* The room's game area as the game displays it: the committed game-area
@@ -785,6 +808,7 @@ int oracles_ghost_step(OraclesGhost *g, unsigned frame_budget, unsigned max_fram
             result->guest_frames = g->frames_run;
             return -1;
         }
+        hold_warp_tiles(g);
         oracles_guest_set_frame(g->guest, g->frames_run);
         oracles_core_run_frame(g->core);
         g->frames_run++;
@@ -910,7 +934,7 @@ int oracles_ghost_request_ex(OraclesGhost *g, const uint8_t *state, size_t size,
 {
     if (size != g->state_size) return -1;
     pthread_mutex_lock(&g->mutex);
-    if (g->job_pending) { pthread_mutex_unlock(&g->mutex); return -1; }
+    if (g->job_pending) { pthread_mutex_unlock(&g->mutex); return ORACLES_GHOST_BUSY; }
     if (!g->job_state) g->job_state = malloc(size);
     if (!g->job_state) { pthread_mutex_unlock(&g->mutex); return -1; }
     memcpy(g->job_state, state, size);

@@ -283,6 +283,7 @@ const char *oracles_enhanced_black_kind_name(unsigned kind)
 }
 
 const char *oracles_enhanced_view_black_log(const OraclesEnhancedView *v) { return v->black_log; }
+unsigned oracles_enhanced_view_black_rooms(const OraclesEnhancedView *v) { return v->black_episode_count; }
 
 /* ---- the rooms never visited ----------------------------------------------------------- */
 

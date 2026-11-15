@@ -75,6 +75,12 @@ int oracles_session_save_state(session *s, char *message, size_t capacity)
         s->state_info.host_state = NULL;
         s->state_info.host_state_size = 0;
     }
+    /* The view's record of the scroll the state is taken in, beside the host state: empty outside one. */
+    static uint8_t view_scroll[ORACLES_ENHANCED_SCROLL_STATE_SIZE];
+    size_t view_scroll_size = 0;
+    if (!s->state_info.host_state || oracles_enhanced_view_save_scroll_state(s->view, view_scroll, sizeof view_scroll, &view_scroll_size) != 0) view_scroll_size = 0;
+    s->state_info.view_scroll_state = view_scroll;
+    s->state_info.view_scroll_state_size = view_scroll_size;
     /* The mods' storage: every file's, and the live tables, which a load gives back with the SRAM. */
     uint8_t *storage = NULL;
     size_t storage_size = 0;
@@ -116,6 +122,8 @@ int oracles_session_save_state(session *s, char *message, size_t capacity)
     s->state_info.compact_text_state_size = 0;
     s->state_info.text_box_state = NULL;
     s->state_info.text_box_state_size = 0;
+    s->state_info.view_scroll_state = NULL;
+    s->state_info.view_scroll_state_size = 0;
     free(storage);
     free(data);
     return ok;
@@ -308,6 +316,15 @@ static int load_state(session *s, char *message, size_t capacity, int restart)
     }
     if (host_state && s->view && oracles_enhanced_view_load_state(s->view, host_state, host_state_size) != 0)
         fprintf(stderr, "oracles: the savestate carries no usable Enhanced camera state; the camera restarts\n");
+    else if (ok && host_state && s->view && !oracles_enhanced_view_half_passage(s->view)) {
+        /* Taken in a scroll: the view goes on from the room left, as the state had it; between two halves, the view
+         * loaded nothing of its own (oracles_enhanced_view_load_state), the record neither. */
+        const uint8_t *scroll = NULL;
+        size_t scroll_size = 0;
+        if (oracles_state_view_scroll_state(data, size, &scroll, &scroll_size) == 0 && scroll_size
+            && oracles_enhanced_view_load_scroll_state(s->view, scroll, scroll_size) != 0)
+            fprintf(stderr, "oracles: the savestate's scroll record is refused: the view takes the scroll up from the game\n");
+    }
     free(host_state); /* Faithful has no native state to restore */
     free(data);
     return ok;

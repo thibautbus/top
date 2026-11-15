@@ -8,6 +8,7 @@
 #include "compositor.h"
 #include "guest_struct_offsets.h"
 #include "ppu.h"
+#include "state.h"
 #include "view.h"
 #include "view_internal.h"
 
@@ -588,6 +589,69 @@ static void view_and_savestate(void)
     CHECK(oracles_enhanced_view_load_state(zoom, wire, 2u * ORACLES_E11_STATE_WIRE_SIZE) != 0);   /* a state from before the size record: the normal surface's */
     CHECK(oracles_enhanced_view_load_state(normal, wire, written) == 0);
 
+    /* A state taken in a scroll down from 0x45 into 0x55, the room entered already the game's active one (wScrollMode 8,
+     * getNextActiveRoom) while Link's coordinates stay the room left's.  The host state keeps its format, the size's
+     * record where it was, and the scroll's record travels in the container's last field: a build before that field
+     * reads the fields by index and loads the state whole, its far surface included. */
+    {
+        W0(t->screen_transition_direction) = 2; W0(t->scroll_mode) = 4; W0(t->screen_transition_state) = 3;
+        frames(&r, zoom, 1, &mode, &cam, &cam_y);
+        W0(t->scroll_mode) = 8; W0(t->active_room) = 0x55;
+        frames(&r, zoom, 3, &mode, &cam, &cam_y);
+        CHECK(oracles_enhanced_view_observation(zoom)->world.origin_y == 4 * 128);   /* the room left */
+        uint8_t host[1024], scroll[ORACLES_ENHANCED_SCROLL_STATE_SIZE + 4u];
+        size_t host_size = 0, scroll_size = 0;
+        CHECK(oracles_enhanced_view_save_state(zoom, host, sizeof host, &host_size) == 0 && host_size == 2u * ORACLES_E11_STATE_WIRE_SIZE + 12u + 8u + 12u);
+        CHECK(oracles_enhanced_view_save_scroll_state(zoom, scroll, sizeof scroll, &scroll_size) == 0 && scroll_size == ORACLES_ENHANCED_SCROLL_STATE_SIZE);
+        CHECK(oracles_enhanced_view_save_scroll_state(zoom, scroll, ORACLES_ENHANCED_SCROLL_STATE_SIZE - 1u, &scroll_size) != 0);
+        CHECK(oracles_enhanced_view_save_scroll_state(zoom, scroll, sizeof scroll, &scroll_size) == 0);
+        OraclesStateInfo info = { "ages", "0123456789abcdef0123456789abcdef01234567", "", host, host_size, NULL, 0, NULL, 0, NULL, 0, NULL, 0, scroll, scroll_size };
+        uint8_t *state = NULL, *loaded = NULL;
+        size_t state_size = 0, loaded_size = 0;
+        const uint8_t *peek = NULL;
+        size_t peek_size = 0;
+        CHECK(oracles_state_serialize(r.core, &info, &state, &state_size, why, sizeof why) == 0);
+        CHECK(oracles_state_host_state(state, state_size, &peek, &peek_size) == 0 && peek_size == host_size && !memcmp(peek, host, host_size));
+        const OraclesEnhancedSize taken = oracles_enhanced_view_state_surface(peek, peek_size);
+        CHECK(taken.width == W && taken.height == H && oracles_enhanced_view_check_state(zoom, peek, peek_size, why, sizeof why) == 0);
+        CHECK(oracles_enhanced_view_check_state(normal, peek, peek_size, why, sizeof why) != 0 && strstr(why, "the far view, 480x270"));
+        CHECK(oracles_state_view_scroll_state(state, state_size, &peek, &peek_size) == 0 && peek_size == scroll_size && !memcmp(peek, scroll, scroll_size));
+        CHECK(oracles_state_deserialize(r.core, &info, state, state_size, &loaded, &loaded_size, why, sizeof why) == 0 && loaded_size == host_size);
+        free(loaded);
+        free(state);
+        /* Loaded without the scroll's record (a state taken before it), the room entered stands for the reference; with
+         * it, the room left, to the scroll's end. */
+        CHECK(oracles_enhanced_view_load_state(zoom, host, host_size) == 0);
+        frames(&r, zoom, 1, &mode, &cam, &cam_y);
+        CHECK(oracles_enhanced_view_observation(zoom)->world.origin_y == 5 * 128);
+        CHECK(oracles_enhanced_view_load_state(zoom, host, host_size) == 0 && oracles_enhanced_view_load_scroll_state(zoom, scroll, scroll_size) == 0);
+        frames(&r, zoom, 1, &mode, &cam, &cam_y);
+        CHECK(mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_observation(zoom)->world.origin_y == 4 * 128);
+        /* Refused: cut, of another kind, of a state not taken in a scroll, or loaded where the game is in none or in
+         * another group. */
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, scroll, scroll_size - 1u) != 0);
+        uint8_t other[ORACLES_ENHANCED_SCROLL_STATE_SIZE];
+        memcpy(other, scroll, sizeof other);
+        other[0] = 'X';
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, other, sizeof other) != 0);
+        memcpy(other, scroll, sizeof other);
+        other[4u + 4u * 13u] = 0;   /* was_in_scroll */
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, other, sizeof other) != 0);
+        memcpy(other, scroll, sizeof other);
+        other[4u + 4u * 1u + 1u] = 1;   /* ref_group past a byte */
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, other, sizeof other) != 0);
+        W0(t->active_group) = 1;
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, scroll, scroll_size) != 0);
+        W0(t->active_group) = 0; W0(t->scroll_mode) = 1; W0(t->screen_transition_state) = 2;
+        CHECK(oracles_enhanced_view_load_scroll_state(zoom, scroll, scroll_size) != 0);
+        CHECK(oracles_enhanced_view_load_state(zoom, host, host_size) == 0);
+        /* Back in 0x45 for what follows, through a warp. */
+        W0(t->scroll_mode) = 2; frames(&r, zoom, 1, &mode, &cam, &cam_y);
+        W0(t->active_room) = 0x45; frames(&r, zoom, 1, &mode, &cam, &cam_y);
+        W0(t->scroll_mode) = 1;
+        frames(&r, zoom, 40, &mode, &cam, &cam_y);
+    }
+
     /* Indoors the normal band, centred in the surface's: the room's left edge at 160 + 48, its top at 63. */
     W0(t->scroll_mode) = 2; frames(&r, zoom, 1, &mode, &cam, &cam_y);
     W0(t->active_group) = 2; W0(t->active_room) = 0x10;
@@ -961,6 +1025,197 @@ static void hold_before_dark(void)
     oracles_enhanced_camera_stop(held);
     oracles_enhanced_camera_stop(free_);
     rig_stop(&r);
+}
+
+/* Held short of a room still being made, toward either side of either axis (`axis` 0 across, 1 down; `way` 1 toward
+ * the far bound, -1 toward the near one): Link standing, the camera held where it stands, then he walks that way and
+ * stops, the room coming only once he stands.  In whole pixels the hold leaves the camera pixels short of the one never
+ * held (oracles_enhanced_camera_apart says so, the hold keeping it there on that axis); to the 256th, a fraction of a
+ * pixel short.  Once the room is there, the camera rejoins it, its moves never a pixel a frame more than the unheld
+ * one's, and from then on is that camera to the 256th, Link walking back. */
+static void rejoin_after_hold(int exact, int axis, int way)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *held = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL, *free_ = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(held != NULL && free_ != NULL);
+    if (!held || !free_) { if (held) oracles_enhanced_camera_stop(held); if (free_) oracles_enhanced_camera_stop(free_); rig_stop(&r); return; }
+    OraclesEnhancedCamera *cameras[2] = { held, free_ };
+    for (unsigned k = 0; k < 2u; k++) {
+        oracles_enhanced_camera_set_profile(cameras[k], 2);
+        oracles_enhanced_camera_set_band(cameras[k], W, BAND_H);
+        oracles_enhanced_camera_set_exact(cameras[k], exact);
+    }
+    const unsigned stop = exact ? 30u : 90u, release = exact ? 60u : 150u;
+    int64_t at[2] = { 0, 0 }, last[2] = { 0, 0 }, gap_at_release = 0, worst = 0;
+    int32_t bound = 0, last_whole = 0;
+    unsigned held_reported = 0, apart_after = 0, rejoined_at = 0;
+    int place = way > 0 ? 30 : (axis ? 100 : 130), across = 60, down = 60;
+    for (unsigned f = 0; f < 320u; f++) {
+        OraclesEnhancedObservation o;
+        memset(&o, 0, sizeof o);
+        o.playing = 1; o.grid = 1; o.epoch = 8;
+        if (axis) down = place; else across = place;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, across, down, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &o.world) == 1);
+        const int step = f >= 20u && f < stop ? way : f >= 250u && f < 270u ? -way : 0;
+        if (axis) o.link_step_y = step; else o.link_step_x = step;
+        if (f == 10u) bound = last_whole;
+        int32_t limits[4] = { INT32_MIN, INT32_MAX, INT32_MIN, INT32_MAX };
+        if (f >= 10u && f < release) limits[axis * 2 + (way > 0)] = bound;
+        oracles_enhanced_camera_limit(held, limits);
+        int32_t whole[2][2], fraction[2][2];
+        for (unsigned k = 0; k < 2u; k++) {
+            CHECK(oracles_enhanced_camera_reduce(cameras[k], f, &o, &whole[k][0], &whole[k][1]) == 1);
+            oracles_enhanced_camera_fraction(cameras[k], &fraction[k][0], &fraction[k][1]);
+            at[k] = (int64_t)whole[k][axis] * 256 + (exact ? fraction[k][axis] : 0);
+        }
+        int32_t apart[2] = { 0, 0 };
+        int kept[2] = { 0, 0 };
+        oracles_enhanced_camera_apart(held, &apart[0], &apart[1], &kept[0], &kept[1]);
+        const int64_t gap = at[0] - at[1];
+        if (!exact && f >= release - 50u && f < release) held_reported += kept[axis] && apart[axis] == whole[0][axis] - whole[1][axis] && !kept[!axis] && !apart[!axis];
+        if (f == release - 1u) gap_at_release = gap < 0 ? -gap : gap;
+        if (f >= release) {
+            const int64_t more = (at[0] - last[0]) - (at[1] - last[1]);
+            if ((more < 0 ? -more : more) > worst) worst = more < 0 ? -more : more;
+            if (!rejoined_at && !gap) rejoined_at = f;
+            if (rejoined_at && (gap || apart[0] || apart[1] || whole[0][!axis] != whole[1][!axis])) apart_after++;
+        }
+        last[0] = at[0]; last[1] = at[1];
+        last_whole = whole[0][axis];
+        place += step;
+    }
+    CHECK(gap_at_release >= (exact ? 1 : 2 * 256));
+    CHECK(exact || held_reported == 50u);
+    CHECK(rejoined_at >= release && rejoined_at <= release + 8u);
+    CHECK(worst <= 256);
+    CHECK(apart_after == 0u);
+    oracles_enhanced_camera_stop(held);
+    oracles_enhanced_camera_stop(free_);
+    rig_stop(&r);
+}
+
+/* Link walked diagonally from rest into a hold of both axes (`both`) or of the horizontal one alone, in whole pixels,
+ * then stands; the room comes, and the view draws him in phase with his diagonal (link_in_phase) from then on, or not
+ * (`phase`).  Drawn in phase, a rejoining pixel of one axis alone, on a frame the camera does not move otherwise,
+ * waits for the other's up to PAIRED_HOLD_FRAMES (two frames) before it goes; the two axes apart come together.  The
+ * camera reaches the unheld one all the same, and is that camera from then on. */
+static void rejoin_paired(int both, int phase, unsigned *first_move, unsigned *rejoined)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    *first_move = *rejoined = 0;
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *held = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL, *free_ = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(held != NULL && free_ != NULL);
+    if (!held || !free_) { if (held) oracles_enhanced_camera_stop(held); if (free_) oracles_enhanced_camera_stop(free_); rig_stop(&r); return; }
+    OraclesEnhancedCamera *cameras[2] = { held, free_ };
+    for (unsigned k = 0; k < 2u; k++) {
+        oracles_enhanced_camera_set_profile(cameras[k], 2);
+        oracles_enhanced_camera_set_band(cameras[k], W, BAND_H);
+        oracles_enhanced_camera_set_exact(cameras[k], 0);
+    }
+    const unsigned release = 150u;
+    int32_t cam[2][2] = { { 0, 0 }, { 0, 0 } }, last[2][2] = { { 0, 0 }, { 0, 0 } }, bound[2] = { 0, 0 };
+    int across = 30, down = 30;
+    for (unsigned f = 0; f < 260u; f++) {
+        OraclesEnhancedObservation o;
+        memset(&o, 0, sizeof o);
+        o.playing = 1; o.grid = 1; o.epoch = 8;
+        CHECK(oracles_enhanced_world_from_room(0, 0x45, 0, across, down, 16, 14, 0, 0, 0, 0, 0, 0x45, W, &o.world) == 1);
+        const int step = f >= 20u && f < 90u ? 1 : 0;
+        o.link_step_x = step; o.link_step_y = step;
+        o.link_in_phase = phase && f >= release;
+        if (f == 10u) { bound[0] = cam[0][0]; bound[1] = cam[0][1]; }
+        int32_t limits[4] = { INT32_MIN, INT32_MAX, INT32_MIN, INT32_MAX };
+        if (f >= 10u && f < release) { limits[1] = bound[0]; if (both) limits[3] = bound[1]; }
+        oracles_enhanced_camera_limit(held, limits);
+        for (unsigned k = 0; k < 2u; k++) CHECK(oracles_enhanced_camera_reduce(cameras[k], f, &o, &cam[k][0], &cam[k][1]) == 1);
+        if (f >= release) {
+            if (!*first_move && (cam[0][0] != last[0][0] || cam[0][1] != last[0][1])) *first_move = f;
+            if (!*rejoined && cam[0][0] == cam[1][0] && cam[0][1] == cam[1][1]) *rejoined = f;
+            if (*rejoined) CHECK(cam[0][0] == cam[1][0] && cam[0][1] == cam[1][1]);
+        }
+        memcpy(last, cam, sizeof last);
+        across += step; down += step;
+    }
+    oracles_enhanced_camera_stop(held);
+    oracles_enhanced_camera_stop(free_);
+    rig_stop(&r);
+}
+
+/* Held short of the room below while Link walks down a pixel a frame toward the map's bottom edge, a pixel or two behind
+ * the camera never held, then let go (`release`) about when that camera stops at the edge: the camera rejoins it, a pixel
+ * a frame on top of its own follow, and stops at the edge too, its follow never lost (the band framed for a frame, then
+ * a snap back) nor its moves more than four pixels a frame. */
+static void rejoin_at_edge(unsigned release, unsigned *lost, int32_t *largest)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    *lost = 0; *largest = 0;
+    CHECK(rig_start(&r));
+    OraclesEnhancedCamera *held = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL, *free_ = r.guest ? oracles_enhanced_camera_start(r.guest) : NULL;
+    CHECK(held != NULL && free_ != NULL);
+    if (!held || !free_) { if (held) oracles_enhanced_camera_stop(held); if (free_) oracles_enhanced_camera_stop(free_); rig_stop(&r); return; }
+    OraclesEnhancedCamera *cameras[2] = { held, free_ };
+    for (unsigned k = 0; k < 2u; k++) {
+        oracles_enhanced_camera_set_profile(cameras[k], 2);
+        oracles_enhanced_camera_set_band(cameras[k], W, BAND_H);
+        oracles_enhanced_camera_set_exact(cameras[k], 0);
+    }
+    int32_t bound = 0, last = 0, at_edge = 0;
+    int y = 640;
+    for (unsigned f = 0; f < 320u; f++) {
+        OraclesEnhancedObservation o;
+        memset(&o, 0, sizeof o);
+        o.playing = 1; o.grid = 1; o.epoch = 8;
+        const int row = y / 128;
+        CHECK(oracles_enhanced_world_from_room(0, (uint8_t)(row * 16 + 5), 0, 60, y - row * 128, 16, 14, 8, 0, 0, 0, 0, (uint8_t)(row * 16 + 5), W, &o.world) == 1);
+        const int step = f >= 20u ? 1 : 0;
+        o.link_step_y = step;
+        if (f == 10u) bound = last;
+        const int32_t limits[4] = { INT32_MIN, INT32_MAX, INT32_MIN, f >= 10u && f < release ? bound : INT32_MAX };
+        oracles_enhanced_camera_limit(held, limits);
+        int32_t cam[2][2];
+        for (unsigned k = 0; k < 2u; k++) CHECK(oracles_enhanced_camera_reduce(cameras[k], f, &o, &cam[k][0], &cam[k][1]) == 1);
+        if (!oracles_enhanced_camera_vertical_tracking(held)) (*lost)++;
+        if (f > 0u && (cam[0][1] - last > *largest || last - cam[0][1] > *largest)) *largest = cam[0][1] > last ? cam[0][1] - last : last - cam[0][1];
+        if (f == 319u) at_edge = cam[0][1] == cam[1][1] && cam[0][1] == 8 * 128 - (int32_t)BAND_H;
+        last = cam[0][1];
+        y += step;
+    }
+    CHECK(at_edge);
+    oracles_enhanced_camera_stop(held);
+    oracles_enhanced_camera_stop(free_);
+    rig_stop(&r);
+}
+
+static void rejoin_at_map_edge(void)
+{
+    /* The camera never held reaches the edge at frame 278, Link 898 down. */
+    for (unsigned release = 266u; release < 292u; release++) {
+        unsigned lost = 0;
+        int32_t largest = 0;
+        rejoin_at_edge(release, &lost, &largest);
+        CHECK(lost == 0u);
+        CHECK(largest <= 4);
+    }
+}
+
+static void rejoin_on_diagonal(void)
+{
+    unsigned first[2][2], joined[2][2];
+    for (int both = 0; both < 2; both++)
+        for (int phase = 0; phase < 2; phase++) rejoin_paired(both, phase, &first[both][phase], &joined[both][phase]);
+    /* The horizontal axis alone apart, Link standing: at once out of phase, two frames later in phase. */
+    CHECK(first[0][0] == 150u);
+    CHECK(first[0][1] == 150u + 2u);   /* camera.c, PAIRED_HOLD_FRAMES */
+    /* Both apart: they go together, as soon in phase as out of it. */
+    CHECK(first[1][0] == 150u && first[1][1] == 150u);
+    CHECK(joined[1][0] == joined[1][1]);
+    for (int both = 0; both < 2; both++)
+        for (int phase = 0; phase < 2; phase++) CHECK(joined[both][phase] >= 150u && joined[both][phase] <= 158u);
 }
 
 /* A camera state saved outdoors, loaded while the camera frames a house: it
@@ -2226,6 +2481,13 @@ int main(void)
     pixel_stop_turn();
     first_profile_switch();
     hold_before_dark();
+    for (int exact = 0; exact < 2; exact++)
+        for (int axis = 0; axis < 2; axis++) {
+            rejoin_after_hold(exact, axis, 1);
+            rejoin_after_hold(exact, axis, -1);
+        }
+    rejoin_on_diagonal();
+    rejoin_at_map_edge();
     cutscenes();
     seasons_scenes();
     picture_scenes();

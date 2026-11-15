@@ -54,7 +54,7 @@ int oracles_state_serialize(OraclesCore *core, const OraclesStateInfo *info,
     *out = NULL;
     *out_size = 0;
     const size_t guest_size = oracles_core_state_size(core);
-    uint8_t *guest = malloc(guest_size ? guest_size : 1);
+    uint8_t *guest = calloc(1, guest_size ? guest_size : 1);
     if (!guest || oracles_core_save_state(core, guest, guest_size) != 0) {
         free(guest);
         set_error(error, error_capacity, "the core could not serialise its state");
@@ -74,6 +74,7 @@ int oracles_state_serialize(OraclesCore *core, const OraclesStateInfo *info,
     put_field(&w, info->transition_state, info->transition_state_size);
     put_field(&w, info->compact_text_state, info->compact_text_state_size);
     put_field(&w, info->text_box_state, info->text_box_state_size);
+    put_field(&w, info->view_scroll_state, info->view_scroll_state_size);
     free(guest);
     if (w.failed) { free(w.data); set_error(error, error_capacity, "out of memory"); return -1; }
     *out = w.data;
@@ -125,7 +126,7 @@ static int check_field(reader *r, const char *expected, const char *what, char *
 }
 
 /* Field `wanted` of a savestate (0 core version, 1 game, 2 ROM, 3 mods, 4 guest state, 5 host state, 6 mods' storage, 7 the
- * transitions' state, 8 the compact text's open line, 9 the text box's state), read in place. */
+ * transitions' state, 8 the compact text's open line, 9 the text box's state, 10 the view's scroll), read in place. */
 static int peek_field(const uint8_t *data, size_t size, unsigned wanted, const uint8_t **field_data, size_t *field_size)
 {
     reader r = { data, size, MAGIC_LENGTH };
@@ -187,6 +188,17 @@ int oracles_state_text_box_state(const uint8_t *data, size_t size, const uint8_t
     size_t host_size = 0;
     if (peek_field(data, size, 5u, &host, &host_size) != 0) return -1;
     if (peek_field(data, size, 9u, text_box_state, text_box_state_size) != 0) { *text_box_state = NULL; *text_box_state_size = 0; }   /* a state from before the field */
+    return 0;
+}
+
+int oracles_state_view_scroll_state(const uint8_t *data, size_t size, const uint8_t **view_scroll_state, size_t *view_scroll_state_size)
+{
+    *view_scroll_state = NULL;
+    *view_scroll_state_size = 0;
+    const uint8_t *host = NULL;
+    size_t host_size = 0;
+    if (peek_field(data, size, 5u, &host, &host_size) != 0) return -1;
+    if (peek_field(data, size, 10u, view_scroll_state, view_scroll_state_size) != 0) { *view_scroll_state = NULL; *view_scroll_state_size = 0; }   /* a state from before the field */
     return 0;
 }
 

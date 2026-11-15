@@ -50,7 +50,8 @@ static void heal_lanes(OraclesEnhancedView *v)
         if (!oracles_ghost_half_failed(*ghost)) continue;
         oracles_ghost_destroy(*ghost);
         *ghost = lane_ghost(v);
-        v->lanes[l].pending = 0;
+        if (l) v->lanes[l].pending = 0;
+        else v->pending = 0;   /* lane 0 is the one served: its fields are the view's own, lanes[0] a copy put back at the next serve */
         v->half_ghosts_made += *ghost != NULL;
         if (*ghost || !l) continue;
         for (unsigned k = l; k < v->lane_count && k < EV_LANES; k++) {
@@ -80,11 +81,19 @@ static void half_switched(void *opaque)
     }
     /* The ghosts' cores run the whole image: each is moved to the half, made again only where that fails; a view that
      * started without them (no memory for its snapshot or its job) stays so, and a lane that loses its ghost ends the
-     * lanes there. */
+     * lanes there.  A ghost whose worker still runs a room of the half left keeps its lane waiting for that run, whose
+     * result is dropped (ev_half_forget moves the generation on): asked at once, it would refuse the rooms around the
+     * one arrived in until that run ends, and its result would never be polled. */
+    v->pending = 0;   /* lane 0 is the one served (ev_lane_serve above): its fields are the view's own, lanes[0] a copy */
     for (unsigned l = 0; l < lanes && l < EV_LANES && v->image && v->snapshot && v->job; l++) {
         OraclesGhost **ghost = l ? &v->lanes[l].ghost : &v->ghost;
-        v->lanes[l].pending = 0;
-        if (*ghost && oracles_ghost_switch_half(*ghost, v->image, v->image_size, profile) == 0) { v->half_ghosts_moved++; continue; }
+        int *pending = l ? &v->lanes[l].pending : &v->pending;
+        *pending = 0;
+        if (*ghost && oracles_ghost_switch_half(*ghost, v->image, v->image_size, profile) == 0) {
+            v->half_ghosts_moved++;
+            *pending = oracles_ghost_busy(*ghost);
+            continue;
+        }
         if (*ghost) oracles_ghost_destroy(*ghost);
         *ghost = lane_ghost(v);
         v->half_ghosts_made += *ghost != NULL;
@@ -98,7 +107,6 @@ static void half_switched(void *opaque)
         break;
     }
     v->lanes[0].ghost = v->ghost;
-    v->pending = 0;
     v->key_count = oracles_ghost_key_ranges(profile, v->key, sizeof v->key / sizeof v->key[0]);
     oracles_enhanced_camera_switch_half(v->camera);
     add_hooks(v);
@@ -588,6 +596,10 @@ static unsigned add_large_room_sources(OraclesEnhancedView *v, OraclesEnhancedNe
         entry *entered = v->large_was_in_scroll && v->large_scroll_epoch == ob->epoch ? ev_find_entry(v, ob->group, ob->room) : NULL;
         const int from_ghost = entered && entered->valid && entered->large;
         if (from_ghost) {
+            v->large_after_scroll = 1;
+            v->large_entry_shown_at = v->frame;
+            v->large_entry_camera_x = entered->camera_x; v->large_entry_camera_y = entered->camera_y;
+            v->large_entry_drawn = entered;
             const uint32_t *pixels = ev_neighbour_pixels(v, entered);
             note_entry_background(v, count, entered, pixels);
             add_source(&nbs[count++], ob->world.origin_x, ob->world.origin_y, pixels, LARGE_ROOM_W, LARGE_ROOM_H, 1);
@@ -632,6 +644,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     }
     v->observer.exact = oracles_enhanced_view_subpixel_on(v);
     oracles_enhanced_observe(v->guest, &v->observer, &v->observation);
+    if (!v->observation.in_scroll) v->scroll_loaded = 0;
     /* The interior's open edges come from the cache as it stands, for the
      * reference room this observation settled on: at the end of a scroll the
      * reference changes, and the extent must be the new room's on that very
@@ -920,6 +933,7 @@ void oracles_enhanced_view_ghost_failures(const OraclesEnhancedView *v, unsigned
 
 const char *oracles_enhanced_view_failure_log(const OraclesEnhancedView *v) { return v->failure_log; }
 unsigned oracles_enhanced_view_stale_results(const OraclesEnhancedView *v) { return v->stale; }
+unsigned oracles_enhanced_view_busy_refusals(const OraclesEnhancedView *v) { return v->busy_refused; }
 unsigned oracles_enhanced_view_coarse_drops(const OraclesEnhancedView *v) { return v->coarse_drops; }
 unsigned oracles_enhanced_view_sea_runs(const OraclesEnhancedView *v) { return v->sea_runs; }
 unsigned oracles_enhanced_view_chained_results(const OraclesEnhancedView *v) { return v->chained; }
@@ -983,6 +997,17 @@ void oracles_enhanced_view_large_object_counts(const OraclesEnhancedView *v, uns
 void oracles_enhanced_view_large_entry_people(const OraclesEnhancedView *v, unsigned *people, unsigned *off, unsigned *renders)
 {
     *people = v->large_entry_people; *off = v->large_entry_people_off; *renders = v->large_entry_off_renders;
+}
+
+void oracles_enhanced_view_large_scroll_people(const OraclesEnhancedView *v, unsigned *frames, unsigned *missing)
+{
+    *frames = v->large_scroll_people_frames; *missing = v->large_scroll_people_missing;
+}
+
+void oracles_enhanced_view_large_entry_edges(const OraclesEnhancedView *v, unsigned *sprites, unsigned *object_pixels, unsigned *object_wrong, unsigned *background_wrong)
+{
+    *sprites = v->large_entry_edge_sprites; *object_pixels = v->large_entry_edge_object_pixels;
+    *object_wrong = v->large_entry_edge_object_wrong; *background_wrong = v->large_entry_edge_background_wrong;
 }
 unsigned oracles_enhanced_view_obj_palettes_retaken(const OraclesEnhancedView *v) { return v->obj_palettes_retaken; }
 void oracles_enhanced_view_animation_counts(const OraclesEnhancedView *v, unsigned *own, unsigned *other, unsigned *in_step_tiles) { if (own) *own = v->own_animation_copies; if (other) *other = v->other_animation_copies; if (in_step_tiles) *in_step_tiles = v->image_live_tiles; }

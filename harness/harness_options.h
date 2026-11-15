@@ -38,6 +38,7 @@ typedef struct harness_options {
     uint32_t enhanced_subpixel_switch[8];   /* --enhanced-subpixel-switch: the frames the sub-pixel camera switches at, as from the pause */
     unsigned enhanced_subpixel_switches;
     int enhanced_reload_in_place;
+    uint32_t enhanced_reload_after;   /* --enhanced-reload-after: the frames from the save to the load, 0 for 120 */
     const char *enhanced_surfaces_out, *enhanced_surfaces_against;
     uint32_t enhanced_surfaces_from;
     uint32_t enhanced_reload_at, hotbar_forget_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;

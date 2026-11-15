@@ -26,6 +26,7 @@
 #define CURTAIN_TRANSITION_STATE 0x01u   /* wScreenTransitionState */
 #define CURTAIN_SUBSTATE 0x02u           /* wScreenTransitionState2, the substate that draws a column a frame */
 #define RELOAD_SETTLE_TIMEOUT 300u       /* the post-load topology wait, in host frames */
+#define RELOAD_AFTER 120u                /* the frames from the save to the load, by default */
 
 /* The waves line by line on the surface (ec_measure_whole_room). */
 /* Link's sprites drawn against his place at the end of the frame before (ec_measure_swim): the frames counted and
@@ -73,6 +74,10 @@ struct OraclesEnhancedCheck {
     int32_t return_link_x, return_link_y;
     int return_sub_x, return_sub_y;   /* and his fraction of a pixel, which the sub-pixel camera follows */
     unsigned return_glide_frames, return_glide_pixels;
+    unsigned unheld_apart_frames;   /* world frames whose camera stood elsewhere than the unheld one's (oracles_enhanced_camera_apart) */
+    unsigned unheld_held_frames;    /* of those, the frames the band's reach toward black kept it there on every axis apart */
+    unsigned unheld_rejoin_run, unheld_rejoin_longest;   /* world frames running with an axis apart that the reach no longer keeps there: the rejoin */
+    int32_t unheld_apart_max;       /* the most it stood apart, in pixels, either axis */
     uint64_t return_glide_256ths;   /* their moves as shown, the band's fraction with the camera */
     unsigned return_seen;           /* frames seen since the stretch not seen */
     unsigned band_still_glide_frames;   /* world frames the band moved by its fraction, the camera standing (its pixels and its fraction) */
@@ -360,11 +365,16 @@ struct OraclesEnhancedCheck {
     uint64_t last_hash;              /* the surface's of the last frame the check composed */
     uint32_t hotbar_forget_at;
     int reload_in_place;
+    uint32_t reload_after;           /* the frames from the save to the load, 0 for RELOAD_AFTER */
     FILE *surfaces_out, *surfaces_against;
     uint32_t surfaces_from;
     uint32_t *surface_other;
     unsigned against_frames, against_camera_apart, against_faded, against_compared, against_wrong_frames, against_wrong_max, against_black_max, against_unmatched;
     uint32_t against_last_wrong, against_last_black;
+    /* The frames whose camera stands at most AGAINST_NEAR pixels from the replay's on each axis, held against it all
+     * the same: the world band shifted by the gap, the status bar as it is. */
+    unsigned against_near_compared, against_near_wrong_frames, against_near_wrong_max, against_near_black_max;
+    uint32_t against_near_last_wrong, against_near_last_black;
     uint32_t subpixel_switch_at[8];         /* --enhanced-subpixel-switch, and those done */
     unsigned subpixel_switches, subpixel_switched;
     unsigned surfaces;                      /* --surface-at: composed surfaces to write out, as PPM */
@@ -374,6 +384,8 @@ struct OraclesEnhancedCheck {
     size_t saved_core_size;
     uint8_t saved_view[1024];   /* two camera records (both axes), 306 bytes each; the launcher keeps 1024 too */
     size_t saved_view_size;
+    uint8_t saved_scroll[ORACLES_ENHANCED_SCROLL_STATE_SIZE];   /* the view's record of the scroll the state was saved in */
+    size_t saved_scroll_size;
     OraclesRoomTransition *transition;
     uint8_t saved_transition[ORACLES_ROOM_TRANSITION_STATE_SIZE];
     size_t saved_transition_size;
@@ -385,6 +397,9 @@ struct OraclesEnhancedCheck {
     int saved_shown[4];
     uint8_t saved_room[4];
     int reload_saved_in_scroll;
+    int32_t reload_saved_origin_x, reload_saved_origin_y;   /* the reference room's place at a save in a scroll: the room left */
+    int reload_scroll_open;                                  /* the frames after the load still in the scroll it was saved in */
+    unsigned reload_scroll_frames, reload_scroll_framed, reload_scroll_origin_moved;
     uint8_t reload_destination_group;
     uint8_t reload_destination_room;
     int reload_expected_valid;
@@ -395,19 +410,20 @@ struct OraclesEnhancedCheck {
     int32_t reload_camera_delta;
     int32_t reload_link_start, reload_camera_start;   /* after the load: does the camera still follow Link? */
     int32_t reload_link_travel, reload_camera_travel;
+    unsigned reload_black_frames, reload_black_last;   /* the world frames with a room of the band black after the load, and the last */
 };
 
 /* The monotonic clock in microseconds (enhanced_check.c). */
 double ec_monotonic_us(void);
 
 /* The camera, the scrolls and the savestate reload (enhanced_check_camera.c). */
-void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, const int shown[4], const uint8_t room[4]);
+void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, OraclesEnhancedMode mode, int32_t camera_x, const int shown[4], const uint8_t room[4]);
 void ec_rebase(OraclesEnhancedCheck *c, int32_t dx, int32_t dy);
 /* `blank`: the composed surface is of one colour (a fade at its end): a camera that moves to or from it shows no jump. */
 void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank);
 void ec_measure_coverage(OraclesEnhancedCheck *c, uint32_t frame, unsigned uncovered);
 void ec_measure_scroll(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, unsigned uncovered);
-void ec_measure_seams(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode);
+void ec_measure_seams(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode);
 void ec_measure_link_backsteps(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
 void ec_measure_swim(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y);
 void ec_replay_scroll_registers(OraclesEnhancedCheck *c, int *scx, int *scy);

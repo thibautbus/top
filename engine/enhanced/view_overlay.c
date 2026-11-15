@@ -594,13 +594,105 @@ void ev_large_objects_event(OraclesEnhancedView *v, const OraclesGuestEvent *eve
     unsigned count = 0;
     large_object_frame *f = &v->large_objects[v->large_objects_head];
     v->large_objects_head = (v->large_objects_head + 1u) % LARGE_OBJECT_FRAMES;
-    f->valid = oracles_object_sprites_all(v->guest, v->rom, v->rom_size, v->large_objects_first, objects, 64u, f->sprites, LARGE_OBJECT_SPRITES, &count) >= 0;
+    const int drawn = oracles_object_sprites_all(v->guest, v->rom, v->rom_size, v->large_objects_first, objects, 64u, f->sprites, LARGE_OBJECT_SPRITES, &count);
+    f->valid = drawn >= 0;
     f->count = f->valid ? count : 0;
     f->entries = 0;
     for (unsigned i = 0; i < f->count; i++) if (f->sprites[i].written) f->entries |= 1ull << f->sprites[i].oam_index;
+    memset(f->object_of, 0xff, sizeof f->object_of);
+    for (int k = 0; k < drawn; k++)
+        for (unsigned i = objects[k].first; i < (unsigned)objects[k].first + objects[k].count && i < f->count; i++) f->object_of[i] = (uint8_t)(objects[k].kind << 4 | (objects[k].slot & 0x0fu));
     f->group = oracles_guest_read8(v->guest, t->active_group);
     f->room = oracles_guest_read8(v->guest, t->active_room);
+    f->camera_x = (int16_t)oracles_guest_read16(v->guest, t->camera_x);
+    f->camera_y = (int16_t)oracles_guest_read16(v->guest, t->camera_y);
+    f->kept_at = v->frame;
     memcpy(f->oam, oam, sizeof f->oam);
+}
+
+/* Where the entry shown on this frame drew sprite `i` of the game's drawing
+ * `n`: the place its object had when the ghost's window was captured, its
+ * record's pose built there (the entry draws the OAM of that moment, not the
+ * drawing's), the sprite at the same offset from its object's first own
+ * sprite; 0 when the entry has no record of the object (created since, or a
+ * shadow), the sprite's own place in the ghost's window taken then. */
+static int entry_place(OraclesEnhancedView *v, const large_object_frame *n, unsigned i, int *oam_x, int *oam_y)
+{
+    const OraclesObjectSprite *s = &n->sprites[i];
+    *oam_x = s->x + 8 + n->camera_x - v->large_entry_camera_x;
+    *oam_y = s->y + 16 + n->camera_y - v->large_entry_camera_y;
+    const entry *e = v->large_entry_drawn;
+    const uint8_t object = n->object_of[i];
+    if (!e || object == 0xffu || !v->rom) return 0;
+    const OraclesObjectRecord *record = NULL;
+    for (unsigned k = 0; k < e->object_count && !record; k++)
+        if (e->objects[k].kind == object >> 4 && e->objects[k].slot == (object & 0x0fu)) record = &e->objects[k];
+    unsigned first = 0;
+    while (first < n->count && (n->object_of[first] != object || n->sprites[first].effect != ORACLES_SPRITE_OWN)) first++;
+    if (!record || first == n->count) return 0;
+    const OraclesObjectRecord d = oracles_objects_as_drawn(record);
+    const OraclesObjectPlace place = { d.yh, d.xh, d.zh, (uint8_t)e->camera_y, (uint8_t)e->camera_x, d.oam_flags, d.oam_tile_base };
+    OraclesObjectSprite pose[ORACLES_OBJECT_SPRITES_MAX];
+    if (oracles_object_sprites_pose(oracles_guest_tables(v->guest), v->rom, v->rom_size, &place, d.oam_data_address, pose, ORACLES_OBJECT_SPRITES_MAX) < 1) return 0;
+    *oam_x = pose[0].x + 8 + s->x - n->sprites[first].x;
+    *oam_y = pose[0].y + 16 + s->y - n->sprites[first].y;
+    return 1;
+}
+
+/* A sprite of the game's drawing that the band lacks after a scroll into a
+ * large room: one the core does not show, the game not writing it (beyond
+ * its window) or writing it at x or y 0, which the LCD hides; and on the frame
+ * the room's entry is shown, one the ghost's game did not write either, at
+ * its object's place then (entry_place): the entry shows those it wrote. */
+static int scroll_sprite_lacking(OraclesEnhancedView *v, const large_object_frame *n, unsigned i)
+{
+    const OraclesObjectSprite *s = &n->sprites[i];
+    if (s->written && s->oam_x && s->oam_y) return 0;
+    if (!v->large_entry_drawn || v->large_entry_shown_at != v->frame) return 1;
+    int oam_x, oam_y;
+    entry_place(v, n, i, &oam_x, &oam_y);
+    return oam_y < 1 || oam_y >= 0xa0 || oam_x < 0 || oam_x >= 0xa8;
+}
+
+/* With the harness's check, a frame after a scroll into a large room that no
+ * drawing kept matches: each sprite of the drawing the game just made that it
+ * did not write, beyond the window, looked for in the band at its place, the
+ * pixels a background hides aside; found at fewer than half, the person there
+ * is missing from the frame. */
+static void check_scroll_people(OraclesEnhancedView *v, const large_object_frame *n, unsigned height, int32_t camera_x, int32_t camera_y)
+{
+    const OraclesEnhancedObservation *ob = &v->observation;
+    const uint8_t *palettes = oracles_guest_obj_palettes(v->guest);
+    const uint8_t *vram0 = oracles_guest_vram(v->guest, 0), *vram1 = oracles_guest_vram(v->guest, 1);
+    if (!palettes || !vram0 || !vram1) return;
+    unsigned judged = 0, missing = 0;
+    for (unsigned i = 0; i < n->count; i++) {
+        const OraclesObjectSprite *s = &n->sprites[i];
+        if (!scroll_sprite_lacking(v, n, i)) continue;
+        const int sx = s->x + (int)(ob->world.origin_x + n->camera_x - ob->window_left), sy = s->y - (int)ORACLES_ENHANCED_HUD_HEIGHT + (int)(ob->world.origin_y + n->camera_y - ob->window_top);
+        const uint8_t *bank = (s->attr & 0x08u) ? vram1 : vram0, *palette = palettes + (s->attr & 0x07u) * 8u;
+        unsigned seen = 0, found = 0;
+        for (unsigned row = 0; row < height; row++) {
+            const unsigned line = (s->attr & 0x40u) ? height - 1u - row : row, t = height == 16u ? ((s->tile & 0xfeu) + (line >> 3)) : s->tile;
+            const uint8_t lo = bank[t * 16u + (line & 7u) * 2u], hi = bank[t * 16u + (line & 7u) * 2u + 1u];
+            for (unsigned col = 0; col < 8u; col++) {
+                const int gx = sx + (int)col, gy = sy + (int)row;
+                if (gy >= 0 && gy < (int)ORACLES_ENHANCED_AREA_HEIGHT && gx >= 0 && gx < (int)ORACLES_ENHANCED_CORE_WIDTH) continue;
+                const unsigned bit = (s->attr & 0x20u) ? col : 7u - col, colour = ((lo >> bit) & 1u) | (((hi >> bit) & 1u) << 1);
+                const int32_t px = ob->window_left + gx - camera_x, py = ob->window_top + gy - camera_y;
+                if (!colour || px < 0 || px >= (int32_t)v->size.width || py < 0 || py >= (int32_t)v->band_height) continue;
+                if (background_hides(v, ob->window_left + gx, ob->window_top + gy, s->attr)) continue;
+                const uint16_t rgb = (uint16_t)(palette[colour * 2u] | (palette[colour * 2u + 1u] << 8));
+                seen++;
+                found += *ev_band_pixel(v, (unsigned)px, (unsigned)py) == v->colours[rgb & 0x7fffu];
+            }
+        }
+        if (!seen) continue;
+        judged = 1;
+        if (found * 2u < seen) missing = 1;
+    }
+    v->large_scroll_people_frames += judged;
+    v->large_scroll_people_missing += missing;
 }
 
 /* In a large room, every object's sprites outside the game's window, from
@@ -621,6 +713,7 @@ void ev_overlay_large_objects(OraclesEnhancedView *v, int32_t camera_x, int32_t 
      * objects: the game places them as in play, the drawings kept follow
      * them.  Only the scroll between two rooms places them otherwise, and
      * no drawing of it is kept. */
+    if (!ob->large || ob->in_scroll) v->large_after_scroll = 0;
     if (!ob->large || ob->in_scroll || !oam || !io || !(io[IO_LCDC] & 0x02u) || !v->rom) return;
     const unsigned height = (io[IO_LCDC] & 0x04u) ? 16u : 8u;
     const large_object_frame *f = NULL;
@@ -630,7 +723,29 @@ void ev_overlay_large_objects(OraclesEnhancedView *v, int32_t camera_x, int32_t 
         /* A drawing of another room is not this one's, whatever its OAM. */
         if (g->valid && g->group == ob->group && g->room == ob->room && memcmp(g->oam, oam, 160u) == 0) f = g;
     }
-    if (!f) { v->large_object_frames_unmatched++; return; }
+    if (!f) {
+        v->large_object_frames_unmatched++;
+        /* Right after a scroll into the room, the OAM on screen is one the
+         * game wrote while scrolling, which no drawing kept matches.  The
+         * drawing the game has just made of this room, whose wOam goes on
+         * screen next, gives meanwhile the sprites the band lacks
+         * (scroll_sprite_lacking), placed in the world as the game placed
+         * them; the OAM on screen keeps the others, which the core's image
+         * and the edge overlay draw.  Before the game draws the room, none. */
+        const large_object_frame *n = &v->large_objects[(v->large_objects_head + LARGE_OBJECT_FRAMES - 1u) % LARGE_OBJECT_FRAMES];
+        if (!v->large_after_scroll || v->frame - v->large_entry_shown_at >= LARGE_OBJECT_FRAMES || !n->valid || n->kept_at + 1u != v->frame
+            || n->group != ob->group || n->room != ob->room) return;
+        const int dx = (int)(ob->world.origin_x + n->camera_x - ob->window_left), dy = (int)(ob->world.origin_y + n->camera_y - ob->window_top);
+        for (int i = (int)n->count - 1; i >= 0; i--) {
+            const OraclesObjectSprite *s = &n->sprites[i];
+            if (!scroll_sprite_lacking(v, n, (unsigned)i)) continue;
+            draw_sprite_outside(v, s->x + dx, s->y - (int)ORACLES_ENHANCED_HUD_HEIGHT + dy, s->tile, s->attr, height, ROWS_ALL, camera_x, camera_y, 0);
+            v->large_object_sprites_drawn++;
+        }
+        if (v->pose_verify) check_scroll_people(v, n, height, camera_x, camera_y);
+        return;
+    }
+    v->large_after_scroll = 0;
     v->large_objects_entries = f->entries;
     for (int i = (int)f->count - 1; i >= 0; i--) {
         const OraclesObjectSprite *s = &f->sprites[i];

@@ -292,6 +292,10 @@ int oracles_enhanced_camera_frame(OraclesEnhancedCamera *camera, uint32_t frame,
 const OraclesE11State *oracles_enhanced_camera_state(const OraclesEnhancedCamera *camera);
 const OraclesE11State *oracles_enhanced_camera_state_vertical(const OraclesEnhancedCamera *camera);
 void oracles_enhanced_camera_set_state(OraclesEnhancedCamera *camera, const OraclesE11State *state, const OraclesE11State *vertical);
+/* The last reduction's whole camera less the one it would have had never held short of black (the band's reach,
+ * oracles_enhanced_camera_limit), each axis (0 where not comparable), and whether that reach kept it from it then on
+ * that axis: once it no longer does, the camera rejoins the unheld one by a pixel a frame at most. */
+void oracles_enhanced_camera_apart(const OraclesEnhancedCamera *camera, int32_t *x, int32_t *y, int *held_x, int *held_y);
 /* The whole offsets of the two axes, for the savestate too: set after the
  * states (oracles_enhanced_camera_set_state forgets them), a loaded state
  * shows the camera to the pixel it showed. */

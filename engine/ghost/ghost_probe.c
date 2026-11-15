@@ -53,15 +53,21 @@ void oracles_ghost_probe_animation(OraclesGhost *g, OraclesGhostResult *result)
     uint8_t *disabled = &wram[t->disabled_objects.addr - WRAM_BANK0_BASE];
     const uint8_t prior = *disabled;
     *disabled = (uint8_t)(prior | DISABLE_ENEMIES);
+    /* Link left on a warp tile of the room (hold_warp_tiles) does not take it during the probe either: the warp
+     * would disable the objects probed. */
+    uint8_t *warp_tiles = oracles_ghost_bank0_symbol(t->disable_warp_tiles) ? &wram[t->disable_warp_tiles.addr - WRAM_BANK0_BASE] : NULL;
+    const uint8_t warp_prior = warp_tiles ? *warp_tiles : 0;
     g->probing = 1;
     g->probe_updates = 0;
     for (unsigned f = 0; f < ORACLES_GHOST_PROBE_FRAMES && g->probe_updates < ORACLES_GHOST_PROBE_UPDATES; f++) {
+        if (warp_tiles) *warp_tiles = 1;
         oracles_guest_set_frame(g->guest, g->frames_run + f);
         oracles_core_run_frame(g->core);
         result->probe_frames++;
     }
     g->probing = 0;
     *disabled = prior;
+    if (warp_tiles) *warp_tiles = warp_prior;
     for (unsigned i = 0; i < result->object_count; i++)
         result->objects[i].animated_by_code = (uint8_t)(g->probe_ok[i] && g->probe_updates == ORACLES_GHOST_PROBE_UPDATES);
 }

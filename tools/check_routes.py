@@ -114,14 +114,16 @@ ALWAYS = {
                  # a scroll's animation, run by the view alone, lands on the game's step, image for image, at the frame its plan
                  # spread the loops over (a jump at the landing is a landing off that frame)
                  "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0",
-                 # the people of a large room drawn from its entry, as Link walks into it, where the live game has them
-                 "enhanced.large_entry_people_off=0"] + POSES + UNVISITED,
+                 # the people of a large room drawn from its entry, as Link walks into it, where the live game has them, whole
+                 # across the edge of the ghost's window as the PPU draws them shifted onto the LCD, and those beyond the window
+                 # on the frames after the scroll
+                 "enhanced.large_entry_people_off=0", "enhanced.large_entry_edge_object_wrong=0", "enhanced.large_entry_edge_background_wrong=0", "enhanced.large_scroll_people_missing=0"] + POSES + UNVISITED,
     "enhanced-threaded": ["result=ok", "enhanced.camera_jumps=0", "enhanced.window_misplaced=0", "enhanced.terrains_different=0",
                           "enhanced.live_diff_max=0", "enhanced.plain_shown_frames=0", "enhanced.text_box_frames_at_origin=0",
                           "enhanced.blurb_frames_in_window=0",
                           "enhanced.transitions_other_room=0",   # never a room drawn that way other than the one entered
                           "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0",
-                          "enhanced.large_entry_people_off=0"] + POSES + UNVISITED,
+                          "enhanced.large_entry_people_off=0", "enhanced.large_entry_edge_object_wrong=0", "enhanced.large_entry_edge_background_wrong=0", "enhanced.large_scroll_people_missing=0"] + POSES + UNVISITED,
 }
 # The band must fill at least once: the black is counted from its first full frame, and a route whose band never fills
 # would count none and pass any ceiling.

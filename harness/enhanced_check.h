@@ -42,6 +42,9 @@ void oracles_enhanced_check_hotbar_forget_at(OraclesEnhancedCheck *check, uint32
 /* The state loaded at the frame it was saved, not 120 frames later: the game stays on the route, frame for frame as
  * without the load, and only the view has lost what it held. */
 void oracles_enhanced_check_reload_in_place(OraclesEnhancedCheck *check);
+/* The state loaded `frames` after the save rather than 120: far enough on the route for a state of one half of an image
+ * of two games to be loaded in the other half's rooms. */
+void oracles_enhanced_check_reload_after(OraclesEnhancedCheck *check, uint32_t frames);
 /* The surfaces from frame `from`, written to `out` or held against those a run wrote to `against`: a pixel the view
  * shows that the run without the load showed otherwise is a wrong picture, one left black is not (enhanced.against_*). */
 void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *check, const char *out, uint32_t from, const char *against);

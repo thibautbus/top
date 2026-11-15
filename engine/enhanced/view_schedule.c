@@ -35,10 +35,11 @@ static int room_a_scroll_away(const OraclesEnhancedView *v, uint8_t room)
 
 /* Whether an entry needs a run now: none, or failed long enough ago; a run
  * put off until Link walks on (a door under him, a text box on his way)
- * waits for him to be 16 px from where he stood. */
+ * waits for him to be 16 px from where he stood.  None while the lane's ghost
+ * has refused one as busy this frame. */
 static int entry_wanting(OraclesEnhancedView *v, entry *e)
 {
-    if (!e || (e->valid && !e->refresh && !e->rerun) || e->in_flight) return 0;   /* in flight: in another ghost */
+    if (!e || v->ghost_busy || (e->valid && !e->refresh && !e->rerun) || e->in_flight) return 0;   /* in flight: in another ghost */
     /* A room still drawn, run again for its objects alone, waits for the
      * rooms of the band still black. */
     if (v->defer_objects_refresh && e->valid && e->refresh_objects && !e->rerun) { v->objects_refresh_deferred = 1; return 0; }
@@ -800,12 +801,15 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     v->release_live = !primeable && v->since_load && oracles_enhanced_load_window_holds(v->frame - v->load_frame, 0) && v->observation.playing && oracles_ghost_releasable(v->guest);
     p->live_primeable = primeable || v->release_live;
     /* Each idle ghost takes the next run of the order; the one in flight in
-     * another ghost is not wanted again (entry_wanting). */
+     * another ghost is not wanted again (entry_wanting).  A thread's ghost
+     * still running a run its lane does not wait for is left out of the
+     * order this frame: no slot taken, no savestate, no corner marked. */
     int idle = 1;
     for (unsigned l = 0; l < v->lane_count; l++) {
         ev_lane_serve(v, l);
-        if (!v->pending) schedule_idle(v, p, q);
-        idle = idle && !v->pending;
+        v->ghost_busy = !v->pending && !v->sync_budget && v->ghost && oracles_ghost_busy(v->ghost);
+        if (!v->pending && !v->ghost_busy) schedule_idle(v, p, q);
+        idle = idle && !v->pending && !v->ghost_busy;
     }
     ev_lane_serve(v, 0);
     if (!oracles_enhanced_load_window_holds(v->frame - v->load_frame, primeable && idle)) v->since_load = 0;

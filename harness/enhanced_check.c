@@ -64,6 +64,7 @@ uint64_t oracles_enhanced_check_last_hash(const OraclesEnhancedCheck *c) { retur
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *c, uint32_t frame) { c->reload_at = frame; }
 void oracles_enhanced_check_hotbar_forget_at(OraclesEnhancedCheck *c, uint32_t frame) { c->hotbar_forget_at = frame; }
 void oracles_enhanced_check_reload_in_place(OraclesEnhancedCheck *c) { c->reload_in_place = 1; }
+void oracles_enhanced_check_reload_after(OraclesEnhancedCheck *c, uint32_t frames) { c->reload_after = frames; }
 
 void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *c, const char *out, uint32_t from, const char *against)
 {
@@ -74,11 +75,35 @@ void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *c, const char *out, u
 
 #define SURFACE_STEP 8u   /* a frame in eight: a row's file stays in the tens of megabytes */
 
+#define AGAINST_NEAR 3   /* pixels: the camera a load leaves a few pixels from the replay's, held short of rooms still black */
+
+/* A world frame whose camera stands a few pixels from the replay's: the world band held against the replay's shifted by
+ * that gap, where both show the same place of the world, the status bar above it as it is. */
+static void measure_near(OraclesEnhancedCheck *c, const uint32_t *surface, const uint32_t *other, int32_t dx, int32_t dy, uint32_t frame)
+{
+    const int32_t width = (int32_t)c->width, height = (int32_t)oracles_enhanced_view_height(c->view), hud = ORACLES_ENHANCED_HUD_HEIGHT;
+    unsigned wrong = 0, black = 0;
+    for (int32_t y = 0; y < height; y++) {
+        const int32_t oy = y < hud ? y : y + dy;
+        if (oy < (y < hud ? 0 : hud) || oy >= (y < hud ? hud : height)) continue;
+        for (int32_t x = 0; x < width; x++) {
+            const int32_t ox = y < hud ? x : x + dx;
+            if (ox < 0 || ox >= width) continue;
+            const uint32_t mine = surface[(size_t)y * (size_t)width + (size_t)x], theirs = other[(size_t)oy * (size_t)width + (size_t)ox];
+            if (mine == theirs) continue;
+            if (mine & 0x00ffffffu) wrong++; else black++;
+        }
+    }
+    c->against_near_compared++;
+    if (wrong) { c->against_near_wrong_frames++; c->against_near_last_wrong = frame; if (wrong > c->against_near_wrong_max) c->against_near_wrong_max = wrong; }
+    if (black) { c->against_near_last_black = frame; if (black > c->against_near_black_max) c->against_near_black_max = black; }
+}
+
 /* From `from`, every eighth frame's camera and surface: written, or held against those of the replay without the load
  * from the frame after the load.  A pixel lit that differs is a wrong picture; a pixel left black is what the view has
  * not filled yet.  The frames whose camera stands elsewhere than in that replay, and those of a fade, which lights the
  * black, say nothing of what is drawn. */
-static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame)
+static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame, int world)
 {
     if (!surface || (!c->surfaces_out && !c->surfaces_against) || frame < c->surfaces_from || (frame - c->surfaces_from) % SURFACE_STEP) return;
     const size_t pixels = (size_t)c->width * oracles_enhanced_view_height(c->view);
@@ -92,7 +117,13 @@ static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, i
         || fread(other_camera, sizeof other_camera, 1, c->surfaces_against) != 1
         || fread(c->surface_other, sizeof *surface, pixels, c->surfaces_against) != pixels) { c->against_unmatched++; return; }
     c->against_frames++;
-    if (memcmp(camera, other_camera, sizeof camera) != 0) { c->against_camera_apart++; return; }
+    if (memcmp(camera, other_camera, sizeof camera) != 0) {
+        c->against_camera_apart++;
+        const int32_t dx = camera_x - other_camera[0], dy = camera_y - other_camera[1];
+        if (world && dx >= -AGAINST_NEAR && dx <= AGAINST_NEAR && dy >= -AGAINST_NEAR && dy <= AGAINST_NEAR && !oracles_enhanced_view_faded(c->view))
+            measure_near(c, surface, c->surface_other, dx, dy, frame);
+        return;
+    }
     if (oracles_enhanced_view_faded(c->view)) { c->against_faded++; return; }
     c->against_compared++;
     unsigned wrong = 0, black = 0;
@@ -103,7 +134,7 @@ static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, i
     if (wrong) { c->against_wrong_frames++; c->against_last_wrong = frame; if (wrong > c->against_wrong_max) c->against_wrong_max = wrong; }
     if (black) { c->against_last_black = frame; if (black > c->against_black_max) c->against_black_max = black; }
 }
-void oracles_enhanced_check_held_frame(OraclesEnhancedCheck *c, const uint32_t *surface, uint32_t frame) { measure_surfaces(c, surface, 0, 0, frame); }
+void oracles_enhanced_check_held_frame(OraclesEnhancedCheck *c, const uint32_t *surface, uint32_t frame) { measure_surfaces(c, surface, 0, 0, frame, 0); }
 
 void oracles_enhanced_check_set_transition(OraclesEnhancedCheck *c, OraclesRoomTransition *transition) { c->transition = transition; }
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *c, int paced) { c->paced = paced; }
@@ -295,7 +326,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     c->run_hash = oracles_guest_hash((const uint8_t *)&hash, sizeof hash, c->run_hash);
     c->last_hash = hash;
     for (unsigned i = 0; i < c->surfaces; i++) if (c->surface_at[i] == frame) write_surface(c, surface, c->surface_path[i]);
-    measure_surfaces(c, surface, camera_x, camera_y, frame);
+    measure_surfaces(c, surface, camera_x, camera_y, frame, mode == ORACLES_ENHANCED_WORLD);
     c->frames++;
     const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
     int blank = surface != NULL;   /* one colour: the screen faded out, where a camera that moves shows nothing moving */
@@ -347,9 +378,9 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     const unsigned uncovered = oracles_enhanced_view_uncovered(c->view);
     if (mode == ORACLES_ENHANCED_WORLD && uncovered) ec_measure_coverage(c, frame, uncovered);
     if (mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->in_transition) check_drawn_rooms(c, ob);   /* before a reload replaces the state composed */
-    ec_reload_step(c, frame, camera_x, shown, room);
+    ec_reload_step(c, frame, mode, camera_x, shown, room);
     ec_measure_scroll(c, ob, mode, uncovered);
-    ec_measure_seams(c, ob, mode);
+    ec_measure_seams(c, frame, ob, mode);
     ec_measure_link_backsteps(c, frame, ob, mode, camera_x, camera_y);
     ec_measure_swim(c, frame, ob, mode, camera_x, camera_y);
     /* What the band showed at the last world frame: a framed one (a menu, a text framed) shows no neighbour and says

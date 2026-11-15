@@ -9,6 +9,7 @@ static int reload_save_state(OraclesEnhancedCheck *c, int32_t camera_x, const in
     c->saved_core = malloc(c->saved_core_size);
     if (!c->saved_core || oracles_core_save_state(c->core, c->saved_core, c->saved_core_size) != 0) return 0;
     if (oracles_enhanced_view_save_state(c->view, c->saved_view, sizeof c->saved_view, &c->saved_view_size) != 0) return 0;
+    if (oracles_enhanced_view_save_scroll_state(c->view, c->saved_scroll, sizeof c->saved_scroll, &c->saved_scroll_size) != 0) return 0;
     c->saved_transition_size = oracles_room_transition_save_state(c->transition, c->saved_transition, sizeof c->saved_transition);
     c->saved_compact_size = oracles_guest_compact_save_state(c->guest, c->saved_compact, sizeof c->saved_compact);
     c->saved_text_box_size = oracles_guest_text_box_save_state(c->guest, c->saved_text_box, sizeof c->saved_text_box);   /* the host's lines, empty unarmed */
@@ -21,6 +22,8 @@ static int reload_save_state(OraclesEnhancedCheck *c, int32_t camera_x, const in
          * the guest's active identity already names the arrival room. */
         c->reload_destination_group = ob->group;
         c->reload_destination_room = ob->room;
+        c->reload_saved_origin_x = ob->world.origin_x;
+        c->reload_saved_origin_y = ob->world.origin_y;
     }
     /* Non-scroll reloads retain the old contract exactly: the target is
      * the topology saved at F. A scroll defers choosing its target until
@@ -54,6 +57,7 @@ static int reload_load_state(OraclesEnhancedCheck *c, const int shown[4], const 
     if (c->saved_compact_size && oracles_guest_compact_load_state(c->guest, c->saved_compact, c->saved_compact_size) != 0) return 0;
     if (c->saved_text_box_size && oracles_guest_text_box_load_state(c->guest, c->saved_text_box, c->saved_text_box_size) != 0) return 0;
     if (oracles_enhanced_view_load_state(c->view, c->saved_view, c->saved_view_size) != 0) return 0;
+    if (c->saved_scroll_size && oracles_enhanced_view_load_scroll_state(c->view, c->saved_scroll, c->saved_scroll_size) != 0) return 0;
     if (c->link_sprites) oracles_sprites_forget(c->link_sprites);
     c->have_drawn_link = 0;
     c->blurb_drawn_count = 0;   /* the frames drawn before are about another moment */
@@ -83,15 +87,32 @@ static void reload_track_transition(OraclesEnhancedCheck *c, uint32_t frame)
     }
 }
 
-void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, const int shown[4], const uint8_t room[4])
+/* The frames after a load still in the scroll the state was saved in: the view goes on from the room left, which
+ * Link's coordinates refer to until the scroll ends, as the run before the save did, in the world, never framed
+ * (enhanced.reload_scroll_frames, enhanced.reload_scroll_framed), the reference room where it was at the save
+ * (enhanced.reload_scroll_origin_moved: the world placed a room off, the room entered taken for the reference). */
+static void reload_track_scroll(OraclesEnhancedCheck *c, uint32_t frame, OraclesEnhancedMode mode)
+{
+    if (!c->reload_done || !c->reload_saved_in_scroll || frame <= c->reload_frame) return;
+    const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
+    if (frame == c->reload_frame + 1u) c->reload_scroll_open = 1;
+    if (!c->reload_scroll_open) return;
+    if (!ob || !ob->in_scroll) { c->reload_scroll_open = 0; return; }
+    c->reload_scroll_frames++;
+    if (mode != ORACLES_ENHANCED_WORLD) c->reload_scroll_framed++;
+    else if (ob->world.origin_x != c->reload_saved_origin_x || ob->world.origin_y != c->reload_saved_origin_y) c->reload_scroll_origin_moved++;
+}
+
+void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, OraclesEnhancedMode mode, int32_t camera_x, const int shown[4], const uint8_t room[4])
 {
     if (!c->reload_at) return;
     reload_track_transition(c, frame);
+    reload_track_scroll(c, frame, mode);
     if (frame == c->reload_at && !c->reload_saved) {
         if (!reload_save_state(c, camera_x, shown, room)) return;
         if (!c->reload_in_place) return;
     }
-    if (c->reload_saved && !c->reload_done && frame == c->reload_at + (c->reload_in_place ? 0u : 120u)) {
+    if (c->reload_saved && !c->reload_done && frame == c->reload_at + (c->reload_in_place ? 0u : c->reload_after ? c->reload_after : RELOAD_AFTER)) {
         if (!reload_load_state(c, shown, room)) return;
         c->reload_done = 1;
         c->reload_frame = frame;
@@ -117,6 +138,10 @@ void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, c
         const int32_t alt = lt < 0 ? -lt : lt, act = ct < 0 ? -ct : ct;
         if (alt > c->reload_link_travel) c->reload_link_travel = alt;
         if (act > c->reload_camera_travel) c->reload_camera_travel = act;
+        if (mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_black_rooms(c->view)) {
+            c->reload_black_frames++;
+            c->reload_black_last = frame - c->reload_frame;
+        }
     }
 }
 
@@ -129,6 +154,7 @@ void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, c
 void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank)
 {
     if (mode != ORACLES_ENHANCED_WORLD) {
+        c->unheld_rejoin_run = 0;
         c->framed_frames++;
         c->have_camera_delta = 0;
         c->returning = 1;
@@ -138,6 +164,18 @@ void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
         return;
     }
     c->world_frames++;
+    {
+        int32_t ax = 0, ay = 0;
+        int held_x = 0, held_y = 0;
+        oracles_enhanced_camera_apart(oracles_enhanced_view_camera(c->view), &ax, &ay, &held_x, &held_y);
+        const int32_t mx = ax < 0 ? -ax : ax, my = ay < 0 ? -ay : ay, most = mx > my ? mx : my;
+        const int rejoining = (mx && !held_x) || (my && !held_y);   /* an axis apart that the hold no longer keeps there */
+        if (most > c->unheld_apart_max) c->unheld_apart_max = most;
+        if (most) c->unheld_apart_frames++;
+        if (most && !rejoining) c->unheld_held_frames++;
+        c->unheld_rejoin_run = rejoining ? c->unheld_rejoin_run + 1u : 0u;
+        if (c->unheld_rejoin_run > c->unheld_rejoin_longest) c->unheld_rejoin_longest = c->unheld_rejoin_run;
+    }
     unsigned shown_w = 0, shown_h = 0;   /* the part of the band shown: all of it, but where the drawn-back view keeps the normal band */
     oracles_enhanced_view_shown(c->view, &shown_w, &shown_h);
     if (shown_w < c->width) c->normal_band_frames++;
@@ -301,12 +339,20 @@ void ec_measure_scroll(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
     }
 }
 
+/* The frame after a load of a state saved earlier (--enhanced-reload-at without --enhanced-reload-in-place): Link and
+ * the game's window put back where the state has them, a teleport, as the camera's jumps leave it out.  A load in
+ * place goes on from where the game stands: everything stays continuous across it. */
+static int after_teleport_load(const OraclesEnhancedCheck *c, uint32_t frame)
+{
+    return c->reload_done && !c->reload_in_place && frame == c->reload_frame + 1u;
+}
+
 /* Between consecutive world frames of one epoch, outside cutscenes: a jump
  * of Link's world position or of the game's window is a seam that is not
- * continuous. */
-void ec_measure_seams(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode)
+ * continuous.  Not across the load of a state saved earlier. */
+void ec_measure_seams(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode)
 {
-    if (c->have_last_observation && ob->epoch == c->epochs && mode == ORACLES_ENHANCED_WORLD && c->last_mode_world && !ob->cutscene) {
+    if (c->have_last_observation && !after_teleport_load(c, frame) && ob->epoch == c->epochs && mode == ORACLES_ENHANCED_WORLD && c->last_mode_world && !ob->cutscene) {
         const int32_t dl = ob->world.link_x - c->last_link_x, dw = ob->window_left - c->last_window_left;
         const int32_t al = dl < 0 ? -dl : dl, aw = dw < 0 ? -dw : dw;
         if (al > 8) { c->link_jumps++; if (al > c->largest_link_jump) c->largest_link_jump = al; }
@@ -709,7 +755,7 @@ void ec_measure_swim(OraclesEnhancedCheck *c, uint32_t frame, const OraclesEnhan
     const int walking = mode == ORACLES_ENHANCED_WORLD && ob->playing && !ob->cutscene && !state && !floor
                      && oracles_guest_read8(c->guest, t->link_anim_mode) == ORACLES_LINK_ANIM_MODE_WALK && oracles_guest_read8(c->guest, t->scroll_mode) != 0u;
     const int kind = measured ? 1 : walking ? 2 : 0;
-    const int contiguous = c->swim_have && c->swim_frame + 1u == frame && c->swim_epoch == ob->epoch;
+    const int contiguous = c->swim_have && c->swim_frame + 1u == frame && c->swim_epoch == ob->epoch && !after_teleport_load(c, frame);
     const uint16_t pose = (uint16_t)(link[ORACLES_OBJ_OAM_DATA_ADDRESS] | link[ORACLES_OBJ_OAM_DATA_ADDRESS + 1] << 8);
     if (kind && contiguous && drawn) {
         const int32_t off[2] = { ob->window_left + x - c->swim_last_world[0], ob->window_top + y - c->swim_last_world[1] };

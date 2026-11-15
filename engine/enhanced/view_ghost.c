@@ -543,14 +543,19 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     const int across = !chained && v->level_change >= 0;
     oracles_ghost_set_level_change(v->ghost, across ? v->level_change : -1);
     oracles_ghost_set_release(v->ghost, !chained && v->release_live);
-    int started;
-    if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, state, size, dir, 1, v->colours, v->job) == 0;
+    int rc;
+    if (v->sync_budget) rc = oracles_ghost_begin_ex(v->ghost, state, size, dir, 1, v->colours, v->job);
     /* In the thread the budget is the whole job's: a run across the surface plays its warp first, as a pre-run does. */
-    else started = oracles_ghost_request_ex(v->ghost, state, size, dir, 1, v->colours, across ? GHOST_BLIND_SETTLE_FRAMES : GHOST_SETTLE_FRAMES) == 0;
+    else rc = oracles_ghost_request_ex(v->ghost, state, size, dir, 1, v->colours, across ? GHOST_BLIND_SETTLE_FRAMES : GHOST_SETTLE_FRAMES);
+    /* The thread's worker still runs a run the lane does not wait for (ev_update_neighbours leaves such a lane out,
+     * this is the rest): no failure and no failure's wait, the room queued and asked again at the next frame, the
+     * lane's other rooms not wanted for this one (entry_wanting). */
+    if (!v->sync_budget && rc == ORACLES_GHOST_BUSY) { e->queued = 1; v->ghost_busy = 1; v->busy_refused++; return 0; }
+    const int started = rc == 0;
     v->requested++;
     if (!started) {
         /* Synchronous: the state was refused (a parent's settled state that
-         * cannot be primed); threaded: the worker is busy.  Tried again later. */
+         * cannot be primed); threaded: the request failed.  Tried again later. */
         v->failed++;
         e->failed = 1; e->failed_at = v->frame; e->waits_start = 0;
         e->queued = !v->sync_budget;
@@ -604,8 +609,11 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
 void ev_blind_prerun(OraclesEnhancedView *v)
 {
     const OraclesEnhancedObservation *ob = &v->observation;
-    if (v->pending || !ob->playing || ob->in_scroll || !ob->grid || (ob->group & 7u) > 1u) return;
+    /* In a scroll, the one a state was loaded in alone: its neighbours were given up with the load, and the room
+     * entered cannot be primed before it ends. */
+    if (v->pending || !ob->playing || (ob->in_scroll && !v->scroll_loaded) || !ob->grid || (ob->group & 7u) > 1u) return;
     if (oracles_ghost_primeable(v->guest, NULL) || !oracles_ghost_prerunnable(v->guest, NULL)) return;
+    if (!v->sync_budget && oracles_ghost_busy(v->ghost)) return;   /* the thread's ghost still busy: asked again at the next frame */
     if (v->blind_epoch != ob->epoch || v->blind_room != ob->room) { v->blind_epoch = ob->epoch; v->blind_room = ob->room; v->blind_mask = 0; }
     static const OraclesGhostDirection order[4] = { ORACLES_DIR_LEFT, ORACLES_DIR_RIGHT, ORACLES_DIR_UP, ORACLES_DIR_DOWN };
     for (unsigned i = 0; i < 4; i++) {
@@ -620,16 +628,18 @@ void ev_blind_prerun(OraclesEnhancedView *v)
         }
         v->blind_mask |= (uint8_t)(1u << dir);
         if (oracles_core_save_state(v->core, v->snapshot, v->state_size) != 0) return;
-        int started;
+        int rc;
         /* A pre-run plays the load the live game is in, whose season is not set yet
          * (checkRoomPackAfterWarp): it holds the one the ghost has once loaded, the game's. */
         oracles_ghost_set_held_season(v->ghost, oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) ? ORACLES_GHOST_HOLD_OWN : -1);
         oracles_ghost_set_level_change(v->ghost, -1);
         oracles_ghost_set_release(v->ghost, 0);
-        if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, v->job) == 0;
-        else started = oracles_ghost_request_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, GHOST_BLIND_SETTLE_FRAMES) == 0;
+        if (v->sync_budget) rc = oracles_ghost_begin_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, v->job);
+        else rc = oracles_ghost_request_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, GHOST_BLIND_SETTLE_FRAMES);
+        /* The thread's worker still busy: the direction asked again at the next frame, no failure. */
+        if (!v->sync_budget && rc == ORACLES_GHOST_BUSY) { v->blind_mask &= (uint8_t)~(1u << dir); v->busy_refused++; return; }
         v->requested++;
-        if (!started) { v->failed++; v->failure_reasons[4]++; return; }
+        if (rc != 0) { v->failed++; v->failure_reasons[4]++; return; }
         note_live_killed_list(v);
         note_live_key(v);
         v->pending = 1;

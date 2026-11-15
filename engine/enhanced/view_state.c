@@ -29,6 +29,75 @@ static int tail_records(const uint8_t *data, size_t size, size_t *size_at, size_
 static void put32(uint8_t *out, int32_t value) { for (unsigned b = 0; b < 4u; b++) out[b] = (uint8_t)((uint32_t)value >> (8u * b)); }
 static int32_t get32(const uint8_t *in) { uint32_t value = 0; for (unsigned b = 0; b < 4u; b++) value |= (uint32_t)in[b] << (8u * b); return (int32_t)value; }
 
+/* What the observer knows of a scroll under way that the game's state does not say (camera.h): until the scroll
+ * ends, Link's coordinates are the room left's while wActiveRoom already names the room entered (getNextActiveRoom),
+ * so that the observer rebuilt from the guest would place the world a room too far, and take the scroll's end for a
+ * loop; the game's window at the scroll's first frame, which a large room's band slides from; the window and Link's
+ * place of the frame on screen, which the next frame is drawn from.  The epochs are kept as their offsets from the
+ * observer's, which the load takes again from the camera's state.  A record of its own, beside the host state, whose
+ * format it leaves as it was (the container's field, engine/core/state.h). */
+#define SCROLL_RECORD(X) \
+    X(have_reference) X(ref_group) X(ref_room) X(ref_large) X(last_group) X(last_room) X(scrolling) X(scrolling_direction) \
+    X(have_held) X(held_x) X(held_y) X(held_group) X(held_room) X(was_in_scroll) X(carried_before_scroll) \
+    X(scroll_start_left) X(scroll_start_top) X(have_last_window) X(last_window_left) X(last_window_top) \
+    X(last_origin_x) X(last_origin_y) X(last_window_group) X(last_window_room) X(last_camera_x) X(last_camera_y) \
+    X(before_camera_x) X(before_camera_y) X(have_before_camera) X(last_offset_x) X(last_offset_y) \
+    X(have_last_link) X(last_link_x) X(last_link_y) X(last_sub_x) X(last_sub_y) X(last_world_link_x) X(last_world_link_y) \
+    X(last_link_group) X(last_link_room) X(have_ref_cell) X(ref_cell) X(ref_cell_group) X(ref_cell_room)
+
+int oracles_enhanced_view_save_scroll_state(const OraclesEnhancedView *v, uint8_t *out, size_t capacity, size_t *written)
+{
+    *written = 0;
+    if (!v->observer.was_in_scroll) return 0;
+    if (capacity < ORACLES_ENHANCED_SCROLL_STATE_SIZE) return -1;
+    const OraclesEnhancedObserver *o = &v->observer;
+    unsigned n = 0;
+    memcpy(out, SCROLL_RECORD_TAG, 4);
+#define PUT(field) put32(out + 4u + 4u * n++, (int32_t)o->field);
+    SCROLL_RECORD(PUT)
+#undef PUT
+    put32(out + 4u + 4u * n++, (int32_t)(o->last_window_epoch - o->epoch * 8u));
+    put32(out + 4u + 4u * n++, (int32_t)(o->last_link_epoch - o->epoch * 8u));
+    *written = ORACLES_ENHANCED_SCROLL_STATE_SIZE;
+    return 0;
+}
+
+#define INDEX(field) SCROLL_##field,
+enum { SCROLL_RECORD(INDEX) SCROLL_OBSERVED };
+#undef INDEX
+_Static_assert(SCROLL_OBSERVED + 2u == ORACLES_ENHANCED_SCROLL_STATE_FIELDS, "the scroll's record: the observed fields and the two epochs");
+
+static int32_t scroll_field(const uint8_t *data, unsigned index) { return get32(data + 4u + 4u * index); }
+
+int oracles_enhanced_view_load_scroll_state(OraclesEnhancedView *v, const uint8_t *data, size_t size)
+{
+    v->scroll_loaded = 0;
+    if (size != ORACLES_ENHANCED_SCROLL_STATE_SIZE || memcmp(data, SCROLL_RECORD_TAG, 4) != 0) return -1;
+    /* Taken in a scroll, its bytes of the game's as the game keeps them, else the record is of no state this view
+     * saved, and the observer is rebuilt from the guest as for a state without it. */
+    static const unsigned bytes[] = { SCROLL_ref_group, SCROLL_ref_room, SCROLL_last_group, SCROLL_last_room, SCROLL_held_group, SCROLL_held_room,
+                                      SCROLL_last_window_group, SCROLL_last_window_room, SCROLL_last_link_group, SCROLL_last_link_room,
+                                      SCROLL_ref_cell, SCROLL_ref_cell_group, SCROLL_ref_cell_room };
+    int sane = scroll_field(data, SCROLL_was_in_scroll) == 1 && scroll_field(data, SCROLL_have_reference) == 1
+            && (uint32_t)scroll_field(data, SCROLL_scrolling_direction) <= 3u && (uint32_t)scroll_field(data, SCROLL_ref_large) <= 1u;
+    for (unsigned i = 0; i < sizeof bytes / sizeof bytes[0]; i++) sane = sane && (uint32_t)scroll_field(data, bytes[i]) <= 0xffu;
+    OraclesEnhancedObserver o = v->observer;
+    unsigned n = 0;
+#define GET(field) o.field = scroll_field(data, n++);
+    SCROLL_RECORD(GET)
+#undef GET
+    o.last_window_epoch = o.epoch * 8u + (uint64_t)(int64_t)scroll_field(data, n++);
+    o.last_link_epoch = o.epoch * 8u + (uint64_t)(int64_t)scroll_field(data, n++);
+    /* And the game loaded is in that scroll, in the reference's group, which a scroll does not change. */
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    const uint8_t mode = oracles_guest_read8(v->guest, t->scroll_mode) & 0x7fu, state = oracles_guest_read8(v->guest, t->screen_transition_state);
+    const int scrolling = (state >= 3u && state <= 5u) || mode == ORACLES_SCROLL_MODE_DECIDED || mode == ORACLES_SCROLL_MODE_TRANSITION;
+    if (!sane || !scrolling || oracles_guest_read8(v->guest, t->active_group) != o.ref_group) return -1;
+    v->observer = o;
+    v->scroll_loaded = 1;
+    return 0;
+}
+
 static const char *const surface_aspects[ORACLES_ENHANCED_ASPECTS] = { "16:9", "4:3" };
 
 /* The view's level and the screen's shape that give a surface, `fitted` the far view fitted to a screen; 0 for none. */
@@ -167,6 +236,7 @@ static void forget_frames(OraclesEnhancedView *v)
     oracles_sprites_forget(v->live_sprites);
     oracles_objects_forget(v->live_objects);
     for (unsigned i = 0; i < LARGE_OBJECT_FRAMES; i++) v->large_objects[i].valid = 0;
+    v->large_after_scroll = 0; v->large_entry_drawn = NULL;
 }
 
 void ev_half_forget(OraclesEnhancedView *v)
@@ -198,7 +268,7 @@ void ev_half_forget(OraclesEnhancedView *v)
     v->black_have_ref = 0;
     v->black_loaded = 1;
     v->black_cold_from = 0;
-    v->scroll_from_valid = 0; v->was_in_transition = 0;
+    v->scroll_from_valid = 0; v->was_in_transition = 0; v->scroll_loaded = 0;
     v->level_change = -1;
     v->coarse_len = 0;
     v->faded_run = 0;
@@ -278,6 +348,7 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
         for (unsigned b = 0; b < 4u; b++) { cols |= (uint32_t)loop[4 + b] << (8u * b); rows |= (uint32_t)loop[8 + b] << (8u * b); }
         v->observer.loop_cols = (int32_t)cols; v->observer.loop_rows = (int32_t)rows; v->observer.loop_epoch = v->observer.epoch;
     }
+    v->scroll_loaded = 0;   /* the scroll the state was saved in, its own record (oracles_enhanced_view_load_scroll_state) */
     oracles_enhanced_tint_forget(v->tint_memories);   /* a scene's tint is taken afresh */
     v->transition_mix = 0;
     ev_invalidate_all(v);

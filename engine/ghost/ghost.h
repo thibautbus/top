@@ -214,6 +214,10 @@ OraclesGhost *oracles_ghost_create(const uint8_t *rom, size_t rom_size, const Or
  * for: its worker moves the ghost once it ends, and its result is dropped.  -1 when a hook does not fit (a ghost that
  * could not follow runs nothing after). */
 int oracles_ghost_switch_half(OraclesGhost *ghost, const uint8_t *rom, size_t rom_size, const OraclesCompatProfile *profile);
+/* Whether the ghost's worker still runs a request (threaded use): a request now is refused (ORACLES_GHOST_BUSY), and a
+ * switch of halves waits for the run to end; the run's result is polled once it does (oracles_ghost_poll), -1 after a
+ * switch. */
+int oracles_ghost_busy(OraclesGhost *ghost);
 /* Whether the ghost could not follow the last switch (its hooks did not fit): it runs nothing until made again. */
 int oracles_ghost_half_failed(const OraclesGhost *ghost);
 void oracles_ghost_destroy(OraclesGhost *ghost);
@@ -334,7 +338,11 @@ int oracles_ghost_request_ex(OraclesGhost *ghost, const uint8_t *state, size_t s
 
 /* Threaded use: the request copies the state and wakes the worker; poll
  * returns 1 once with the result, 0 while pending, -1 when nothing was
- * requested.  One request at a time: a request while one is pending fails. */
+ * requested.  One request at a time: a request while one is pending is
+ * refused, ORACLES_GHOST_BUSY, nothing taken and nothing failed, to be made
+ * again once the worker is free; -1 is a failure (a state of another size,
+ * no memory, no thread). */
+#define ORACLES_GHOST_BUSY 1
 int oracles_ghost_request(OraclesGhost *ghost, const uint8_t *state, size_t size, OraclesGhostDirection direction, unsigned max_frames);
 int oracles_ghost_poll(OraclesGhost *ghost, OraclesGhostResult *result);
 

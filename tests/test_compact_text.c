@@ -481,7 +481,7 @@ static void test_load_within_line(OraclesCoreKind kind, OraclesGame game)
         line_size = oracles_guest_compact_save_state(guest, line, sizeof line);
     }
     CHECK(line_size > 7u);
-    const OraclesStateInfo state_info = { "ages", "0123456789abcdef0123456789abcdef01234567", "", NULL, 0, NULL, 0, NULL, 0, line, line_size, NULL, 0 };
+    const OraclesStateInfo state_info = { "ages", "0123456789abcdef0123456789abcdef01234567", "", NULL, 0, NULL, 0, NULL, 0, line, line_size, NULL, 0, NULL, 0 };
     char error[256];
     uint8_t *state = NULL, *host = NULL;
     size_t state_size = 0, host_size = 0;

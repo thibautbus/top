@@ -425,15 +425,29 @@ entry *ev_find_entry(OraclesEnhancedView *v, uint8_t group, uint8_t room)
     return NULL;
 }
 
+/* Whether the last composition drew a cached room at its place on the grid
+ * (`grid`: a world composition, which drew the grid's places; a framed one
+ * leaves those of the last world one).  The drawn-back band can show a room
+ * no plan wants (a column of one three rooms from the room in play, the camera
+ * a pixel short of the map's edge): its slot given away, nothing runs it again
+ * while it shows. */
+static int drawn_in_band(const OraclesEnhancedView *v, const entry *c, int grid)
+{
+    return grid && c->valid && !c->routed && c->group == v->observer.ref_group && (v->drawn_places[c->room >> 5u] & (1u << (c->room & 31u)));
+}
+
 /* A free slot, else the least recently used one that is neither a room
  * wanted now, by this plan or by the other side of the sea's, nor a
  * direction of the room in play that the game routes.  The rooms beyond an
  * answer of the Lost Woods take ordinary slots: with the cache full, one may
  * evict the answer it hangs from, which costs a run and never shows a wrong
- * room (they are drawn only while that answer is). */
+ * room (they are drawn only while that answer is).  A room the band shows,
+ * drawn there, goes last: its slot given away leaves black on the screen. */
 static entry *take_victim(OraclesEnhancedView *v, uint8_t group, const uint8_t *wanted, unsigned wanted_count, uint8_t routed_from)
 {
     entry *victim = NULL;
+    int victim_shown = 0;
+    const int grid = v->have_view && !v->observation.large_grid && ev_on_map(v);
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *c = &v->slots[i];
         if (!c->used) return c;
@@ -444,8 +458,13 @@ static entry *take_victim(OraclesEnhancedView *v, uint8_t group, const uint8_t *
         /* Nor one of the other plan's: the same place on the other side of the sea. */
         if (!c->routed) for (unsigned w = 0; w < v->keep_count; w++) if (c->group == v->keep_group && c->room == v->keep[w]) wanted_now = 1;
         if (wanted_now) continue;
-        /* A room of the second ring first, then a near one; the oldest first in each. */
-        if (!victim || (victim->near && !c->near) || (victim->near == c->near && c->last_use < victim->last_use)) victim = c;
+        /* A room of the second ring first, then a near one; the oldest first in each; a room shown after all. */
+        const int shown = drawn_in_band(v, c, grid);
+        if (!victim || (victim_shown && !shown)
+            || (victim_shown == shown && ((victim->near && !c->near) || (victim->near == c->near && c->last_use < victim->last_use)))) {
+            victim = c;
+            victim_shown = shown;
+        }
     }
     return victim;
 }
