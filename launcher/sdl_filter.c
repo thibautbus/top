@@ -61,8 +61,11 @@ struct OraclesSdlFilter {
     SDL_Renderer *renderer;
     SDL_GPUDevice *device;
     const FilterCode *code;
-    float uniforms[8];   /* the shaders' common constants: strength, thickness, the grid's move, the picture's place */
-    float part_uniforms[2][8];   /* the same for the ground and Link drawn apart, their grids their own */
+    /* The shaders' common constants: strength, thickness, the grid's move, the picture's place, and the screen pixels of
+     * one of its pixels with whether the masks stand on them (a part drawn at another scale). */
+    float uniforms[12];
+    float part_uniforms[2][12];   /* the same for the ground and Link drawn apart, their grids their own */
+    float cells[2];               /* the screen pixels of one of the picture's pixels, as placed last */
     int checked;         /* oracles_sdl_filter_check: 1 before the first present, 2 after */
     int fits;            /* the picture placed last is large enough for it (oracles_display_filter_min_scale) */
     SDL_GPUShader *shader;
@@ -491,7 +494,7 @@ OraclesSdlFilter *oracles_sdl_filter_open(SDL_Renderer *renderer)
         kept = filter;
     }
     /* Scanlines' strength and the thickness of its lines (a quarter of a source line, at least a pixel of the screen). */
-    const float uniforms[8] = { 0.5f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    const float uniforms[12] = { 0.5f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
     memcpy(filter->uniforms, uniforms, sizeof uniforms);
     int parts = filter->parts[0] && filter->parts[1];
     for (int i = 0; i < 2 && parts; i++) {
@@ -537,6 +540,7 @@ void oracles_sdl_filter_place(OraclesSdlFilter *filter, const SDL_FRect *image, 
     const float kx = source_w > 0.0f ? image->w / source_w : 0.0f, ky = source_h > 0.0f ? image->h / source_h : 0.0f;
     const int index = (int)(filter->code - filters) + 1;   /* settings.txt's, after Off */
     filter->fits = (kx < ky ? kx : ky) + 1e-3f >= (float)oracles_display_filter_min_scale[index];
+    filter->cells[0] = kx; filter->cells[1] = ky;
     if (!filter->code->uniform_buffers) return;
     const float place[4] = { image->x, image->y, image->w, image->h };
     if (!memcmp(filter->uniforms + 4, place, sizeof place)) return;
@@ -546,29 +550,39 @@ void oracles_sdl_filter_place(OraclesSdlFilter *filter, const SDL_FRect *image, 
 
 int oracles_sdl_filter_active(const OraclesSdlFilter *filter) { return filter && filter->fits; }
 
-/* `uniforms` with the grid moved by x, y texels set to `state`, when they change. */
-static void set_grid(OraclesSdlFilter *filter, SDL_GPURenderState *state, float *uniforms, float x, float y)
+/* `uniforms` with the grid moved by x, y texels, or (`cells`) the masks on the picture's own pixels, set to `state`,
+ * when they change. */
+static void set_grid(OraclesSdlFilter *filter, SDL_GPURenderState *state, float *uniforms, float x, float y, int cells)
 {
+    const float cell[4] = { cells ? filter->cells[0] : 0.0f, cells ? filter->cells[1] : 0.0f, cells ? 1.0f : 0.0f, 0.0f };
     if (filter->code->grid == 2) { x = SDL_floorf(x + 1e-3f); y = SDL_floorf(y + 1e-3f); }   /* a move's fraction is a screen pixel's at least */
     const float grid[2] = { x - 2.0f * SDL_floorf(x / 2.0f), y - 2.0f * SDL_floorf(y / 2.0f) };   /* CRT's columns alternate */
-    if (!memcmp(uniforms + 2, grid, sizeof grid) && !memcmp(uniforms + 4, filter->uniforms + 4, 4 * sizeof *uniforms)) return;
+    if (!memcmp(uniforms + 2, grid, sizeof grid) && !memcmp(uniforms + 4, filter->uniforms + 4, 4 * sizeof *uniforms) && !memcmp(uniforms + 8, cell, sizeof cell))
+        return;
     memcpy(uniforms + 2, grid, sizeof grid);
     memcpy(uniforms + 4, filter->uniforms + 4, 4 * sizeof *uniforms);   /* the picture's place, as placed last */
-    SDL_SetGPURenderStateFragmentUniforms(state, 0, uniforms, 8 * sizeof *uniforms);
+    memcpy(uniforms + 8, cell, sizeof cell);
+    SDL_SetGPURenderStateFragmentUniforms(state, 0, uniforms, 12 * sizeof *uniforms);
 }
 
-void oracles_sdl_filter_part(OraclesSdlFilter *filter, int part, float x, float y)
+static void use_part(OraclesSdlFilter *filter, int part, float x, float y, int cells)
 {
     if (!filter) return;
     SDL_GPURenderState *state = filter->state;
     if (part >= 0 && part < 2 && filter->code->grid) {
-        if (filter->parts[part]) set_grid(filter, state = filter->parts[part], filter->part_uniforms[part], x, y);
-        else set_grid(filter, state, filter->uniforms, x, y);
-    } else if (filter->code->grid && !filter->parts[0]) set_grid(filter, state, filter->uniforms, 0.0f, 0.0f);
+        if (filter->parts[part]) set_grid(filter, state = filter->parts[part], filter->part_uniforms[part], x, y, cells);
+        else set_grid(filter, state, filter->uniforms, x, y, cells);
+    } else if (filter->code->grid && !filter->parts[0]) set_grid(filter, state, filter->uniforms, 0.0f, 0.0f, 0);
     SDL_SetGPURenderState(filter->renderer, filter->fits ? state : NULL);
 }
 
+void oracles_sdl_filter_part(OraclesSdlFilter *filter, int part, float x, float y) { use_part(filter, part, x, y, 0); }
+
+void oracles_sdl_filter_part_cells(OraclesSdlFilter *filter, int part) { use_part(filter, part, 0.0f, 0.0f, 1); }
+
 int oracles_sdl_filter_layer(const OraclesSdlFilter *filter) { return oracles_sdl_filter_active(filter) ? filter->code->layer : ORACLES_SDL_LAYER_ALONE; }
+
+int oracles_sdl_filter_chosen_layer(const OraclesSdlFilter *filter) { return filter ? filter->code->layer : ORACLES_SDL_LAYER_ALONE; }
 
 int oracles_sdl_filter_bend(const OraclesSdlFilter *filter, int width, int height)
 {

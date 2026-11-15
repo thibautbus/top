@@ -69,6 +69,7 @@ typedef struct session {
     int display_paces;       /* under vsync, the display paces the frames (oracles_settings_display_paces); else the host does */
     oracles_host_backend backend;
     int backend_ready;
+    int windowed;   /* the SDL backend's, not the null one (--no-window) */
     int ran;                 /* the host ran: the end-of-session reports have something to say */
     uint32_t display_unpaced_frame;   /* under vsync, the frame from which the host paced; 0: the display paced */
     uint32_t present_unwaited_frame;  /* the host pacing, the first frame from which vsync was off, its waits slowing the game; 0: none */
@@ -104,6 +105,7 @@ typedef struct session {
     int present_waits;       /* the renderer presents under vsync while the host paces (present_waits_now) */
     int waits_changed;       /* the pause changed vsync: the host learns present_waits at the resume */
     int menus_large;         /* the Enhanced view's menus shown alone at their own scale (menus=large), as the pause may change it */
+    int settings_hud_panel;  /* Floating's panels as the view took them (hud_panel=), as the pause may change them */
     int screen_margin_option;   /* --screen-margin's, an OraclesScreenMargin plus one, which holds for the run; 0: the settings' */
     int text_size_option;       /* --text-size's, the size plus one, which holds for the run; 0: the settings' */
     int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, 3 dungeons, which holds for the run; 0: the settings' */
@@ -153,6 +155,8 @@ void oracles_session_apply_window(session *s, int window);
  * (oracles_settings_subpixel_camera), switched without a jolt where that changed (the pause's Camera, Scaling, Window or
  * screen margin). */
 void oracles_session_follow_subpixel(session *s);
+/* The host's frame_subpixel (`opaque` the view): the sub-pixel camera's move of the frame the view composed last; 0: none. */
+int oracles_session_view_subpixel(void *opaque, oracles_host_video_subpixel *out);
 /* session_pause.c: the item hotkeys' keys taken from the game or given back to it; the pause's renderer prepared once the
  * window is open; the pause menu run over the game, and the pacing its vsync leaves. */
 void oracles_session_hotkey_keys(session *s, int on);

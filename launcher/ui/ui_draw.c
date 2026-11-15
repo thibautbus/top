@@ -796,3 +796,5 @@ void oracles_ui_draw_text(OraclesUiDraw *draw, const OraclesUiTextStyle *style, 
         SDL_RenderTexture(draw->renderer, a->texture, &source, &target);
     }
 }
+
+void oracles_ui_draw_shift(OraclesUiDraw *draw, float dy) { draw->origin_y += dy * draw->scale; }

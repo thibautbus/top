@@ -159,6 +159,7 @@ typedef struct OraclesSessionApplied {
     int menus_large;   /* menus=large (-1 without the Enhanced view) */
     int unvisited_hidden;   /* unvisited_rooms= (ORACLES_ENHANCED_UNVISITED_*; -1 without the Enhanced view, or while --unvisited-rooms holds it for the run) */
     int filter;             /* filter= (oracles_settings_filter_names), which the renderer draws the game through; 0 for the tests that leave it */
+    int hud_panel;          /* hud_panel=, Floating's panels (-1 without the Enhanced view): a change is the HUD's */
 } OraclesSessionApplied;
 #define ORACLES_SESSION_CHANGED_COLOUR 1u
 #define ORACLES_SESSION_CHANGED_FILL 2u

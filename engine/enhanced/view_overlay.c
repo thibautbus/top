@@ -362,6 +362,7 @@ void ev_find_area_blurb(OraclesEnhancedView *v)
     const uint8_t *oam = oracles_guest_oam(v->guest);
     v->blurb_shown = 0;
     v->blurb_mask = 0;
+    v->blurb_cover_on = 0;
     if (!oam) return;
     /* The OAM on screen was written by one of the game's last drawings: the
      * frame before's, where the slide stood 4 or 6 px further right, or an
@@ -452,6 +453,13 @@ void ev_overlay_area_blurb(OraclesEnhancedView *v, int32_t camera_x, int32_t cam
     const int x = built_x;
     const int band_x = x <= 16 ? x : 16 + (x - 16) * (int)v->size.width / (int)ORACLES_ENHANCED_CORE_WIDTH;
     const int shift = band_x - (x - v->blurb_built_camera_x);   /* band column minus screen column */
+    /* Its pixels kept with their place on the surface, for the floating panels to leave them to it: the blurb shows
+     * over the status bar's panels as it shows under the bar in the game. */
+    int32_t cover_x = INT32_MAX;
+    for (unsigned n = 0; n < count; n++) if ((int)entries[n].x - 8 + shift < cover_x) cover_x = (int)entries[n].x - 8 + shift;
+    v->blurb_cover_x = cover_x;
+    v->blurb_cover_y = (int32_t)v->band_top + (int)v->blurb_built_y + 24 - 16 - (int)ORACLES_ENHANCED_HUD_HEIGHT;
+    memset(v->blurb_cover, 0, sizeof v->blurb_cover);
     for (unsigned n = 0; n < count; n++) {
         /* The line its room y gives on the LCD with the room's camera at 0: the top of the game area. */
         const int sx = (int)entries[n].x - 8 + shift, sy = (int)v->blurb_built_y + 24 - 16 - (int)ORACLES_ENHANCED_HUD_HEIGHT;
@@ -473,6 +481,11 @@ void ev_overlay_area_blurb(OraclesEnhancedView *v, int32_t camera_x, int32_t cam
                 if (!colour) continue;
                 const uint16_t rgb = (uint16_t)(palette[colour * 2u] | (palette[colour * 2u + 1u] << 8));
                 *ev_band_pixel(v, (unsigned)px, (unsigned)py) = v->colours[rgb & 0x7fffu];
+                const int32_t bx = px - v->blurb_cover_x, by = (int32_t)v->band_top + py - v->blurb_cover_y;
+                if (bx < 0 || bx >= (int32_t)BLURB_COVER_W || by < 0 || by >= (int32_t)BLURB_COVER_H) continue;
+                v->blurb_cover[by] |= 1u << bx;
+                v->blurb_colour[by][bx] = v->colours[rgb & 0x7fffu];
+                v->blurb_cover_on = 1;
             }
         }
     }

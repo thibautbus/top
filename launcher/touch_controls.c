@@ -19,6 +19,35 @@
 #define FELT_DEAD 0.15f
 #define FELT_REACH 0.1f
 
+/* The screen's rectangle x0, y0 to x1, y1 in the frame's pixels at `to`, rounded out and cut to the frame; 0 for none. */
+static int covered(float x0, float y0, float x1, float y1, OraclesTouchBox to, int frame_w, int frame_h, int32_t out[4])
+{
+    if (to.w <= 0.0f || to.h <= 0.0f) return 0;
+    float fx0 = (x0 - to.x) * (float)frame_w / to.w, fy0 = (y0 - to.y) * (float)frame_h / to.h;
+    float fx1 = (x1 - to.x) * (float)frame_w / to.w, fy1 = (y1 - to.y) * (float)frame_h / to.h;
+    if (fx0 < 0.0f) fx0 = 0.0f;
+    if (fy0 < 0.0f) fy0 = 0.0f;
+    if (fx1 > (float)frame_w) fx1 = (float)frame_w;
+    if (fy1 > (float)frame_h) fy1 = (float)frame_h;
+    if (fx0 >= fx1 || fy0 >= fy1) return 0;
+    out[0] = (int32_t)fx0; out[1] = (int32_t)fy0;
+    out[2] = (int32_t)(fx1 + 0.999f) - out[0]; out[3] = (int32_t)(fy1 + 0.999f) - out[1];
+    return 1;
+}
+
+unsigned oracles_touch_frame_covered(const OraclesTouchLayout *l, OraclesTouchBox to, int frame_w, int frame_h, int32_t out[4][4])
+{
+    unsigned n = 0;
+    const OraclesTouchCircle *d = &l->dpad, *a = &l->a, *b = &l->b, *p = &l->pause;
+    const float ab_x0 = (a->x - a->r < b->x - b->r ? a->x - a->r : b->x - b->r), ab_y0 = (a->y - a->r < b->y - b->r ? a->y - a->r : b->y - b->r);
+    const float ab_x1 = (a->x + a->r > b->x + b->r ? a->x + a->r : b->x + b->r), ab_y1 = (a->y + a->r > b->y + b->r ? a->y + a->r : b->y + b->r);
+    n += (unsigned)covered(d->x - d->r, d->y - d->r, d->x + d->r, d->y + d->r, to, frame_w, frame_h, out[n]);
+    n += (unsigned)covered(ab_x0, ab_y0, ab_x1, ab_y1, to, frame_w, frame_h, out[n]);
+    n += (unsigned)covered(p->x - p->r, p->y - p->r, p->x + p->r, p->y + p->r, to, frame_w, frame_h, out[n]);
+    n += (unsigned)covered(l->select.x, l->select.y, l->start.x + l->start.w, l->start.y + l->start.h, to, frame_w, frame_h, out[n]);
+    return n;
+}
+
 void oracles_touch_layout(float width, float height, OraclesTouchLayout *out)
 {
     memset(out, 0, sizeof *out);

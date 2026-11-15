@@ -107,7 +107,8 @@ unsigned oracles_enhanced_view_text_size(const OraclesEnhancedView *view);
  * composed it (a size changed from the pause, the game not running): 1, or 0 when that frame showed no box in the world
  * band.  The sub-pixel camera's rects held still follow (oracles_enhanced_view_subpixel_fixed); Link's layer stays as the
  * frame left it: under a larger box his pixels there are drawn over by the box's rect, held still after the layer, and
- * where a smaller box uncovers him he shows with the band, at its fraction rather than his own. */
+ * where a smaller box uncovers him he shows with the band, at its fraction rather than his own.  The status bar floating:
+ * its panels drawn again over the box, in the surface or in their layer, a panel the box now meets gone. */
 int oracles_enhanced_view_redraw_text_box(OraclesEnhancedView *view);
 /* The framed core shown alone at its own scale (menus=large, oracles_enhanced_view_framed_crop as the host's frame_crop). */
 void oracles_enhanced_view_set_large_menus(OraclesEnhancedView *view, int large);
@@ -236,7 +237,10 @@ typedef struct OraclesEnhancedHotbarSlot {
     uint8_t pending;
     unsigned refusals;
 } OraclesEnhancedHotbarSlot;
-typedef struct OraclesEnhancedHotbar { OraclesEnhancedHotbarSlot slots[ORACLES_ENHANCED_HOTBAR_SLOTS]; } OraclesEnhancedHotbar;
+typedef struct OraclesEnhancedHotbar {
+    OraclesEnhancedHotbarSlot slots[ORACLES_ENHANCED_HOTBAR_SLOTS];
+    int keyboard;                    /* the keys last taken from the keyboard: the floating tiles in its block, not a pad's */
+} OraclesEnhancedHotbar;
 void oracles_enhanced_view_set_hotbar(OraclesEnhancedView *view, const OraclesEnhancedHotbar *hotbar);
 /* Another game's half under the same view (Oracles Combined): the icons kept are the last half's, found again from the
  * guest's tables, and the bar's reload of its icons hooked again there.  To be called once the new half's guest is
@@ -288,12 +292,71 @@ int oracles_enhanced_bar_in_play(OraclesGuest *guest, OraclesCore *core);
  * gutters' lines that kept the border in every world frame with the bar, filled or not, the left's and the right's
  * sixteen each (32 a frame at most), the core's image showing there something else than the bar; laid out, the world
  * frames laid out, those left centred, and those with the hearts on one row. */
-typedef enum OraclesEnhancedHud { ORACLES_ENHANCED_HUD_ORIGINAL = 0, ORACLES_ENHANCED_HUD_FULL, ORACLES_ENHANCED_HUD_WIDE } OraclesEnhancedHud;
+typedef enum OraclesEnhancedHud { ORACLES_ENHANCED_HUD_ORIGINAL = 0, ORACLES_ENHANCED_HUD_FULL, ORACLES_ENHANCED_HUD_WIDE, ORACLES_ENHANCED_HUD_FLOATING } OraclesEnhancedHud;
+#define ORACLES_ENHANCED_HUDS 4u
 void oracles_enhanced_view_set_hud(OraclesEnhancedView *view, int hud);
 int oracles_enhanced_view_hud(const OraclesEnhancedView *view);
+/* Floating, the status bar has no band: the world band is the whole surface, Link in its middle, and the bar's blocks
+ * stand over the world in panels.  The band's height changes at the next composition, a change from the pause as the
+ * game resumes; the camera then starts again from Link.  The surface's line the world band starts at: 16, or 0
+ * floating. */
+uint32_t oracles_enhanced_view_band_top(const OraclesEnhancedView *view);
+/* Savestates loaded under the other band, their camera started again from Link rather than the state refused. */
+unsigned oracles_enhanced_view_band_states_dropped(const OraclesEnhancedView *view);
+/* The panels the last composition drew over the world floating, x, y, width and height on the surface; their count. */
+#define ORACLES_ENHANCED_FLOATING_PANELS 8u
+unsigned oracles_enhanced_view_floating_panels(const OraclesEnhancedView *view, uint32_t rects[ORACLES_ENHANCED_FLOATING_PANELS][4]);
+/* The same panels' blocks of the bar, the core's image's x, y, width and height and the surface's place they stand at
+ * whole; width 0 for a hotkey's tile, or a panel fading. */
+unsigned oracles_enhanced_view_floating_sources(const OraclesEnhancedView *view, int32_t sources[ORACLES_ENHANCED_FLOATING_PANELS][6]);
+/* With the sub-pixel camera, the panels of the last world frame apart from the surface, which has the world alone under
+ * them: a layer of the surface's size and pitch, premultiplied 0xAARRGGBB, transparent but within the `count` rects of
+ * the panels drawn (x, y, w, h, apart from each other), which the presenter lays over the band unmoved; NULL without one,
+ * the panels in the surface. */
+const uint32_t *oracles_enhanced_view_floating_layer(const OraclesEnhancedView *view, uint32_t rects[ORACLES_ENHANCED_FLOATING_PANELS][4], unsigned *count);
+/* The picture as the presenter shows it, the surface the view's size with that layer laid over it, into `out` (the
+ * surface's size; `surface` itself, or a copy of it). */
+void oracles_enhanced_view_fold_floating(const OraclesEnhancedView *view, const uint32_t *surface, uint32_t *out);
+/* In the near view, where the screen shows it twice or more, the panels are all there at half the game's scale: laid
+ * out on a surface twice the view's size, in a layer of that size and pitch (whatever the camera), which the presenter
+ * draws over the picture through the picture's filter (its pixels read at their unit, Scanlines', CRT's and LCD's masks
+ * following the picture's own pixels), at a whole number of the screen's pixels a pixel, each panel kept to its corner
+ * (oracles_enhanced_view_floating_anchors).  The panels' rects, sources and the layer are then in its pixels.  The
+ * layer's pixels a pixel of the surface across: 2 then, else 1. */
+unsigned oracles_enhanced_view_floating_scale(const OraclesEnhancedView *view);
+/* The corner each panel of the layer keeps to, ORACLES_ENHANCED_FLOATING_RIGHT, _BOTTOM and _CENTRE (the middle across),
+ * the left and the top otherwise; their count (0 without a layer). */
+#define ORACLES_ENHANCED_FLOATING_RIGHT 1u
+#define ORACLES_ENHANCED_FLOATING_BOTTOM 2u
+#define ORACLES_ENHANCED_FLOATING_CENTRE 4u
+unsigned oracles_enhanced_view_floating_anchors(const OraclesEnhancedView *view, uint8_t anchors[ORACLES_ENHANCED_FLOATING_PANELS]);
+/* The scale the screen shows the view at (0, the default: unknown, taken as twice), for the next composition: the near
+ * view's panels at half the game's scale from twice on, a text box hiding those it meets on that screen and the
+ * touch controls' pause kept clear there; under twice B and A alone, in the surface. */
+void oracles_enhanced_view_set_floating_screen(OraclesEnhancedView *view, float scale);
+/* The picture with the panels laid over it at `scale` (1 or 2) times the surface's size, into `out` of that size (not
+ * `surface`): the surface's pixels repeated, the layer's taken one for one, or four for one by their mean. */
+void oracles_enhanced_view_fold_floating_at(const OraclesEnhancedView *view, const uint32_t *surface, uint32_t *out, unsigned scale);
+/* The panels' colour: the bar's own, their edge darker (0, the default), or a light grey (1), the game's dark digits and
+ * outlines read on both. */
+void oracles_enhanced_view_set_floating_neutral(OraclesEnhancedView *view, int neutral);
+/* The rectangles of the surface the touch controls take (x, y, width, height), up to four, which the panels keep clear
+ * of: B and A alone under the hearts, the money left of the one at the top-right; none, the panels where they stand. */
+void oracles_enhanced_view_set_floating_avoid(OraclesEnhancedView *view, const int32_t (*rects)[4], unsigned count);
+/* The same panels' share drawn, 0 (hidden) to 256 (whole), as the last composition faded them. */
+unsigned oracles_enhanced_view_floating_shown(const OraclesEnhancedView *view, unsigned shown[ORACLES_ENHANCED_FLOATING_PANELS]);
+/* The text box the last composition showed over the band, on the surface (x, y, width, height): the game's box moved,
+ * the host's wide box, Text size's, or the presenter's box enlarged; 0 without one. */
+int oracles_enhanced_view_text_box_rect(const OraclesEnhancedView *view, int32_t rect[4]);
+/* The world frames and loads that drew the panels; of them, those with the whole bar in one (a map that signs no
+ * layout), with the hotkeys' pad, with a panel faded for a text. */
+void oracles_enhanced_view_floating_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *whole, unsigned *pad, unsigned *faded);
+/* Of those frames, the ones where a tile showed an item's label instead of its picture (an icon not known yet). */
+unsigned oracles_enhanced_view_floating_label_frames(const OraclesEnhancedView *view);
 /* The last composed surface's HUD band drawn again for the status bar's setting now, the game not having run since (a
  * change from the pause): 1 when it was, a world frame or a room's load under the band; 0 for a framed frame, whose bar
- * stays centred whatever the setting. */
+ * stays centred whatever the setting.  To, from or while floating, the whole frame is composed again from the same
+ * moment of the game, the camera started again from Link in the band's new height. */
 int oracles_enhanced_view_redraw_hud(OraclesEnhancedView *view);
 void oracles_enhanced_view_hud_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *lines_kept);
 void oracles_enhanced_view_hud_wide_counts(const OraclesEnhancedView *view, unsigned *laid, unsigned *centred, unsigned *one_row);
@@ -707,6 +770,10 @@ void oracles_enhanced_view_scroll_animation_counts(const OraclesEnhancedView *vi
 void oracles_enhanced_view_stream_counts(const OraclesEnhancedView *view, unsigned *matched, unsigned *followed);
 /* Whether the area blurb was taken out of the window and drawn apart this frame (its pixels are repainted). */
 int oracles_enhanced_view_blurb_drawn(const OraclesEnhancedView *view);
+/* Whether that blurb has a pixel at (x, y) of the surface, and its colour there. */
+int oracles_enhanced_view_blurb_pixel(const OraclesEnhancedView *view, int32_t x, int32_t y, uint32_t *colour);
+/* With the bar floating, the compositions whose panels left the blurb's pixels to it, over it, and the panels' pixels left. */
+void oracles_enhanced_view_floating_blurb_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *pixels);
 /* The curtain of a warp before its first column: the game's screen transition in state 0 or in the substates of state 1
  * before the one that draws a column a frame (wScreenTransitionState, wScreenTransitionState2), and whether the core's
  * game area (below the status bar) is one colour, the blank tile the load left where it cleared the map. */

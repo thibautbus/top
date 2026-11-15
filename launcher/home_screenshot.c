@@ -245,7 +245,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         const FilteredImage filtered = { image, filter, frame_width, frame_height };
         filtered_image((void *)&filtered, renderer, &at);
         OraclesPause *over = oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, nav.display.aspect, 0, &nav);
-        const OraclesPauseFrame shown = { 1, -1, frame_width, frame_height, 0 };
+        const OraclesPauseFrame shown = { 1, -1, frame_width, frame_height, 0, 0 };
         if (over) {
             if (reminder) oracles_pause_reminder(over, nav.controls.menu_pad);
 #ifdef ORACLES_RETROACHIEVEMENTS

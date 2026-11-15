@@ -13,11 +13,15 @@
  * a cancel; it opens in the ROM's folder. */
 #include "backends.h"
 #include "file_dialog.h"
+#include "floating.h"
+#include "hotkeys_session.h"
 #include "sdl_filter.h"
 #include "text_box_enlarge.h"
 #include "touch_controls.h"
+#include "ui_page_nav.h"
 
 #include <SDL3/SDL.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -386,7 +390,7 @@ static void subpixel_band(SDL_Window *window, SDL_Renderer *renderer)
     patch[0] = patch[64] = 0xff000000u;                             /* the band without him there */
     if (backend.start(backend.opaque, 480, 270, 48000, 0)) {
         /* The band half a pixel left, Link at his own place: his fraction the band's, his move 0 against it. */
-        oracles_host_video_subpixel sub = { 128, 0, 16, 254, layer, 20, 40, 1, 2, 64, 0, 0, patch, 1, { { 10, 90, 1, 20 } } };
+        oracles_host_video_subpixel sub = { 128, 0, 16, 254, layer, 20, 40, 1, 2, 64, 0, 0, patch, 1, { { 10, 90, 1, 20 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
         const oracles_host_video_frame image = { pixels, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0 };
         CHECK(backend.present_frame(backend.opaque, &image));
         SDL_FRect area;
@@ -414,6 +418,23 @@ static void subpixel_band(SDL_Window *window, SDL_Renderer *renderer)
         CHECK(backend.present_frame(backend.opaque, &image));
         CHECK(pixel_at(renderer, x0 + 20 * k, y0 + 40 * k) == 0xff00ff00u && pixel_at(renderer, x0 + 20 * k + k, y0 + 40 * k) == 0xff000000u);
         CHECK(pixel_at(renderer, x0 + 20 * k - half, y0 + 40 * k) == 0xff000000u);
+        /* The status bar's floating panels over it all, unmoved: a pixel opaque, its whole screen pixels, and one half
+         * transparent over the band's black, half its colour. */
+        static uint32_t panels[480 * 270];
+        panels[60 * 480 + 30] = 0xffff0000u;
+        panels[60 * 480 + 31] = 0x80808080u;
+        sub.layer_fx = 0;
+        sub.panels = panels;
+        sub.panels_count = 1;
+        sub.panels_rects[0][0] = 30; sub.panels_rects[0][1] = 60; sub.panels_rects[0][2] = 2; sub.panels_rects[0][3] = 1;
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(pixel_at(renderer, x0 + 30 * k, y0 + 60 * k) == 0xffff0000u && pixel_at(renderer, x0 + 30 * k + k - 1, y0 + 60 * k + k - 1) == 0xffff0000u);
+        CHECK(pixel_at(renderer, x0 + 31 * k, y0 + 60 * k) == 0xff808080u && pixel_at(renderer, x0 + 30 * k - 1, y0 + 60 * k) == 0xff000000u);
+        sub.panels = NULL;
+        CHECK(backend.present_frame(backend.opaque, &image));
+        CHECK(pixel_at(renderer, x0 + 30 * k, y0 + 60 * k) == 0xff000000u);
+        sub.layer_fx = 127;
+        CHECK(backend.present_frame(backend.opaque, &image));
         /* The frame the pause keeps (its texture) has him at his whole place. */
         SDL_Window *pw; SDL_Renderer *pr; SDL_Texture *kept; int kw = 0, kh = 0;
         oracles_sdl_backend_pause_view(&backend, &pw, &pr, &kept, &kw, &kh);
@@ -423,7 +444,7 @@ static void subpixel_band(SDL_Window *window, SDL_Renderer *renderer)
         CHECK(SDL_RenderTexture(renderer, kept, &whole, &whole));
         CHECK(pixel_at(renderer, 20, 40) == 0xff00ff00u && pixel_at(renderer, 20, 41) == 0xff00ff00u && pixel_at(renderer, 10, 100) == 0xffffffffu);
         SDL_SetRenderLogicalPresentation(renderer, 480, 270, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
-        const oracles_host_video_subpixel high = { 0, 0, 16, 254, layer, 20, 15, 1, 2, 64, 0, 0, patch, 0, { { 0 } } };
+        const oracles_host_video_subpixel high = { 0, 0, 16, 254, layer, 20, 15, 1, 2, 64, 0, 0, patch, 0, { { 0 } }, NULL, 0, { { 0 } }, 0, { 0 } };
         const oracles_host_video_frame cut = { pixels, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &high, 0, 0, 0, 0, 0, 0, 0 };
         CHECK(backend.present_frame(backend.opaque, &cut));
         CHECK(pixel_at(renderer, x0 + 20 * k, y0 + 15 * k) == 0xff000000u && pixel_at(renderer, x0 + 20 * k, y0 + 16 * k) == 0xff00ff00u);
@@ -436,7 +457,7 @@ static void subpixel_band(SDL_Window *window, SDL_Renderer *renderer)
             white_patch[y * 64] = white_patch[y * 64 + 2] = white_patch[y * 64 + 4] = 0xffffffffu;
         }
         SDL_SetTextureScaleMode(kept, SDL_SCALEMODE_LINEAR);
-        const oracles_host_video_subpixel smooth = { 128, 64, 16, 254, white_layer, 20, 40, 5, 3, 64, -64, 32, white_patch, 0, { { 0 } } };
+        const oracles_host_video_subpixel smooth = { 128, 64, 16, 254, white_layer, 20, 40, 5, 3, 64, -64, 32, white_patch, 0, { { 0 } }, NULL, 0, { { 0 } }, 0, { 0 } };
         const oracles_host_video_frame bright = { white, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &smooth, 0, 0, 0, 0, 0, 0, 0 };
         CHECK(backend.present_frame(backend.opaque, &bright));
         int darker = 0;
@@ -474,7 +495,7 @@ static void margins(SDL_Window *window, SDL_Renderer *renderer)
     for (unsigned y = 40; y < 42; y++) for (unsigned x = 20; x < 22; x++) with_link[y * 160 + x] = 0xff00ff00u;
     for (unsigned y = 16; y < 144; y++) with_link[y * 160 + 10] = 0xff0000ffu;   /* a column of the band */
     for (unsigned y = 0; y < 2; y++) for (unsigned x = 0; x < 2; x++) { layer[y * 64 + x] = 0xff00ff00u; patch[y * 64 + x] = 0xffffffffu; }
-    const oracles_host_video_subpixel sub = { 128, 0, 16, 128, layer, 20, 40, 2, 2, 64, -128, 0, patch, 0, { { 0 } } };
+    const oracles_host_video_subpixel sub = { 128, 0, 16, 128, layer, 20, 40, 2, 2, 64, -128, 0, patch, 0, { { 0 } }, NULL, 0, { { 0 } }, 0, { 0 } };
     const oracles_host_video_frame moved = { with_link, 160, 144, 160 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0 };
     for (int margin = ORACLES_SCREEN_MARGIN_OFF; margin <= ORACLES_SCREEN_MARGIN_SMALL; margin += ORACLES_SCREEN_MARGIN_SMALL) {
         oracles_sdl_options options = { 0 };
@@ -596,7 +617,7 @@ static void pause_image(SDL_Window *window, SDL_Renderer *renderer)
         if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
         if (backend.start(backend.opaque, 480, 270, 48000, 0)) {
             for (unsigned y = 0; y < 2; y++) for (unsigned x = 0; x < 2; x++) { layer[y * 64 + x] = 0xff00ff00u; patch[y * 64 + x] = 0xff000000u; }
-            const oracles_host_video_subpixel sub = { 128, 192, 16, 254, layer, 20, 40, 2, 2, 64, 64, -32, patch, 1, { { 100, 200, 40, 20 } } };
+            const oracles_host_video_subpixel sub = { 128, 192, 16, 254, layer, 20, 40, 2, 2, 64, 64, -32, patch, 1, { { 100, 200, 40, 20 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
             const oracles_host_video_frame image = { pixels, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 160, 200, 160, 48, 1, 0,
                                                      ORACLES_TEXT_BOX_ENLARGE_LARGE };
             CHECK(backend.present_frame(backend.opaque, &image));
@@ -674,6 +695,81 @@ static void pause_image(SDL_Window *window, SDL_Renderer *renderer)
         oracles_sdl_backend_release(&backend);
         if (fullscreen) { SDL_SetWindowFullscreen(window, false); SDL_SyncWindow(window); }
     }
+    SDL_SetWindowSize(window, 1280, 720);
+    SDL_SyncWindow(window);
+}
+
+/* The pause switching the status bar to or from floating composes the frame again: the band another height, the
+ * camera another fraction, Link another place, the panels laid over it.  Handed that whole move, the pause's image is
+ * the picture the new frame would play, Link once at his new place; with the new pixels alone it keeps the old move,
+ * his layer at the old place over the new picture. */
+static void pause_subpixel_again(SDL_Window *window, SDL_Renderer *renderer)
+{
+    static uint32_t before[480 * 270], after[480 * 270], layer[64 * 64], patch[64 * 64], panels[480 * 270];
+    for (unsigned y = 0; y < 270; y++)
+        for (unsigned x = 0; x < 480; x++) {
+            before[y * 480 + x] = y < 16 ? 0xffff0000u : 0xff000000u | (x * 7u % 256u) << 8 | (y * 13u % 256u);
+            after[y * 480 + x] = 0xff000000u | (x * 7u % 256u) << 8 | ((y + 8u) * 13u % 256u);
+        }
+    for (unsigned y = 40; y < 42; y++) for (unsigned x = 20; x < 22; x++) before[y * 480 + x] = 0xff00ff00u;   /* Link */
+    for (unsigned y = 32; y < 34; y++) for (unsigned x = 20; x < 22; x++) after[y * 480 + x] = 0xff00ff00u;    /* eight lines higher */
+    for (unsigned y = 0; y < 2; y++) for (unsigned x = 0; x < 2; x++) { layer[y * 64 + x] = 0xff00ff00u; patch[y * 64 + x] = 0xff000000u; }
+    panels[60 * 480 + 30] = panels[60 * 480 + 31] = 0xffff0000u;
+    SDL_SetWindowSize(window, 1920, 1080);
+    SDL_SyncWindow(window);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    options.pause_menu = 1;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
+    if (backend.start(backend.opaque, 480, 270, 48000, 0)) {
+        const oracles_host_video_subpixel old_move = { 128, 192, 16, 254, layer, 20, 40, 2, 2, 64, 64, -32, patch, 0, { { 0 } }, NULL, 0, { { 0 } }, 0, { 0 } };
+        const oracles_host_video_subpixel new_move = { 64, 128, 0, 270, layer, 20, 32, 2, 2, 64, 0, 0, patch, 0, { { 0 } }, panels, 1, { { 30, 60, 2, 1 } }, 0, { 0 } };
+        const oracles_host_video_frame played_before = { before, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &old_move, 0, 0, 0, 0, 0, 0, 0 };
+        const oracles_host_video_frame played_after = { after, 480, 270, 480 * sizeof(uint32_t), 0, 0, 0, 0, &new_move, 0, 0, 0, 0, 0, 0, 0 };
+        int logical_w = 0, logical_h = 0, out_w = 0, out_h = 0;
+        SDL_RendererLogicalPresentation presentation = SDL_LOGICAL_PRESENTATION_DISABLED;
+        SDL_Surface *paused[3] = { NULL, NULL, NULL };
+        for (int i = 0; i < 3; i++) {
+            CHECK(backend.present_frame(backend.opaque, i == 2 ? &played_after : &played_before));
+            if (i < 2) oracles_sdl_backend_pause_pixels(&backend, after);
+            if (i == 1) oracles_sdl_backend_pause_subpixel(&backend, &new_move);
+            SDL_GetRenderLogicalPresentation(renderer, &logical_w, &logical_h, &presentation);
+            SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+            CHECK(SDL_GetRenderOutputSize(renderer, &out_w, &out_h));
+            const OraclesTouchBox box = oracles_touch_frame(out_w, out_h, 480, 270, 0);
+            const SDL_FRect at = { box.x, box.y, box.w, box.h };
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            CHECK(oracles_sdl_backend_pause_image(&backend, &at));
+            paused[i] = picture(renderer);
+            SDL_SetRenderLogicalPresentation(renderer, logical_w, logical_h, presentation);
+        }
+        CHECK(differing(paused[1], paused[2]) == 0);
+        CHECK(differing(paused[0], paused[2]) > 0);
+        for (int i = 0; i < 3; i++) SDL_DestroySurface(paused[i]);
+        /* Back to no move (the camera at whole pixels): the frame as it is. */
+        oracles_sdl_backend_pause_subpixel(&backend, NULL);
+        SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+        const OraclesTouchBox box = oracles_touch_frame(out_w, out_h, 480, 270, 0);
+        const SDL_FRect at = { box.x, box.y, box.w, box.h };
+        SDL_RenderClear(renderer);
+        CHECK(oracles_sdl_backend_pause_image(&backend, &at));
+        SDL_Surface *flat = picture(renderer);
+        SDL_Window *pw; SDL_Renderer *pr; SDL_Texture *kept; int kw = 0, kh = 0;
+        oracles_sdl_backend_pause_view(&backend, &pw, &pr, &kept, &kw, &kh);
+        SDL_RenderClear(renderer);
+        CHECK(SDL_RenderTexture(renderer, kept, NULL, &at));
+        SDL_Surface *texture = picture(renderer);
+        CHECK(differing(flat, texture) == 0);
+        SDL_DestroySurface(flat);
+        SDL_DestroySurface(texture);
+        SDL_SetRenderLogicalPresentation(renderer, logical_w, logical_h, presentation);
+    } else CHECK(0);
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
     SDL_SetWindowSize(window, 1280, 720);
     SDL_SyncWindow(window);
 }
@@ -887,7 +983,7 @@ static void enlarged_box(SDL_Window *window, SDL_Renderer *renderer)
         CHECK(pixel_at(renderer, 139, 150) == pixels[30u * 160u + 27u] && pixel_at(renderer, 460, 150) == pixels[30u * 160u + 92u]);   /* beside it, the frame */
         /* With the sub-pixel camera's band moved half a pixel left, the box shown unmoved (a fixed rectangle of the view)
          * comes above the band at the frame's whole place, block for block as without the move. */
-        const oracles_host_video_subpixel half = { 128, 0, 0, 144, NULL, 0, 0, 0, 0, 0, 0, 0, NULL, 1, { { 40, 20, 40, 16 } } };
+        const oracles_host_video_subpixel half = { 128, 0, 0, 144, NULL, 0, 0, 0, 0, 0, 0, 0, NULL, 1, { { 40, 20, 40, 16 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
         image.subpixel = &half;
         CHECK(backend.present_frame(backend.opaque, &image));
         same = 1;
@@ -1075,6 +1171,23 @@ static int lend(SDL_Window *window, SDL_Renderer *renderer, const char *audio_dr
 }
 
 /* The home screen's window and renderer still work: the window found by its id, SDL's video on, a frame drawn. */
+/* The gamepads a game started on the lent window finds open at its start. */
+static unsigned pads_at_start(SDL_Window *window, SDL_Renderer *renderer)
+{
+    SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) return 99u;
+    unsigned pads = 99u;
+    if (backend.start(backend.opaque, 160, 144, 48000, 0)) pads = oracles_sdl_backend_pads_at_start(&backend);
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
+    return pads;
+}
+
 static int intact(SDL_Window *window, SDL_WindowID id, SDL_Renderer *renderer)
 {
     if (SDL_GetWindowFromID(id) != window || SDL_GetRenderer(window) != renderer) return 0;
@@ -1148,7 +1261,7 @@ static void smooth_layer(SDL_Window *window, SDL_Renderer *renderer)
     oracles_host_backend backend;
     if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); oracles_sdl_filter_start("off"); return; }
     if (backend.start(backend.opaque, 160, 144, 48000, 0)) {
-        const oracles_host_video_subpixel sub = { 128, 96, 16, 128, layer, 60, 70, 3, 3, 4, 96, 32, patch, 0, { { 0, 0, 0, 0 } } };
+        const oracles_host_video_subpixel sub = { 128, 96, 16, 128, layer, 60, 70, 3, 3, 4, 96, 32, patch, 0, { { 0, 0, 0, 0 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
         const oracles_host_video_frame image = { pixels, 160, 144, 160 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
         CHECK(backend.present_frame(backend.opaque, &image));
         SDL_Surface *shown = picture(renderer);
@@ -1200,7 +1313,7 @@ static void smooth_fringe(SDL_Window *window, SDL_Renderer *renderer)
         for (unsigned b = 0; b < 2u; b++)
             for (int32_t fy = 0; fy < 256; fy += 64)
                 for (int32_t fx = 0; fx < 256; fx += 64) {
-                    const oracles_host_video_subpixel sub = { bands[b][0], bands[b][1], 16, 128, layer, 59, 69, 8, 8, 8, fx, fy, patch, 0, { { 0, 0, 0, 0 } } };
+                    const oracles_host_video_subpixel sub = { bands[b][0], bands[b][1], 16, 128, layer, 59, 69, 8, 8, 8, fx, fy, patch, 0, { { 0, 0, 0, 0 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
                     const oracles_host_video_frame image = { pixels, 160, 144, 160 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
                     CHECK(backend.present_frame(backend.opaque, &image));
                     SDL_FRect area;
@@ -1266,7 +1379,7 @@ static SDL_Surface *filtered_frame(const char *name, int layered, int colours, i
     if (renderer && oracles_sdl_backend_init(&backend, &options)) {
         if (backend.start(backend.opaque, (uint32_t)width, 144, 48000, 0)) {
             const oracles_host_video_subpixel sub = { band ? band[0] : 0, band ? band[1] : 0, 16, 128, layered ? layer : NULL, at_x, at_y, (uint32_t)size + 2,
-                                                      (uint32_t)size + 2, 16, 64, 64, patch, 0, { { 0, 0, 0, 0 } } };
+                                                      (uint32_t)size + 2, 16, 64, 64, patch, 0, { { 0, 0, 0, 0 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
             const oracles_host_video_frame image = { pixels, (uint32_t)width, 144, (size_t)width * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
             CHECK(backend.present_frame(backend.opaque, &image));
             if (paused || fill) {
@@ -1285,6 +1398,7 @@ static SDL_Surface *filtered_frame(const char *name, int layered, int colours, i
                 SDL_RenderClear(renderer);
                 CHECK(oracles_sdl_backend_pause_image(&backend, &at));
             }
+            SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);   /* the whole screen, the black beside the picture too */
             shown = picture(renderer);
             backend.stop(backend.opaque);
         } else CHECK(0);
@@ -1406,6 +1520,569 @@ static void filter_layer(void)
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
+/* A frame of `width` x 144, its band the whole of it, a ground of green, with the floating panels as the view makes them:
+ * at (at_x, at_y) a panel 24 x 16 of cream at 80 % with two pixels' corners, a block of red 6 x 6 opaque in it; apart
+ * in their layer (`layered`, the band at a fraction), or laid over the frame by the CPU.  Presented at four times on an
+ * offscreen window through the GPU renderer under the filter `name` (`swap_from`: under that one first, then the
+ * renderer told of `name` as a change of filter makes it); `pause`: then shown by the pause, at a small size first
+ * (`pause` 2: too small for the filter) and at the window's.  NULL where the GPU renderer cannot be made. */
+static SDL_Surface *panels_frame(const char *name, const char *swap_from, int layered, int at_x, int at_y, int width, int pause)
+{
+    static uint32_t pixels[480 * 144], panels[480 * 144];
+    const uint32_t ground = 0xff00c000u, cream = 0xfffaf4dcu, red = 0xffd02020u;
+    for (int i = 0; i < width * 144; i++) { pixels[i] = ground; panels[i] = 0; }
+    for (int y = 0; y < 16; y++)
+        for (int x = 0; x < 24; x++) {
+            const int corner = (y == 0 || y == 15) ? (x < 2 || x > 21) : (y == 1 || y == 14) ? (x < 1 || x > 22) : 0;
+            if (corner) continue;
+            const int inside = x >= 9 && x < 15 && y >= 5 && y < 11;
+            uint32_t p = 0;
+            for (unsigned shift = 0; shift < 32u; shift += 8u) {   /* premultiplied, as the view's put() mixes it */
+                const unsigned over = shift == 24u ? 255u : (cream >> shift) & 0xffu;
+                p |= ((over * 205u) >> 8) << shift;
+            }
+            if (inside) p = red;
+            uint32_t *at = &panels[(at_y + y) * width + at_x + x];
+            *at = p;
+            if (!layered) {   /* laid over the frame as the harness and a screenshot fold it */
+                const uint32_t under = pixels[(at_y + y) * width + at_x + x], a = p >> 24;
+                uint32_t out = 0xff000000u;
+                for (unsigned shift = 0; shift < 24u; shift += 8u)
+                    out |= ((((p >> shift) & 0xffu) * 255u + ((under >> shift) & 0xffu) * (255u - a) + 127u) / 255u) << shift;
+                pixels[(at_y + y) * width + at_x + x] = out;
+            }
+        }
+    SDL_Window *window = SDL_CreateWindow("panels", 4 * width, 576, 0);
+    SDL_Renderer *renderer = window ? oracles_sdl_gpu_renderer(window, 0) : NULL;
+    SDL_Surface *shown = NULL;
+    oracles_sdl_filter_start(swap_from ? swap_from : name);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (renderer && oracles_sdl_backend_init(&backend, &options)) {
+        if (backend.start(backend.opaque, (uint32_t)width, 144, 48000, 0)) {
+            oracles_host_video_subpixel sub = { 64, 32, 0, 144, NULL, 0, 0, 0, 0, 0, 0, 0, NULL, 0, { { 0, 0, 0, 0 } }, NULL, 0, { { 0, 0, 0, 0 } }, 0, { 0 } };
+            if (layered) { sub.panels = panels; sub.panels_count = 1; sub.panels_rects[0][0] = (uint32_t)at_x; sub.panels_rects[0][1] = (uint32_t)at_y; sub.panels_rects[0][2] = 24; sub.panels_rects[0][3] = 16; }
+            const oracles_host_video_frame image = { pixels, (uint32_t)width, 144, (size_t)width * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+            CHECK(backend.present_frame(backend.opaque, &image));
+            if (swap_from) {
+                oracles_sdl_filter_start(name);
+                CHECK(oracles_sdl_renderer_swap(renderer, name) == renderer);
+            }
+            if (pause || swap_from) {
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                int out_w = 0, out_h = 0;
+                SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
+                const SDL_FRect small = { 0.0f, 0.0f, (float)width, 144.0f }, at = { 0.0f, 0.0f, (float)out_w, (float)out_h };
+                SDL_RenderClear(renderer);
+                CHECK(oracles_sdl_backend_pause_image(&backend, pause == 2 ? &small : &at));
+            }
+            SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);   /* the whole screen, the black beside the picture too */
+            shown = picture(renderer);
+            backend.stop(backend.opaque);
+        } else CHECK(0);
+        oracles_sdl_backend_release(&backend);
+    }
+    oracles_sdl_filter_start("off");
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    return shown;
+}
+
+/* The pixels of a picture whose red stands above half, none of the green ground's. */
+static long red_channel(const SDL_Surface *s)
+{
+    long count = 0;
+    for (int y = 0; s && y < s->h; y++)
+        for (int x = 0; x < s->w; x++) count += (surface_at(s, x, y) >> 16 & 0xffu) > 0x80u;
+    return count;
+}
+
+/* The pixels darker than the ground and the panel, in a part of a picture (x, y, w, h) and `ring` around it. */
+static long dark_around(const SDL_Surface *s, int x0, int y0, int w, int h, int ring)
+{
+    long count = 0;
+    for (int y = SDL_max(y0 - ring, 0); s && y < SDL_min(y0 + h + ring, s->h); y++)
+        for (int x = SDL_max(x0 - ring, 0); x < SDL_min(x0 + w + ring, s->w); x++) {
+            const uint32_t p = surface_at(s, x, y);
+            count += (p >> 16 & 0xffu) < 0x50u && (p >> 8 & 0xffu) < 0x50u && (p & 0xffu) < 0x50u;
+        }
+    return count;
+}
+
+/* Each channel's mean over a part of a picture (x, y, w, h). */
+static void mean_of(const SDL_Surface *s, int x0, int y0, int w, int h, double mean[3])
+{
+    mean[0] = mean[1] = mean[2] = 0.0;
+    for (int y = y0; s && y < y0 + h; y++)
+        for (int x = x0; x < x0 + w; x++)
+            for (unsigned c = 0; c < 3u; c++) mean[c] += (double)(surface_at(s, x, y) >> (16u - 8u * c) & 0xffu);
+    for (unsigned c = 0; c < 3u; c++) mean[c] /= (double)(w * h);
+}
+
+/* The floating panels, apart in their layer under the sub-pixel camera, through each filter as the frame with the panels
+ * laid over it goes: their colour over the ground the same (not darkened by a second premultiplication), none of them
+ * lost, no edge darker than the ground and them (filtered against black); in CRT's corners, where its curve moves them,
+ * as much of their red as the frame drawn whole shows; drawn by the pause too small for the filter; and after a change of
+ * filter, written again for the new one. */
+static void filter_panels(void)
+{
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("filter panels: no offscreen video, skipped\n"); return; }
+    static const char *const names[8] = { "off", "smooth", "scanlines", "crt", "lcd", "xbr", "hq2x", "omniscale" };
+    for (int i = 0; i < 10; i++) {
+        const char *name = i < 8 ? names[i] : "xbr";
+        const int pause = i == 9 ? 2 : 0;
+        SDL_Surface *apart = panels_frame(name, i == 8 ? "scanlines" : NULL, 1, 40, 60, 160, pause);
+        if (!apart && !i) { printf("filter panels: no GPU renderer here (%s), skipped\n", SDL_GetError()); break; }
+        SDL_Surface *whole = panels_frame(name, NULL, 0, 40, 60, 160, pause);
+        CHECK(apart && whole);
+        if (!apart || !whole) { SDL_DestroySurface(apart); SDL_DestroySurface(whole); continue; }
+        const int k = pause == 2 ? 1 : 4;
+        double a[3], b[3];
+        mean_of(apart, (40 + 2) * k, (60 + 2) * k, 20 * k, 3 * k, a);   /* the panel's cream over the ground, the red apart */
+        mean_of(whole, (40 + 2) * k, (60 + 2) * k, 20 * k, 3 * k, b);
+        int near = 1;
+        for (unsigned c = 0; c < 3u; c++) near &= a[c] - b[c] < 6.0 && b[c] - a[c] < 6.0;
+        if (!near) fprintf(stderr, "filter panels %s (%d): %.1f %.1f %.1f against %.1f %.1f %.1f\n", name, i, a[0], a[1], a[2], b[0], b[1], b[2]);
+        CHECK(near);
+        const long red = colour_in(apart, 16), red_whole = colour_in(whole, 16);
+        const long dark = dark_around(apart, 40 * k, 60 * k, 24 * k, 16 * k, 3 * k), dark_whole = dark_around(whole, 40 * k, 60 * k, 24 * k, 16 * k, 3 * k);
+        if (dark * 4 > dark_whole * 5 + 2 * k || red * 10 < red_whole * 9) fprintf(stderr, "filter panels %s (%d): %ld dark against %ld, red %ld against %ld\n", name, i, dark, dark_whole, red, red_whole);
+        CHECK(dark * 4 <= dark_whole * 5 + 2 * k && red * 10 >= red_whole * 9 && red * 9 <= red_whole * 10);
+        SDL_DestroySurface(apart);
+        SDL_DestroySurface(whole);
+    }
+    static const int corners[4][2] = { { 0, 0 }, { 456, 0 }, { 0, 128 }, { 456, 128 } };
+    for (int i = 0; i < 4; i++) {
+        SDL_Surface *apart = panels_frame("crt", NULL, 1, corners[i][0], corners[i][1], 480, 0), *whole = panels_frame("crt", NULL, 0, corners[i][0], corners[i][1], 480, 0);
+        const long shown = red_channel(apart), shown_whole = red_channel(whole);   /* the panel, cream and red, on the green */
+        if (apart && whole && (shown * 10 < shown_whole * 9 || shown * 9 > shown_whole * 10)) fprintf(stderr, "filter panels crt corner %d: %ld against %ld\n", i, shown, shown_whole);
+        CHECK(!apart || (whole && shown_whole > 1000 && shown * 10 >= shown_whole * 9 && shown * 9 <= shown_whole * 10));
+        SDL_DestroySurface(apart);
+        SDL_DestroySurface(whole);
+    }
+    oracles_sdl_gpu_device_release();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
+/* A case of the near view's panels at half the game's scale: the filter `name` (`swap_from`: under that one first, then
+ * the renderer told of `name`), the band still (`smooth` 0) or moved by a fraction, an offscreen window `w` x `h` (the
+ * frame's whole scale: the start sizes it so) or `fullscreen` (the offscreen display's 1024 x 768) and a frame
+ * `frame_w` x 144; `fill`: Scaling's Fill; `margin`: the screen margin, whose drawing presents the frame itself (the
+ * touch controls' path); `pause`: then shown by the pause at the picture's place (1), or at the frame's size (2). */
+typedef struct half_case {
+    const char *name, *swap_from;
+    int smooth, w, h, frame_w, fullscreen, fill, margin, pause;
+} half_case;
+
+/* What half_frame presents: the panels over the frame, or their layer as a frame of its own with the panels apart on
+ * its grid as the far view has them, or the panels opaque and of the ground's own grey, or that ground without them, or
+ * the same opaque panels over black, or the frame itself black with their grey at half their place and size, or the
+ * third panel alone. */
+enum { HALF_SHOWN, HALF_FAR, HALF_SOLID, HALF_BARE, HALF_SOLID_DARK, HALF_BAKED, HALF_THIRD };
+
+/* The near view's panels at half the game's scale: a frame of the case's, a ground of black, its panels in a layer twice
+ * its size, one at the top-left and one kept to the bottom-right, each 24 x 16 at 80 % with a block of red 6 x 6 opaque
+ * from (9, 5), the first cream, the second a pale blue, and a third of that blue without a block two pixels right of
+ * the first.  Presented through the GPU renderer as the case says; `box`: where the picture stands on the screen, as
+ * the touch controls' layout places it.  HALF_FAR: their layer as a frame of its own, the same ground, presented as the
+ * case's window presents it, neither swapped nor paused.  `pause` 3: shown by the pause too small for the filter, the
+ * renderer told of the same filter again (which keeps the place it was last given), then shown by the pause at the
+ * picture's place.  HALF_SOLID and HALF_BARE: the band still, a ground of grey
+ * with the same panels whole and opaque of that grey, or none; HALF_SOLID_DARK those panels over black, HALF_BAKED that
+ * grey drawn in the frame itself, black, at half the panels' place and size, none apart.  NULL where the GPU renderer cannot be made. */
+static SDL_Surface *half_frame(const half_case *hc, int variant, SDL_FRect *box)
+{
+    static uint32_t pixels[512 * 288], panels[512 * 288];
+    const int reference = variant == HALF_FAR, grey = variant == HALF_SOLID || variant == HALF_BARE || variant == HALF_SOLID_DARK || variant == HALF_BAKED;
+    const int lw = 2 * hc->frame_w, fw = reference ? lw : hc->frame_w, fh = reference ? 288 : 144;
+    const uint32_t ground = grey && variant != HALF_SOLID_DARK && variant != HALF_BAKED ? 0xff8a7a6au : 0xff000000u, creams[2] = { 0xfffaf4dcu, 0xffdce4fau }, red = 0xffd02020u;
+    for (int i = 0; i < fw * fh; i++) pixels[i] = ground;
+    memset(panels, 0, sizeof panels);
+    const int places[3][2] = { { 6, 6 }, { lw - 6 - 24, 288 - 6 - 16 }, { 6 + 24 + 2, 6 } };
+    for (int p = 0; p < 3; p++)
+        for (int y = 0; y < 16; y++)
+            for (int x = 0; x < 24; x++) {
+                const int corner = (y == 0 || y == 15) ? (x < 2 || x > 21) : (y == 1 || y == 14) ? (x < 1 || x > 22) : 0;
+                if (corner && !grey) continue;
+                uint32_t c = 0;
+                for (unsigned shift = 0; shift < 32u; shift += 8u) c |= ((((shift == 24u ? 255u : (creams[p ? 1 : 0] >> shift) & 0xffu)) * 205u) >> 8) << shift;
+                if (p < 2 && x >= 9 && x < 15 && y >= 5 && y < 11) c = red;
+                panels[(places[p][1] + y) * lw + places[p][0] + x] = !grey ? c : variant == HALF_SOLID || variant == HALF_BARE ? ground : 0xff8a7a6au;
+                if (variant == HALF_BAKED && !(x & 1) && !(y & 1)) pixels[(places[p][1] + y) / 2 * fw + (places[p][0] + x) / 2] = 0xff8a7a6au;
+            }
+    if (variant == HALF_THIRD) {   /* the third panel alone, the others' pixels gone with them */
+        for (int y = 0; y < 288; y++)
+            for (int x = 0; x < lw; x++)
+                if (x < places[2][0] || x >= places[2][0] + 24 || y < places[2][1] || y >= places[2][1] + 16) panels[y * lw + x] = 0;
+    }
+    SDL_Window *window = SDL_CreateWindow("half panels", hc->w, hc->h, 0);
+    if (window && hc->fullscreen) { SDL_SetWindowFullscreen(window, true); SDL_SyncWindow(window); }
+    SDL_Renderer *renderer = window ? oracles_sdl_gpu_renderer(window, 0) : NULL;
+    SDL_Surface *shown = NULL;
+    const char *swap_from = reference ? NULL : hc->swap_from;
+    oracles_sdl_filter_start(swap_from ? swap_from : hc->name);
+    oracles_sdl_options options = { 0 };
+    options.scale = (unsigned)(hc->w / fw);
+    options.window = window;
+    options.renderer = renderer;
+    options.fill = hc->fill;
+    options.screen_margin = hc->margin ? ORACLES_SCREEN_MARGIN_SMALL : ORACLES_SCREEN_MARGIN_OFF;
+    oracles_host_backend backend;
+    if (renderer && oracles_sdl_backend_init(&backend, &options)) {
+        int out_w = 0, out_h = 0;
+        const int started = backend.start(backend.opaque, (unsigned)fw, (unsigned)fh, 48000, 0);
+        CHECK(SDL_GetRenderOutputSize(renderer, &out_w, &out_h));
+        const OraclesTouchEdges edges = { hc->margin ? ORACLES_SCREEN_MARGIN_SMALL : ORACLES_SCREEN_MARGIN_OFF, 1.0f, 0, 0 };
+        const OraclesTouchBox band = oracles_touch_band(out_w, out_h, &edges), in = oracles_touch_frame((int)band.w, (int)band.h, fw, fh, hc->fill);
+        *box = (SDL_FRect){ band.x + in.x, band.y + in.y, in.w, in.h };
+        if (started) {
+            oracles_host_video_subpixel sub;
+            memset(&sub, 0, sizeof sub);
+            const int moved = hc->smooth && (variant == HALF_SHOWN || variant == HALF_THIRD);
+            sub.x = moved ? 64 : 0; sub.y = moved ? 32 : 0; sub.band_height = (uint32_t)fh;
+            sub.panels = panels; sub.panels_count = variant == HALF_BARE || variant == HALF_BAKED ? 0 : 3; sub.panels_scale = reference ? 0 : 2;
+            for (int p = 0; p < 3; p++) {
+                sub.panels_rects[p][0] = (uint32_t)places[p][0]; sub.panels_rects[p][1] = (uint32_t)places[p][1];
+                sub.panels_rects[p][2] = 24; sub.panels_rects[p][3] = 16;
+            }
+            sub.panels_anchor[1] = ORACLES_FLOATING_RIGHT | ORACLES_FLOATING_BOTTOM;
+            if (variant == HALF_THIRD) {   /* the only panel there is */
+                memcpy(sub.panels_rects[0], sub.panels_rects[2], sizeof sub.panels_rects[0]);
+                sub.panels_count = 1;
+                sub.panels_anchor[0] = 0;
+            }
+            const oracles_host_video_frame image = { pixels, (uint32_t)fw, (uint32_t)fh, (size_t)fw * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+            CHECK(backend.present_frame(backend.opaque, &image));
+            if (swap_from) {
+                oracles_sdl_filter_start(hc->name);
+                CHECK(oracles_sdl_renderer_swap(renderer, hc->name) == renderer);
+            }
+            if (!reference && hc->pause == 3) {   /* drawn by the pause too small for the filter, its renderer then told of it again */
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+                const SDL_FRect small = { 0.0f, 0.0f, (float)fw, 144.0f };
+                CHECK(oracles_sdl_backend_pause_image(&backend, &small));
+                CHECK(oracles_sdl_renderer_swap(renderer, hc->name) == renderer);
+            }
+            if (!reference && (hc->pause || swap_from)) {
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                const SDL_FRect small = { 0.0f, 0.0f, (float)fw, 144.0f };
+                SDL_RenderClear(renderer);
+                CHECK(oracles_sdl_backend_pause_image(&backend, hc->pause == 2 ? &small : box));
+            }
+            SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);   /* the whole screen, the black beside the picture too */
+            shown = picture(renderer);
+            backend.stop(backend.opaque);
+        } else CHECK(0);
+        oracles_sdl_backend_release(&backend);
+    }
+    oracles_sdl_filter_start("off");
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    return shown;
+}
+
+/* The red of a half-scale panel's block, `unit` screen pixels a pixel: every pixel of its square of 6 units from
+ * (x, y) the block's own red, unfiltered, and the pixels beside its edges not. */
+static int red_square(const SDL_Surface *s, int x, int y, int unit)
+{
+    int whole = 1;
+    for (int j = 0; j < 6 * unit && whole; j++)
+        for (int i = 0; i < 6 * unit && whole; i++) whole = (surface_at(s, x + i, y + j) & 0xffffffu) == 0xd02020u;
+    const uint32_t beside[4] = { surface_at(s, x - 1, y), surface_at(s, x + 6 * unit, y), surface_at(s, x, y - 1), surface_at(s, x, y + 6 * unit) };
+    for (unsigned k = 0; k < 4u; k++) whole &= (beside[k] & 0xffffffu) != 0xd02020u;
+    return whole;
+}
+
+/* The red pixels of `s` (colour_in's) inside x0..x1, y0..y1 (excluded), cut to it. */
+static long red_in(const SDL_Surface *s, int x0, int y0, int x1, int y1)
+{
+    long count = 0;
+    for (int y = SDL_max(y0, 0); y < SDL_min(y1, s->h); y++)
+        for (int x = SDL_max(x0, 0); x < SDL_min(x1, s->w); x++) {
+            const uint32_t p = surface_at(s, x, y), r = p >> 16 & 0xffu;
+            count += r > (p >> 8 & 0xffu) + 0x30u && r > (p & 0xffu) + 0x30u;
+        }
+    return count;
+}
+
+/* The red pixels of `s` (red_in's) outside `count` parts (x, y, w, h) widened by `reach` on every side. */
+static long red_outside(const SDL_Surface *s, const int (*parts)[4], int count, int reach)
+{
+    long outside = 0;
+    for (int y = 0; y < s->h; y++)
+        for (int x = 0; x < s->w; x++) {
+            int in = 0;
+            for (int i = 0; i < count && !in; i++)
+                in = x >= parts[i][0] - reach && y >= parts[i][1] - reach && x < parts[i][0] + parts[i][2] + reach && y < parts[i][1] + parts[i][3] + reach;
+            if (!in) outside += red_in(s, x, y, x + 1, y + 1);
+        }
+    return outside;
+}
+
+/* The pixels of a part (x, y, w, h) of two pictures of a size that differ by more than `levels` in a channel. */
+static long part_differing(const SDL_Surface *a, const SDL_Surface *b, int x0, int y0, int w, int h, unsigned levels)
+{
+    if (!a || !b || a->w != b->w || a->h != b->h) return -1;
+    long count = 0;
+    for (int y = SDL_max(y0, 0); y < SDL_min(y0 + h, a->h); y++)
+        for (int x = SDL_max(x0, 0); x < SDL_min(x0 + w, a->w); x++) {
+            const uint32_t p = surface_at(a, x, y), q = surface_at(b, x, y);
+            for (unsigned shift = 0; shift < 24u; shift += 8u) {
+                const int d = (int)(p >> shift & 0xffu) - (int)(q >> shift & 0xffu);
+                if (d > (int)levels || -d > (int)levels) { count++; break; }
+            }
+        }
+    return count;
+}
+
+/* The near view's panels at half the game's scale over the picture through each filter, with the band still and moved,
+ * at seven, eight, four and three times (a unit of 4, 4, 2, 2), and after a change of filter, and in the pause's image at
+ * the picture's place.  Off, or a shader the picture is too small for: crisp, each pixel a square of the unit, their red
+ * block whole and the game's own red, kept to their corners, only there.  Through a filter (Smooth's sampling, or a
+ * shader the picture is large enough for): their red where their blocks stand, as far as CRT's curve moves it, none
+ * outside their panels.  Under Scanlines, CRT and LCD, at any unit, the screen's masks running on from the picture into
+ * them: panels opaque of the ground's own grey show as the ground alone does; the third panel, two pixels from the
+ * first, as it shows alone, the first reading none of it; and under CRT, at a scale twice the unit, each bent over as
+ * much of the screen as the frame's own pixels of its grey at half its place and size.  Under Smooth, xBR, HQ2x and
+ * OmniScale, where their layer drawn as a frame of its own at the unit takes the picture's very place (a scale twice
+ * the unit, an even unit large enough for the shader: no screen pixel's centre on a texel's middle, where a shader's
+ * rounding goes either way), their panels as the far view's apart show them through the same filter at that frame's
+ * grid, pixel for pixel, over black: each texel its own, drawn once, kept to their own colour against a neighbour two
+ * pixels away, which the far view draws with them.  Then off, through CRT and through xBR, still and moved: on a screen
+ * the picture does not fill (1024 x 768 in fullscreen: 256 x 144 at four times from 0, 96, a unit of 2; 192 x 144 at
+ * five times from 32, 24, a unit of 3), at twice (a unit of 1, too small for CRT), with Fill (192 x 144 at 16/3 on
+ * 1024 x 768, a unit of 3), and through the screen margin's own drawing (the touch controls' path: in 1792 x 1008, the
+ * band 24 lines clear at the top and the bottom, six times from 128, 72, a unit of 3).  In the pause's image at the
+ * frame's size, half a pixel of the screen a pixel, too small for any filter, each block where its panel stands, at its
+ * corner, and nowhere else. */
+static void half_panels(void)
+{
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("half panels: no offscreen video, skipped\n"); return; }
+    static const char *const names[8] = { "off", "smooth", "scanlines", "crt", "lcd", "xbr", "hq2x", "omniscale" };
+    static const int settings_index[8] = { 0, 4, 1, 2, 3, 5, 6, 7 };   /* oracles_display_filter_min_scale's */
+    static const int windows[4][2] = { { 1792, 1008 }, { 768, 432 }, { 2048, 1152 }, { 1024, 576 } };
+    static const int others[5][6] = { { 1024, 768, 256, 1, 0, 0 }, { 1024, 768, 192, 1, 0, 0 }, { 512, 288, 256, 0, 0, 0 }, { 1024, 768, 192, 1, 1, 0 },
+                                      { 1792, 1008, 256, 0, 0, 1 } };
+    static const char *const others_names[3] = { "off", "crt", "xbr" };
+    half_case cases[4 * 8 * 2 + 4 + 3 + 5 * 3 * 2];
+    int count = 0;
+    for (int i = 0; i < 4 * 8 * 2; i++)
+        cases[count++] = (half_case){ names[(i / 2) % 8], NULL, i % 2, windows[i / 16][0], windows[i / 16][1], 256, 0, 0, 0, 0 };
+    cases[count++] = (half_case){ "xbr", "scanlines", 1, 2048, 1152, 256, 0, 0, 0, 0 };
+    for (int pause = 1; pause <= 2; pause++) cases[count++] = (half_case){ "xbr", NULL, 1, 2048, 1152, 256, 0, 0, 0, pause };
+    cases[count++] = (half_case){ "crt", NULL, 1, 2048, 1152, 256, 0, 0, 0, 1 };
+    for (int f = 0; f < 3; f++) cases[count++] = (half_case){ f == 0 ? "crt" : f == 1 ? "lcd" : "xbr", NULL, 0, 2048, 1152, 256, 0, 0, 0, 3 };
+    for (int i = 0; i < 5 * 3 * 2; i++) {
+        const int *o = others[i / 6];
+        cases[count++] = (half_case){ others_names[(i / 2) % 3], NULL, i % 2, o[0], o[1], o[2], o[3], o[4], o[5], 0 };
+    }
+    unsigned compared = 0, seamless = 0;
+    for (int i = 0; i < count; i++) {
+        const half_case *hc = &cases[i];
+        SDL_FRect box = { 0.0f, 0.0f, 0.0f, 0.0f };
+        SDL_Surface *shown = half_frame(hc, HALF_SHOWN, &box);
+        if (!shown && !i) { printf("half panels: no GPU renderer here (%s), skipped\n", SDL_GetError()); break; }
+        CHECK(shown);
+        if (!shown) continue;
+        const long red = colour_in(shown, 16);
+        if (hc->pause == 2) {   /* at the frame's size: each block a square of 3, (7, 5) and (245, 135), a pixel either way */
+            const long top_left = red_in(shown, 6, 4, 11, 9), bottom_right = red_in(shown, 244, 134, 249, 139);
+            if (top_left < 4 || bottom_right < 4 || top_left + bottom_right != red) fprintf(stderr, "half panels paused small (%d): %ld %ld, red %ld\n", i, top_left, bottom_right, red);
+            CHECK(top_left >= 4 && top_left <= 16 && bottom_right >= 4 && bottom_right <= 16 && top_left + bottom_right == red);
+            /* Their texels straight for the shader the frame was shown through, blended straight without it: the cream
+             * at 80 % over the black, as premultiplied. */
+            const uint32_t cream = surface_at(shown, 4, 6), want[3] = { 0xfau * 205u >> 8, 0xf4u * 205u >> 8, 0xdcu * 205u >> 8 };
+            int as_cream = 1;
+            for (unsigned c = 0; c < 3u; c++) as_cream &= (int)(cream >> (16u - 8u * c) & 0xffu) - (int)want[c] <= 3 && (int)want[c] - (int)(cream >> (16u - 8u * c) & 0xffu) <= 3;
+            if (!as_cream) fprintf(stderr, "half panels paused small (%d): cream %06x\n", i, cream & 0xffffffu);
+            CHECK(as_cream);
+            SDL_DestroySurface(shown);
+            continue;
+        }
+        if (hc->pause == 3) {   /* as the frame showed them, though the filter was last placed too small for itself */
+            half_case first = *hc;
+            first.pause = 0;
+            SDL_FRect at = { 0.0f, 0.0f, 0.0f, 0.0f };
+            SDL_Surface *presented = half_frame(&first, HALF_SHOWN, &at);
+            const long off = part_differing(shown, presented, 0, 0, shown->w, shown->h, 2);
+            if (off) fprintf(stderr, "half panels %s (%d): %ld pixels of the pause off the frame shown\n", hc->name, i, off);
+            CHECK(presented && !off);
+            SDL_DestroySurface(presented);
+            SDL_DestroySurface(shown);
+            continue;
+        }
+        int f = 0;
+        while (f < 7 && strcmp(names[f], hc->name)) f++;
+        const float scale = box.w / (float)hc->frame_w;
+        const int unit = (int)SDL_floorf(scale / 2.0f + 0.5f), x0 = (int)SDL_floorf(box.x), y0 = (int)SDL_floorf(box.y);
+        const int pw = (int)box.w, ph = (int)box.h, min_scale = oracles_display_filter_min_scale[settings_index[f]];
+        const int shader = f >= 2, filtered = f == 1 || (shader && scale + 1e-3f >= (float)min_scale);
+        const int blocks[2][2] = { { x0 + (6 + 9) * unit, y0 + (6 + 5) * unit }, { x0 + pw - (24 + 6 - 9) * unit, y0 + ph - (16 + 6 - 5) * unit } };
+        const int rects[3][4] = { { x0 + 6 * unit, y0 + 6 * unit, 24 * unit, 16 * unit }, { x0 + pw - (24 + 6) * unit, y0 + ph - (16 + 6) * unit, 24 * unit, 16 * unit },
+                                  { x0 + 32 * unit, y0 + 6 * unit, 24 * unit, 16 * unit } };
+        if (!filtered) {
+            const int top_left = red_square(shown, blocks[0][0], blocks[0][1], unit), bottom_right = red_square(shown, blocks[1][0], blocks[1][1], unit);
+            if (!top_left || !bottom_right || red != 2L * 36 * unit * unit)
+                fprintf(stderr, "half panels %s (%d, %dx%d, at %.1f,%.1f %.1fx%.1f): %d %d, red %ld\n", hc->name, i, hc->w, hc->h, (double)box.x, (double)box.y, (double)box.w,
+                        (double)box.h, top_left, bottom_right, red);
+            CHECK(top_left && bottom_right && red == 2L * 36 * unit * unit);
+            SDL_DestroySurface(shown);
+            continue;
+        }
+        /* Their red where their blocks stand, as far as CRT's curve takes it, and none outside their panels. */
+        const int reach = unit + (f == 3 ? (int)SDL_ceilf(0.021f * (float)SDL_max(pw, ph)) + 1 : 0);
+        for (int b = 0; b < 2; b++) {
+            const long r = red_in(shown, blocks[b][0] - reach, blocks[b][1] - reach, blocks[b][0] + 6 * unit + reach, blocks[b][1] + 6 * unit + reach);
+            if (r < 18L * unit * unit) fprintf(stderr, "half panels %s (%d): block %d red %ld\n", hc->name, i, b, r);
+            CHECK(r >= 18L * unit * unit);
+        }
+        const long outside = red_outside(shown, rects, 3, reach);
+        if (outside) fprintf(stderr, "half panels %s (%d): red %ld outside the panels\n", hc->name, i, outside);
+        CHECK(!outside);
+        if (f == 2 || f == 3 || f == 4) CHECK(!red_square(shown, blocks[0][0], blocks[0][1], unit) && !red_square(shown, blocks[1][0], blocks[1][1], unit));
+        if (f == 2 || f == 3 || f == 4) {   /* the screen's masks running on from the picture into them, whatever the unit */
+            SDL_FRect at = { 0.0f, 0.0f, 0.0f, 0.0f }, bare_at = at;
+            SDL_Surface *solid = half_frame(hc, HALF_SOLID, &at), *bare = half_frame(hc, HALF_BARE, &bare_at);
+            long seams = 0;
+            for (int b = 0; solid && bare && b < 3; b++)
+                seams += part_differing(solid, bare, rects[b][0] - reach, rects[b][1] - reach, rects[b][2] + 2 * reach, rects[b][3] + 2 * reach, 2);
+            if (!solid || !bare || seams) fprintf(stderr, "half panels %s (%d): %ld pixels of the panels off the picture's own mask\n", hc->name, i, seams);
+            CHECK(solid && bare && !seams);
+            seamless++;
+            SDL_DestroySurface(solid);
+            SDL_DestroySurface(bare);
+            /* The third panel as it shows alone, where it stands as CRT bends it, the first, two pixels away, reading none
+             * of it. */
+            SDL_Surface *third = half_frame(hc, HALF_THIRD, &at);
+            long doubled = third ? 0 : -1;
+            for (int y = SDL_max(rects[2][1] - reach, 0); third && y < SDL_min(rects[2][1] + rects[2][3] + reach, third->h); y++)
+                for (int x = SDL_max(rects[2][0] - reach, 0); x < SDL_min(rects[2][0] + rects[2][2] + reach, third->w); x++)
+                    if (surface_at(third, x, y) & 0xffffffu) doubled += part_differing(shown, third, x, y, 1, 1, 2);
+            if (doubled) fprintf(stderr, "half panels %s (%d): %ld pixels of the third panel off its own\n", hc->name, i, doubled);
+            CHECK(third && !doubled);
+            SDL_DestroySurface(third);
+            if (f == 3 && !hc->fill && 2 * unit == (int)scale && (float)(int)scale == scale) {
+                /* Under CRT, each panel bent over as much of the screen as the frame's own pixels of its grey at half its place. */
+                SDL_Surface *dark = half_frame(hc, HALF_SOLID_DARK, &at), *baked = half_frame(hc, HALF_BAKED, &bare_at);
+                for (int b = 0; dark && baked && b < 3; b++) {
+                    int lit[2][4];
+                    for (int v = 0; v < 2; v++) {
+                        const SDL_Surface *s = v ? baked : dark;
+                        lit[v][0] = lit[v][1] = INT_MAX; lit[v][2] = lit[v][3] = -1;
+                        for (int y = SDL_max(rects[b][1] - reach, 0); y < SDL_min(rects[b][1] + rects[b][3] + reach, s->h); y++)
+                            for (int x = SDL_max(rects[b][0] - reach, 0); x < SDL_min(rects[b][0] + rects[b][2] + reach, s->w); x++) {
+                                const uint32_t p = surface_at(s, x, y);
+                                if ((p >> 16 & 0xffu) < 0x18u && (p >> 8 & 0xffu) < 0x18u && (p & 0xffu) < 0x18u) continue;
+                                lit[v][0] = SDL_min(lit[v][0], x); lit[v][1] = SDL_min(lit[v][1], y); lit[v][2] = SDL_max(lit[v][2], x); lit[v][3] = SDL_max(lit[v][3], y);
+                            }
+                    }
+                    int near = lit[0][2] >= 0 && lit[1][2] >= 0;
+                    for (int k = 0; k < 4; k++) near &= lit[0][k] - lit[1][k] <= unit + 1 && lit[1][k] - lit[0][k] <= unit + 1;
+                    if (!near) fprintf(stderr, "half panels crt (%d): panel %d lit over %d,%d-%d,%d against the frame's %d,%d-%d,%d\n", i, b, lit[0][0], lit[0][1], lit[0][2], lit[0][3],
+                                       lit[1][0], lit[1][1], lit[1][2], lit[1][3]);
+                    CHECK(near);
+                }
+                CHECK(dark && baked);
+                SDL_DestroySurface(dark);
+                SDL_DestroySurface(baked);
+            }
+        } else if (!hc->fill && 2 * unit == (int)scale && (float)(int)scale == scale && unit % 2 == 0 && unit >= min_scale) {
+            SDL_FRect at = { 0.0f, 0.0f, 0.0f, 0.0f };
+            SDL_Surface *apart = half_frame(hc, HALF_FAR, &at);
+            if (!apart || at.x != box.x || at.y != box.y || at.w != box.w || at.h != box.h)
+                fprintf(stderr, "half panels %s (%d): the far view's frame at %.1f,%.1f %.1fx%.1f\n", hc->name, i, (double)at.x, (double)at.y, (double)at.w, (double)at.h);
+            CHECK(apart && at.x == box.x && at.y == box.y && at.w == box.w && at.h == box.h);
+            const int around = f == 1 ? 0 : reach;   /* Smooth's edges drawn to the panel, the far view's between two it draws as one */
+            for (int b = 0; apart && b < 3; b++) {
+                const long panel = part_differing(shown, apart, rects[b][0] - around, rects[b][1] - around, rects[b][2] + 2 * around, rects[b][3] + 2 * around, 2);
+                if (panel) fprintf(stderr, "half panels %s (%d): panel %d against the far view's: %ld pixels differ\n", hc->name, i, b, panel);
+                CHECK(!panel);
+            }
+            compared++;
+            SDL_DestroySurface(apart);
+        }
+        SDL_DestroySurface(shown);
+    }
+    if (count && compared) printf("half panels: %u cases held against the far view's panels, %u against the picture's own mask\n", compared, seamless);
+    oracles_sdl_gpu_device_release();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
+/* Under `name`, at four times on 1024 x 576, a frame of 256 x 144 with Link's layer apart, 8 x 8 at (x, 60) and a quarter
+ * of a pixel right of the band, over a ground of blue; presented after a frame with the near view's panels at half the
+ * game's scale (`panels_first`), or alone.  NULL where the GPU renderer cannot be made. */
+static SDL_Surface *link_after_panels(const char *name, int panels_first, int x)
+{
+    static uint32_t pixels[256 * 144], layer[16 * 16], patch[16 * 16], panels[512 * 288];
+    for (int i = 0; i < 256 * 144; i++) pixels[i] = 0xff4060a0u;
+    for (int i = 0; i < 16 * 16; i++) { layer[i] = (i % 16) < 8 && i / 16 < 8 ? 0xffe0b020u : 0u; patch[i] = 0xff4060a0u; }
+    memset(panels, 0, sizeof panels);
+    for (int y = 6; y < 22; y++) for (int px = 6; px < 30; px++) panels[y * 512 + px] = 0xffffffffu;
+    SDL_Window *window = SDL_CreateWindow("cells", 1024, 576, 0);
+    SDL_Renderer *renderer = window ? oracles_sdl_gpu_renderer(window, 0) : NULL;
+    SDL_Surface *shown = NULL;
+    oracles_sdl_filter_start(name);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (renderer && oracles_sdl_backend_init(&backend, &options)) {
+        if (backend.start(backend.opaque, 256, 144, 48000, 0)) {
+            oracles_host_video_subpixel sub;
+            memset(&sub, 0, sizeof sub);
+            sub.band_height = 144;
+            if (panels_first) {
+                sub.panels = panels; sub.panels_count = 1; sub.panels_scale = 2;
+                sub.panels_rects[0][0] = 6; sub.panels_rects[0][1] = 6; sub.panels_rects[0][2] = 24; sub.panels_rects[0][3] = 16;
+                const oracles_host_video_frame first = { pixels, 256, 144, 256 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+                CHECK(backend.present_frame(backend.opaque, &first));
+            }
+            memset(&sub, 0, sizeof sub);
+            sub.band_height = 144;
+            sub.layer = layer; sub.layer_x = x; sub.layer_y = 60; sub.layer_w = 10; sub.layer_h = 10; sub.layer_pitch = 16;
+            sub.layer_fx = 64; sub.patch = patch;
+            const oracles_host_video_frame next = { pixels, 256, 144, 256 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+            CHECK(backend.present_frame(backend.opaque, &next));
+            SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+            shown = picture(renderer);
+            backend.stop(backend.opaque);
+        } else CHECK(0);
+        oracles_sdl_backend_release(&backend);
+    }
+    oracles_sdl_filter_start("off");
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    return shown;
+}
+
+/* The near view's panels set the shader's masks on the picture's pixels for themselves only: Link drawn apart through the
+ * same state at the next frame, at a fraction of a pixel, keeps his own grid, as in a frame without panels before. */
+static void cells_reset(void)
+{
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("cells reset: no offscreen video, skipped\n"); return; }
+    static const char *const names[3] = { "crt", "lcd", "scanlines" };
+    for (int i = 0; i < 3 * 4; i++) {
+        SDL_Surface *after = link_after_panels(names[i / 4], 1, 100 + i % 4), *alone = link_after_panels(names[i / 4], 0, 100 + i % 4);
+        if (!after && !i) { printf("cells reset: no GPU renderer here (%s), skipped\n", SDL_GetError()); break; }
+        const long off = differing_by(after, alone, 2);
+        if (off) fprintf(stderr, "cells reset %s at %d: %ld pixels off\n", names[i / 4], 100 + i % 4, off);
+        CHECK(after && alone && !off);
+        SDL_DestroySurface(after);
+        SDL_DestroySurface(alone);
+    }
+    oracles_sdl_gpu_device_release();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
 int main(int argc, char **argv)
 {
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -1478,6 +2155,27 @@ int main(int argc, char **argv)
     oracles_sdl_pads_open(&pads);
     CHECK(pads.count == 0);
     oracles_sdl_pads_close(&pads);
+    /* The hotbar's device: a controller's from the start where a gamepad was open when the game started (a handheld's own
+     * controls), the keyboard's otherwise; then the last slot key's, whatever was open at the start. */
+    CHECK(pads_at_start(window, renderer) == 0u);
+    const SDL_JoystickID handheld = attach_gamepad(0, 0);
+    CHECK(handheld && pads_at_start(window, renderer) == 1u);
+    SDL_DetachVirtualJoystick(handheld);
+    OraclesHotkeysDevice device = { 0, 0, 0 };
+    oracles_hotkeys_device_start(&device, 0u);
+    CHECK(!device.controller);
+    device = (OraclesHotkeysDevice){ 0, 0, 0 };
+    oracles_hotkeys_device_start(&device, 1u);
+    CHECK(device.controller);
+    oracles_hotkeys_device_key(&device, 0);
+    oracles_hotkeys_device_start(&device, 1u);
+    CHECK(!device.controller);
+    oracles_hotkeys_device_key(&device, 1);
+    CHECK(device.controller);
+    device = (OraclesHotkeysDevice){ 0, 0, 0 };
+    oracles_hotkeys_device_key(&device, 0);   /* a key before the start is known: the key's device */
+    oracles_hotkeys_device_start(&device, 2u);
+    CHECK(!device.controller);
 
 
     /* In play, "a" is the south button of a pad like Xbox's, and the button labelled A, on the right, of a Nintendo
@@ -1489,6 +2187,7 @@ int main(int argc, char **argv)
     enlarged_menus(window, renderer);
     subpixel_band(window, renderer);
     pause_image(window, renderer);
+    pause_subpixel_again(window, renderer);
     smooth_layer(window, renderer);
     smooth_fringe(window, renderer);
     pause_menus(window, renderer);
@@ -1514,6 +2213,12 @@ int main(int argc, char **argv)
     SDL_DestroyWindow(window);
     SDL_Quit();
     filter_layer();
+    SDL_Quit();
+    filter_panels();
+    SDL_Quit();
+    half_panels();
+    SDL_Quit();
+    cells_reset();
     SDL_Quit();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("oracles-launcher-sdl-backend: ok\n");

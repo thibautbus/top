@@ -14,15 +14,18 @@ static void size_record(OraclesEnhancedSize size, uint8_t out[SIZE_RECORD_SIZE])
 }
 
 /* The records after the loops': the surface's size when it is not the normal
- * one, then the camera's whole offsets (a state saved before them has none).
+ * one, then the camera's whole offsets (a state saved before them has none),
+ * then the world band when the status bar floats (the camera's positions are
+ * the band's corner, which floating stands eight lines higher on Link).
  * 1 when the state ends with them, with their places, 0 for a record absent. */
-static int tail_records(const uint8_t *data, size_t size, size_t *size_at, size_t *offsets_at)
+static int tail_records(const uint8_t *data, size_t size, size_t *size_at, size_t *offsets_at, size_t *band_at)
 {
     size_t at = 2u * ORACLES_E11_STATE_WIRE_SIZE + LOOP_RECORD_SIZE;
-    *size_at = 0; *offsets_at = 0;
+    *size_at = 0; *offsets_at = 0; *band_at = 0;
     if (size < at) return 0;
     if (size - at >= SIZE_RECORD_SIZE && memcmp(data + at, SIZE_RECORD_TAG, 4) == 0) { *size_at = at; at += SIZE_RECORD_SIZE; }
     if (size - at >= OFFSET_RECORD_SIZE && memcmp(data + at, OFFSET_RECORD_TAG, 4) == 0) { *offsets_at = at; at += OFFSET_RECORD_SIZE; }
+    if (size - at >= BAND_RECORD_SIZE && memcmp(data + at, BAND_RECORD_TAG, 4) == 0) { *band_at = at; at += BAND_RECORD_SIZE; }
     return size == at;
 }
 
@@ -130,8 +133,8 @@ static void surface_words(OraclesEnhancedSize size, char *out, size_t capacity)
 OraclesEnhancedSize oracles_enhanced_view_state_surface(const uint8_t *data, size_t size)
 {
     OraclesEnhancedSize saved = oracles_enhanced_size(0);
-    size_t at, offsets_at;
-    if (tail_records(data, size, &at, &offsets_at) && at) {
+    size_t at, offsets_at, band_at;
+    if (tail_records(data, size, &at, &offsets_at, &band_at) && at) {
         saved.width = data[at + 4] | (unsigned)data[at + 5] << 8;
         saved.height = data[at + 6] | (unsigned)data[at + 7] << 8;
     }
@@ -214,6 +217,13 @@ int oracles_enhanced_view_save_state(const OraclesEnhancedView *v, uint8_t *out,
     put32(out + total + 4, across.valid ? across.offset : OFFSET_NONE);
     put32(out + total + 8, down.valid ? down.offset : OFFSET_NONE);
     total += OFFSET_RECORD_SIZE;
+    if (v->band_top != ORACLES_ENHANCED_HUD_HEIGHT) {
+        if (capacity - total < BAND_RECORD_SIZE) return -1;
+        memcpy(out + total, BAND_RECORD_TAG, 4);
+        out[total + 4] = (uint8_t)v->band_top; out[total + 5] = (uint8_t)(v->band_top >> 8);
+        out[total + 6] = (uint8_t)v->band_height; out[total + 7] = (uint8_t)(v->band_height >> 8);
+        total += BAND_RECORD_SIZE;
+    }
     if (written) *written = total;
     return 0;
 }
@@ -293,8 +303,8 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
      * the loops, and the surface's size when it is not the normal one, and
      * the camera's whole offsets. */
     if (oracles_enhanced_view_check_state(v, data, size, NULL, 0) != 0) return -1;
-    size_t size_at, offsets_at;
-    const int have_loops = tail_records(data, size, &size_at, &offsets_at) && memcmp(data + 2u * ORACLES_E11_STATE_WIRE_SIZE, LOOP_RECORD_TAG, 4) == 0;
+    size_t size_at, offsets_at, band_at;
+    const int have_loops = tail_records(data, size, &size_at, &offsets_at, &band_at) && memcmp(data + 2u * ORACLES_E11_STATE_WIRE_SIZE, LOOP_RECORD_TAG, 4) == 0;
     if (size != ORACLES_E11_STATE_WIRE_SIZE && size != 2u * ORACLES_E11_STATE_WIRE_SIZE && !have_loops) return -1;
     OraclesE11Config config = *oracles_enhanced_camera_config(v->camera);
     /* A state of the second profile as it followed before it settled (v4, a
@@ -323,9 +333,18 @@ int oracles_enhanced_view_load_state(OraclesEnhancedView *v, const uint8_t *data
         memcpy(state.config_digest, config.digest, sizeof state.config_digest);
         memcpy(vertical.config_digest, config.digest, sizeof vertical.config_digest);
     }
-    oracles_enhanced_camera_set_state(v->camera, &state, have_vertical ? &vertical : NULL);
+    /* Taken with the status bar floating or not, the other way now: the band's corner is not the one the state framed, and
+     * the camera starts again from Link, rather than the state refused. */
+    ev_apply_band(v);
+    const unsigned saved_top = have_loops && band_at ? (unsigned)(data[band_at + 4] | data[band_at + 5] << 8) : ORACLES_ENHANCED_HUD_HEIGHT;
+    const int same_band = saved_top == v->band_top;
+    if (same_band) oracles_enhanced_camera_set_state(v->camera, &state, have_vertical ? &vertical : NULL);
+    else {
+        oracles_enhanced_camera_set_band(v->camera, v->size.width, v->band_height);
+        v->band_states_dropped++;
+    }
     v->faded_run = 0;   /* the fade the camera comes to rest behind counted from the state alone */
-    if (have_loops && offsets_at) {
+    if (same_band && have_loops && offsets_at) {
         /* For the reducers' epochs and segments restored; an axis without one takes it afresh. */
         const int32_t saved[2] = { get32(data + offsets_at + 4), get32(data + offsets_at + 8) };
         OraclesEnhancedShownOffset across = { saved[0] != OFFSET_NONE, saved[0], state.epoch, state.segment, 0, INT32_MIN };

@@ -36,6 +36,7 @@
 #include "home_choices.h"
 #include "home_input.h"
 #include "hotkeys_session.h"
+#include "floating.h"
 #include "view.h"
 #include "guest.h"
 #include "bps.h"
@@ -100,6 +101,13 @@ static void replay_stopped(session *s, uint32_t frame, const char *why)
 static void frame_begin(void *opaque, uint32_t frame)
 {
     session *s = opaque;
+    if (s->view) {   /* the touch controls shown with the last frame: the bar floating keeps its panels clear of them */
+        int32_t covered[4][4];
+        const unsigned count = oracles_sdl_backend_touch_covered(&s->backend, covered);
+        oracles_enhanced_view_set_floating_avoid(s->view, (const int32_t (*)[4])covered, count);
+        /* The near view's panels at half the game's scale where the screen shows it twice or more, laid out for it. */
+        oracles_enhanced_view_set_floating_screen(s->view, oracles_sdl_backend_picture_scale(&s->backend));
+    }
     /* The game started again for its savestate: loaded before the first frame, what changed said over the game; refused
      * after all, Display's choices put back as they were. */
     if (s->load_at_start) {
@@ -173,6 +181,7 @@ static void frame_begin(void *opaque, uint32_t frame)
     if (s->guest) oracles_guest_set_frame(s->guest, frame);
     if (s->diag) oracles_diagnostics_frame_begin(s->diag, frame);
     if (s->hotkeys) oracles_session_hotkeys_settled(s, frame, oracles_hotkeys_session_settle(s->hotkeys, stderr));
+    if (s->hotkeys && s->windowed) oracles_hotkeys_session_pads_at_start(s->hotkeys, oracles_sdl_backend_pads_at_start(&s->backend));   /* once */
     oracles_hotkeys_session_frame(s->hotkeys, (struct OraclesEnhancedView *)s->view);
     if (s->check) oracles_frame_check_frame_begin(s->check, frame);
 }
@@ -425,8 +434,27 @@ static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
     session *s = opaque;
     if (!oracles_pause_overlay_pending(s->pause)) return 1;   /* kept for a notice to come (F7's) */
     s->bar_frames = bar_in_play(s) ? s->bar_frames + 1u : 0u;
-    OraclesPauseFrame frame = { s->bar_frames >= ORACLES_ENHANCED_BAR_SETTLE, oracles_home_menu_device((int)oracles_sdl_backend_last_input(&s->backend)), 0, 0, 0 };
+    OraclesPauseFrame frame = { s->bar_frames >= ORACLES_ENHANCED_BAR_SETTLE, oracles_home_menu_device((int)oracles_sdl_backend_last_input(&s->backend)), 0, 0, 0, 0 };
     oracles_sdl_backend_pause_size(&s->backend, &frame.width, &frame.height);
+    if (s->view && !oracles_enhanced_view_band_top(s->view)) {   /* the bar floating: under the panels at the top, two lines apart */
+        uint32_t panels[ORACLES_ENHANCED_FLOATING_PANELS][4];
+        /* At half the game's scale, the panels drawn where the presenter puts them on the screen, in the frame's lines. */
+        const unsigned half = oracles_enhanced_view_floating_scale(s->view);
+        unsigned count = 0;
+        uint8_t anchors[ORACLES_ENHANCED_FLOATING_PANELS] = { 0 };
+        if (half > 1u) {
+            oracles_enhanced_view_floating_layer(s->view, panels, &count);
+            oracles_enhanced_view_floating_anchors(s->view, anchors);
+        } else count = oracles_enhanced_view_floating_panels(s->view, panels);
+        const float scale = oracles_sdl_backend_picture_scale(&s->backend) > 0.0f ? oracles_sdl_backend_picture_scale(&s->backend) : 2.0f;
+        for (unsigned i = 0; i < count; i++) {
+            const int32_t rect[4] = { (int32_t)panels[i][0], (int32_t)panels[i][1], (int32_t)panels[i][2], (int32_t)panels[i][3] };
+            float at[4] = { (float)rect[0], (float)rect[1], (float)rect[2], (float)rect[3] };
+            if (half > 1u) oracles_floating_surface_place(rect, anchors[i], 2u * (uint32_t)frame.width, 2u * (uint32_t)frame.height, scale, at);
+            const int bottom = (int)ceilf(at[1] + at[3]);
+            if (at[1] < (float)frame.height / 2.0f && bottom + 2 > frame.top_lines) frame.top_lines = bottom + 2;
+        }
+    }
     SDL_Window *window = SDL_GetRenderWindow(renderer);
     frame.fill = s->sdl.fill && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
     const int keep = oracles_pause_overlay(s->pause, renderer, &frame);
@@ -641,6 +669,8 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         oracles_enhanced_view_set_neighbour_animation(s->view, !frozen);   /* the Low quality leaves them in their captured poses */
         oracles_enhanced_view_set_unvisited_edge(s->view, !frozen);        /* and the rooms never visited cut straight */
         oracles_enhanced_view_set_hud(s->view, s->settings->hud);
+        oracles_enhanced_view_set_floating_neutral(s->view, s->settings->hud_panel);
+        s->settings_hud_panel = s->settings->hud_panel;
         /* The rooms never entered: the command line's, else the settings'; presentation alone. */
         oracles_enhanced_view_set_unvisited_hidden(s->view, o->unvisited_hidden ? o->unvisited_hidden - 1 : s->settings->unvisited_hidden);
         if (oracles_enhanced_view_unvisited_hidden(s->view))
@@ -715,7 +745,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
 }
 
 /* The host's frame_subpixel: the Enhanced sub-pixel camera's move of the frame just composed. */
-static int view_subpixel(void *opaque, oracles_host_video_subpixel *out)
+int oracles_session_view_subpixel(void *opaque, oracles_host_video_subpixel *out)
 {
     memset(out, 0, sizeof *out);
     if (!oracles_enhanced_view_subpixel(opaque, &out->x, &out->y, &out->band_top, &out->band_height, &out->layer, &out->layer_x, &out->layer_y,
@@ -726,6 +756,14 @@ static int view_subpixel(void *opaque, oracles_host_video_subpixel *out)
     out->fixed_count = oracles_enhanced_view_subpixel_fixed(opaque, &fixed);
     if (out->fixed_count > ORACLES_HOST_SUBPIXEL_FIXED) out->fixed_count = ORACLES_HOST_SUBPIXEL_FIXED;
     if (out->fixed_count) memcpy(out->fixed, fixed, out->fixed_count * sizeof out->fixed[0]);
+    uint32_t panels[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned count = 0;
+    out->panels = oracles_enhanced_view_floating_layer(opaque, panels, &count);
+    out->panels_count = count < ORACLES_HOST_SUBPIXEL_PANELS ? count : ORACLES_HOST_SUBPIXEL_PANELS;
+    if (out->panels_count) memcpy(out->panels_rects, panels, out->panels_count * sizeof panels[0]);
+    out->panels_scale = oracles_enhanced_view_floating_scale(opaque);
+    uint8_t anchors[ORACLES_ENHANCED_FLOATING_PANELS];
+    if (oracles_enhanced_view_floating_anchors(opaque, anchors) >= out->panels_count && out->panels_count) memcpy(out->panels_anchor, anchors, out->panels_count);
     return 1;
 }
 
@@ -776,7 +814,7 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
         s->menus_large = s->settings->menus_large;
         config->frame_crop = menus_crop;
         config->frame_crop_opaque = s;
-        config->frame_subpixel = view_subpixel;   /* none while the camera keeps whole pixels */
+        config->frame_subpixel = oracles_session_view_subpixel;   /* none while the camera keeps whole pixels */
         config->frame_subpixel_opaque = s->view;
         oracles_enhanced_view_set_large_menus(s->view, s->menus_large);
         /* Text size: the text box shown again larger by the presenter, in whole screen pixels. */
@@ -861,6 +899,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     if (ok) {
         window_options(s, o);
         s->backend_ready = o->no_window ? oracles_null_backend_init(&s->backend) : oracles_sdl_backend_init(&s->backend, &s->sdl);
+        s->windowed = !o->no_window;
         if (!s->backend_ready) ok = failed(result, "out of memory");
     }
     ok = ok && attach(s, o, result);

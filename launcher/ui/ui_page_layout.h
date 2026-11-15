@@ -198,6 +198,9 @@ typedef struct OraclesUiDisplayTexts {
                                            * screen */
     const char *explanations[9];          /* color correction, continuous transitions, vsync, core, the workers, the scaling, the HUD,
                                            * the screen margin, the Text link */
+    int floating;                         /* HUD on Floating: Panels under it, a line of its row in 16:9, a row of its own in 4:3 */
+    unsigned row;                         /* the highlighted row, which a 4:3 page taller than its room keeps in sight */
+    float scroll;                         /* 4:3: how far the rows are scrolled up, the page's kept scroll (oracles_ui_display_follow) */
     char text_summary[64];                /* beside the Text link: "Compact · Wide · Normal" */
     char picture_summary[96];             /* beside the Picture link: "Sharp · No margin · Color off" */
     const char *picture_explanation;      /* the Picture link's */
@@ -232,6 +235,25 @@ typedef struct OraclesUiDisplayTexts {
 
 /* Display's texts for the state of `nav`. */
 void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *t);
+/* Panels' line in 16:9, its label 22 px Alegreya Sans, its choices 22 px Marcellus. */
+extern const OraclesUiTextStyle oracles_ui_panels_choice;
+/* 4:3: the scroll that keeps the highlighted row in sight, moved as little as can be from nav->display_scroll, the rows
+ * kept 40 px clear of the room's edges where more lies past them; 0 where the page fits. */
+float oracles_ui_display_follow(const OraclesHomeNav *nav);
+/* 4:3: nav->display_scroll moved by `dy` scene pixels (the wheel, a drag), kept within the page's ends; 0 where it fits. */
+float oracles_ui_display_scrolled(const OraclesHomeNav *nav, float dy);
+/* A press over Display's scrolling rows: a tap until the pointer goes a 40th of the window's height from where it was
+ * pressed (12 points at 480, as the achievements' list counts), straight, the moves back and forth not added up; a drag
+ * from then on, whose release clicks nothing. */
+typedef struct OraclesUiDisplayDrag {
+    float press_y;
+    int dragged;
+} OraclesUiDisplayDrag;
+void oracles_ui_display_drag_start(OraclesUiDisplayDrag *drag, float y);
+int oracles_ui_display_drag_moved(OraclesUiDisplayDrag *drag, float y, float window_h);
+/* oracles_ui_display_hit's option for a row under one of the room's faded edges: hovered, it takes nothing; clicked, it
+ * comes into sight (oracles_display_reveal) rather than act. */
+#define ORACLES_UI_DISPLAY_FADED (-2)
 
 typedef struct OraclesUiDisplayLayout {
     OraclesUiPageHead head;                          /* 4:3: its section alone, the title on its line in `title` */
@@ -267,7 +289,15 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiOptionLayout transitions[2];
     OraclesUiWrapped explanations[9];
     OraclesUiOptionLayout colour[2], vsync[3], core[2], workers[3], scaling[2];   /* each scaling with its size */
-    OraclesUiOptionLayout hud[3];
+    OraclesUiOptionLayout hud[ORACLES_DISPLAY_HUDS];   /* 16:9 by their short names, 4:3 by their own */
+    /* Panels: its two choices; in 16:9 its label before them on a line under HUD's choices, `panels_line` its highlight
+     * (rows[ORACLES_DISPLAY_PANELS] the same box); in 4:3 a row of its own. */
+    OraclesUiOptionLayout panels[2];
+    OraclesUiLine panels_label;
+    /* 4:3: the rows' room, the box they show in, and how far they are scrolled up in it (0: they fit); every row's place is
+     * the page's, the drawing and the pointer moving them by `scroll`. */
+    OraclesUiBox rows_room;
+    float scroll, scroll_max;
     /* The Text and Picture links: each one's summary and its arrow at the right of its row, both in `text_link` or
      * `picture_link`, the summary's box; Picture's explanation (16:9). */
     OraclesUiLine text_summary, picture_summary;
@@ -283,6 +313,12 @@ typedef struct OraclesUiDisplayLayout {
      * down in this box), the box's text from (text_x, text_y) at `pixel` scene pixels a game pixel: the band fitted to
      * the frame, which the drawing puts on the output's pixels (oracles_ui_text_preview_pixels). */
     OraclesUiBox preview, preview_frame, preview_hud, preview_box, preview_arrow;
+    /* With Floating, no band (preview_hud zero) but the panels over the world, at the band's scale from the frame's inside:
+     * the hearts' and the rupees' at the top, B's and A's at the bottom left, each piece on whole scene pixels; the hearts,
+     * the rupees' and the items' ink, the items' key badges; a pixel of the game there, whole, the panels' corners' step
+     * and their edge's width. */
+    OraclesUiBox preview_panels[4], preview_hearts[6], preview_inks[3], preview_badges[2];
+    float preview_panel_edge;
     float text_x, text_y, pixel;
     OraclesUiLine preview_label, preview_note;
     OraclesUiOptionLayout margin[ORACLES_DISPLAY_MARGINS];   /* 16:9: above its explanation, from the row's left */

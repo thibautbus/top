@@ -12,6 +12,9 @@
 #include "ui_page_layout.h"
 #include "ui_controls_nav.h"
 
+#include "ui_page_nav.h"
+#include "ui_page.h"
+#include "ui_font.h"
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include <string.h>
@@ -482,7 +485,7 @@ static void reminder(SDL_Renderer *renderer)
     OraclesPause *pause = draw ? oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0, 0, &nav) : NULL;
     CHECK(pause != NULL);
     if (pause) {
-        const OraclesPauseFrame title = { 0, ORACLES_INPUT_GAMEPAD, 480, 270, 0 }, play = { 1, ORACLES_INPUT_GAMEPAD, 480, 270, 0 };
+        const OraclesPauseFrame title = { 0, ORACLES_INPUT_GAMEPAD, 480, 270, 0, 0 }, play = { 1, ORACLES_INPUT_GAMEPAD, 480, 270, 0, 0 };
         CHECK(!oracles_pause_overlay(pause, renderer, &play) && !oracles_pause_reminder_drawn(pause) && !oracles_pause_reminder_pending(pause));
         oracles_pause_reminder(pause, "leftstick");
         CHECK(oracles_pause_reminder_pending(pause) && !oracles_pause_reminder_drawn(pause));
@@ -685,6 +688,76 @@ static void filter_previews(SDL_Renderer *renderer)
     oracles_ui_draw_destroy(draw);
 }
 
+/* Display in 4:3 at 640x480 with HUD on Floating, taller than its room: at the top and scrolled to the end, the pointer
+ * finds a row only where it is drawn, in its room; under the room (the hints), no row; the wheel's and the drag's scroll
+ * kept within the page's ends. */
+static void display_scroll_hits(void)
+{
+    if (!oracles_ui_fonts_load()) { CHECK(0); return; }
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[0].usable = 1;
+    nav.games[0].rom = ORACLES_ROM_ORIGINAL;
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.hud = ORACLES_DISPLAY_HUD_FLOATING;
+    nav.display.screen_w = nav.display.room_w = 640;
+    nav.display.screen_h = 480;
+    nav.display.room_h = 416;
+    nav.display.fullscreen_only = 1;
+    static OraclesUiDisplayTexts t;
+    static OraclesUiDisplayLayout l;
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(l.scroll == 0.0f && l.scroll_max > 0.0f);
+    const OraclesUiBox *picture = &l.rows[ORACLES_DISPLAY_PICTURE], *room = &l.rows_room;
+    int option;
+    /* At the top: Picture's part past the room, over the hints, takes nothing; Text, in the room, is Text. */
+    CHECK(picture->y + picture->h > room->y + room->h);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, room->y + room->h + 20.0f, &option) == -1);
+    const OraclesUiBox *text = &l.rows[ORACLES_DISPLAY_TEXT];
+    CHECK(oracles_ui_display_hit(&nav, text->x + 40.0f, text->y + 10.0f, &option) == ORACLES_DISPLAY_TEXT);
+    /* The wheel down past the end stops there; Picture then whole in the room, where the pointer finds it as drawn. */
+    nav.display_scroll = oracles_ui_display_scrolled(&nav, 1000.0f);
+    CHECK(nav.display_scroll == l.scroll_max);
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(l.scroll == l.scroll_max && picture->y + picture->h - l.scroll <= room->y + room->h);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, picture->y - l.scroll + 10.0f, &option) == ORACLES_DISPLAY_PICTURE);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, room->y + room->h + 20.0f, &option) == -1);
+    /* Profile, scrolled above the room, takes nothing there; Advanced, above it, still answers. */
+    const OraclesUiBox *profile = &l.rows[ORACLES_DISPLAY_PROFILE];
+    if (profile->y - l.scroll < room->y) CHECK(oracles_ui_display_hit(&nav, profile->x + 40.0f, room->y - 2.0f, &option) != ORACLES_DISPLAY_PROFILE);
+    const OraclesUiBox *advanced = &l.rows[ORACLES_DISPLAY_ADVANCED];
+    CHECK(oracles_ui_display_hit(&nav, advanced->x + 4.0f, advanced->y + 4.0f, &option) == ORACLES_DISPLAY_ADVANCED);
+    /* Back up past the top. */
+    nav.display_scroll = oracles_ui_display_scrolled(&nav, -1000.0f);
+    CHECK(nav.display_scroll == 0.0f);
+    /* Under the faded bottom edge, Picture is found but marked faded: a click there brings it into sight. */
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, room->y + room->h - 10.0f, &option) == ORACLES_DISPLAY_PICTURE && option == ORACLES_UI_DISPLAY_FADED);
+    CHECK(oracles_ui_display_hit(&nav, text->x + 40.0f, room->y + room->h - 60.0f, &option) == ORACLES_DISPLAY_TEXT && option == -1);
+    oracles_display_reveal(&nav, ORACLES_DISPLAY_PICTURE);
+    CHECK(nav.row == ORACLES_DISPLAY_PICTURE && nav.display_scroll == l.scroll_max);
+    /* At the end, the faded top edge: the row there marked faded too, the bottom one not. */
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, room->y + 10.0f, &option) >= 0 && option == ORACLES_UI_DISPLAY_FADED);
+    CHECK(oracles_ui_display_hit(&nav, picture->x + 40.0f, room->y + room->h - 10.0f, &option) == ORACLES_DISPLAY_PICTURE && option == -1);
+    /* A press stays a tap for a 40th of the window's height from where it was pressed, straight: a finger's 3 points
+     * down and back up at 480 lines, twice over, is a tap; 12 points away, a drag, which stays one. */
+    OraclesUiDisplayDrag drag;
+    oracles_ui_display_drag_start(&drag, 300.0f);
+    const float jitter[4] = { 303.0f, 300.0f, 303.0f, 300.0f };
+    for (int i = 0; i < 4; i++) CHECK(!oracles_ui_display_drag_moved(&drag, jitter[i], 480.0f));
+    CHECK(!oracles_ui_display_drag_moved(&drag, 311.0f, 480.0f) && oracles_ui_display_drag_moved(&drag, 312.0f, 480.0f));
+    CHECK(oracles_ui_display_drag_moved(&drag, 300.0f, 480.0f));
+    oracles_ui_display_drag_start(&drag, 300.0f);
+    CHECK(!drag.dragged && !oracles_ui_display_drag_moved(&drag, 320.0f, 1080.0f) && oracles_ui_display_drag_moved(&drag, 327.0f, 1080.0f));
+}
+
 int main(void)
 {
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
@@ -709,6 +782,7 @@ int main(void)
     SDL_Quit();
     filters_refused();
     SDL_Quit();
+    display_scroll_hits();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("oracles-launcher-menu: ok\n");
     return 0;

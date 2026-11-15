@@ -1407,9 +1407,11 @@ static void hud_probes(const char *frame, const OraclesUiDisplayLayout *l)
     layout_box(frame, "hud Original", &l->hud[0].box);
     layout_box(frame, "hud Full", &l->hud[1].box);
     layout_box(frame, "hud Wide", &l->hud[2].box);
+    layout_box(frame, "hud Floating", &l->hud[3].box);
     layout_text(frame, "hud Original text", &l->hud[0].name);
     layout_text(frame, "hud Full text", &l->hud[1].name);
     layout_text(frame, "hud Wide text", &l->hud[2].name);
+    layout_text(frame, "hud Floating text", &l->hud[3].name);
     layout_box(frame, "hud row", &l->rows[ORACLES_DISPLAY_HUD]);
     layout_near(frame, "hud grid", "y", l->rows[ORACLES_DISPLAY_HUD].y);
     layout_near(frame, "hud grid", "h", l->rows[ORACLES_DISPLAY_HUD].h);
@@ -1422,9 +1424,11 @@ static void hud_probes_4_3(const char *frame, const OraclesUiDisplayLayout *l)
     layout_box(frame, "hud Original", &l->hud[0].box);
     layout_box(frame, "hud Full", &l->hud[1].box);
     layout_box(frame, "hud Wide", &l->hud[2].box);
+    layout_box(frame, "hud Floating", &l->hud[3].box);
     layout_line(frame, "hud Original text", &l->hud[0].name);
     layout_line(frame, "hud Full text", &l->hud[1].name);
     layout_line(frame, "hud Wide text", &l->hud[2].name);
+    layout_line(frame, "hud Floating text", &l->hud[3].name);
     layout_box(frame, "hud row", &l->rows[ORACLES_DISPLAY_HUD]);
     layout_box(frame, "picture row", &l->rows[ORACLES_DISPLAY_PICTURE]);
     layout_line(frame, "help text", &l->help);
@@ -1783,13 +1787,14 @@ static void display_navigation(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.view == 0);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.view == 2);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.view == 1);
-    /* The HUD, Full width first, goes round Original, Full width and Wide layout in Enhanced, from a game too (it applies
-     * at once), and not in Faithful. */
+    /* The HUD, Full width first, goes round Original, Full width, Wide layout and Floating in Enhanced, from a game too (it
+     * applies at once), and not in Faithful. */
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_HUD && nav.display.hud == 1);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud == 3);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud == 0);
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.hud == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.hud == 3);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud == 0);
     nav.in_game = 1;
     nav.playing = ORACLES_PROFILE_ENHANCED;
@@ -3035,6 +3040,118 @@ static void display_hud(void)
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_HUD, 0) == ORACLES_HOME_STAY && nav.display.hud == 2);
 }
 
+/* Panels' choices and label against a frame's: a line of HUD's row in 16:9 (its highlight `panels line`), a row of its own
+ * in 4:3. */
+static void panels_probes(const char *frame, const OraclesUiDisplayLayout *l, int four_three)
+{
+    layout_box(frame, "panels bar", &l->panels[0].box);
+    layout_box(frame, "panels neutral", &l->panels[1].box);
+    if (four_three) {
+        layout_line(frame, "Panels", &l->labels[ORACLES_DISPLAY_PANELS].lines[0]);
+        layout_line(frame, "panels bar text", &l->panels[0].name);
+        layout_line(frame, "panels neutral text", &l->panels[1].name);
+        layout_box(frame, "panels row", &l->rows[ORACLES_DISPLAY_PANELS]);
+        layout_box(frame, "text row", &l->rows[ORACLES_DISPLAY_TEXT]);
+        layout_box(frame, "picture row", &l->rows[ORACLES_DISPLAY_PICTURE]);
+        layout_line(frame, "help text", &l->help);
+        return;
+    }
+    layout_text(frame, "Panels", &l->panels_label);
+    layout_text(frame, "panels bar text", &l->panels[0].name);
+    layout_text(frame, "panels neutral text", &l->panels[1].name);
+    layout_box(frame, "panels line", &l->rows[ORACLES_DISPLAY_PANELS]);
+    layout_box(frame, "text row", &l->rows[ORACLES_DISPLAY_TEXT]);
+    layout_box(frame, "picture row", &l->rows[ORACLES_DISPLAY_PICTURE]);
+    layout_box(frame, "View row", &l->rows[ORACLES_DISPLAY_VIEW]);
+    layout_box(frame, "panel", &l->panel);
+}
+
+/* HUD's Floating (turn 48): its explanation, Panels under it, highlighted on HUD (48i) and on Panels with Neutral (48j),
+ * in 16:9 and at 640x480; left and right on Panels, a click on its choices; the row gone with another HUD; dimmed and
+ * inert in Faithful; live from the pause; and 4:3's rows scrolled to keep Picture in sight. */
+static void display_floating(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_1h(&nav.games[0]);
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+    nav.display.window = 1;
+    nav.row = ORACLES_DISPLAY_HUD;
+    OraclesUiDisplayTexts t;
+    OraclesUiDisplayLayout l;
+    CHECK(!oracles_display_row_shown(&nav, ORACLES_DISPLAY_PANELS));
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_HUD, 3) == ORACLES_HOME_STORE && nav.display.hud == ORACLES_DISPLAY_HUD_FLOATING);
+    CHECK(oracles_display_row_shown(&nav, ORACLES_DISPLAY_PANELS));
+    for (int neutral = 0; neutral < 2; neutral++) {
+        const char *frame = neutral ? "48j" : "48i";
+        nav.display.hud_panel = neutral;
+        nav.row = neutral ? ORACLES_DISPLAY_PANELS : ORACLES_DISPLAY_HUD;
+        oracles_ui_display_texts(&nav, &t);
+        oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &l);
+        CHECK(!strcmp(t.explanations[6], "No bar: the world fills the screen, with hearts, rupees and items over it."));
+        hud_probes(frame, &l);
+        panels_probes(frame, &l, 0);
+    }
+    /* Down from HUD to Panels, then Text; left and right on Panels; its row itself and its choices under the pointer. */
+    nav.row = ORACLES_DISPLAY_HUD;
+    nav.display.hud_panel = 0;
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PANELS);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud_panel == 1);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.display.hud_panel == 0);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_TEXT);
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PANELS);
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    /* Panels' line within HUD's row, under its choices, its highlight around its label and choices. */
+    const OraclesUiBox *hud_row = &l.rows[ORACLES_DISPLAY_HUD], *line = &l.rows[ORACLES_DISPLAY_PANELS];
+    CHECK(line->y >= l.hud[0].box.y + l.hud[0].box.h && line->y + line->h <= hud_row->y + hud_row->h);
+    CHECK(line->x < l.panels_label.x && line->x + line->w > l.panels[1].box.x + l.panels[1].box.w);
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PANELS, 1) == ORACLES_HOME_STORE && nav.display.hud_panel == 1);
+    /* From the pause, live, at once. */
+    nav.in_game = 1;
+    nav.playing = ORACLES_PROFILE_ENHANCED;
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PANELS, 0) == ORACLES_HOME_STORE && nav.display.hud_panel == 0);
+    nav.in_game = 0;
+    /* In Faithful, dimmed and inert as HUD. */
+    nav.display.profile = ORACLES_PROFILE_FAITHFUL;
+    CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_PANELS, 1) == ORACLES_HOME_STAY && nav.display.hud_panel == 0);
+    nav.display.profile = ORACLES_PROFILE_ENHANCED;
+
+    /* 4:3 at 640x480: the long names on one line, Panels its own row, its help. */
+    for (int neutral = 0; neutral < 2; neutral++) {
+        const char *frame = neutral ? "48j 640x480" : "48i 640x480";
+        display_4_3_nav(&nav, 640, 480);
+        nav.display.hud = ORACLES_DISPLAY_HUD_FLOATING;
+        nav.display.hud_panel = neutral;
+        nav.row = neutral ? ORACLES_DISPLAY_PANELS : ORACLES_DISPLAY_HUD;
+        oracles_ui_display_texts(&nav, &t);
+        oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+        hud_probes_4_3(frame, &l);
+        panels_probes(frame, &l, 1);
+        CHECK(l.scroll == 0.0f && l.scroll_max > 0.0f);
+    }
+    /* Down to Picture, past the room: the rows scroll up as little as brings it in sight, then back down to the top. */
+    nav.row = ORACLES_DISPLAY_PANELS;
+    nav.display_scroll = 0.0f;
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_TEXT);
+    const float text_scroll = nav.display_scroll;
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_DISPLAY_PICTURE);
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(nav.display_scroll > 0.0f && nav.display_scroll >= text_scroll && l.scroll == nav.display_scroll && l.scroll == l.scroll_max);
+    CHECK(l.rows[ORACLES_DISPLAY_PICTURE].y + l.rows[ORACLES_DISPLAY_PICTURE].h - l.scroll <= l.rows_room.y + l.rows_room.h);
+    for (int i = 0; i < 7; i++) oracles_display_act(&nav, ORACLES_HOME_UP);
+    CHECK(nav.row == ORACLES_DISPLAY_PROFILE && nav.display_scroll == 0.0f);
+    /* Another HUD: no Panels, the rows fit. */
+    nav.row = ORACLES_DISPLAY_HUD;
+    CHECK(oracles_display_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.hud == 2);
+    CHECK(!oracles_display_row_shown(&nav, ORACLES_DISPLAY_PANELS));
+    oracles_ui_display_texts(&nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    CHECK(l.scroll_max == 0.0f && l.rows[ORACLES_DISPLAY_PANELS].h == 0.0f);
+}
+
 /* Screen margin's probes: its label, its row and its grid, each choice's box, Small's and Large's names, and the rows
  * from Core's to its own. */
 static void margin_probes(const char *frame, const OraclesUiDisplayLayout *l, int wide)
@@ -3237,6 +3354,7 @@ int main(int argc, char **argv)
     display_quality_navigation();
     display_scaling();
     display_hud();
+    display_floating();
     display_margin();
     display_camera();
     far_fitted_sizes();

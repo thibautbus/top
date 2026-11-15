@@ -219,11 +219,11 @@ int oracles_enhanced_view_subpixel(const OraclesEnhancedView *v, int32_t *x, int
 {
     *x = v->sub_x; *y = v->sub_y;
     *layer_fx = v->sub_layer_fx; *layer_fy = v->sub_layer_fy;
-    *band_top = ORACLES_ENHANCED_HUD_HEIGHT; *band_height = v->band_height;
+    *band_top = v->band_top; *band_height = v->band_height;
     const int has = v->sub_layer_w && v->sub_layer_h;
     *layer = has ? v->sub_layer : NULL;
     *layer_x = v->sub_layer_x; *layer_y = v->sub_layer_y; *layer_w = has ? v->sub_layer_w : 0; *layer_h = has ? v->sub_layer_h : 0;
-    return v->sub_x || v->sub_y || has;
+    return v->sub_x || v->sub_y || has || v->floating_layered;
 }
 
 void oracles_enhanced_view_subpixel_camera(const OraclesEnhancedView *v, int32_t *x, int32_t *y) { *x = v->sub_raw_x; *y = v->sub_raw_y; }
@@ -260,7 +260,7 @@ void ev_subpixel_fixed(OraclesEnhancedView *v, int32_t x, int32_t y, int32_t w, 
     if (x + w > (int32_t)v->size.width) w = (int32_t)v->size.width - x;
     if (y + h > (int32_t)v->band_height) h = (int32_t)v->band_height - y;
     if (w <= 0 || h <= 0) return;
-    const uint32_t rect[4] = { (uint32_t)x, ORACLES_ENHANCED_HUD_HEIGHT + (uint32_t)y, (uint32_t)w, (uint32_t)h };
+    const uint32_t rect[4] = { (uint32_t)x, v->band_top + (uint32_t)y, (uint32_t)w, (uint32_t)h };
     if (v->sub_fixed_count) {
         uint32_t *last = v->sub_fixed[v->sub_fixed_count - 1u];
         if (last[1] == rect[1] && last[3] == rect[3] && last[0] + last[2] == rect[0]) { last[2] += rect[2]; return; }   /* the next cell of a row */
@@ -527,7 +527,7 @@ void ev_subpixel_layer(OraclesEnhancedView *v, int tracking, int32_t camera_x, i
             if ((v->sub_layer[in_layer] | 0xff000000u) != (*ev_band_pixel(v, (unsigned)px, (unsigned)py) | 0xff000000u)) v->sub_wrong_pixels++;
         }
     v->sub_layer_x = ob->window_left + left - camera_x;
-    v->sub_layer_y = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + ob->window_top + top - camera_y;
+    v->sub_layer_y = (int32_t)v->band_top + ob->window_top + top - camera_y;
     v->sub_layer_w = (uint32_t)(right - left); v->sub_layer_h = (uint32_t)(bottom - top);
     v->sub_layer_frames++;
     v->sub_ready = 1;
@@ -557,7 +557,7 @@ static int take_made(OraclesEnhancedView *v)
     int32_t left = layered ? v->sub_layer_x : INT32_MAX, top = layered ? v->sub_layer_y : INT32_MAX;
     int32_t right = layered ? v->sub_layer_x + (int32_t)v->sub_layer_w : INT32_MIN, bottom = layered ? v->sub_layer_y + (int32_t)v->sub_layer_h : INT32_MIN;
     for (unsigned i = 0; i < v->sub_made_count; i++) {
-        const int32_t x = v->sub_made[i].x, y = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + v->sub_made[i].y;
+        const int32_t x = v->sub_made[i].x, y = (int32_t)v->band_top + v->sub_made[i].y;
         if (x < left) left = x;
         if (x + 1 > right) right = x + 1;
         if (y < top) top = y;
@@ -583,7 +583,7 @@ static int take_made(OraclesEnhancedView *v)
     v->sub_layer_w = (uint32_t)(right - left); v->sub_layer_h = (uint32_t)(bottom - top);
     /* In the order drawn: a pixel drawn twice keeps the band's colour from before the first under it. */
     for (unsigned i = 0; i < v->sub_made_count; i++) {
-        const unsigned at = (unsigned)((int32_t)ORACLES_ENHANCED_HUD_HEIGHT + v->sub_made[i].y - top) * SUB_LAYER_SIZE + (unsigned)(v->sub_made[i].x - left);
+        const unsigned at = (unsigned)((int32_t)v->band_top + v->sub_made[i].y - top) * SUB_LAYER_SIZE + (unsigned)(v->sub_made[i].x - left);
         if (!(v->sub_patch[at] >> 24)) v->sub_patch[at] = v->sub_made[i].under | 0xff000000u;
         v->sub_layer[at] = v->sub_made[i].colour | 0xff000000u;
         v->sub_pending[at] = 0;
@@ -605,14 +605,14 @@ void ev_subpixel_settle(OraclesEnhancedView *v)
         for (uint32_t col = 0; col < v->sub_layer_w; col++) {
             const unsigned in_layer = row * SUB_LAYER_SIZE + col;
             if (v->sub_pending[in_layer]) {
-                const int32_t px = v->sub_layer_x + (int32_t)col, py = v->sub_layer_y - (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + (int32_t)row;
+                const int32_t px = v->sub_layer_x + (int32_t)col, py = v->sub_layer_y - (int32_t)v->band_top + (int32_t)row;
                 v->sub_layer[in_layer] = *ev_band_pixel(v, (unsigned)px, (unsigned)py) | 0xff000000u;
             }
             if (!(v->sub_layer[in_layer] >> 24)) continue;
-            const int32_t px = v->sub_layer_x + (int32_t)col, py = v->sub_layer_y - (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + (int32_t)row;
+            const int32_t px = v->sub_layer_x + (int32_t)col, py = v->sub_layer_y - (int32_t)v->band_top + (int32_t)row;
             int fixed = 0;   /* shown unmoved, him at his whole pixels with it */
             for (unsigned f = 0; f < v->sub_fixed_count && !fixed; f++) {
-                const uint32_t *rect = v->sub_fixed[f], sy = (uint32_t)py + ORACLES_ENHANCED_HUD_HEIGHT;
+                const uint32_t *rect = v->sub_fixed[f], sy = (uint32_t)py + v->band_top;
                 fixed = (uint32_t)px >= rect[0] && (uint32_t)px < rect[0] + rect[2] && sy >= rect[1] && sy < rect[1] + rect[3];
             }
             if (!fixed && (*ev_band_pixel(v, (unsigned)px, (unsigned)py) | 0xff000000u) == v->sub_layer[in_layer]) continue;

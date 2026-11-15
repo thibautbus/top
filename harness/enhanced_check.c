@@ -1,4 +1,5 @@
 #include "enhanced_check_internal.h"
+#include "floating.h"
 #include "text_box_enlarge.h"
 
 /* The monotonic clock in microseconds: a composition is timed by the wall, not
@@ -32,7 +33,8 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
     c->threaded = ghost_budget == 0;
     c->run_hash = ORACLES_HASH_SEED;
     c->width = oracles_enhanced_view_width(c->view);
-    c->band_height = oracles_enhanced_view_height(c->view) - ORACLES_ENHANCED_HUD_HEIGHT;
+    c->band_top = oracles_enhanced_view_band_top(c->view);
+    c->band_height = oracles_enhanced_view_height(c->view) - c->band_top;
     c->link_edge_margin_min = (int32_t)c->width;   /* no world frame measured yet */
     /* Link's own entries of the OAM on screen; without the tagging's hooks, no measure rather than a wrong one. */
     c->link_sprites = oracles_sprites_create(guest);
@@ -81,7 +83,7 @@ void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *c, const char *out, u
  * that gap, where both show the same place of the world, the status bar above it as it is. */
 static void measure_near(OraclesEnhancedCheck *c, const uint32_t *surface, const uint32_t *other, int32_t dx, int32_t dy, uint32_t frame)
 {
-    const int32_t width = (int32_t)c->width, height = (int32_t)oracles_enhanced_view_height(c->view), hud = ORACLES_ENHANCED_HUD_HEIGHT;
+    const int32_t width = (int32_t)c->width, height = (int32_t)oracles_enhanced_view_height(c->view), hud = (int32_t)c->band_top;
     unsigned wrong = 0, black = 0;
     for (int32_t y = 0; y < height; y++) {
         const int32_t oy = y < hud ? y : y + dy;
@@ -91,6 +93,7 @@ static void measure_near(OraclesEnhancedCheck *c, const uint32_t *surface, const
             if (ox < 0 || ox >= width) continue;
             const uint32_t mine = surface[(size_t)y * (size_t)width + (size_t)x], theirs = other[(size_t)oy * (size_t)width + (size_t)ox];
             if (mine == theirs) continue;
+            if (ec_under_panel(c, (unsigned)x, (unsigned)y) || ec_under_panel(c, (unsigned)ox, (unsigned)oy)) continue;   /* the status bar floating, unmoved over both */
             if (mine & 0x00ffffffu) wrong++; else black++;
         }
     }
@@ -129,12 +132,228 @@ static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, i
     unsigned wrong = 0, black = 0;
     for (size_t i = 0; i < pixels; i++) {
         if (surface[i] == c->surface_other[i]) continue;
+        /* The status bar floating: a panel over a column the other has filled and this one not yet is not a wrong picture. */
+        if (ec_under_panel(c, (unsigned)(i % c->width), (unsigned)(i / c->width))) continue;
         if (surface[i] & 0x00ffffffu) wrong++; else black++;
     }
     if (wrong) { c->against_wrong_frames++; c->against_last_wrong = frame; if (wrong > c->against_wrong_max) c->against_wrong_max = wrong; }
     if (black) { c->against_last_black = frame; if (black > c->against_black_max) c->against_black_max = black; }
 }
-void oracles_enhanced_check_held_frame(OraclesEnhancedCheck *c, const uint32_t *surface, uint32_t frame) { measure_surfaces(c, surface, 0, 0, frame, 0); }
+
+#define BAND_RECORDS 128u
+
+void oracles_enhanced_check_band_surfaces(OraclesEnhancedCheck *c, const char *out, uint32_t from, const char *against)
+{
+    if (out) c->band_out = fopen(out, "wb");
+    if (against) c->band_against = fopen(against, "rb");
+    c->band_from = from;
+    c->band_rows_min = UINT32_MAX;
+}
+
+/* A pixel the band has not lit: the band's black, the game's fade aside (the frames of a fade are not compared). */
+static int unlit(uint32_t pixel) { return !(pixel & 0x00ffffffu); }
+
+/* The world band floating against the replay's under the HUD band: a world row shows at line `top + row - camera` of
+ * each, and a world column likewise; the panels over the band, and a frame with a text (its box follows the band, not
+ * the world), a fade or no world in either, compared with nothing. */
+static void measure_band(OraclesEnhancedCheck *c, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame, int world)
+{
+    if (!surface || (!c->band_out && !c->band_against) || frame < c->band_from || (frame - c->band_from) % SURFACE_STEP) return;
+    const uint32_t index = (frame - c->band_from) / SURFACE_STEP;
+    if (index >= BAND_RECORDS) return;
+    const unsigned width = c->width, height = oracles_enhanced_view_height(c->view);
+    const size_t pixels = (size_t)width * height;
+    const int text = oracles_guest_read8(c->guest, oracles_guest_tables(c->guest)->text_is_active) != 0;
+    const int32_t head[4] = { camera_x, camera_y, world && !text && !oracles_enhanced_view_faded(c->view), (int32_t)c->band_top };
+    if (c->band_out) { fwrite(head, sizeof head, 1, c->band_out); fwrite(surface, sizeof *surface, pixels, c->band_out); }
+    if (!c->band_against) return;
+    if (!c->band_other) c->band_other = malloc(pixels * sizeof *surface);
+    int32_t other[4];
+    const long record = (long)(sizeof head + pixels * sizeof *surface);
+    if (!c->band_other || fseek(c->band_against, (long)index * record, SEEK_SET) != 0 || fread(other, sizeof other, 1, c->band_against) != 1
+        || fread(c->band_other, sizeof *surface, pixels, c->band_against) != pixels) { c->band_unmatched++; return; }
+    c->band_frames++;
+    if (!head[2] || !other[2]) return;
+    c->band_compared++;
+    if (camera_y == other[1] - (int32_t)(other[3] - head[3]) / 2) c->band_eight++;
+    uint32_t panels[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    const unsigned panel_count = oracles_enhanced_view_floating_scale(c->view) == 1u ? oracles_enhanced_view_floating_panels(c->view, panels) : 0u;   /* else none in the surface */
+    unsigned wrong = 0, dark = 0, rows = 0;
+    for (unsigned y = c->band_top; y < height; y++) {
+        const int32_t oy = other[3] + (camera_y + (int32_t)(y - c->band_top)) - other[1];
+        if (oy < other[3] || oy >= (int32_t)height) continue;
+        rows++;
+        for (unsigned x = 0; x < width; x++) {
+            const int32_t ox = (int32_t)x + camera_x - other[0];
+            if (ox < 0 || ox >= (int32_t)width) continue;
+            int covered = 0;
+            for (unsigned p = 0; p < panel_count && !covered; p++)
+                covered = x >= panels[p][0] && x < panels[p][0] + panels[p][2] && y >= panels[p][1] && y < panels[p][1] + panels[p][3];
+            if (covered) continue;
+            const uint32_t mine = surface[(size_t)y * width + x], theirs = c->band_other[(size_t)oy * width + (size_t)ox];
+            if (mine == theirs) continue;
+            if (unlit(mine) || unlit(theirs)) dark++; else wrong++;
+        }
+    }
+    if (rows < c->band_rows_min) c->band_rows_min = rows;
+    if (wrong) { c->band_wrong_frames++; c->band_last_wrong = frame; if (wrong > c->band_wrong_max) c->band_wrong_max = wrong; }
+    if (dark > c->band_unlit_max) c->band_unlit_max = dark;
+}
+
+void oracles_enhanced_check_floating_avoid(OraclesEnhancedCheck *c, const int32_t (*rects)[4], unsigned count)
+{
+    c->floating_avoid_count = count < 4u ? count : 4u;
+    if (c->floating_avoid_count) memcpy(c->floating_avoid, rects, c->floating_avoid_count * sizeof *rects);
+    oracles_enhanced_view_set_floating_avoid(c->view, rects, count);
+}
+
+/* A panel's place on the surface (x, y, w, h) meets a rectangle of it. */
+static int floating_meets(const float at[4], const int32_t r[4])
+{
+    return at[0] < (float)(r[0] + r[2]) && (float)r[0] < at[0] + at[2] && at[1] < (float)(r[1] + r[3]) && (float)r[1] < at[1] + at[3];
+}
+
+/* The surface's pixels a pixel (lx, ly) of a panel `rect` of the layer at half the game's scale meets, the panel at
+ * `place` on the surface: from (x0, y0) to (x1, y1), exclusive. */
+static void texel_span(const float place[4], const uint32_t rect[4], uint32_t lx, uint32_t ly, int32_t span[4])
+{
+    const float ux = place[2] / (float)rect[2], uy = place[3] / (float)rect[3];
+    const float fx = place[0] + (float)(lx - rect[0]) * ux, fy = place[1] + (float)(ly - rect[1]) * uy;
+    span[0] = (int32_t)floorf(fx + 0.001f); span[2] = (int32_t)ceilf(fx + ux - 0.001f);
+    span[1] = (int32_t)floorf(fy + 0.001f); span[3] = (int32_t)ceilf(fy + uy - 0.001f);
+}
+
+static int span_on_blurb(const OraclesEnhancedCheck *c, const int32_t span[4])
+{
+    for (int32_t y = span[1]; y < span[3]; y++)
+        for (int32_t x = span[0]; x < span[2]; x++)
+            if (oracles_enhanced_view_blurb_pixel(c->view, x, y, NULL)) return 1;
+    return 0;
+}
+
+/* The area blurb drawn apart under the panels: each of its pixels in a panel's place shown as drawn, over the panel, in
+ * the surface as the presenter shows it (`surface`), and at half the game's scale with no pixel of the panels' layer
+ * over it. */
+static void measure_floating_blurb(OraclesEnhancedCheck *c, const uint32_t *surface, const uint32_t rects[][4], const float place[][4], unsigned count, unsigned k,
+                                   uint32_t frame)
+{
+    if (!oracles_enhanced_view_blurb_drawn(c->view)) return;
+    const unsigned width = c->width, height = oracles_enhanced_view_height(c->view);
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned drawn = 0;
+    const uint32_t *layer = k > 1u ? oracles_enhanced_view_floating_layer(c->view, at, &drawn) : NULL;
+    const size_t layer_w = (size_t)k * width;
+    int under = 0, hidden = 0;
+    for (unsigned i = 0; i < count; i++) {
+        const int32_t x0 = (int32_t)floorf(place[i][0]), y0 = (int32_t)floorf(place[i][1]);
+        const int32_t x1 = (int32_t)ceilf(place[i][0] + place[i][2]), y1 = (int32_t)ceilf(place[i][1] + place[i][3]);
+        for (int32_t y = y0 < 0 ? 0 : y0; y < y1 && y < (int32_t)height; y++)
+            for (int32_t x = x0 < 0 ? 0 : x0; x < x1 && x < (int32_t)width; x++) {
+                uint32_t colour;
+                if (!oracles_enhanced_view_blurb_pixel(c->view, x, y, &colour)) continue;
+                under = 1;
+                if (surface[(size_t)y * width + (size_t)x] != colour) hidden = 1;
+                if (!layer) continue;
+                const float ux = place[i][2] / (float)rects[i][2], uy = place[i][3] / (float)rects[i][3];
+                const int32_t ax = (int32_t)rects[i][0] + (int32_t)floorf(((float)x - place[i][0]) / ux) - 1, ay = (int32_t)rects[i][1] + (int32_t)floorf(((float)y - place[i][1]) / uy) - 1;
+                for (uint32_t ly = ay > (int32_t)rects[i][1] ? (uint32_t)ay : rects[i][1]; ly < rects[i][1] + rects[i][3] && (int32_t)ly <= ay + 3; ly++)
+                    for (uint32_t lx = ax > (int32_t)rects[i][0] ? (uint32_t)ax : rects[i][0]; lx < rects[i][0] + rects[i][2] && (int32_t)lx <= ax + 3; lx++) {
+                        int32_t span[4];
+                        texel_span(place[i], rects[i], lx, ly, span);
+                        if (x >= span[0] && x < span[2] && y >= span[1] && y < span[3] && layer[ly * layer_w + lx] >> 24) hidden = 1;
+                    }
+            }
+    }
+    c->floating_blurb_frames += (unsigned)under;
+    if (hidden) { c->floating_blurb_hidden++; c->floating_blurb_last_hidden = frame; }
+}
+
+/* The status bar floating: the panels clear of the touch controls, and each block of the bar a panel shows whole, the
+ * core's own pixels at their place but its background (the colour most of the bar has), which the panel replaces. */
+static void measure_floating(OraclesEnhancedCheck *c, const uint32_t *surface, OraclesEnhancedMode mode, uint32_t frame)
+{
+    if (c->band_top || !surface) return;
+    if (mode == ORACLES_ENHANCED_WORLD) c->floating_band_frames++;
+    uint32_t rects[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    int32_t sources[ORACLES_ENHANCED_FLOATING_PANELS][6];
+    const unsigned count = oracles_enhanced_view_floating_panels(c->view, rects);
+    oracles_enhanced_view_floating_sources(c->view, sources);
+    /* At half the game's scale, each panel where the presenter draws it on the screen the view is laid out for, in the
+     * surface's pixels: kept to its corner, at the screen's unit (oracles_floating_surface_place). */
+    const unsigned k = oracles_enhanced_view_floating_scale(c->view);
+    const uint32_t layer_w = k * c->width, layer_h = k * oracles_enhanced_view_height(c->view);
+    const float screen = c->surface_scale ? (float)c->surface_scale : 2.0f;
+    float place[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    for (unsigned i = 0; i < count; i++) {
+        const int32_t rect[4] = { (int32_t)rects[i][0], (int32_t)rects[i][1], (int32_t)rects[i][2], (int32_t)rects[i][3] };
+        if (k == 1u) for (unsigned j = 0; j < 4u; j++) place[i][j] = (float)rect[j];
+        else oracles_floating_surface_place(rect, oracles_floating_corner(rect, layer_w, layer_h), layer_w, layer_h, screen, place[i]);
+    }
+    int met = 0;
+    for (unsigned i = 0; i < count; i++)
+        for (unsigned a = 0; a < c->floating_avoid_count; a++) met |= floating_meets(place[i], c->floating_avoid[a]);
+    c->floating_avoid_met += (unsigned)met;
+    {   /* the text box over the band: no panel drawn over it, not even fading */
+        unsigned shown[ORACLES_ENHANCED_FLOATING_PANELS];
+        int32_t box[4];
+        if (count && oracles_enhanced_view_text_box_rect(c->view, box)) {
+            c->floating_box_frames++;
+            oracles_enhanced_view_floating_shown(c->view, shown);
+            for (unsigned i = 0; i < count; i++)
+                if (floating_meets(place[i], box)) {
+                    if (shown[i]) c->floating_box_met++;
+                    else c->floating_box_hid++;
+                }
+        }
+    }
+    measure_floating_blurb(c, surface, (const uint32_t(*)[4])rects, (const float(*)[4])place, count, k, frame);
+    const uint32_t *core = oracles_core_pixels(c->core);
+    if (!core || !count) return;
+    uint32_t seen[16];
+    unsigned times[16], kinds = 0;
+    for (unsigned i = 0; i < ORACLES_ENHANCED_HUD_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH; i++) {
+        unsigned k = 0;
+        while (k < kinds && seen[k] != core[i]) k++;
+        if (k == kinds && kinds < 16u) { seen[kinds] = core[i]; times[kinds++] = 0; }
+        if (k < kinds) times[k]++;
+    }
+    unsigned best = 0;
+    for (unsigned k = 1; k < kinds; k++) if (times[k] > times[best]) best = k;
+    const uint32_t background = seen[best];
+    unsigned width = c->width, height = oracles_enhanced_view_height(c->view);
+    if (k > 1) {   /* the bar's pixels in the panels' layer, whole: opaque, the core's own */
+        uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+        unsigned drawn = 0;
+        surface = oracles_enhanced_view_floating_layer(c->view, at, &drawn);
+        width *= (unsigned)k;
+        height *= (unsigned)k;
+        if (!surface) return;
+    }
+    unsigned wrong = 0;
+    for (unsigned i = 0; i < count; i++) {
+        const int32_t *s = sources[i];
+        for (int32_t y = 0; y < s[3]; y++)
+            for (int32_t x = 0; x < s[2]; x++) {
+                const uint32_t pixel = core[(unsigned)(s[1] + y) * ORACLES_ENHANCED_CORE_WIDTH + (unsigned)(s[0] + x)];
+                const int32_t sx = s[4] + x, sy = s[5] + y;
+                if (pixel == background || sx < 0 || sy < 0 || sx >= (int32_t)width || sy >= (int32_t)height) continue;
+                /* The area blurb over the panel: its pixel, measured apart (measure_floating_blurb). */
+                int32_t span[4] = { sx, sy, sx + 1, sy + 1 };
+                if (k > 1) texel_span(place[i], rects[i], (uint32_t)sx, (uint32_t)sy, span);
+                if (span_on_blurb(c, span)) continue;
+                c->floating_content_compared++;
+                wrong += surface[(size_t)sy * width + (size_t)sx] != pixel;
+            }
+    }
+    if (wrong) { c->floating_content_wrong_frames++; c->floating_content_last_wrong = frame; }
+}
+
+void oracles_enhanced_check_hud_switch_at(OraclesEnhancedCheck *c, const uint32_t *frames, unsigned count, int base)
+{
+    c->hud_switches = count < 8u ? count : 8u;
+    memcpy(c->hud_switch_at, frames, c->hud_switches * sizeof *frames);
+    c->hud_base = base == ORACLES_ENHANCED_HUD_FLOATING ? ORACLES_ENHANCED_HUD_ORIGINAL : base;
+}
 
 void oracles_enhanced_check_set_transition(OraclesEnhancedCheck *c, OraclesRoomTransition *transition) { c->transition = transition; }
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *c, int paced) { c->paced = paced; }
@@ -145,7 +364,8 @@ void oracles_enhanced_check_set_size(OraclesEnhancedCheck *c, OraclesEnhancedSiz
 {
     oracles_enhanced_view_set_size(c->view, size);
     c->width = oracles_enhanced_view_width(c->view);
-    c->band_height = oracles_enhanced_view_height(c->view) - ORACLES_ENHANCED_HUD_HEIGHT;
+    c->band_top = oracles_enhanced_view_band_top(c->view);
+    c->band_height = oracles_enhanced_view_height(c->view) - c->band_top;
     c->link_edge_margin_min = (int32_t)c->width;
 }
 
@@ -158,11 +378,86 @@ void oracles_enhanced_check_surface_at(OraclesEnhancedCheck *c, uint32_t frame, 
 
 struct OraclesEnhancedView *oracles_enhanced_check_view(OraclesEnhancedCheck *c) { return (struct OraclesEnhancedView *)c->view; }
 
+/* The panels at half the game's scale, apart from the surface, which the presenter lays over the picture: their places,
+ * their corners and their pixels hashed after the surface's (`hash`), as the player sees them at any scale. */
+static uint64_t half_panels_hash(const OraclesEnhancedCheck *c, uint64_t hash)
+{
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    uint8_t anchors[ORACLES_ENHANCED_FLOATING_PANELS];
+    unsigned count = 0;
+    const uint32_t *layer = oracles_enhanced_view_floating_layer(c->view, at, &count);
+    if (!layer || oracles_enhanced_view_floating_scale(c->view) < 2u) return hash;
+    oracles_enhanced_view_floating_anchors(c->view, anchors);
+    const size_t pitch = 2u * (size_t)c->width;
+    hash = oracles_guest_hash((const uint8_t *)at, count * sizeof at[0], hash);
+    hash = oracles_guest_hash(anchors, count, hash);
+    for (unsigned i = 0; i < count; i++)
+        for (uint32_t y = at[i][1]; y < at[i][1] + at[i][3]; y++) hash = oracles_guest_hash((const uint8_t *)(layer + y * pitch + at[i][0]), at[i][2] * sizeof *layer, hash);
+    return hash;
+}
+
+/* The surface as the presenter shows it: the floating panels it lays over the band with the sub-pixel camera folded in
+ * (`*panels` 2), or the panels at half the game's scale apart, on a layer of their own (1); else the surface itself (0). */
+static const uint32_t *presented_surface(OraclesEnhancedCheck *c, const uint32_t *surface, int *panels)
+{
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned count = 0;
+    *panels = 0;
+    if (!surface) return surface;
+    if (oracles_enhanced_view_floating_layer(c->view, at, &count) && oracles_enhanced_view_floating_scale(c->view) > 1u) { *panels = 1; return surface; }
+    if (!count) return surface;
+    const size_t pixels = (size_t)oracles_enhanced_view_width(c->view) * oracles_enhanced_view_height(c->view);
+    if (c->folded_pixels != pixels) { free(c->folded); c->folded = malloc(pixels * sizeof *c->folded); c->folded_pixels = c->folded ? pixels : 0; }
+    if (!c->folded) return surface;
+    oracles_enhanced_view_fold_floating(c->view, surface, c->folded);
+    *panels = 2;
+    return c->folded;
+}
+
+/* The hash of a frame as the presenter shows it: the surface presented_surface gives, then the panels at half scale. */
+static uint64_t presented_hash(const OraclesEnhancedCheck *c, const uint32_t *surface)
+{
+    const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * oracles_enhanced_view_height(c->view) * sizeof *surface, ORACLES_HASH_SEED);
+    return surface ? half_panels_hash(c, hash) : hash;
+}
+
+uint64_t oracles_enhanced_check_held_frame(OraclesEnhancedCheck *c, const uint32_t *surface, uint32_t frame)
+{
+    int panels;
+    surface = presented_surface(c, surface, &panels);
+    measure_surfaces(c, surface, 0, 0, frame, 0);
+    return presented_hash(c, surface);
+}
+
+/* The pixel of the panels at half the game's scale over (x, y) of a picture of the surface `w` x `h` (screen pixels), at
+ * its unit (oracles_floating_screen_place), premultiplied; 0 where none stands. */
+static uint32_t half_panel_pixel(const OraclesEnhancedCheck *c, int32_t x, int32_t y, unsigned w, unsigned h)
+{
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    uint8_t anchors[ORACLES_ENHANCED_FLOATING_PANELS];
+    unsigned count = 0;
+    const uint32_t *layer = oracles_enhanced_view_floating_layer(c->view, at, &count);
+    if (!layer || oracles_enhanced_view_floating_scale(c->view) < 2u) return 0;
+    oracles_enhanced_view_floating_anchors(c->view, anchors);
+    const uint32_t layer_w = 2u * c->width, layer_h = 2u * oracles_enhanced_view_height(c->view);
+    for (unsigned i = 0; i < count; i++) {
+        const int32_t rect[4] = { (int32_t)at[i][0], (int32_t)at[i][1], (int32_t)at[i][2], (int32_t)at[i][3] };
+        float place[4];
+        oracles_floating_screen_place(rect, anchors[i], layer_w, layer_h, (float)w, (float)h, place);
+        const float unit = oracles_floating_screen_unit((float)w, layer_w);
+        if ((float)x < place[0] || (float)y < place[1] || (float)x >= place[0] + place[2] || (float)y >= place[1] + place[3]) continue;
+        const uint32_t lx = at[i][0] + (uint32_t)(((float)x - place[0]) / unit), ly = at[i][1] + (uint32_t)(((float)y - place[1]) / unit);
+        return layer[(size_t)ly * layer_w + lx];
+    }
+    return 0;
+}
+
 /* The surface written as a PPM `surface_scale` times as large, as the presenter shows it on a screen of that size: the
  * whole surface at that scale, or with the large menus over the framed core the part shown alone
  * (oracles_enhanced_view_framed_crop), widened for the box where its own whole scale holds it (oracles_text_box_reserve),
  * at that scale, centred, black around; the text box the presenter enlarges drawn over it larger, at its size or the
- * next down where the part shown holds it (oracles_text_box_enlarge). */
+ * next down where the part shown holds it (oracles_text_box_enlarge).  The panels at half the game's scale at the
+ * presenter's unit over the picture, under the box; at once, four of their pixels for one by their mean. */
 static void write_surface(const OraclesEnhancedCheck *c, const uint32_t *surface, const char *path)
 {
     FILE *f = fopen(path, "wb");
@@ -182,6 +477,12 @@ static void write_surface(const OraclesEnhancedCheck *c, const uint32_t *surface
     const int box = published && rect[0] >= part[0] && rect[1] >= part[1] && rect[0] + rect[2] <= part[0] + part[2] && rect[1] + rect[3] <= part[1] + part[3]
                     && oracles_text_box_enlarge((double)ox, (double)oy, (double)(part[2] * scale), (double)(part[3] * scale), (double)scale, rect[0] - part[0],
                                                 rect[1] - part[1], rect[2], rect[3], size, bottom, out, &factor);
+    /* At once, the picture with the panels folded at half: four of their pixels for one, by their mean. */
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned drawn = 0;
+    const int halved = oracles_enhanced_view_floating_layer(c->view, at, &drawn) && oracles_enhanced_view_floating_scale(c->view) > 1u && !c->large_menus;
+    uint32_t *folded = halved && k == 1u ? malloc((size_t)c->width * height * sizeof *folded) : NULL;
+    if (folded) oracles_enhanced_view_fold_floating_at(c->view, surface, folded, 1u);
     fprintf(f, "P6\n%u %u\n255\n", w, h);
     for (unsigned y = 0; y < h; y++)
         for (unsigned x = 0; x < w; x++) {
@@ -189,11 +490,20 @@ static void write_surface(const OraclesEnhancedCheck *c, const uint32_t *surface
             uint32_t p = 0xff000000u;
             if (px >= 0 && py >= 0 && px < (int32_t)(part[2] * scale) && py < (int32_t)(part[3] * scale))
                 p = surface[(part[1] + (unsigned)py / scale) * c->width + part[0] + (unsigned)px / scale];
+            if (folded) p = folded[(size_t)y * c->width + x];
+            else if (halved) {
+                const uint32_t panel = half_panel_pixel(c, (int32_t)x, (int32_t)y, w, h), a = panel >> 24;
+                uint32_t mixed = 0xff000000u;
+                for (unsigned shift = 0; shift < 24u; shift += 8u)
+                    mixed |= ((((panel >> shift) & 0xffu) * 255u + ((p >> shift) & 0xffu) * (255u - a) + 127u) / 255u) << shift;
+                if (a) p = mixed;
+            }
             if (box && (int32_t)x >= out[0] && (int32_t)x < out[0] + out[2] && (int32_t)y >= out[1] && (int32_t)y < out[1] + out[3])
                 p = surface[(rect[1] + (unsigned)((int32_t)y - out[1]) / factor) * c->width + rect[0] + (unsigned)((int32_t)x - out[0]) / factor];
             const uint8_t rgb[3] = { (uint8_t)(p >> 16), (uint8_t)(p >> 8), (uint8_t)p };
             fwrite(rgb, 1, 3, f);
         }
+    free(folded);
     fclose(f);
 }
 void oracles_enhanced_check_set_neighbour_objects(OraclesEnhancedCheck *c, int enabled) { oracles_enhanced_view_set_neighbour_objects(c->view, enabled); }
@@ -211,7 +521,11 @@ void oracles_enhanced_check_set_text_size(OraclesEnhancedCheck *c, unsigned size
     oracles_enhanced_view_set_text_size(c->view, size);
     c->text_size = size;
 }
-void oracles_enhanced_check_set_surface_scale(OraclesEnhancedCheck *c, unsigned scale) { c->surface_scale = scale; }
+void oracles_enhanced_check_set_surface_scale(OraclesEnhancedCheck *c, unsigned scale)
+{
+    c->surface_scale = scale;
+    oracles_enhanced_view_set_floating_screen(c->view, (float)scale);   /* the panels at half the game's scale laid out for that screen */
+}
 void oracles_enhanced_check_set_large_menus(OraclesEnhancedCheck *c, int large)
 {
     oracles_enhanced_view_set_large_menus(c->view, large);
@@ -236,6 +550,7 @@ void oracles_enhanced_check_stop(OraclesEnhancedCheck *c)
     if (c->tsv) fclose(c->tsv);
     free(c->saved_core);
     free(c->redraw_copy);
+    free(c->redraw_layer);
     oracles_sprites_destroy(c->link_sprites);
     if (c->witness) oracles_ghost_destroy(c->witness);
     free(c->witness_result);
@@ -337,6 +652,13 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
             c->subpixel_switched++;
         }
     if (c->hotbar_forget_at == frame && frame) oracles_enhanced_view_hotbar_forget(c->view);
+    for (unsigned i = 0; i < c->hud_switches; i++)
+        if (c->hud_switch_at[i] == frame) {
+            const int floating = oracles_enhanced_view_hud(c->view) == ORACLES_ENHANCED_HUD_FLOATING;
+            oracles_enhanced_view_set_hud(c->view, floating ? c->hud_base : ORACLES_ENHANCED_HUD_FLOATING);
+            c->hud_redrawn += (unsigned)oracles_enhanced_view_redraw_hud(c->view);   /* as the pause shows it at once */
+            c->hud_switched++;
+        }
     const double compose_start = ec_monotonic_us();
     const uint32_t *surface = oracles_enhanced_view_compose(c->view, &mode, &camera_x, &camera_y);
     {   /* A renderer of objects is judged on the peak, which puts a frame late, not on the mean. */
@@ -344,15 +666,27 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
         c->compose_us_total += spent;
         if (spent > c->compose_us_max) c->compose_us_max = spent;
     }
+    {   /* the floating panels the presenter lays over the band with the sub-pixel camera, folded in as it shows them (the
+         * presenter's work, not the composition's) */
+        int panels;
+        surface = presented_surface(c, surface, &panels);
+        c->floating_half_frames += (unsigned)(panels == 1);
+        c->floating_layer_frames += (unsigned)(panels == 2);
+    }
+    c->band_top = oracles_enhanced_view_band_top(c->view);   /* the status bar floating or not, as the composition took it */
+    c->panel_count = oracles_enhanced_view_floating_scale(c->view) == 1u ? oracles_enhanced_view_floating_panels(c->view, c->panels) : 0u;   /* else none in the surface */
+    c->band_height = oracles_enhanced_view_height(c->view) - c->band_top;
     if (c->text_size) ec_check_scaled_text_box(c, mode, surface);
     if (c->text_size) ec_check_text_size_redraw(c, mode);
     if (c->wide) ec_check_wide_text_box(c, mode, surface, frame);   /* the frame just composed, before a reload replaces the state it shows */
     else if (c->host_box) ec_check_host_text_box(c, mode, frame);
-    const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * oracles_enhanced_view_height(c->view) * sizeof *surface, ORACLES_HASH_SEED);
+    const uint64_t hash = presented_hash(c, surface);
     c->run_hash = oracles_guest_hash((const uint8_t *)&hash, sizeof hash, c->run_hash);
     c->last_hash = hash;
     for (unsigned i = 0; i < c->surfaces; i++) if (c->surface_at[i] == frame) write_surface(c, surface, c->surface_path[i]);
     measure_surfaces(c, surface, camera_x, camera_y, frame, mode == ORACLES_ENHANCED_WORLD);
+    measure_band(c, surface, camera_x, camera_y, frame, mode == ORACLES_ENHANCED_WORLD);
+    measure_floating(c, surface, mode, frame);
     c->frames++;
     const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
     int blank = surface != NULL;   /* one colour: the screen faded out, where a camera that moves shows nothing moving */
@@ -384,7 +718,7 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     {   /* a room's load under the world's HUD band: from a world frame to a load and back, the band and the game area stay */
         int32_t left = 0, top = 0;
         const int kind = oracles_enhanced_view_load_band(c->view, &left, &top) ? 2 : mode == ORACLES_ENHANCED_WORLD ? 1 : 0;
-        const uint64_t band = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * ORACLES_ENHANCED_HUD_HEIGHT * sizeof *surface, ORACLES_HASH_SEED);
+        const uint64_t band = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * c->band_top * sizeof *surface, ORACLES_HASH_SEED);
         if (kind && c->load_last_kind && kind != c->load_last_kind) {
             c->load_boundaries++;
             if (band != c->load_last_band) c->load_band_changes++;

@@ -14,7 +14,7 @@ struct OraclesHotkeysSession {
     OraclesItemHotkeys *live;            /* NULL while a route is replayed */
     OraclesItemHotkeysReplay *replay;
     OraclesRouteWriter *writer;
-    int controller;                      /* the last slot key came from a controller: the hotbar shows its buttons */
+    OraclesHotkeysDevice device;         /* a controller's: the hotbar shows its buttons and its pad */
 };
 
 static void on_applied(void *opaque, const OraclesGuestInventoryState *before, const OraclesGuestInventoryOp *op)
@@ -128,7 +128,7 @@ void oracles_hotkeys_session_command(OraclesHotkeysSession *s, int command)
 {
     if (!s || !s->live || command < ORACLES_COMMAND_HOTKEY || command >= ORACLES_COMMAND_HOTKEY_END) return;
     const unsigned code = (unsigned)(command - ORACLES_COMMAND_HOTKEY), n = code / 8u, modifier = (code % 8u) / 2u;
-    if (code & 1u) s->controller = modifier == 3u;
+    if (code & 1u) oracles_hotkeys_device_key(&s->device, modifier == 3u);
     const OraclesHotkeyOutcome outcome = oracles_item_hotkeys_key(s->live, n, (int)(code & 1u),
         modifier == 2u ? ORACLES_HOTKEY_BIND_A : modifier == 1u ? ORACLES_HOTKEY_BIND_B : ORACLES_HOTKEY_PLAIN);
     if (outcome != ORACLES_HOTKEY_ASSIGNED && outcome != ORACLES_HOTKEY_EMPTIED) return;
@@ -144,10 +144,17 @@ void oracles_hotkeys_session_frame(OraclesHotkeysSession *s, struct OraclesEnhan
     if (!s || !view) return;
     if (!s->live) { oracles_enhanced_view_set_hotbar((OraclesEnhancedView *)view, NULL); return; }   /* a route replayed: the keys do nothing */
     const char *names[ORACLES_HOTKEY_SLOTS];
-    for (unsigned n = 0; n < ORACLES_HOTKEY_SLOTS; n++) names[n] = s->controller ? s->settings->hotkey_pad_names[n] : s->settings->hotkey_key_names[n];
+    const int controller = s->device.controller;
+    for (unsigned n = 0; n < ORACLES_HOTKEY_SLOTS; n++) names[n] = controller ? s->settings->hotkey_pad_names[n] : s->settings->hotkey_key_names[n];
     OraclesEnhancedHotbar hotbar;
-    oracles_hotbar_model(s->live, names, s->controller, &hotbar);
+    oracles_hotbar_model(s->live, names, controller, &hotbar);
+    hotbar.keyboard = !controller;   /* the floating tiles as the keys' block, or a controller's pad */
     oracles_enhanced_view_set_hotbar((OraclesEnhancedView *)view, &hotbar);
+}
+
+void oracles_hotkeys_session_pads_at_start(OraclesHotkeysSession *s, unsigned pads)
+{
+    if (s) oracles_hotkeys_device_start(&s->device, pads);
 }
 
 unsigned oracles_hotkeys_session_filter(void *opaque, uint32_t frame, unsigned mask)

@@ -1,7 +1,8 @@
 // The LCD filter of SameBoy (Shaders/LCD.fsh and the gamma of Shaders/MasterShader.fsh, SameBoy 1.0.3), in HLSL for
 // SDL's GPU renderer: each of the picture's pixels as red, green and blue sub-pixels, its top and bottom darkened.
 // The positions are the drawn texture's own, so the grid follows each part the sub-pixel camera moves, moved by the
-// constants' `grid` (in texels) for a part drawn apart.  Over a texture with transparent pixels, which carry the colour
+// constants' `grid` (in texels) for a part drawn apart, or drawn on the picture's own pixels (`cell`) for a part drawn
+// at another scale.  Over a texture with transparent pixels, which carry the colour
 // of the picture around them, the colour is kept to the centre pixel's coverage.
 //
 // Copyright (c) 2015-2026 Lior Halphon
@@ -28,6 +29,7 @@ cbuffer Context : register(b0, space3) {
     float2 unused;
     float2 grid;
     float4 image;   // the picture's place in the window's pixels (the filters' common constants)
+    float4 cell;    // xy: the screen pixels of one of the picture's pixels, z: the grid drawn on them
 };
 
 Texture2D u_texture : register(t0, space2);
@@ -36,6 +38,7 @@ SamplerState u_sampler : register(s0, space2);
 struct PSInput {
     float4 v_color : COLOR0;
     float2 v_uv : TEXCOORD0;
+    float4 v_position : SV_Position;
 };
 
 struct PSOutput {
@@ -58,7 +61,7 @@ PSOutput main(PSInput input) {
     float2 size;
     u_texture.GetDimensions(size.x, size.y);
     const float2 texel = input.v_uv * size;
-    const float2 sub_pos = frac(texel + grid) * 6.0;
+    const float2 sub_pos = frac(cell.z > 0.0 ? (input.v_position.xy - image.xy) / cell.xy : texel + grid) * 6.0;
 
     float4 center = texture_relative(texel, size, float2(0, 0));
     float4 left = texture_relative(texel, size, float2(-1, 0));

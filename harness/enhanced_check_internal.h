@@ -295,7 +295,7 @@ struct OraclesEnhancedCheck {
     unsigned wide_crop_frames, wide_crop_outside;     /* framed frames with the large menus' rectangle; those it does not hold the box in */
     unsigned text_size;                      /* --text-size: ORACLES_ENHANCED_TEXT_* */
     unsigned redraw_frames, redraw_wrong;    /* world frames whose box was drawn again at the other sizes and back; those not given back as composed */
-    uint32_t *redraw_copy;
+    uint32_t *redraw_copy, *redraw_layer;   /* the surface and the floating panels' layer as the composition left them */
     int large_menus;                         /* --menus-large: the surfaces written as the presenter shows the framed core alone */
     unsigned surface_scale;                  /* --surface-scale */
     unsigned large_frames, large_frames_world, large_frames_framed;   /* frames the box was published for the presenter (Large) */
@@ -345,7 +345,7 @@ struct OraclesEnhancedCheck {
     unsigned beside_checked, beside_orphans;
     char beside_list[256];
     double paced_start;
-    unsigned width, band_height;  /* the surface's width and its world band's height (oracles_enhanced_band_height) */
+    unsigned width, band_top, band_height;   /* the surface's width, its world band's first line and height (oracles_enhanced_view_band_top) */
     unsigned transitions_large;   /* horizontal transitions in large rooms: the room entered is shown during the scroll, not before */
     unsigned large_scroll_black;  /* world frames of a large room's scroll with pixels no source covers beyond the room's gutters: the room entered missing */
     /* the transition in progress: what was shown for the room entered */
@@ -379,6 +379,36 @@ struct OraclesEnhancedCheck {
     uint32_t against_near_last_wrong, against_near_last_black;
     uint32_t subpixel_switch_at[8];         /* --enhanced-subpixel-switch, and those done */
     unsigned subpixel_switches, subpixel_switched;
+    uint32_t hud_switch_at[8];              /* --hud-switch: the status bar floating, or back to the run's --hud, at each; those done */
+    unsigned hud_switches, hud_switched, hud_redrawn;
+    unsigned floating_avoid_met;            /* frames a floating panel met one of the touch controls' rectangles */
+    unsigned floating_box_frames;           /* frames with panels and a text box over the band */
+    unsigned floating_box_met, floating_box_hid;   /* panels drawn there, even faintly, where the box stands; those it hid */
+    int32_t floating_avoid[4][4];
+    unsigned floating_avoid_count;
+    /* The bar's pixels the panels show whole, against the core's image: those not its background compared, the frames
+     * with one wrong. */
+    unsigned floating_content_compared, floating_content_wrong_frames;
+    uint32_t floating_content_last_wrong;
+    unsigned floating_band_frames;          /* world frames composed with the band the whole surface */
+    unsigned floating_layer_frames;         /* frames whose panels the sub-pixel camera's presenter lays apart, folded into the surface checked */
+    unsigned floating_half_frames;          /* frames whose panels stood at half the game's scale apart (the near view), hashed with the surface */
+    unsigned floating_blurb_frames;         /* frames where the area blurb drawn apart stands under a panel's place */
+    unsigned floating_blurb_hidden;         /* of them, frames where a pixel of it there is not shown as drawn: a panel's over it */
+    unsigned floating_blurb_last_hidden;
+    uint32_t *folded;
+    size_t folded_pixels;
+    uint32_t panels[ORACLES_ENHANCED_FLOATING_PANELS][4];   /* the floating panels of the frame composed, which the pixel checks leave out */
+    unsigned panel_count;
+    int hud_base;
+    /* --enhanced-band-out and --enhanced-band-against: the world band of a replay under the HUD band, and of the same replay
+     * floating held against it, world row by world row, from a frame on for BAND_RECORDS records an eighth frame apart:
+     * the frames of a world composed in both, those whose camera stands eight lines higher floating, those with a lit
+     * pixel that differs, the most of them, the most left black on either side. */
+    FILE *band_out, *band_against;
+    uint32_t band_from, band_last_wrong;
+    uint32_t *band_other;
+    unsigned band_frames, band_compared, band_eight, band_wrong_frames, band_wrong_max, band_unlit_max, band_unmatched, band_rows_min;
     unsigned surfaces;                      /* --surface-at: composed surfaces to write out, as PPM */
     uint32_t surface_at[16];
     const char *surface_path[16];
@@ -463,5 +493,13 @@ void ec_check_beside(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *
 void ec_write_frame_row(OraclesEnhancedCheck *c, uint32_t frame, uint64_t hash, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y,
                         int shown_left, uint8_t room_left, int shown_right, uint8_t room_right, unsigned uncovered,
                         int scx, int scy, int off_x, int off_y);
+
+/* The surface's pixel (x, y) stands under a panel of the status bar floating. */
+static inline int ec_under_panel(const OraclesEnhancedCheck *c, unsigned x, unsigned y)
+{
+    for (unsigned i = 0; i < c->panel_count; i++)
+        if (x >= c->panels[i][0] && x < c->panels[i][0] + c->panels[i][2] && y >= c->panels[i][1] && y < c->panels[i][1] + c->panels[i][3]) return 1;
+    return 0;
+}
 
 #endif

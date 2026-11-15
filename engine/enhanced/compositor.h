@@ -13,6 +13,8 @@
  * gutters beside the status bar are the border, or with the bar drawn full
  * width (`hud=full`) the bar's own background, line by line; with the bar laid
  * out (`hud=wide`) its blocks stand at the band's corners on that background.
+ * With the bar floating (`hud=floating`) there is no HUD band: the world band
+ * is the whole surface, and the view draws the bar's blocks over it.
  *
  * Frames the software PPU does not reconstruct, the ring menu and cutscenes
  * (LCD behaviours 2 to 6) and frames where the window is scanned, use the
@@ -74,6 +76,10 @@ static inline OraclesEnhancedSize oracles_enhanced_size(int zoom_out)
     return oracles_enhanced_view_size(zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR, ORACLES_ENHANCED_16_9);
 }
 static inline unsigned oracles_enhanced_band_height(OraclesEnhancedSize size) { return size.height - ORACLES_ENHANCED_HUD_HEIGHT; }   /* 128, 144, 200, 224, 254, 304 or 344 */
+/* The world band's first line: under the HUD band, or the surface's first with the status bar floating over the world
+ * (hud=floating), the band then the surface's whole height. */
+static inline unsigned oracles_enhanced_band_top(int floating) { return floating ? 0u : ORACLES_ENHANCED_HUD_HEIGHT; }
+static inline unsigned oracles_enhanced_world_height(OraclesEnhancedSize size, int floating) { return size.height - oracles_enhanced_band_top(floating); }
 static inline unsigned oracles_enhanced_hud_x(OraclesEnhancedSize size) { return (size.width - ORACLES_ENHANCED_CORE_WIDTH) / 2u; }   /* 48, 26, 112, 80, 133, 126 or 160 */
 
 /* A screen's shape: its long side over its short one (a screen held upright counts as turned) below the middle of
@@ -219,6 +225,7 @@ typedef struct OraclesEnhancedCompose {
     unsigned counted_width, counted_height;                      /* the black around them decided); width 0: all of the part shown */
     const uint32_t *hud_fill;                                    /* world mode: the HUD band's gutters line by line (oracles_enhanced_hud_fill), 0 where a line keeps the border; NULL: the border */
     const struct OraclesEnhancedHudPlace *hud_place;             /* world mode: the status bar cut into its blocks and laid out (oracles_enhanced_hud_place); NULL: centred */
+    int floating;                                                /* world mode: no HUD band, the world band the whole surface (oracles_enhanced_band_top) */
     int soft_edges;                                              /* world mode: a source kept dark or fading in takes the edge toward the sources drawn in clear beside it; 0: its veil alone */
     uint32_t edge_seed;                                          /* the world its waves are drawn in (the rooms' group) */
     unsigned *uncovered_edges;                                   /* world mode, not NULL: set to the sides of the part shown whose edge column or line has uncovered pixels counted, bits 0 to 3 left, right, top, bottom */
@@ -318,7 +325,7 @@ unsigned oracles_enhanced_dark_lit(const OraclesEnhancedCompose *in, const uint3
  * edge's depth from either end aside, where nothing drawn in clear stands just beyond it (another room kept dark, nothing,
  * the world's end): an edge where there is no frontier. */
 unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uint32_t *out);
-/* The HUD band alone, the world mode's sixteen lines at the top of `out`, the rest left as it is. */
+/* The HUD band alone, the world mode's sixteen lines at the top of `out`, the rest left as it is; nothing floating. */
 void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out);
 /* An RGB555 colour of a source that does not carry the game's palette fade, as the compose draws it: the fade
  * (-32 to 31) applied as the game applies it, then the pixel of `colours` (NULL: plain RGB). */

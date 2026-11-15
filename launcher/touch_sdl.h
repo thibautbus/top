@@ -32,6 +32,10 @@ typedef struct OraclesTouchScreen {
      * NULL: the texture. */
     int (*draw_frame)(void *opaque, struct SDL_Renderer *renderer, const struct SDL_FRect *part, const struct SDL_FRect *to);
     void *draw_frame_opaque;
+    /* What the controls drawn with the last frame covered of it, in its pixels (oracles_touch_frame_covered); none while
+     * they are hidden. */
+    int32_t covered[4][4];
+    unsigned covered_count;
 } OraclesTouchScreen;
 
 /* 1 when `event` is a finger's, in the renderer's output: *buttons the game's buttons all fingers press now, *pause

@@ -233,9 +233,9 @@ static void place_box(OraclesEnhancedView *v)
             }
     /* The box drawn by the host, or the game's twice as large: above all, the black outside the part of the band shown
      * included (ev_overlay_text_box_above). */
-    const int32_t hud = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+    const int32_t hud = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT, band_top = (int32_t)v->band_top;
     if (!wide && scale == 1u) {
-        note_enlarged(v, ((int32_t)v->size.width - (rect[2] - rect[0])) / 2, hud + top + dy, (unsigned)(rect[2] - rect[0]), (unsigned)(rect[3] - rect[1]), lower, 1,
+        note_enlarged(v, ((int32_t)v->size.width - (rect[2] - rect[0])) / 2, band_top + top + dy, (unsigned)(rect[2] - rect[0]), (unsigned)(rect[3] - rect[1]), lower, 1,
                       rect[0], hud + top, 0, 8u * ORACLES_TEXT_BOX_GAME_COLUMNS);
         return;
     }
@@ -248,12 +248,13 @@ static void place_box(OraclesEnhancedView *v)
     v->above_size[0] = wide ? v->box_host.width : (unsigned)(rect[2] - rect[0]);
     v->above_size[1] = wide ? v->box_host.height : (unsigned)(rect[3] - rect[1]);
     v->above_at[0] = ((int32_t)v->size.width - (int32_t)(scale * v->above_size[0])) / 2;
-    v->above_at[1] = hud + top + dy - (lower ? (int32_t)((scale - 1u) * v->above_size[1]) : 0);
+    v->above_at[1] = band_top + top + dy - (lower ? (int32_t)((scale - 1u) * v->above_size[1]) : 0);
 }
 
 int oracles_enhanced_view_redraw_text_box(OraclesEnhancedView *v)
 {
     if (!v->have_view || !v->box_kept) return 0;
+    ev_floating_lift(v);   /* the band under the box was kept before the panels: they are drawn again over the box */
     for (unsigned y = 0; y < v->box_under_h; y++)
         memcpy(ev_band_pixel(v, (unsigned)v->box_under_x, (unsigned)v->box_under_y + y), v->box_under + y * v->box_under_w, v->box_under_w * sizeof *v->box_under);
     v->sub_fixed_count = v->box_fixed_from;
@@ -264,6 +265,7 @@ int oracles_enhanced_view_redraw_text_box(OraclesEnhancedView *v)
     place_box(v);
     ev_black_outside_shown(v);
     ev_overlay_text_box_above(v);
+    ev_floating_again(v);
     v->scaled_frames_world = scaled_world; v->wide_frames_world = wide_world;
     return 1;
 }
@@ -344,18 +346,18 @@ void ev_overlay_text_box_above(OraclesEnhancedView *v)
     const int kind = v->above;
     v->above = 0;
     if (!kind) return;
-    const int32_t hud = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+    const int32_t band_top = (int32_t)v->band_top;
     if (kind == 1) {
         const uint32_t *core = oracles_core_pixels(v->core);
         if (!core) return;
         put_core_box(v, core, v->above_source[0], v->above_source[1], v->above_size[0], v->above_size[1], v->above_scale, v->above_at[0], v->above_at[1],
-                     hud, hud + (int32_t)v->band_height);
-        ev_subpixel_fixed(v, v->above_at[0], v->above_at[1] - hud, (int32_t)(v->above_scale * v->above_size[0]), (int32_t)(v->above_scale * v->above_size[1]));
+                     band_top, band_top + (int32_t)v->band_height);
+        ev_subpixel_fixed(v, v->above_at[0], v->above_at[1] - band_top, (int32_t)(v->above_scale * v->above_size[0]), (int32_t)(v->above_scale * v->above_size[1]));
         v->scaled_frames_world++;
         return;
     }
-    put_host_box(v, &v->above_box, v->above_scale, v->above_at[0], v->above_at[1], 0, (int32_t)v->size.width, hud, hud + (int32_t)v->band_height);
-    ev_subpixel_fixed(v, v->above_at[0], v->above_at[1] - hud, (int32_t)(v->above_scale * v->above_size[0]), (int32_t)(v->above_scale * v->above_size[1]));
+    put_host_box(v, &v->above_box, v->above_scale, v->above_at[0], v->above_at[1], 0, (int32_t)v->size.width, band_top, band_top + (int32_t)v->band_height);
+    ev_subpixel_fixed(v, v->above_at[0], v->above_at[1] - band_top, (int32_t)(v->above_scale * v->above_size[0]), (int32_t)(v->above_scale * v->above_size[1]));
     if (v->above_scale == 1u) note_enlarged(v, v->above_at[0], v->above_at[1], v->above_box.width, v->above_box.height, v->above_lower, 0, 0, 0, 0, v->above_box.width);
     v->wide_frames_world++;
     if (v->above_scale > 1u) v->scaled_frames_world++;
@@ -538,6 +540,27 @@ int oracles_enhanced_view_text_box_enlarged_source(const OraclesEnhancedView *v,
     src[0] = v->enlarged_src[0];
     src[1] = v->enlarged_src[1];
     *from_core = v->enlarged_from_core;
+    return 1;
+}
+
+int ev_text_box_rect(const OraclesEnhancedView *v, int32_t rect[4])
+{
+    if (v->wide_shown) {
+        rect[0] = v->wide_x; rect[1] = v->wide_y;
+        rect[2] = (int32_t)(v->wide_scale * v->wide_box.width); rect[3] = (int32_t)(v->wide_scale * v->wide_box.height);
+        return 1;
+    }
+    if (v->scaled_shown) {
+        rect[0] = v->scaled_x; rect[1] = v->scaled_y; rect[2] = 2 * (int32_t)v->scaled_w; rect[3] = 2 * (int32_t)v->scaled_h;
+        return 1;
+    }
+    if (!v->enlarged_noted || v->enlarged_framed) return 0;
+    for (unsigned i = 0; i < 4u; i++) rect[i] = v->enlarged_rect[i];
+    if (enlarged_now(v)) {   /* the presenter's, twice as large at most, against the same edge, centred across */
+        rect[0] -= rect[2] / 2;
+        if (v->enlarged_bottom) rect[1] -= rect[3];
+        rect[2] *= 2; rect[3] *= 2;
+    }
     return 1;
 }
 

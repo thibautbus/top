@@ -106,12 +106,14 @@ int oracles_pause_reminder_drawn(const OraclesPause *pause);
 /* The frame about to be presented, for the reminder: whether it shows the status bar in play (the session says so once
  * the bar has been in play for two seconds of frames in a row, not for a flash of it before a cutscene), the device used
  * last in the game (an OraclesInputDevice; -1 none yet: the one the pause knows), and the game's image as the session
- * presents it, its size in the game's pixels and Fill. */
+ * presents it, its size in the game's pixels and Fill; the lines at its top the notices stay under, 0 for the status
+ * bar's sixteen (the panels of the bar floating, else). */
 typedef struct OraclesPauseFrame {
     int in_play;
     int device;
     int width, height;
     int fill;
+    int top_lines;
 } OraclesPauseFrame;
 /* Draws the reminder over that frame (the SDL backend's overlay, through the session): 1 while it waits or shows, 0 once
  * it is gone. */

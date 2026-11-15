@@ -293,7 +293,7 @@ static int32_t shift_reach(const OraclesEnhancedCompose *in)
  * (a room the pool no longer holds keeps its veil alone). */
 static void edge_rooms(const OraclesEnhancedCompose *in, OraclesEnhancedSize size, edge_set *set)
 {
-    const unsigned W = size.width, band_h = oracles_enhanced_band_height(size);
+    const unsigned W = size.width, band_h = oracles_enhanced_world_height(size, in->floating);
     const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
     const int32_t reach = shift_reach(in);
     const int32_t view_left = in->world_left + (int32_t)(W - shown_w) / 2 - reach, view_top = in->world_top + (int32_t)(band_h - shown_h) / 2 - reach;
@@ -502,8 +502,8 @@ static int32_t row_shift(const OraclesEnhancedCompose *in, unsigned y, int32_t *
 static unsigned compose_world(const uint32_t *core, const OraclesEnhancedCompose *in, OraclesEnhancedSize size, uint32_t *out)
 {
     unsigned uncovered = 0;
-    const unsigned W = size.width, band_h = oracles_enhanced_band_height(size);
-    compose_hud(core, in, size, out);
+    const unsigned W = size.width, top = oracles_enhanced_band_top(in->floating), band_h = oracles_enhanced_world_height(size, in->floating);
+    if (!in->floating) compose_hud(core, in, size, out);
     /* World band: the game area placed by the camera; uncovered pixels black.
      * A band row shows the LCD line of the window that stands there, and that
      * line's own scroll: the shifts are read by line, not by band row, or the
@@ -523,7 +523,7 @@ static unsigned compose_world(const uint32_t *core, const OraclesEnhancedCompose
     for (unsigned n = 0; n < in->neighbour_count && in->soft_edges && !edged; n++) edged = in->neighbours[n].veil != 0u;
     if (edged) edge_rooms(in, size, &edges);
     for (unsigned y = 0; y < band_h; y++) {
-        uint32_t *row = out + (HUD + y) * W;
+        uint32_t *row = out + (top + y) * W;
         if (y < y0 || y >= y0 + shown_h) { for (unsigned x = 0; x < W; x++) row[x] = black; continue; }
         int32_t shift_x, shift_y;
         const int32_t world_y = row_shift(in, y, &shift_x, &shift_y);
@@ -544,7 +544,7 @@ unsigned oracles_enhanced_dark_lit(const OraclesEnhancedCompose *in, const uint3
 {
     if (in->mode != ORACLES_ENHANCED_WORLD) return 0;
     const OraclesEnhancedSize size = in->size.width ? in->size : oracles_enhanced_size(0);
-    const unsigned W = size.width, band_h = oracles_enhanced_band_height(size);
+    const unsigned W = size.width, top = oracles_enhanced_band_top(in->floating), band_h = oracles_enhanced_world_height(size, in->floating);
     const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
     const unsigned x0 = (W - shown_w) / 2u, y0 = (band_h - shown_h) / 2u;
     const uint32_t black = gutter_pixel(in, 0xff000000u);
@@ -582,7 +582,7 @@ unsigned oracles_enhanced_dark_lit(const OraclesEnhancedCompose *in, const uint3
                     const OraclesEnhancedNeighbour *o = &in->neighbours[over[i]];
                     covered = left + x >= o->world_left && left + x < o->world_left + (int32_t)source_width(o) && wy >= o->world_top && wy < o->world_top + (int32_t)source_height(o);
                 }
-                found = !covered && out[(HUD + y) * W + (unsigned)x] != black;
+                found = !covered && out[(top + y) * W + (unsigned)x] != black;
             }
         }
         lit += (unsigned)found;
@@ -601,7 +601,7 @@ unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uin
 {
     if (in->mode != ORACLES_ENHANCED_WORLD) return 0;
     const OraclesEnhancedSize size = in->size.width ? in->size : oracles_enhanced_size(0);
-    const unsigned W = size.width, band_h = oracles_enhanced_band_height(size);
+    const unsigned W = size.width, top = oracles_enhanced_band_top(in->floating), band_h = oracles_enhanced_world_height(size, in->floating);
     const unsigned shown_w = in->shown_width ? in->shown_width : W, shown_h = in->shown_height ? in->shown_height : band_h;
     const unsigned x0 = (W - shown_w) / 2u, y0 = (band_h - shown_h) / 2u;
     const uint32_t black = gutter_pixel(in, 0xff000000u);
@@ -633,7 +633,7 @@ unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uin
                     covered = (o->game_area || o->veil >= 256u) && left + x >= o->world_left && left + x < o->world_left + (int32_t)source_width(o)
                         && wy >= o->world_top && wy < o->world_top + (int32_t)source_height(o);
                 }
-                found = !covered && out[(HUD + y) * W + (unsigned)x] != black;
+                found = !covered && out[(top + y) * W + (unsigned)x] != black;
             }
         }
         stray += (unsigned)found;
@@ -643,7 +643,7 @@ unsigned oracles_enhanced_dark_stray(const OraclesEnhancedCompose *in, const uin
 
 void oracles_enhanced_compose_hud(const uint32_t *core, const OraclesEnhancedCompose *in, uint32_t *out)
 {
-    compose_hud(core, in, in->size.width ? in->size : oracles_enhanced_size(0), out);
+    if (!in->floating) compose_hud(core, in, in->size.width ? in->size : oracles_enhanced_size(0), out);
 }
 
 void oracles_enhanced_far_fitting_words(unsigned screen_w, unsigned screen_h, unsigned margin_lines, char *out, size_t capacity)

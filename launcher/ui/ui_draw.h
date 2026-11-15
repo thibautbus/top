@@ -112,6 +112,9 @@ void oracles_ui_draw_texture(OraclesUiDraw *draw, SDL_Texture *texture, float x,
 void oracles_ui_draw_clip(OraclesUiDraw *draw, float x, float y, float w, float h);
 void oracles_ui_draw_clip_rect(OraclesUiDraw *draw, int *saved, SDL_Rect *rect);
 void oracles_ui_draw_restore_clip(OraclesUiDraw *draw, int saved, const SDL_Rect *rect);
+/* What is drawn from now on moved down by `dy` of the scene (negative: up), until it is moved back; the clip stays where
+ * it was set. */
+void oracles_ui_draw_shift(OraclesUiDraw *draw, float dy);
 /* One line of text starting at `x` with its baseline at `baseline`. */
 void oracles_ui_draw_text(OraclesUiDraw *draw, const OraclesUiTextStyle *style, float x, float baseline, const char *utf8, OraclesUiColor color);
 /* A motif over the whole scene, slid by `shift` scene pixels (negative: left). */

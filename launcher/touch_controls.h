@@ -58,6 +58,11 @@ unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, ui
  * it: integer-scaled, the largest whole scale, centred; with `fill` (letterboxed), the largest size in the frame's
  * proportions, centred. */
 OraclesTouchBox oracles_touch_frame(int width, int height, int frame_w, int frame_h, int fill);
+/* What the controls of `layout` (in the screen's pixels) cover of the game's frame of frame_w x frame_h shown at `to`, in
+ * the frame's pixels, x, y, width and height: the d-pad, A and B together, the pause, Select and Start together, as far
+ * as they reach (a control beside the frame covers none of it).  Their count, four at most: the panels of the status
+ * bar floating keep clear of them. */
+unsigned oracles_touch_frame_covered(const OraclesTouchLayout *layout, OraclesTouchBox to, int frame_w, int frame_h, int32_t out[4][4]);
 /* settings.txt's screen_margin=: what the game's frame, the controls and the launcher's pages keep clear of at the
  * screen's top and bottom.  Off, the whole screen; auto, the display cutout's insets Android reports there; small and
  * large, a margin of 24 or 48 dp at the top and at the bottom, or the cutout's inset where it is larger (a screen whose

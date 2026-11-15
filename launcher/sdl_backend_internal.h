@@ -43,6 +43,24 @@ typedef struct sdl_backend {
     size_t layer_pixels_size;
     int layer_margin, layer_bend; /* sb_upload_layer's, for the filter it was written for (oracles_sdl_filter_bend) */
     int layer_written;            /* the texture written whole once since it was made */
+    SDL_Texture *panels;          /* the status bar's floating panels apart from the frame (sb_upload_panels), made at their first use */
+    int panels_w, panels_h, panels_shown;
+    /* The panels in groups, those whose rings meet in one (sb_upload_panels): each group's part drawn (x, y, w, h); their
+     * texels' colour straight (for a shader that keeps it to the coverage of the texel it reads), not premultiplied. */
+    unsigned panels_groups;
+    int panels_draw[ORACLES_HOST_SUBPIXEL_PANELS][4];
+    int panels_straight;
+    /* The near view's panels at half the game's scale (oracles_host_video_subpixel's panels_scale 2): a group a panel,
+     * `panels_draw` its place in their layer twice the frame's size, kept to its corner, drawn after the picture
+     * (sb_draw_half_panels); in the texture each alone with as much around it as the filter reads, from `panels_at`,
+     * as far as `panels_bend` drawn around it. */
+    int panels_half;
+    uint8_t panels_anchor[ORACLES_HOST_SUBPIXEL_PANELS];
+    int panels_at[ORACLES_HOST_SUBPIXEL_PANELS][2];
+    int panels_bend;
+    uint32_t *panels_pixels;      /* sb_upload_panels's, a group's part as the texture takes it */
+    uint8_t *panels_reach;
+    size_t panels_pixels_size;
     uint32_t layer_part_w, layer_part_h;   /* the size of Link's part written last, the rest of `layer_pixels` 0 */
     /* The last frame as it was shown, which the pause shows: moved by the sub-pixel camera (the band, the patch and
      * the layer as `shown` placed them, the layer's texture holding them when `shown_layered`), or the texture as it is. */
@@ -73,6 +91,7 @@ typedef struct sdl_backend {
     int suspended;   /* the watch saw a suspension, which the next poll hands to the host */
     SDL_AudioStream *audio;          /* bound to the device, which pulls from it */
     OraclesSdlPads pads;               /* every gamepad plugged in (oracles_sdl_pads_open) */
+    unsigned pads_at_start;            /* those open when the game started */
     uint32_t sample_rate_hz;
     int audio_started;
     unsigned audio_underruns;
@@ -108,7 +127,7 @@ typedef struct sdl_backend {
     int renderer_lost;   /* told the renderer went, not yet the one that follows */
     const void *last_pixels;
     size_t last_pitch;
-    const uint32_t *last_layer, *last_patch;
+    const uint32_t *last_layer, *last_patch, *last_panels;
     char renderer_name[96];   /* the SDL renderer the session presents with, and whether it said it had vsync */
     int renderer_vsync;
     unsigned axis_buttons;  /* ORACLES_KEY_* currently held through the left stick */
@@ -148,7 +167,16 @@ int sb_draw_subpixel_cut(sdl_backend *backend, const SDL_FRect *to);
 int sb_upload_layer(sdl_backend *backend, const uint32_t *layer, const uint32_t *patch, const oracles_host_video_subpixel *at, const uint32_t *frame,
                     size_t frame_pitch);
 int sb_put(SDL_Renderer *r, SDL_Texture *texture, const SDL_FRect *src, const SDL_FRect *dst, const SDL_FRect *to, float sx, float sy);
+int sb_upload_panels(sdl_backend *backend, const oracles_host_video_subpixel *sp);
+/* The layer, the patch and the panels of `frame`'s sub-pixel move uploaded, the move kept for the pause (`shown`). */
+void sb_take_subpixel(sdl_backend *backend, const oracles_host_video_frame *frame);
 int sb_draw_shown_box(sdl_backend *backend, const SDL_FRect *to);
+/* The panels at half the game's scale last uploaded, over the picture drawn at `to` (the frame's place, in the window's
+ * pixels), at the unit oracles_floating_screen_place gives, through the filter the picture was drawn through (their
+ * texels read at that unit, Scanlines', CRT's and LCD's masks running on from the picture's pixels, xBR, HQ2x and
+ * OmniScale on their own texels, CRT's curve over the picture's place), the filter set aside after them; `direct` when the window's
+ * pixels are drawn to already, else the logical presentation is set aside for them.  1 when none are to draw. */
+int sb_draw_half_panels(sdl_backend *backend, const SDL_FRect *to, int direct);
 /* The pause's image of the last frame shown alone at `rect` (x, y, w, h in the frame) from now on, or whole (NULL). */
 void sb_show_crop(sdl_backend *backend, const uint32_t rect[4]);
 /* The pause's image of the last frame with Text size's box at `rect` (x, y, w, h in the frame) from now on, or none (NULL). */

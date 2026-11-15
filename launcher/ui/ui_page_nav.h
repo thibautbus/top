@@ -32,7 +32,8 @@
  * workers set at once; Custom when they make none, which is shown and never
  * chosen; dimmed and inert in Faithful and from a game), the window (the profile's surface at 2x, 3x, 4x, or fullscreen
  * at the largest whole scale of the display), the view, the HUD (the status bar as the game draws it, its colour
- * across the whole view, or laid out on it, hearts left and items right; dimmed and inert in Faithful), Text (the link to Display › Text, ui_page_text.h, its
+ * across the whole view, laid out on it, hearts left and items right, or Floating, no bar, its parts over the world in
+ * panels whose colors Panels chooses under it; dimmed and inert in Faithful), Text (the link to Display › Text, ui_page_text.h, its
  * settings summed up beside it, "Compact · Wide · Normal"), Picture (the link to Display › Picture, its settings summed
  * up beside it, "Sharp · No margin · Color off"), then Advanced
  * under the diagram (4:3: beside it, in the header), which opens Display's Advanced rows in place of those:
@@ -218,6 +219,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_FAR_SIZE,      /* its Far size: Fitted or Fixed, where it changes something */
     ORACLES_DISPLAY_UNVISITED,     /* its Unvisited rooms, the last: Shown, Dungeons or Hidden */
     ORACLES_DISPLAY_FILTER,        /* its Filter, after Scaling: one of ORACLES_DISPLAY_FILTERS, stepped */
+    ORACLES_DISPLAY_PANELS,        /* Display's Panels, after HUD while it is on Floating: Bar color or Neutral */
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
@@ -315,7 +317,17 @@ void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h
 const char *oracles_display_profile_note(const OraclesHomeNav *nav);
 extern const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS];
 extern const char *const oracles_display_colour_choices[2];
-extern const char *const oracles_display_hud_choices[3];    /* "Original", "Full width", "Wide layout": settings.txt's hud= original, full, wide */
+/* HUD's choices, settings.txt's hud= original, full, wide, floating: "Original", "Full width", "Wide layout", "Floating", and
+ * the short names 16:9's row gives them, "Original", "Full", "Wide", "Floating".  Floating, the bar's parts floating over the
+ * world in panels, has Panels under it, the panels' colors: "Bar color" or "Neutral" (hud_panel= bar, neutral), live where
+ * HUD is (in Enhanced, at once from the pause); a line of HUD's row in 16:9, a row of its own in 4:3. */
+#define ORACLES_DISPLAY_HUDS 4
+#define ORACLES_DISPLAY_HUD_FLOATING 3
+extern const char *const oracles_display_hud_choices[ORACLES_DISPLAY_HUDS];
+extern const char *const oracles_display_hud_short[ORACLES_DISPLAY_HUDS];
+extern const char *const oracles_display_panels_choices[2];
+/* HUD's explanation, 16:9's or 4:3's shorter help, which follows Floating chosen. */
+const char *oracles_display_hud_explanation(const OraclesHomeNav *nav, int four_three);
 /* "Off", "Auto", "Small", "Large": settings.txt's screen_margin=, an OraclesScreenMargin. */
 #define ORACLES_DISPLAY_MARGINS 4
 extern const char *const oracles_display_margin_choices[ORACLES_DISPLAY_MARGINS];
@@ -400,6 +412,8 @@ int oracles_display_filter_drawn(const OraclesHomeNav *nav);
 const char *oracles_display_filter_note(const OraclesHomeNav *nav);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);
+/* 4:3: `row`, under a faded edge of the rows' room, highlighted and scrolled into sight. */
+void oracles_display_reveal(OraclesHomeNav *nav, unsigned row);
 /* A click on a row, or on one of its options (a profile, a quality, a window, Off/On, Auto/On/Off): `option` -1 for the
  * row itself; one on Advanced, Picture or Text opens it. */
 OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int option);

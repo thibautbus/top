@@ -81,12 +81,12 @@ void ec_check_text_box(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
                 if (!place) first = drawn;
                 else if (drawn != first) varied = 1;
                 place++;
-                if (surface[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)home_y) * W + (unsigned)home] == drawn) in_place++;
+                if (surface[(c->band_top + (unsigned)home_y) * W + (unsigned)home] == drawn) in_place++;
             }
             const int32_t x = ob->window_left + (int32_t)gx - camera_x + shift;
             if (host) continue;
             if (x < 0 || x >= (int32_t)W) { wrong++; continue; }   /* the whole box must fit in the band */
-            if (surface[(ORACLES_ENHANCED_HUD_HEIGHT + gy + dy) * W + (unsigned)x] != core_pixels[(ORACLES_ENHANCED_HUD_HEIGHT + gy) * ORACLES_ENHANCED_CORE_WIDTH + gx]) wrong++;
+            if (surface[(c->band_top + gy + dy) * W + (unsigned)x] != core_pixels[(ORACLES_ENHANCED_HUD_HEIGHT + gy) * ORACLES_ENHANCED_CORE_WIDTH + gx]) wrong++;
         }
     /* The box's own place, where the moved box does not fall: the view draws
      * the room there, and the room and the box share colours, so a pixel
@@ -124,7 +124,7 @@ void ec_check_window_lines(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
             host_w = 2u * size[0]; host_h = 2u * size[1];
         }
     }
-    host_y -= (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+    host_y -= (int32_t)c->band_top;
     for (unsigned r = 0; r < ORACLES_ENHANCED_AREA_HEIGHT; r++) {
         const int32_t y = (int32_t)r + wy;
         if (y < 0 || y >= (int32_t)c->band_height) continue;
@@ -135,8 +135,9 @@ void ec_check_window_lines(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
             /* A text box's cells: the view draws the room there, the box in the middle of the band. */
             if (box[r][col]) continue;
             if (wide && x >= host_x && x < host_x + (int32_t)host_w && y >= host_y && y < host_y + (int32_t)host_h) continue;
+            if (ec_under_panel(c, (unsigned)x, c->band_top + (unsigned)y)) continue;   /* the status bar floating over it */
             compared++;
-            if (surface[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)y) * W + (unsigned)x]
+            if (surface[(c->band_top + (unsigned)y) * W + (unsigned)x]
                 != core_pixels[(ORACLES_ENHANCED_HUD_HEIGHT + r) * ORACLES_ENHANCED_CORE_WIDTH + col]) wrong++;
         }
         if (!compared) continue;
@@ -197,15 +198,16 @@ void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation 
         if (window_x >= 0 && window_x < (int)ORACLES_ENHANCED_CORE_WIDTH && !oracles_enhanced_view_blurb_drawn(c->view))
             for (unsigned y = 0; y < c->band_height; y++) {
                 const int window_y = (int)(camera_y + (int32_t)y - ob->window_top);
-                if (window_y < 0 || window_y >= (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
-                if (surface[(ORACLES_ENHANCED_HUD_HEIGHT + y) * W + x]
+                if (window_y < 0 || window_y >= (int)ORACLES_ENHANCED_AREA_HEIGHT || ec_under_panel(c, x, c->band_top + y)) continue;
+                if (surface[(c->band_top + y) * W + x]
                     != core_pixels[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)window_y) * ORACLES_ENHANCED_CORE_WIDTH + (unsigned)window_x]) window_wrong++;
             }
         if (window_x >= left && window_x < right) continue;
         for (unsigned y = shown_y; y < shown_y + shown_h; y++) {
             const int window_y = (int)(camera_y + (int32_t)y - ob->window_top);
             if (window_x >= 0 && window_x < (int)ORACLES_ENHANCED_CORE_WIDTH && window_y >= 0 && window_y < (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
-            if (surface[(ORACLES_ENHANCED_HUD_HEIGHT + y) * W + x] != colour) wrong++;
+            if (ec_under_panel(c, x, c->band_top + y)) continue;   /* the status bar floating over the curtain */
+            if (surface[(c->band_top + y) * W + x] != colour) wrong++;
         }
     }
     if (window_wrong) c->curtain_window_frames_wrong++;
@@ -303,7 +305,7 @@ void ec_measure_window_darker(OraclesEnhancedCheck *c, const OraclesEnhancedObse
         if (y < 0 || y >= (int32_t)c->band_height) continue;
         for (int32_t x = left - ring; x < left + w + ring; x++) {
             if (x < 0 || x >= (int32_t)c->width) continue;
-            const unsigned luma = pixel_luma(surface[(ORACLES_ENHANCED_HUD_HEIGHT + (unsigned)y) * c->width + (unsigned)x]);
+            const unsigned luma = pixel_luma(surface[(c->band_top + (unsigned)y) * c->width + (unsigned)x]);
             if (x >= left && x < left + w && y >= top && y < top + h) { in_sum += luma; in_count++; }
             else { ring_sum += luma; ring_count++; }
         }
@@ -336,7 +338,7 @@ static void measure_ripple(OraclesEnhancedCheck *c, EcRipple *r, const OraclesEn
     static int16_t row_edge[512];
     unsigned count = 0;
     const unsigned height = oracles_enhanced_view_height(c->view), half = c->width / 2u;
-    for (unsigned y = ORACLES_ENHANCED_HUD_HEIGHT; y < height && y < 512u; y++) {
+    for (unsigned y = c->band_top; y < height && y < 512u; y++) {
         const uint32_t *row = surface + (size_t)y * c->width;
         if (right) {
             const uint32_t outside = row[c->width - 1u];
@@ -355,7 +357,7 @@ static void measure_ripple(OraclesEnhancedCheck *c, EcRipple *r, const OraclesEn
     const int same = r->have_edge && r->right == right && r->epoch == ob->epoch && r->camera_x == camera_x && r->camera_y == camera_y;
     if (same) {
         unsigned changed = 0;
-        for (unsigned y = ORACLES_ENHANCED_HUD_HEIGHT; y < height && y < 512u; y++)
+        for (unsigned y = c->band_top; y < height && y < 512u; y++)
             changed += row_edge[y] >= 0 && r->row_edge[y] >= 0 && row_edge[y] != r->row_edge[y];
         if (ob->window_left != r->window_left || ob->window_top != r->window_top) { r->moving_frames++; r->moving_changes += changed; }
         else { r->still_frames++; r->still_changes += changed; }
@@ -396,6 +398,6 @@ void ec_measure_alone_rows(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
         || ob->window_top != ob->scroll_start_top || ob->group != c->alone_group || ob->room != c->alone_room) return;
     unsigned shown_w = 0, shown_h = 0;
     oracles_enhanced_view_shown(c->view, &shown_w, &shown_h);
-    const int32_t band = (int32_t)(oracles_enhanced_view_height(c->view) - ORACLES_ENHANCED_HUD_HEIGHT);
+    const int32_t band = (int32_t)c->band_height;
     if (camera_y + (band - (int32_t)shown_h) / 2 > ob->world.origin_y) c->alone_scroll_cut_frames++;
 }

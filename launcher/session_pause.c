@@ -43,6 +43,15 @@ void oracles_session_hotkey_keys(session *s, int on)
  * hotkeys turned off once their policy is at rest), the rest at the next Play (the window: pause_window_chosen).  The
  * colour correction, the swim's hold and the item hotkeys apply when the pause changed them: --colour-correction,
  * --swim-hold, --text-speed and --item-hotkeys hold until then; --screen-margin holds for the run. */
+/* The frame's move given again to the presenter, as it takes a frame's: the band, Link's layer, the rects held still and
+ * the floating panels as the view now has them. */
+static void move_again(session *s)
+{
+    oracles_host_video_subpixel sub;
+    const int moved = oracles_session_view_subpixel(s->view, &sub) && sub.band_top + sub.band_height <= oracles_enhanced_view_height(s->view);
+    oracles_sdl_backend_pause_subpixel(&s->backend, moved ? &sub : NULL);
+}
+
 static int pause_settings_changed(void *opaque)
 {
     session *s = opaque;
@@ -50,7 +59,7 @@ static int pause_settings_changed(void *opaque)
                                       s->view && oracles_compat_text_size(s->profile) ? (int)oracles_enhanced_view_text_size(s->view) : -1,
                                       s->swim_setting, s->hotkeys_game, s->hotkeys_setting, s->text_speed_setting, s->vsync_setting,
                                       s->view ? s->menus_large : -1, s->view && !s->unvisited_option ? oracles_enhanced_view_unvisited_hidden(s->view) : -1,
-                                      oracles_settings_filter_index(oracles_sdl_filter_name()) };
+                                      oracles_settings_filter_index(oracles_sdl_filter_name()), s->view ? s->settings_hud_panel : -1 };
     const unsigned changed = oracles_session_settings_changed(s->settings, s->screen_margin_option, s->text_size_option, &applied);
     if (changed & ORACLES_SESSION_CHANGED_FILTER) {   /* the image behind the pause at once, through the renderer made again if need be */
         SDL_Window *window;
@@ -75,13 +84,26 @@ static int pause_settings_changed(void *opaque)
         fprintf(stderr, "oracles: scaling %s\n", s->sdl.fill ? "fill" : "sharp");
     }
     if (changed & ORACLES_SESSION_CHANGED_HUD) {
+        const int floating = oracles_enhanced_view_hud(s->view) == ORACLES_ENHANCED_HUD_FLOATING || applied.hud == ORACLES_ENHANCED_HUD_FLOATING;
         oracles_enhanced_view_set_hud(s->view, applied.hud);
+        oracles_enhanced_view_set_floating_neutral(s->view, applied.hud_panel);
+        s->settings_hud_panel = applied.hud_panel;
         if (oracles_enhanced_view_redraw_hud(s->view)) {   /* the pause's image of a world frame, its bar laid out again at once */
             const uint32_t *pixels = oracles_enhanced_view_surface(s->view);
             if (s->mod) pixels = oracles_mod_session_screen(s->mod, pixels, oracles_enhanced_view_width(s->view), oracles_enhanced_view_height(s->view));
             oracles_sdl_backend_pause_pixels(&s->backend, pixels);
+            if (floating) {
+                /* To or from floating the frame was composed again: the band has another height and the camera another
+                 * fraction, Link and the box another place; the frame's whole move given again, as the presenter takes a frame's. */
+                move_again(s);
+                uint32_t box[4], reserve = 0;
+                int bottom = 0;
+                unsigned size = 0;
+                const int enlarged = oracles_enhanced_view_text_box_enlarged(s->view, box, &bottom, &reserve, &size);
+                oracles_sdl_backend_pause_box(&s->backend, enlarged ? box : NULL, bottom, reserve, size);
+            }
         }
-        fprintf(stderr, "oracles: status bar %s\n", oracles_settings_hud_names[applied.hud >= 0 && applied.hud < 3 ? applied.hud : 0]);
+        fprintf(stderr, "oracles: status bar %s\n", oracles_settings_hud_names[applied.hud >= 0 && applied.hud < ORACLES_SETTINGS_HUDS ? applied.hud : 0]);
     }
     if (changed & ORACLES_SESSION_CHANGED_MENUS) {
         s->menus_large = applied.menus_large;
@@ -101,9 +123,12 @@ static int pause_settings_changed(void *opaque)
             const uint32_t *pixels = oracles_enhanced_view_surface(s->view);
             if (s->mod) pixels = oracles_mod_session_screen(s->mod, pixels, oracles_enhanced_view_width(s->view), oracles_enhanced_view_height(s->view));
             oracles_sdl_backend_pause_pixels(&s->backend, pixels);
-            const uint32_t (*fixed)[4] = NULL;
-            const unsigned count = oracles_enhanced_view_subpixel_fixed(s->view, &fixed);
-            oracles_sdl_backend_pause_fixed(&s->backend, fixed, count);
+            if (oracles_enhanced_view_hud(s->view) == ORACLES_ENHANCED_HUD_FLOATING) move_again(s);   /* the panels drawn again with it, in their layer */
+            else {
+                const uint32_t (*fixed)[4] = NULL;
+                const unsigned count = oracles_enhanced_view_subpixel_fixed(s->view, &fixed);
+                oracles_sdl_backend_pause_fixed(&s->backend, fixed, count);
+            }
         }
         uint32_t box[4], reserve = 0;   /* the pause's image of the box the presenter enlarges, at once */
         int bottom = 0;

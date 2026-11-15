@@ -491,6 +491,13 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
         return {"row": row, "name": name, "error": f"no ROM of {game} with SHA-1 {header.get('rom_sha1', '?')} in the ROM directory"
                 " (a fan game replays from its base ROM and its BPS patch placed there, or from its patched image)"}
     options = harness_options(row["options"], rom_dir) + ["--core", core]
+    # A row of the status bar floating with --band-check FROM is held, world row by world row, against the same replay
+    # with the bar drawn full width, from that frame on.
+    band_from = None
+    if "--band-check" in options:
+        at = options.index("--band-check")
+        band_from = options[at + 1]
+        del options[at:at + 2]
     summary = w / "summary.txt"
     if summary.exists():
         summary.unlink()
@@ -510,11 +517,22 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
         _, reference_retried = run_harness([str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](reference_dir) + unloaded
                                            + ["--enhanced-surfaces-out", str(blocks), at], w / "harness-without-load.log")
         against = ["--enhanced-surfaces-against", str(blocks), at]
+    if band_from is not None:
+        band_blocks = w / "band-under-bar.bin"
+        reference = [("full" if i and options[i - 1] == "--hud" else o) for i, o in enumerate(options)]
+        reference_dir = w / "under-bar"
+        reference_dir.mkdir(exist_ok=True)
+        _, band_retried = run_harness([str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](reference_dir) + reference
+                                      + ["--enhanced-band-out", str(band_blocks), band_from], w / "harness-under-bar.log")
+        reference_retried += band_retried
+        against += ["--enhanced-band-against", str(band_blocks), band_from]
     cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + against + extra + positions + ["--summary", str(summary)]
     returncode, retried = run_harness(cmd, w / "harness.log")
     retried += reference_retried
-    if against:
+    if "--enhanced-surfaces-against" in against:
         blocks.unlink(missing_ok=True)
+    if band_from is not None:
+        band_blocks.unlink(missing_ok=True)
     values = parse_summary(summary)
     violations = []
     if compare_cores and values:
@@ -561,7 +579,7 @@ READING_CHECKS = ("--object-animation-check", "--beside-witness")
 
 def view_free(options: list) -> list:
     """The options less the view's level and shape (--view, --aspect), the screen far is fitted to (--screen), the
-    status bar's width (--hud), the text box's size (--text-size), the neighbours' objects frozen (--neighbour-animation),
+    status bar's width or its panels floating (--hud, --hud-panel, --hud-switch, --floating-avoid, --band-check), the text box's size (--text-size), the neighbours' objects frozen (--neighbour-animation),
     the rooms never visited kept dark (--unvisited-rooms), the hotbar's icons forgotten (--hotbar-forget-at) and the
     large menus (--menus-large), which do not change the game, and the checks that only read: a row of a size, of the
     bar drawn full width, of the box twice as large, of the objects frozen, of the dark rooms, of the icons forgotten, or
@@ -571,7 +589,8 @@ def view_free(options: list) -> list:
     for option in options:
         if skip:
             skip = False
-        elif option in ("--view", "--aspect", "--screen", "--hud", "--text-size", "--neighbour-animation", "--unvisited-rooms", "--hotbar-forget-at"):
+        elif option in ("--view", "--aspect", "--screen", "--hud", "--hud-panel", "--hud-switch", "--floating-avoid", "--band-check", "--text-size",
+                        "--neighbour-animation", "--unvisited-rooms", "--hotbar-forget-at"):
             skip = True
         elif option == "--menus-large" or option in READING_CHECKS:
             pass

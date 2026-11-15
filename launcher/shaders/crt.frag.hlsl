@@ -1,5 +1,6 @@
 // SameBoy's CRT filter (Shaders/CRT.fsh, SameBoy 1.0.3) for SDL's GPU renderer (sameboy.hlsli).  Its scanlines,
-// shadow mask and sub-pixels are kept as SameBoy writes them, in the drawn texture's positions moved by `grid`.  Its
+// shadow mask and sub-pixels are kept as SameBoy writes them, in the drawn texture's positions moved by `grid` (or on
+// the picture's own pixels, `cell`, for a part drawn at another scale, the curve taking them as the picture's).  Its
 // curve is drawn in the picture's place in the window instead (the constants' `image`), so that every part the
 // sub-pixel camera draws bends as one picture, and without SameBoy's 8:7 squeeze of the Game Boy's pixels: the picture
 // keeps its own proportions.
@@ -38,7 +39,7 @@ STATIC vec4 scale(sampler2D image, vec2 position, vec2 input_resolution, vec2 ou
     /* The curve: drawn by main, in the picture's place (below) */
 
     /* Setting up common vars */
-    vec2 pos = fract(position * input_resolution + grid);
+    vec2 pos = fract(grid_position(position, input_resolution));
     vec2 sub_pos = pos * 6.0;
 
     vec4 center = texture_relative(image, position, vec2(0, 0));
@@ -71,7 +72,7 @@ STATIC vec4 scale(sampler2D image, vec2 position, vec2 input_resolution, vec2 ou
     right *= scanline_multiplier;
 
     /* Vertical seperator for shadow masks */
-    bool odd = bool(int(floor(position * input_resolution + grid).x) & 1);
+    bool odd = bool(int(floor(grid_position(position, input_resolution)).x) & 1);
     if (odd) {
         pos.y += 0.5;
         pos.y = fract(pos.y);
@@ -176,6 +177,7 @@ PSOutput main(PSInput input)
         const float x_multiplier = 1.0 / (cos(curved.y - 0.5) * CURVENESS + (1.0 - CURVENESS));
         curved.x = curved.x * x_multiplier - (x_multiplier - 1.0) / 2.0;
         const float2 pixel = curved * image.zw;
+        if (cell.z > 0.0) cells_at = pixel / cell.xy;
         edge = saturate(min(min(pixel.x, image.z - pixel.x), min(pixel.y, image.w - pixel.y)));
         const float2 moved = (curved - at) * image.zw;
         position += moved.x * ddx(input.v_uv) + moved.y * ddy(input.v_uv);

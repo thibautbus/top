@@ -42,7 +42,8 @@ typedef enum OraclesAspect {
 extern const char *const oracles_settings_aspect_names[3];
 extern const char *const oracles_settings_filter_names[8];   /* filter=, by the value of oracles_settings.filter */
 int oracles_settings_filter_index(const char *name);          /* its index, 0 (off) for a name it does not have */
-extern const char *const oracles_settings_hud_names[3];   /* hud=, by the value of oracles_settings.hud */
+#define ORACLES_SETTINGS_HUDS 4
+extern const char *const oracles_settings_hud_names[ORACLES_SETTINGS_HUDS];   /* hud=, by the value of oracles_settings.hud */
 /* The cores' names in settings.txt and on the command line, by OraclesCoreKind: "sameboy", "mgba". */
 extern const char *const oracles_settings_core_names[2];
 
@@ -146,9 +147,13 @@ typedef struct oracles_settings {
                                    * (ORACLES_DEFAULT_CORE) then playing, and the file holding no core= line */
     int menus_large;              /* menus=large|view: the game's menus, its map and its cutscenes, which the Enhanced view shows
                                    * framed, at their own largest whole scale (large) or the view's (view); large on Android */
-    int hud;                      /* hud=original|full|wide, 0 to 2 as OraclesEnhancedHud: the status bar in Enhanced as the game draws
-                                   * it, dark beside it (original), full width, beside it its own background (full, the default), or laid
-                                   * out on that background, hearts left and items right (wide); it applies at once, from the pause too */
+    int hud;                      /* hud=original|full|wide|floating, 0 to 3 as OraclesEnhancedHud: the status bar in Enhanced as the
+                                   * game draws it, dark beside it (original), full width, beside it its own background (full, the
+                                   * default), or laid out on that background, hearts left and items right (wide); it applies at once,
+                                   * from the pause too; or floating, no band, its blocks in panels over the world, which uses the
+                                   * whole height (floating) */
+    int hud_panel;                /* hud_panel=bar|neutral: the panels of the bar floating in its own colour, its edge darker (bar, 0, the
+                                   * default), or light grey (neutral, 1); written when neutral */
     int ghosts;                   /* ghosts=auto|1|2: the ghosts that prepare the rooms around, each on its own thread; 0 (auto, the
                                    * default) two on a device of four processor threads or more, else one; Display's Neighbour
                                    * workers, in its Advanced rows */

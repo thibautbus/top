@@ -4,7 +4,8 @@
 // positions are the drawn texture's own, so the filters follow each part the sub-pixel camera moves; over a texture
 // with transparent pixels, which carry the colour of the picture around them, the colour is kept to the coverage of
 // the texel it is read at (where CRT's curve takes it).  The constants' `params.zw` move the grid the masks are drawn
-// on (CRT's), in texels, for a part drawn apart.
+// on (CRT's), in texels, for a part drawn apart; `cell.z` draws them on the picture's own pixels instead, `cell.xy`
+// screen pixels each, for a part drawn at another scale (the near view's panels at half the game's).
 //
 // Copyright (c) 2015-2026 Lior Halphon
 //
@@ -29,6 +30,7 @@
 cbuffer Context : register(b0, space3) {
     float4 params;
     float4 image;   // the picture's place in the window's pixels
+    float4 cell;    // xy: the screen pixels of one of the picture's pixels, z: the masks drawn on them
 };
 
 Texture2D u_texture : register(t0, space2);
@@ -55,6 +57,13 @@ struct PSOutput {
 
 static float2 texture_size;
 static float2 grid;   // params.zw
+static float2 cells_at;   // the fragment's place in the picture's pixels, where `cell.z` asks for them
+
+// Where the masks stand at a texture position: the texel's own place moved by `grid`, or the picture's pixel there.
+float2 grid_position(float2 position, float2 input_resolution)
+{
+    return cell.z > 0.0 ? cells_at : position * input_resolution + grid;
+}
 
 float4 _texture(float2 position)
 {

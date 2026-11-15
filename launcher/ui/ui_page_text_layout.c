@@ -152,6 +152,32 @@ float oracles_ui_picture_link_4_3(const OraclesUiDisplayTexts *t, float y, Oracl
     return link_4_3(ORACLES_DISPLAY_PICTURE, t->picture_summary, y, o, out);
 }
 
+/* A piece of the floating panels, (x, y, w, h) in the game's pixels at `k` scene pixels each from (ox, oy), each measure
+ * rounded as the mockup rounds it. */
+static OraclesUiBox panel_piece(double x, double y, double w, double h, double k, float ox, float oy)
+{
+    return box(ox + round_d(x * k), oy + round_d(y * k), round_d(w * k), round_d(h * k));
+}
+
+/* Floating's panels over the band (vw x vh game pixels at `k`): the hearts' at the top left with six hearts, the rupees'
+ * at the top right with their ink, B's and A's at the bottom left four apart, each with its key's badge in a gutter at
+ * its left and its item's ink right of it; their corners in whole pixels of the game, as the game draws them. */
+static void floating_panels(double vw, double vh, double k, float ox, float oy, OraclesUiDisplayLayout *out)
+{
+    out->preview_panels[0] = panel_piece(6.0, 6.0, 51.0, 11.0, k, ox, oy);
+    for (int i = 0; i < 6; i++) out->preview_hearts[i] = panel_piece(8.0 + 8.0 * i, 8.0, 7.0, 7.0, k, ox, oy);
+    out->preview_panels[1] = panel_piece(vw - 34.0, 6.0, 28.0, 11.0, k, ox, oy);
+    out->preview_inks[0] = panel_piece(vw - 30.0, 8.0, 20.0, 7.0, k, ox, oy);
+    const double y0 = vh - 6.0 - 18.0;
+    for (int c = 0; c < 2; c++) {
+        const double cx = c ? 37.0 : 6.0;
+        out->preview_panels[2 + c] = panel_piece(cx, y0, 27.0, 18.0, k, ox, oy);
+        out->preview_inks[1 + c] = panel_piece(cx + 9.0, y0 + 2.0, 14.0, 14.0, k, ox, oy);
+        out->preview_badges[c] = panel_piece(cx + 1.0, y0 + 2.0, 6.0, 9.0, k, ox, oy);
+    }
+    out->preview_panel_edge = fmaxf(1.0f, round_d(k));
+}
+
 /* The band's frame from (x, y), at most `room_w` x `room_h`, and what it holds: the status bar's band, the box at the
  * size it takes, its text's place and its arrow. */
 static void preview_frame(const OraclesDisplayTextPreview *p, float x, float y, float room_w, float room_h, OraclesUiDisplayLayout *out)
@@ -162,7 +188,8 @@ static void preview_frame(const OraclesDisplayTextPreview *p, float x, float y, 
     const double unit = scale * (double)p->scale_num / (double)(p->scale_den ? p->scale_den : 1u);
     out->preview_frame = box(x, y, round_d(vw * scale), round_d(vh * scale));
     const float in_x = x + PREVIEW_BORDER, in_y = y + PREVIEW_BORDER;
-    out->preview_hud = box(in_x, in_y, out->preview_frame.w - 2.0f * PREVIEW_BORDER, round_d(HUD_H * scale));
+    out->preview_hud = box(in_x, in_y, out->preview_frame.w - 2.0f * PREVIEW_BORDER, p->floating ? 0.0f : round_d(HUD_H * scale));
+    if (p->floating) floating_panels(vw, vh, scale, in_x, in_y, out);
     const double bw = (double)p->box_w * unit;
     out->preview_box = box(in_x + round_d((vw * scale - bw) * 0.5), in_y + round_d(vh * scale - BOX_BOTTOM * scale - BOX_H * unit),
                            round_d(bw), round_d(BOX_H * unit));
@@ -186,7 +213,7 @@ void oracles_ui_text_preview_pixels(const OraclesDisplayTextPreview *p, OraclesU
         out->pixel = unit;
         out->letterbox = 0;
         out->view = out->clip;
-        out->hud = box(x0, y0, out->clip.w, roundf(HUD_H * band));
+        out->hud = box(x0, y0, out->clip.w, p->floating ? 0.0f : roundf(HUD_H * band));
         out->box = box(roundf(bx), roundf(by), roundf(bx + bw) - roundf(bx), roundf(by + bh) - roundf(by));
         return;
     }
@@ -198,7 +225,7 @@ void oracles_ui_text_preview_pixels(const OraclesDisplayTextPreview *p, OraclesU
     const float vy = vh <= out->clip.h ? y0 + floorf((out->clip.h - vh) * 0.5f) : y1 - vh;
     out->letterbox = vx > x0 || vy > y0 || vx + vw < x1 || vy + vh < y1;
     out->view = box(vx, vy, vw, vh);
-    out->hud = box(vx, vy, vw, roundf(HUD_H * to_band));
+    out->hud = box(vx, vy, vw, p->floating ? 0.0f : roundf(HUD_H * to_band));
     out->box = box(vx + bx, vy + by, bw, BOX_H);
 }
 

@@ -493,8 +493,15 @@ static void pause_changes(void)
 {
     oracles_settings s;
     oracles_settings_defaults(&s);
-    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1, -1, s.filter };
+    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1, -1, s.filter, s.hud_panel };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
+    /* Floating's panels, at once, as the HUD; none without the Enhanced view. */
+    s.hud_panel = 1;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_HUD && applied.hud_panel == 1);
+    applied.hud_panel = -1;
+    s.hud_panel = 0;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0 && applied.hud_panel == -1);
+    applied.hud_panel = 0;
     s.hud = !s.hud;
     s.screen_margin = ORACLES_SCREEN_MARGIN_SMALL;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == (ORACLES_SESSION_CHANGED_HUD | ORACLES_SESSION_CHANGED_MARGIN));
@@ -554,7 +561,8 @@ static void pause_live_changes(void)
     oracles_settings s;
     oracles_settings_defaults(&s);
     OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, s.swim_hold, ORACLES_SETTINGS_SEASONS,
-                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden, s.filter };
+                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden, s.filter,
+                                      s.hud_panel };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
     /* Vsync, at once: off, then on, then auto again; it presents in step with a display of 59 to 61 Hz or of 100 Hz or
      * more alone on auto (never on Android), on any but a display slower than the game on on, never on off. */
@@ -1594,6 +1602,18 @@ int main(int argc, char **argv)
     CHECK(read_back.hud == 2);
     oracles_settings_store(&read_back);
     CHECK(file_has_line(path, "hud=wide\n"));
+    write_text(path, "hud=floating\n");   /* the bar floating over the world: settings.txt alone for now */
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.hud == 3);
+    oracles_settings_store(&read_back);
+    CHECK(file_has_line(path, "hud=floating\n") && read_back.hud_panel == 0 && !file_has_line(path, "hud_panel=bar\n"));
+    write_text(path, "hud=floating\nhud_panel=neutral\n");   /* the panels light grey, written as chosen */
+    oracles_settings_defaults(&read_back);
+    oracles_settings_load(&read_back);
+    CHECK(read_back.hud == 3 && read_back.hud_panel == 1);
+    oracles_settings_store(&read_back);
+    CHECK(file_has_line(path, "hud_panel=neutral\n"));
     write_text(path, "hud=split\n");
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);

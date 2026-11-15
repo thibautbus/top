@@ -5,6 +5,8 @@
 
 #include "view_internal.h"
 
+#include "hotbar.h"
+
 int ev_tracked_read(const OraclesEnhancedView *v, uint16_t a);
 uint8_t ev_live_byte(OraclesEnhancedView *v, uint16_t a);
 size_t ev_read_key(OraclesEnhancedView *v, uint8_t *out);
@@ -200,6 +202,19 @@ void ev_overlay_text_box_above(OraclesEnhancedView *v);
 /* view_hotbar.c: the hotbar of the item hotkeys, drawn last in the HUD band's gutters, in every mode of the surface, or
  * against B where the bar is laid out. */
 void ev_draw_hotbar(OraclesEnhancedView *v);
+/* What the hotbar's four slots show this frame in `look`, and their colours, and if `buttons` is not NULL the items on B
+ * and A; 0 where it is not shown (view_hotbar.c). */
+int ev_hotbar_views(OraclesEnhancedView *v, OraclesHotbarLook look, OraclesHotbarSlotView views[ORACLES_HOTBAR_SLOTS], OraclesHotbarSlotView buttons[2],
+                    OraclesHotbarPalette *palette);
+/* The text box the last composition drew over the world, x, y, width and height on the surface, as large as the presenter
+ * shows it; 0 for none (view_textbox.c). */
+int ev_text_box_rect(const OraclesEnhancedView *v, int32_t rect[4]);
+/* The status bar floating: its blocks in panels over the world band (view_floating.c).  For a text box drawn again from
+ * the pause: lift takes the panels off the surface, the surface under them as they found it; again draws them anew over
+ * the box drawn again, as the composition drew them (their fades as it left them, a panel the box now meets gone). */
+void ev_draw_floating(OraclesEnhancedView *v);
+void ev_floating_lift(OraclesEnhancedView *v);
+void ev_floating_again(OraclesEnhancedView *v);
 void ev_hotbar_event(OraclesEnhancedView *v, const OraclesGuestEvent *event);
 /* view_hud.c: the status bar as the game keeps it (0 where the profile binds no map of it), and the gutters beside it
  * this frame (OraclesEnhancedCompose.hud_fill), counted when `counted`; NULL: the border. */
@@ -240,7 +255,9 @@ void ev_half_forget(OraclesEnhancedView *v);
 int ev_shown_meets(const OraclesEnhancedView *v, int32_t band_left, int32_t band_top, int32_t left, int32_t top, int32_t width, int32_t height, int32_t reach);
 /* The last composition showed more than the normal band: the drawn-back view outdoors, at sea, in a large room. */
 static inline int ev_drawn_back(const OraclesEnhancedView *v) { return v->shown_width > ORACLES_ENHANCED_NARROW_WIDTH; }
+/* The world band for the status bar's setting, taken at a composition (view.c). */
+void ev_apply_band(OraclesEnhancedView *v);
 /* The surface's pixel at band row `y`, column `x`. */
-static inline uint32_t *ev_band_pixel(OraclesEnhancedView *v, unsigned x, unsigned y) { return &v->surface[(ORACLES_ENHANCED_HUD_HEIGHT + y) * v->size.width + x]; }
+static inline uint32_t *ev_band_pixel(OraclesEnhancedView *v, unsigned x, unsigned y) { return &v->surface[(v->band_top + y) * v->size.width + x]; }
 
 #endif

@@ -34,8 +34,9 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
 void oracles_enhanced_check_half_switched(OraclesEnhancedCheck *check, const uint8_t *rom, size_t rom_size);
 /* The hash of the surface last composed by the check's frame's end. */
 /* A frame the game spends between two halves, which the check's frame's end does not see: its surface, as composed,
- * recorded or compared with --enhanced-surfaces-out and -against as the others. */
-void oracles_enhanced_check_held_frame(OraclesEnhancedCheck *check, const uint32_t *surface, uint32_t frame);
+ * recorded or compared with --enhanced-surfaces-out and -against as the others, with the floating panels as the
+ * presenter lays them over it; its hash taken as the check's frame's end takes it (oracles_enhanced_check_last_hash). */
+uint64_t oracles_enhanced_check_held_frame(OraclesEnhancedCheck *check, const uint32_t *surface, uint32_t frame);
 uint64_t oracles_enhanced_check_last_hash(const OraclesEnhancedCheck *check);
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *check, uint32_t frame);
 void oracles_enhanced_check_hotbar_forget_at(OraclesEnhancedCheck *check, uint32_t frame);
@@ -61,6 +62,14 @@ void oracles_enhanced_check_set_subpixel(OraclesEnhancedCheck *check, int enable
 /* The sub-pixel camera switched during the run, off if on and on if off, before each of these frames is composed
  * (oracles_enhanced_view_switch_subpixel), up to eight. */
 void oracles_enhanced_check_subpixel_switch_at(OraclesEnhancedCheck *check, const uint32_t *frames, unsigned count);
+/* The status bar switched to floating during the run, or back to `base` (the run's --hud) if floating, before each of
+ * these frames is composed, as Display's HUD from the pause, up to eight. */
+void oracles_enhanced_check_hud_switch_at(OraclesEnhancedCheck *check, const uint32_t *frames, unsigned count, int base);
+/* The touch controls' rectangles on the surface, given to the view too: the floating panels must keep clear of them. */
+void oracles_enhanced_check_floating_avoid(OraclesEnhancedCheck *check, const int32_t (*rects)[4], unsigned count);
+/* From `from`, the world band written to `out` (a replay under the HUD band), or held against the one `against` holds
+ * (the same replay floating), world row by world row. */
+void oracles_enhanced_check_band_surfaces(OraclesEnhancedCheck *check, const char *out, uint32_t from, const char *against);
 /* The drawn-back view's surface, 480x270, before the first frame. */
 void oracles_enhanced_check_set_zoom_out(OraclesEnhancedCheck *check, int enabled);
 /* The surface of a view's level in a screen's shape (oracles_enhanced_view_size), before the first frame. */
@@ -82,7 +91,9 @@ void oracles_enhanced_check_set_wide_text_box(OraclesEnhancedCheck *check, unsig
 void oracles_enhanced_check_set_text_size(OraclesEnhancedCheck *check, unsigned size);
 /* --surface-scale: the surfaces --surface-at writes `scale` times as large, the box with Large drawn over them as the
  * presenter shows it (oracles_text_box_enlarge); with the large menus, over the framed core the part the presenter shows
- * alone, at its own scale on a screen of that size. */
+ * alone, at its own scale on a screen of that size; the near view's floating panels laid out for a screen showing the
+ * view `scale` times, at half the game's scale from 2 on, B and A alone in the surface at 1, the panels' checks judging
+ * them where that screen shows them. */
 void oracles_enhanced_check_set_surface_scale(OraclesEnhancedCheck *check, unsigned scale);
 /* --menus-large (oracles_enhanced_view_set_large_menus): over the framed core the box at its size, for the presenter, at
  * every Text size; the frames it is published at Very large counted. */

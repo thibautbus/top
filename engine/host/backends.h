@@ -154,6 +154,8 @@ void oracles_sdl_backend_scaling(const oracles_host_backend *backend, int *chose
  * number of the screen's pixels a pixel of the frame takes there (Fill's 2.67 counts 2), at least 1; 0 before the
  * session started. */
 unsigned oracles_sdl_backend_whole_scale(const oracles_host_backend *backend);
+/* The same scale as the frame is shown: whole, or Fill's in effect (2.67); 0 before the session started. */
+float oracles_sdl_backend_picture_scale(const oracles_host_backend *backend);
 /* 1 when the session ended because the window was closed, not by Escape. */
 int oracles_sdl_backend_window_closed(const oracles_host_backend *backend);
 /* Frames presented and the seconds between the first and the last (with vsync, the rate the display imposed), and
@@ -181,6 +183,9 @@ int oracles_sdl_backend_pause_image(const oracles_host_backend *backend, const s
 /* The same at `image`, through the shader filter (`filtered`) or without it: Display's preview of the filter drawn. */
 int oracles_sdl_backend_pause_image_as(const oracles_host_backend *backend, const struct SDL_FRect *image, int filtered);
 void oracles_sdl_backend_pause_size(const oracles_host_backend *backend, int *width, int *height);
+/* What the touch controls shown with the last frame covered of it, in its pixels, x, y, width and height; their count,
+ * 0 while they are hidden or on a screen without them. */
+unsigned oracles_sdl_backend_touch_covered(const oracles_host_backend *backend, int32_t out[4][4]);
 void oracles_sdl_backend_pause_crop(const oracles_host_backend *backend, const uint32_t rect[4]);
 /* The pause changing Text size changes the box it shows again larger (oracles_sdl_backend_pause_box: x, y, w, h in the
  * frame, or NULL for none, with the frame's box_bottom, box_reserve_w and box_size), and the part a reserve widens. */
@@ -191,6 +196,10 @@ void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const
 /* And the rects of them the sub-pixel camera holds still (the text box drawn again at another size), where the last
  * frame was moved by it. */
 void oracles_sdl_backend_pause_fixed(const oracles_host_backend *backend, const uint32_t (*rects)[4], unsigned count);
+/* Or the whole sub-pixel move of a frame composed again for the pause (oracles_sdl_backend_pause_pixels first), as the
+ * presenter takes a frame's: the band's fraction and height, Link's layer at his new place, the fixed rectangles and
+ * the status bar's floating panels; NULL: none, the frame shown as it is.  A part shown alone keeps none. */
+void oracles_sdl_backend_pause_subpixel(const oracles_host_backend *backend, const oracles_host_video_subpixel *subpixel);
 /* What asked for the pause menu last: a key (Escape), a controller (Guide, the menu's button or trigger), a finger
  * (the touch controls' pause) or Android's Back, which a finger or a controller gives too; NONE before any, and for a
  * suspension (Android's background), which no device asked. */
@@ -205,6 +214,8 @@ oracles_sdl_menu_source oracles_sdl_backend_menu_source(const oracles_host_backe
 /* The device of the last input in the game, a key (Android's Back apart), a controller's button or its stick, or a
  * finger, named as a menu's source; NONE before any. */
 oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backend *backend);
+/* The gamepads open when the game started (a handheld's own controls among them). */
+unsigned oracles_sdl_backend_pads_at_start(const oracles_host_backend *backend);
 /* The vibration's ticks the touch controls asked for in the session (touch_vibration), whether the device gave them or not. */
 unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend);
 /* The sound stops and its queue empties; it starts again with the next frames, from its prebuffer. */

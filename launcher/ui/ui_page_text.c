@@ -188,6 +188,8 @@ void oracles_display_text_preview(const OraclesHomeNav *nav, OraclesDisplayTextP
     out->scale_num = p.num;
     out->scale_den = p.den;
     out->note = "";
+    out->floating = p.enhanced && nav->display.hud == ORACLES_DISPLAY_HUD_FLOATING;
+    out->neutral = nav->display.hud_panel != 0;
     if (!p.enhanced) {
         snprintf(out->label, sizeof out->label, "Faithful: the game's box, %d\xc3\x97%d", p.box_w, BOX_H);
     } else {

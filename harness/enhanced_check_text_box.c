@@ -533,14 +533,17 @@ static void wide_report(const OraclesEnhancedCheck *c, FILE *out)
 }
 
 /* The pause's change of Text size (oracles_enhanced_view_redraw_text_box): each world frame with a box, drawn again at
- * each other size, then at the row's, must give back the surface, the rects the sub-pixel camera holds still and the box
- * published for the presenter as the composition left them. */
+ * each other size, then at the row's, must give back the surface, the rects the sub-pixel camera holds still, the box
+ * published for the presenter and the floating panels (their places, their shares shown, their layer) as the
+ * composition left them. */
 typedef struct redraw_state {
     unsigned fixed_count;
     uint32_t fixed[ORACLES_ENHANCED_SUBPIXEL_FIXED][4];
     int enlarged, bottom;
     uint32_t rect[4], reserve;
     unsigned size;
+    unsigned panels, shown[ORACLES_ENHANCED_FLOATING_PANELS];
+    uint32_t panel_rects[ORACLES_ENHANCED_FLOATING_PANELS][4];
 } redraw_state;
 
 static void redraw_state_of(OraclesEnhancedCheck *c, redraw_state *s)
@@ -551,15 +554,32 @@ static void redraw_state_of(OraclesEnhancedCheck *c, redraw_state *s)
     s->fixed_count = count < ORACLES_ENHANCED_SUBPIXEL_FIXED ? count : ORACLES_ENHANCED_SUBPIXEL_FIXED;
     if (s->fixed_count) memcpy(s->fixed, fixed, s->fixed_count * sizeof s->fixed[0]);
     s->enlarged = oracles_enhanced_view_text_box_enlarged(c->view, s->rect, &s->bottom, &s->reserve, &s->size);
+    s->panels = oracles_enhanced_view_floating_panels(c->view, s->panel_rects);
+    oracles_enhanced_view_floating_shown(c->view, s->shown);
+}
+
+/* The floating panels' layer, the surface's size or at half the game's scale four times it (`pixels`, the larger), into
+ * `out` (zeros past it, or without one). */
+static void layer_copy(OraclesEnhancedCheck *c, uint32_t *out, size_t pixels)
+{
+    uint32_t at[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned count = 0;
+    const uint32_t *layer = oracles_enhanced_view_floating_layer(c->view, at, &count);
+    const unsigned k = oracles_enhanced_view_floating_scale(c->view);
+    const size_t taken = layer ? pixels / 4u * k * k : 0u;
+    if (taken) memcpy(out, layer, taken * sizeof *out);
+    memset(out + taken, 0, (pixels - taken) * sizeof *out);
 }
 
 void ec_check_text_size_redraw(OraclesEnhancedCheck *c, OraclesEnhancedMode mode)
 {
     if (mode != ORACLES_ENHANCED_WORLD) return;
-    const size_t pixels = (size_t)c->width * oracles_enhanced_view_height(c->view);
-    if (!c->redraw_copy && !(c->redraw_copy = malloc(pixels * sizeof *c->redraw_copy))) return;
+    const size_t pixels = (size_t)c->width * oracles_enhanced_view_height(c->view), layered = 4u * pixels;
+    if (!c->redraw_copy && !(c->redraw_copy = malloc((pixels + layered) * sizeof *c->redraw_copy))) return;
+    if (!c->redraw_layer && !(c->redraw_layer = malloc(layered * sizeof *c->redraw_layer))) return;
     const uint32_t *surface = oracles_enhanced_view_surface(c->view);
     memcpy(c->redraw_copy, surface, pixels * sizeof *surface);
+    layer_copy(c, c->redraw_layer, layered);
     redraw_state before, after;
     redraw_state_of(c, &before);
     int drawn = 0, wrong = 0;
@@ -571,7 +591,10 @@ void ec_check_text_size_redraw(OraclesEnhancedCheck *c, OraclesEnhancedMode mode
         if (!drawn) break;
         oracles_enhanced_view_redraw_text_box(c->view);
         redraw_state_of(c, &after);
-        if (memcmp(c->redraw_copy, surface, pixels * sizeof *surface) != 0 || memcmp(&before, &after, sizeof before) != 0) wrong = 1;
+        layer_copy(c, c->redraw_copy + pixels, layered);
+        if (memcmp(c->redraw_copy, surface, pixels * sizeof *surface) != 0 || memcmp(&before, &after, sizeof before) != 0
+            || memcmp(c->redraw_layer, c->redraw_copy + pixels, layered * sizeof *surface) != 0)
+            wrong = 1;
     }
     if (!drawn) return;
     c->redraw_frames++;

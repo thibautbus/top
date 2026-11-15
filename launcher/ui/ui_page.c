@@ -44,6 +44,18 @@
 #define CUSTOM_OPACITY 0.6f             /* Quality's Custom, shown and never chosen */
 #define PREVIEW 0x4a4f58u                /* Display › Text's preview: the band, its status bar, its box's arrow */
 #define PREVIEW_HUD 0x2a2d33u
+#define SCENE_GROUND 0x0c0b0fu           /* the scene's own background, which a scrolled page's edges fade into */
+#define ROWS_FADE 40.0f
+/* Floating's panels in the preview: the bar's cream with an edge, or a neutral gray, at 80 %; the hearts, the keys' badges
+ * at 90 %. */
+#define PANEL_BAR 0xfaf4dcu
+#define PANEL_NEUTRAL 0xe2e2e6u
+#define PANEL_FILL_OPACITY 0.80f
+#define PANEL_BADGE_OPACITY 0.90f
+#define PANEL_EDGE_OPACITY 0.45f
+#define PANEL_HEART 0xdb4241u
+#define PANEL_BADGE 0x3275b4u
+#define PANEL_BADGE_NEUTRAL 0x5b5e66u
 #define PREVIEW_ARROW 0xe0302au
 #define PREVIEW_LETTERBOX 0x050507u     /* around the band where it is smaller than its frame, as around the game */
 #define FILTER_REFUSED 0x6f6c78u        /* Filter's name where it cannot run here */
@@ -403,6 +415,35 @@ static void text_preview(OraclesUiDraw *draw, const OraclesUiPageStyles *st, con
         const float clip[4] = { zero_x + px.clip.x * unit, zero_y + px.clip.y * unit, px.clip.w * unit, px.clip.h * unit };
         oracles_ui_draw_picture(draw, picture, w, (int)ORACLES_UI_PREVIEW_PICTURE_H, rect, clip);
     }
+    /* Floating's panels over the world, in their colors, kept to the frame. */
+    if (p->floating) {
+        int saved = 0;
+        SDL_Rect clip;
+        oracles_ui_draw_clip_rect(draw, &saved, &clip);
+        oracles_ui_draw_clip(draw, f->x, f->y, f->w, f->h);
+        const OraclesUiColor fill = p->neutral ? oracles_ui_rgba(PANEL_NEUTRAL, PANEL_FILL_OPACITY) : oracles_ui_rgba(PANEL_BAR, PANEL_FILL_OPACITY);
+        const float e = l->preview_panel_edge;
+        for (int i = 0; i < 4; i++) {
+            /* Corners of two pixels of the game, whole: two left out of the first line, one of the next. */
+            const OraclesUiBox *b = &l->preview_panels[i];
+            const float rows[5][4] = { { b->x + 2.0f * e, b->y, b->w - 4.0f * e, e }, { b->x + e, b->y + e, b->w - 2.0f * e, e },
+                                       { b->x, b->y + 2.0f * e, b->w, b->h - 4.0f * e }, { b->x + e, b->y + b->h - 2.0f * e, b->w - 2.0f * e, e },
+                                       { b->x + 2.0f * e, b->y + b->h - e, b->w - 4.0f * e, e } };
+            oracles_ui_fill_rects(draw, &rows[0][0], 5, fill);
+            if (p->neutral) continue;
+            const float edge[8][4] = { { b->x + 2.0f * e, b->y, b->w - 4.0f * e, e }, { b->x + 2.0f * e, b->y + b->h - e, b->w - 4.0f * e, e },
+                                       { b->x, b->y + 2.0f * e, e, b->h - 4.0f * e }, { b->x + b->w - e, b->y + 2.0f * e, e, b->h - 4.0f * e },
+                                       { b->x + e, b->y + e, e, e }, { b->x + b->w - 2.0f * e, b->y + e, e, e },
+                                       { b->x + e, b->y + b->h - 2.0f * e, e, e }, { b->x + b->w - 2.0f * e, b->y + b->h - 2.0f * e, e, e } };
+            oracles_ui_fill_rects(draw, &edge[0][0], 8, oracles_ui_rgba(PREVIEW_HUD, PANEL_EDGE_OPACITY));
+        }
+        for (int i = 0; i < 6; i++) oracles_ui_fill_rect(draw, l->preview_hearts[i].x, l->preview_hearts[i].y, l->preview_hearts[i].w, l->preview_hearts[i].h, oracles_ui_rgb(PANEL_HEART));
+        for (int i = 0; i < 3; i++) oracles_ui_fill_rect(draw, l->preview_inks[i].x, l->preview_inks[i].y, l->preview_inks[i].w, l->preview_inks[i].h, oracles_ui_rgb(PREVIEW_HUD));
+        for (int i = 0; i < 2; i++)
+            oracles_ui_fill_rect(draw, l->preview_badges[i].x, l->preview_badges[i].y, l->preview_badges[i].w, l->preview_badges[i].h,
+                                 oracles_ui_rgba(p->neutral ? PANEL_BADGE_NEUTRAL : PANEL_BADGE, PANEL_BADGE_OPACITY));
+        oracles_ui_draw_restore_clip(draw, saved, &clip);
+    }
     oracles_ui_stroke_round_rect(draw, f->x, f->y, f->w, f->h, 4.0f, 1.0f, oracles_ui_rgba(0xffffffu, DIAGRAM_BORDER_OPACITY));
     text(draw, st->diagram_label, &l->preview_label, p->label, oracles_ui_rgb(DIAGRAM_LABEL));
     text(draw, st->page_note, &l->preview_note, p->note, oracles_ui_rgb(NOTE_ITALIC));
@@ -630,11 +671,21 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
     const float text_applied = oracles_display_text_link_applies(nav) ? 1.0f : ROW_NOT_APPLIED;
     const float window = t.window_one ? ROW_NOT_APPLIED : 1.0f;
     const float quality = oracles_display_quality_applies(nav) ? 1.0f : ROW_NOT_APPLIED;
-    const unsigned own[7] = { ORACLES_DISPLAY_PROFILE, ORACLES_DISPLAY_QUALITY, ORACLES_DISPLAY_WINDOW, ORACLES_DISPLAY_VIEW, ORACLES_DISPLAY_HUD,
-                              ORACLES_DISPLAY_TEXT, ORACLES_DISPLAY_PICTURE };
-    for (unsigned i = 0; i < 7u; i++) {
+    /* 4:3: a page taller than its room scrolled in it, the highlight kept in sight. */
+    const int scrolled = l.rows_room.h > 0.0f && l.scroll_max > 0.0f;
+    int saved_clip = 0;
+    SDL_Rect clip;
+    if (scrolled) {
+        oracles_ui_draw_clip_rect(draw, &saved_clip, &clip);
+        oracles_ui_draw_clip(draw, l.rows_room.x - 16.0f, l.rows_room.y, l.rows_room.w + 32.0f, l.rows_room.h);
+        oracles_ui_draw_shift(draw, -l.scroll);
+    }
+    const unsigned own[8] = { ORACLES_DISPLAY_PROFILE, ORACLES_DISPLAY_QUALITY, ORACLES_DISPLAY_WINDOW, ORACLES_DISPLAY_VIEW, ORACLES_DISPLAY_HUD,
+                              ORACLES_DISPLAY_PANELS, ORACLES_DISPLAY_TEXT, ORACLES_DISPLAY_PICTURE };
+    for (unsigned i = 0; i < 8u; i++) {
         const unsigned r = own[i];
-        const float opacity = r == ORACLES_DISPLAY_HUD ? hud : r == ORACLES_DISPLAY_VIEW ? applied : r == ORACLES_DISPLAY_WINDOW ? window
+        if (r == ORACLES_DISPLAY_PANELS && !t.floating) continue;
+        const float opacity = r == ORACLES_DISPLAY_HUD || r == ORACLES_DISPLAY_PANELS ? hud : r == ORACLES_DISPLAY_VIEW ? applied : r == ORACLES_DISPLAY_WINDOW ? window
                             : r == ORACLES_DISPLAY_QUALITY ? quality : r == ORACLES_DISPLAY_TEXT ? text_applied
                             : r == ORACLES_DISPLAY_PROFILE ? profile : 1.0f;
         highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
@@ -672,14 +723,37 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         option(draw, st, lk, &l.views[v], 0, oracles_display_view_names[v], t.view_sizes[v], v == nav->display.view,
                row == ORACLES_DISPLAY_VIEW, accent, CHOICE_OFF, applied);
     wrapped(draw, st->row_text, &l.explanations[6], oracles_ui_rgba(NOTE, hud));
-    for (int c = 0; c < 3; c++)
-        option(draw, st, lk, &l.hud[c], 0, oracles_display_hud_choices[c], NULL, c == nav->display.hud, row == ORACLES_DISPLAY_HUD, accent, CHOICE_OFF,
-               hud);
+    const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
+    for (int c = 0; c < ORACLES_DISPLAY_HUDS; c++)
+        option(draw, st, lk, &l.hud[c], 0, four_three ? oracles_display_hud_choices[c] : oracles_display_hud_short[c], NULL, c == nav->display.hud,
+               row == ORACLES_DISPLAY_HUD, accent, CHOICE_OFF, hud);
+    /* Floating's Panels: in 16:9 its line under HUD's choices, its label and its choices smaller. */
+    if (t.floating) {
+        OraclesUiPageStyles panels = *st;
+        if (!four_three) panels.choice = &oracles_ui_panels_choice;
+        text(draw, &oracles_ui_diagram_label, &l.panels_label, oracles_display_labels[ORACLES_DISPLAY_PANELS], oracles_ui_rgba(LABEL, hud));
+        for (int c = 0; c < 2; c++)
+            option(draw, &panels, lk, &l.panels[c], 0, oracles_display_panels_choices[c], NULL, c == nav->display.hud_panel, row == ORACLES_DISPLAY_PANELS,
+                   accent, CHOICE_OFF, hud);
+    }
     /* The Text and Picture links: each one's summary and its arrow, in the accent while highlighted. */
     wrapped(draw, st->row_text, &l.explanations[8], oracles_ui_rgba(NOTE, text_applied));
     link(draw, st, &l.text_summary, &l.text_arrow, t.text_summary, oracles_ui_fade(row == ORACLES_DISPLAY_TEXT ? accent : oracles_ui_rgb(LABEL), text_applied));
     wrapped(draw, st->row_text, &l.picture_explanation, oracles_ui_rgb(NOTE));
     link(draw, st, &l.picture_summary, &l.picture_arrow, t.picture_summary, row == ORACLES_DISPLAY_PICTURE ? accent : oracles_ui_rgb(LABEL));
+    if (scrolled) {
+        oracles_ui_draw_shift(draw, l.scroll);
+        /* The edges more rows lie past fade into the page, as the mockup's mask does: the scene's ground over a band
+         * of ROWS_FADE, opaque at the edge. */
+        const OraclesUiBox *room = &l.rows_room;
+        for (int f = 0; f < (int)ROWS_FADE; f++) {
+            const float opacity = 1.0f - ((float)f + 0.5f) / ROWS_FADE;
+            if (l.scroll > 0.0f) oracles_ui_fill_rect(draw, room->x - 16.0f, room->y + (float)f, room->w + 32.0f, 1.0f, oracles_ui_rgba(SCENE_GROUND, opacity));
+            if (l.scroll < l.scroll_max)
+                oracles_ui_fill_rect(draw, room->x - 16.0f, room->y + room->h - 1.0f - (float)f, room->w + 32.0f, 1.0f, oracles_ui_rgba(SCENE_GROUND, opacity));
+        }
+        oracles_ui_draw_restore_clip(draw, saved_clip, &clip);
+    }
 }
 
 int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *option)
@@ -721,12 +795,28 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         for (int i = 0; i < 5; i++) if (inside(&l.rows[rows[i]], x, y)) return (int)rows[i];
         return -1;
     }
+    /* 4:3: the rows of a page taller than its room, scrolled in it, reached there alone; Advanced above it. */
+    int faded = 0;
+    if (l.scroll_max > 0.0f) {
+        if (inside(&l.rows[l.link < ORACLES_DISPLAY_ROWS ? l.link : ORACLES_DISPLAY_ADVANCED], x, y)) return ORACLES_DISPLAY_ADVANCED;
+        if (y < l.rows_room.y || y >= l.rows_room.y + l.rows_room.h) return -1;
+        /* Under a faded edge, a row is found but marked so (ORACLES_UI_DISPLAY_FADED). */
+        faded = (l.scroll > 0.0f && y < l.rows_room.y + ROWS_FADE) || (l.scroll < l.scroll_max && y >= l.rows_room.y + l.rows_room.h - ROWS_FADE);
+        y += l.scroll;
+    }
+    if (faded) {
+        for (int r = 0; r < ORACLES_DISPLAY_ROWS; r++)
+            if (r != (int)l.link && oracles_display_row_shown(nav, (unsigned)r) && inside(&l.rows[r], x, y)) { *option = ORACLES_UI_DISPLAY_FADED; return r; }
+        return -1;
+    }
     for (int p = 0; p < ORACLES_PROFILES; p++) if (inside(&l.profiles[p].box, x, y)) { *option = p; return ORACLES_DISPLAY_PROFILE; }
     /* Custom's place is the row's: it is never chosen. */
     for (int q = 0; q < ORACLES_DISPLAY_QUALITIES; q++) if (inside(&l.qualities[q].box, x, y)) { *option = q; return ORACLES_DISPLAY_QUALITY; }
     for (int i = 0; i < 4; i++) if (inside(&l.windows[i].box, x, y)) { *option = i; return ORACLES_DISPLAY_WINDOW; }
     for (int v = 0; v < 3; v++) if (inside(&l.views[v].box, x, y)) { *option = v; return ORACLES_DISPLAY_VIEW; }
-    for (int c = 0; c < 3; c++) if (inside(&l.hud[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_HUD; }
+    for (int c = 0; c < ORACLES_DISPLAY_HUDS; c++) if (inside(&l.hud[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_HUD; }
+    for (int c = 0; t.floating && c < 2; c++) if (inside(&l.panels[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_PANELS; }
+    if (t.floating && inside(&l.rows[ORACLES_DISPLAY_PANELS], x, y)) return ORACLES_DISPLAY_PANELS;
     for (int r = 0; r <= ORACLES_DISPLAY_ADVANCED; r++) if (inside(&l.rows[r], x, y)) return r;
     if (inside(&l.rows[ORACLES_DISPLAY_PICTURE], x, y)) return ORACLES_DISPLAY_PICTURE;
     return -1;

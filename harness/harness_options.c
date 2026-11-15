@@ -22,7 +22,8 @@ int harness_usage(void)
                     "                       [--zoom-out]   (with --enhanced-check: the drawn-back view's 480x270 surface, 480x360 with --aspect 4:3, as the launcher's --zoom-out; --view far)\n"
                     "                       [--view near|medium|far] [--aspect 16:9|4:3]   (with --enhanced-check: the view's level and the screen's shape, docs/REFERENCE.md)\n"
                     "                       [--screen WxH]   (with --enhanced-check: the screen's shape, unless --aspect names one, and the far view fitted to that screen, as the launcher's far=screen)\n"
-                    "                       [--hud original|full|wide]   (with --enhanced-check: the gutters beside the status bar dark, or the bar's own background, or the bar laid out on it, as the launcher's hud=; original by default)\n"
+                    "                       [--hud original|full|wide|floating]   (with --enhanced-check: the gutters beside the status bar dark, or the bar's own background, or the bar laid out on it, or no band and the bar's blocks over the world, as the launcher's hud=; original by default)\n");
+    fprintf(stderr, "                       [--hud-switch FRAME[,FRAME]...] [--hud-panel bar|neutral] [--floating-avoid X,Y,W,H[/X,Y,W,H]...] [--enhanced-band-out FILE FROM] [--enhanced-band-against FILE FROM]   (with --enhanced-check: the bar floating or back at each frame, as from the pause; the floating panels in the bar's colour or light grey; the touch controls' rectangles on the surface, which the floating panels keep clear of; the world band of 128 eighth frames from FROM written, or held floating against it world row by world row)\n"
                     "                       [--unvisited-rooms shown|hidden|dungeons]   (with --enhanced-check: the rooms the game has never seen Link enter drawn, or kept dark, or kept dark in a dungeon alone, as the launcher's unvisited_rooms=; shown by default)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
                     "                       [--language en|en-eu|fr|de|it|es|ja|pl [--eu-rom FILE|DIR] [--language-pack FILE]]   (the European ROM's English or a translation, the Japanese ROM's Japanese (ja), or Kaxus's Polish (pl) from the Polish ROM or his patch, which --eu-rom then names, from that ROM or its pack, served at getTextAddress; a fan game's too, with --patch, but for Japanese and Polish)\n"
@@ -46,15 +47,15 @@ int harness_usage(void)
                     "                                             with --text-box wide, the wide box against its layout)\n"
                     "                       [--text-box standard|wide]   (with --enhanced-check, Ages, Seasons and the fan games: the host's box of 192 pixels of text, the texts laid out again for it, classic or compact; on by itself for a route recorded with it)\n"
                     "                       [--text-size normal|large|xlarge]   (with --enhanced-check: the text box three halves as large, the presenter's, or twice, where the view holds it)\n"
-                    "                       [--surface-scale K]   (the surfaces of --surface-at K times as large, the text box with Large as the presenter shows it)\n"
+                    "                       [--surface-scale K]   (the view shown K times on the screen: the surfaces of --surface-at K times as large, the text box with Large as the presenter shows it, the near view's floating panels laid out for that screen, B and A alone at 1; layout and run hash change with K)\n"
                     "                       [--menus-large]   (with --enhanced-check: the framed core shown alone, as menus=large, its text box enlarged by the presenter at every Text size)\n");
     fprintf(stderr,
                     "                       [--neighbour-objects-check DIR] [--neighbour-objects-lead FRAMES] [--neighbour-capture]   (the objects of every neighbour, ghost against the real entry)\n"
                     "                       [--object-animation-check]   (the objects' animation stepped from the game's data against the live game, each room entered captured as a neighbour: its poses' tiles; in DIR of --neighbour-objects-check if given)\n"
                     "                       [--hotkeys-check DIR]   (item hotkeys: the inventory frame by frame in DIR; a route's exchanges are applied either way)\n"
                     "                       [--hotbar-forget-at FRAME]   (with --enhanced-check: the hotbar's icons forgotten at that frame, as a game's half changing under the view does; they are found again, nothing shown changes)\n"
-                    "                       [--hotkeys-live use|equip] [--hotkey-slot N=<b|a>:<item>:<variant or -->]... [--hotkey-press FRAME:SLOT:FRAMES]... [--hotkeys-record ROUTE] [--hotkey-labels keys|pad]\n"
-                    "                                                (the live policy with scripted keys over the route's inputs, and the format 2 route of that session)\n"
+                    "                       [--hotkeys-live use|equip] [--hotkey-slot N=<b|a>:<item>:<variant or -->]... [--hotkey-press FRAME:SLOT:FRAMES]... [--hotkeys-record ROUTE] [--hotkey-labels keys|pad] [--hotkey-layout pad|keys]\n"
+                    "                                                (the live policy with scripted keys over the route's inputs, and the format 2 route of that session; the floating tiles as a pad's diamond or the keyboard's block)\n"
                     "                       [--surface-at FRAME FILE.ppm]...   (with --enhanced-check: the surface composed at that frame, to look at)\n"
                     "                       [--poke-at FRAME BANK:ADDR=VALUE]...   (a byte of WRAM written at the end of that frame, in hexadecimal (0:cc04=08): a test's way into a scene no route reaches, the variables the game's own caller sets)\n"
                     "                       [--dump-at FRAME FILE]...   (the live state at the end of that frame, dead memory zeroed: WRAM bank 0 then HRAM, to name the bytes two replays differ by)\n"
@@ -120,6 +121,30 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--enhanced-reload-after") && i + 1 < argc) o->enhanced_reload_after = (uint32_t)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-surfaces-out") && i + 2 < argc) { o->enhanced_surfaces_out = argv[++i]; o->enhanced_surfaces_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
         else if (!strcmp(argv[i], "--enhanced-surfaces-against") && i + 2 < argc) { o->enhanced_surfaces_against = argv[++i]; o->enhanced_surfaces_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
+        else if (!strcmp(argv[i], "--enhanced-band-out") && i + 2 < argc) { o->enhanced_band_out = argv[++i]; o->enhanced_band_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
+        else if (!strcmp(argv[i], "--enhanced-band-against") && i + 2 < argc) { o->enhanced_band_against = argv[++i]; o->enhanced_band_from = (uint32_t)strtoul(argv[++i], NULL, 10); }
+        else if (!strcmp(argv[i], "--hud-panel") && i + 1 < argc) {
+            const char *name = argv[++i];
+            if (strcmp(name, "bar") && strcmp(name, "neutral")) { fprintf(stderr, "harness: --hud-panel is bar or neutral, not %s\n", name); return -1; }
+            o->floating_neutral = !strcmp(name, "neutral");
+        }
+        else if (!strcmp(argv[i], "--floating-avoid") && i + 1 < argc) {
+            for (char *p = argv[++i]; *p && o->floating_avoid_count < 4u;) {
+                int32_t *r = o->floating_avoid[o->floating_avoid_count];
+                int used = 0;
+                if (sscanf(p, "%d,%d,%d,%d%n", &r[0], &r[1], &r[2], &r[3], &used) != 4) { fprintf(stderr, "harness: --floating-avoid is X,Y,W,H[/X,Y,W,H]..., not %s\n", p); return -1; }
+                o->floating_avoid_count++;
+                p += used;
+                if (*p == '/') p++;
+            }
+        }
+        else if (!strcmp(argv[i], "--hud-switch") && i + 1 < argc) {
+            for (char *p = argv[++i], *end; *p && o->hud_switches < 8u; p = *end == ',' ? end + 1 : end) {
+                const unsigned long frame = strtoul(p, &end, 10);
+                if (end == p) break;
+                o->hud_switch[o->hud_switches++] = (uint32_t)frame;
+            }
+        }
         else if (!strcmp(argv[i], "--enhanced-threaded")) o->enhanced_threaded = 1;
         else if (!strcmp(argv[i], "--enhanced-ghosts") && i + 1 < argc) o->enhanced_ghosts = (unsigned)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--enhanced-paced")) o->enhanced_paced = 1;
@@ -152,7 +177,8 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
             if (!strcmp(name, "original")) o->enhanced_hud = ORACLES_ENHANCED_HUD_ORIGINAL;
             else if (!strcmp(name, "full")) o->enhanced_hud = ORACLES_ENHANCED_HUD_FULL;
             else if (!strcmp(name, "wide")) o->enhanced_hud = ORACLES_ENHANCED_HUD_WIDE;
-            else { fprintf(stderr, "harness: --hud is original, full or wide, not %s\n", name); return -1; }
+            else if (!strcmp(name, "floating")) o->enhanced_hud = ORACLES_ENHANCED_HUD_FLOATING;
+            else { fprintf(stderr, "harness: --hud is original, full, wide or floating, not %s\n", name); return -1; }
         }
         else if (!strcmp(argv[i], "--unvisited-rooms") && i + 1 < argc) {
             const char *name = argv[++i];
@@ -220,6 +246,7 @@ int harness_parse_options(int argc, char **argv, harness_options *o)
         else if (!strcmp(argv[i], "--hotkey-press") && i + 1 < argc) { if (!oracles_hotkeys_live_parse_press(&o->hotkeys_live, argv[++i])) return -1; }
         else if (!strcmp(argv[i], "--hotkeys-record") && i + 1 < argc) o->hotkeys_live.record_path = argv[++i];
         else if (!strcmp(argv[i], "--hotkey-labels") && i + 1 < argc) { const char *v = argv[++i]; if (strcmp(v, "keys") != 0 && strcmp(v, "pad") != 0) return -1; o->hotkeys_live.pad_labels = !strcmp(v, "pad"); }
+        else if (!strcmp(argv[i], "--hotkey-layout") && i + 1 < argc) { const char *v = argv[++i]; if (strcmp(v, "keys") != 0 && strcmp(v, "pad") != 0) return -1; o->hotkeys_live.keys_layout = !strcmp(v, "keys"); }
         else if (!strcmp(argv[i], "--dump-at") && i + 2 < argc && o->dumps < HARNESS_MAX_DUMPS) { o->dump_at[o->dumps] = (uint32_t)strtoul(argv[++i], NULL, 10); o->dump_path[o->dumps++] = argv[++i]; }
         else if (!strcmp(argv[i], "--poke-at") && i + 2 < argc && o->poke_count < HARNESS_MAX_POKES) {
             harness_poke *p = &o->pokes[o->poke_count];

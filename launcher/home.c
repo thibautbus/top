@@ -10,6 +10,7 @@
 #include "touch_controls.h"
 #include "ui_controls_nav.h"
 #include "ui_home.h"
+#include "ui_page_layout.h"
 #include "ui_page_nav.h"
 #include "update_check.h"
 #ifdef ORACLES_RETROACHIEVEMENTS
@@ -80,6 +81,7 @@ typedef struct home_app {
     portable_job portable;
     int achievements_waiting;   /* RetroAchievements' login sent, its answer looked for */
     int secure;                 /* Android: the window kept out of screenshots and the recents while the login is open */
+    OraclesUiDisplayDrag display_drag;   /* Display in 4:3, its rows scrolled by a press held */
 #ifdef ORACLES_RETROACHIEVEMENTS
     OraclesAchievementsDrag drag;   /* a press held over their page's list */
     double badges_until_ms;         /* their page's last badges looked for until then */
@@ -441,6 +443,13 @@ static void window_to_scene(const home_app *app, float x, float y, float *scene_
     oracles_ui_draw_to_scene(app->draw, x * kx, y * ky, scene_x, scene_y);
 }
 
+/* Display in 4:3 has rows to scroll: a page taller than its room. */
+#define DISPLAY_WHEEL_STEP 34.0f
+static int display_scrolls(const home_app *app)
+{
+    return app->nav.screen == ORACLES_SCREEN_DISPLAY && app->nav.layout == ORACLES_UI_LAYOUT_4_3 && oracles_ui_display_scrolled(&app->nav, 1e6f) > 0.0f;
+}
+
 static void pointer(home_app *app, float x, float y, int click)
 {
     float sx, sy;
@@ -455,6 +464,11 @@ static void pointer(home_app *app, float x, float y, int click)
         const OraclesHomeCommand c = oracles_controls_click(&app->nav, hit.column, hit.row, hit.option);
         changed(app);
         command(app, c);
+        return;
+    }
+    /* Display's row under a faded edge: nothing hovered; a click brings it into sight. */
+    if (hit.kind == ORACLES_UI_HIT_ROW && app->nav.screen == ORACLES_SCREEN_DISPLAY && hit.option == ORACLES_UI_DISPLAY_FADED) {
+        if (click) { oracles_display_reveal(&app->nav, hit.index); changed(app); }
         return;
     }
     if (hit.kind == ORACLES_UI_HIT_ROW) {
@@ -615,6 +629,20 @@ static void handle(home_app *app, const SDL_Event *e)
             oracles_sdl_pads_event(&app->pads, e);
             break;
         case SDL_EVENT_MOUSE_MOTION:
+            /* Display's rows in 4:3, taller than their room, follow a drag (a finger's too). */
+            if ((e->motion.state & SDL_BUTTON_LMASK) && display_scrolls(app)) {
+                float x0, y0, x1, y1;
+                int window_h = 0;
+                SDL_GetWindowSize(app->window, NULL, &window_h);
+                window_to_scene(app, 0.0f, 0.0f, &x0, &y0);
+                window_to_scene(app, 0.0f, e->motion.yrel, &x1, &y1);
+                if (oracles_ui_display_drag_moved(&app->display_drag, e->motion.y, (float)window_h)) {
+                    const float before = app->nav.display_scroll;
+                    app->nav.display_scroll = oracles_ui_display_scrolled(&app->nav, y0 - y1);
+                    if (app->nav.display_scroll != before) changed(app);
+                    break;
+                }
+            }
 #ifdef ORACLES_RETROACHIEVEMENTS
             /* The page's list follows a drag (a finger's too), a row at a time. */
             if (oracles_achievements_page_list_on(&app->nav) && (e->motion.state & SDL_BUTTON_LMASK)) {
@@ -628,16 +656,29 @@ static void handle(home_app *app, const SDL_Event *e)
 #endif
             pointer(app, e->motion.x, e->motion.y, 0);
             break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            oracles_ui_display_drag_start(&app->display_drag, e->button.y);
 #ifdef ORACLES_RETROACHIEVEMENTS
-        case SDL_EVENT_MOUSE_BUTTON_DOWN: oracles_achievements_drag_start(&app->drag); break;
+            oracles_achievements_drag_start(&app->drag);
+#endif
+            break;
         case SDL_EVENT_MOUSE_WHEEL:
+            /* Display's rows in 4:3, a notch a third of a row. */
+            if (display_scrolls(app) && e->wheel.y != 0.0f) {
+                const float before = app->nav.display_scroll;
+                app->nav.display_scroll = oracles_ui_display_scrolled(&app->nav, e->wheel.y > 0.0f ? -DISPLAY_WHEEL_STEP : DISPLAY_WHEEL_STEP);
+                if (app->nav.display_scroll != before) changed(app);
+                break;
+            }
+#ifdef ORACLES_RETROACHIEVEMENTS
             if (oracles_achievements_page_list_on(&app->nav) && e->wheel.y != 0.0f) {
                 oracles_achievements_page_scroll(&app->nav, e->wheel.y > 0.0f ? -1 : 1);
                 changed(app);
             }
-            break;
 #endif
+            break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
+            if (app->display_drag.dragged) { app->display_drag.dragged = 0; break; }   /* the end of a drag clicks nothing */
 #ifdef ORACLES_RETROACHIEVEMENTS
             if (oracles_achievements_drag_end(&app->drag)) break;   /* the end of a drag clicks nothing */
 #endif

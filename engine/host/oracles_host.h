@@ -54,8 +54,9 @@ typedef struct oracles_host_event {
  * down), at the screen's resolution rounded down, the lines above and below unmoved; then `patch` moved with the band
  * and `layer` over it (0xAARRGGBB, alpha 0 where they show nothing), at `layer_x`, `layer_y` of the frame, the layer
  * moved `layer_fx`, `layer_fy` 256ths of a pixel right and down, inside the band; then the `fixed` rectangles of the
- * frame (x, y, w, h) unmoved over them.  The frame itself is whole: shown as it is, it is the picture at whole pixels. */
+ * frame (x, y, w, h) unmoved over them, and the panels.  The frame itself is whole: shown as it is, it is the picture at whole pixels. */
 #define ORACLES_HOST_SUBPIXEL_FIXED 16u
+#define ORACLES_HOST_SUBPIXEL_PANELS 8u
 typedef struct oracles_host_video_subpixel {
     int32_t x, y;
     uint32_t band_top, band_height;
@@ -66,6 +67,16 @@ typedef struct oracles_host_video_subpixel {
     const uint32_t *patch;                     /* the layer's size and pitch; NULL: none */
     uint32_t fixed_count;
     uint32_t fixed[ORACLES_HOST_SUBPIXEL_FIXED][4];
+    /* Last, unmoved over all of it, the status bar's floating panels: `panels` the frame's size and pitch, premultiplied
+     * 0xAARRGGBB, transparent but within its `panels_count` rects (x, y, w, h, apart from each other); NULL: none. */
+    const uint32_t *panels;
+    uint32_t panels_count;
+    uint32_t panels_rects[ORACLES_HOST_SUBPIXEL_PANELS][4];
+    /* `panels_scale` 2: the near view's panels at half the game's scale, `panels` and its rects twice the frame's size
+     * and pitch, each panel drawn after the picture through its filter, at a whole number of the screen's pixels a pixel, kept
+     * to the corner `panels_anchor` names (oracles_floating_screen_place); the move may then be none.  0 or 1: as above. */
+    uint32_t panels_scale;
+    uint8_t panels_anchor[ORACLES_HOST_SUBPIXEL_PANELS];
 } oracles_host_video_subpixel;
 
 typedef struct oracles_host_video_frame {

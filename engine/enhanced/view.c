@@ -129,6 +129,7 @@ OraclesEnhancedView *oracles_enhanced_view_start(OraclesCore *core, OraclesGuest
     v->camera = oracles_enhanced_camera_start(guest);
     if (!v->camera) { free(v); return NULL; }
     v->size = oracles_enhanced_size(0);
+    v->band_top = oracles_enhanced_band_top(0);
     v->band_height = oracles_enhanced_band_height(v->size);
     v->shown_width = v->size.width; v->shown_height = v->band_height;
     v->slot_count = NORMAL_SLOTS;
@@ -197,6 +198,9 @@ void oracles_enhanced_view_stop(OraclesEnhancedView *v)
     for (unsigned i = 0; i < v->slot_count; i++) free(v->slots[i].settled_state);
     free(v->slots);
     free(v->surface);
+    free(v->floating_layer);
+    free(v->floating_frame);
+    free(v->floating_under);
     free(v->run_plan);
     free(v->sea_plan);
     free(v->hotbar_icons);
@@ -225,12 +229,29 @@ void oracles_enhanced_view_set_size(OraclesEnhancedView *v, OraclesEnhancedSize 
     free(v->slots); free(v->surface);
     v->slots = fresh; v->surface = surface;
     v->size = size;
-    v->band_height = oracles_enhanced_band_height(v->size);
+    v->band_height = v->size.height - v->band_top;
     v->observer.band_width = v->size.width;
     v->shown_width = v->size.width; v->shown_height = v->band_height;
     v->slot_count = slots;
     oracles_enhanced_camera_set_band(v->camera, v->size.width, v->band_height);
 }
+
+/* The world band for the status bar's setting: under the HUD band, or the whole surface with the bar floating.  Taken
+ * at a composition, so that a change from the pause applies as the game resumes; the camera starts again from Link in
+ * the band's new height. */
+void ev_apply_band(OraclesEnhancedView *v)
+{
+    const unsigned top = oracles_enhanced_band_top(v->hud == ORACLES_ENHANCED_HUD_FLOATING);
+    if (top == v->band_top) return;
+    v->band_top = top;
+    v->band_height = v->size.height - top;
+    v->shown_width = v->size.width; v->shown_height = v->band_height;
+    v->have_view = 0;
+    oracles_enhanced_camera_set_band(v->camera, v->size.width, v->band_height);
+}
+
+uint32_t oracles_enhanced_view_band_top(const OraclesEnhancedView *v) { return v->band_top; }
+unsigned oracles_enhanced_view_band_states_dropped(const OraclesEnhancedView *v) { return v->band_states_dropped; }
 
 void oracles_enhanced_view_set_sync_budget(OraclesEnhancedView *v, unsigned frames_per_host_frame) { v->sync_budget = frames_per_host_frame; }
 
@@ -674,6 +695,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         return v->surface;
     }
     v->passage_loaded = 0;
+    ev_apply_band(v);
     heal_lanes(v);
     if (v->half_cache_check) {   /* nothing the view held of the other half survives the switch */
         v->half_cache_check = 0;
@@ -873,6 +895,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     const int load_band = ev_load_band(v, &in, tracking, camera_x, camera_y);
     in.hud_fill = ev_hud_fill(v, in.mode, 1);
     in.hud_place = ev_hud_place(v, in.mode, 1);
+    in.floating = in.mode == ORACLES_ENHANCED_WORLD && !v->band_top;
     if (in.mode != ORACLES_ENHANCED_WORLD) { v->sway = 0; v->wave_held = 0; }
     v->sub_x = v->sub_y = 0;
     v->sub_layer_w = v->sub_layer_h = 0;
@@ -884,6 +907,7 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
     v->dark_lit = dark_read ? oracles_enhanced_dark_lit(&in, v->surface) : 0u;
     v->dark_stray = dark_read ? oracles_enhanced_dark_stray(&in, v->surface) : 0u;
     if (load_band) { in.mode = ORACLES_ENHANCED_FRAMED; v->uncovered = 0; v->uncovered_edges = 0; }
+    v->hotbar_framed = in.mode == ORACLES_ENHANCED_FRAMED && !load_band;   /* this frame's, which the floating pad reads too */
     v->wide_shown = v->scaled_shown = v->enlarged_noted = 0;
     ev_find_area_blurb(v);
     if (in.mode == ORACLES_ENHANCED_WORLD) {
@@ -901,13 +925,15 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
         ev_overlay_text_box(v, camera_x, camera_y);
         ev_black_outside_shown(v);
         ev_overlay_text_box_above(v);
+        ev_draw_floating(v);
         ev_subpixel_settle(v);
     } else if (!load_band) ev_overlay_text_box_framed(v);
+    else ev_draw_floating(v);   /* a room's load floating: the bar's blocks stay where play has them */
+    if (in.mode != ORACLES_ENHANCED_WORLD && !load_band) { v->floating_count = 0; v->floating_layered = 0; }
     /* In the HUD band's gutters, whatever the mode: they exist in the framed
      * surface too, beside the status bar wherever the image stands (centred
      * in the drawn-back surface). */
     v->hud_top = in.mode == ORACLES_ENHANCED_FRAMED && !load_band ? (v->size.height - ORACLES_PPU_HEIGHT) / 2u : 0u;
-    v->hotbar_framed = in.mode == ORACLES_ENHANCED_FRAMED && !load_band;
     ev_draw_hotbar(v);
     ev_measure_black(v, in.mode, camera_x, camera_y);
     /* A menu opens and closes through a fade to white (fastFadeoutToWhite): not a scene's end, the world comes back
@@ -1062,6 +1088,14 @@ unsigned oracles_enhanced_view_obj_palettes_retaken(const OraclesEnhancedView *v
 void oracles_enhanced_view_animation_counts(const OraclesEnhancedView *v, unsigned *own, unsigned *other, unsigned *in_step_tiles) { if (own) *own = v->own_animation_copies; if (other) *other = v->other_animation_copies; if (in_step_tiles) *in_step_tiles = v->image_live_tiles; }
 void oracles_enhanced_view_stream_counts(const OraclesEnhancedView *v, unsigned *matched, unsigned *followed) { if (matched) *matched = v->streams_matched; if (followed) *followed = v->streams_followed; }
 int oracles_enhanced_view_blurb_drawn(const OraclesEnhancedView *v) { return v->blurb_shown && v->blurb_mask != 0; }
+
+int oracles_enhanced_view_blurb_pixel(const OraclesEnhancedView *v, int32_t x, int32_t y, uint32_t *colour)
+{
+    const int32_t bx = x - v->blurb_cover_x, by = y - v->blurb_cover_y;
+    if (!v->blurb_cover_on || bx < 0 || bx >= (int32_t)BLURB_COVER_W || by < 0 || by >= (int32_t)BLURB_COVER_H || !((v->blurb_cover[by] >> bx) & 1u)) return 0;
+    if (colour) *colour = v->blurb_colour[by][bx];
+    return 1;
+}
 void oracles_enhanced_view_blind_runs(const OraclesEnhancedView *v, unsigned *filed, unsigned *dropped)
 {
     if (filed) *filed = v->blind_results;

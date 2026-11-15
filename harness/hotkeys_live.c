@@ -146,6 +146,7 @@ int oracles_hotkeys_slots_hotbar(const OraclesHotkeysLiveOptions *options, struc
         if (!oracles_hotkey_line_parse(name, options->slots[n], &game, &slot, &parsed)) return 0;
         hotbar.slots[n].set = parsed.set; hotbar.slots[n].item = parsed.item; hotbar.slots[n].variant = parsed.variant;
     }
+    hotbar.keyboard = options->keys_layout;
     oracles_enhanced_view_set_hotbar((OraclesEnhancedView *)view, &hotbar);
     oracles_enhanced_view_hotbar_verify((OraclesEnhancedView *)view, 1);
     return 1;
@@ -157,6 +158,7 @@ void oracles_hotkeys_live_hotbar(OraclesHotkeysLive *l, struct OraclesEnhancedVi
     static const char *const names[ORACLES_HOTKEY_SLOTS] = { "A", "S", "Q", "W" }, *const pad[ORACLES_HOTKEY_SLOTS] = { "X", "Y", "LB", "RB" };
     OraclesEnhancedHotbar hotbar;
     oracles_hotbar_model(l->policy, l->options.pad_labels ? pad : names, l->options.pad_labels, &hotbar);
+    hotbar.keyboard = l->options.keys_layout;
     oracles_enhanced_view_set_hotbar((OraclesEnhancedView *)view, &hotbar);
     oracles_enhanced_view_hotbar_verify((OraclesEnhancedView *)view, 1);
 }

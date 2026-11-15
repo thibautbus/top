@@ -121,6 +121,7 @@ unsigned oracles_session_settings_changed(const oracles_settings *settings, int 
     if (settings->colour_correction != applied->colour) { applied->colour = settings->colour_correction; changed |= ORACLES_SESSION_CHANGED_COLOUR; }
     if (settings->scaling_fill != applied->fill) { applied->fill = settings->scaling_fill; changed |= ORACLES_SESSION_CHANGED_FILL; }
     if (applied->hud >= 0 && settings->hud != applied->hud) { applied->hud = settings->hud; changed |= ORACLES_SESSION_CHANGED_HUD; }
+    if (applied->hud_panel >= 0 && settings->hud_panel != applied->hud_panel) { applied->hud_panel = settings->hud_panel; changed |= ORACLES_SESSION_CHANGED_HUD; }
     const int text_size = text_size_option > 0 ? text_size_option - 1 : settings->text_size;
     if (applied->text_size >= 0 && text_size != applied->text_size) { applied->text_size = text_size; changed |= ORACLES_SESSION_CHANGED_TEXT_SIZE; }
     const int margin = oracles_session_screen_margin(margin_option, settings);

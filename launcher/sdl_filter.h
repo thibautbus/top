@@ -86,6 +86,9 @@ int oracles_sdl_filter_active(const OraclesSdlFilter *filter);
 enum { ORACLES_SDL_LAYER_ALONE, ORACLES_SDL_LAYER_PREMULTIPLIED, ORACLES_SDL_LAYER_OVER_GROUND };
 /* The way of the filter in force: ORACLES_SDL_LAYER_ALONE where no shader draws (oracles_sdl_filter_active 0). */
 int oracles_sdl_filter_layer(const OraclesSdlFilter *filter);
+/* The way of the filter chosen whether the picture placed last is large enough for it or not, as a picture drawn later
+ * may be (the pause's): ORACLES_SDL_LAYER_ALONE without a shader. */
+int oracles_sdl_filter_chosen_layer(const OraclesSdlFilter *filter);
 /* The most texels the filter moves where it reads a picture of width x height pixels by (CRT's curve), 0 for the
  * others; whether the picture placed last is large enough for it or not, as the pause may draw it larger. */
 int oracles_sdl_filter_bend(const OraclesSdlFilter *filter, int width, int height);
@@ -97,6 +100,12 @@ int oracles_sdl_filter_bend(const OraclesSdlFilter *filter, int width, int heigh
  * picture's (the whole texels of the move).  Each part has a state of its own, its constants changed without making
  * SDL draw first what the frame holds. */
 void oracles_sdl_filter_part(OraclesSdlFilter *filter, int part, float x, float y);
+
+/* The draws that follow go through the filter's state for a part drawn apart (`part` 0 or 1, as above) at another scale
+ * than the picture's: Scanlines' rows, CRT's mask and LCD's grid on the picture's own pixels where the fragment stands
+ * (the picture placed last, its scale), so that they run on from the picture into the part, its texels only read; the
+ * others (xBR, HQ2x, OmniScale) on the part's own texels.  `part` -1 (oracles_sdl_filter_part) for the picture's state. */
+void oracles_sdl_filter_part_cells(OraclesSdlFilter *filter, int part);
 
 /* SDL's error around the first present through the filter: cleared before it (`presented` 0), written after it. */
 void oracles_sdl_filter_check(OraclesSdlFilter *filter, int presented);

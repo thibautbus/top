@@ -217,9 +217,9 @@ static void half_frame_end(run *r, OraclesGuest *bus, uint32_t frame)
     if (r->guest && !r->check) oracles_guest_journal_clear(r->guest);
     if (r->enhanced) {
         OraclesEnhancedView *view = oracles_enhanced_check_view(r->enhanced);
-        const uint32_t *surface = oracles_enhanced_view_compose(view, NULL, NULL, NULL);
-        oracles_enhanced_check_held_frame(r->enhanced, surface, frame);   /* the records of --enhanced-surfaces-out stay one an eighth frame */
-        const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)oracles_enhanced_view_width(view) * oracles_enhanced_view_height(view) * sizeof *surface, ORACLES_HASH_SEED);
+        /* the records of --enhanced-surfaces-out stay one an eighth frame; the hash, the panels the presenter lays over the
+         * surface with it, as that of the frame last composed */
+        const uint64_t hash = oracles_enhanced_check_held_frame(r->enhanced, oracles_enhanced_view_compose(view, NULL, NULL, NULL), frame);
         r->half_held_wrong += (unsigned)(hash != oracles_enhanced_check_last_hash(r->enhanced));
         r->half_held_frames++;
     }
@@ -548,6 +548,7 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         if (o->enhanced_reload_in_place) oracles_enhanced_check_reload_in_place(r->enhanced);
         if (o->enhanced_reload_after) oracles_enhanced_check_reload_after(r->enhanced, o->enhanced_reload_after);
         if (o->enhanced_surfaces_out || o->enhanced_surfaces_against) oracles_enhanced_check_surfaces(r->enhanced, o->enhanced_surfaces_out, o->enhanced_surfaces_from, o->enhanced_surfaces_against);
+        if (o->enhanced_band_out || o->enhanced_band_against) oracles_enhanced_check_band_surfaces(r->enhanced, o->enhanced_band_out, o->enhanced_band_from, o->enhanced_band_against);
         for (unsigned i = 0; i < o->surfaces; i++) oracles_enhanced_check_surface_at(r->enhanced, o->surface_at[i], o->surface_path[i]);
         /* Slots given without --hotkeys-live: the hotbar of a replay, its icons checked against the core's image. */
         int slots = 0;
@@ -566,6 +567,9 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         oracles_enhanced_check_set_subpixel(r->enhanced, o->enhanced_subpixel);
         oracles_enhanced_check_subpixel_switch_at(r->enhanced, o->enhanced_subpixel_switch, o->enhanced_subpixel_switches);
         oracles_enhanced_view_set_hud(oracles_enhanced_check_view(r->enhanced), o->enhanced_hud);
+        oracles_enhanced_check_hud_switch_at(r->enhanced, o->hud_switch, o->hud_switches, o->enhanced_hud);
+        oracles_enhanced_view_set_floating_neutral(oracles_enhanced_check_view(r->enhanced), o->floating_neutral);
+        oracles_enhanced_check_floating_avoid(r->enhanced, (const int32_t (*)[4])o->floating_avoid, o->floating_avoid_count);
         oracles_enhanced_view_set_unvisited_hidden(oracles_enhanced_check_view(r->enhanced), o->unvisited_hidden);
         if (o->enhanced_ghosts > 1u) oracles_enhanced_view_set_ghosts(oracles_enhanced_check_view(r->enhanced), o->enhanced_ghosts);
         oracles_enhanced_check_set_paced(r->enhanced, o->enhanced_paced);
@@ -863,7 +867,7 @@ static int arm_the_run(run *r, harness_options *o, uint8_t **rom_ref, size_t rom
         if (!r->enhanced) { fprintf(stderr, "harness: --text-size large or xlarge needs --enhanced-check\n"); return 1; }
         oracles_enhanced_check_set_text_size(r->enhanced, (unsigned)o->text_size);
     }
-    if (o->surface_scale > 1u && r->enhanced) oracles_enhanced_check_set_surface_scale(r->enhanced, o->surface_scale);
+    if (o->surface_scale && r->enhanced) oracles_enhanced_check_set_surface_scale(r->enhanced, o->surface_scale);
     if (o->menus_large) {
         if (!r->enhanced) { fprintf(stderr, "harness: --menus-large needs --enhanced-check\n"); return 1; }
         oracles_enhanced_check_set_large_menus(r->enhanced, 1);

@@ -418,10 +418,11 @@ static void verify_picture(OraclesEnhancedView *v, unsigned button, uint8_t item
     if (wrong) v->hotbar_picture_wrong++;
 }
 
-void ev_draw_hotbar(OraclesEnhancedView *v)
+/* What the four slots show this frame, in `look`, and the colours they take: 0 where the hotbar is not shown (see
+ * ev_draw_hotbar). */
+int ev_hotbar_views(OraclesEnhancedView *v, OraclesHotbarLook look, OraclesHotbarSlotView views[ORACLES_HOTBAR_SLOTS], OraclesHotbarSlotView buttons[2],
+                    OraclesHotbarPalette *palette)
 {
-    v->hotbar_drawn = 0;
-    if (!v->hotbar_shown || !(v->hud_laid ? v->hud_place.hotbar : oracles_hotbar_fits(v->size.width, ORACLES_ENHANCED_CORE_WIDTH))) return;
     OraclesGuestInventoryState s;
     oracles_guest_inventory_state(v->guest, &s);
     capture_icons(v, &s);
@@ -434,7 +435,7 @@ void ev_draw_hotbar(OraclesEnhancedView *v)
     const int room_load = v->load_band || (s.game_state == 2u && s.cutscene_index == s.cutscene_loading_room);
     if (v->framed_only || (v->hotbar_framed && !room_load) || (v->observation.cutscene && !room_load) || !ev_status_bar_shown(v) || bar_blank(v)) {
         v->hotbar_icons_shown = 0;
-        return;
+        return 0;
     }
     const uint8_t *live = oracles_guest_obj_palettes(v->guest);
     static uint16_t icons[ORACLES_HOTBAR_SLOTS][ORACLES_HOTBAR_ICON * ORACLES_HOTBAR_ICON];
@@ -454,11 +455,9 @@ void ev_draw_hotbar(OraclesEnhancedView *v)
                 v->hotbar_on_button[b].pictured = 1;
                 verify_picture(v, b, s.slots[b], oracles_guest_item_variant(&s, s.slots[b]), live);
             }
-    const OraclesHotbarLook look = v->hud_laid ? (OraclesHotbarLook)v->hotbar_look : oracles_hotbar_gutter_look(v->size.width, ORACLES_ENHANCED_CORE_WIDTH);
     static uint16_t pictures[ORACLES_HOTBAR_SLOTS][HOTBAR_PICTURE_W * 16];
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
-    OraclesHotbarSlotView views[ORACLES_HOTBAR_SLOTS];
-    char labels[ORACLES_HOTBAR_SLOTS][5];
+    static char labels[ORACLES_HOTBAR_SLOTS][5];
     v->hotbar_icons_shown = 0;
     for (unsigned n = 0; n < ORACLES_HOTBAR_SLOTS; n++) {
         const OraclesEnhancedHotbarSlot *slot = &v->hotbar.slots[n];
@@ -491,9 +490,37 @@ void ev_draw_hotbar(OraclesEnhancedView *v)
             view->label = labels[n];
         }
     }
-    const OraclesHotbarPalette palette = {
+    /* The items on B and A, in the game's look where their icons are known, for the pad's tiles of the bar floating: found
+     * in the ROM's tables at once as the slots' are, not after the bar's sprites are sound again (the icons forgotten by a
+     * reload of the bar, a season's change, would show their labels meanwhile). */
+    for (unsigned b = 0; buttons && b < 2u; b++) {
+        static uint16_t button_pictures[2][HOTBAR_PICTURE_W * 16];
+        static char button_labels[2][5];
+        const uint8_t item = s.slots[b], vi = (uint8_t)variant_index(oracles_guest_item_variant(&s, item));
+        OraclesHotbarSlotView *view = &buttons[b];
+        memset(view, 0, sizeof *view);
+        view->key = b ? "A" : "B";
+        if (!item || item >= ORACLES_GUEST_ITEM_LABELS) continue;
+        if (!v->hotbar_have_icon[item][vi]) find_icon(v, item, oracles_guest_item_variant(&s, item));
+        if (v->hotbar_icons && v->hotbar_have_icon[item][vi] && item_picture(v, live, item, vi, button_pictures[b])) view->picture = button_pictures[b];
+        else if (t->item_labels[item][0]) { memcpy(button_labels[b], t->item_labels[item], 5); view->label = button_labels[b]; }
+    }
+    const OraclesHotbarPalette colours = {
         status_bar_background(v), screen_colour(v, RGB555(3, 3, 3)), screen_colour(v, RGB555(19, 16, 11)),
         screen_colour(v, RGB555(25, 5, 5)), screen_colour(v, RGB555(31, 30, 27)), screen_colour(v, RGB555(29, 5, 5)), live_colour, v };
+    *palette = colours;
+    return 1;
+}
+
+void ev_draw_hotbar(OraclesEnhancedView *v)
+{
+    v->hotbar_drawn = 0;
+    if (!v->band_top && !v->hotbar_framed) return;   /* floating, the pad's tiles instead (view_floating.c) */
+    if (!v->hotbar_shown || !(v->hud_laid ? v->hud_place.hotbar : oracles_hotbar_fits(v->size.width, ORACLES_ENHANCED_CORE_WIDTH))) return;
+    const OraclesHotbarLook look = v->hud_laid ? (OraclesHotbarLook)v->hotbar_look : oracles_hotbar_gutter_look(v->size.width, ORACLES_ENHANCED_CORE_WIDTH);
+    OraclesHotbarSlotView views[ORACLES_HOTBAR_SLOTS];
+    OraclesHotbarPalette palette;
+    if (!ev_hotbar_views(v, look, views, NULL, &palette)) return;
     const uint64_t before = v->hotbar_verify ? hash_outside_slots(v) : 0;
     if (v->hud_laid) oracles_hotbar_draw_at(v->surface + v->hud_top * v->size.width, v->size.width, v->hud_place.hotbar_at, (OraclesHotbarLook)v->hotbar_look, views, &palette);
     else oracles_hotbar_draw(v->surface + v->hud_top * v->size.width, v->size.width, ORACLES_ENHANCED_CORE_WIDTH, v->hud == ORACLES_ENHANCED_HUD_ORIGINAL, views, &palette);

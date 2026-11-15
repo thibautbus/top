@@ -382,7 +382,7 @@ static int draw_toast(OraclesPause *pause, SDL_Renderer *renderer, const Oracles
         float bar_bottom = 0.0f, x = 0.0f;
         if (frame->width > 0 && frame->height > 0) {
             const OraclesTouchBox image = oracles_touch_frame(w, band_height, frame->width, frame->height, frame->fill);
-            oracles_ui_draw_to_scene_anchored(pause->draw, 0.0f, (float)band_top + image.y + image.h * STATUS_BAR_LINES / (float)frame->height,
+            oracles_ui_draw_to_scene_anchored(pause->draw, 0.0f, (float)band_top + image.y + image.h * (frame->top_lines > 0 ? (float)frame->top_lines : STATUS_BAR_LINES) / (float)frame->height,
                                               0.5f, 0.0f, &x, &bar_bottom);
         }
         if (notice) oracles_ui_home_notice(pause->draw, layout, text, bar_bottom, opacity);
@@ -417,7 +417,7 @@ static void draw_achievement_toast(OraclesPause *pause, SDL_Renderer *renderer, 
         float left = 0.0f, bar_bottom = 0.0f;
         if (frame->width > 0 && frame->height > 0) {
             const OraclesTouchBox image = oracles_touch_frame(w, band_height, frame->width, frame->height, frame->fill);
-            oracles_ui_draw_to_scene_anchored(pause->draw, image.x, (float)band_top + image.y + image.h * STATUS_BAR_LINES / (float)frame->height,
+            oracles_ui_draw_to_scene_anchored(pause->draw, image.x, (float)band_top + image.y + image.h * (frame->top_lines > 0 ? (float)frame->top_lines : STATUS_BAR_LINES) / (float)frame->height,
                                               0.0f, 0.0f, &left, &bar_bottom);
         }
         oracles_ui_achievements_toast_draw(pause->draw, layout, toast, pause->badges, left, bar_bottom, reminder, opacity, now);
@@ -442,6 +442,7 @@ typedef struct pause_loop {
     int trigger_held;   /* the menu's trigger, when menu_pad= names one (oracles_home_button_action) */
     unsigned glyphs_before;   /* the glyphs rasterised when the pause began, those the margin's change prepared added */
     OraclesPauseResult result;
+    OraclesUiDisplayDrag display_drag;   /* Display in 4:3, its rows scrolled by a press held, as on the home screen */
 #ifdef ORACLES_RETROACHIEVEMENTS
     OraclesAchievementsDrag drag;   /* a press held over the list of achievements, in the window's points */
     int drag_row;             /* a row's height there */
@@ -452,6 +453,27 @@ static void changed(pause_loop *p)
 {
     oracles_ui_home_follow(&p->view, &p->nav, now_ms());
     p->dirty = 1;
+}
+
+/* Display in 4:3 has rows to scroll: a page taller than its room. */
+#define DISPLAY_WHEEL_STEP 34.0f
+static int display_scrolls(const pause_loop *p)
+{
+    return p->nav.screen == ORACLES_SCREEN_DISPLAY && p->nav.layout == ORACLES_UI_LAYOUT_4_3 && oracles_ui_display_scrolled(&p->nav, 1e6f) > 0.0f;
+}
+
+/* Display's rows moved by `yrel` window points, in the scene's pixels. */
+static void display_scroll_by(pause_loop *p, float yrel)
+{
+    int window_w, window_h, output_w, output_h;
+    SDL_GetWindowSize(p->window, &window_w, &window_h);
+    SDL_GetRenderOutputSize(p->renderer, &output_w, &output_h);
+    float x0, y0, x1, y1;
+    oracles_ui_draw_to_scene(p->pause->draw, 0.0f, 0.0f, &x0, &y0);
+    oracles_ui_draw_to_scene(p->pause->draw, 0.0f, yrel * (window_h > 0 ? (float)output_h / (float)window_h : 1.0f), &x1, &y1);
+    const float before = p->nav.display_scroll;
+    p->nav.display_scroll = oracles_ui_display_scrolled(&p->nav, y0 - y1);
+    if (p->nav.display_scroll != before) changed(p);
 }
 
 static void load_note(pause_loop *p)
@@ -588,6 +610,10 @@ static void pointer(pause_loop *p, float x, float y, int click)
     if (hit.kind == ORACLES_UI_HIT_CELL) {
         if (!click) { oracles_controls_hover(&p->nav, hit.column, hit.row); changed(p); return; }
         c = oracles_controls_click(&p->nav, hit.column, hit.row, hit.option);
+    } else if (hit.kind == ORACLES_UI_HIT_ROW && p->nav.screen == ORACLES_SCREEN_DISPLAY && hit.option == ORACLES_UI_DISPLAY_FADED) {
+        /* Display's row under a faded edge: nothing hovered; a click brings it into sight. */
+        if (click) { oracles_display_reveal(&p->nav, hit.index); changed(p); }
+        return;
     } else if (hit.kind == ORACLES_UI_HIT_ROW) {
         if (!click) { if (hit.index != p->nav.row) { p->nav.row = hit.index; changed(p); } return; }
         c = p->nav.screen == ORACLES_SCREEN_CHEATS ? oracles_cheats_click(&p->nav, hit.index, hit.option) : oracles_display_click(&p->nav, hit.index, hit.option);
@@ -632,6 +658,12 @@ static void handle(pause_loop *p, const SDL_Event *e)
             if (oracles_home_button_action(&p->nav, e, &p->trigger_held, &action)) act(p, action);
             break;
         case SDL_EVENT_MOUSE_MOTION:
+            /* Display's rows in 4:3, taller than their room, follow a drag (a finger's too). */
+            if ((e->motion.state & SDL_BUTTON_LMASK) && display_scrolls(p)) {
+                int window_h = 0;
+                SDL_GetWindowSize(p->window, NULL, &window_h);
+                if (oracles_ui_display_drag_moved(&p->display_drag, e->motion.y, (float)window_h)) { display_scroll_by(p, e->motion.yrel); break; }
+            }
 #ifdef ORACLES_RETROACHIEVEMENTS
             /* The list of achievements follows a drag (a finger's too), a row at a time. */
             if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && (e->motion.state & SDL_BUTTON_LMASK)) {
@@ -643,20 +675,32 @@ static void handle(pause_loop *p, const SDL_Event *e)
             pointer(p, e->motion.x, e->motion.y, 0);
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
+            if (p->display_drag.dragged) { p->display_drag.dragged = 0; break; }   /* the end of a drag clicks nothing */
 #ifdef ORACLES_RETROACHIEVEMENTS
             if (oracles_achievements_drag_end(&p->drag)) break;   /* the end of a drag clicks nothing */
 #endif
             if (e->button.button == SDL_BUTTON_LEFT) pointer(p, e->button.x, e->button.y, 1);
             break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            oracles_ui_display_drag_start(&p->display_drag, e->button.y);
 #ifdef ORACLES_RETROACHIEVEMENTS
-        case SDL_EVENT_MOUSE_BUTTON_DOWN: oracles_achievements_drag_start(&p->drag); break;
+            oracles_achievements_drag_start(&p->drag);
+#endif
+            break;
         case SDL_EVENT_MOUSE_WHEEL:
+            if (display_scrolls(p) && e->wheel.y != 0.0f) {
+                const float before = p->nav.display_scroll;
+                p->nav.display_scroll = oracles_ui_display_scrolled(&p->nav, e->wheel.y > 0.0f ? -DISPLAY_WHEEL_STEP : DISPLAY_WHEEL_STEP);
+                if (p->nav.display_scroll != before) changed(p);
+                break;
+            }
+#ifdef ORACLES_RETROACHIEVEMENTS
             if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && e->wheel.y != 0.0f) {
                 oracles_achievements_list_scroll(&p->nav, e->wheel.y > 0.0f ? -1 : 1);
                 changed(p);
             }
-            break;
 #endif
+            break;
         default:   /* a drop is not taken in the pause */
             if (e->type == SDL_EVENT_WINDOW_SAFE_AREA_CHANGED || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
                 oracles_safe_area_edges(p->window, p->pause->edges.margin, &p->pause->edges);

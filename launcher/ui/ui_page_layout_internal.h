@@ -84,6 +84,13 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define DISPLAY_ROW_GAP 14.0f
 #define DISPLAY_LABEL_W 200.0f
 #define DISPLAY_ROW_PAD_Y 14.0f
+#define HUD_FLOATING_PAD_Y 10.0f     /* HUD's row with Panels' line, its choices above it */
+#define PANELS_LINE_GAP 6.0f         /* between HUD's choices and Panels' line */
+#define PANELS_PAD_X 8.0f            /* Panels' highlight, past its label at the left and its choices at the right */
+#define PANELS_LABEL_GAP 14.0f       /* between its label and its first choice */
+#define PANELS_CHOICE_GAP 8.0f
+#define PANELS_CHOICE_PAD_X 12.0f
+#define PANELS_CHOICE_PAD_Y 1.0f
 #define WINDOW_NOTE_LINE 29.0f       /* Window's note and the line on its size, under the diagram */
 #define WINDOW_FIT_H 58.0f           /* two lines kept for the latter */
 #define DIAGRAM_MARGIN 56.0f
@@ -146,6 +153,9 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define JOINED_LABEL_LINE_4_3 38.0f       /* their labels' lines */
 #define PLAY_GAP_4_3 24.0f
 #define DISPLAY_ROW_GAP_4_3 6.0f
+#define ROWS_ROOM_TOP_4_3 204.0f          /* the rows' room: its top, 4 above the rows, and its height */
+#define ROWS_ROOM_H_4_3 778.0f
+#define ROWS_FADE_4_3 40.0f               /* a row kept that far from an edge more lies past */
 #define DISPLAY_LABEL_W_4_3 300.0f
 #define DISPLAY_PAD_Y_4_3 5.0f
 #define OPTION_MIN_W_4_3 110.0f

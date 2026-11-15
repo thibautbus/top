@@ -54,6 +54,7 @@ void oracles_home_inspect_display(const oracles_settings *settings, OraclesHomeD
     display->profile = settings->profile;
     display->transitions = settings->transitions;
     display->hud = settings->hud;
+    display->hud_panel = settings->hud_panel;
     display->text = settings->compact_text;
     display->text_box = settings->text_box_wide;
     display->text_size = settings->text_size;
@@ -197,6 +198,7 @@ void oracles_home_store_display(const OraclesHomeDisplay *display, int in_game, 
     const int view = prefs->view, core = oracles_settings_core(prefs), ghosts = prefs->ghosts;
     prefs->profile = display->profile;
     prefs->transitions = display->transitions;
+    prefs->hud_panel = display->hud_panel;
     prefs->hud = display->hud;   /* a running game takes it at once (the pause's settings_changed) */
     /* The text a game lays its texts out for at its start: the next Play's, from the pause too; never --text's. */
     if (!display->text_fixed) prefs->compact_text = display->text;

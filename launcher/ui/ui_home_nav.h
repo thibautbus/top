@@ -280,8 +280,9 @@ enum {
 typedef struct OraclesHomeDisplay {
     OraclesProfile profile;     /* the one chosen; a game whose ROM allows only Faithful plays in Faithful */
     int transitions;            /* continuous transitions, on by default, in Enhanced only */
-    int hud;                    /* the HUD: 0 Original, 1 Full width (the default), 2 Wide layout, the settings' hud=; in Enhanced only, from a game
-                                 * too, where it applies at once */
+    int hud;                    /* the HUD: 0 Original, 1 Full width (the default), 2 Wide layout, 3 Floating, the settings' hud=; in Enhanced
+                                 * only, from a game too, where it applies at once */
+    int hud_panel;              /* Floating's panels: 0 the bar's color, 1 neutral, the settings' hud_panel=; as the HUD */
     int text;                   /* the text: 0 Classic (the default), 1 Compact, the settings' text=; in Enhanced only; not from a
                                  * game, which keeps the texts it laid out at its start */
     int text_box;               /* the text box: 0 Standard (the default), 1 Wide, the settings' text_box=; in Enhanced only, Ages
@@ -458,6 +459,8 @@ typedef struct OraclesHomeNav {
     int advanced;                      /* Display shows its Advanced rows in place of its own */
     int text_page;                     /* Display shows its Text rows in place of its own (Display › Text) */
     int picture_page;                  /* Display shows its Picture rows in place of its own (Display › Picture) */
+    float display_scroll;              /* 4:3: how far Display's rows are scrolled up, a page taller than its room following the
+                                        * highlight (oracles_ui_display_follow); 0 where it fits */
     /* The fan games' Language row, their language beside Cartridge and their games started in it: 0 in the product,
      * whose host leaves them off (OraclesHomeGames); 1 lays them out as the mockup's fanLang does. */
     int fan_languages;

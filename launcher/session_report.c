@@ -76,20 +76,40 @@ void oracles_session_report_frames(const session *s, const oracles_host_run_repo
 }
 
 /* What the session's parts have to say at its end, and their release. */
+/* The last picture as the presenter showed it, `width` x `height` `scale` times (1 or 2): the mod's screen of the view's
+ * surface or of the core's, with the floating panels the presenter lays apart laid over it (into `folded`, freed by the
+ * caller); at once, the near view's panels at half the game's scale four of their pixels for one by their mean. */
+static const uint32_t *shown_picture(session *s, uint32_t width, uint32_t height, unsigned scale, uint32_t **folded)
+{
+    *folded = NULL;
+    const uint32_t *pixels = oracles_mod_session_screen(s->mod, s->view ? oracles_enhanced_view_surface(s->view) : oracles_core_pixels(s->core), width, height);
+    uint32_t rects[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned count = 0;
+    if (!s->view || !oracles_enhanced_view_floating_layer(s->view, rects, &count)) return pixels;
+    if (!(*folded = malloc((size_t)width * height * scale * scale * sizeof **folded))) return pixels;
+    oracles_enhanced_view_fold_floating_at(s->view, pixels, *folded, scale);
+    return *folded;
+}
+
 void oracles_session_finish(session *s, const OraclesSessionOptions *o)
 {
-    if (o->screenshot && s->ran) {
+    if ((o->screenshot || o->last_picture) && s->ran) {
+        uint32_t *folded = NULL;
         const uint32_t width = s->view ? oracles_enhanced_view_width(s->view) : ORACLES_SCREEN_WIDTH;
         const uint32_t height = s->view ? oracles_enhanced_view_height(s->view) : ORACLES_SCREEN_HEIGHT;
-        const uint32_t *pixels = s->view ? oracles_enhanced_view_surface(s->view) : oracles_core_pixels(s->core);
-        const int ok = write_screenshot(o->screenshot, oracles_mod_session_screen(s->mod, pixels, width, height), width, height);
-        if (!ok) fprintf(stderr, "oracles: cannot write %s\n", o->screenshot);
-    }
-    if (o->last_picture && s->ran && s->frames_presented) {
-        const uint32_t width = s->view ? oracles_enhanced_view_width(s->view) : ORACLES_SCREEN_WIDTH;
-        const uint32_t height = s->view ? oracles_enhanced_view_height(s->view) : ORACLES_SCREEN_HEIGHT;
-        const uint32_t *pixels = s->view ? oracles_enhanced_view_surface(s->view) : oracles_core_pixels(s->core);
-        oracles_filter_preview_keep(o->last_picture, oracles_mod_session_screen(s->mod, pixels, width, height), width, height, width * sizeof(uint32_t));
+        /* The screenshot twice as large where the panels stand at half the game's scale, each of their pixels whole. */
+        const unsigned scale = s->view ? oracles_enhanced_view_floating_scale(s->view) : 1u;
+        if (o->screenshot) {
+            const uint32_t *pixels = shown_picture(s, width, height, scale, &folded);
+            const uint32_t w = pixels == folded ? width * scale : width, h = pixels == folded ? height * scale : height;
+            if (!write_screenshot(o->screenshot, pixels, w, h)) fprintf(stderr, "oracles: cannot write %s\n", o->screenshot);
+            free(folded);
+        }
+        if (o->last_picture && s->frames_presented) {
+            const uint32_t *pixels = shown_picture(s, width, height, 1u, &folded);
+            oracles_filter_preview_keep(o->last_picture, pixels, width, height, width * sizeof(uint32_t));
+            free(folded);
+        }
     }
     if (s->check) { if (s->ran) oracles_frame_check_report(s->check, stderr); oracles_frame_check_stop(s->check); }
     if (s->transition) {

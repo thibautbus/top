@@ -75,6 +75,7 @@ typedef struct OraclesDisplayTextPreview {
     unsigned scale_num, scale_den;   /* the box's pixels against the band's: 1, (k + ceil(k / 2)) / k, 2 */
     char label[112];             /* the view, its size and the box's, and how large it shows; in Faithful, the game's box */
     const char *note;            /* that the size chosen falls back here, else empty */
+    int floating, neutral;       /* HUD on Floating in Enhanced: no band, the panels over the world; in their neutral gray */
     uint8_t sample[ORACLES_DISPLAY_SAMPLE_H][ORACLES_DISPLAY_SAMPLE_W];   /* the text's ink, 1, its first `text_w` columns */
 } OraclesDisplayTextPreview;
 void oracles_display_text_preview(const OraclesHomeNav *nav, OraclesDisplayTextPreview *out);

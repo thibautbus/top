@@ -285,6 +285,35 @@ void oracles_enhanced_check_summary(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.against_near_compared=%u\nenhanced.against_near_wrong_frames=%u\nenhanced.against_near_wrong_max=%u\nenhanced.against_near_last_wrong=%u\nenhanced.against_near_black_max=%u\nenhanced.against_near_last_black=%u\n",
                 c->against_near_compared, c->against_near_wrong_frames, c->against_near_wrong_max, c->against_near_last_wrong, c->against_near_black_max, c->against_near_last_black);
     }
+    free(c->folded);
+    c->folded = NULL;
+    if (c->band_out) fclose(c->band_out);
+    if (c->band_against) {
+        fclose(c->band_against);
+        free(c->band_other);
+        fprintf(out, "enhanced.band_against_frames=%u\nenhanced.band_against_compared=%u\nenhanced.band_against_eight=%u\nenhanced.band_against_rows_min=%u\n"
+                "enhanced.band_against_wrong_frames=%u\nenhanced.band_against_wrong_max=%u\nenhanced.band_against_last_wrong=%u\nenhanced.band_against_unlit_max=%u\n"
+                "enhanced.band_against_unmatched=%u\n", c->band_frames, c->band_compared, c->band_eight, c->band_compared ? c->band_rows_min : 0u, c->band_wrong_frames,
+                c->band_wrong_max, c->band_last_wrong, c->band_unlit_max, c->band_unmatched);
+    }
+    {   /* the status bar floating, when the run asks it */
+        unsigned frames = 0, whole = 0, pad = 0, faded = 0;
+        oracles_enhanced_view_floating_counts(c->view, &frames, &whole, &pad, &faded);
+        fprintf(out, "enhanced.floating_frames=%u\nenhanced.floating_whole_frames=%u\nenhanced.floating_pad_frames=%u\nenhanced.floating_faded_frames=%u\n"
+                "enhanced.floating_box_frames=%u\nenhanced.floating_box_met=%u\nenhanced.floating_box_hid=%u\nenhanced.floating_avoid_met=%u\nenhanced.floating_band_frames=%u\n",
+                frames, whole, pad, faded, c->floating_box_frames, c->floating_box_met, c->floating_box_hid, c->floating_avoid_met, c->floating_band_frames);
+        fprintf(out, "enhanced.floating_layer_frames=%u\nenhanced.floating_half_frames=%u\nenhanced.floating_label_frames=%u\n", c->floating_layer_frames,
+                c->floating_half_frames, oracles_enhanced_view_floating_label_frames(c->view));
+        fprintf(out, "enhanced.floating_content_compared=%u\nenhanced.floating_content_wrong_frames=%u\nenhanced.floating_content_last_wrong=%u\n", c->floating_content_compared,
+                c->floating_content_wrong_frames, c->floating_content_last_wrong);
+        unsigned left_frames = 0, left_pixels = 0;
+        oracles_enhanced_view_floating_blurb_counts(c->view, &left_frames, &left_pixels);
+        fprintf(out, "enhanced.floating_blurb_frames=%u\nenhanced.floating_blurb_hidden=%u\nenhanced.floating_blurb_last_hidden=%u\nenhanced.floating_blurb_left_frames=%u\n"
+                "enhanced.floating_blurb_left_pixels=%u\n", c->floating_blurb_frames, c->floating_blurb_hidden, c->floating_blurb_last_hidden, left_frames, left_pixels);
+    }
+    if (c->hud_switches)
+        fprintf(out, "enhanced.hud_switched=%u\nenhanced.hud_redrawn=%u\nenhanced.band_states_dropped=%u\n", c->hud_switched, c->hud_redrawn,
+                oracles_enhanced_view_band_states_dropped(c->view));
     summary_of_the_band(c, out);
     summary_of_what_was_shown(c, out);
     if (c->host_box || c->wide || c->text_size) ec_host_text_box_summary(c, out);

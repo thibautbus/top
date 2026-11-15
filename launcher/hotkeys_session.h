@@ -11,6 +11,17 @@
 
 typedef struct OraclesHotkeysSession OraclesHotkeysSession;
 
+/* The device the hotbar names the keys of and lays its floating tiles out for: a controller's (its buttons, the pad's
+ * diamond) from the start where a gamepad was open when the game started (a handheld's own controls), the keyboard's
+ * (its keys, their block) otherwise; then the device of the last slot key pressed. */
+typedef struct OraclesHotkeysDevice { int controller, keyed, started; } OraclesHotkeysDevice;
+static inline void oracles_hotkeys_device_start(OraclesHotkeysDevice *d, unsigned pads_open)
+{
+    if (!d->started && !d->keyed) d->controller = pads_open > 0u;
+    d->started = 1;
+}
+static inline void oracles_hotkeys_device_key(OraclesHotkeysDevice *d, int controller) { d->controller = controller; d->keyed = 1; }
+
 /* `slots`: the settings' slots the game plays with (oracles_session_hotkey_slots).  `route` is the route being replayed,
  * or NULL: while it lasts its exchanges are applied and the keys do nothing.  NULL when the inventory's write point
  * cannot be armed on this ROM (the option is then refused). */
@@ -24,6 +35,9 @@ void oracles_hotkeys_session_command(OraclesHotkeysSession *session, int command
 /* Once a frame: hands the Enhanced view what the hotbar shows; `view` may be NULL (Faithful has no hotbar). */
 struct OraclesEnhancedView;
 void oracles_hotkeys_session_frame(OraclesHotkeysSession *session, struct OraclesEnhancedView *view);
+/* The gamepads open when the game started (oracles_sdl_backend_pads_at_start), taken once: the device the hotbar starts on
+ * until a slot key is pressed (OraclesHotkeysDevice). */
+void oracles_hotkeys_session_pads_at_start(OraclesHotkeysSession *session, unsigned pads);
 /* The host's input filter. */
 unsigned oracles_hotkeys_session_filter(void *session, uint32_t frame, unsigned mask);
 /* The replayed route is over, or a savestate was loaded during it: the player has the keys. */

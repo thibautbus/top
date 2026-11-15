@@ -41,6 +41,13 @@ typedef struct harness_options {
     uint32_t enhanced_reload_after;   /* --enhanced-reload-after: the frames from the save to the load, 0 for 120 */
     const char *enhanced_surfaces_out, *enhanced_surfaces_against;
     uint32_t enhanced_surfaces_from;
+    const char *enhanced_band_out, *enhanced_band_against;   /* --enhanced-band-out, --enhanced-band-against: the world band floating against the replay's under the HUD band */
+    uint32_t enhanced_band_from;
+    uint32_t hud_switch[8];                  /* --hud-switch: the frames the status bar goes floating, or back, as from the pause */
+    unsigned hud_switches;
+    int floating_neutral;                    /* --hud-panel neutral: the floating panels light grey, not in the bar's colour */
+    int32_t floating_avoid[4][4];            /* --floating-avoid: the touch controls' rectangles on the surface, the panels kept clear of them */
+    unsigned floating_avoid_count;
     uint32_t enhanced_reload_at, hotbar_forget_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
     uint32_t framed_toggle[8];               /* --framed-toggle-at: the frames F3 switches between the wide world and the framed core */
     unsigned framed_toggles;
@@ -57,7 +64,7 @@ typedef struct harness_options {
     int text_box_wide;                     /* --text-box wide: the host's wide box, 192 pixels of text, classic or compact */
     int text_size;                         /* --text-size: 0 normal, 1 large (three halves, the presenter's), 2 xlarge (twice, in the band) */
     int menus_large;                       /* --menus-large: the framed core shown alone, its box the presenter's at every Text size */
-    unsigned surface_scale;                /* --surface-scale K: the surfaces written K times as large, the box with Large as the presenter shows it */
+    unsigned surface_scale;                /* --surface-scale K: the view shown K times: the surfaces written K times as large, the box with Large as the presenter shows it, the near view's floating panels laid out for it */
     int enhanced_level, enhanced_aspect;      /* --view (near unless --zoom-out) and --aspect: an OraclesEnhancedLevel and OraclesEnhancedAspect */
     int aspect_given;                         /* --aspect named the shape */
     unsigned screen_w, screen_h;              /* --screen: the screen the view's shape comes from, which far fits to; 0: none */

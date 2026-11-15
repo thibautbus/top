@@ -71,7 +71,7 @@ const uint32_t *ev_hud_fill(OraclesEnhancedView *v, OraclesEnhancedMode mode, in
 {
     OraclesEnhancedBar bar;
     const uint32_t *core = oracles_core_pixels(v->core);   /* the bar's lines, which a scroll's redrawn window copies as they are */
-    if (v->hud == ORACLES_ENHANCED_HUD_ORIGINAL || mode != ORACLES_ENHANCED_WORLD || !core || !ev_status_bar(v, &bar)) return NULL;
+    if (v->hud == ORACLES_ENHANCED_HUD_ORIGINAL || v->hud == ORACLES_ENHANCED_HUD_FLOATING || mode != ORACLES_ENHANCED_WORLD || !core || !ev_status_bar(v, &bar)) return NULL;
     const unsigned filled = oracles_enhanced_hud_fill(&bar, core_colour, v, core, v->hud_fill);
     if (counted && !v->load_band) {
         if (filled) v->hud_frames++;
@@ -128,7 +128,7 @@ const OraclesEnhancedHudPlace *ev_hud_place(OraclesEnhancedView *v, OraclesEnhan
 
 void oracles_enhanced_view_set_hud(OraclesEnhancedView *v, int hud)
 {
-    v->hud = hud == ORACLES_ENHANCED_HUD_FULL || hud == ORACLES_ENHANCED_HUD_WIDE ? hud : ORACLES_ENHANCED_HUD_ORIGINAL;
+    v->hud = hud == ORACLES_ENHANCED_HUD_FULL || hud == ORACLES_ENHANCED_HUD_WIDE || hud == ORACLES_ENHANCED_HUD_FLOATING ? hud : ORACLES_ENHANCED_HUD_ORIGINAL;
 }
 int oracles_enhanced_view_hud(const OraclesEnhancedView *v) { return v->hud; }
 
@@ -136,6 +136,13 @@ int oracles_enhanced_view_redraw_hud(OraclesEnhancedView *v)
 {
     const uint32_t *core = oracles_core_pixels(v->core);   /* its status bar's lines, which the window drawn again keeps as they are */
     if ((!v->have_view && !v->load_band) || !core) return 0;
+    /* To or from floating the band changes height: the frame composed again from the same moment of the game, the
+     * camera started again from Link in the band's new height, as the game resuming would show it. */
+    if (v->band_top != oracles_enhanced_band_top(v->hud == ORACLES_ENHANCED_HUD_FLOATING) || !v->band_top) {
+        oracles_enhanced_view_compose(v, NULL, NULL, NULL);
+        v->hud_recomposed++;
+        return 1;
+    }
     OraclesEnhancedCompose in;
     memset(&in, 0, sizeof in);
     in.mode = ORACLES_ENHANCED_WORLD;

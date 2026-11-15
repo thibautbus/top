@@ -217,7 +217,7 @@ int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int trackin
     const int world = in->mode == ORACLES_ENHANCED_WORLD;
     if (world || (v->framed_load && !v->load_area_held && tracking && ob->large_grid)) {
         v->load_area_left = ob->window_left - camera_x;
-        v->load_area_top = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + ob->window_top - camera_y;
+        v->load_area_top = (int32_t)v->band_top + ob->window_top - camera_y;
         v->load_area_held = world;
         if (world) return 0;
     } else if (!v->framed_load) { v->load_area_held = 0; return 0; }
@@ -238,7 +238,7 @@ int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int trackin
     in->world_left = 0;
     in->world_top = 0;
     in->window_world_left = v->load_area_left;
-    in->window_world_top = v->load_area_top - (int32_t)ORACLES_ENHANCED_HUD_HEIGHT;
+    in->window_world_top = v->load_area_top - (int32_t)v->band_top;
     v->load_band = 1;
     v->load_band_frames++;
     return 1;

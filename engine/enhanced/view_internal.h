@@ -47,6 +47,8 @@
 #define SIZE_RECORD_SIZE 8u          /* the tag, the surface's width and height (uint16, little-endian) */
 #define OFFSET_RECORD_TAG "SHOW"
 #define OFFSET_RECORD_SIZE 12u       /* the tag, the camera's whole offsets across and down (int32, little-endian; OFFSET_NONE: none) */
+#define BAND_RECORD_TAG "BAND"
+#define BAND_RECORD_SIZE 8u          /* the tag, the world band's first line and height (uint16, little-endian), floating alone */
 #define OFFSET_NONE INT32_MIN
 #define SCROLL_RECORD_TAG "SCRL"       /* the observer in a scroll (view_state.c, ORACLES_ENHANCED_SCROLL_STATE_SIZE) */
 #define INTERAC_ERA_OR_SEASON_INFO 0xe0u   /* constants/common/interactions.s: the blurb shown at the top of the screen on entering an area */
@@ -271,6 +273,8 @@ typedef struct blurb_drawing {
     uint8_t x, y, state;
     int camera_x, camera_y;
 } blurb_drawing;
+#define BLURB_COVER_W 32u           /* the blurb's box: four columns of 8x16 sprites */
+#define BLURB_COVER_H 16u
 
 /* A source of the band, as the edge overlay finds what lies under a sprite's pixel: its place and size in the world,
  * and, when it was drawn from a map, the tiles and maps, and the registers, its pixel (x, y) the frame's (x, y + 16). */
@@ -319,7 +323,8 @@ struct OraclesEnhancedView {
     uint8_t black_ref_group, black_ref_room;
     char black_log[512];
     OraclesEnhancedSize size;        /* the surface's, a level's in a shape (oracles_enhanced_view_size), chosen before the first composition */
-    unsigned band_height;            /* its world band's, oracles_enhanced_band_height of the size */
+    unsigned band_top, band_height;  /* its world band's first line and height: under the HUD band, or the whole surface floating */
+    unsigned band_states_dropped;    /* savestates loaded under the other band, their camera started again from Link */
     unsigned shown_width, shown_height;   /* the part of the band the last composition showed, centred (oracles_enhanced_camera_shown) */
     int chain_routed_idle;           /* the run order's last pass, with nothing else to run: a room the game routes itself may be a parent (drawn-back view) */
     int objects_refresh_deferred;    /* the band's pass left a room run again for its objects alone for after its black rooms */
@@ -664,6 +669,42 @@ struct OraclesEnhancedView {
     int hud_tight_known, hud_tight;
     unsigned hud_wide_frames, hud_wide_centred, hud_wide_one_row;
     unsigned hud_layout_frames[ORACLES_ENHANCED_BAR_BIGGORON + 1u], hud_layout_shown[ORACLES_ENHANCED_BAR_BIGGORON + 1u];
+    /* The status bar floating (hud=floating, view_floating.c): the panels the last composition drew, each block's fade
+     * (FLOATING_FADE steps, by kind and the pad's slot), the rectangles the touch controls take, and the frames counted:
+     * those with panels, with the whole bar in one, with the pad's tiles, with a panel faded for a text. */
+    uint32_t floating_rects[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    unsigned floating_shown[ORACLES_ENHANCED_FLOATING_PANELS];       /* each panel's share drawn, of 256 */
+    int32_t floating_sources[ORACLES_ENHANCED_FLOATING_PANELS][6];   /* the bar's block each shows whole, x, y, w, h, and where (w 0: none) */
+    unsigned floating_count;
+    uint8_t floating_fade[10];
+    int32_t floating_avoid[4][4];
+    unsigned floating_avoid_count;
+    int floating_neutral;
+    uint32_t *floating_layer;        /* with the sub-pixel camera: the panels apart, premultiplied, the size of the surface */
+    uint32_t floating_layer_w, floating_layer_h;   /* or twice it, the near view's panels at half the game's scale */
+    int floating_layered;            /* this frame's panels are in it, each within its rect of floating_drawn (x, y, w, h) */
+    uint32_t floating_drawn[ORACLES_ENHANCED_FLOATING_PANELS][4];
+    uint8_t floating_drawn_anchor[ORACLES_ENHANCED_FLOATING_PANELS];
+    unsigned floating_drawn_count;
+    unsigned floating_scale;         /* the layer's pixels a pixel of the surface across: 2 at half the game's scale, else 1 */
+    float floating_screen_scale;     /* the scale the screen shows the view at (0: unknown, as twice); under twice, the near view's panels B and A alone, in the surface */
+    unsigned hud_recomposed;         /* frames composed again for a change of the status bar from the pause */
+    unsigned floating_frames, floating_whole_frames, floating_pad_frames, floating_faded_frames;
+    unsigned floating_label_frames;   /* a tile with an item's label for its picture */
+    unsigned floating_blurb_frames;   /* compositions whose panels left the area blurb's pixels to it */
+    unsigned floating_blurb_pixels;   /* the panels' pixels left so, all of them */
+    int floating_put_half;            /* a panel being drawn at half the game's scale: */
+    int32_t floating_put_rect[4];     /* its rectangle in the layer */
+    float floating_put_at[4];         /* and its place on the surface (oracles_floating_surface_place) */
+    unsigned floating_put_cut;        /* the panels' pixels left to the blurb in this drawing */
+    /* The last composition's panels as it drew them, for its text box drawn again (ev_floating_again): what it read of
+     * the bar and the hotbar, each block's fade as it left it, and the surface under the panels before them (none when
+     * they are in the layer). */
+    struct ev_floating_frame *floating_frame;
+    uint8_t floating_fade_kept[10];
+    uint32_t *floating_under;
+    size_t floating_under_size;
+    int floating_under_kept;
     /* The Maku tree stands in the reference room (an INTERAC_MAKU_TREE, $87, both games), sampled in normal play
      * and in an arrival that is not a scroll; ref_maku_arrival: set by that arrival, which may still undo it. */
     int ref_maku, ref_maku_arrival;
@@ -781,6 +822,10 @@ struct OraclesEnhancedView {
     uint8_t blurb_built_y;           /* and its y */
     int blurb_built_camera_x;        /* the camera that OAM placed it by */
     int blurb_shown;                 /* the OAM on screen holds the blurb: built while it was there */
+    int blurb_cover_on;              /* the blurb drawn apart this composition, on the surface: */
+    int32_t blurb_cover_x, blurb_cover_y;   /* the top left of its box of BLURB_COVER_W x BLURB_COVER_H */
+    uint32_t blurb_cover[BLURB_COVER_H];    /* its pixels drawn, a bit a column of the box */
+    uint32_t blurb_colour[BLURB_COVER_H][BLURB_COVER_W];   /* and their colours */
     int large_was_in_scroll;         /* the last composition, a world one, was inside a large room's scroll */
     uint64_t large_scroll_epoch;     /* its epoch */
     int32_t large_prev_left, large_prev_top;

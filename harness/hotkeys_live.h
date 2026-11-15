@@ -20,6 +20,7 @@ typedef struct OraclesHotkeysLiveOptions {
     unsigned press_count;
     const char *record_path;             /* the route of the session, written in format 2 */
     int pad_labels;                      /* the hotbar's keys as a controller's (X, Y, LB, RB), not the keyboard's */
+    int keys_layout;                     /* the floating tiles in the keyboard's block, as the launcher lays them out after a key of the keyboard; a pad's by default */
 } OraclesHotkeysLiveOptions;
 
 typedef struct OraclesHotkeysLive OraclesHotkeysLive;

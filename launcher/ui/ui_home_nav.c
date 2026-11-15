@@ -408,6 +408,7 @@ void oracles_home_slow_open(OraclesHomeNav *nav)
     nav->slow = 0;
     nav->screen = ORACLES_SCREEN_DISPLAY;
     nav->advanced = nav->text_page = nav->picture_page = 0;
+    nav->display_scroll = 0.0f;
     nav->row = oracles_display_quality(nav) == ORACLES_DISPLAY_QUALITY_CUSTOM ? ORACLES_DISPLAY_VIEW : ORACLES_DISPLAY_QUALITY;
 }
 
@@ -438,6 +439,7 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
             nav->screen = ORACLES_SCREEN_DISPLAY;
             nav->row = 0;
             nav->advanced = nav->text_page = nav->picture_page = 0;
+            nav->display_scroll = 0.0f;
             return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_CONTROLS: oracles_controls_open(nav); return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_MODS: nav->screen = ORACLES_SCREEN_MODS; nav->row = 0; return ORACLES_HOME_STAY;

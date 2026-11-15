@@ -151,7 +151,7 @@ int oracles_settings_subpixel_camera(const oracles_settings *s, unsigned scale)
 
 const char *const oracles_settings_aspect_names[3] = { "auto", "16:9", "4:3" };   /* ORACLES_ASPECT_AUTO's order */
 const char *const oracles_settings_filter_names[8] = { "off", "scanlines", "crt", "lcd", "smooth", "xbr", "hq2x", "omniscale" };
-const char *const oracles_settings_hud_names[3] = { "original", "full", "wide" };
+const char *const oracles_settings_hud_names[ORACLES_SETTINGS_HUDS] = { "original", "full", "wide", "floating" };
 int oracles_settings_filter_index(const char *name)
 {
     for (int f = 1; f < 8; f++) if (name && !strcmp(name, oracles_settings_filter_names[f])) return f;
@@ -393,6 +393,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->unvisited_hidden = 0;   /* every room around shown */
     s->ghosts = 0;   /* auto */
     s->hud = 1;   /* full: the bar across the whole view, not a strip between two dark bands */
+    s->hud_panel = 0;   /* floating, the panels in the bar's colour */
 #ifdef __ANDROID__
     s->menus_large = 1;   /* a small screen: the framed core at the view's scale, often 1 or 2, is hard to read */
 #else
@@ -417,7 +418,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `filter=`, `screen_margin=`, `touch_vibration=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `hud_panel=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `filter=`, `screen_margin=`, `touch_vibration=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
@@ -477,8 +478,12 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
         if (!strcmp(word, "large") || !strcmp(word, "view")) s->menus_large = !strcmp(word, "large");
         return 1;
     }
+    if (!strcmp(name, "hud_panel")) {
+        if (!strcmp(word, "bar") || !strcmp(word, "neutral")) s->hud_panel = !strcmp(word, "neutral");
+        return 1;
+    }
     if (!strcmp(name, "hud")) {
-        for (int i = 0; i < 3; i++) if (!strcmp(word, oracles_settings_hud_names[i])) s->hud = i;
+        for (int i = 0; i < ORACLES_SETTINGS_HUDS; i++) if (!strcmp(word, oracles_settings_hud_names[i])) s->hud = i;
         return 1;
     }
     if (!strcmp(name, "menu_tip")) return load_tip(word, ORACLES_MENU_TIPS, &s->menu_tip);
@@ -807,7 +812,8 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The status bar in Enhanced: original (as the game draws it, dark beside it), full (across the whole view,\n"
                "# beside it its own background, which follows the game's colours) or wide (on that background, the hearts\n"
                "# and the money at the left corner, the items at the right).\n");
-    put(&w, "hud=%s\n", oracles_settings_hud_names[s->hud >= 0 && s->hud < 3 ? s->hud : 1]);
+    put(&w, "hud=%s\n", oracles_settings_hud_names[s->hud >= 0 && s->hud < ORACLES_SETTINGS_HUDS ? s->hud : 1]);
+    if (s->hud_panel) put(&w, "hud_panel=neutral\n");
     put(&w, "# The view's shape: auto (the screen's, nearer 4:3 or 16:9), 16:9 or 4:3, whatever the screen.\n");
     put(&w, "aspect=%s\n", oracles_settings_aspect_names[s->aspect >= 0 && s->aspect < 3 ? s->aspect : 0]);
     put(&w, "# The far view: screen (fitted to a screen its size fills badly, 426x320 on 1280x960 and 412x360 on 1240x1080,\n"

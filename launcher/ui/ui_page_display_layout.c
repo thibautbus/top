@@ -42,6 +42,57 @@ float oracles_ui_display_row(float x, float y, float w, const char *label, float
     return label_h > row->h ? label_h : row->h;
 }
 
+const OraclesUiTextStyle oracles_ui_panels_choice = { ORACLES_UI_FONT_SERIF, 22.0f, 0.0f, 0 };
+
+/* 16:9's HUD row: its four choices by their short names; with Floating, Panels' line under them, its label and its two
+ * choices at the right, its highlight reaching PANELS_PAD_X past them, the row's margins narrower.  Returns the row's
+ * height. */
+static float hud_row_16_9(const OraclesUiDisplayTexts *t, float x, float y, float w, float label_x, OraclesUiDisplayLayout *out)
+{
+    const unsigned r = ORACLES_DISPLAY_HUD;
+    if (!t->floating)
+        return oracles_ui_display_row(x, y, w, oracles_display_labels[r], label_x, t->explanations[6], 0.0f, NULL, 0, oracles_display_hud_short, NULL,
+                                      ORACLES_DISPLAY_HUDS, &out->labels[r], &out->explanations[6], NULL, out->hud, &out->rows[r]);
+    oracles_ui_wrap(&oracles_ui_row_label, oracles_display_labels[r], DISPLAY_LABEL_W, label_x, y + LABEL_PAD_TOP, &out->labels[r]);
+    const float inner_x = x + ROW_PAD_X, inner_y = y + HUD_FLOATING_PAD_Y, right = x + w - ROW_PAD_X;
+    pl_choices(oracles_display_hud_short, NULL, ORACLES_DISPLAY_HUDS, right, inner_y, out->hud);
+    /* Panels' choices from the right, then its label. */
+    float px = right, line_h = 0.0f;
+    for (int i = 1; i >= 0; i--) {
+        OraclesUiOptionLayout *o = &out->panels[i];
+        memset(&o->size, 0, sizeof o->size);
+        o->name = pl_line_at(&oracles_ui_panels_choice, oracles_display_panels_choices[i], 0.0f, 0.0f, 0.0f);
+        o->box.w = o->name.w + 2.0f * (PANELS_CHOICE_PAD_X + BORDER);
+        o->box.h = o->name.h + 2.0f * (PANELS_CHOICE_PAD_Y + BORDER);
+        o->box.x = px - o->box.w;
+        px = o->box.x - PANELS_CHOICE_GAP;
+        line_h = pl_max_f(line_h, o->box.h);
+    }
+    out->panels_label = pl_line_at(&oracles_ui_diagram_label, oracles_display_labels[ORACLES_DISPLAY_PANELS], 0.0f, 0.0f, 0.0f);
+    line_h = pl_max_f(line_h, out->panels_label.h);
+    const float line_y = inner_y + out->hud[0].box.h + PANELS_LINE_GAP;
+    for (int i = 0; i < 2; i++) {
+        OraclesUiOptionLayout *o = &out->panels[i];
+        o->box.y = line_y + (line_h - o->box.h) * 0.5f;
+        pl_move_line(&o->name, o->box.x + BORDER + PANELS_CHOICE_PAD_X, o->box.y + BORDER + PANELS_CHOICE_PAD_Y);
+    }
+    const float label_x_at = out->panels[0].box.x - PANELS_LABEL_GAP - out->panels_label.w;
+    pl_move_line(&out->panels_label, label_x_at, line_y + (line_h - out->panels_label.h) * 0.5f);
+    out->rows[ORACLES_DISPLAY_PANELS] = pl_box(label_x_at - PANELS_PAD_X, line_y, right + PANELS_PAD_X - (label_x_at - PANELS_PAD_X), line_h);
+    /* The explanation beside the two lines, wrapped in the room the wider of them leaves. */
+    const float column_w = right - fminf(out->hud[0].box.x, label_x_at - PANELS_PAD_X);
+    oracles_ui_wrap(&oracles_ui_row_text, t->explanations[6], right - inner_x - ROW_GAP - column_w, inner_x, inner_y, &out->explanations[6]);
+    const float choices_h = out->hud[0].box.h + PANELS_LINE_GAP + line_h, inner_h = pl_max_f(choices_h, out->explanations[6].h);
+    pl_move_wrapped(&out->explanations[6], inner_y + (inner_h - out->explanations[6].h) * 0.5f);
+    const float dy = (inner_h - choices_h) * 0.5f;
+    for (int i = 0; i < ORACLES_DISPLAY_HUDS; i++) pl_shift_option(&out->hud[i], 0.0f, dy);
+    for (int i = 0; i < 2; i++) pl_shift_option(&out->panels[i], 0.0f, dy);
+    pl_move_line(&out->panels_label, out->panels_label.x, out->panels_label.y + dy);
+    out->rows[ORACLES_DISPLAY_PANELS].y += dy;
+    out->rows[r] = pl_box(x, y, w, inner_h + 2.0f * HUD_FLOATING_PAD_Y);
+    return pl_max_f(LABEL_PAD_TOP + out->labels[r].h, out->rows[r].h);
+}
+
 /* Display › Picture's Filter: its value framed from (x, y), an arrow's place either side of its name and of the eight
  * marks under it, all centred in it; 16:9's measures or 4:3's. */
 typedef struct FilterStep {
@@ -276,8 +327,7 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
     y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_VIEW], left, t->view_explanation, 0.0f, view_notes,
                      t->view_note ? 1 : 0, oracles_display_view_names, view_sizes, 3, &out->labels[ORACLES_DISPLAY_VIEW], &out->view_explanation, view_out,
                      out->views, &out->rows[ORACLES_DISPLAY_VIEW]) + DISPLAY_ROW_GAP;
-    y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_HUD], left, t->explanations[6], 0.0f, NULL, 0, oracles_display_hud_choices,
-                     NULL, 3, &out->labels[ORACLES_DISPLAY_HUD], &out->explanations[6], NULL, out->hud, &out->rows[ORACLES_DISPLAY_HUD]) + DISPLAY_ROW_GAP;
+    y += hud_row_16_9(t, value_x, y, value_w, left, out) + DISPLAY_ROW_GAP;
     y += oracles_ui_text_link_16_9(t, value_x, y, value_w, left, out) + DISPLAY_ROW_GAP;
     y += oracles_ui_picture_link_16_9(t, value_x, y, value_w, left, out);
     out->panel = pl_box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
@@ -347,6 +397,39 @@ float oracles_ui_display_options_row_4_3(float y, unsigned row, const char *cons
     const float h = framed_4_3(names, sizes, size_lengths, count, DISPLAY_VALUE_X_4_3, 0.0f, width, options);
     shift_options(options, count, oracles_ui_display_row_4_3(y, oracles_display_labels[row], h, &out->labels[row], &out->rows[row]));
     return out->rows[row].y + out->rows[row].h;
+}
+
+/* The bottom of the rows laid out: the lowest row's. */
+static float rows_bottom(const OraclesUiDisplayLayout *out)
+{
+    float bottom = ROWS_Y_4_3;
+    for (unsigned r = 0; r < ORACLES_DISPLAY_ROWS; r++)
+        if (r != out->link && out->rows[r].h > 0.0f && out->rows[r].y >= ROWS_Y_4_3) bottom = pl_max_f(bottom, out->rows[r].y + out->rows[r].h);
+    return bottom;
+}
+
+/* 4:3's rows' room, and the scroll kept within the page's ends: none while the rows fit. */
+static void rows_room_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *out)
+{
+    out->rows_room = pl_box(ROWS_X_4_3, ROWS_ROOM_TOP_4_3, ROWS_W_4_3, ROWS_ROOM_H_4_3);
+    const float full = rows_bottom(out) - ROWS_Y_4_3, room = ROWS_ROOM_H_4_3 - (ROWS_Y_4_3 - ROWS_ROOM_TOP_4_3);
+    out->scroll_max = full > room + 1.0f ? full - room : 0.0f;
+    out->scroll = fminf(pl_max_f(t->scroll, 0.0f), out->scroll_max);
+}
+
+/* The scroll that keeps row `row` in sight from `scroll`, as little moved as can be. */
+static float follow_4_3(const OraclesUiDisplayLayout *out, unsigned row, float scroll)
+{
+    if (out->scroll_max <= 0.0f) return 0.0f;
+    const float room = ROWS_ROOM_H_4_3 - (ROWS_Y_4_3 - ROWS_ROOM_TOP_4_3), full = out->scroll_max + room;
+    float o = fminf(pl_max_f(scroll, 0.0f), out->scroll_max);
+    if (row < ORACLES_DISPLAY_ROWS && row != out->link && out->rows[row].h > 0.0f) {
+        const float top = out->rows[row].y - ROWS_Y_4_3, bottom = top + out->rows[row].h;
+        const float clear_below = bottom < full - 1.0f ? ROWS_FADE_4_3 : 0.0f, clear_above = top > 1.0f ? ROWS_FADE_4_3 : 0.0f;
+        if (bottom - o > room - clear_below) o = bottom - room + clear_below;
+        if (top - o < clear_above) o = top - clear_above;
+    }
+    return roundf(fminf(pl_max_f(o, 0.0f), out->scroll_max));
 }
 
 static void display_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *out)
@@ -453,10 +536,14 @@ static void display_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *
             y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_WINDOW, names, sizes, t->window_size_length, 4, out->windows, out) + DISPLAY_ROW_GAP_4_3;
         }
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_VIEW, oracles_display_view_names, view_sizes, NULL, 3, out->views, out) + DISPLAY_ROW_GAP_4_3;
-        y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_HUD, oracles_display_hud_choices, NULL, NULL, 3, out->hud, out) + DISPLAY_ROW_GAP_4_3;
+        y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_HUD, oracles_display_hud_choices, NULL, NULL, ORACLES_DISPLAY_HUDS, out->hud, out)
+            + DISPLAY_ROW_GAP_4_3;
+        if (t->floating)
+            y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_PANELS, oracles_display_panels_choices, NULL, NULL, 2, out->panels, out) + DISPLAY_ROW_GAP_4_3;
         y = oracles_ui_text_link_4_3(t, y, out) + DISPLAY_ROW_GAP_4_3;
         oracles_ui_picture_link_4_3(t, y, out);
     }
+    rows_room_4_3(t, out);
 }
 
 void oracles_ui_layout_display(OraclesUiLayout layout, const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *out)
@@ -501,7 +588,10 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
     t->explanations[3] = oracles_display_explanation(ORACLES_DISPLAY_CORE);
     t->explanations[4] = oracles_display_explanation(ORACLES_DISPLAY_WORKERS);
     t->explanations[5] = oracles_display_explanation(ORACLES_DISPLAY_SCALING);
-    t->explanations[6] = oracles_display_explanation(ORACLES_DISPLAY_HUD);
+    t->explanations[6] = oracles_display_hud_explanation(nav, 0);
+    t->floating = nav->display.hud == ORACLES_DISPLAY_HUD_FLOATING;
+    t->row = nav->row;
+    t->scroll = nav->display_scroll;
     t->explanations[7] = oracles_display_explanation(ORACLES_DISPLAY_MARGIN);
     t->explanations[8] = oracles_display_explanation(ORACLES_DISPLAY_TEXT);
     t->camera_explanation = oracles_display_explanation(ORACLES_DISPLAY_CAMERA);
@@ -548,9 +638,11 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         "Sharp: exact pixels. Fill: the whole screen.", "Smooth: diagonal walks glide.", "Keeps the picture clear of hidden screen edges.", NULL, NULL,
         NULL, NULL, "Scaling, filter, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
         "Fitted: a Far made for this screen.", "Unentered rooms stay dark: in dungeons, or everywhere.", NULL,
+        "Bar color: the bar's own color. Neutral: light gray.",
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;
-    t->help = row == ORACLES_DISPLAY_COLOUR ? oracles_display_colour_explanation(nav, 1) : help_4_3[row];
+    t->help = row == ORACLES_DISPLAY_COLOUR ? oracles_display_colour_explanation(nav, 1)
+              : row == ORACLES_DISPLAY_HUD ? oracles_display_hud_explanation(nav, 1) : help_4_3[row];
     const int text_row = row >= ORACLES_DISPLAY_LETTERS && row <= ORACLES_DISPLAY_TEXT_SPEED;
     if (row == ORACLES_DISPLAY_TEXT || text_row) t->help = oracles_display_text_explanation(row, 1);
     if (text_row && oracles_display_text_note(nav, row)[0]) t->help_note = oracles_display_text_note(nav, row);
@@ -601,4 +693,36 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         default: break;
     }
     if (oracles_display_pause_locked(nav, row) && row != ORACLES_DISPLAY_FAR_SIZE) t->help_note = oracles_display_pause_reason;
+}
+
+float oracles_ui_display_follow(const OraclesHomeNav *nav)
+{
+    if (nav->layout != ORACLES_UI_LAYOUT_4_3) return 0.0f;
+    static OraclesUiDisplayTexts t;
+    static OraclesUiDisplayLayout l;
+    oracles_ui_display_texts(nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    return follow_4_3(&l, t.row, nav->display_scroll);
+}
+
+float oracles_ui_display_scrolled(const OraclesHomeNav *nav, float dy)
+{
+    if (nav->layout != ORACLES_UI_LAYOUT_4_3 || !oracles_ui_fonts_load()) return 0.0f;
+    static OraclesUiDisplayTexts t;
+    static OraclesUiDisplayLayout l;
+    oracles_ui_display_texts(nav, &t);
+    oracles_ui_layout_display(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    return roundf(fminf(fmaxf(nav->display_scroll + dy, 0.0f), l.scroll_max));
+}
+
+void oracles_ui_display_drag_start(OraclesUiDisplayDrag *drag, float y)
+{
+    drag->press_y = y;
+    drag->dragged = 0;
+}
+
+int oracles_ui_display_drag_moved(OraclesUiDisplayDrag *drag, float y, float window_h)
+{
+    if (!drag->dragged && fabsf(y - drag->press_y) >= fmaxf(window_h, 1.0f) / 40.0f) drag->dragged = 1;
+    return drag->dragged;
 }

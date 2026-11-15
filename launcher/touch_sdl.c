@@ -130,7 +130,7 @@ static void strokes(SDL_Renderer *renderer, float cx, float cy, float unit, cons
 }
 
 /* The frame where the logical presentation puts it in the band, centred, black beside it. */
-static void frame_direct(OraclesTouchScreen *screen, SDL_Renderer *renderer, SDL_Texture *frame, const SDL_FRect *part, const OraclesTouchBox *safe, int fill)
+static OraclesTouchBox frame_direct(OraclesTouchScreen *screen, SDL_Renderer *renderer, SDL_Texture *frame, const SDL_FRect *part, const OraclesTouchBox *safe, int fill)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -139,6 +139,7 @@ static void frame_direct(OraclesTouchScreen *screen, SDL_Renderer *renderer, SDL
     const SDL_FRect to = { safe->x + box.x, safe->y + box.y, box.w, box.h };
     if (!screen->draw_frame || !screen->draw_frame(screen->draw_frame_opaque, renderer, part, &to)) SDL_RenderTexture(renderer, frame, part, &to);
     if (screen->over_frame) screen->over_frame(screen->over_frame_opaque, renderer, &to);
+    return (OraclesTouchBox){ to.x, to.y, to.w, to.h };
 }
 
 int oracles_touch_sdl_frame(OraclesTouchScreen *screen, SDL_Renderer *renderer, SDL_Texture *frame, const SDL_FRect *part)
@@ -154,11 +155,13 @@ int oracles_touch_sdl_frame(OraclesTouchScreen *screen, SDL_Renderer *renderer, 
         screen->direct = 1;
     }
     if (!sized) return 1;
-    frame_direct(screen, renderer, frame, part, &safe, screen->fill);
+    const OraclesTouchBox to = frame_direct(screen, renderer, frame, part, &safe, screen->fill);
+    screen->covered_count = 0;
     if (screen->touch.shown) {
         OraclesTouchLayout l;
         oracles_touch_layout(safe.w, safe.h, &l);
         l.dpad.y += safe.y; l.a.y += safe.y; l.b.y += safe.y; l.pause.y += safe.y; l.select.y += safe.y; l.start.y += safe.y;
+        screen->covered_count = oracles_touch_frame_covered(&l, to, part ? (int)part->w : frame->w, part ? (int)part->h : frame->h, screen->covered);
         const unsigned pressed = oracles_touch_pressed(&screen->touch);
         const SDL_FColor rest = { 1, 1, 1, 0.14f }, arm = { 1, 1, 1, 0.26f }, held = { 1, 1, 1, 0.45f }, mark = { 1, 1, 1, 0.6f };
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);

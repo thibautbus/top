@@ -54,3 +54,6 @@ castle-and-west.route	enhanced	--continuous-line	transitions.vblank_scroll_write
 shop.route	faithful	--poke-at 5150 0:c688=03 --poke-at 5150 0:c6b0=05 --poke-at 5150 0:c69a=0c --poke-at 5150 0:c6ad=50	-	-	-
 shop.route	faithful	--poke-at 5150 0:c688=03 --poke-at 5150 0:c6b0=05 --poke-at 5150 0:c69a=0c --poke-at 5150 0:c6ad=50 --cheats ammo,rupees	guest.hooks_refused=0;cheats.ammo_kept=1;cheats.payments_cancelled=1;cheats.rupees_kept=20;cheats.damage_cancelled=0	-	-
 shop.route	faithful	--poke-at 5150 0:c688=03 --poke-at 5150 0:c6b0=05 --poke-at 5150 0:c69a=0c --poke-at 5150 0:c6ad=50 --cheats no-damage,rupees	cheats.damage_cancelled=3;cheats.health_kept=8;cheats.ammo_kept=0;cheats.payments_cancelled=1;cheats.rupees_kept=20	-	-
+# castle-and-west.route with the status bar floating: the era's blurb on coming out to the overworld stands in front of
+# the panels, each of its pixels in a panel's place shown as drawn (enhanced.floating_blurb_*), as on Ages' rows.
+castle-and-west.route	enhanced	--hud floating	enhanced.floating_content_wrong_frames=0;enhanced.floating_box_met=0;enhanced.text_box_frames_wrong=0;enhanced.blurb_frames_in_window=0;enhanced.floating_blurb_frames=161;enhanced.floating_blurb_hidden=0	sameboy:504cd05301d90464,mgba:3c6fdb996c2483a1	-

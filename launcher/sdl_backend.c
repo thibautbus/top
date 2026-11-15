@@ -142,8 +142,10 @@ static void renderer_heard(void *opaque, SDL_Renderer *renderer)
     if (another) {
         if (backend->texture) SDL_DestroyTexture(backend->texture);
         if (backend->layer) SDL_DestroyTexture(backend->layer);
-        backend->texture = backend->layer = NULL;
+        if (backend->panels) SDL_DestroyTexture(backend->panels);
+        backend->texture = backend->layer = backend->panels = NULL;
         backend->layer_w = backend->layer_h = 0;
+        backend->panels_w = backend->panels_h = backend->panels_shown = 0;
     }
     if (!renderer) { backend->renderer = NULL; return; }
     if (another) {
@@ -160,6 +162,12 @@ static void renderer_heard(void *opaque, SDL_Renderer *renderer)
     /* The layer the pause shows, written again for the filter now in force (its margin follows the filter's curve). */
     backend->shown_layered = backend->shown_layered && sb_upload_layer(backend, backend->last_layer, backend->last_patch, &backend->shown,
                                                                        backend->last_pixels, backend->last_pitch);
+    /* And the floating panels it shows, written for that filter too (straight or premultiplied, as far as it reads). */
+    if (backend->shown_subpixel && backend->last_panels) {
+        oracles_host_video_subpixel again = backend->shown;
+        again.panels = backend->last_panels;
+        sb_upload_panels(backend, &again);
+    }
 }
 
 static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sample_rate_hz, int audio_enabled)
@@ -207,6 +215,7 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     sb_present_as(backend, (int)width, (int)height);
     oracles_safe_area_report(backend->window, "game", "started", &backend->touch.edges);
     oracles_sdl_pads_open(&backend->pads);
+    backend->pads_at_start = backend->pads.count;
     {
         char pads[256];
         oracles_sdl_pads_describe(&backend->pads, pads, sizeof pads);
@@ -291,6 +300,17 @@ unsigned oracles_sdl_backend_whole_scale(const oracles_host_backend *backend)
     const OraclesTouchBox band = oracles_touch_band(w, h, &state->touch.edges);
     const float kx = band.w / (float)state->frame_width, ky = band.h / (float)state->frame_height, k = kx < ky ? kx : ky;
     return k >= 1.0f ? (unsigned)k : 1u;
+}
+
+float oracles_sdl_backend_picture_scale(const oracles_host_backend *backend)
+{
+    const sdl_backend *state = backend->opaque;
+    int w = 0, h = 0;
+    if (!state || !state->renderer || state->frame_width <= 0 || state->frame_height <= 0 || !SDL_GetRenderOutputSize(state->renderer, &w, &h) || w <= 0 || h <= 0)
+        return 0.0f;
+    const OraclesTouchBox band = oracles_touch_band(w, h, &state->touch.edges);
+    const float kx = band.w / (float)state->frame_width, ky = band.h / (float)state->frame_height, k = kx < ky ? kx : ky;
+    return state->filled ? k : k >= 1.0f ? SDL_floorf(k) : 1.0f;
 }
 
 int oracles_sdl_backend_window_closed(const oracles_host_backend *backend)
@@ -471,14 +491,22 @@ static void sdl_stop(void *opaque)
     oracles_sdl_filter_close(backend->filter);
     backend->filter = NULL;
     backend->last_pixels = NULL;
-    backend->last_layer = backend->last_patch = NULL;
+    backend->last_layer = backend->last_patch = backend->last_panels = NULL;
     if (backend->texture) SDL_DestroyTexture(backend->texture);
     backend->texture = NULL;
     if (backend->layer) SDL_DestroyTexture(backend->layer);
     backend->layer = NULL; backend->layer_w = backend->layer_h = 0;
+    if (backend->panels) SDL_DestroyTexture(backend->panels);
+    backend->panels = NULL; backend->panels_w = backend->panels_h = backend->panels_shown = 0;
     SDL_free(backend->layer_pixels);
     backend->layer_pixels = NULL;
     backend->layer_pixels_size = 0;
+    SDL_free(backend->panels_pixels);
+    SDL_free(backend->panels_reach);
+    backend->panels_pixels = NULL;
+    backend->panels_reach = NULL;
+    backend->panels_pixels_size = 0;
+    backend->panels_groups = 0;
     if (backend->borrowed) {
         /* The launcher's window goes back as it was lent, even when the start failed half way: no logical size, the
          * launcher sets its own size again; only the subsystems the loan started are quit. */
@@ -555,6 +583,14 @@ void oracles_sdl_backend_pause_view(const oracles_host_backend *backend, struct 
     *height = state->frame_height;
 }
 
+unsigned oracles_sdl_backend_touch_covered(const oracles_host_backend *backend, int32_t out[4][4])
+{
+    const sdl_backend *state = backend ? backend->opaque : NULL;
+    if (!state || !state->touch.touch.shown) return 0;
+    memcpy(out, state->touch.covered, state->touch.covered_count * sizeof *out);
+    return state->touch.covered_count;
+}
+
 void oracles_sdl_backend_pause_size(const oracles_host_backend *backend, int *width, int *height)
 {
     const sdl_backend *state = backend->opaque;
@@ -592,6 +628,31 @@ void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const
         state->shown_layered = sb_upload_layer(state, state->last_layer, state->last_patch, &state->shown, pixels, state->last_pitch);
 }
 
+void oracles_sdl_backend_pause_subpixel(const oracles_host_backend *backend, const oracles_host_video_subpixel *subpixel)
+{
+    sdl_backend *state = backend->opaque;
+    if (state->shown_cropped) return;
+    if (!subpixel) { state->shown_subpixel = state->shown_layered = state->panels_shown = 0; return; }
+    if (!state->renderer) {   /* a renderer lost: the layer written again when the next one comes, at the new place */
+        state->shown = *subpixel;
+        state->shown.layer = state->shown.patch = NULL;
+        state->shown.panels = NULL;
+        state->last_layer = subpixel->layer;
+        state->last_patch = subpixel->patch;
+        state->last_panels = subpixel->panels;
+        state->shown_layered = subpixel->layer != NULL;
+        state->shown_subpixel = 1;
+        state->panels_shown = 0;
+        return;
+    }
+    oracles_host_video_frame frame;
+    memset(&frame, 0, sizeof frame);
+    frame.pixels = state->last_pixels;
+    frame.pitch_bytes = state->last_pitch;
+    frame.subpixel = subpixel;
+    sb_take_subpixel(state, &frame);
+}
+
 int oracles_sdl_backend_pause_image(const oracles_host_backend *backend, const struct SDL_FRect *image)
 {
     return oracles_sdl_backend_pause_image_as(backend, image, 1);
@@ -615,10 +676,12 @@ int oracles_sdl_backend_pause_image_as(const oracles_host_backend *backend, cons
     OraclesSdlFilter *kept = state->filter;
     state->filter = filter;   /* the layer apart where the shader is not drawn */
     const int drawn = sb_draw_subpixel_cut(state, image);
-    state->filter = kept;
     oracles_sdl_filter_use(filter, 0);
-    if (drawn) sb_draw_shown_box(state, image);
-    return drawn;
+    const int panels = drawn && sb_draw_half_panels(state, image, 1);   /* the panels at half the game's scale over the picture, through the same filter */
+    state->filter = kept;
+    if (!drawn) return 0;
+    sb_draw_shown_box(state, image);
+    return panels;
 }
 
 oracles_sdl_menu_source oracles_sdl_backend_menu_source(const oracles_host_backend *backend)
@@ -631,6 +694,12 @@ oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backen
 {
     const sdl_backend *state = backend->opaque;
     return state->last_input;
+}
+
+unsigned oracles_sdl_backend_pads_at_start(const oracles_host_backend *backend)
+{
+    const sdl_backend *state = backend->opaque;
+    return state->pads_at_start;
 }
 
 unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend)
