@@ -3,6 +3,7 @@
 #include "backends.h"
 #include "file_dialog.h"
 #include "home_input.h"
+#include "portable.h"
 #include "safe_area.h"
 #include "touch_controls.h"
 #include "ui_controls_nav.h"
@@ -32,6 +33,17 @@
 #define ANDROID_REDRAWS 0
 #endif
 
+/* About's Portable mode turning, on a thread of its own: its copy may take seconds on a slow USB stick, during which the
+ * home screen draws "Copying…" and its page takes no input, nor a file dropped on the window.  `done`, set as the thread
+ * ends: the loop looks at it too, should the event the thread pushes be lost. */
+typedef struct portable_job {
+    SDL_Thread *thread;
+    SDL_AtomicInt done;
+    int on;
+    OraclesPortableResult result;
+    char next_dir[1024], error[512];
+} portable_job;
+
 typedef struct home_app {
     const OraclesHomeHost *host;
     SDL_Window *window;
@@ -57,7 +69,12 @@ typedef struct home_app {
     Uint32 watch_type[6];    /* the second's events by type, the first six types seen */
     unsigned watch_type_count[6];
     double presented_ms;
+    portable_job portable;
 } home_app;
+
+/* The event the portable mode's thread pushes as it ends, and how often the loop looks for its end meanwhile. */
+static Uint32 portable_event;
+#define PORTABLE_POLL_MS 100
 
 static double now_ms(void)
 {
@@ -187,13 +204,14 @@ static void start(home_app *app, OraclesHomeCommand game)
     while (play(app, game) == 2) {}
 }
 
-/* The game's page asks the host for a file, a folder, or to keep a choice. */
+/* The game's page asks the host for a file, a folder, or to keep a choice; a choice is kept without a game too
+ * (About's from the list of fan games). */
 static void page_command(home_app *app, OraclesHomeCommand c)
 {
     const OraclesHomeHost *host = app->host;
     const int game = oracles_home_game(&app->nav);
     char message[256] = "";
-    if (!host || game < 0) return;
+    if (!host || (game < 0 && oracles_home_command_needs_game(c))) return;
     if (c == ORACLES_HOME_STORE && host->store) {
         host->store(host->opaque, &app->nav);
         if (app->nav.display.margin != app->edges.margin) read_edges(app);
@@ -259,6 +277,49 @@ static int input(const SDL_Event *e)
            (e->type >= SDL_EVENT_GAMEPAD_AXIS_MOTION && e->type <= SDL_EVENT_GAMEPAD_BUTTON_UP) || e->type == SDL_EVENT_DROP_FILE;
 }
 
+static int portable_run(void *data)
+{
+    portable_job *job = data;
+    job->result = oracles_portable_switch(job->on, job->next_dir, sizeof job->next_dir, job->error, sizeof job->error);
+    SDL_SetAtomicInt(&job->done, 1);
+    SDL_Event e;
+    SDL_zero(e);
+    e.type = portable_event;
+    if (!SDL_PushEvent(&e)) fprintf(stderr, "oracles: portable mode: its end is not signalled (%s): the home screen looks for it\n", SDL_GetError());
+    return 0;
+}
+
+/* The switch done: the settings and About's row follow it. */
+static void portable_done(home_app *app)
+{
+    portable_job *job = &app->portable;
+    if (!job->thread) return;
+    SDL_WaitThread(job->thread, NULL);
+    job->thread = NULL;
+    static const char *const results[] = { "copied", "nothing to copy", "the other folder's own settings kept", "unchanged", "the folder cannot be written in",
+                                           "the copy failed", "unavailable" };
+    const unsigned r = (unsigned)job->result;
+    fprintf(stderr, "oracles: portable mode turned %s: %s%s%s\n", job->on ? "on" : "off", r < sizeof results / sizeof results[0] ? results[r] : "?",
+            job->error[0] ? ": " : "", job->error);
+    if (app->host && app->host->portable_turned) app->host->portable_turned(app->host->opaque, &app->nav, job->on, (int)job->result, job->next_dir);
+    changed(app);
+}
+
+static void portable_start(home_app *app)
+{
+    portable_job *job = &app->portable;
+    if (job->thread) return;
+    memset(job, 0, sizeof *job);
+    job->on = app->nav.portable_wanted;
+    if (!portable_event) portable_event = SDL_RegisterEvents(1);
+    if (portable_event) job->thread = SDL_CreateThread(portable_run, "portable mode", job);
+    if (job->thread) return;
+    /* Without a thread, at once: the screen waits for it. */
+    job->result = oracles_portable_switch(job->on, job->next_dir, sizeof job->next_dir, job->error, sizeof job->error);
+    if (app->host && app->host->portable_turned) app->host->portable_turned(app->host->opaque, &app->nav, job->on, (int)job->result, job->next_dir);
+    changed(app);
+}
+
 static void command(home_app *app, OraclesHomeCommand c)
 {
     char message[256];
@@ -266,6 +327,7 @@ static void command(home_app *app, OraclesHomeCommand c)
     else if (c == ORACLES_HOME_OPEN_UPDATE) {   /* the browser opens, the launcher staying; without one, the page's address */
         if (!oracles_update_check_open(message, sizeof message) && message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
     }
+    else if (c == ORACLES_HOME_PORTABLE) portable_start(app);
     else if (c == ORACLES_HOME_START_AGES || c == ORACLES_HOME_START_SEASONS || c == ORACLES_HOME_START_AGES_MODS || c == ORACLES_HOME_START_SEASONS_MODS
              || oracles_home_fan_game_started(c)) start(app, c);
     else if (c != ORACLES_HOME_STAY) page_command(app, c);
@@ -315,7 +377,7 @@ static void pointer(home_app *app, float x, float y, int click)
         const OraclesHomeCommand c = app->nav.screen == ORACLES_SCREEN_GAME ? oracles_page_click(&app->nav, hit.index, hit.option)
                                      : app->nav.screen == ORACLES_SCREEN_MODS ? oracles_mods_click(&app->nav, hit.index)
                                      : app->nav.screen == ORACLES_SCREEN_CHEATS ? oracles_cheats_click(&app->nav, hit.index, hit.option)
-                                     : app->nav.screen == ORACLES_SCREEN_ABOUT ? oracles_about_click(&app->nav, hit.option)
+                                     : app->nav.screen == ORACLES_SCREEN_ABOUT ? oracles_about_click(&app->nav, hit.index, hit.option)
                                                                               : oracles_display_click(&app->nav, hit.index, hit.option);
         changed(app);
         command(app, c);
@@ -396,8 +458,9 @@ static void handle(home_app *app, const SDL_Event *e)
             fprintf(stderr, "oracles: home screen event 0x%x, %.0f ms after the game\n", (unsigned)e->type, now_ms() - app->watch_since_ms);
     }
     if (oracles_safe_area_event(app->window, "home screen", e, &app->edges)) app->dirty = 1;
-    /* The update check's answer (update_check.h). */
+    /* The update check's answer (update_check.h), the portable mode's switch done. */
     if (oracles_update_check_event() && e->type == oracles_update_check_event()) read_update(app);
+    if (portable_event && e->type == portable_event) portable_done(app);
     if (e->type == SDL_EVENT_WINDOW_FOCUS_GAINED || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED
         || e->type == SDL_EVENT_WINDOW_HIDDEN || e->type == SDL_EVENT_WINDOW_SHOWN)
         fprintf(stderr, "oracles: home screen window: %s\n", e->type == SDL_EVENT_WINDOW_FOCUS_GAINED ? "focus gained" : e->type == SDL_EVENT_WINDOW_FOCUS_LOST ? "focus lost"
@@ -421,7 +484,9 @@ static void handle(home_app *app, const SDL_Event *e)
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (e->button.button == SDL_BUTTON_LEFT) pointer(app, e->button.x, e->button.y, 1);
             break;
-        case SDL_EVENT_DROP_FILE: drop(app, e->drop.data); break;   /* SDL frees its copy */
+        case SDL_EVENT_DROP_FILE:   /* SDL frees its copy */
+            if (!app->portable.thread) drop(app, e->drop.data);
+            break;
         case SDL_EVENT_WINDOW_RESIZED:
             if (!(SDL_GetWindowFlags(app->window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED))) {
                 const float scale = oracles_sdl_point_scale(app->window);
@@ -471,7 +536,7 @@ static int render(home_app *app, double now)
 }
 
 /* How long to wait for an event: not at all with a frame due, until the next timed change otherwise, forever when none. */
-static int wait_ms(const home_app *app, double now)
+static int event_wait_ms(const home_app *app, double now)
 {
     if (app->dirty) return 0;
     if (app->redraws > 0) { const double left = FRAME_MS - (now - app->presented_ms); return left > 0.0 ? (int)left : 0; }
@@ -483,6 +548,13 @@ static int wait_ms(const home_app *app, double now)
     if (settle >= 0.0 && (due < 0.0 || settle < due)) due = settle;
     if (due < 0.0) return -1;
     return due > now ? (int)(due - now) + 1 : 0;
+}
+
+/* The same, but at most PORTABLE_POLL_MS while the portable mode turns. */
+static int wait_ms(const home_app *app, double now)
+{
+    const int wait = event_wait_ms(app, now);
+    return app->portable.thread && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
 }
 
 static int open_window(home_app *app)
@@ -541,6 +613,7 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
                 while (app.running && SDL_PollEvent(&e)) handle(&app, &e);
             }
             if (!app.running) break;
+            if (app.portable.thread && SDL_GetAtomicInt(&app.portable.done)) portable_done(&app);
             const double now = now_ms();
             if (app.watch_until_ms > 0.0 && now >= app.watch_next_ms) {
                 const SDL_WindowFlags flags = SDL_GetWindowFlags(app.window);
@@ -565,6 +638,7 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
             }
         }
     }
+    portable_done(&app);   /* a switch the window was closed during ends, and its settings are written */
     *width = app.width;
     *height = app.height;
     oracles_ui_draw_destroy(app.draw);

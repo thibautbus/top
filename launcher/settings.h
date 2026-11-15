@@ -8,6 +8,7 @@
 
 #include "backends.h"
 #include "item_hotkeys.h"
+#include "portable.h"
 #include "touch_controls.h"
 #include "ui_controls_nav.h"
 
@@ -66,6 +67,10 @@ typedef struct oracles_settings {
     char path[ORACLES_SETTINGS_PATH_LENGTH];   /* empty when no settings directory is available */
     char mods_path[ORACLES_SETTINGS_PATH_LENGTH];   /* the mods folder where it is not beside settings.txt (Android's, on the
                                                      * shared storage), else empty */
+    char exe_dir[ORACLES_SETTINGS_PATH_LENGTH];     /* the executable's folder, with its separator, which a ROM's or a patch's
+                                                     * path written relative is read against; empty where there is none */
+    int paths_relative;           /* the portable mode: a ROM's or a patch's path below exe_dir written relative to it, so
+                                   * that the folder may move (a USB stick under another drive letter) */
     int colour_correction;        /* on by default */
     char vsync[8];                /* auto, on, off */
     int camera;                   /* the Enhanced camera profile: 1 or 2 */
@@ -230,6 +235,21 @@ OraclesHotkeysMode oracles_settings_hotkeys_mode(const char *text);
 size_t oracles_settings_mod_names(const char *list, char names[][ORACLES_SETTINGS_MOD_NAME], size_t capacity);
 int oracles_settings_mod_active(const char *list, const char *name);
 int oracles_settings_mod_set(char list[ORACLES_SETTINGS_MODS_LENGTH], const char *name, int on);
+/* A ROM's or a patch's path as settings.txt keeps it: below `base` (with its separator), the rest of it, relative;
+ * elsewhere, or with `base` empty, as it is.  Below a Windows `base`, the case does not count and \ and / are the
+ * same; below another, \ is a character of a name. */
+void oracles_settings_path_written(const char *base, const char *path, char *out, size_t capacity);
+/* A ROM's or a patch's path read from settings.txt: a relative one joined to `base` when it is not empty, else as it
+ * is. */
+void oracles_settings_path_read(const char *base, const char *value, char *out, size_t capacity);
+/* How many of the ROMs, European ROMs and patches chosen are outside the folder `exe_dir`: the games, and their saves,
+ * that stay where they are when the portable mode is turned on. */
+unsigned oracles_settings_games_outside(const oracles_settings *settings, const char *exe_dir);
+/* After oracles_portable_switch (portable.h) gave `result`: on COPIED and NOTHING_TO_COPY, the folder of the next
+ * launches, `next_dir`, holds what the launcher holds, and settings.txt is written there at once, its ROMs' paths as the
+ * mode writes them, so that the rest of the run writes there too; on KEPT, the other folder's own data takes over at
+ * the next launch, and nothing changes until then. */
+void oracles_settings_portable_turned(oracles_settings *settings, int on, OraclesPortableResult result, const char *next_dir);
 /* The mods folder, one folder per mod: mods_path when set, else mods beside settings.txt; empty when there is no
  * settings directory. */
 void oracles_settings_mods_folder(const oracles_settings *settings, char *out, size_t capacity);

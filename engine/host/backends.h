@@ -234,8 +234,8 @@ typedef struct oracles_sdl_underrun {
 /* The run's first underruns, at most ORACLES_SDL_UNDERRUNS_LOGGED: sets *log and returns how many. */
 unsigned oracles_sdl_backend_underruns(const oracles_host_backend *backend, const oracles_sdl_underrun **log);
 
-/* Per-user settings directory of this platform (ORACLES_SETTINGS_DIR when set), with a trailing separator; 0 if
- * unavailable. */
+/* Per-user settings directory of this platform (ORACLES_SETTINGS_DIR when set, else the portable mode's beside the
+ * executable: launcher/portable.h), with a trailing separator; 0 if unavailable. */
 int oracles_sdl_settings_dir(char *out, size_t capacity);
 
 /* No window, no audio, a deterministic clock: for tests and headless runs. */

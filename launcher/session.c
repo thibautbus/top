@@ -679,6 +679,7 @@ static int attach(session *s, const OraclesSessionOptions *o, OraclesSessionResu
         char path[PATH_MAX_LENGTH + 16];
         snprintf(path, sizeof path, "%s.session.tsv", o->record_path);
         s->fingerprints = fopen(path, "wb");
+        if (!s->fingerprints) fprintf(stderr, "oracles: cannot write %s: the route is recorded without it\n", path);
     }
     return 1;
 }

@@ -780,13 +780,31 @@ void oracles_ui_about_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracl
     wrapped(draw, nav->layout == ORACLES_UI_LAYOUT_4_3 ? st->page_note : st->row_text, &l.note,
             oracles_ui_rgb(nav->layout == ORACLES_UI_LAYOUT_4_3 ? NOTE_ITALIC : NOTE));
     panel(draw, &l.panel);
-    /* Its one row, always highlighted. */
-    highlight(draw, lk, &l.rows[0], 1);
-    text(draw, st->row_label, &l.labels[0], oracles_about_label, oracles_ui_rgb(LABEL));
-    wrapped(draw, st->row_text, &l.explanations[0], oracles_ui_rgb(NOTE));
-    for (int c = 0; c < 2; c++) option(draw, st, lk, &l.choices[0][c], 0, oracles_about_choices[c], NULL, (c == 0) == (nav->update_check != 0), 1, accent, CHOICE_OFF, 1.0f);
-    text(draw, st->help, &l.help, oracles_about_help, oracles_ui_rgb(HELP));
-    text(draw, st->help_note, &l.help_note, oracles_about_help_note, oracles_ui_rgb(NOTE_ITALIC));
+    /* Update check, and Portable mode where it can be, its choices faded while it copies; the highlighted row's help
+     * under them in 4:3. */
+    const unsigned rows = oracles_about_rows(nav), row = nav->row < rows ? nav->row : 0u;
+    OraclesTone tone;
+    const char *status = oracles_about_portable_status(nav, &tone);
+    const int copying = nav->portable_status == ORACLES_PORTABLE_STATUS_COPYING;
+    for (unsigned r = 0; r < rows; r++) {
+        const int portable = r == ORACLES_ABOUT_ROW_PORTABLE;
+        const int chosen = portable ? nav->portable != 0 : nav->update_check == 0;   /* the index of the choice on */
+        highlight(draw, lk, &l.rows[r], r == row);
+        text(draw, st->row_label, &l.labels[r], portable ? oracles_about_portable_label : oracles_about_label, oracles_ui_rgb(LABEL));
+        wrapped(draw, st->row_text, &l.explanations[r], oracles_ui_rgb(NOTE));
+        for (int c = 0; c < 2; c++)
+            option(draw, st, lk, &l.choices[r][c], 0, (portable ? oracles_about_portable_choices : oracles_about_choices)[c], NULL, c == chosen, r == row,
+                   accent, CHOICE_OFF, portable && copying ? ROW_NOT_APPLIED : 1.0f);
+    }
+    const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
+    wrapped(draw, four_three ? &oracles_ui_row_text_4_3 : st->row_text, &l.hint, oracles_ui_rgb(NOTE));
+    if (status) {
+        dot(draw, &l.status_dot, tone);
+        wrapped(draw, four_three ? &oracles_ui_about_status_4_3 : &oracles_ui_about_status, &l.status, oracles_ui_rgb(tone_texts[tone]));
+    }
+    const int portable = row == ORACLES_ABOUT_ROW_PORTABLE;
+    text(draw, st->help, &l.help, portable ? oracles_about_portable_help : oracles_about_help, oracles_ui_rgb(HELP));
+    text(draw, st->help_note, &l.help_note, portable ? oracles_about_portable_help_note : oracles_about_help_note, oracles_ui_rgb(NOTE_ITALIC));
 }
 
 int oracles_ui_about_hit(const OraclesHomeNav *nav, float x, float y, int *option)
@@ -795,6 +813,10 @@ int oracles_ui_about_hit(const OraclesHomeNav *nav, float x, float y, int *optio
     OraclesUiCheatsLayout l;
     oracles_ui_layout_about(nav->layout, nav, ORACLES_VERSION, note, sizeof note, &l);
     *option = -1;
-    for (int c = 0; c < 2; c++) if (inside(&l.choices[0][c].box, x, y)) { *option = c; return 0; }
-    return inside(&l.rows[0], x, y) ? 0 : -1;
+    if (nav->portable_status == ORACLES_PORTABLE_STATUS_COPYING) return -1;   /* the page takes no input meanwhile */
+    const int rows = (int)oracles_about_rows(nav);
+    for (int r = 0; r < rows; r++)
+        for (int c = 0; c < 2; c++) if (inside(&l.choices[r][c].box, x, y)) { *option = c; return r; }
+    for (int r = 0; r < rows; r++) if (inside(&l.rows[r], x, y)) return r;
+    return -1;
 }

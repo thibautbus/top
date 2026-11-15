@@ -66,7 +66,7 @@ With `--cheats`, which holds for the run, the page shows the cheats it gives, gr
 
 ## settings.txt
 
-The player's settings are `settings.txt` in the user's settings directory (on Linux `~/.local/share/the-oracles-project/`, on macOS `~/Library/Application Support/the-oracles-project/`, on Windows `%APPDATA%\the-oracles-project\`; `ORACLES_SETTINGS_DIR` names another), written with all its values at the first launch so that it can be edited, but for `core=`, `subpixel_camera=`, `quality_hint=` and `link_phase=`, which appear once set ([Every key](#every-key)):
+The player's settings are `settings.txt` in the user's settings directory (on Linux `~/.local/share/the-oracles-project/`, on macOS `~/Library/Application Support/the-oracles-project/`, on Windows `%APPDATA%\the-oracles-project\`; in the portable mode, `user-data` beside the executable, [Portable mode](#portable-mode); `ORACLES_SETTINGS_DIR` names another, before either), written with all its values at the first launch so that it can be edited, but for `core=`, `subpixel_camera=`, `quality_hint=` and `link_phase=`, which appear once set ([Every key](#every-key)):
 
 ```
 colour_correction=1
@@ -152,6 +152,17 @@ hotkey_seasons_4=-
 The file the launcher writes has comment lines too (`#`), which it writes again each time: one above each group of keys, and above a hotkey slot the name of its item.
 
 Edit `settings.txt` only while the launcher is closed. The launcher reads it when it starts and writes the whole file again at each change, from the home screen or from a game, so that an edit made while it runs is lost.
+
+### Portable mode
+
+On Windows, Linux and a macOS build run outside an application bundle, a file `portable.txt` beside the executable (or `portable.txt.txt`, the name Windows gives it when it hides the extensions), a file and not a folder, makes `user-data`, beside it too, the folder of `settings.txt`, the mods folder and the language packs ([Portable mode](PLAYING.md#portable-mode)):
+
+- The folder is chosen once, when the launcher starts: `ORACLES_SETTINGS_DIR` when it is set and not empty, else `user-data` when `portable.txt` is there, else the user's settings directory. The user's directory is then never asked for, so not made either.
+- `user-data` is made when it is not there. When it cannot be made or written in (a read-only folder, such as one under `C:\Program Files`), the log says so (`portable mode: … cannot be written (…): the settings stay in the user's folder`) and the user's directory is used; otherwise the log says where the settings are (`portable mode (portable.txt beside the executable): the settings are in …`, with the marker's own name).
+- `portable.txt` is ignored in a macOS application (an executable inside a `.app`), in the AppImage (its executable inside the folder `APPDIR` names while `APPIMAGE` is set: its image, mounted read only; a program started from another AppImage, which inherits both, is not one) and on Android. One beside the `.app` or the `.AppImage` file is not looked for; one beside the executable itself, inside the bundle's `Contents/Resources` or the image, is ignored with a line in the log (`portable.txt is ignored here: the settings are in the user's folder`). The release archives never hold it.
+- In the portable mode, `rom_<game>=`, `eu_rom_<game>=` and `patch_<fan game>=` are written relative to the executable's folder when the file is inside it (`roms\Oracle of Ages.gbc`), a Windows path's case and separators aside, and as full paths elsewhere. Below a Windows folder the comparison ignores the case and takes `\` and `/` alike; elsewhere `\` is a character of a name. A path reached through a link, or a Windows short name (`E:\ORACLE~1\`), is not recognised as inside the folder and stays a full path. A relative path is read against the executable's folder, in either mode, so that the folder may move or its drive change letter; where there is no executable's folder to read it against (the macOS application, the AppImage, Android), it is read as it is, and a `settings.txt` with relative paths copied there by hand finds no ROM. A full path is read as it is.
+- Putting `portable.txt` there or removing it by hand copies nothing between the two folders: each keeps its own `settings.txt`, mods and packs. Saves and savestates are beside the ROM in either mode.
+- **About › Portable mode**, shown on Windows and Linux where `portable.txt` would be read and `ORACLES_SETTINGS_DIR` is not set (never on macOS), writes or removes it, and copies the launcher's data (`settings.txt`, the mods folder, the language packs, never a ROM or a save) into the folder the next launch uses when that folder has no `settings.txt`, on a thread of its own, the page taking no input meanwhile. Its status says what happened: copied, nothing to copy, the other folder's own settings kept for the next launch, the launcher's folder not writable, or the copy failed (nothing changed in the last two). The log says it too (`portable mode turned on: copied`).
 
 ### Every key
 
@@ -328,7 +339,6 @@ Colour correction off is the raw RGB555 conversion; on, SameBoy's "modern balanc
 
 `vsync auto` presents each frame at the display's rate when it refreshes between 59 and 61 Hz, close enough to the Game Boy's 59.7275 Hz for the audio rate control to absorb the difference; on another display, or with `off`, the host paces at 59.7275 Hz. Under vsync the host checks that the presentation waits for the display, and if it does not, turns vsync off and paces itself for the rest of the session. Vsync changed from the pause applies when the game resumes: turned on, the host checks the display again from there; turned off, it paces.
 - On a faster display, the host paces at 59.7275 Hz, and each frame waits for the display's next refresh, one refresh at most. Some frames stay on the screen a refresh longer than others: little seen at 120 Hz or 144 Hz, a stutter between 62 and 99 Hz, as at 75 Hz, where `auto` is off.
-
   Where those waits make a second of frames more than 2 % longer than it would take without them, the Game Boy's second or the frames' own work where that is longer (frames of much work, with a renderer whose presentation blocks until the refresh), the host turns vsync off and goes on pacing; a frame of more than two frames' time (an event, a window being moved, a presentation that takes that long) is left out of that measure.
 
   Should the next second run no faster without vsync, the slowness was not the waits' (a presentation bound by the graphics processor, a driver that keeps vsync), and the host turns vsync on again.
@@ -339,6 +349,7 @@ Colour correction off is the raw RGB555 conversion; on, SameBoy's "modern balanc
   - those of the first second never do;
   - the others count when the game ran more than half a percent slower than the Game Boy over the seconds measured, the waits not being the cause, and not when turning vsync off made the game faster;
   - a frame that took more than two frames' time always counts.
+
 
 ### Continuous transitions
 

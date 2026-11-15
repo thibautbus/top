@@ -440,14 +440,40 @@ OraclesHomeCommand oracles_cheats_click(OraclesHomeNav *nav, unsigned row, int o
 
 /* ---- About -----------------------------------------------------------------------
  *
- * About, opened by the home screen's version number, laid out as Cheats: "The
- * Oracles Project" for its title, the version and, when the home screen shows
- * one, the newer version's notice for its note ("v1.2.0 (abc1234) · 1.3.0
- * available"), and one row, Update check, On or Off (settings.txt's
- * update_check=): Off hides the notice at once, and the next launch asks
- * nothing.  Left, right and OK turn it off and on, a click on On or Off sets
- * it; each change is kept at once.  Back returns to the home screen, on the
- * version number. */
+ * About, opened by the home screen's link "About · v1.5.0", laid out as
+ * Cheats: "The Oracles Project" for its title, the version and, when the home
+ * screen shows one, the newer version's notice for its note ("v1.2.0
+ * (abc1234) · 1.3.0 available"), and its rows: Update check, On or Off
+ * (settings.txt's update_check=): Off hides the notice at once, and the next
+ * launch asks nothing; Portable mode, Off or On, where it can be.  Up and down
+ * move between them; left, right and OK turn the highlighted one, a click on a
+ * choice sets it; each change is kept at once.  Back returns to the home
+ * screen, on the link. */
+
+/* About's second row, where the portable mode can be (nav->portable_shown): Portable mode, Off or On; under it, while
+ * On with games outside the launcher's folder, the hint that they stay there, and the status of the last switch,
+ * "Copying…" while it runs, the page then taking no input, Back included. */
+enum { ORACLES_ABOUT_ROW_UPDATE, ORACLES_ABOUT_ROW_PORTABLE, ORACLES_ABOUT_ROWS };
+typedef enum OraclesHomePortableStatus {
+    ORACLES_PORTABLE_STATUS_NONE,
+    ORACLES_PORTABLE_STATUS_COPYING,
+    ORACLES_PORTABLE_STATUS_COPIED,          /* the data copied into the folder the next launch uses */
+    ORACLES_PORTABLE_STATUS_MOVED,           /* nothing to copy: the next launch uses the other folder */
+    ORACLES_PORTABLE_STATUS_KEPT,            /* the folder the next launch uses has settings of its own */
+    ORACLES_PORTABLE_STATUS_READ_ONLY,       /* the launcher's folder cannot be written in: nothing changed */
+    ORACLES_PORTABLE_STATUS_FAILED           /* the copy failed: nothing changed */
+} OraclesHomePortableStatus;
+extern const char oracles_about_portable_label[];               /* "Portable mode" */
+extern const char *const oracles_about_portable_choices[2];      /* "Off", "On" */
+extern const char oracles_about_portable_explanation[];         /* 16:9's, beside the choices */
+extern const char oracles_about_portable_help[], oracles_about_portable_help_note[];   /* 4:3's, under the rows */
+extern const char oracles_about_portable_hint[];
+/* The rows About has: Update check, and Portable mode where it can be. */
+unsigned oracles_about_rows(const OraclesHomeNav *nav);
+/* The hint under Portable mode, NULL when none: On, with games outside the launcher's folder. */
+const char *oracles_about_portable_hint_shown(const OraclesHomeNav *nav);
+/* The status under Portable mode and its tone, NULL when none. */
+const char *oracles_about_portable_status(const OraclesHomeNav *nav, OraclesTone *tone);
 
 extern const char oracles_about_label[];          /* "Update check" */
 extern const char *const oracles_about_choices[2];  /* "On", "Off" */
@@ -457,7 +483,8 @@ extern const char oracles_about_help[], oracles_about_help_note[];   /* 4:3's, u
  * one. */
 void oracles_about_note(const OraclesHomeNav *nav, const char *version, char *out, size_t capacity);
 OraclesHomeCommand oracles_about_act(OraclesHomeNav *nav, OraclesHomeAction action);
-/* A click on the row, or on its On (0) or Off (1): `option` -1 for the row itself. */
-OraclesHomeCommand oracles_about_click(OraclesHomeNav *nav, int option);
+/* A click on a row, or on its first (0) or second (1) choice: Update check's On, Off; Portable mode's Off, On; `option`
+ * -1 for the row itself. */
+OraclesHomeCommand oracles_about_click(OraclesHomeNav *nav, unsigned row, int option);
 
 #endif

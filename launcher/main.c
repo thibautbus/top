@@ -28,6 +28,7 @@
 #include "home.h"
 #include "home_choices.h"
 #include "home_games.h"
+#include "portable.h"
 #include "session.h"
 #include "settings.h"
 #include "update_check.h"
@@ -35,6 +36,7 @@
 /* SDL's entry point where a platform needs one (Windows: the command line in UTF-8; Android: the activity calls it). */
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_cpuinfo.h>
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_hints.h>
 
 #include <stdio.h>
@@ -291,6 +293,11 @@ static void load_settings(oracles_settings *prefs, const OraclesSessionOptions *
     if (!o->no_window) {
         char dir[ORACLES_SETTINGS_PATH_LENGTH - 16];
         if (oracles_sdl_settings_dir(dir, sizeof dir)) snprintf(prefs->path, sizeof prefs->path, "%ssettings.txt", dir);
+        /* A ROM's or a patch's path is read against the executable's folder when relative, and written relative to it
+         * in the portable mode, where the folder may move. */
+        const char *exe_dir = SDL_GetBasePath();
+        if (oracles_portable_available(exe_dir)) snprintf(prefs->exe_dir, sizeof prefs->exe_dir, "%s", exe_dir);
+        prefs->paths_relative = oracles_user_dir_chosen() == ORACLES_USER_DIR_PORTABLE;
 #ifdef __ANDROID__
         /* The mods in the application's folder on the shared storage, beside the ROMs' copies, reachable over USB:
          * settings.txt's folder is private. */

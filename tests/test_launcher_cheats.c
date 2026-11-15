@@ -6,7 +6,9 @@
  * Android with a controller); a text is compared by its left, its width, its
  * line box and its baseline, an element by its box.  And the page's keys and
  * pointer, from the home screen and from the pause.  About, laid out as Cheats:
- * turn 32's 32g about in 16:9 and 32g about 4:3, 1.2.0 with 1.3.0 announced. */
+ * turn 32's 32g about in 16:9 and 32g about 4:3, 1.2.0 with 1.3.0 announced; and its Portable mode, with its hint and
+ * its status, in 16:9 (portable on, portable copying, portable off kept, portable read only) and in 4:3 (portable 4:3,
+ * portable 4:3 kept). */
 #include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
@@ -302,6 +304,106 @@ static void about(OraclesUiLayout layout, const char *frame)
     }
 }
 
+/* About's Portable mode, on Windows or Linux's archive, highlighted under Update check: On with a game outside the
+ * launcher's folder, its hint under the row (portable on); while it copies, "Copying…" (portable copying); Off after a
+ * switch that kept the user folder's settings, the longest message, two lines in the warning's tone (portable off kept);
+ * the launcher's folder not writable, two lines in the error's (portable read only); in 4:3 after a key, the hint and
+ * "Settings and mods copied to the game folder." (portable 4:3), and the longest message (portable 4:3 kept), the row's
+ * help under them. */
+static void portable(OraclesUiLayout layout, const char *frame, int on, int status, unsigned outside, OraclesInputDevice device)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.layout = layout;
+    nav.windows = 1;   /* the prototype's wording */
+    nav.games[0].usable = 1;
+    nav.portable_shown = 1;
+    nav.focus = 7;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT);
+    oracles_home_input(&nav, device);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ABOUT_ROW_PORTABLE);
+    nav.portable = on;
+    nav.portable_status = status;
+    nav.games_outside = outside;
+    char note[ORACLES_HOME_TEXT_LENGTH];
+    OraclesUiCheatsLayout l;
+    oracles_ui_layout_about(layout, &nav, "v0.1.0", note, sizeof note, &l);
+    layout_line(frame, "update label", &l.labels[0]);
+    layout_line(frame, "portable label", &l.labels[1]);
+    layout_box(frame, "portable off", &l.choices[1][0].box);
+    layout_box(frame, "portable on", &l.choices[1][1].box);
+    layout_line(frame, "portable off text", &l.choices[1][0].name);
+    layout_line(frame, "portable on text", &l.choices[1][1].name);
+    const float bottom = l.status.count ? l.status.lines[0].y + l.status.h : l.hint.count ? l.hint.lines[0].y + l.hint.h : l.rows[1].y + l.rows[1].h;
+    if (outside && on) {
+        layout_near(frame, "portable hint", "y", l.hint.lines[0].y);
+        layout_near(frame, "portable hint", "h", l.hint.h);
+        layout_line(frame, "portable hint text", &l.hint.lines[0]);
+        layout_near(frame, "portable hint text", "lines", (float)l.hint.count);
+    } else CHECK(l.hint.count == 0);
+    if (status) {
+        layout_near(frame, "portable status", "y", l.status.lines[0].y);
+        layout_near(frame, "portable status", "h", l.status.h);
+        layout_line(frame, "portable status text", &l.status.lines[0]);
+        layout_near(frame, "portable status text", "lines", (float)l.status.count);
+        layout_near(frame, "portable status text", "width", l.status.w);
+        CHECK(l.status_dot.x + l.status_dot.w < l.status.lines[0].x && l.status_dot.y + l.status_dot.h == l.status.lines[0].baseline);
+    } else CHECK(l.status.count == 0);
+    if (layout == ORACLES_UI_LAYOUT_4_3) {
+        layout_box(frame, "update", &l.rows[0]);
+        layout_box(frame, "portable", &l.rows[1]);
+        layout_near(frame, "panel", "y", l.rows[0].y);
+        layout_near(frame, "panel", "h", l.help_note.y + l.help_note.h - l.rows[0].y);
+        layout_near(frame, "help", "y", l.help.y);
+        layout_line(frame, "help text", &l.help);
+        layout_line(frame, "help note text", &l.help_note);
+        return;
+    }
+    layout_box(frame, "panel", &l.panel);
+    layout_box(frame, "update row", &l.rows[0]);
+    layout_box(frame, "portable row", &l.rows[1]);
+    layout_near(frame, "update", "y", l.rows[0].y);
+    layout_near(frame, "update", "h", l.rows[0].h);
+    layout_near(frame, "portable", "y", l.rows[1].y);
+    layout_near(frame, "portable", "h", bottom - l.rows[1].y);
+    layout_line(frame, "portable explanation", &l.explanations[1].lines[0]);
+    layout_near(frame, "portable explanation", "lines", (float)l.explanations[1].count);
+    CHECK(l.help.h == 0.0f);
+    if (status != ORACLES_PORTABLE_STATUS_NONE || device != ORACLES_INPUT_GAMEPAD) return;
+    OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
+    OraclesUiHintLayout h[ORACLES_HOME_MAX_HINTS];
+    CHECK(oracles_home_hints(&nav, hints) == 4);
+    oracles_ui_layout_hints(layout, hints, 4, h);
+    for (unsigned i = 0; i < 4u; i++) {
+        char name[32];
+        snprintf(name, sizeof name, "hint %u", i); layout_box(frame, name, &h[i].box);
+        snprintf(name, sizeof name, "hint %u label", i); layout_line(frame, name, &h[i].label);
+    }
+}
+
+/* The launcher's folder not writable on Linux, /opt for Program Files: as many lines as on Windows in both layouts,
+ * nothing under it moving. */
+static void read_only_linux(void)
+{
+    for (int layout = ORACLES_UI_LAYOUT_16_9; layout <= ORACLES_UI_LAYOUT_4_3; layout++) {
+        OraclesUiCheatsLayout l[2];
+        char note[ORACLES_HOME_TEXT_LENGTH];
+        for (int windows = 0; windows < 2; windows++) {
+            OraclesHomeNav nav;
+            oracles_home_init(&nav);
+            nav.layout = (OraclesUiLayout)layout;
+            nav.windows = windows;
+            nav.portable_shown = 1;
+            nav.portable_status = ORACLES_PORTABLE_STATUS_READ_ONLY;
+            nav.screen = ORACLES_SCREEN_ABOUT;
+            OraclesTone tone;
+            CHECK(strstr(oracles_about_portable_status(&nav, &tone), windows ? "(such as Program Files)" : "(such as /opt)") != NULL);
+            oracles_ui_layout_about((OraclesUiLayout)layout, &nav, "v0.1.0", note, sizeof note, &l[windows]);
+        }
+        CHECK(l[0].status.count == l[1].status.count && l[0].status.h == l[1].status.h);
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-cheats launcher_layout_reference.json\n"); return 2; }
@@ -315,6 +417,13 @@ int main(int argc, char **argv)
     fan_games();
     about(ORACLES_UI_LAYOUT_16_9, "32g about");
     about(ORACLES_UI_LAYOUT_4_3, "32g about 4:3");
+    portable(ORACLES_UI_LAYOUT_16_9, "portable on", 1, ORACLES_PORTABLE_STATUS_NONE, 2, ORACLES_INPUT_GAMEPAD);
+    portable(ORACLES_UI_LAYOUT_16_9, "portable copying", 0, ORACLES_PORTABLE_STATUS_COPYING, 2, ORACLES_INPUT_GAMEPAD);
+    portable(ORACLES_UI_LAYOUT_16_9, "portable off kept", 0, ORACLES_PORTABLE_STATUS_KEPT, 2, ORACLES_INPUT_GAMEPAD);
+    portable(ORACLES_UI_LAYOUT_16_9, "portable read only", 0, ORACLES_PORTABLE_STATUS_READ_ONLY, 0, ORACLES_INPUT_GAMEPAD);
+    portable(ORACLES_UI_LAYOUT_4_3, "portable 4:3", 1, ORACLES_PORTABLE_STATUS_COPIED, 2, ORACLES_INPUT_KEYBOARD);
+    portable(ORACLES_UI_LAYOUT_4_3, "portable 4:3 kept", 0, ORACLES_PORTABLE_STATUS_KEPT, 2, ORACLES_INPUT_KEYBOARD);
+    read_only_linux();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher cheats: the page matches the layout reference within %.1f px, and its keys and pointer do what they say\n", (double)LAYOUT_TOLERANCE);
     return 0;

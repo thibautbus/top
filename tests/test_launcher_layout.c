@@ -9,8 +9,8 @@
  * the item hotkeys under its list, 37g and 37h; the help bar after a key or a
  * controller's button, at home (21a to 21d), in the pause menu (21e, 21f, its entries naming no key: 21y) and on
  * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it as the mockup draws it, 23g; the newer
- * version's notice by the version, 24a to 24d, and the version alone, 24e; the version number highlighted, 32g and
- * 32g 4:3; a fan game's credit under its state in 16:9 (1d, 1m, 1p), on its line in 4:3 (credit home 640x480 kinomi
+ * version's notice by the version, 24a to 24d, and the version alone, 24e, each after About and its dot; About's
+ * link highlighted, 32g and 32g 4:3, about link and about link 640x480; a fan game's credit under its state in 16:9 (1d, 1m, 1p), on its line in 4:3 (credit home 640x480 kinomi
  * and temple): a text is
  * compared by its left edge, its width, the top and height of its line box,
  * and its baseline; an element by its box.  And the choice of the layout by the
@@ -48,6 +48,17 @@ static unsigned menu(const OraclesHomeNav *nav, OraclesUiItemLayout *out)
 {
     OraclesUiMenuLineLayout line;
     return menu_with(nav, out, &line);
+}
+
+/* The home screen's version after About and its dot, against a frame's: the prototype puts the version in a padded
+ * box, `lift` pixels lower than the launcher keeps it (update_frame). */
+static void about_version(const char *frame, OraclesUiLayout layout, const char *version, float lift)
+{
+    OraclesUiAboutLink link;
+    oracles_ui_layout_about_link(layout, version, oracles_ui_scene_width(layout), &link);
+    layout_near(frame, "version", "x", link.version.x);
+    layout_near(frame, "version", "w", link.version.w);
+    layout_near(frame, "version", "baseline", link.version.baseline + lift);
 }
 
 static void frame_1a(void)
@@ -97,9 +108,7 @@ static void frame_1a(void)
         snprintf(name, sizeof name, "hint %d label", i); layout_line("1a", name, &h[i].label);
         snprintf(name, sizeof name, "hint %d", i); layout_near("1a", name, "y", h[i].box.y);
     }
-    OraclesUiLine version;
-    oracles_ui_layout_version(ORACLES_UI_LAYOUT_16_9, "v1.0.0", &version);
-    layout_line("1a", "version", &version);
+    about_version("1a", ORACLES_UI_LAYOUT_16_9, "v1.0.0", 3.0f);
 }
 
 /* The language beside Cartridge, as the profile beside Display: Ages playing in French, its European ROM recognized (14f),
@@ -585,9 +594,7 @@ static void frame_10a(void)
     }
     layout_line("10a", "item 3 note", &items[3].note);
     hints_of("10a", &nav, ORACLES_UI_LAYOUT_4_3, 3);
-    OraclesUiLine version;
-    oracles_ui_layout_version(ORACLES_UI_LAYOUT_4_3, "v1.0.0", &version);
-    layout_line("10a", "version", &version);
+    about_version("10a", ORACLES_UI_LAYOUT_4_3, "v1.0.0", 5.0f);
 }
 
 /* A fan game picked in the list at 640x480 on Android, its credit on the state's line, at its left: the title and the
@@ -891,15 +898,13 @@ static void update_frame(const char *frame, OraclesUiLayout layout, OraclesInput
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     oracles_home_hints(&nav, hints);
     CHECK(!strcmp(hints[2].label, focused ? "Open" : "Select"));
-    OraclesUiLine version;
-    oracles_ui_layout_version(layout, "v1.2.0 (abc1234)", &version);
-    layout_near(frame, "version", "x", version.x);
-    layout_near(frame, "version", "w", version.w);
-    layout_near(frame, "version", "baseline", version.baseline + lift);
+    about_version(frame, layout, "v1.2.0 (abc1234)", lift);
     CHECK(oracles_home_update_shown(&nav) == (release != NULL));
     if (!release) return;
+    OraclesUiAboutLink link;
+    oracles_ui_layout_about_link(layout, "v1.2.0 (abc1234)", oracles_ui_scene_width(layout), &link);
     OraclesUiUpdateLayout update;
-    oracles_ui_layout_update(layout, &version, release, &update);
+    oracles_ui_layout_update(layout, &link.line, release, &update);
     OraclesUiBox box = update.box;
     box.y += lift;
     layout_box(frame, "update", &box);
@@ -936,20 +941,114 @@ static void version_frame(const char *frame, OraclesUiLayout layout, OraclesInpu
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     oracles_home_hints(&nav, hints);
     CHECK(!strcmp(hints[2].label, "Open"));
-    OraclesUiLine version;
-    oracles_ui_layout_version(layout, "v1.2.0 (abc1234)", &version);
-    layout_near(frame, "version", "x", version.x);
-    layout_near(frame, "version", "baseline", version.baseline + lift);
+    about_version(frame, layout, "v1.2.0 (abc1234)", lift);
+    OraclesUiAboutLink about;
+    oracles_ui_layout_about_link(layout, "v1.2.0 (abc1234)", oracles_ui_scene_width(layout), &about);
     OraclesUiUpdateLayout update;
-    oracles_ui_layout_update(layout, &version, "1.3.0", &update);
+    oracles_ui_layout_update(layout, &about.line, "1.3.0", &update);
     update.box.y += lift;
     layout_box(frame, "update", &update.box);
     OraclesUiBox link;
     float outline;
-    oracles_ui_layout_version_link(layout, &version, &link, &outline);
+    oracles_ui_layout_version_link(layout, &about.line, &link, &outline);
     link.y += lift;
     layout_box(frame, "version link", &link);
     CHECK(outline == (layout == ORACLES_UI_LAYOUT_4_3 ? 2.0f : 1.0f));
+}
+
+/* About's link on the home screen, highlighted with a controller down from the notice: "About · v0.1.0", About and its
+ * dot where the version alone was, the notice after it in 16:9 (about link), on its own line above it in 4:3 (about
+ * link 640x480), each `lift` higher than the prototype's as in update_frame; its pointer's target reaching the corner
+ * in 16:9; the notice fading in moves nothing. */
+static void about_link(const char *frame, OraclesUiLayout layout, int android, float lift)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.layout = layout;
+    nav.android = android;
+    nav.games[0].usable = 1;
+    snprintf(nav.update, sizeof nav.update, "1.5.1");
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    nav.focus = 6;
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(oracles_home_focus(&nav) == 8 && oracles_home_version_focused(&nav));
+    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    if (menu(&nav, items) != 7) { fprintf(stderr, "FAIL %s: seven items expected\n", frame); layout_fail(); return; }
+    for (int i = 0; i < 7; i++) {
+        char name[32];
+        snprintf(name, sizeof name, "item %d", i);
+        layout_box(frame, name, &items[i].box);
+    }
+    hints_of(frame, &nav, layout, 3);
+    about_version(frame, layout, "v0.1.0", lift);
+    OraclesUiAboutLink link;
+    oracles_ui_layout_about_link(layout, "v0.1.0", oracles_ui_layout_hints_left(layout, &nav), &link);
+    CHECK(link.version_shown);
+    layout_near(frame, "about label text", "x", link.label.x);
+    layout_near(frame, "about label text", "w", link.label.w);
+    layout_near(frame, "about label text", "baseline", link.label.baseline + lift);
+    CHECK(link.version.baseline == link.label.baseline && link.dot.x > link.label.x + link.label.w && link.version.x > link.dot.x + link.dot.w);
+    OraclesUiBox box;
+    float outline;
+    oracles_ui_layout_version_link(layout, &link.line, &box, &outline);
+    box.y += lift;
+    layout_box(frame, "about", &box);
+    if (layout == ORACLES_UI_LAYOUT_16_9) {
+        OraclesUiBox hit = link.hit;
+        hit.y += lift;
+        layout_near(frame, "about hit", "x", hit.x);
+        layout_near(frame, "about hit", "w", hit.w);
+        layout_near(frame, "about hit", "y", hit.y);
+        CHECK(hit.x == 0.0f && hit.y + hit.h >= 1080.0f - 1.0f - lift);
+    } else {
+        CHECK(link.hit.x == box.x && link.hit.w == box.w && link.hit.h == box.h);
+    }
+    OraclesUiUpdateLayout update;
+    oracles_ui_layout_update(layout, &link.line, nav.update, &update);
+    update.box.y += lift;
+    update.text.y += lift;
+    update.text.baseline += lift;
+    layout_box(frame, "update", &update.box);
+    layout_line(frame, "update text", &update.text);
+}
+
+/* A build's version with its commit, "v1.5.0 (de849ab3)", in 4:3 at 640x480 on Android: after About it would reach the
+ * help bar's first hint, so About stays alone, its line, its highlight and the pointer's target its own, short of the
+ * hint, the notice above it where it was; a release's version fits, as every version does in 16:9.  Where About alone
+ * would reach the bar, the pointer finds nothing. */
+static void about_link_fitted(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    nav.android = 1;
+    nav.games[0].usable = 1;
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    const OraclesUiLayout layout = ORACLES_UI_LAYOUT_4_3;
+    const float hints_x = oracles_ui_layout_hints_left(layout, &nav);
+    OraclesUiAboutLink whole, link, release;
+    oracles_ui_layout_about_link(layout, "v1.5.0 (de849ab3)", oracles_ui_scene_width(layout), &whole);
+    oracles_ui_layout_about_link(layout, "v1.5.0 (de849ab3)", hints_x, &link);
+    CHECK(whole.version_shown && whole.hit.x + whole.hit.w > hints_x);
+    CHECK(!link.version_shown && link.line.x == whole.line.x && link.line.w == link.label.w);
+    CHECK(link.hit.w > 0.0f && link.hit.x == whole.hit.x && link.hit.x + link.hit.w + ORACLES_UI_VERSION_GAP <= hints_x);
+    OraclesUiBox box;
+    float outline;
+    oracles_ui_layout_version_link(layout, &link.line, &box, &outline);
+    CHECK(link.hit.x == box.x && link.hit.w == box.w);
+    OraclesUiUpdateLayout update, update_whole;
+    oracles_ui_layout_update(layout, &link.line, "1.5.1", &update);
+    oracles_ui_layout_update(layout, &whole.line, "1.5.1", &update_whole);
+    CHECK(update.box.x == update_whole.box.x && update.box.y == update_whole.box.y && update.box.x + update.box.w < hints_x);
+    oracles_ui_layout_about_link(layout, "v1.5.0", hints_x, &release);
+    CHECK(release.version_shown && release.line.w > release.label.w && release.hit.x + release.hit.w < hints_x);
+    oracles_ui_layout_about_link(layout, "v1.5.0 (de849ab3)", link.label.x + link.label.w, &link);
+    CHECK(!link.version_shown && link.hit.w == 0.0f && link.hit.h == 0.0f);
+    nav.layout = ORACLES_UI_LAYOUT_16_9;
+    nav.android = 0;
+    oracles_ui_layout_about_link(ORACLES_UI_LAYOUT_16_9, "v1.5.0 (de849ab3)", oracles_ui_layout_hints_left(ORACLES_UI_LAYOUT_16_9, &nav), &link);
+    CHECK(link.version_shown);
 }
 
 static void update_notice(void)
@@ -961,6 +1060,9 @@ static void update_notice(void)
     update_frame("24e", ORACLES_UI_LAYOUT_16_9, ORACLES_INPUT_KEYBOARD, 0, 0, NULL, 3.0f);
     version_frame("32g", ORACLES_UI_LAYOUT_16_9, ORACLES_INPUT_KEYBOARD, 0, 2.0f);
     version_frame("32g 4:3", ORACLES_UI_LAYOUT_4_3, ORACLES_INPUT_GAMEPAD, 1, 5.0f);
+    about_link("about link", ORACLES_UI_LAYOUT_16_9, 0, 2.0f);
+    about_link("about link 640x480", ORACLES_UI_LAYOUT_4_3, 1, 5.0f);
+    about_link_fitted();
     /* The version stays where it was: 24e's is 1a's, but for its text. */
     OraclesUiLine before, after;
     oracles_ui_layout_version(ORACLES_UI_LAYOUT_16_9, "v1.0.0", &before);

@@ -15,6 +15,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 - [Fan games](#fan-games)
 - [In game](#in-game): [the pause menu](#the-pause-menu), [keys](#keys), [savestates](#savestates)
 - [Saves](#saves)
+- [Portable mode](#portable-mode)
 - [Android](#android)
 - [Troubleshooting](#troubleshooting)
 - [Reporting a problem](#reporting-a-problem)
@@ -51,7 +52,7 @@ Move with the arrows, Enter and Escape on the keyboard; with the d-pad, A and B 
 
 The launcher opens in a 16:9 window of 1280x720 the first time. The window can be resized, and its size is remembered. A window or a screen nearer 4:3 than 16:9, such as a 640x480 handheld or a 1024x768 monitor, takes the 4:3 layout: the three entries become tabs along the top, each page lays its rows in one column, and Controls splits into three tabs, **Buttons**, **Hotkeys** and **In game**.
 
-When a newer version is out, the home screen says so beside the version number at the bottom left ("· 1.3.0 available"). Down from **Exit** reaches the notice, then the version number; the notice opens the release page in your browser, and the version number opens [About](#about-and-privacy).
+The home screen's bottom left reads **About · v1.5.0**, which opens [About](#about-and-privacy). When a newer version is out, the home screen says so beside it ("· 1.5.1 available"). Down from **Exit** reaches the notice, then About; the notice opens the release page in your browser.
 
 ## Cartridge
 
@@ -298,6 +299,7 @@ The mods live in the **mods folder**, beside `settings.txt`:
 - Linux: `~/.local/share/the-oracles-project/mods/`
 - macOS: `~/Library/Application Support/the-oracles-project/mods/`
 - Windows: `%APPDATA%\the-oracles-project\mods\`
+- In the portable mode, on Windows and Linux: `user-data/mods/`, beside the executable ([Portable mode](#portable-mode))
 - Android: `Android/data/org.theoraclesproject/files/mods/`, on the shared storage, reachable over USB ([Android](#android))
 
 Each mod is a folder of its own in it, named with a–z, 0–9, `-` and `_`, with a `main.lua` inside. **Open folder**, at the top of the page, makes the folder if need be and opens it in the system's file manager. The page reads the folder again each time it opens.
@@ -378,6 +380,29 @@ A game's save is the `.sav` beside its ROM, under the same name, or for a fan ga
 - The other way needs nothing: a save made here works with the European ROM in other emulators, put beside that ROM under the same name; the European game asks for its language at its first start.
 - **Open folder** shows the save's folder in the system's file manager. On Android, which has none to open, **Export save…** takes its place: the document picker makes a copy of the save wherever you choose (Downloads, an SD card), to play it elsewhere. The Mods page's **Export save with mods…** does the same for the save with mods ([Mods](#mods)).
 
+## Portable mode
+
+On Windows, and on Linux with the `.tar.gz`, the launcher can keep everything it writes in its own folder rather than in your user folder: to play from a USB stick, or to keep several copies side by side, each with its own settings. **About › Portable mode** turns it on and off:
+
+- **On**: your settings, your mods and your language files are copied into a folder `user-data` beside the executable, which the launcher uses from the next launch. Your user folder keeps its own copy.
+- **Off**: they are copied back into your user folder, which the launcher uses from the next launch; `user-data` stays as it is.
+
+The row says "Copying…" while it copies, which is usually at once, then how it went. When the folder it turns to already has settings of its own, nothing is copied and those are used from the next launch, which the row says too. When the launcher's folder cannot be written in (such as one under `C:\Program Files`), nothing changes: move the launcher to a folder of yours first. While it is on, the row reminds you when some of your games are outside the launcher's folder: they and their saves stay where they are (see below).
+
+It can be turned on by hand too:
+
+1. Close the launcher.
+2. In its folder, beside `the-oracles-project.exe` (or `the-oracles-project` on Linux), make a file named `portable.txt`; it may be empty. On Windows, a text document made with **New › Text Document** and named `portable.txt` does it, even where Windows hides the extension and the file is really named `portable.txt.txt`.
+3. Open the launcher. Its settings, its mods folder and its language files are now in a folder `user-data` it makes beside the executable, and nothing is written in your user folder.
+
+Nothing is moved or copied when you put `portable.txt` there by hand: the launcher starts with its first-launch settings, and your user folder stays as it was. To bring your settings and mods along, copy, with the launcher closed, what your user folder holds into `user-data`: `settings.txt`, the `mods` folder and the `language-*.pack` files, from `%APPDATA%\the-oracles-project\` on Windows, `~/.local/share/the-oracles-project/` on Linux. To turn it off, delete `portable.txt`: the launcher goes back to your user folder and the settings it had there, and `user-data` stays as it is.
+
+- **ROMs and saves are never moved or copied**: a save is always beside its ROM ([Saves](#saves)), wherever that is. To take your games along, close the launcher, move each ROM (and patch) with the files beside it that share its name (`.sav`, `.state`, the `.mods.` files) and its `Backups` folder into a folder of the launcher's own, such as `roms` beside the executable, then open the launcher and choose each ROM again in Cartridge from there. In the portable mode, the launcher remembers a ROM or a patch inside its folder by where it is in that folder, so a USB stick that takes another drive letter on another computer, or the whole folder moved elsewhere, still finds them. A ROM outside the folder is remembered by its full path, as without the portable mode.
+- **A folder the launcher cannot write in**, such as one under `C:\Program Files`: the launcher ignores `portable.txt`, uses your user folder, and says so in its log ([Reporting a problem](#reporting-a-problem)).
+- **The macOS application, Android and the Linux AppImage** have no portable mode: a `portable.txt` put beside the macOS application or beside the AppImage is ignored.
+
+**Updating a portable copy.** The new version comes in a folder of its own, without `portable.txt`: started there as it is, it would use your user folder, and deleting the old folder would delete your settings, your mods and, if your ROMs are there, your saves. Either copy the new version's files over the old folder (its executable, its libraries and its licences, replacing them), or, with the launcher closed, move `portable.txt`, `user-data` and your `roms` folder (and any other folder of ROMs, patches and saves you keep there) from the old folder into the new one, and delete the old folder only after the new one shows your games.
+
 ## Android
 
 The Android application is the same launcher, in landscape and fullscreen: F11 and **Display › Window** do nothing there.
@@ -419,7 +444,7 @@ Never attach a ROM, or a file made from one.
 
 ## About and privacy
 
-The version number at the bottom left of the home screen opens **About**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on the number works too. About shows the version, the newer version's notice when there is one, and one row, **Update check**:
+**About · v1.5.0** at the bottom left of the home screen opens **About**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on it works too, in the 16:9 layout down to the screen's corner. About shows the version, the newer version's notice when there is one, the row **Update check**, and on Windows and on Linux with the `.tar.gz` the row **Portable mode** ([Portable mode](#portable-mode)). **Update check**:
 
 - **On**, the default: the launcher asks GitHub once at launch whether a newer version is out.
 - **Off**: no network request. Off hides the notice at once; On asks again at the next launch.

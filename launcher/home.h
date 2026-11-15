@@ -58,6 +58,11 @@ typedef struct OraclesHomeHost {
      * folder in the system's file manager, made when it is not there. */
     void (*read_mods)(void *opaque, OraclesHomeNav *nav);
     void (*open_mods)(void *opaque, char *message, size_t capacity);
+    /* About's Portable mode turned `on` or off by oracles_portable_switch (portable.h), which gave `result` (an
+     * OraclesPortableResult) and `next_dir`, the folder of the next launches: the settings follow it
+     * (oracles_settings_portable_turned), and nav's row shows the switch and how it went.  The refresh reads the row's
+     * switch, and the games outside the launcher's folder. */
+    void (*portable_turned)(void *opaque, OraclesHomeNav *nav, int on, int result, const char *next_dir);
     /* Plays the game in the launcher's window until the player leaves it, the pause menu drawn with `draw`; the pauses
      * start from `nav`'s device used last (a controller's: the first game's toast) and leave theirs there.  Returns
      * 1 when the window was closed meanwhile (the launcher then ends too), 2 when the same game is to start again at once

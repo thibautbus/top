@@ -110,6 +110,8 @@ extern const OraclesUiTextStyle oracles_ui_diagram_label_4_3, oracles_ui_help_4_
 extern const OraclesUiTextStyle oracles_ui_language_4_3;
 /* Cartridge's credit line, a fan game's, under the state. */
 extern const OraclesUiTextStyle oracles_ui_page_credit, oracles_ui_page_credit_4_3;
+/* About's Portable mode: its hint and its status under the row. */
+extern const OraclesUiTextStyle oracles_ui_about_status, oracles_ui_about_status_4_3;
 /* Display's 4:3 title, on its section's line. */
 extern const OraclesUiTextStyle oracles_ui_display_title_4_3;
 
@@ -368,9 +370,10 @@ extern const OraclesUiTextStyle oracles_ui_mod_games;
 void oracles_ui_layout_mods(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiModsLayout *out);
 
 /* Cheats (ui_page_cheats.c), and About as it: the head and the note on the save under the title (16:9: in the head's column, wrapped;
- * 4:3: one line), each row's label and Off and On; 16:9 has the panel, each row's explanation beside its choices and
- * each row's highlight the value's cell, 4:3 the whole row and the highlighted row's explanation and note under the
- * rows (`help`, `help_note`). */
+ * 4:3: one line), each row's label and its two choices; 16:9 has the panel, each row's explanation beside its choices
+ * and each row's highlight the value's cell, 4:3 the whole row and the highlighted row's explanation and note under the
+ * rows (`help`, `help_note`).  Under About's last row, Portable mode's hint and its status beside its dot, across the
+ * row (zero when none). */
 typedef struct OraclesUiCheatsLayout {
     OraclesUiPageHead head;
     OraclesUiWrapped note;
@@ -380,10 +383,12 @@ typedef struct OraclesUiCheatsLayout {
     OraclesUiWrapped explanations[ORACLES_CHEATS_ROWS];
     OraclesUiOptionLayout choices[ORACLES_CHEATS_ROWS][2];
     OraclesUiLine help, help_note;
+    OraclesUiWrapped hint, status;
+    OraclesUiBox status_dot;
 } OraclesUiCheatsLayout;
 
 void oracles_ui_layout_cheats(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiCheatsLayout *out);
-/* About (ui_page_nav.h), laid out as Cheats with its one row, its note (oracles_about_note, made in `note` for `version`)
+/* About (ui_page_nav.h), laid out as Cheats with its rows, its note (oracles_about_note, made in `note` for `version`)
  * under the title. */
 void oracles_ui_layout_about(OraclesUiLayout layout, const OraclesHomeNav *nav, const char *version, char *note, size_t capacity, OraclesUiCheatsLayout *out);
 

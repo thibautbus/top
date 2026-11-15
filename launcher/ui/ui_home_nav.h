@@ -91,6 +91,7 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_REPLACE_SAVE,   /* its confirmation's Replace (Import without a save): the save imported, the one it replaces kept as a backup */
     ORACLES_HOME_EXPORT_SAVE,    /* Android: the document picker for a copy of the save */
     ORACLES_HOME_EXPORT_MODS_SAVE,   /* Android, Mods: the document picker for a copy of the game with mods' save */
+    ORACLES_HOME_PORTABLE,       /* About's Portable mode: turned to nav->portable_wanted, the launcher's data copied (portable.h) */
     /* The pause menu's. */
     ORACLES_HOME_RESUME,
     ORACLES_HOME_SAVE_STATE,
@@ -397,15 +398,23 @@ typedef struct OraclesHomeNav {
     int slow;
     /* The device used last (oracles_home_input), and whether a key was ever pressed, which shows Controls' keys in game
      * (oracles_controls_keys_shown); `android`, the platform's: always fullscreen, no F11, and its Back opens the menu
-     * too. */
+     * too; `windows`, the platform's: About names Program Files as a folder that cannot be written in, /opt elsewhere. */
     OraclesInputDevice device;
     int keyboard_used;
-    int android;
+    int android, windows;
     /* The newer version the update check found (update_check.h), "1.3.0", empty while there is none: the home screen
      * alone shows it by the version, a place after the menu's last item for the highlight (oracles_home_update_shown),
      * while the update check is on (`update_check`, settings.txt's update_check=, About's row). */
     char update[ORACLES_HOME_NAME_LENGTH];
     int update_check;
+    /* About's Portable mode (launcher/portable.h), where the launcher's folder can keep its data (Windows, Linux's
+     * archive; not with ORACLES_SETTINGS_DIR): `portable_shown`; `portable`, its switch (portable.txt beside the
+     * executable), which the next launch follows; while it turns, `portable_wanted` and the status
+     * ORACLES_PORTABLE_STATUS_COPYING, the page taking no input; then the switch's result until About closes
+     * (OraclesHomePortableStatus).  `games_outside`: the ROMs, European ROMs and patches outside the launcher's folder,
+     * which stay where they are with their saves. */
+    int portable_shown, portable, portable_wanted, portable_status;
+    unsigned games_outside;
 } OraclesHomeNav;
 
 typedef struct OraclesHomeItem {
@@ -468,6 +477,10 @@ int oracles_home_keys_shown(const OraclesHomeNav *nav);
 OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction action);
 /* The game of what the right half shows (ORACLES_HOME_GAME_*), or -1 for the list of fan games. */
 int oracles_home_game(const OraclesHomeNav *nav);
+/* Whether the host carries out `command` for the game of what the right half shows (a file, a folder, a save), which
+ * it then ignores without one; ORACLES_HOME_STORE writes settings that are not a game's, About's from the list of fan
+ * games too. */
+int oracles_home_command_needs_game(OraclesHomeCommand command);
 /* Whether the profile of that game does not qualify `feature` (ORACLES_HOME_REFUSES_*); 0 for the list of fan games. */
 int oracles_home_refuses(const OraclesHomeNav *nav, unsigned feature);
 /* The game a session plays, from Start game or Play: ORACLES_HOME_START_AGES, _SEASONS or a fan game's. */

@@ -51,6 +51,7 @@ static const OraclesUiHomeStyles styles_4_3 = {
 const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &styles_4_3 : &styles_16_9; }
 
 const char oracles_ui_item_dot[] = "\xc2\xb7";
+const char oracles_ui_about_label[] = "About";
 const char oracles_ui_hotkeys_line_lead[] = "Item hotkeys are off \xc2\xb7 ";
 const char oracles_ui_hotkeys_line_path[] = "Controls \xe2\x80\xba Item hotkeys";
 
@@ -71,6 +72,9 @@ typedef struct metrics {
      * border. */
     int update_above;
     float update_gap, update_line, update_pad_x, update_pad_y, update_border;
+    /* About's link: between About, its dot and the version; how far its pointer's target reaches past its highlight
+     * (left, top, right, bottom), to the corner in 16:9. */
+    float about_gap, about_hit[4];
     float toast_bottom, toast_pad_x, toast_pad_y;
     float slow_left, slow_bottom, slow_max_width, slow_pad_x, slow_pad_y, slow_gap, slow_line;   /* the slow game's toast */
     float pad_toast_gap, pad_toast_pad_x, pad_toast_pad_y, pad_toast_min_h;   /* the reminder over a game, under its status bar */
@@ -88,6 +92,7 @@ static const metrics metrics_16_9 = {
     .key_pad_x = 9.0f, .key_pad_y = 1.0f,
     .version_left = 24.0f, .version_bottom = 1080.0f - 20.0f,
     .update_above = 0, .update_gap = 10.0f, .update_line = 28.0f, .update_pad_x = 12.0f, .update_pad_y = 4.0f, .update_border = 1.0f,
+    .about_gap = 10.0f, .about_hit = { 12.0f, 16.0f, 4.0f, 12.0f },
     .toast_bottom = 1080.0f - 78.0f, .toast_pad_x = 26.0f, .toast_pad_y = 14.0f,
     .slow_left = 96.0f, .slow_bottom = 1080.0f - 96.0f, .slow_max_width = 760.0f, .slow_pad_x = 26.0f, .slow_pad_y = 16.0f, .slow_gap = 6.0f,
     .slow_line = 24.0f * 1.35f,
@@ -107,6 +112,7 @@ static const metrics metrics_4_3 = {
     .key_pad_x = 10.0f, .key_pad_y = 0.0f,
     .version_left = 28.0f, .version_bottom = 1080.0f - 38.0f,
     .update_above = 1, .update_gap = 9.0f, .update_line = 34.0f, .update_pad_x = 14.0f, .update_pad_y = 5.0f, .update_border = 2.0f,
+    .about_gap = 12.0f, .about_hit = { 0.0f, 0.0f, 0.0f, 0.0f },
     .toast_bottom = 1080.0f - 120.0f, .toast_pad_x = 28.0f, .toast_pad_y = 16.0f,
     .slow_left = 64.0f, .slow_bottom = 1080.0f - 120.0f, .slow_max_width = 640.0f, .slow_pad_x = 28.0f, .slow_pad_y = 18.0f, .slow_gap = 6.0f,
     .slow_line = 30.0f * 1.3f,
@@ -334,6 +340,15 @@ void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hint
     }
 }
 
+float oracles_ui_layout_hints_left(OraclesUiLayout layout, const OraclesHomeNav *nav)
+{
+    OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
+    const unsigned count = oracles_home_hints(nav, hints);
+    OraclesUiHintLayout l[ORACLES_HOME_MAX_HINTS];
+    oracles_ui_layout_hints(layout, hints, count, l);
+    return count ? l[0].box.x : metrics_of(layout)->scene_w;
+}
+
 void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, OraclesUiLine *out)
 {
     const metrics *m = metrics_of(layout);
@@ -369,6 +384,34 @@ void oracles_ui_layout_version_link(OraclesUiLayout layout, const OraclesUiLine 
     box->w = version->w + 2.0f * m->update_pad_x;
     box->h = line.h + 2.0f * m->update_pad_y;
     *outline = m->update_border;
+}
+
+void oracles_ui_layout_about_link(OraclesUiLayout layout, const char *version, float hints_x, OraclesUiAboutLink *out)
+{
+    const metrics *m = metrics_of(layout);
+    const OraclesUiTextStyle *style = oracles_ui_home_styles(layout)->version;
+    /* About where the version alone is, the dot and the version after it on its baseline. */
+    oracles_ui_layout_version(layout, oracles_ui_about_label, &out->label);
+    out->dot = out->label;
+    out->dot.x = out->label.x + out->label.w + m->about_gap;
+    out->dot.w = oracles_ui_text_width(style, oracles_ui_item_dot);
+    out->version = out->label;
+    out->version.x = out->dot.x + out->dot.w + m->about_gap;
+    out->version.w = version && version[0] ? oracles_ui_text_width(style, version) : 0.0f;
+    out->line = out->label;
+    out->line.w = out->version.x + out->version.w - out->label.x;
+    out->version_shown = out->line.x + out->line.w + ORACLES_UI_VERSION_GAP <= hints_x;
+    if (!out->version_shown) out->line.w = out->label.w;
+    if (out->line.x + out->line.w + ORACLES_UI_VERSION_GAP > hints_x) {
+        out->hit = (OraclesUiBox){ out->line.x, out->line.y, 0.0f, 0.0f };
+        return;
+    }
+    float outline;
+    oracles_ui_layout_version_link(layout, &out->line, &out->hit, &outline);
+    out->hit.x -= m->about_hit[0];
+    out->hit.y -= m->about_hit[1];
+    out->hit.w += m->about_hit[0] + m->about_hit[2];
+    out->hit.h += m->about_hit[1] + m->about_hit[3];
 }
 
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out)

@@ -1,6 +1,8 @@
 /* A session's routes (docs/ROUTES.md): the one --play replays, its options taken on, and the one --record writes. */
 #include "session_internal.h"
 
+#include "file_folder.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,6 +142,8 @@ int oracles_session_record_route(session *s, const OraclesSessionOptions *o, cha
         if (oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS) && s->play.format < ORACLES_ROUTE_FORMAT_SCENE_WALKS)
             return refuse(error, capacity, "%s was written before scene walks were left to the game (format %u): it cannot be extended", o->play_path, s->play.format);
     }
+    char reason[PATH_MAX_LENGTH + 64];   /* the route's folder, with those above it: every file below sits beside the route */
+    if (!oracles_file_folder_make(o->record_path, reason, sizeof reason)) return refuse(error, capacity, "%s for %s", reason, o->record_path);
     if (strcmp(s->save.sha1, "none") != 0) {
         const size_t size = oracles_core_sram_size(s->core);
         uint8_t *sram = malloc(size);

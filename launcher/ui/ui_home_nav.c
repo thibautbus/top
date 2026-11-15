@@ -53,6 +53,9 @@ void oracles_home_init(OraclesHomeNav *nav)
 #ifdef __ANDROID__
     nav->android = 1;
 #endif
+#ifdef _WIN32
+    nav->windows = 1;
+#endif
 }
 
 void oracles_home_pause(OraclesHomeNav *nav, int game, OraclesProfile playing, int narrow)
@@ -226,6 +229,7 @@ static OraclesHomeCommand open_about(OraclesHomeNav *nav)
 {
     nav->screen = ORACLES_SCREEN_ABOUT;
     nav->row = 0;
+    nav->portable_status = ORACLES_PORTABLE_STATUS_NONE;
     return ORACLES_HOME_STAY;
 }
 
@@ -424,6 +428,23 @@ OraclesHomeCommand oracles_home_click(OraclesHomeNav *nav, unsigned item)
 }
 
 int oracles_home_game(const OraclesHomeNav *nav) { return hero_game(oracles_home_hero(nav)); }
+
+int oracles_home_command_needs_game(OraclesHomeCommand command)
+{
+    switch (command) {
+        case ORACLES_HOME_CHOOSE_ROM:
+        case ORACLES_HOME_CHOOSE_PATCH:
+        case ORACLES_HOME_CHOOSE_EU_ROM:
+        case ORACLES_HOME_OPEN_FOLDER:
+        case ORACLES_HOME_OPEN_MODS:
+        case ORACLES_HOME_MODS_LIMIT:
+        case ORACLES_HOME_IMPORT_SAVE:
+        case ORACLES_HOME_REPLACE_SAVE:
+        case ORACLES_HOME_EXPORT_SAVE:
+        case ORACLES_HOME_EXPORT_MODS_SAVE: return 1;
+        default: return 0;
+    }
+}
 
 int oracles_home_refuses(const OraclesHomeNav *nav, unsigned feature)
 {

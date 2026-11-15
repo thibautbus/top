@@ -340,6 +340,26 @@ static void read_mods(void *opaque, OraclesHomeNav *nav)
     }
 }
 
+/* About's Portable mode: shown where the launcher's folder can keep its data and ORACLES_SETTINGS_DIR does not name
+ * another (oracles_home_portable_shown); its switch, portable.txt; the games outside the folder, which stay where they
+ * are. */
+static void portable_state(const OraclesHomeGames *games, OraclesHomeNav *nav)
+{
+    const char *exe_dir = games->settings->exe_dir;
+    nav->portable_shown = oracles_home_portable_shown(SDL_getenv("ORACLES_SETTINGS_DIR"), exe_dir);
+    nav->portable = nav->portable_shown && oracles_portable_marked(exe_dir);
+    nav->games_outside = nav->portable_shown ? oracles_settings_games_outside(games->settings, exe_dir) : 0u;
+}
+
+static void portable_turned(void *opaque, OraclesHomeNav *nav, int on, int result, const char *next_dir)
+{
+    OraclesHomeGames *games = opaque;
+    const OraclesPortableResult r = (OraclesPortableResult)result;
+    oracles_settings_portable_turned(games->settings, on, r, next_dir);
+    nav->portable_status = oracles_home_portable_status(r);
+    portable_state(games, nav);
+}
+
 static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window)
 {
     OraclesHomeGames *games = opaque;
@@ -365,6 +385,7 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
     }
     nav->cheats_fixed = games->options && games->options->cheats_given;   /* --cheats', for every game it starts */
     nav->update_check = games->settings->update_check;
+    portable_state(games, nav);
     nav->cheats_changed = 0;
     oracles_home_inspect_controls(games->settings, &nav->controls);
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -822,6 +843,7 @@ void oracles_home_games_host(OraclesHomeGames *games, OraclesHomeHost *host)
     host->file_chosen = file_chosen;
     host->read_mods = read_mods;
     host->open_mods = open_mods;
+    host->portable_turned = portable_turned;
     host->start = start;
     oracles_home_save_host(games, host);
 }

@@ -349,7 +349,7 @@ static OraclesHomeCommand set_swim(OraclesHomeNav *nav, int hold)
     return ORACLES_HOME_STORE;
 }
 
-/* Touch vibration: On (1) or Off (0), Android's; from the pause too, the game taking it as the pause closes. */
+/* Touch vibration: On (1) or Off (0), Android's; from the pause too, the game taking it at once. */
 static OraclesHomeCommand set_vibration(OraclesHomeNav *nav, int on)
 {
     if (!nav->android || nav->controls.touch_vibration == on) return ORACLES_HOME_STAY;

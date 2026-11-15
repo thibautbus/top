@@ -4,7 +4,9 @@
 
 #include "hotkey_lines.h"
 #include "guest_tables.h"
+#include "portable.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,6 +228,58 @@ int oracles_settings_mod_set(char list[ORACLES_SETTINGS_MODS_LENGTH], const char
     return 1;
 }
 
+/* "C:\..." or "\\server\share\...": a Windows path, whose case does not matter and where \ separates as / does. */
+static int windows_path(const char *path)
+{
+    return (isalpha((unsigned char)path[0]) && path[1] == ':') || (path[0] == '\\' && path[1] == '\\');
+}
+
+static int path_separator(char c, int windows) { return c == '/' || (windows && c == '\\'); }
+
+void oracles_settings_path_written(const char *base, const char *path, char *out, size_t capacity)
+{
+    const size_t length = strlen(base);
+    const int windows = windows_path(base);
+    size_t i = 0;
+    if (length && path_separator(base[length - 1], windows))
+        for (; i < length && path[i]; i++) {
+            const char a = base[i], b = path[i];
+            if (path_separator(a, windows) && path_separator(b, windows)) continue;
+            if (a != b && !(windows && tolower((unsigned char)a) == tolower((unsigned char)b))) break;
+        }
+    snprintf(out, capacity, "%s", length && i == length && path[i] && !path_separator(path[i], windows) ? path + length : path);
+}
+
+void oracles_settings_path_read(const char *base, const char *value, char *out, size_t capacity)
+{
+    const int absolute = !value[0] || value[0] == '/' || windows_path(value) || (windows_path(base) && value[0] == '\\');
+    if (absolute || !base[0]) snprintf(out, capacity, "%s", value);
+    else snprintf(out, capacity, "%s%s", base, value);
+}
+
+unsigned oracles_settings_games_outside(const oracles_settings *s, const char *exe_dir)
+{
+    const char *paths[ORACLES_SETTINGS_GAMES * 2 + ORACLES_HOME_FAN_GAMES];
+    unsigned count = 0, outside = 0;
+    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) { paths[count++] = s->rom[g]; paths[count++] = s->eu_rom[g]; }
+    for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) paths[count++] = s->patch[f];
+    char written[ORACLES_SETTINGS_PATH_LENGTH];
+    for (unsigned i = 0; i < count; i++) {
+        if (!paths[i][0]) continue;
+        oracles_settings_path_written(exe_dir, paths[i], written, sizeof written);
+        outside += !strcmp(written, paths[i]);
+    }
+    return outside;
+}
+
+void oracles_settings_portable_turned(oracles_settings *s, int on, OraclesPortableResult result, const char *next_dir)
+{
+    if ((result != ORACLES_PORTABLE_COPIED && result != ORACLES_PORTABLE_NOTHING_TO_COPY) || !next_dir[0]) return;
+    snprintf(s->path, sizeof s->path, "%ssettings.txt", next_dir);
+    s->paths_relative = on;
+    oracles_settings_store(s);
+}
+
 /* `name` beside settings.txt; empty when there is no settings directory. */
 static void beside(const oracles_settings *s, const char *name, char *out, size_t capacity)
 {
@@ -280,6 +334,8 @@ void oracles_settings_defaults(oracles_settings *s)
     memset(s->fan_language, 0, sizeof s->fan_language);
     memset(s->mods, 0, sizeof s->mods);
     s->mods_path[0] = 0;   /* beside settings.txt, until Android's shared storage names it */
+    s->exe_dir[0] = 0;   /* paths as they are, until the launcher names the executable's folder */
+    s->paths_relative = 0;
     memset(s->cheats, 0, sizeof s->cheats);   /* the game as it plays */
     memset(s->fan_cheats, 0, sizeof s->fan_cheats);
     /* A first opening plays Enhanced, the view drawn back with the continuous transitions it carries, fullscreen. */
@@ -412,9 +468,9 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
         char expected[32];
         snprintf(expected, sizeof expected, "rom_%s", game_names[g]);
-        if (!strcmp(name, expected)) { snprintf(s->rom[g], sizeof s->rom[g], "%s", value); return 1; }
+        if (!strcmp(name, expected)) { oracles_settings_path_read(s->exe_dir, value, s->rom[g], sizeof s->rom[g]); return 1; }
         snprintf(expected, sizeof expected, "eu_rom_%s", game_names[g]);
-        if (!strcmp(name, expected)) { snprintf(s->eu_rom[g], sizeof s->eu_rom[g], "%s", value); return 1; }
+        if (!strcmp(name, expected)) { oracles_settings_path_read(s->exe_dir, value, s->eu_rom[g], sizeof s->eu_rom[g]); return 1; }
         snprintf(expected, sizeof expected, "language_%s", game_names[g]);
         if (!strcmp(name, expected)) {
             for (int l = 0; l < ORACLES_SETTINGS_LANGUAGES; l++) if (!strcmp(word, oracles_settings_language_names[l])) s->language[g] = l;
@@ -437,7 +493,7 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) {
         char expected[32];
         snprintf(expected, sizeof expected, "patch_%s", oracles_home_fan_games[f].key);
-        if (!strcmp(name, expected)) { snprintf(s->patch[f], sizeof s->patch[f], "%s", value); return 1; }
+        if (!strcmp(name, expected)) { oracles_settings_path_read(s->exe_dir, value, s->patch[f], sizeof s->patch[f]); return 1; }
         snprintf(expected, sizeof expected, "language_%s", oracles_home_fan_games[f].key);
         if (!strcmp(name, expected)) {
             for (int l = 0; l < ORACLES_SETTINGS_LANGUAGES; l++) if (!strcmp(word, oracles_settings_language_names[l])) s->fan_language[f] = l;
@@ -605,6 +661,13 @@ static void put_tip(writer *w, const char *name, int count)
     else put(w, "%s=%d\n", name, count);
 }
 
+/* A ROM's or a patch's path as written: relative to the executable's folder in the portable mode. */
+static const char *written_path(const oracles_settings *s, const char *path, char *out, size_t capacity)
+{
+    oracles_settings_path_written(s->paths_relative ? s->exe_dir : "", path, out, capacity);
+    return out;
+}
+
 int oracles_settings_store(const oracles_settings *s)
 {
     if (!s->path[0]) return 0;
@@ -627,14 +690,15 @@ int oracles_settings_store(const oracles_settings *s)
                "# (off|use, Controls' Off or On, for the games the home screen starts; equip as --item-hotkeys=equip), and the\n"
                "# launcher window's size.\n");
     static const char *const hotkey_names[3] = { "off", "use", "equip" };
-    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "rom_%s=%s\n", game_names[g], s->rom[g]);
+    char kept[ORACLES_SETTINGS_PATH_LENGTH];
+    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "rom_%s=%s\n", game_names[g], written_path(s, s->rom[g], kept, sizeof kept));
     put(&w, "# Each fan game's BPS patch (Cartridge's Choose patch), applied to its Oracle's ROM: Gifts of Kinomi's to\n"
                "# rom_ages, Moonrise Regalia's to rom_ages, Temple of Seasons' to rom_seasons.\n");
-    for (unsigned g = 0; g < ORACLES_HOME_FAN_GAMES; g++) put(&w, "patch_%s=%s\n", oracles_home_fan_games[g].key, s->patch[g]);
+    for (unsigned g = 0; g < ORACLES_HOME_FAN_GAMES; g++) put(&w, "patch_%s=%s\n", oracles_home_fan_games[g].key, written_path(s, s->patch[g], kept, sizeof kept));
     put(&w, "# Each Oracle's European ROM (Cartridge's European ROM), whose English and official translations it plays in, and\n"
                "# its language: en (English (US), the US ROM's own), en-eu (English (EU), the European ROM's), fr, de, it or es,\n"
                "# which need that ROM.\n");
-    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "eu_rom_%s=%s\n", game_names[g], s->eu_rom[g]);
+    for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) put(&w, "eu_rom_%s=%s\n", game_names[g], written_path(s, s->eu_rom[g], kept, sizeof kept));
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++)
         put(&w, "language_%s=%s\n", game_names[g],
                 oracles_settings_language_names[s->language[g] > 0 && s->language[g] < ORACLES_SETTINGS_LANGUAGES ? s->language[g] : 0]);

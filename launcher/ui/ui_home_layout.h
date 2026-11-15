@@ -67,6 +67,20 @@ typedef struct OraclesUiUpdateLayout {
     OraclesUiLine text;
 } OraclesUiUpdateLayout;
 
+/* The home screen's way to About, "About · v1.2.0": About, the dot and the version on the version's line, from where the
+ * version alone starts on the other screens; `line` the three as one, which the notice and the highlight are laid out
+ * from (oracles_ui_layout_update, oracles_ui_layout_version_link); `hit` the pointer's target, which in 16:9 reaches the
+ * scene's bottom left corner.  Where the version would come nearer the help bar than ORACLES_UI_VERSION_GAP, About
+ * stays alone (`version_shown` 0), `line` and `hit` its own; where About alone would, nothing is shown and `hit` is
+ * empty. */
+typedef struct OraclesUiAboutLink {
+    OraclesUiLine label, dot, version, line;
+    OraclesUiBox hit;
+    int version_shown;
+} OraclesUiAboutLink;
+#define ORACLES_UI_VERSION_GAP 24.0f   /* the least room between the version and the help bar */
+extern const char oracles_ui_about_label[];   /* "About" */
+
 /* A game's tab (4:3): its box, its label, and the line along its bottom, the chosen tab's drawn in the accent. */
 typedef struct OraclesUiTabLayout {
     OraclesUiBox box, line;
@@ -115,6 +129,8 @@ void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, co
                             OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out);
 /* The help bar, centred at the bottom. */
 void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out);
+/* The left edge of the help bar of the screen `nav` shows, or the scene's right edge without a hint. */
+float oracles_ui_layout_hints_left(OraclesUiLayout layout, const OraclesHomeNav *nav);
 void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, OraclesUiLine *out);
 /* The notice of the newer version `release` ("1.3.0") by the `version` oracles_ui_layout_version laid out, which keeps
  * its place. */
@@ -122,6 +138,9 @@ void oracles_ui_layout_update(OraclesUiLayout layout, const OraclesUiLine *versi
 /* The version number's place for the highlight, the `version` laid out: padded as the notice is, the line its text, an
  * outline `*outline` wide drawn inside it, so that the number does not move. */
 void oracles_ui_layout_version_link(OraclesUiLayout layout, const OraclesUiLine *version, OraclesUiBox *box, float *outline);
+/* The home screen's About, its dot and the version `version` ("v1.2.0 (abc1234)"), the help bar's left edge at
+ * `hints_x` (oracles_ui_layout_hints_left). */
+void oracles_ui_layout_about_link(OraclesUiLayout layout, const char *version, float hints_x, OraclesUiAboutLink *out);
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out);
 /* The reminder over a game started ("L3 opens the menu"), centred, under the game's status bar, whose bottom is at
  * `bar_bottom` in the scene. */

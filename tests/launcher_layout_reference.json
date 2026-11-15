@@ -417,13 +417,13 @@
     "lines": 1
    },
    "version": {
-    "x": 24,
+    "x": 110.453,
     "w": 61.469,
-    "glyph_top": 1033,
+    "glyph_top": 1036,
     "glyph_h": 27,
-    "top": 1033,
-    "h": 27,
-    "baseline": 1054,
+    "top": 1036,
+    "h": 28,
+    "baseline": 1057,
     "width": 61.469,
     "lines": 1
    }
@@ -6601,13 +6601,13 @@
     "lines": 1
    },
    "version": {
-    "x": 28,
+    "x": 133.563,
     "w": 75.438,
-    "glyph_top": 1008,
+    "glyph_top": 1013,
     "glyph_h": 34,
-    "top": 1008,
+    "top": 1013,
     "h": 34,
-    "baseline": 1034,
+    "baseline": 1039,
     "width": 75.438,
     "lines": 1
    }
@@ -36787,7 +36787,7 @@
     "h": 80
    },
    "version": {
-    "x": 24,
+    "x": 110.453,
     "w": 152.281,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -36798,13 +36798,13 @@
     "lines": 1
    },
    "update": {
-    "x": 186.281,
+    "x": 272.734,
     "y": 1030,
     "w": 173.344,
     "h": 38
    },
    "update text": {
-    "x": 199.281,
+    "x": 285.734,
     "w": 147.344,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -36961,7 +36961,7 @@
     "h": 80
    },
    "version": {
-    "x": 24,
+    "x": 110.453,
     "w": 152.281,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -36972,13 +36972,13 @@
     "lines": 1
    },
    "update": {
-    "x": 186.281,
+    "x": 272.734,
     "y": 1030,
     "w": 173.344,
     "h": 38
    },
    "update text": {
-    "x": 199.281,
+    "x": 285.734,
     "w": 147.344,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -37135,7 +37135,7 @@
     "h": 90
    },
    "version": {
-    "x": 28,
+    "x": 133.563,
     "w": 186.891,
     "glyph_top": 1013,
     "glyph_h": 34,
@@ -37309,7 +37309,7 @@
     "h": 90
    },
    "version": {
-    "x": 28,
+    "x": 133.563,
     "w": 186.891,
     "glyph_top": 1013,
     "glyph_h": 34,
@@ -37483,7 +37483,7 @@
     "h": 80
    },
    "version": {
-    "x": 24,
+    "x": 110.453,
     "w": 152.281,
     "glyph_top": 1036,
     "glyph_h": 27,
@@ -45768,7 +45768,7 @@
     "h": 80
    },
    "version": {
-    "x": 24,
+    "x": 110.453,
     "w": 152.281,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -45779,13 +45779,13 @@
     "lines": 1
    },
    "update": {
-    "x": 186.281,
+    "x": 272.734,
     "y": 1030,
     "w": 173.344,
     "h": 38
    },
    "update text": {
-    "x": 199.281,
+    "x": 285.734,
     "w": 147.344,
     "glyph_top": 1035,
     "glyph_h": 27,
@@ -45798,7 +45798,7 @@
    "version link": {
     "x": 12,
     "y": 1031,
-    "w": 176.281,
+    "w": 262.734,
     "h": 36
    },
    "hint 0": {
@@ -45948,7 +45948,7 @@
     "h": 90
    },
    "version": {
-    "x": 28,
+    "x": 133.563,
     "w": 186.891,
     "glyph_top": 1013,
     "glyph_h": 34,
@@ -45978,7 +45978,7 @@
    "version link": {
     "x": 14,
     "y": 1008,
-    "w": 214.891,
+    "w": 320.453,
     "h": 44
    },
    "hint 0": {
@@ -46482,6 +46482,1283 @@
     "baseline": 408,
     "width": 257.828,
     "lines": 1
+   }
+  },
+  "about link": {
+   "item 0": {
+    "x": 1168,
+    "y": 420,
+    "w": 720,
+    "h": 80
+   },
+   "item 1": {
+    "x": 1168,
+    "y": 504,
+    "w": 720,
+    "h": 80
+   },
+   "item 2": {
+    "x": 1168,
+    "y": 588,
+    "w": 720,
+    "h": 80
+   },
+   "item 3": {
+    "x": 1168,
+    "y": 672,
+    "w": 720,
+    "h": 80
+   },
+   "item 4": {
+    "x": 1168,
+    "y": 756,
+    "w": 720,
+    "h": 80
+   },
+   "item 5": {
+    "x": 1168,
+    "y": 840,
+    "w": 720,
+    "h": 80
+   },
+   "item 6": {
+    "x": 1168,
+    "y": 924,
+    "w": 720,
+    "h": 80
+   },
+   "version": {
+    "x": 110.453,
+    "w": 61.469,
+    "glyph_top": 1035,
+    "glyph_h": 27,
+    "top": 1035,
+    "h": 28,
+    "baseline": 1056,
+    "width": 61.469,
+    "lines": 1
+   },
+   "about": {
+    "x": 12,
+    "y": 1031,
+    "w": 171.922,
+    "h": 36
+   },
+   "about label": {
+    "x": 24,
+    "y": 1035,
+    "w": 61.938,
+    "h": 28
+   },
+   "about label text": {
+    "x": 24,
+    "w": 61.938,
+    "glyph_top": 1035,
+    "glyph_h": 27,
+    "top": 1035,
+    "h": 28,
+    "baseline": 1056,
+    "width": 61.938,
+    "lines": 1
+   },
+   "update": {
+    "x": 181.922,
+    "y": 1030,
+    "w": 161.25,
+    "h": 38
+   },
+   "update text": {
+    "x": 194.922,
+    "w": 135.25,
+    "glyph_top": 1035,
+    "glyph_h": 27,
+    "top": 1035,
+    "h": 28,
+    "baseline": 1056,
+    "width": 135.25,
+    "lines": 1
+   },
+   "about hit": {
+    "x": 0,
+    "y": 1015,
+    "w": 187.922,
+    "h": 64
+   },
+   "hint 0": {
+    "x": 629.656,
+    "y": 1025,
+    "w": 194.188,
+    "h": 37
+   },
+   "hint 1": {
+    "x": 859.844,
+    "y": 1025,
+    "w": 193.094,
+    "h": 37
+   },
+   "hint 2": {
+    "x": 1088.938,
+    "y": 1025,
+    "w": 201.391,
+    "h": 37
+   },
+   "hint 0 key": {
+    "x": 639.656,
+    "y": 1029,
+    "w": 111.203,
+    "h": 29
+   },
+   "hint 1 key": {
+    "x": 869.844,
+    "y": 1029,
+    "w": 111.203,
+    "h": 29
+   },
+   "hint 2 key": {
+    "x": 1098.938,
+    "y": 1029,
+    "w": 122.594,
+    "h": 29
+   },
+   "hint 0 key text": {
+    "x": 649.656,
+    "w": 91.203,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 91.203,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 879.844,
+    "w": 91.203,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 91.203,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 1154.531,
+    "w": 11.406,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 11.406,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 760.859,
+    "w": 52.984,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 52.984,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 991.047,
+    "w": 51.891,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 51.891,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1231.531,
+    "w": 48.797,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 48.797,
+    "lines": 1
+   }
+  },
+  "about link 640x480": {
+   "item 0": {
+    "x": 764,
+    "y": 316,
+    "w": 640,
+    "h": 90
+   },
+   "item 1": {
+    "x": 764,
+    "y": 410,
+    "w": 640,
+    "h": 90
+   },
+   "item 2": {
+    "x": 764,
+    "y": 504,
+    "w": 640,
+    "h": 90
+   },
+   "item 3": {
+    "x": 764,
+    "y": 598,
+    "w": 640,
+    "h": 90
+   },
+   "item 4": {
+    "x": 764,
+    "y": 692,
+    "w": 640,
+    "h": 90
+   },
+   "item 5": {
+    "x": 764,
+    "y": 786,
+    "w": 640,
+    "h": 90
+   },
+   "item 6": {
+    "x": 764,
+    "y": 880,
+    "w": 640,
+    "h": 90
+   },
+   "version": {
+    "x": 133.563,
+    "w": 75.438,
+    "glyph_top": 1013,
+    "glyph_h": 34,
+    "top": 1013,
+    "h": 34,
+    "baseline": 1039,
+    "width": 75.438,
+    "lines": 1
+   },
+   "about": {
+    "x": 14,
+    "y": 1008,
+    "w": 209,
+    "h": 44
+   },
+   "about label": {
+    "x": 28,
+    "y": 1013,
+    "w": 76.016,
+    "h": 34
+   },
+   "about label text": {
+    "x": 28,
+    "w": 76.016,
+    "glyph_top": 1013,
+    "glyph_h": 34,
+    "top": 1013,
+    "h": 34,
+    "baseline": 1039,
+    "width": 76.016,
+    "lines": 1
+   },
+   "update": {
+    "x": 14,
+    "y": 956,
+    "w": 184.359,
+    "h": 48
+   },
+   "update text": {
+    "x": 30,
+    "w": 152.359,
+    "glyph_top": 963,
+    "glyph_h": 34,
+    "top": 963,
+    "h": 34,
+    "baseline": 989,
+    "width": 152.359,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 290.281,
+    "y": 982,
+    "w": 272.703,
+    "h": 90
+   },
+   "hint 1": {
+    "x": 578.984,
+    "y": 982,
+    "w": 271.297,
+    "h": 90
+   },
+   "hint 2": {
+    "x": 866.281,
+    "y": 982,
+    "w": 283.438,
+    "h": 90
+   },
+   "hint 0 key": {
+    "x": 310.281,
+    "y": 1008,
+    "w": 151.609,
+    "h": 38
+   },
+   "hint 1 key": {
+    "x": 598.984,
+    "y": 1008,
+    "w": 151.609,
+    "h": 38
+   },
+   "hint 2 key": {
+    "x": 886.281,
+    "y": 1008,
+    "w": 167.797,
+    "h": 38
+   },
+   "hint 0 key text": {
+    "x": 321.281,
+    "w": 129.609,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 129.609,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 609.984,
+    "w": 129.609,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 129.609,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 962.078,
+    "w": 16.203,
+    "glyph_top": 1009,
+    "glyph_h": 36,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1037,
+    "width": 16.203,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 473.891,
+    "w": 69.094,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 69.094,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 762.594,
+    "w": 67.688,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 67.688,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1066.078,
+    "w": 63.641,
+    "glyph_top": 1012,
+    "glyph_h": 30,
+    "top": 1009,
+    "h": 36,
+    "baseline": 1036,
+    "width": 63.641,
+    "lines": 1
+   }
+  },
+  "portable on": {
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 279
+   },
+   "update": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 86
+   },
+   "update label": {
+    "x": 689,
+    "w": 204.359,
+    "glyph_top": 99,
+    "glyph_h": 27,
+    "top": 99,
+    "h": 27,
+    "baseline": 120,
+    "width": 204.359,
+    "lines": 1
+   },
+   "portable": {
+    "x": 689,
+    "y": 181,
+    "w": 1142,
+    "h": 129
+   },
+   "portable label": {
+    "x": 689,
+    "w": 226.266,
+    "glyph_top": 199,
+    "glyph_h": 27,
+    "top": 199,
+    "h": 27,
+    "baseline": 220,
+    "width": 226.266,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 1664.484,
+    "y": 203.5,
+    "w": 70.156,
+    "h": 41
+   },
+   "portable on": {
+    "x": 1742.641,
+    "y": 203.5,
+    "w": 68.359,
+    "h": 41
+   },
+   "portable off text": {
+    "x": 1681.484,
+    "w": 36.156,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 36.156,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 1759.641,
+    "w": 34.359,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 34.359,
+    "lines": 1
+   },
+   "update row": {
+    "x": 1069,
+    "y": 81,
+    "w": 762,
+    "h": 86
+   },
+   "portable row": {
+    "x": 1069,
+    "y": 181,
+    "w": 762,
+    "h": 86
+   },
+   "portable explanation": {
+    "x": 1089,
+    "w": 543.797,
+    "glyph_top": 211.5,
+    "glyph_h": 24,
+    "top": 209.5,
+    "h": 29,
+    "baseline": 230.5,
+    "width": 543.797,
+    "lines": 1
+   },
+   "portable hint": {
+    "x": 689,
+    "y": 281,
+    "w": 1142,
+    "h": 29
+   },
+   "portable hint text": {
+    "x": 709,
+    "w": 924.531,
+    "glyph_top": 283,
+    "glyph_h": 24,
+    "top": 281,
+    "h": 29,
+    "baseline": 302,
+    "width": 924.531,
+    "lines": 1
+   },
+   "hint 0": {
+    "x": 517.359,
+    "y": 1025,
+    "w": 189.875,
+    "h": 37
+   },
+   "hint 1": {
+    "x": 743.234,
+    "y": 1025,
+    "w": 209.203,
+    "h": 37
+   },
+   "hint 2": {
+    "x": 988.438,
+    "y": 1025,
+    "w": 206.078,
+    "h": 37
+   },
+   "hint 3": {
+    "x": 1230.516,
+    "y": 1025,
+    "w": 172.109,
+    "h": 37
+   },
+   "hint 0 key": {
+    "x": 527.359,
+    "y": 1029,
+    "w": 111.203,
+    "h": 29
+   },
+   "hint 1 key": {
+    "x": 753.234,
+    "y": 1029,
+    "w": 111.203,
+    "h": 29
+   },
+   "hint 2 key": {
+    "x": 998.438,
+    "y": 1029,
+    "w": 122.594,
+    "h": 29
+   },
+   "hint 3 key": {
+    "x": 1240.516,
+    "y": 1029,
+    "w": 99.797,
+    "h": 29
+   },
+   "hint 0 key text": {
+    "x": 537.359,
+    "w": 91.203,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 91.203,
+    "lines": 1
+   },
+   "hint 1 key text": {
+    "x": 763.234,
+    "w": 91.203,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 91.203,
+    "lines": 1
+   },
+   "hint 2 key text": {
+    "x": 1054.031,
+    "w": 11.406,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 11.406,
+    "lines": 1
+   },
+   "hint 3 key text": {
+    "x": 1284.703,
+    "w": 11.406,
+    "glyph_top": 1031,
+    "glyph_h": 25,
+    "top": 1031,
+    "h": 25,
+    "baseline": 1050,
+    "width": 11.406,
+    "lines": 1
+   },
+   "hint 0 label": {
+    "x": 648.563,
+    "w": 48.672,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 48.672,
+    "lines": 1
+   },
+   "hint 1 label": {
+    "x": 874.438,
+    "w": 68,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 68,
+    "lines": 1
+   },
+   "hint 2 label": {
+    "x": 1131.031,
+    "w": 53.484,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 53.484,
+    "lines": 1
+   },
+   "hint 3 label": {
+    "x": 1350.313,
+    "w": 42.313,
+    "glyph_top": 1031.5,
+    "glyph_h": 23,
+    "top": 1029.5,
+    "h": 28,
+    "baseline": 1049.5,
+    "width": 42.313,
+    "lines": 1
+   }
+  },
+  "portable copying": {
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 281
+   },
+   "update": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 86
+   },
+   "update label": {
+    "x": 689,
+    "w": 204.359,
+    "glyph_top": 99,
+    "glyph_h": 27,
+    "top": 99,
+    "h": 27,
+    "baseline": 120,
+    "width": 204.359,
+    "lines": 1
+   },
+   "portable": {
+    "x": 689,
+    "y": 181,
+    "w": 1142,
+    "h": 131
+   },
+   "portable label": {
+    "x": 689,
+    "w": 226.266,
+    "glyph_top": 199,
+    "glyph_h": 27,
+    "top": 199,
+    "h": 27,
+    "baseline": 220,
+    "width": 226.266,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 1664.484,
+    "y": 203.5,
+    "w": 70.156,
+    "h": 41
+   },
+   "portable on": {
+    "x": 1742.641,
+    "y": 203.5,
+    "w": 68.359,
+    "h": 41
+   },
+   "portable off text": {
+    "x": 1681.484,
+    "w": 36.156,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 36.156,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 1759.641,
+    "w": 34.359,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 34.359,
+    "lines": 1
+   },
+   "update row": {
+    "x": 1069,
+    "y": 81,
+    "w": 762,
+    "h": 86
+   },
+   "portable row": {
+    "x": 1069,
+    "y": 181,
+    "w": 762,
+    "h": 86
+   },
+   "portable explanation": {
+    "x": 1089,
+    "w": 543.797,
+    "glyph_top": 211.5,
+    "glyph_h": 24,
+    "top": 209.5,
+    "h": 29,
+    "baseline": 230.5,
+    "width": 543.797,
+    "lines": 1
+   },
+   "portable status": {
+    "x": 689,
+    "y": 281,
+    "w": 1142,
+    "h": 31
+   },
+   "portable status text": {
+    "x": 733,
+    "w": 93.484,
+    "glyph_top": 284,
+    "glyph_h": 25,
+    "top": 281,
+    "h": 31,
+    "baseline": 304,
+    "width": 93.484,
+    "lines": 1
+   }
+  },
+  "portable off kept": {
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 312
+   },
+   "update": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 86
+   },
+   "update label": {
+    "x": 689,
+    "w": 204.359,
+    "glyph_top": 99,
+    "glyph_h": 27,
+    "top": 99,
+    "h": 27,
+    "baseline": 120,
+    "width": 204.359,
+    "lines": 1
+   },
+   "portable": {
+    "x": 689,
+    "y": 181,
+    "w": 1142,
+    "h": 162
+   },
+   "portable label": {
+    "x": 689,
+    "w": 226.266,
+    "glyph_top": 199,
+    "glyph_h": 27,
+    "top": 199,
+    "h": 27,
+    "baseline": 220,
+    "width": 226.266,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 1664.484,
+    "y": 203.5,
+    "w": 70.156,
+    "h": 41
+   },
+   "portable on": {
+    "x": 1742.641,
+    "y": 203.5,
+    "w": 68.359,
+    "h": 41
+   },
+   "portable off text": {
+    "x": 1681.484,
+    "w": 36.156,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 36.156,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 1759.641,
+    "w": 34.359,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 34.359,
+    "lines": 1
+   },
+   "update row": {
+    "x": 1069,
+    "y": 81,
+    "w": 762,
+    "h": 86
+   },
+   "portable row": {
+    "x": 1069,
+    "y": 181,
+    "w": 762,
+    "h": 86
+   },
+   "portable explanation": {
+    "x": 1089,
+    "w": 543.797,
+    "glyph_top": 211.5,
+    "glyph_h": 24,
+    "top": 209.5,
+    "h": 29,
+    "baseline": 230.5,
+    "width": 543.797,
+    "lines": 1
+   },
+   "portable status": {
+    "x": 689,
+    "y": 281,
+    "w": 1142,
+    "h": 62
+   },
+   "portable status text": {
+    "x": 733,
+    "w": 1058.063,
+    "glyph_top": 284,
+    "glyph_h": 25,
+    "top": 281,
+    "h": 31,
+    "baseline": 304,
+    "width": 1058.063,
+    "lines": 2
+   }
+  },
+  "portable read only": {
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 312
+   },
+   "update": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 86
+   },
+   "update label": {
+    "x": 689,
+    "w": 204.359,
+    "glyph_top": 99,
+    "glyph_h": 27,
+    "top": 99,
+    "h": 27,
+    "baseline": 120,
+    "width": 204.359,
+    "lines": 1
+   },
+   "portable": {
+    "x": 689,
+    "y": 181,
+    "w": 1142,
+    "h": 162
+   },
+   "portable label": {
+    "x": 689,
+    "w": 226.266,
+    "glyph_top": 199,
+    "glyph_h": 27,
+    "top": 199,
+    "h": 27,
+    "baseline": 220,
+    "width": 226.266,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 1664.484,
+    "y": 203.5,
+    "w": 70.156,
+    "h": 41
+   },
+   "portable on": {
+    "x": 1742.641,
+    "y": 203.5,
+    "w": 68.359,
+    "h": 41
+   },
+   "portable off text": {
+    "x": 1681.484,
+    "w": 36.156,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 36.156,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 1759.641,
+    "w": 34.359,
+    "glyph_top": 208.5,
+    "glyph_h": 31,
+    "top": 208.5,
+    "h": 31,
+    "baseline": 232.5,
+    "width": 34.359,
+    "lines": 1
+   },
+   "update row": {
+    "x": 1069,
+    "y": 81,
+    "w": 762,
+    "h": 86
+   },
+   "portable row": {
+    "x": 1069,
+    "y": 181,
+    "w": 762,
+    "h": 86
+   },
+   "portable explanation": {
+    "x": 1089,
+    "w": 543.797,
+    "glyph_top": 211.5,
+    "glyph_h": 24,
+    "top": 209.5,
+    "h": 29,
+    "baseline": 230.5,
+    "width": 543.797,
+    "lines": 1
+   },
+   "portable status": {
+    "x": 689,
+    "y": 281,
+    "w": 1142,
+    "h": 62
+   },
+   "portable status text": {
+    "x": 733,
+    "w": 1027.609,
+    "glyph_top": 284,
+    "glyph_h": 25,
+    "top": 281,
+    "h": 31,
+    "baseline": 304,
+    "width": 1027.609,
+    "lines": 2
+   }
+  },
+  "portable 4:3": {
+   "panel": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 405
+   },
+   "update": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "update label": {
+    "x": 84,
+    "w": 264.266,
+    "glyph_top": 239.5,
+    "glyph_h": 37,
+    "top": 239.5,
+    "h": 37,
+    "baseline": 268.5,
+    "width": 264.266,
+    "lines": 1
+   },
+   "portable": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "portable label": {
+    "x": 84,
+    "w": 292.938,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 292.938,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 708,
+    "y": 319,
+    "w": 110,
+    "h": 90
+   },
+   "portable on": {
+    "x": 830,
+    "y": 319,
+    "w": 110,
+    "h": 90
+   },
+   "portable off text": {
+    "x": 736.969,
+    "w": 52.063,
+    "glyph_top": 341.297,
+    "glyph_h": 45,
+    "top": 343.297,
+    "h": 41.391,
+    "baseline": 376.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 860.266,
+    "w": 49.469,
+    "glyph_top": 341.297,
+    "glyph_h": 45,
+    "top": 343.297,
+    "h": 41.391,
+    "baseline": 376.297,
+    "width": 49.469,
+    "lines": 1
+   },
+   "help": {
+    "x": 84,
+    "y": 522,
+    "w": 1272,
+    "h": 47
+   },
+   "help text": {
+    "x": 84,
+    "w": 806.078,
+    "glyph_top": 527,
+    "glyph_h": 36,
+    "top": 522,
+    "h": 47,
+    "baseline": 556,
+    "width": 806.078,
+    "lines": 1
+   },
+   "help note": {
+    "x": 84,
+    "y": 573,
+    "w": 1272,
+    "h": 40
+   },
+   "help note text": {
+    "x": 84,
+    "w": 542.703,
+    "glyph_top": 578,
+    "glyph_h": 30,
+    "top": 573,
+    "h": 40,
+    "baseline": 602,
+    "width": 542.703,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 1312,
+    "h": 140
+   },
+   "portable hint": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 38
+   },
+   "portable hint text": {
+    "x": 84,
+    "w": 1155.672,
+    "glyph_top": 424,
+    "glyph_h": 30,
+    "top": 420,
+    "h": 38,
+    "baseline": 448,
+    "width": 1155.672,
+    "lines": 1
+   },
+   "portable status": {
+    "x": 64,
+    "y": 464,
+    "w": 1312,
+    "h": 38
+   },
+   "portable status text": {
+    "x": 110,
+    "w": 520.359,
+    "glyph_top": 468,
+    "glyph_h": 30,
+    "top": 464,
+    "h": 38,
+    "baseline": 492,
+    "width": 520.359,
+    "lines": 1
+   }
+  },
+  "portable 4:3 kept": {
+   "panel": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 399
+   },
+   "update": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "update label": {
+    "x": 84,
+    "w": 264.266,
+    "glyph_top": 239.5,
+    "glyph_h": 37,
+    "top": 239.5,
+    "h": 37,
+    "baseline": 268.5,
+    "width": 264.266,
+    "lines": 1
+   },
+   "portable": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "portable label": {
+    "x": 84,
+    "w": 292.938,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 292.938,
+    "lines": 1
+   },
+   "portable off": {
+    "x": 708,
+    "y": 319,
+    "w": 110,
+    "h": 90
+   },
+   "portable on": {
+    "x": 830,
+    "y": 319,
+    "w": 110,
+    "h": 90
+   },
+   "portable off text": {
+    "x": 736.969,
+    "w": 52.063,
+    "glyph_top": 341.297,
+    "glyph_h": 45,
+    "top": 343.297,
+    "h": 41.391,
+    "baseline": 376.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "portable on text": {
+    "x": 860.266,
+    "w": 49.469,
+    "glyph_top": 341.297,
+    "glyph_h": 45,
+    "top": 343.297,
+    "h": 41.391,
+    "baseline": 376.297,
+    "width": 49.469,
+    "lines": 1
+   },
+   "help": {
+    "x": 84,
+    "y": 516,
+    "w": 1272,
+    "h": 47
+   },
+   "help text": {
+    "x": 84,
+    "w": 806.078,
+    "glyph_top": 521,
+    "glyph_h": 36,
+    "top": 516,
+    "h": 47,
+    "baseline": 550,
+    "width": 806.078,
+    "lines": 1
+   },
+   "help note": {
+    "x": 84,
+    "y": 567,
+    "w": 1272,
+    "h": 40
+   },
+   "help note text": {
+    "x": 84,
+    "w": 542.703,
+    "glyph_top": 572,
+    "glyph_h": 30,
+    "top": 567,
+    "h": 40,
+    "baseline": 596,
+    "width": 542.703,
+    "lines": 1
+   },
+   "portable status": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 76
+   },
+   "portable status text": {
+    "x": 110,
+    "w": 1195.063,
+    "glyph_top": 424,
+    "glyph_h": 30,
+    "top": 420,
+    "h": 38,
+    "baseline": 448,
+    "width": 1195.063,
+    "lines": 2
    }
   },
   "vibration": {

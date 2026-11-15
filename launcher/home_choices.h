@@ -37,5 +37,12 @@ unsigned oracles_home_fitting_scale(struct SDL_Window *window, unsigned wanted, 
  * fullscreen where Fill finds every window the same size (oracles_display_one_size_for). */
 void oracles_home_game_window(const oracles_settings *settings, int window_scale, struct SDL_Window *window, OraclesEnhancedSize surface,
                               int *fullscreen, unsigned *scale);
+/* Whether About shows its Portable mode for the executable in `exe_dir`: on Windows and Linux where portable.txt beside
+ * it would be read (oracles_portable_available), ORACLES_SETTINGS_DIR (`forced`) not set; never on macOS, whose
+ * application has none. */
+int oracles_home_portable_shown(const char *forced, const char *exe_dir);
+/* The status About's Portable mode shows after a switch (OraclesHomePortableStatus): already so, or nothing to copy, the
+ * next launch's folder simply changed; no portable mode here, a failure. */
+int oracles_home_portable_status(OraclesPortableResult result);
 
 #endif

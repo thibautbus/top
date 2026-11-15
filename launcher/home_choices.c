@@ -155,9 +155,34 @@ void oracles_home_store_controls(const OraclesHomeControls *c, oracles_settings 
     snprintf(settings->hotkey_bind_b, sizeof settings->hotkey_bind_b, "%s", c->hotkey_keys[ORACLES_HOME_SLOTS]);
     snprintf(settings->hotkey_bind_a, sizeof settings->hotkey_bind_a, "%s", c->hotkey_keys[ORACLES_HOME_SLOTS + 1]);
     settings->swim_hold = c->swim_hold;   /* a game started next takes it; a running one keeps its own */
-    settings->touch_vibration = c->touch_vibration;   /* a running game takes it as its pause closes */
+    settings->touch_vibration = c->touch_vibration;   /* a running game takes it at once, from its pause too */
     settings->menu_tip = c->menu_tip;
     settings->hotkeys_tip = c->hotkeys_tip;
+}
+
+int oracles_home_portable_shown(const char *forced, const char *exe_dir)
+{
+#ifdef __APPLE__
+    (void)forced;
+    (void)exe_dir;
+    return 0;
+#else
+    return !(forced && forced[0]) && exe_dir && exe_dir[0] && oracles_portable_available(exe_dir);
+#endif
+}
+
+int oracles_home_portable_status(OraclesPortableResult result)
+{
+    switch (result) {
+        case ORACLES_PORTABLE_COPIED: return ORACLES_PORTABLE_STATUS_COPIED;
+        case ORACLES_PORTABLE_NOTHING_TO_COPY:
+        case ORACLES_PORTABLE_UNCHANGED: return ORACLES_PORTABLE_STATUS_MOVED;
+        case ORACLES_PORTABLE_KEPT: return ORACLES_PORTABLE_STATUS_KEPT;
+        case ORACLES_PORTABLE_READ_ONLY: return ORACLES_PORTABLE_STATUS_READ_ONLY;
+        case ORACLES_PORTABLE_COPY_FAILED:
+        case ORACLES_PORTABLE_UNAVAILABLE: break;
+    }
+    return ORACLES_PORTABLE_STATUS_FAILED;
 }
 
 void oracles_home_store_display(const OraclesHomeDisplay *display, int in_game, oracles_settings *prefs)

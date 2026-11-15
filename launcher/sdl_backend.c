@@ -8,6 +8,8 @@
  * Both are rebindable through oracles_sdl_options. */
 #include "sdl_backend_internal.h"
 
+#include "portable.h"
+
 const char *const oracles_sdl_binding_names[ORACLES_BINDINGS] = { "right", "left", "up", "down", "a", "b", "select", "start" };
 const char *const oracles_sdl_default_key_names[ORACLES_BINDINGS] = { "Right", "Left", "Up", "Down", "X", "Z", "Backspace", "Return" };
 const char *const oracles_sdl_default_pad_names[4] = { "a", "b", "back", "start" };
@@ -561,19 +563,16 @@ void oracles_sdl_backend_release(oracles_host_backend *backend)
 int oracles_sdl_settings_dir(char *out, size_t capacity)
 {
     /* ORACLES_SETTINGS_DIR, an existing folder, wins: the tests keep off the player's settings on every system
-     * (SDL_GetPrefPath reads no environment variable on Windows). */
-    const char *forced = getenv("ORACLES_SETTINGS_DIR");
-    if (forced && forced[0]) {
-        const size_t length = strlen(forced);
-        const int separated = forced[length - 1] == '/' || forced[length - 1] == '\\';
-        if (length + 2 > capacity) return 0;
-        snprintf(out, capacity, "%s%s", forced, separated ? "" : "/");
-        return 1;
-    }
+     * (SDL_GetPrefPath reads no environment variable on Windows).  Then the portable mode's folder, without asking
+     * SDL_GetPrefPath, which would make the user's folder. */
+    const OraclesUserDirKind kind = oracles_user_dir(getenv("ORACLES_SETTINGS_DIR"), SDL_GetBasePath(), out, capacity);
+    if (kind == ORACLES_USER_DIR_PORTABLE) oracles_portable_tidy(out);
+    if (kind != ORACLES_USER_DIR_SYSTEM) return kind != ORACLES_USER_DIR_NONE;
     char *path = SDL_GetPrefPath("", "the-oracles-project");
     if (!path) return 0;
     const int ok = strlen(path) < capacity;
     if (ok) memcpy(out, path, strlen(path) + 1);
     SDL_free(path);
+    if (ok) oracles_portable_tidy(out);
     return ok;
 }

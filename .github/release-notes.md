@@ -19,7 +19,7 @@ Open The Oracles Project: the home screen lists Oracle of Ages, Oracle of Season
 
 ## Updating
 
-Install the new version as you installed the old one: unzip the Windows folder wherever you like, put the macOS application or the Linux file in place of the old one, and on Android install the APK over the installed application (from 1.2.0 on: 1.1.0 and earlier were a different application, whose files the new one does not read). Your saves, beside your ROMs, and your settings, in your user folder, are kept, and the new version finds the ROMs you chose. What's new, below, says whether the savestates of the version before still load.
+Install the new version as you installed the old one: unzip the Windows folder wherever you like, put the macOS application or the Linux file in place of the old one, and on Android install the APK over the installed application (from 1.2.0 on: 1.1.0 and earlier were a different application, whose files the new one does not read). Your saves, beside your ROMs, and your settings, in your user folder, are kept, and the new version finds the ROMs you chose. A portable copy on Windows or Linux (`portable.txt` beside the launcher) keeps its settings in its own folder: move `portable.txt`, the `user-data` folder and the ROMs you keep there into the new version's folder before deleting the old one ([Portable mode](https://github.com/thibautbus/top/blob/main/docs/PLAYING.md#portable-mode)). What's new, below, says whether the savestates of the version before still load.
 
 ## Cores
 

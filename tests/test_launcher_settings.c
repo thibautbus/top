@@ -106,6 +106,109 @@ static void unknown_keys(const char *path)
     CHECK(s.unknown[0] == 0);
 }
 
+/* The portable mode's paths: a ROM or a patch below the executable's folder written relative to it, a Windows one
+ * whatever its case and separators, one elsewhere or beside a folder of a longer name as it is; read back against
+ * the folder where the executable is now (a USB stick under another drive letter), an absolute one as it is; outside
+ * the portable mode, written as they are. */
+static void relative_paths(const char *path)
+{
+    static char lines[400][256];
+    char out[ORACLES_SETTINGS_PATH_LENGTH];
+    oracles_settings_path_written("E:\\Oracles\\", "E:\\Oracles\\roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "roms\\Ages.gbc"));
+    oracles_settings_path_written("E:\\Oracles\\", "e:/oracles/roms/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "roms/Ages.gbc"));
+    oracles_settings_path_written("E:\\Oracles\\", "D:\\roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "D:\\roms\\Ages.gbc"));
+    oracles_settings_path_written("E:\\Oracles\\", "E:\\Oracles 2\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "E:\\Oracles 2\\Ages.gbc"));
+    oracles_settings_path_written("E:\\Oracles\\", "E:\\Oracles\\", out, sizeof out);
+    CHECK(!strcmp(out, "E:\\Oracles\\"));
+    oracles_settings_path_written("E:\\", "E:\\roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "roms\\Ages.gbc"));
+    oracles_settings_path_written("/media/stick/oracles/", "/media/stick/oracles/roms/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "roms/Ages.gbc"));
+    oracles_settings_path_written("/media/stick/oracles/", "/media/stick/Oracles/roms/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "/media/stick/Oracles/roms/Ages.gbc"));
+    oracles_settings_path_written("", "/media/stick/oracles/roms/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "/media/stick/oracles/roms/Ages.gbc"));
+    oracles_settings_path_written("E:\\Oracles\\", "", out, sizeof out);
+    CHECK(!out[0]);
+    oracles_settings_path_read("F:\\Oracles\\", "roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "F:\\Oracles\\roms\\Ages.gbc"));
+    oracles_settings_path_read("F:\\Oracles\\", "D:\\roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "D:\\roms\\Ages.gbc"));
+    oracles_settings_path_read("F:\\Oracles\\", "\\\\server\\roms\\Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "\\\\server\\roms\\Ages.gbc"));
+    oracles_settings_path_read("/media/stick/oracles/", "/home/sam/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "/home/sam/Ages.gbc"));
+    oracles_settings_path_read("", "roms/Ages.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "roms/Ages.gbc"));
+    oracles_settings_path_read("F:\\Oracles\\", "", out, sizeof out);
+    CHECK(!out[0]);
+    /* Below a base that is not a Windows one, \ is a character of a name. */
+    oracles_settings_path_written("/home/sam/Oracles/", "/home/sam/Oracles\\x/y.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "/home/sam/Oracles\\x/y.gbc"));
+    oracles_settings_path_read("/home/sam/Oracles/", "\\x.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "/home/sam/Oracles/\\x.gbc"));
+    oracles_settings_path_read("E:\\Oracles\\", "\\x.gbc", out, sizeof out);
+    CHECK(!strcmp(out, "\\x.gbc"));
+
+    oracles_settings s;
+    oracles_settings_defaults(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    snprintf(s.exe_dir, sizeof s.exe_dir, "E:\\Oracles\\");
+    s.paths_relative = 1;
+    snprintf(s.rom[ORACLES_SETTINGS_AGES], sizeof s.rom[0], "E:\\Oracles\\roms\\Oracle of Ages.gbc");
+    snprintf(s.rom[ORACLES_SETTINGS_SEASONS], sizeof s.rom[0], "D:\\Games\\Oracle of Seasons.gbc");
+    snprintf(s.eu_rom[ORACLES_SETTINGS_AGES], sizeof s.eu_rom[0], "e:\\oracles\\roms\\Ages (Europe).gbc");
+    snprintf(s.patch[ORACLES_HOME_FAN_MOONRISE], sizeof s.patch[0], "E:\\Oracles\\patches\\Moonrise Regalia.bps");
+    CHECK(oracles_settings_store(&s) == 1);
+    unsigned count = read_lines(path, lines, 400);
+    CHECK(line_at(lines, count, "rom_ages=roms\\Oracle of Ages.gbc") >= 0 && line_at(lines, count, "rom_seasons=D:\\Games\\Oracle of Seasons.gbc") >= 0);
+    CHECK(line_at(lines, count, "eu_rom_ages=roms\\Ages (Europe).gbc") >= 0 && line_at(lines, count, "patch_moonrise=patches\\Moonrise Regalia.bps") >= 0);
+    CHECK(line_at(lines, count, "eu_rom_seasons=") >= 0 && line_at(lines, count, "patch_kinomi=") >= 0);
+    oracles_settings back;
+    oracles_settings_defaults(&back);
+    snprintf(back.path, sizeof back.path, "%s", path);
+    snprintf(back.exe_dir, sizeof back.exe_dir, "F:\\Oracles\\");
+    back.paths_relative = 1;
+    oracles_settings_load(&back);
+    CHECK(!strcmp(back.rom[ORACLES_SETTINGS_AGES], "F:\\Oracles\\roms\\Oracle of Ages.gbc"));
+    CHECK(!strcmp(back.rom[ORACLES_SETTINGS_SEASONS], "D:\\Games\\Oracle of Seasons.gbc"));
+    CHECK(!strcmp(back.eu_rom[ORACLES_SETTINGS_AGES], "F:\\Oracles\\roms\\Ages (Europe).gbc") && !back.eu_rom[ORACLES_SETTINGS_SEASONS][0]);
+    CHECK(!strcmp(back.patch[ORACLES_HOME_FAN_MOONRISE], "F:\\Oracles\\patches\\Moonrise Regalia.bps") && !back.patch[ORACLES_HOME_FAN_KINOMI][0]);
+    /* Outside the portable mode: written as they are. */
+    back.paths_relative = 0;
+    CHECK(oracles_settings_store(&back) == 1);
+    count = read_lines(path, lines, 400);
+    CHECK(line_at(lines, count, "rom_ages=F:\\Oracles\\roms\\Oracle of Ages.gbc") >= 0 && line_at(lines, count, "patch_moonrise=F:\\Oracles\\patches\\Moonrise Regalia.bps") >= 0);
+    /* The games outside the folder, which stay where they are: Seasons' ROM, then Kinomi's patch too. */
+    CHECK(oracles_settings_games_outside(&back, "F:\\Oracles\\") == 1);
+    snprintf(back.patch[ORACLES_HOME_FAN_KINOMI], sizeof back.patch[0], "G:\\Kinomi.bps");
+    CHECK(oracles_settings_games_outside(&back, "F:\\Oracles\\") == 2 && oracles_settings_games_outside(&back, "") == 5);
+
+    /* Turned: after a copy, settings.txt in the new folder at once, its paths as the mode writes them; after KEPT,
+     * nothing. */
+    char folder[ORACLES_SETTINGS_PATH_LENGTH], moved[ORACLES_SETTINGS_PATH_LENGTH + 16];
+    snprintf(folder, sizeof folder, "%s.portable/", path);
+    mkdir(folder, 0755);
+    snprintf(moved, sizeof moved, "%ssettings.txt", folder);
+    remove(moved);
+    snprintf(back.exe_dir, sizeof back.exe_dir, "F:\\Oracles\\");
+    oracles_settings_portable_turned(&back, 1, ORACLES_PORTABLE_KEPT, folder);
+    CHECK(!strcmp(back.path, path) && back.paths_relative == 0);
+    oracles_settings_portable_turned(&back, 1, ORACLES_PORTABLE_COPIED, folder);
+    CHECK(!strcmp(back.path, moved) && back.paths_relative == 1);
+    count = read_lines(moved, lines, 400);
+    CHECK(line_at(lines, count, "rom_ages=roms\\Oracle of Ages.gbc") >= 0 && line_at(lines, count, "patch_kinomi=G:\\Kinomi.bps") >= 0);
+    oracles_settings_portable_turned(&back, 0, ORACLES_PORTABLE_NOTHING_TO_COPY, folder);
+    count = read_lines(moved, lines, 400);
+    CHECK(back.paths_relative == 0 && line_at(lines, count, "rom_ages=F:\\Oracles\\roms\\Oracle of Ages.gbc") >= 0);
+    remove(moved);
+    rmdir(folder);
+}
+
 /* Spaces around a key's name and its value, and capitals, as a player writes them by hand: `update_check = OFF` turns
  * the check off, and is written back update_check=off; a path keeps its own spaces and case. */
 static void spaces_and_case(const char *path)
@@ -662,11 +765,33 @@ static void fan_cheats(void)
     CHECK(s.cheats[ORACLES_SETTINGS_AGES] == ORACLES_CHEAT_AMMO && s.fan_cheats[ORACLES_HOME_FAN_KINOMI] == ORACLES_CHEAT_RUPEES);
 }
 
+/* About's Portable mode: its row where portable.txt would be read, never with ORACLES_SETTINGS_DIR, without the
+ * executable's folder, in a macOS application, nor on macOS at all; each switch's result as the row says it. */
+static void portable_row(void)
+{
+#if defined(__APPLE__) || defined(__ANDROID__)
+    CHECK(!oracles_home_portable_shown(NULL, "/Users/sam/oracles/"));
+#else
+    CHECK(oracles_home_portable_shown(NULL, "/home/sam/oracles/") && oracles_home_portable_shown("", "/home/sam/oracles/"));
+#endif
+    CHECK(!oracles_home_portable_shown("/home/sam/elsewhere", "/home/sam/oracles/"));
+    CHECK(!oracles_home_portable_shown(NULL, "") && !oracles_home_portable_shown(NULL, NULL));
+    CHECK(!oracles_home_portable_shown(NULL, "/Applications/The Oracles Project.app/Contents/MacOS/"));
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_COPIED) == ORACLES_PORTABLE_STATUS_COPIED);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_NOTHING_TO_COPY) == ORACLES_PORTABLE_STATUS_MOVED);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_UNCHANGED) == ORACLES_PORTABLE_STATUS_MOVED);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_KEPT) == ORACLES_PORTABLE_STATUS_KEPT);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_READ_ONLY) == ORACLES_PORTABLE_STATUS_READ_ONLY);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_COPY_FAILED) == ORACLES_PORTABLE_STATUS_FAILED);
+    CHECK(oracles_home_portable_status(ORACLES_PORTABLE_UNAVAILABLE) == ORACLES_PORTABLE_STATUS_FAILED);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) { fprintf(stderr, "usage: oracles-test-launcher-settings TEMPORARY_FILE\n"); return 2; }
     const char *path = argv[1];
     fan_cheats();
+    portable_row();
     profile_refusals();
 
     oracles_settings_defaults(&written);
@@ -1395,6 +1520,7 @@ int main(int argc, char **argv)
     }
 
     unknown_keys(path);
+    relative_paths(path);
     spaces_and_case(path);
     menu_pad_resolved();
     display_stored();
