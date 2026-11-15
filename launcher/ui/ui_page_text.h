@@ -8,7 +8,7 @@
  * first three belong to Enhanced: in Faithful they are dimmed and inert, "Enhanced only."; Text speed changes the game's
  * pace, not its picture, and is live in either profile, for every game, so that Display's Text link is dimmed only
  * where none of the rows is.  Text box and Text size are live where the game's profile qualifies them (the Oracles
- * and the fan games), else dimmed and inert, "Ages and Seasons only for now.", the summary leaving them out.  From the pause, a row acts at once or not at all: Text
+ * and the fan games), else dimmed and inert, "Not available for this game.", the summary leaving them out.  From the pause, a row acts at once or not at all: Text
  * and Text box, which a game lays its texts out for at its start, are dimmed and inert there, "Change it from the home
  * screen."; Text size applies at once, by the running game's profile, Text speed when the game resumes, dimmed for a
  * game whose profile has no instant text.  A row the command line gave for the run (--text, --text-box, --text-size)

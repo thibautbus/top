@@ -201,8 +201,8 @@ The room Link is in always shows, and a room he enters for the first time fades 
 
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
-| **Item hotkeys** (Hotkeys) | Off, On | Off | The item hotkeys of the game shown. | both; Ages and Seasons, original ROMs | when the game resumes |
-| **Swimming** (In game) | Tap, Hold | Tap | Hold: a direction held swims at full speed, instead of tapping A with the flippers or the direction with the mermaid suit. | both; Ages and Seasons, original ROMs | when the game resumes |
+| **Item hotkeys** (Hotkeys) | Off, On | Off | The item hotkeys of the game shown. | both; Ages and Seasons, original ROMs, and Oracles Combined | when the game resumes |
+| **Swimming** (In game) | Tap, Hold | Tap | Hold: a direction held swims at full speed, instead of tapping A with the flippers or the direction with the mermaid suit. | both; Ages and Seasons, original ROMs, and the fan games but Moonrise Regalia | when the game resumes |
 | **Reset to defaults** (Buttons) | | | Puts back the default keys and buttons, the hotkeys' and the menu's included, and brings back the reminder of the menu's key and the pause menu's line on the item hotkeys; the items in the slots, **Item hotkeys** and **Swimming** stay as they are. | | |
 
 The keys and buttons hold for every game; **Item hotkeys** and the items in the slots belong to the game shown. Each change is written at once. Choose a cell and press the key or the button to bind; Escape cancels, as do the menu's button and Guide on a controller. A key already bound elsewhere on the same device moves to the new cell, and the other cell stays empty. From the pause, keys and buttons change at once.
@@ -213,7 +213,7 @@ The fixed keys, Escape and F2 to F11, show once you have pressed a key, and on a
 
 Each game you start reminds you how to open the menu, in a short notice under the status bar: it starts only in play, a moment after the status bar shows, never over a title, a menu, a dialogue or a cutscene. It says "L3 opens the menu" with a controller, naming the menu's button ("Guide opens the menu" when none is set), "Esc opens the menu" with the keyboard, "The pause button opens the menu" by touch, and "L3 or Back opens the menu" with a controller on Android. It names the device you used last and fades after a few seconds. Once you open the menu with its key it stops; otherwise it comes back for ten games at most.
 
-With **Item hotkeys** Off, **Controls › Hotkeys** greys the slots and says under them what On does: "Off: turn it on to use an item with one key, without opening the inventory."
+With **Item hotkeys** Off, **Controls › Hotkeys** greys the slots and says under them what On does: "Off: turn it on to use an item with one key, without opening the inventory." A game without them, a fan game other than Oracles Combined, says "Not available for this game." under the row, which stays Off; Moonrise Regalia says the same under **Swimming**, which stays live: it is one setting for every game.
 
 ## Gameplay options
 
@@ -279,7 +279,7 @@ The cheats change nothing else in the game: what they leave, such as rupees kept
 
 ## RetroAchievements
 
-Ages and Seasons on their original ROMs have achievements from [RetroAchievements](https://retroachievements.org): written by players and unlocked as you play, in Faithful and Enhanced. They need an account on retroachievements.org, made on its site, and stay off until you log in. A fan game has none, and neither has a ROM the launcher does not recognise as an original: **Achievements** is greyed for them ("Original Ages and Seasons ROMs only").
+Ages and Seasons on their original ROMs have achievements from [RetroAchievements](https://retroachievements.org): written by players and unlocked as you play, in Faithful and Enhanced. They need an account on retroachievements.org, made on its site, and stay off until you log in. A fan game has none, and neither has a ROM the launcher does not recognise as an original: **Achievements** is greyed for them, "Not available for this game" for a fan game, and "Needs an original ROM" for such a ROM or while Ages or Seasons has none.
 
 **Achievements**, on a game's menu above **Cheats**, opens their page:
 
@@ -361,7 +361,7 @@ A savestate taken in a language loads only in it. The fan games play in English 
 | **Save** (Android) | **Export save with mods…** | A copy of the save the game with mods plays on, wherever you choose. |
 | **Play** | | Starts the game with the mods switched on, on a save of its own. |
 
-**Mods**, in the menu of Ages and of Seasons, lists the mods that add houses, characters and minigames to the game ([`MODDING.md`](MODDING.md)). Beside it, the menu says how many are on. A fan game's menu greys it: "Mods play on the original ROMs".
+**Mods**, in the menu of Ages and of Seasons, lists the mods that add houses, characters and minigames to the game ([`MODDING.md`](MODDING.md)). Beside it, the menu says how many are on. A fan game's menu greys it: "Not available for this game".
 
 The mods live in the **mods folder**, beside `settings.txt`:
 
@@ -375,7 +375,7 @@ Each mod is a folder of its own in it, named with a–z, 0–9, `-` and `_`, wit
 
 The page lists each mod found, in the order of their names, which is the order they play in: a switch, its name, the games it adds houses to ("Houses in Ages and Seasons"), and its description, or why it is refused ("Refused: " and the reason). A refused mod stays off. Left and right, Enter or a click switch the highlighted mod, and the choice is kept at once, for each game.
 
-**Play**, at the bottom of the page, starts the game with the mods that are on, on a save of its own: `NAME.mods.sav` beside the ROM. It is copied from the game's usual save the first time, and again after **Import save…** ([Saves](#saves)); a game with mods never writes the usual save. **Start game**, in the game's menu, plays without mods, on the usual save. Play is greyed without a ROM ("Choose a ROM in Cartridge first") and on a ROM that is not the original US one ("Mods play on the original ROMs").
+**Play**, at the bottom of the page, starts the game with the mods that are on, on a save of its own: `NAME.mods.sav` beside the ROM. It is copied from the game's usual save the first time, and again after **Import save…** ([Saves](#saves)); a game with mods never writes the usual save. **Start game**, in the game's menu, plays without mods, on the usual save. Play is greyed without a ROM ("Choose a ROM in Cartridge first") and on a ROM that is not the original US one ("Needs an original ROM").
 
 On Android, the **Save** row above Play has **Export save with mods…**: Android's document picker makes a copy of `NAME.mods.sav` wherever you choose (Downloads, an SD card), as **Export save…** does for the usual save, to keep it or play it elsewhere; the mods' data in `NAME.mods.store` stays where it is. The row says "Save with mods exported." once the copy is written. It is greyed until the game with mods has a save of its own: "No save with mods yet: Play with a mod on makes one.". On a computer, **Open folder** in Cartridge shows the file beside the ROM.
 
@@ -438,7 +438,7 @@ Escape pauses a game the home screen started, as the controller's menu button an
 
 From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are greyed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
 
-A fan game other than Oracles Combined shows **Item hotkeys** greyed, "Ages and Seasons only for now.", and so does Moonrise Regalia for **Swimming**; a game on an unrecognised ROM shows them greyed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
+A fan game other than Oracles Combined shows **Item hotkeys** greyed, "Not available for this game.", and so does Moonrise Regalia for **Swimming**; a game on an unrecognised ROM shows them greyed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
 
 In Ages, Seasons and Oracles Combined with the item hotkeys off, a discreet line under the menu says where to turn them on: "Item hotkeys are off · Controls › Item hotkeys". It shows the first three times you open the menu, and goes for good once they are on. It is not there for the other fan games, nor where the menu leaves Controls out.
 

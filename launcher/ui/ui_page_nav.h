@@ -331,9 +331,12 @@ const char *oracles_display_section(const OraclesHomeNav *nav);
  * (oracles_display_pause_reason). */
 int oracles_display_pause_locked(const OraclesHomeNav *nav, unsigned row);
 extern const char oracles_display_pause_reason[];   /* "Change it from the home screen." */
-/* What a fan game's profile does not qualify yet (Display › Text's Text box and Text size, Controls' Swimming and Item
- * hotkeys from its pause): "Ages and Seasons only for now." */
+/* What a game's profile does not have (Display › Text's Text box and Text size, Controls' Swimming and Item hotkeys),
+ * under its row: "Not available for this game." */
 extern const char oracles_display_fan_reason[];
+/* What a ROM no profile recognises does not have, under its row (Text speed, Swimming, Item hotkeys): "Needs an original
+ * ROM.", the reason the player can act on. */
+extern const char oracles_display_original_reason[];
 /* A row dimmed and inert: locked from the pause (oracles_display_pause_locked), or the screen margin --screen-margin
  * gives for the run, and the text, the text box and the text size --text, --text-box and --text-size give. */
 int oracles_display_row_fixed(const OraclesHomeNav *nav, unsigned row);

@@ -37,6 +37,7 @@ typedef struct OraclesUiControlsLayout {
     const char *mode_later_text;                /* mode_later's, as swim_later_text */
     OraclesUiChipLayout mode_choices[2];
     OraclesUiLine heading_hotkeys, heading_hotkeys_keyboard, heading_hotkeys_gamepad, heading_items;
+    const char *heading_items_text;             /* heading_items' (oracles_controls_item_heading) */
     OraclesUiLine hotkey_names[ORACLES_HOME_HOTKEY_ROWS];
     OraclesUiLine items[ORACLES_HOME_SLOTS];
     OraclesUiLine slots_note;
@@ -63,9 +64,9 @@ typedef struct OraclesUiControlsLayout {
     OraclesUiLine mode_fan;
     char mode_fan_text[ORACLES_HOME_TEXT_LENGTH];
     /* Swimming: its box (its highlight, the pointer's target), its title and Tap and Hold on one line, its explanation
-     * broken into lines under them, in 4:3 a fan game's line that it does not apply there, or from a fan game's pause
-     * or an unrecognised ROM's the line that says why it is dimmed (zero when not shown, its text NULL).  Zero in 4:3's
-     * Buttons and Hotkeys. */
+     * broken into lines under them, a game's line, from the home screen, that it does not apply there, or from a fan
+     * game's pause or an unrecognised ROM's the line that says why it is dimmed (zero when not shown, its text NULL).
+     * Zero in 4:3's Buttons and Hotkeys. */
     OraclesUiBox swim;
     OraclesUiLine swim_title, swim_fan, swim_later;
     const char *swim_later_text;
@@ -91,8 +92,7 @@ extern const OraclesUiTextStyle oracles_ui_controls_menu_cell, oracles_ui_contro
 extern const OraclesUiTextStyle oracles_ui_controls_menu_cell_4_3, oracles_ui_controls_menu_cell_waiting_4_3;
 extern const char oracles_ui_controls_mode_text[], oracles_ui_controls_mode_note[], oracles_ui_controls_slots[], oracles_ui_controls_hotkeys_off[];
 extern const char *const oracles_ui_controls_mode_choices[2];
-extern const char oracles_ui_controls_swim_text[], oracles_ui_controls_swim_fan[];
-extern const char oracles_ui_controls_original_only[];   /* "Needs an original ROM.": Swimming's, the Item hotkeys' reason */
+extern const char oracles_ui_controls_swim_text[];
 extern const char *const oracles_ui_controls_swim_choices[2];   /* "Tap", "Hold" */
 /* Touch vibration's: 16:9's explanation, 4:3's and its note, its choices "On", "Off". */
 extern const char oracles_ui_controls_vibration_text[], oracles_ui_controls_vibration_text_4_3[], oracles_ui_controls_vibration_note_4_3[];

@@ -2456,7 +2456,7 @@ static void home_entry(void)
     /* An unrecognised ROM: greyed, no Cheats. */
     nav.games[ORACLES_HOME_GAME_AGES].rom = ORACLES_ROM_UNRECOGNISED;
     CHECK(oracles_home_items(&nav, items) == 7 && items[5].disabled && items[6].id == ORACLES_HOME_ITEM_EXIT);
-    CHECK(!strcmp(items[5].reason, "Original Ages and Seasons ROMs only"));
+    CHECK(!strcmp(items[5].reason, "Needs an original ROM"));
     nav.focus = 5;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME);
     /* Moonrise Regalia: greyed, then Cheats. */
@@ -2464,16 +2464,21 @@ static void home_entry(void)
     nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
     nav.games[ORACLES_HOME_GAME_MOONRISE].rom = ORACLES_ROM_ORIGINAL;
     CHECK(oracles_home_items(&nav, items) == 8 && items[5].disabled && items[6].id == ORACLES_HOME_ITEM_CHEATS);
+    CHECK(!strcmp(items[5].reason, "Not available for this game"));
     /* Oracles Combined: greyed, its profile without cheats. */
     nav.fan_pick = ORACLES_HOME_HERO_COMBINED;
     nav.games[ORACLES_HOME_GAME_COMBINED].refuses = ORACLES_HOME_REFUSES_CHEATS;
     CHECK(oracles_home_items(&nav, items) == 7 && items[5].disabled && items[6].id == ORACLES_HOME_ITEM_EXIT);
+    CHECK(!strcmp(items[5].reason, "Not available for this game"));
     /* The list of fan games has no entry of theirs. */
     nav.fan_pick = ORACLES_HOME_HERO_FAN;
     CHECK(oracles_home_items(&nav, items) == 5);
-    /* The Oracle with no ROM yet: greyed too. */
+    /* The Oracle with no ROM yet: greyed too, asking for one. */
     nav.entry = ORACLES_HOME_SEASONS;
-    CHECK(oracles_home_items(&nav, items) == 8 && items[5].disabled);
+    CHECK(oracles_home_items(&nav, items) == 8 && items[5].disabled && !strcmp(items[5].reason, "Needs an original ROM"));
+    /* A ROM that cannot be read: the same as an unrecognised one. */
+    nav.games[ORACLES_HOME_GAME_SEASONS].rom = ORACLES_ROM_REFUSED;
+    CHECK(oracles_home_items(&nav, items) == 8 && items[5].disabled && !strcmp(items[5].reason, "Needs an original ROM"));
 }
 
 static void login_hints(void)

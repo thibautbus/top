@@ -67,7 +67,7 @@ const char *oracles_mods_play_note(const OraclesHomeNav *nav)
 {
     const OraclesHomeGame *game = &nav->games[mods_game(nav)];
     if (!game->usable) return "Choose a ROM in Cartridge first";
-    if (game->rom != ORACLES_ROM_ORIGINAL) return "Mods play on the original ROMs";
+    if (game->rom != ORACLES_ROM_ORIGINAL) return oracles_home_original_only;
     return "";
 }
 

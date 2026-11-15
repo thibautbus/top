@@ -17,7 +17,9 @@
  * pause 4:3); Menu's controller button, its moves,
  * its capture and its toast, highlighted in 16:9 (18a) and in 4:3's In game
  * (18b, 18c), and waiting (menu capture, menu capture 4:3); Android's Touch vibration in 16:9 (vibration) and in
- * 4:3's In game tab at 640x480 (vibration 640x480, vibration 640x480 keys). */
+ * 4:3's In game tab at 640x480 (vibration 640x480, vibration 640x480 keys); Oracles Combined's item hotkeys, on, off and
+ * from the pause (42a to 42c, 42e combined 640x480), the reason of what a fan game lacks (42d, 42e), and Swimming's from the
+ * home screen in 16:9, Moonrise Regalia's and Gifts of Kinomi's (47a, 47a kinomi). */
 #include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
@@ -117,7 +119,7 @@ static void moves(void)
     c->row = 5;
     oracles_home_act(&nav, ORACLES_HOME_RIGHT);
     CHECK(c->column == 3 && c->row == 3);
-    CHECK(!strcmp(oracles_controls_item_heading(&nav), "In Ages"));
+    CHECK(!strcmp(oracles_controls_item_heading(&nav, ORACLES_UI_LAYOUT_16_9), "In Ages"));
 }
 
 /* Swimming against a frame's: its box, its title, Tap and Hold, its explanation's first line and its count of lines. */
@@ -161,9 +163,9 @@ static void swimming(void)
     CHECK(c->column == 0 && c->row == ORACLES_CONTROLS_ROW_SWIM);
     oracles_home_act(&nav, ORACLES_HOME_UP);
     CHECK(c->column == 0 && c->row == ORACLES_CONTROLS_ROW_RESET);
-    /* A fan game's: from the pause menu in 16:9 (swim fan, turn 29's 27e), Swimming and the Item hotkeys, which the fan
-     * games have not, dimmed and inert, "Ages and Seasons only for now." in place of the fan games' lines; in 4:3's In
-     * game, Swimming says that fan games ignore it (swim fan 4:3), from the pause its reason alone (swim fan pause
+    /* Moonrise Regalia's: from the pause menu in 16:9 (swim fan, turn 29's 27e), Swimming and the Item hotkeys, which its
+     * profile has not, dimmed and inert, "Not available for this game." in place of the home screen's lines; in 4:3's In
+     * game, Swimming says the same in the warning's tone (swim fan 4:3), from the pause its reason alone (swim fan pause
      * 4:3). */
     OraclesUiControlsLayout l;
     oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
@@ -186,7 +188,7 @@ static void swimming(void)
     layout_line("swim fan", "Hotkeys", &l.heading_hotkeys);
     layout_box("swim fan", "slot 0 key", &l.cells[2][0]);
     layout_line("swim fan", "slots note", &l.slots_note);
-    CHECK(!strcmp(oracles_display_fan_reason, "Ages and Seasons only for now."));
+    CHECK(!strcmp(oracles_display_fan_reason, "Not available for this game."));
     nav.controls.row = ORACLES_CONTROLS_ROW_SWIM;
     nav.controls.column = 0;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.controls.swim_hold == 0);
@@ -200,7 +202,7 @@ static void swimming(void)
     nav.controls.row = 0;
     nav.in_game = 0;
     oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
-    CHECK(!strcmp(l.mode_fan_text, "Fan games refuse item hotkeys: they stay off for Moonrise Regalia.") && l.mode_later.h == 0.0f);
+    CHECK(!strcmp(l.mode_fan_text, "Not available for this game.") && l.mode_later.h == 0.0f);
     oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
     CHECK(l.swim.w == 0.0f);
     nav.controls.row = ORACLES_CONTROLS_ROW_TAB;
@@ -288,11 +290,11 @@ static void refused_rows(void)
         OraclesUiControlsLayout l;
         nav.controls.tab = ORACLES_CONTROLS_TAB_HOTKEYS;
         oracles_ui_layout_controls(nav.layout, &nav, &l);
-        CHECK(l.mode_later.h > 0.0f && l.mode_later_text == oracles_ui_controls_original_only && !l.mode_fan_text[0]);
+        CHECK(l.mode_later.h > 0.0f && l.mode_later_text == oracles_display_original_reason && !l.mode_fan_text[0]);
         nav.controls.tab = ORACLES_CONTROLS_TAB_IN_GAME;
         nav.controls.row = ORACLES_CONTROLS_ROW_SWIM;
         oracles_ui_layout_controls(nav.layout, &nav, &l);
-        CHECK(l.swim_later.h > 0.0f && l.swim_later_text == oracles_ui_controls_original_only && l.swim_fan.h == 0.0f);
+        CHECK(l.swim_later.h > 0.0f && l.swim_later_text == oracles_display_original_reason && l.swim_fan.h == 0.0f);
         nav.swim_refused = nav.hotkeys_refused = 0;
         oracles_ui_layout_controls(nav.layout, &nav, &l);
         CHECK(l.swim_later.h == 0.0f && !l.swim_later_text);
@@ -1009,6 +1011,225 @@ static void hotkeys_off(void)
     CHECK(!oracles_controls_hotkeys_off_line(&nav));
 }
 
+/* Oracles Combined's hotkeys against a frame's, 16:9's: their line, the grid, the item column and its three items. */
+static void combined_probes(const char *frame, const OraclesUiControlsLayout *l, int layout_4_3)
+{
+    layout_box(frame, "Item hotkeys", &l->mode);
+    layout_box(frame, "Off", &l->mode_choices[0].box);
+    layout_box(frame, "On", &l->mode_choices[1].box);
+    layout_line(frame, "Item hotkeys title", &l->mode_title);
+    layout_line(frame, "explanation", &l->mode_text);
+    layout_line(frame, "note", &l->mode_note);
+    layout_line(frame, "Hotkeys", &l->heading_hotkeys);
+    layout_line(frame, layout_4_3 ? "In Oracles Combined" : "In Combined", &l->heading_items);
+    for (int row = 0; row < 6; row++) {
+        char what[32];
+        snprintf(what, sizeof what, "slot %d key", row); layout_box(frame, what, &l->cells[2][row]);
+        if (row < 4) { snprintf(what, sizeof what, "slot %d button", row); layout_box(frame, what, &l->cells[3][row]); }
+        if (layout_4_3) { snprintf(what, sizeof what, "slot %d name", row); layout_line(frame, what, &l->hotkey_names[row]); }
+    }
+    for (int i = 0; i < 3; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "item %d", i); layout_line(frame, what, &l->items[i]);
+    }
+    layout_line(frame, "Empty", &l->items[3]);
+    if (!layout_4_3) layout_line(frame, "slots note", &l->slots_note);
+    CHECK(l->mode_fan.h == 0.0f && !l->mode_fan_text[0] && l->mode_later.h == 0.0f);
+}
+
+/* Oracles Combined's Controls (42a to 42c): its item hotkeys as Ages' and Seasons', one mode and one set of slots for
+ * both halves, its items from both, the grid live while on (42a, 42a 640x480) and dimmed with the line that says what
+ * On does while off (42b, 42b 640x480); the item column "In Combined" in 16:9, where "In Oracles Combined" would take two
+ * lines, the whole name in 4:3; no line that they stay off.  From the pause, Item hotkeys and Swimming live, without a
+ * reason (42c, 42c 640x480). */
+static void combined_hotkeys(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.games[ORACLES_HOME_GAME_COMBINED].refuses = 0;   /* its profile's, as the host reads it for its release */
+    nav.games[ORACLES_HOME_GAME_COMBINED].usable = 1;
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_COMBINED;
+    oracles_controls_open(&nav);
+    static const char *const items[3] = { "Seed Shooter", "Rod of Seasons", "Switch Hook" };
+    for (int i = 0; i < 3; i++) snprintf(nav.controls.items[2][i], sizeof nav.controls.items[2][i], "%s", items[i]);
+    CHECK(!strcmp(oracles_controls_item(&nav, 1), "Rod of Seasons"));
+    CHECK(!strcmp(oracles_controls_item_heading(&nav, ORACLES_UI_LAYOUT_16_9), "In Combined"));
+    CHECK(!strcmp(oracles_controls_item_heading(&nav, ORACLES_UI_LAYOUT_4_3), "In Oracles Combined"));
+    nav.controls.column = 2;
+    nav.controls.row = ORACLES_CONTROLS_ROW_MODE;
+    OraclesUiControlsLayout l;
+    for (int on = 1; on >= 0; on--) {
+        const char *frame = on ? "42a" : "42b", *frame_4_3 = on ? "42a 640x480" : "42b 640x480";
+        nav.games[ORACLES_HOME_GAME_COMBINED].hotkeys = on;
+        CHECK(oracles_controls_hotkeys_on(&nav) == on && oracles_controls_hotkeys_off_line(&nav) == !on);
+        nav.android = 0;
+        oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        combined_probes(frame, &l, 0);
+        layout_box(frame, "right panel", &l.right_panel);
+        if (!on) layout_line(frame, "off text", &l.hotkeys_off);
+        else CHECK(l.hotkeys_off.h == 0.0f);
+        nav.android = 1;
+        oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+        nav.controls.tab = ORACLES_CONTROLS_TAB_HOTKEYS;
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+        combined_probes(frame_4_3, &l, 1);
+        layout_box(frame_4_3, "tab 1", &l.tabs[1]);
+        if (!on) layout_line(frame_4_3, "off text", &l.hotkeys_off);
+        nav.controls.tab = ORACLES_CONTROLS_TAB_BUTTONS;
+    }
+    /* Left and right turn them on and off, each stored, as Ages'. */
+    nav.android = 0;
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.games[ORACLES_HOME_GAME_COMBINED].hotkeys == 1);
+    /* From the pause: live, no reason, Swimming too. */
+    nav.in_game = 1;
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    combined_probes("42c", &l, 0);
+    swim_probes("42c", &l);
+    CHECK(l.swim_later.h == 0.0f && !l.swim_later_text);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.games[ORACLES_HOME_GAME_COMBINED].hotkeys == 0);
+    nav.android = 1;
+    nav.controls.tab = ORACLES_CONTROLS_TAB_HOTKEYS;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    combined_probes("42c 640x480", &l, 1);
+    layout_line("42c 640x480", "off text", &l.hotkeys_off);
+    /* Its In game tab from the pause: Swimming live, without a line (42e combined 640x480). */
+    nav.controls.tab = ORACLES_CONTROLS_TAB_IN_GAME;
+    nav.controls.row = ORACLES_CONTROLS_ROW_SWIM;
+    nav.controls.column = 0;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    swim_probes("42e combined 640x480", &l);
+    CHECK(l.swim_fan.h == 0.0f && l.swim_later.h == 0.0f);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.controls.swim_hold == 1);
+}
+
+/* One reason for what a game's profile lacks, "Not available for this game.": Moonrise Regalia's line under Item
+ * hotkeys from the home screen (42d), Swimming's and Item hotkeys' from its pause (42d pause), Swimming's in its 4:3 In
+ * game tab (42d 640x480); from the pause of Gifts of Kinomi and Temple of Seasons, Item hotkeys alone, Swimming live (42e
+ * kinomi, 42e temple). */
+static void not_available(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 1;
+    oracles_controls_open(&nav);
+    oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
+    OraclesUiControlsLayout l;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(!strcmp(l.mode_fan_text, oracles_display_fan_reason));
+    layout_box("42d", "Item hotkeys", &l.mode);
+    layout_line("42d", "note", &l.mode_note);
+    layout_line("42d", "fan", &l.mode_fan);
+    layout_line("42d", "Hotkeys", &l.heading_hotkeys);
+    layout_box("42d", "slot 0 key", &l.cells[2][0]);
+    layout_box("42d", "right panel", &l.right_panel);
+    nav.android = 1;
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    nav.controls.tab = ORACLES_CONTROLS_TAB_IN_GAME;
+    nav.controls.row = ORACLES_CONTROLS_ROW_SWIM;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    swim_probes("42d 640x480", &l);
+    layout_line("42d 640x480", "swim fan", &l.swim_fan);
+    nav.android = 0;
+    nav.in_game = 1;
+    nav.controls.row = 0;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    swim_probes("42d pause", &l);
+    CHECK(l.swim_later_text == oracles_display_fan_reason && l.mode_later_text == oracles_display_fan_reason && !l.mode_fan_text[0]);
+    layout_line("42d pause", "swim later", &l.swim_later);
+    layout_box("42d pause", "Item hotkeys", &l.mode);
+    layout_line("42d pause", "later", &l.mode_later);
+    layout_line("42d pause", "Hotkeys", &l.heading_hotkeys);
+    layout_box("42d pause", "slot 0 key", &l.cells[2][0]);
+    static const OraclesHomeHero heroes[2] = { ORACLES_HOME_HERO_KINOMI, ORACLES_HOME_HERO_TEMPLE };
+    static const char *const frames[2] = { "42e kinomi", "42e temple" };
+    for (int f = 0; f < 2; f++) {
+        nav.fan_pick = heroes[f];
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        swim_probes(frames[f], &l);
+        CHECK(l.swim_later.h == 0.0f && l.mode_later_text == oracles_display_fan_reason);
+        layout_box(frames[f], "Item hotkeys", &l.mode);
+        layout_line(frames[f], "later", &l.mode_later);
+        layout_line(frames[f], "Hotkeys", &l.heading_hotkeys);
+        layout_box(frames[f], "slot 0 key", &l.cells[2][0]);
+    }
+}
+
+/* Swimming from the home screen in 16:9 (47a): Moonrise Regalia's, whose profile has no swim's hold, says "Not available
+ * for this game." under its explanation in the warning's tone, in the room of the block's own spacing, and stays live,
+ * one setting for every game, and a click on the line lands on Swimming; the left panel still ends above the hints.
+ * Gifts of Kinomi's, which keeps the hold, without the line (47a kinomi), nor Temple of Seasons' and Oracles Combined's;
+ * from Moonrise Regalia's pause, its reason alone, as before. */
+static int inside(const OraclesUiBox *b, float x, float y) { return b->w > 0.0f && x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h; }
+
+/* Whether the pointer at (x, y) lands on Swimming's row itself (oracles_ui_controls_hit's order): in its box, on none
+ * of the cells, Reset, Menu's cell, Tap or Hold, Touch vibration or the Item hotkeys line before it. */
+static int swim_row_under(const OraclesUiControlsLayout *l, float x, float y)
+{
+    for (int c = 0; c < ORACLES_CONTROLS_COLUMNS; c++)
+        for (int r = 0; r < ORACLES_HOME_BUTTONS; r++) if (inside(&l->cells[c][r], x, y)) return 0;
+    if (inside(&l->reset, x, y) || inside(&l->menu_pad, x, y) || inside(&l->vibration, x, y) || inside(&l->mode, x, y)) return 0;
+    for (int i = 0; i < 2; i++) if (inside(&l->swim_choices[i].box, x, y)) return 0;
+    return inside(&l->swim, x, y);
+}
+
+static void swim_from_home(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 1;
+    nav.games[ORACLES_HOME_GAME_KINOMI].usable = 1;
+    oracles_controls_open(&nav);
+    oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
+    OraclesUiControlsLayout l;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    swim_probes("42d", &l);
+    layout_line("42d", "swim fan", &l.swim_fan);
+    layout_box("42d", "left panel", &l.left_panel);
+    nav.controls.row = ORACLES_CONTROLS_ROW_SWIM;
+    nav.controls.column = 0;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    swim_probes("47a", &l);
+    layout_line("47a", "swim fan", &l.swim_fan);
+    layout_box("47a", "left panel", &l.left_panel);
+    CHECK(l.swim_later.h == 0.0f && !l.swim_later_text);
+    CHECK(l.left_panel.y + l.left_panel.h < layout_reference("47a", "hint 0", "y"));
+    CHECK(!strcmp(l.mode_fan_text, oracles_display_fan_reason));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && nav.controls.swim_hold == 1);
+    CHECK(oracles_controls_click(&nav, 0, ORACLES_CONTROLS_ROW_SWIM, 0) == ORACLES_HOME_STORE && nav.controls.swim_hold == 0);
+    CHECK(swim_row_under(&l, l.swim_fan.x + l.swim_fan.w * 0.5f, l.swim_fan.y + l.swim_fan.h * 0.5f));
+    nav.fan_pick = ORACLES_HOME_HERO_KINOMI;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    swim_probes("47a kinomi", &l);
+    layout_box("47a kinomi", "left panel", &l.left_panel);
+    CHECK(l.swim_fan.h == 0.0f && l.swim_later.h == 0.0f);
+    const float kinomi_bottom = l.left_panel.y + l.left_panel.h;
+    nav.games[ORACLES_HOME_GAME_TEMPLE].usable = 1;
+    nav.games[ORACLES_HOME_GAME_COMBINED].refuses = 0;
+    nav.games[ORACLES_HOME_GAME_COMBINED].usable = 1;
+    static const OraclesHomeHero others[2] = { ORACLES_HOME_HERO_TEMPLE, ORACLES_HOME_HERO_COMBINED };
+    for (int f = 0; f < 2; f++) {
+        nav.fan_pick = others[f];
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        CHECK(l.swim_fan.h == 0.0f && l.swim_later.h == 0.0f && l.left_panel.y + l.left_panel.h == kinomi_bottom);
+    }
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    nav.in_game = 1;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(l.swim_fan.h == 0.0f && l.swim_later_text == oracles_display_fan_reason);
+    swim_probes("42d pause", &l);
+    layout_line("42d pause", "swim later", &l.swim_later);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-controls launcher_layout_reference.json\n"); return 2; }
@@ -1026,6 +1247,9 @@ int main(int argc, char **argv)
     layout_4_3();
     hotkeys_off();
     vibration();
+    combined_hotkeys();
+    not_available();
+    swim_from_home();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher controls: the capture, the moves, Swimming, the 4:3 tabs and the pause menu behave as expected, and Controls matches the layout reference in both layouts within %.1f px\n", (double)LAYOUT_TOLERANCE);
     return 0;

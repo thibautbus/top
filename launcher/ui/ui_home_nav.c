@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 
+const char oracles_home_not_available[] = "Not available for this game";
+const char oracles_home_original_only[] = "Needs an original ROM";
+
 /* The home screen's texts: each hero's line above its title, and its title. */
 static const char *const overs[ORACLES_HOME_HEROES] = { "Oracle of", "Oracle of", "Community", "Fan games", "Fan games", "Fan games", "Fan games" };
 static const char *const titles[ORACLES_HOME_HEROES] = { "Ages", "Seasons", "Fan games", "Gifts of Kinomi", "Moonrise Regalia", "Temple of Seasons",
@@ -17,19 +20,17 @@ static const char *const titles[ORACLES_HOME_HEROES] = { "Ages", "Seasons", "Fan
 const OraclesHomeFanGame oracles_home_fan_games[ORACLES_HOME_FAN_GAMES] = {
     [ORACLES_HOME_FAN_KINOMI] = { .key = "kinomi", .game = ORACLES_HOME_GAME_KINOMI, .hero = ORACLES_HOME_HERO_KINOMI,
       .item = ORACLES_HOME_ITEM_KINOMI, .start = ORACLES_HOME_START_KINOMI, .base = ORACLES_HOME_GAME_AGES,
-      .base_name = "Oracle of Ages (USA)", .image_name = "Gifts of Kinomi 1.1.2", .item_heading = "In Gifts of Kinomi",
-      .credit = "By ZerotoKoops, Stewmath, Gamma and Ralfaro" },
+      .base_name = "Oracle of Ages (USA)", .image_name = "Gifts of Kinomi 1.1.2", .credit = "By ZerotoKoops, Stewmath, Gamma and Ralfaro" },
     [ORACLES_HOME_FAN_MOONRISE] = { .key = "moonrise", .game = ORACLES_HOME_GAME_MOONRISE, .hero = ORACLES_HOME_HERO_MOONRISE,
       .item = ORACLES_HOME_ITEM_MOONRISE, .start = ORACLES_HOME_START_MOONRISE, .base = ORACLES_HOME_GAME_AGES,
-      .base_name = "Oracle of Ages (USA)", .image_name = "Moonrise Regalia 1.0.6", .item_heading = "In Moonrise Regalia",
-      .credit = "By PontiusStone" },
+      .base_name = "Oracle of Ages (USA)", .image_name = "Moonrise Regalia 1.0.6", .credit = "By PontiusStone" },
     [ORACLES_HOME_FAN_COMBINED] = { .key = "combined", .game = ORACLES_HOME_GAME_COMBINED, .hero = ORACLES_HOME_HERO_COMBINED,
       .item = ORACLES_HOME_ITEM_COMBINED, .start = ORACLES_HOME_START_COMBINED, .base = ORACLES_HOME_GAME_AGES,
       .base_name = "Oracle of Ages and Seasons (Europe)", .image_name = "Oracles Combined v1.5", .item_heading = "In Oracles Combined",
-      .credit = "By soaresden, continuing Crossworld by vinheim3", .joined = 1, .patch_expected = "an Oracles Combined release" },
+      .item_heading_16_9 = "In Combined", .credit = "By soaresden, continuing Crossworld by vinheim3", .joined = 1, .patch_expected = "an Oracles Combined release" },
     [ORACLES_HOME_FAN_TEMPLE] = { .key = "temple", .game = ORACLES_HOME_GAME_TEMPLE, .hero = ORACLES_HOME_HERO_TEMPLE,
       .item = ORACLES_HOME_ITEM_TEMPLE, .start = ORACLES_HOME_START_TEMPLE, .base = ORACLES_HOME_GAME_SEASONS,
-      .base_name = "Oracle of Seasons (USA)", .image_name = "Temple of Seasons 1.073", .item_heading = "In Temple of Seasons",
+      .base_name = "Oracle of Seasons (USA)", .image_name = "Temple of Seasons 1.073",
       .credit = "By Jay (like the bird, not the letter) and Ralfaro" },
 };
 
@@ -199,16 +200,18 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
     const int profile = oracles_page_profile(game, nav->display.profile);
     items[3] = item(ORACLES_HOME_ITEM_DISPLAY, "Display", profile_states[profile < 0 ? (int)nav->display.profile : profile], 0, NULL);
     /* Mods, for an Oracle, with how many are active when any is; a fan game plays without them. */
-    items[4] = item(ORACLES_HOME_ITEM_MODS, "Mods", NULL, fan, "Mods play on the original ROMs");
+    items[4] = item(ORACLES_HOME_ITEM_MODS, "Mods", NULL, fan, oracles_home_not_available);
     const unsigned active = oracles_mods_active(nav, g);
     if (active) {
         snprintf(items[4].text, sizeof items[4].text, "%u active", active);
         items[4].note = items[4].text;
     }
-    /* Achievements above Cheats, in a build with RetroAchievements: greyed but on an Oracle's original ROM. */
+    /* Achievements above Cheats, in a build with RetroAchievements: greyed but on an Oracle's original ROM, an Oracle
+     * without one saying what to choose. */
     unsigned n = 5;
     if (nav->achievements.shown)
-        items[n++] = item(ORACLES_HOME_ITEM_ACHIEVEMENTS, "Achievements", NULL, fan || game->rom != ORACLES_ROM_ORIGINAL, "Original Ages and Seasons ROMs only");
+        items[n++] = item(ORACLES_HOME_ITEM_ACHIEVEMENTS, "Achievements", NULL, fan || game->rom != ORACLES_ROM_ORIGINAL,
+                          fan ? oracles_home_not_available : oracles_home_original_only);
     /* Cheats, for a game whose profile has them: an unrecognised ROM's menu has none. */
     if (!(game->refuses & ORACLES_HOME_REFUSES_CHEATS) && game->rom != ORACLES_ROM_UNRECOGNISED) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
     items[n++] = item(ORACLES_HOME_ITEM_EXIT, "Exit", NULL, 0, NULL);

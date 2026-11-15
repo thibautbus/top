@@ -158,7 +158,7 @@ static void swim(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUi
     choice_line(draw, &l->swim, &l->swim_title, "Swimming", l->swim_choices, oracles_ui_controls_swim_choices, nav->controls.swim_hold != 0,
                 nav->controls.row == ORACLES_CONTROLS_ROW_SWIM, st, lk, accent, opacity);
     for (unsigned i = 0; i < l->swim_text.count; i++) text(draw, st->mode_text, &l->swim_text.lines[i], l->swim_text.text[i], oracles_ui_rgba(TEXT, opacity));
-    if (l->swim_fan.h > 0.0f) text(draw, st->mode_text, &l->swim_fan, oracles_ui_controls_swim_fan, oracles_ui_rgb(WARN));
+    if (l->swim_fan.h > 0.0f) text(draw, st->mode_text, &l->swim_fan, oracles_display_fan_reason, oracles_ui_rgb(WARN));
     if (l->swim_later.h > 0.0f) text(draw, st->note, &l->swim_later, l->swim_later_text, oracles_ui_rgba(NOTE, opacity));
 }
 
@@ -183,7 +183,7 @@ static void hotkeys(OraclesUiDraw *draw, const OraclesHomeNav *nav, const Oracle
     text(draw, st->heading, &l->heading_hotkeys, "Hotkeys", oracles_ui_rgba(HEADING, grid));
     text(draw, st->heading, &l->heading_hotkeys_keyboard, "Keyboard", oracles_ui_rgba(HEADING, grid));
     text(draw, st->heading, &l->heading_hotkeys_gamepad, "Gamepad", oracles_ui_rgba(HEADING, grid));
-    text(draw, st->heading, &l->heading_items, oracles_controls_item_heading(nav), oracles_ui_rgba(HEADING, grid));
+    text(draw, st->heading, &l->heading_items, l->heading_items_text, oracles_ui_rgba(HEADING, grid));
     for (int row = 0; row < ORACLES_HOME_HOTKEY_ROWS; row++) {
         text(draw, st->name, &l->hotkey_names[row], oracles_controls_hotkey_rows[row], oracles_ui_rgba(NAME, grid));
         cell(draw, nav, l, st, lk, 2, row, accent, grid);

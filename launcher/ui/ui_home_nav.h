@@ -180,18 +180,22 @@ typedef struct OraclesHomeFanGame {
     int base;                    /* ORACLES_HOME_GAME_AGES or _SEASONS: the ROM its patch applies to, that Oracle's own */
     const char *base_name;       /* "Oracle of Ages (USA)" */
     const char *image_name;      /* the image its patch makes: "Moonrise Regalia 1.0.6" */
-    const char *item_heading;    /* Controls' item column: "In Moonrise Regalia" */
+    const char *item_heading;    /* Controls' item column: "In Oracles Combined"; NULL for a game without item hotkeys */
     const char *credit;          /* its authors' handles as its release page gives them: "By PontiusStone" */
     /* 1: its patch applies to the European ROMs of Ages and Seasons joined, Ages' first (each Oracle's eu_rom_*), not to
      * its Oracle's ROM (Oracles Combined); `base` is Ages, the half it starts in. */
     int joined;
     const char *patch_expected;  /* the patch its page asks for, "an Oracles Combined release"; NULL: image_name's */
+    const char *item_heading_16_9;   /* item_heading in 16:9, where it would take two lines: "In Combined"; NULL: item_heading */
 } OraclesHomeFanGame;
 
 /* The fan games, in the order of the list, each at its ORACLES_HOME_FAN_* place: the one table of them. */
 extern const OraclesHomeFanGame oracles_home_fan_games[ORACLES_HOME_FAN_GAMES];
 /* The fan game of `game` (ORACLES_HOME_GAME_*), NULL for an Oracle or none. */
 const OraclesHomeFanGame *oracles_home_fan_game(int game);
+/* A menu entry's reason (no final period, as the menu's notes): what a game lacks, "Not available for this game"; what
+ * the player can change, "Needs an original ROM". */
+extern const char oracles_home_not_available[], oracles_home_original_only[];
 /* The slots a game's item hotkeys keep (settings.txt's hotkey_<game>_<n>): 0 Ages', 1 Seasons', 2 Oracles Combined's, both
  * its halves'; -1 for a game without item hotkeys. */
 int oracles_home_hotkey_slots(int game);

@@ -241,7 +241,7 @@ static void mods(void)
 
     /* Play cannot start without a ROM, or on a ROM that is not an original. */
     nav.games[ORACLES_HOME_GAME_AGES].rom = ORACLES_ROM_UNRECOGNISED;
-    CHECK(!strcmp(oracles_mods_play_note(&nav), "Mods play on the original ROMs"));
+    CHECK(!strcmp(oracles_mods_play_note(&nav), "Needs an original ROM"));
     CHECK(oracles_mods_click(&nav, oracles_mods_row_play(&nav)) == ORACLES_HOME_STAY);
     nav.games[ORACLES_HOME_GAME_AGES].usable = 0;
     nav.games[ORACLES_HOME_GAME_AGES].rom = ORACLES_ROM_NONE;
@@ -270,7 +270,7 @@ static void mods(void)
     oracles_home_act(&nav, ORACLES_HOME_OK);   /* Moonrise Regalia, in the list */
     CHECK(oracles_home_hero(&nav) == ORACLES_HOME_HERO_MOONRISE);
     oracles_home_items(&nav, items);
-    CHECK(items[4].disabled && !strcmp(items[4].reason, "Mods play on the original ROMs") && items[4].note == NULL);
+    CHECK(items[4].disabled && !strcmp(items[4].reason, "Not available for this game") && items[4].note == NULL);
     nav.focus = 4;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME);
 }

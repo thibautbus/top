@@ -6,7 +6,8 @@
  * (Seasons, no ROM), a toast, and the pause menu, 10n, and 10t in a 640x480
  * window; the toast after a game that ran slowly, 11c, 11f and 11h; the language beside Cartridge, 14f, 15d and
  * 16f; the reminder over a game started, 18d and 18e, and with each device and HUD, 37c to 37f; the pause menu's line on
- * the item hotkeys under its list, 37g and 37h; the help bar after a key or a
+ * the item hotkeys under its list, 37g and 37h, and Oracles Combined's, 42c pause; Moonrise Regalia's Mods greyed in the
+ * menu of 1.5.0, 42d menu; Ages' Achievements without its ROM, 44a and 44a 640x480; the help bar after a key or a
  * controller's button, at home (21a to 21d), in the pause menu (21e, 21f, its entries naming no key: 21y) and on
  * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it as the mockup draws it, 23g; the newer
  * Settings button beside the version, the newer version's notice after them in 16:9 and above them in 4:3, the help bar
@@ -444,6 +445,78 @@ static void hotkeys_line(const char *frame, int width, int height, OraclesInputD
     hints_of(frame, &nav, nav.layout, 3);
     nav.games[ORACLES_HOME_GAME_AGES].hotkeys = 1;
     CHECK(!oracles_controls_hotkeys_line(&nav) && !oracles_controls_hotkeys_tip_due(&nav));
+}
+
+/* Oracles Combined's pause with its item hotkeys off, from a controller (42c pause): the line where to turn them on, as
+ * Ages' and Seasons'. */
+static void combined_hotkeys_line(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.games[ORACLES_HOME_GAME_COMBINED].refuses = 0;
+    nav.layout = ORACLES_UI_LAYOUT_16_9;
+    oracles_home_pause(&nav, ORACLES_HOME_GAME_COMBINED, ORACLES_PROFILE_ENHANCED, 0);
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    CHECK(!nav.games[ORACLES_HOME_GAME_COMBINED].hotkeys && oracles_controls_hotkeys_tip_due(&nav));
+    nav.hotkeys_line = 1;
+    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    OraclesUiMenuLineLayout line;
+    if (menu_with(&nav, items, &line) != 7) { fprintf(stderr, "FAIL 42c pause: seven items expected\n"); layout_fail(); return; }
+    layout_box("42c pause", "line", &line.box);
+    layout_line("42c pause", "line text", &line.lead);
+    layout_line("42c pause", "line path", &line.path);
+    nav.games[ORACLES_HOME_GAME_COMBINED].hotkeys = 1;
+    CHECK(!oracles_controls_hotkeys_line(&nav));
+}
+
+/* Moonrise Regalia's menu of 1.5.0, Mods highlighted, greyed: "Not available for this game", without a period as the
+ * menu's other notes (42d menu). */
+static void frame_42d_menu(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.achievements.shown = 1;
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    nav.games[ORACLES_HOME_GAME_MOONRISE].usable = 1;
+    nav.layout = ORACLES_UI_LAYOUT_16_9;
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    nav.focus = 4;
+    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    if (menu(&nav, items) != 8) { fprintf(stderr, "FAIL 42d menu: eight items expected\n"); layout_fail(); return; }
+    OraclesHomeItem entries[ORACLES_HOME_MAX_ITEMS];
+    oracles_home_items(&nav, entries);
+    CHECK(entries[4].disabled && !strcmp(entries[4].reason, oracles_home_not_available));
+    layout_box("42d menu", "item 4", &items[4].box);
+    layout_line("42d menu", "item 4 label", &items[4].label);
+    layout_line("42d menu", "item 4 reason", &items[4].note);
+}
+
+/* Ages' menu without its ROM, Achievements highlighted, greyed: "Needs an original ROM", in 16:9 from a key (44a) and at
+ * 640x480 on Android (44a 640x480). */
+static void eight_entries_of(const char *frame, OraclesHomeNav *nav, unsigned expected);
+
+static void frame_44a(void)
+{
+    static const char *const frames[2] = { "44a", "44a 640x480" };
+    for (int f = 0; f < 2; f++) {
+        OraclesHomeNav nav;
+        oracles_home_init(&nav);
+        fan_profiles(&nav);
+        nav.achievements.shown = 1;
+        nav.layout = f ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9;
+        nav.android = f != 0;
+        oracles_home_input(&nav, f ? ORACLES_INPUT_GAMEPAD : ORACLES_INPUT_KEYBOARD);
+        nav.focus = 5;
+        OraclesHomeItem entries[ORACLES_HOME_MAX_ITEMS];
+        CHECK(oracles_home_items(&nav, entries) == 8 && entries[5].disabled && !strcmp(entries[5].reason, oracles_home_original_only));
+        eight_entries_of(frames[f], &nav, 8);
+        OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+        menu(&nav, items);
+        layout_line(frames[f], "reason", &items[5].note);
+    }
 }
 
 static void hotkeys_line_rules(void)
@@ -1119,6 +1192,9 @@ int main(int argc, char **argv)
     patch_refused();
     hotkeys_line("37g", 1920, 1080, ORACLES_INPUT_KEYBOARD);
     hotkeys_line("37h", 640, 480, ORACLES_INPUT_GAMEPAD);
+    combined_hotkeys_line();
+    frame_42d_menu();
+    frame_44a();
     hotkeys_line_rules();
     slow_toast("11c", 1920, 1080, 1);
     frame_10a();

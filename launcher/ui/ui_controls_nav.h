@@ -124,8 +124,9 @@ int oracles_controls_hotkeys_on(const OraclesHomeNav *nav);
 /* The item hotkeys of the Oracle shown are off, where they can be turned on (not a fan game's, nor refused): the
  * sentence under their grid says what On does. */
 int oracles_controls_hotkeys_off_line(const OraclesHomeNav *nav);
-/* "In Ages", "In Seasons", a fan game's ("In Moonrise Regalia"): the item column's heading. */
-const char *oracles_controls_item_heading(const OraclesHomeNav *nav);
+/* "In Ages", "In Seasons", Oracles Combined's ("In Oracles Combined"; in 16:9, where that takes two lines, "In
+ * Combined"): the item column's heading in `layout`; empty for the other fan games, which have no item hotkeys. */
+const char *oracles_controls_item_heading(const OraclesHomeNav *nav, OraclesUiLayout layout);
 /* The item in a slot of the game shown, empty when none (a fan game's are all empty). */
 const char *oracles_controls_item(const OraclesHomeNav *nav, int slot);
 

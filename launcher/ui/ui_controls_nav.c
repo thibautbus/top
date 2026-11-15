@@ -196,14 +196,15 @@ int oracles_controls_hotkeys_on(const OraclesHomeNav *nav)
 
 int oracles_controls_hotkeys_off_line(const OraclesHomeNav *nav) { return hotkey_game(nav) >= 0 && !nav->hotkeys_refused && !oracles_controls_hotkeys_on(nav); }
 
-const char *oracles_controls_item_heading(const OraclesHomeNav *nav)
+const char *oracles_controls_item_heading(const OraclesHomeNav *nav, OraclesUiLayout layout)
 {
     switch (oracles_home_hero(nav)) {
         case ORACLES_HOME_HERO_AGES: return "In Ages";
         case ORACLES_HOME_HERO_SEASONS: return "In Seasons";
-        default: {   /* a fan game: Oracles Combined's slots its own, none for the others yet */
+        default: {   /* a fan game: Oracles Combined's slots its own, none for the others yet, their column untitled */
             const OraclesHomeFanGame *fan = oracles_home_fan_game(oracles_home_game(nav));
-            return fan ? fan->item_heading : "";
+            if (!fan || !fan->item_heading) return "";
+            return layout == ORACLES_UI_LAYOUT_16_9 && fan->item_heading_16_9 ? fan->item_heading_16_9 : fan->item_heading;
         }
     }
 }

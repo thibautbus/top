@@ -735,11 +735,11 @@ static void navigation(void)
     nav.screen = ORACLES_SCREEN_HOME;
     oracles_home_select(&nav, ORACLES_HOME_FAN);
     oracles_home_act(&nav, ORACLES_HOME_OK);
-    /* Its Controls: the item column named after it, empty, and the item hotkeys off, which do not turn on. */
+    /* Its Controls: the item column untitled and empty, and the item hotkeys off, which do not turn on. */
     nav.focus = 2;
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_CONTROLS);
     snprintf(nav.controls.items[0][0], sizeof nav.controls.items[0][0], "Shooter");
-    CHECK(!strcmp(oracles_controls_item_heading(&nav), "In Gifts of Kinomi") && oracles_controls_item(&nav, 0)[0] == 0);
+    CHECK(!strcmp(oracles_controls_item_heading(&nav, ORACLES_UI_LAYOUT_16_9), "") && oracles_controls_item(&nav, 0)[0] == 0);
     CHECK(!oracles_controls_hotkeys_on(&nav) && oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_MODE, 1) == ORACLES_HOME_STAY);
     CHECK(!oracles_controls_hotkeys_on(&nav));
     oracles_home_act(&nav, ORACLES_HOME_BACK);

@@ -29,7 +29,6 @@ const char *const oracles_display_text_box_choices[2] = { "Standard", "Wide" };
 const char *const oracles_display_text_size_choices[ORACLES_DISPLAY_TEXT_SIZES] = { "Normal", "Large", "Very large" };
 const char *const oracles_display_text_speed_choices[2] = { "Classic", "Instant" };
 static const char enhanced_reason[] = "Enhanced only.";
-static const char original_reason[] = "Needs an original ROM.";
 /* The port's own words, never the game's. */
 static const char sample[] = "Link, the Maku Tree has been waiting for you. Nayru was taken, and time itself is coming undone.";
 
@@ -164,7 +163,7 @@ static preview_box preview_of(const OraclesHomeNav *nav)
 const char *oracles_display_text_note(const OraclesHomeNav *nav, unsigned row)
 {
     if (row == ORACLES_DISPLAY_TEXT_SPEED)
-        return oracles_display_text_row_live(nav, row) ? "" : oracles_home_refuses(nav, ORACLES_HOME_REFUSES_TEXT_SPEED) ? oracles_display_fan_reason : original_reason;
+        return oracles_display_text_row_live(nav, row) ? "" : oracles_home_refuses(nav, ORACLES_HOME_REFUSES_TEXT_SPEED) ? oracles_display_fan_reason : oracles_display_original_reason;
     if (row == ORACLES_DISPLAY_TEXT_SIZE ? !oracles_display_hud_applies(nav) : !oracles_display_text_applies(nav)) return enhanced_reason;
     if ((row == ORACLES_DISPLAY_TEXT_BOX && box_refused(nav)) || (row == ORACLES_DISPLAY_TEXT_SIZE && size_refused(nav))) return oracles_display_fan_reason;
     if (oracles_display_pause_locked(nav, row)) return oracles_display_pause_reason;

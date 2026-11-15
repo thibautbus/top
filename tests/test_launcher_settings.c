@@ -887,7 +887,7 @@ static void offered_profiles(void)
 
 /* Oracles Combined's pages on its recognized image, from its profile's own refusals: its menu, the home screen's and the
  * pause's, with Cheats; Display in Enhanced, without a note that it plays in Faithful; Display › Text's four rows live,
- * none with the fan games' "Ages and Seasons only for now."; Controls' Swimming and Item hotkeys applying. */
+ * none with "Not available for this game."; Controls' Swimming and Item hotkeys applying. */
 static int has_item(const OraclesHomeNav *nav, OraclesHomeItemId id)
 {
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];

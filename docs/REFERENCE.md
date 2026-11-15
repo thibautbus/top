@@ -725,7 +725,7 @@ Display › Text has four rows and a preview:
 - the text size, Normal, Large or Very large (`text_size=`, below);
 - the text speed, Classic, letter by letter at the speed chosen on the file screen, or Instant, each line whole (`text_speed=`, below).
 
-The first three belong to Enhanced and are greyed in Faithful, "Enhanced only."; the text speed changes the game's pace, not its picture, and applies in either profile and to every game, so that the page opens on it in Faithful; on a fan game's page the four rows apply as on an Oracle's, a row its profile did not qualify greyed, "Ages and Seasons only for now."; from the pause, the text and the text box, which a game lays its texts out for when it starts, are greyed, "Change it from the home screen.", the text size applies at once and the text speed when the game resumes.
+The first three belong to Enhanced and are greyed in Faithful, "Enhanced only."; the text speed changes the game's pace, not its picture, and applies in either profile and to every game, so that the page opens on it in Faithful; on a fan game's page the four rows apply as on an Oracle's, a row its profile did not qualify greyed, "Not available for this game."; from the pause, the text and the text box, which a game lays its texts out for when it starts, are greyed, "Change it from the home screen.", the text size applies at once and the text speed when the game resumes.
 
 In the 4:3 layout the preview stands above the four rows, at most 314x236.
 
@@ -839,7 +839,7 @@ The window changes while the menu shows, its scale lowered to what the screen ho
 
 Swimming, the text speed and the cheats apply from the frame the game resumes on (a page being revealed finishes whole there, as after a press of A); the item hotkeys turned on from that frame too, their keys and the hotbar with them, and turned off from the first frame their policy is at rest, no exchange under way and no button's item still to come back, so that a button never keeps a hotkey's item, their keys doing nothing from the resume.
 
-A fan game shows greyed from its pause what its profile does not have, the item hotkeys and, in Moonrise Regalia, Swimming's hold, "Ages and Seasons only for now." in place of the lines that say fan games ignore or refuse them. An Oracle whose ROM no profile recognises has neither either: in its pause the two rows are greyed and inert, saying "Needs an original ROM.".
+A fan game shows greyed from its pause what its profile does not have, the item hotkeys and, in Moonrise Regalia, Swimming's hold, "Not available for this game.", which the home screen says under those rows too. An Oracle whose ROM no profile recognises has neither either: in its pause the two rows are greyed and inert, saying "Needs an original ROM.".
 
 `--swim-hold`, `--text-speed`, `--item-hotkeys`, `--scale`, `--fullscreen` and `--vsync` hold until the pause changes their row, as `--colour-correction` does; a savestate loads with the swim's hold, the item hotkeys and the window as they are when it loads, none of them being in its identity, and a load lets an item hotkeys' exchange under way go, as it always did.
 

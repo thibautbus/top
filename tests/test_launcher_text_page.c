@@ -217,8 +217,8 @@ static void layouts(void)
      * out of the summary, and the preview shows the game's box. */
     nav.games[ORACLES_HOME_GAME_MOONRISE].refuses |= ORACLES_HOME_REFUSES_TEXT_BOX | ORACLES_HOME_REFUSES_TEXT_SIZE;
     CHECK(!oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_BOX) && !oracles_display_text_row_live(&nav, ORACLES_DISPLAY_TEXT_SIZE));
-    CHECK(!strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_BOX), "Ages and Seasons only for now.")
-          && !strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_SIZE), "Ages and Seasons only for now."));
+    CHECK(!strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_BOX), "Not available for this game.")
+          && !strcmp(oracles_display_text_note(&nav, ORACLES_DISPLAY_TEXT_SIZE), "Not available for this game."));
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_BOX, 0) == ORACLES_HOME_STAY && nav.display.text_box == 1);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_TEXT_SIZE, 1) == ORACLES_HOME_STAY && nav.display.text_size == 2);
     oracles_display_text_summary(&nav, fan_summary, sizeof fan_summary);

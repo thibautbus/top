@@ -88,7 +88,8 @@ const char *oracles_display_section(const OraclesHomeNav *nav)
 }
 
 const char oracles_display_pause_reason[] = "Change it from the home screen.";
-const char oracles_display_fan_reason[] = "Ages and Seasons only for now.";
+const char oracles_display_fan_reason[] = "Not available for this game.";
+const char oracles_display_original_reason[] = "Needs an original ROM.";
 
 int oracles_display_pause_locked(const OraclesHomeNav *nav, unsigned row)
 {
