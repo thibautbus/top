@@ -24,7 +24,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 
 ## What you need
 
-- Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge. The port recognises the original US ROMs by their SHA-1, which the [README](../README.md) lists, and plays them with every option.
+- Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge. The port recognizes the original US ROMs by their SHA-1, which the [README](../README.md) lists, and plays them with every option.
 - Any other ROM of an Oracle plays too, in Faithful only: without the wide view and without the gameplay options.
 - For Oracles Combined, both games in one, its release's BPS patch in your language and the two European ROMs ([Oracles Combined](#oracles-combined)).
 - A `.zip` that holds the ROM works as well as the ROM itself. 7z and RAR archives are not read.
@@ -35,7 +35,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 
 1. Download the file for your system from the [latest release](https://github.com/thibautbus/top/releases/latest):
    - **Windows**: unzip the folder and run `the-oracles-project.exe`. The executable is not signed, so SmartScreen may warn the first time: **More info**, then **Run anyway**.
-   - **macOS**: unzip it and move The Oracles Project to Applications. It is not notarised. On macOS 11 to 14, right-click it the first time and choose **Open**. On macOS 15 or later, open it once, then choose **Open Anyway** in **System Settings › Privacy & Security** and confirm.
+   - **macOS**: unzip it and move The Oracles Project to Applications. It is not notarized. On macOS 11 to 14, right-click it the first time and choose **Open**. On macOS 15 or later, open it once, then choose **Open Anyway** in **System Settings › Privacy & Security** and confirm.
    - **Linux**: make the AppImage executable and run it. If it does not start, take the `.tar.gz` instead and run `./the-oracles-project` from its folder.
    - **Android**: install the APK, allowing your browser or file manager to install it when Android asks.
 2. Open the launcher. The home screen lists Oracle of Ages, Oracle of Seasons and Fan games.
@@ -48,7 +48,7 @@ The game starts in Enhanced, the wide view, in fullscreen; [Display](#display) c
 
 The home screen has three entries: **Oracle of Ages**, **Oracle of Seasons** and **Fan games**. The chosen entry shows its title, its state and its menu. The state is **Ready** (with the date of the last session), **ROM not found**, or for a fan game whose Oracle's ROM is chosen, **Patch not found**, or **Patch refused** when its patch is there but refused (not a BPS patch, or another fan game's); Oracles Combined says **ROM refused** when a ROM chosen for it is not the European ROM of its game.
 
-A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, [**Achievements**](#retroachievements), **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia, Oracles Combined and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods and Achievements greyed. A greyed entry says why when it is highlighted.
+A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, [**Achievements**](#retroachievements), **Cheats** (not for an unrecognized ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia, Oracles Combined and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods and Achievements grayed. A grayed entry says why when it is highlighted.
 
 Move with the arrows, Enter and Escape on the keyboard; with the d-pad, A and B on a controller, where the menu's button and Guide act as Escape; or with the mouse, or by touch. **F11** switches fullscreen on and off. The key hints at the bottom of each page, the pause menu's included, show the keys of the device you used last.
 
@@ -60,14 +60,14 @@ The home screen's bottom left has a **Settings** button, beside the version (**v
 
 | Row | Choices | What it does |
 | --- | --- | --- |
-| **ROM** (a fan game: **Base ROM**) | **Choose ROM…** | The game's ROM, a `.zip` holding it too, or a file dropped on the window. Its status: an original ROM plays every profile, an unrecognised one Faithful only, a refused one says why. |
+| **ROM** (a fan game: **Base ROM**) | **Choose ROM…** | The game's ROM, a `.zip` holding it too, or a file dropped on the window. Its status: an original ROM plays every profile, an unrecognized one Faithful only, a refused one says why. |
 | **Patch** (fan games) | **Choose patch…** | The fan game's BPS patch, or a `.zip` holding it. |
 | **European ROM** (Ages, Seasons) | **Choose…**, then **Change…** and **Remove** | Optional: the European ROM of the same game, which the languages come from. |
 | **Language** (Ages, Seasons) | English (US), English (EU), and French, German, Italian and Spanish, each named in its own language | The text the game plays in. English (US) is the cartridge's; the others need the European ROM. |
 | **Save** | **Open folder** and **Import save…**; on Android **Export save…** and **Import save…** | The game's save and its date ([Saves](#saves)). |
 | **Play** | | Starts the game. |
 
-**Choose ROM…** opens the system's file dialog: on Linux the desktop's, or zenity's where it is installed. Without one, the launcher asks you to drop the file on the window. Dropping a file works everywhere: on a game's Cartridge page it is that game's ROM, or the patch on a fan game's page, and on the home screen the launcher recognises the game and files the ROM under it.
+**Choose ROM…** opens the system's file dialog: on Linux the desktop's, or zenity's where it is installed. Without one, the launcher asks you to drop the file on the window. Dropping a file works everywhere: on a game's Cartridge page it is that game's ROM, or the patch on a fan game's page, and on the home screen the launcher recognizes the game and files the ROM under it.
 
 A ROM, a European ROM or a patch may come as a `.zip`. The zip must hold one ROM (a `.gbc` or `.gb` file) or one patch (a `.bps` file); its other files, such as a readme, are left aside. A zip of several ROMs, an encrypted zip, or a 7z or RAR archive is refused, and the page says why. The save of a zipped ROM goes beside the zip, under its name.
 
@@ -79,11 +79,11 @@ The launcher remembers each game's ROM. A refused ROM shows its reason and is no
 
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
-| **Profile** | Faithful, Enhanced | Enhanced | Faithful shows the game's own screen, 160x144. Enhanced shows the wide view, with the rooms around Link. | both | greyed |
-| **Quality** | Low, Medium, High, Max; Custom when set by hand | the device's | Sets **View**, **Core** and **Neighbor workers** in one choice: Low is Near on Fast, Medium is Medium on Fast, High is Far on Fast, Max is Far on Accurate with two workers. | Enhanced | greyed |
-| **Window** | 2x, 3x, 4x, Fullscreen | Fullscreen | The window's size, a whole multiple of the game's picture so that pixels stay sharp. Greyed where the screen holds one size only, and on Android, which plays fullscreen. | both | at once; smaller windows from the home screen only |
-| **View** | Near, Medium, Far | by Quality | How much of the world the wide view shows; farther asks more of the device. | Enhanced | greyed |
-| **HUD** | Original, Full width, Wide layout | Full width | The status bar: as the game draws it between two dark bands, its colour across the whole width, or laid out with the hearts on the left and the items on the right. | Enhanced | at once |
+| **Profile** | Faithful, Enhanced | Enhanced | Faithful shows the game's own screen, 160x144. Enhanced shows the wide view, with the rooms around Link. | both | grayed |
+| **Quality** | Low, Medium, High, Max; Custom when set by hand | the device's | Sets **View**, **Core** and **Neighbor workers** in one choice: Low is Near on Fast, Medium is Medium on Fast, High is Far on Fast, Max is Far on Accurate with two workers. | Enhanced | grayed |
+| **Window** | 2x, 3x, 4x, Fullscreen | Fullscreen | The window's size, a whole multiple of the game's picture so that pixels stay sharp. Grayed where the screen holds one size only, and on Android, which plays fullscreen. | both | at once; smaller windows from the home screen only |
+| **View** | Near, Medium, Far | by Quality | How much of the world the wide view shows; farther asks more of the device. | Enhanced | grayed |
+| **HUD** | Original, Full width, Wide layout | Full width | The status bar: as the game draws it between two dark bands, its color across the whole width, or laid out with the hearts on the left and the items on the right. | Enhanced | at once |
 | **Text** | › | | Opens [Display › Text](#display--text). | | |
 | **Picture** | › | | Opens [Display › Picture](#display--picture). | | |
 | **Advanced** | › | | Opens [Display › Advanced](#display--advanced). | | |
@@ -100,15 +100,15 @@ After a game in Enhanced that ran slowly, the home screen suggests the quality j
 
 **Faithful** shows the game's own screen, 160x144, exactly as the game draws it.
 
-**Enhanced** shows the game in a wide view. The rooms around Link are drawn beside the one he is in, so that the world reads as one piece, and the camera follows him. The neighbouring rooms are computed by the game itself, in a second copy of it that runs in the background: a room not ready yet stays black for a moment, and one that changes while you play (a door that opens) keeps its picture until the new one is ready.
+**Enhanced** shows the game in a wide view. The rooms around Link are drawn beside the one he is in, so that the world reads as one piece, and the camera follows him. The neighboring rooms are computed by the game itself, in a second copy of it that runs in the background: a room not ready yet stays black for a moment, and one that changes while you play (a door that opens) keeps its picture until the new one is ready.
 
 The rooms nearest Link come first; in the drawn-back views, the far corners of the view follow before a room change brings them in, and in Ages' sea the rooms on the other side of the surface, below Link as he swims or above him under water, are ready sooner for a dive or a return to the surface.
 
 Their people and objects stand where the game puts them, and in Ages and Seasons follow the story: when an event changes who is in a room, the room around shows it as the game now would, its old picture staying until the new one is ready. Those that move in place, such as villagers, flowers and fountains, move there too, while enemies keep their pose, and at the Low quality everything there stays still.
 
-A dungeon's large room shows whole, and an interior of one room is centred. The game's menus, map, cutscenes and file screen show framed in the middle, at the view's scale or larger with **Display › Picture › Menus & scenes**. **F3** switches between the wide view and the game's own screen, framed.
+A dungeon's large room shows whole, and an interior of one room is centered. The game's menus, map, cutscenes and file screen show framed in the middle, at the view's scale or larger with **Display › Picture › Menus & scenes**. **F3** switches between the wide view and the game's own screen, framed.
 
-An unrecognised ROM plays in Faithful whatever the profile chosen, and Display says so.
+An unrecognized ROM plays in Faithful whatever the profile chosen, and Display says so.
 
 ### View
 
@@ -131,14 +131,14 @@ With a **Screen margin**, the size is chosen for the part of the screen the marg
 **HUD** draws the game's status bar in one of three ways, in Enhanced:
 
 - **Original**: as the game draws it, 160 pixels wide, between two dark bands;
-- **Full width**, the default: across the whole view, the bands beside it taking the bar's own colour as the game changes it;
+- **Full width**, the default: across the whole view, the bands beside it taking the bar's own color as the game changes it;
 - **Wide layout**: across the whole view, the hearts and the money at the left, the items of B and A at the right, and the item hotkeys' slots just before B. The hearts take one row where the view is wide enough (Medium and Far), the game's two rows in Near, and in Medium on a 4:3 screen while the hotkeys' hotbar shows. In Near on a 4:3 screen the slots do not fit and are not drawn; the hotkeys work all the same.
 
-The bar never covers the world, and the game's menus and cutscenes keep it centred. A change applies at once, from the pause too.
+The bar never covers the world, and the game's menus and cutscenes keep it centered. A change applies at once, from the pause too.
 
 ### The camera
 
-In Enhanced the camera follows Link at his own speed, steady on stairs as on flat ground, and settles as soon as he stops, his sprite steady on the screen. When the game puts Link back somewhere else, after a fall or a whirlpool, the camera finds him again quickly; when it moves him while the world is not shown, during a menu, a scene on the game's own screen or a fade to white or black, the camera is already on him when the world comes back, without gliding there. It does not run ahead into a neighbouring room that is still being prepared. **Display › Advanced › Camera** chooses how finely it moves. **Smooth** moves it by fractions of a pixel at your screen's resolution, so that diagonal walks, swims across the sea floor and stairs glide, in a dungeon's large rooms as outdoors. **Pixel** keeps the game's whole pixels.
+In Enhanced the camera follows Link at his own speed, steady on stairs as on flat ground, and settles as soon as he stops, his sprite steady on the screen. When the game puts Link back somewhere else, after a fall or a whirlpool, the camera finds him again quickly; when it moves him while the world is not shown, during a menu, a scene on the game's own screen or a fade to white or black, the camera is already on him when the world comes back, without gliding there. It does not run ahead into a neighboring room that is still being prepared. **Display › Advanced › Camera** chooses how finely it moves. **Smooth** moves it by fractions of a pixel at your screen's resolution, so that diagonal walks, swims across the sea floor and stairs glide, in a dungeon's large rooms as outdoors. **Pixel** keeps the game's whole pixels.
 
 Smooth is the default on computers. On Android, it is the default where the game is shown at three times its size or more, as in every view on a 1080-line screen, and Pixel is the default below that. A choice applies at once, from the pause too. Where the game is shown at less than twice its size, the row says that it has no effect there.
 
@@ -146,10 +146,10 @@ Smooth is the default on computers. On Android, it is the default where the game
 
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
-| **Text** | Classic, Compact | Classic | Classic: the game's fixed-width letters. Compact: each letter takes its own width, so more words fit on a line and a dialogue takes fewer boxes. A savestate taken with Compact needs Compact. | Enhanced; Ages, Seasons and the fan games | greyed |
-| **Text box** | Standard, Wide | Standard | Standard: the game's box. Wide: a longer box with longer lines, fewer boxes still with Compact. A savestate taken with Wide needs Wide. | Enhanced; Ages, Seasons and the fan games | greyed |
+| **Text** | Classic, Compact | Classic | Classic: the game's fixed-width letters. Compact: each letter takes its own width, so more words fit on a line and a dialogue takes fewer boxes. A savestate taken with Compact needs Compact. | Enhanced; Ages, Seasons and the fan games | grayed |
+| **Text box** | Standard, Wide | Standard | Standard: the game's box. Wide: a longer box with longer lines, fewer boxes still with Compact. A savestate taken with Wide needs Wide. | Enhanced; Ages, Seasons and the fan games | grayed |
 | **Text size** | Normal, Large, Very large | Normal | Draws the text box larger where the view has room for it, the next size down where it has not, for reading from a distance or on a small screen. | Enhanced; Ages, Seasons and the fan games | at once |
-| **Text speed** | Classic, Instant | Classic | Classic: letter by letter, at the speed chosen on the game's file screen. Instant: each line appears whole; A still turns the page. | both; not on an unrecognised ROM | when the game resumes |
+| **Text speed** | Classic, Instant | Classic | Classic: letter by letter, at the speed chosen on the game's file screen. Instant: each line appears whole; A still turns the page. | both; not on an unrecognized ROM | when the game resumes |
 
 The page shows a preview of the view the game will play in: the status bar at the top, and the text box at the bottom at the size it will take there, in the font of your ROM (bars stand in for the text without a ROM). Where the view has no room for the size chosen, the preview says which size it falls back to.
 
@@ -164,12 +164,12 @@ Each option is detailed in [`REFERENCE.md`](REFERENCE.md#the-compact-text): the 
 | **Scaling** | Sharp, Fill | Sharp | Sharp: the largest whole scale, every pixel exact. Fill: the whole screen in the game's proportions, pixels slightly softer. Fullscreen only: a window keeps its whole steps. | both | at once |
 | **Filter** | Off, Scanlines, CRT, LCD, Smooth, xBR, HQ2x, OmniScale | Off | The game's picture drawn through a filter: Scanlines draws dark lines between the rows, as on an old TV; CRT the glow and lines of an old TV; LCD the grid of a Game Boy screen; Smooth softens the pixels; xBR rounds diagonals and curves; HQ2x smooths edges and keeps the pixel look; OmniScale smooths edges at any size. ←→ steps through them. | both | at once |
 | **Screen margin** | Off, Auto, Small, Large | Off | Keeps the picture clear of screen edges a device hides. Auto follows what the system reports; Small and Large keep a fixed margin at the top and the bottom. | both | at once |
-| **Color correction** | Off, On | On | On: colours as the Game Boy Color's screen showed them. Off: the raw palette. Also F2 in game. | both | at once |
-| **Far size** | Fitted, Fixed | Fitted | Fitted: Far takes a size made for this screen. Fixed: Far's usual size. Shown only on a screen where the two differ, such as 1280x960 or 1240x1080. | Enhanced | greyed |
+| **Color correction** | Off, On | On | On: colors as the Game Boy Color's screen showed them. Off: the raw palette. Also F2 in game. | both | at once |
+| **Far size** | Fitted, Fixed | Fitted | Fitted: Far takes a size made for this screen. Fixed: Far's usual size. Shown only on a screen where the two differ, such as 1280x960 or 1240x1080. | Enhanced | grayed |
 | **Menus & scenes** | View, Large | Large on Android, View elsewhere | Large: the game's menus, map, cutscenes and file screen alone, at their own largest scale, easier to read on a small screen. View: at the view's scale. | Enhanced | at once |
 | **Unvisited rooms** | Shown, Hidden | Shown | Hidden keeps the rooms Link has never entered dark around him, as the game's map does. | Enhanced | when the game resumes |
 
-**Fill** applies in fullscreen only, which Android always is; in a window, the game keeps its whole steps. While **Filter** has the focus, a preview shows the choice: from the home screen, the last picture of the last game you played (before any game, a sample picture), from the pause, your game as it resumes. The filter touches the game's picture only, never the launcher's menus or the larger text box of **Text size**. Smooth works everywhere; the other filters need a graphics chip that runs them (Vulkan, or Metal on a Mac): where it cannot, they are greyed, "Not available on this device.". They also need room to draw within each pixel of the game: under twice the game's size (three times for CRT and LCD) they are greyed, "Needs a larger picture: try a nearer view or Faithful.". A filter you chose stays chosen when the picture becomes too small for it, as when you switch to a farther view: the game is drawn without it until the picture is large enough again. Under every filter, the Smooth camera keeps Link at his own fraction of a pixel; under CRT and LCD his cells follow him, a fraction of a cell off the picture's around him. **Screen margin** is for a screen whose edges hide part of the picture ([Troubleshooting](#troubleshooting)). **Far size** shows only on a screen where Fitted and Fixed differ, its note giving both sizes.
+**Fill** applies in fullscreen only, which Android always is; in a window, the game keeps its whole steps. While **Filter** has the focus, a preview shows the choice: from the home screen, the last picture of the last game you played (before any game, a sample picture), from the pause, your game as it resumes. The filter touches the game's picture only, never the launcher's menus or the larger text box of **Text size**. Smooth works everywhere; the other filters need a graphics chip that runs them (Vulkan, or Metal on a Mac): where it cannot, they are grayed, "Not available on this device.". They also need room to draw within each pixel of the game: under twice the game's size (three times for CRT and LCD) they are grayed, "Needs a larger picture: try a nearer view or Faithful.". A filter you chose stays chosen when the picture becomes too small for it, as when you switch to a farther view: the game is drawn without it until the picture is large enough again. With the Smooth camera, Link still glides under every filter. **Screen margin** is for a screen whose edges hide part of the picture ([Troubleshooting](#troubleshooting)). **Far size** shows only on a screen where Fitted and Fixed differ, its note giving both sizes.
 
 ### Unvisited rooms
 
@@ -181,10 +181,10 @@ The room Link is in always shows, and a room he enters for the first time fades 
 
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
-| **Core** | Accurate (SameBoy), Fast (mGBA) | Fast on Android, Accurate elsewhere | The emulator the game runs on. Accurate: the reference. Fast: lighter, for small devices. A savestate loads only on the core it was taken on. | both | greyed |
-| **Continuous transitions** | Off, On | On | Rooms scroll into one another instead of stopping at each edge, Link walking and swimming through. A savestate taken with it on needs it on. | Enhanced | greyed |
+| **Core** | Accurate (SameBoy), Fast (mGBA) | Fast on Android, Accurate elsewhere | The emulator the game runs on. Accurate: the reference. Fast: lighter, for small devices. A savestate loads only on the core it was taken on. | both | grayed |
+| **Continuous transitions** | Off, On | On | Rooms scroll into one another instead of stopping at each edge, Link walking and swimming through. A savestate taken with it on needs it on. | Enhanced | grayed |
 | **Vsync** | Auto, On, Off | Auto | Shows each frame in step with the display, whole instead of torn across the screen. Auto: on at 60 Hz and at 100 Hz or more, such as 120 or 144 Hz; off on Android, which composes the frames itself. | both | when the game resumes |
-| **Neighbor workers** | Auto, 1, 2 | Auto | The background workers that prepare the rooms around Link, each on a processor core of its own. Two fill the view faster after a warp or a load. Auto takes two on a device of four processor threads or more, and says which. | Enhanced | greyed |
+| **Neighbor workers** | Auto, 1, 2 | Auto | The background workers that prepare the rooms around Link, each on a processor core of its own. Two fill the view faster after a warp or a load. Auto takes two on a device of four processor threads or more, and says which. | Enhanced | grayed |
 | **Camera** | Pixel, Smooth | the platform's | Smooth: the camera moves by fractions of a pixel at the screen's resolution, so diagonal walks and stairs glide. Pixel: whole pixels, as the game does. Smooth is the default on computers; on Android, where the game is shown at three times its size or more. | Enhanced | at once |
 
 **Core** decides which emulator runs the game. Accurate (SameBoy) is the reference; Fast (mGBA) is lighter, for small devices. A game's save is the same file on both cores, but a savestate loads only on the core it was taken on. **Neighbor workers** on Auto says how many it takes ("Auto · 2"). With **Vsync** on, the launcher checks that the display really waits for each frame, and paces the game itself if it does not. On a display faster than 60 Hz it always paces the game itself, and turns vsync off should waiting for the display slow the game down; on a display slower than the game, such as a television at 50 Hz, vsync stays off, on On too.
@@ -198,13 +198,14 @@ The room Link is in always shows, and a room he enters for the first time fades 
 | Hotkeys | Slot 1 to Slot 4 | A, S, Q, W | X, Y, LB, RB | Each key acts on the item in its slot ([Item hotkeys](#item-hotkeys)). |
 | Hotkeys | Bind to B, Bind to A | Left Shift, Left Ctrl | | Held with a slot's key, puts the item of B or of A in that slot. |
 | In game | Menu | Esc | L3 | Opens the pause menu, as the controller's Guide button does. The controller's button may be any button the game leaves free, or a trigger. |
-| In game | F2, F3, F5, F7, F11 | | | Colour correction, wide world or frame, save state, load state, fullscreen. These keys do not change. |
+| In game | F2, F3, F5, F7, F11 | | | Color correction, wide world or frame, save state, load state, fullscreen. These keys do not change. |
 
 | Row | Choices | Default | What it does | Plays in | From the pause |
 | --- | --- | --- | --- | --- | --- |
 | **Item hotkeys** (Hotkeys) | Off, On | Off | The item hotkeys of the game shown. | both; Ages and Seasons, original ROMs, and Oracles Combined | when the game resumes |
 | **Swimming** (In game) | Tap, Hold | Tap | Hold: a direction held swims at full speed, instead of tapping A with the flippers or the direction with the mermaid suit. | both; Ages and Seasons, original ROMs, and the fan games but Moonrise Regalia | when the game resumes |
-| **Reset to defaults** (Buttons) | | | Puts back the default keys and buttons, the hotkeys' and the menu's included, and brings back the reminder of the menu's key and the pause menu's line on the item hotkeys; the items in the slots, **Item hotkeys** and **Swimming** stay as they are. | | |
+| **Touch vibration** (In game; Android only) | On, Off | On | A short vibration with each press of the touch controls, while Android's touch feedback is on. Off: no vibration, whatever Android's setting. | both | at once |
+| **Reset to defaults** (Buttons) | | | Puts back the default keys and buttons, the hotkeys' and the menu's included, turns **Touch vibration** back on, and brings back the reminder of the menu's key and the pause menu's line on the item hotkeys; the items in the slots, **Item hotkeys** and **Swimming** stay as they are. | | |
 
 The keys and buttons hold for every game; **Item hotkeys** and the items in the slots belong to the game shown. Each change is written at once. Choose a cell and press the key or the button to bind; Escape cancels, as do the menu's button and Guide on a controller. A key already bound elsewhere on the same device moves to the new cell, and the other cell stays empty. From the pause, keys and buttons change at once.
 
@@ -214,11 +215,11 @@ The fixed keys, Escape and F2 to F11, show once you have pressed a key, and on a
 
 Each game you start reminds you how to open the menu, in a short notice under the status bar: it starts only in play, a moment after the status bar shows, never over a title, a menu, a dialogue or a cutscene. It says "L3 opens the menu" with a controller, naming the menu's button ("Guide opens the menu" when none is set), "Esc opens the menu" with the keyboard, "The pause button opens the menu" by touch, and "L3 or Back opens the menu" with a controller on Android. It names the device you used last and fades after a few seconds. Once you open the menu with its key it stops; otherwise it comes back for ten games at most.
 
-With **Item hotkeys** Off, **Controls › Hotkeys** greys the slots and says under them what On does: "Off: turn it on to use an item with one key, without opening the inventory." A game without them, a fan game other than Oracles Combined, says "Not available for this game." under the row, which stays Off; Moonrise Regalia says the same under **Swimming**, which stays live: it is one setting for every game.
+With **Item hotkeys** Off, **Controls › Hotkeys** grays the slots and says under them what On does: "Off: turn it on to use an item with one key, without opening the inventory." A game without them, a fan game other than Oracles Combined, says "Not available for this game." under the row, which stays Off; Moonrise Regalia says the same under **Swimming**, which stays live: it is one setting for every game.
 
 ## Gameplay options
 
-These options change how Link moves and what the keys do. Each says below where it plays; the fan games have only the first.
+These options change how Link moves and what the keys do. Each says below where it plays: the fan games have the continuous transitions, Gifts of Kinomi, Temple of Seasons and Oracles Combined hold to swim too, and Oracles Combined has the item hotkeys.
 
 ### Continuous transitions
 
@@ -248,7 +249,7 @@ The option plays in Enhanced only. The three fan games made on one Oracle have i
 
 Swimming, Link speeds up by strokes, and the game starts a stroke only on a new press: of A with the flippers, of the direction with Ages' mermaid suit. With **Controls › Swimming** on **Hold**, holding the direction swims as fast as the best tapping does, and so does holding A with the flippers. With nothing held, Link slows down and stops, as the game has him; tapping still swims too.
 
-Hold plays in Faithful and Enhanced, in Ages and Seasons; the fan games do not have it yet. From the pause, a change applies when the game resumes. The details are in [`REFERENCE.md`](REFERENCE.md#the-swims-hold).
+Hold plays in Faithful and Enhanced, in Ages and Seasons on their original ROMs, and in Gifts of Kinomi, Temple of Seasons and Oracles Combined; Moonrise Regalia does not have it yet. From the pause, a change applies when the game resumes. The details are in [`REFERENCE.md`](REFERENCE.md#the-swims-hold).
 
 ### Item hotkeys
 
@@ -270,7 +271,7 @@ The keys hold for every game, and each game keeps its own slots, Oracles Combine
 | **Ammo never runs out** | Off, On | Seeds, bombs and Bombchus are not used up. |
 | **Rupees never run out** | Off, On | Buying costs nothing. Mods still charge. (A fan game, which has no mods, says the first sentence alone.) |
 
-The Cheats page is in the menu of Ages, Seasons and the fan games, after Mods; each game has its own cheats. Under its title it says: "Cheats play with your usual save: what you keep stays in it.". Left, right and Enter turn the highlighted cheat off and on; each change is kept at once, for the next Play.
+The Cheats page is in the menu of Ages, Seasons and the fan games, after Achievements; each game has its own cheats. Under its title it says: "Cheats play with your usual save: what you keep stays in it.". Left, right and Enter turn the highlighted cheat off and on; each change is kept at once, for the next Play.
 
 - **No damage**: a hit still knocks Link back, with its sound and its flash, but costs no heart, so a hit never ends the game. A fall into a hole, water or lava sends him back at no cost. The few moments where the story itself takes hearts still do.
 - **Ammo never runs out**: a seed, a bomb or a Bombchu used is not taken from its count. With none left there is still none.
@@ -280,7 +281,7 @@ The cheats change nothing else in the game: what they leave, such as rupees kept
 
 ## RetroAchievements
 
-Ages and Seasons on their original ROMs have achievements from [RetroAchievements](https://retroachievements.org): written by players and unlocked as you play, in Faithful and Enhanced. They need an account on retroachievements.org, made on its site, and stay off until you log in. A fan game has none, and neither has a ROM the launcher does not recognise as an original: **Achievements** is greyed for them, "Not available for this game" for a fan game, and "Needs an original ROM" for such a ROM or while Ages or Seasons has none.
+Ages and Seasons on their original ROMs have achievements from [RetroAchievements](https://retroachievements.org): written by players and unlocked as you play, in Faithful and Enhanced. They need an account on retroachievements.org, made on its site, and stay off until you log in. A fan game has none, and neither has a ROM the launcher does not recognize as an original: **Achievements** is grayed for them, "Not available for this game" for a fan game, and "Needs an original ROM" for such a ROM or while Ages or Seasons has none.
 
 **Achievements**, on a game's menu above **Cheats**, opens their page:
 
@@ -305,7 +306,7 @@ Logged in and On, the page lists the achievements of the game chosen under its r
 
 In a game, toasts at the top left of the picture say your progress as the game starts, each unlock with its badge, and anything that stops the achievements. **Achievements** in the pause menu lists the game's achievements with your points: unlocked, with their dates, then in progress, then locked.
 
-A row cuts its description after one line, so each achievement has its detail, on the page and in the pause menu alike: its badge in large, in colour once unlocked, its title, points, the share of players who have it in casual mode ("12.4% of players") when the server gives one, its **Missable**, **Progression** or **Win** tag when it has one, its whole description and its state. In the 16:9 layout the left column shows it for the achievement highlighted, with no key to press, and the game's name comes back on a row of settings. In the 4:3 layout, Android's large menus and a pause in a window too small for that column, **Enter**, **A**, a click or a tap on an achievement opens a panel over the list: up and down go to the next one without closing it, and **Esc**, **B** or a tap outside closes it on the same achievement. Dragging the list never opens a row. The page's detail says "Unlocked" alone, the pause menu's "Unlocked 7 Nov 2026". Reading it asks nothing of the server.
+A row cuts its description after one line, so each achievement has its detail, on the page and in the pause menu alike: its badge in large, in color once unlocked, its title, points, the share of players who have it in casual mode ("12.4% of players") when the server gives one, its **Missable**, **Progression** or **Win** tag when it has one, its whole description and its state. In the 16:9 layout the left column shows it for the achievement highlighted, with no key to press, and the game's name comes back on a row of settings. In the 4:3 layout, Android's large menus and a pause in a window too small for that column, **Enter**, **A**, a click or a tap on an achievement opens a panel over the list: up and down go to the next one without closing it, and **Esc**, **B** or a tap outside closes it on the same achievement. Dragging the list never opens a row. The page's detail says "Unlocked" alone, the pause menu's "Unlocked 7 Nov 2026". Reading it asks nothing of the server.
 
 ### Casual mode
 
@@ -362,7 +363,7 @@ A savestate taken in a language loads only in it. The fan games play in English 
 | **Save** (Android) | **Export save with mods…** | A copy of the save the game with mods plays on, wherever you choose. |
 | **Play** | | Starts the game with the mods switched on, on a save of its own. |
 
-**Mods**, in the menu of Ages and of Seasons, lists the mods that add houses, characters and minigames to the game ([`MODDING.md`](MODDING.md)). Beside it, the menu says how many are on. A fan game's menu greys it: "Not available for this game".
+**Mods**, in the menu of Ages and of Seasons, lists the mods that add houses, characters and minigames to the game ([`MODDING.md`](MODDING.md)). Beside it, the menu says how many are on. A fan game's menu grays it: "Not available for this game".
 
 The mods live in the **mods folder**, beside `settings.txt`:
 
@@ -376,9 +377,9 @@ Each mod is a folder of its own in it, named with a–z, 0–9, `-` and `_`, wit
 
 The page lists each mod found, in the order of their names, which is the order they play in: a switch, its name, the games it adds houses to ("Houses in Ages and Seasons"), and its description, or why it is refused ("Refused: " and the reason). A refused mod stays off. Left and right, Enter or a click switch the highlighted mod, and the choice is kept at once, for each game.
 
-**Play**, at the bottom of the page, starts the game with the mods that are on, on a save of its own: `NAME.mods.sav` beside the ROM. It is copied from the game's usual save the first time, and again after **Import save…** ([Saves](#saves)); a game with mods never writes the usual save. **Start game**, in the game's menu, plays without mods, on the usual save. Play is greyed without a ROM ("Choose a ROM in Cartridge first") and on a ROM that is not the original US one ("Needs an original ROM").
+**Play**, at the bottom of the page, starts the game with the mods that are on, on a save of its own: `NAME.mods.sav` beside the ROM. It is copied from the game's usual save the first time, and again after **Import save…** ([Saves](#saves)); a game with mods never writes the usual save. **Start game**, in the game's menu, plays without mods, on the usual save. Play is grayed without a ROM ("Choose a ROM in Cartridge first") and on a ROM that is not the original US one ("Needs an original ROM").
 
-On Android, the **Save** row above Play has **Export save with mods…**: Android's document picker makes a copy of `NAME.mods.sav` wherever you choose (Downloads, an SD card), as **Export save…** does for the usual save, to keep it or play it elsewhere; the mods' data in `NAME.mods.store` stays where it is. The row says "Save with mods exported." once the copy is written. It is greyed until the game with mods has a save of its own: "No save with mods yet: Play with a mod on makes one.". On a computer, **Open folder** in Cartridge shows the file beside the ROM.
+On Android, the **Save** row above Play has **Export save with mods…**: Android's document picker makes a copy of `NAME.mods.sav` wherever you choose (Downloads, an SD card), as **Export save…** does for the usual save, to keep it or play it elsewhere; the mods' data in `NAME.mods.store` stays where it is. The row says "Save with mods exported." once the copy is written. It is grayed until the game with mods has a save of its own: "No save with mods yet: Play with a mod on makes one.". On a computer, **Open folder** in Cartridge shows the file beside the ROM.
 
 To try the two examples, [`mods/claw-game`](../mods/claw-game/) and [`mods/fortune-teller`](../mods/fortune-teller/): the release does not include them, so download the repository from GitHub (**Code › Download ZIP**) and copy both folders, as they are, into the mods folder. Open Ages' Mods page, switch both on, and choose Play. The claw game's house is on the big island in the south of Lynna City, by the bridge, and the fortune teller's on the island east of the red house. The fortune teller counts Link's visits, which it keeps with the save in `NAME.mods.store`.
 
@@ -393,7 +394,7 @@ The Fan games entry lists four games, each with its state:
 
 A fan game comes as a BPS patch: you keep the original ROM it is built on, and the patch. Picked, a fan game has the menu of a game, and Escape or B goes back to the list.
 
-Its Cartridge page asks for both files. **Base ROM** is the ROM of its Oracle, the same one the Oracle's own page shows: chosen once, it serves the Oracle and every fan game built on it. **Patch** is the game's `.bps` file, or a `.zip` of it (**Choose patch…**). Before one is chosen, the page names the patch the game expects ("No patch: the BPS patch of Moonrise Regalia 1.0.6 is expected"). Below them, the page says whether the two make the game: recognised, unrecognised (Faithful only), refused with the reason, or "The game needs both files.".
+Its Cartridge page asks for both files. **Base ROM** is the ROM of its Oracle, the same one the Oracle's own page shows: chosen once, it serves the Oracle and every fan game built on it. **Patch** is the game's `.bps` file, or a `.zip` of it (**Choose patch…**). Before one is chosen, the page names the patch the game expects ("No patch: the BPS patch of Moonrise Regalia 1.0.6 is expected"). Below them, the page says whether the two make the game: recognized, unrecognized (Faithful only), refused with the reason, or "The game needs both files.".
 
 The launcher refuses the patch of another of these fan games, and says which game it is for ("Refused: the patch of Moonrise Regalia, not of Gifts of Kinomi."); the patch chosen before stays. A patch dropped on a fan game's page becomes its patch; dropped elsewhere, it goes to the fan game it makes. The patch is applied in memory each time the game starts, and the patched game is never written. The save goes beside the patch, under its name (`Moonrise Regalia 1.0.6.sav`), not beside the base ROM, whose save is the Oracle's; **Open folder** opens the patch's folder.
 
@@ -401,7 +402,7 @@ Gifts of Kinomi, Moonrise Regalia and Temple of Seasons play in Faithful and Enh
 
 ### Oracles Combined
 
-Oracles Combined, by soaresden, joins Ages and Seasons in one game, with one save and a way from one to the other. It continues Crossworld, by vinheim3. It comes as a BPS patch, one for each language (English, French, German, Spanish and Italian), made for the two European ROMs joined, Ages' first: the port joins them and applies the patch in memory at each start, as it does for the other fan games. It recognises the five patches of release 1.5, from the `.zip` of its GitHub release: take the `.bps` of your language out of it, since a zip of several patches is refused.
+Oracles Combined, by soaresden, joins Ages and Seasons in one game, with one save and a way from one to the other. It continues Crossworld, by vinheim3. It comes as a BPS patch, one for each language (English, French, German, Spanish and Italian), made for the two European ROMs joined, Ages' first: the port joins them and applies the patch in memory at each start, as it does for the other fan games. It recognizes the five patches of release 1.5, from the `.zip` of its GitHub release: take the `.bps` of your language out of it, since a zip of several patches is refused.
 
 | Patch of release 1.5 | SHA-1 |
 | --- | --- |
@@ -423,23 +424,23 @@ It plays in Faithful and in Enhanced, in both games it joins: from the Ages it s
 - **Display**: every view, Near, Medium and Far, the rooms around Link, the continuous transitions on foot and swimming, with the flippers or the mermaid suit, diagonals included, the unvisited rooms hidden or shown, and the HUD's Original, Full width and Wide layout, the game's own icon staying beside the rupees;
 - **Display › Text**: Compact, the Wide box, Text size and Instant, in the language of its patch;
 - **Controls › Swimming**: Hold, with the mermaid suit, in both games;
-- **Controls › Item hotkeys**, with slots of its own that serve both games: an item of either game, in either game, from any of its inventory's twenty slots as well as B and A (the slingshot keeping its own seeds); an item it gave back a moment after a use comes back in the other game too when you go through Vasu's door, and a key pressed as you go through is cancelled;
+- **Controls › Item hotkeys**, with slots of its own that serve both games: an item of either game, in either game, from any of its inventory's twenty slots as well as B and A (the slingshot keeping its own seeds); an item it gave back a moment after a use comes back in the other game too when you go through Vasu's door, and a key pressed as you go through is canceled;
 - **Cheats**, its own, apart from those of Ages and Seasons;
 - savestates, F5 and F7, in either game.
 
 At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
 
-Any other version of Oracles Combined, such as the image its author's web page builds with the options you pick there (the status bar at the bottom of the screen among them, which Enhanced does not lay out), plays too, in Faithful only: through the same page, its image "not recognized", or as an image you built yourself, chosen as **Oracle of Ages**' ROM or dropped on the home screen, where the Cartridge page says "Oracles Combined image, Faithful only; see Fan games". Chosen under Oracle of Seasons, such an image is refused: "an image of both games, which plays under Oracle of Ages". An image of Crossworld, the hack it continues, is not a patch of the European ROMs: it plays in Faithful only as an image chosen as **Oracle of Ages**' ROM, where the page says the same. Only the release's patches are recognised: they alone have the Enhanced view.
+Any other version of Oracles Combined, such as the image its author's web page builds with the options you pick there (the status bar at the bottom of the screen among them, which Enhanced does not lay out), plays too, in Faithful only: through the same page, its image "not recognized", or as an image you built yourself, chosen as **Oracle of Ages**' ROM or dropped on the home screen, where the Cartridge page says "Oracles Combined image, Faithful only; see Fan games". Chosen under Oracle of Seasons, such an image is refused: "an image of both games, which plays under Oracle of Ages". An image of Crossworld, the hack it continues, is not a patch of the European ROMs: it plays in Faithful only as an image chosen as **Oracle of Ages**' ROM, where the page says the same. Only the release's patches are recognized: they alone have the Enhanced view.
 
 ## In game
 
 ### The pause menu
 
-Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or greyed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs and the fan games, [**Achievements**](#retroachievements) once the game's achievements are loaded, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
+Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or grayed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs and the fan games, [**Achievements**](#retroachievements) once the game's achievements are loaded, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
 
-From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are greyed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
+From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are grayed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
 
-A fan game other than Oracles Combined shows **Item hotkeys** greyed, "Not available for this game.", and so does Moonrise Regalia for **Swimming**; a game on an unrecognised ROM shows them greyed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
+A fan game other than Oracles Combined shows **Item hotkeys** grayed, "Not available for this game.", and so does Moonrise Regalia for **Swimming**; a game on an unrecognized ROM shows them grayed, "Needs an original ROM.". While the menu shows, the game is held: it does not run until you resume.
 
 In Ages, Seasons and Oracles Combined with the item hotkeys off, a discreet line under the menu says where to turn them on: "Item hotkeys are off · Controls › Item hotkeys". It shows the first three times you open the menu, and goes for good once they are on. It is not there for the other fan games, nor where the menu leaves Controls out.
 
@@ -451,13 +452,13 @@ In Ages, Seasons and Oracles Combined with the item hotkeys off, a discreet line
 | A, B | X, Z | A, B |
 | Start, Select | Enter, Backspace | Start, Back |
 | Pause menu | Escape | L3 (the left stick's click), Guide |
-| Colour correction | F2 | |
+| Color correction | F2 | |
 | Wide view or the game's screen | F3 | |
 | Save state, load state | F5, F7 | |
 | Fullscreen | F11 | |
 | Item hotkeys | A, S, Q, W | X, Y, LB, RB |
 
-[Controls](#controls) changes them, but for the F keys and Escape. Every controller plugged in plays, several at once too, such as a handheld's own controls and a Bluetooth pad. On a Nintendo controller, A is the button labelled A. On Android, Back opens the pause menu ([Android](#android)).
+[Controls](#controls) changes them, but for the F keys and Escape. Every controller plugged in plays, several at once too, such as a handheld's own controls and a Bluetooth pad. On a Nintendo controller, A is the button labeled A. On Android, Back opens the pause menu ([Android](#android)).
 
 ### Savestates
 
@@ -476,35 +477,35 @@ Options given on the command line stay as given, and so does the view's shape (`
 A game's save is the `.sav` beside its ROM, under the same name, or for a fan game beside its patch. It holds the cartridge's 8 KiB of battery memory (32 KiB for Oracles Combined), as other emulators write it. The launcher writes it every few seconds while it changes, and when the game ends. Cartridge's **Save** row shows it with its date.
 
 - **Import save…** brings in a save from elsewhere: another emulator, another device, or the European game. It opens the system's file dialog, or Android's document picker, then asks: "Replace this game's save? The current one is kept as a backup.", with the file and its folder. For a game without a save yet, it asks "Use this file as this game's save?". The file must be a save of that game, with at least one game file whose checksum holds; anything else is refused ("This file is not a save of Oracle of Ages.") and nothing is replaced.
-- The save it replaces goes to a `Backups` folder beside it, under its name and the time, never over another backup, and the game's savestate goes there with it. A savestate holds the save it was taken with, so **Load state** stays greyed until you take a savestate of the new save. The row then says what was imported and what went to Backups.
+- The save it replaces goes to a `Backups` folder beside it, under its name and the time, never over another backup, and the game's savestate goes there with it. A savestate holds the save it was taken with, so **Load state** stays grayed until you take a savestate of the new save. The row then says what was imported and what went to Backups.
 - The save with mods (`NAME.mods.sav`, [Mods](#mods)) goes to Backups too, with its savestate and the mods' data, and the question says so ("Replace this game's save, with mods too? What it replaces is kept as a backup."). The next game with mods starts again from the save imported.
-- Import save… is greyed until the game's ROM is chosen, or a fan game's two files. The launcher imports from the home screen only, never while a game runs.
+- Import save… is grayed until the game's ROM is chosen, or a fan game's two files. The launcher imports from the home screen only, never while a game runs.
 - A save of the European game: the European game keeps its language in each game file, and with German, Italian or Spanish there the US game would read many texts at the wrong place. Import save… sets that language to English in an Oracle's save, and says so: "Its language was set to English for this game.". The rest of the game is kept.
 - The other way needs nothing: a save made here works with the European ROM in other emulators, put beside that ROM under the same name; the European game asks for its language at its first start.
 - **Open folder** shows the save's folder in the system's file manager. On Android, which has none to open, **Export save…** takes its place: the document picker makes a copy of the save wherever you choose (Downloads, an SD card), to play it elsewhere. The Mods page's **Export save with mods…** does the same for the save with mods ([Mods](#mods)).
 
 ## Portable mode
 
-On Windows, and on Linux with the `.tar.gz`, the launcher can keep everything it writes in its own folder rather than in your user folder: to play from a USB stick, or to keep several copies side by side, each with its own settings. **Settings › Portable mode** turns it on and off:
+On Windows, and on Linux with the `.tar.gz`, the launcher can keep everything it writes in the game folder, the folder of its executable, rather than in your user folder: to play from a USB stick, or to keep several copies side by side, each with its own settings. **Settings › Portable mode** turns it on and off:
 
 - **On**: your settings, your mods and your language files are copied into a folder `user-data` beside the executable, which the launcher uses from the next launch. Your user folder keeps its own copy.
 - **Off**: they are copied back into your user folder, which the launcher uses from the next launch; `user-data` stays as it is.
 
-The row says "Copying…" while it copies, which is usually at once, then how it went. When the folder it turns to already has settings of its own, nothing is copied and those are used from the next launch, which the row says too. When the launcher's folder cannot be written in (such as one under `C:\Program Files`), nothing changes: move the launcher to a folder of yours first. While it is on, the row reminds you when some of your games are outside the launcher's folder: they and their saves stay where they are (see below).
+The row says "Copying…" while it copies, which is usually at once, then how it went. When the folder it turns to already has settings of its own, nothing is copied and those are used from the next launch, which the row says too. When the game folder cannot be written in (such as one under `C:\Program Files`), nothing changes: move the game to a folder of yours first. While it is on, the row reminds you when some of your games are outside the game folder: they and their saves stay where they are (see below).
 
 It can be turned on by hand too:
 
 1. Close the launcher.
-2. In its folder, beside `the-oracles-project.exe` (or `the-oracles-project` on Linux), make a file named `portable.txt`; it may be empty. On Windows, a text document made with **New › Text Document** and named `portable.txt` does it, even where Windows hides the extension and the file is really named `portable.txt.txt`.
+2. In the game folder, beside `the-oracles-project.exe` (or `the-oracles-project` on Linux), make a file named `portable.txt`; it may be empty. On Windows, a text document made with **New › Text Document** and named `portable.txt` does it, even where Windows hides the extension and the file is really named `portable.txt.txt`.
 3. Open the launcher. Its settings, its mods folder and its language files are now in a folder `user-data` it makes beside the executable, and nothing is written in your user folder.
 
 Nothing is moved or copied when you put `portable.txt` there by hand: the launcher starts with its first-launch settings, and your user folder stays as it was. To bring your settings and mods along, copy, with the launcher closed, what your user folder holds into `user-data`: `settings.txt`, the `mods` folder and the `language-*.pack` files, from `%APPDATA%\the-oracles-project\` on Windows, `~/.local/share/the-oracles-project/` on Linux. To turn it off, delete `portable.txt`: the launcher goes back to your user folder and the settings it had there, and `user-data` stays as it is.
 
-- **ROMs and saves are never moved or copied**: a save is always beside its ROM ([Saves](#saves)), wherever that is. To take your games along, close the launcher, move each ROM (and patch) with the files beside it that share its name (`.sav`, `.state`, the `.mods.` files) and its `Backups` folder into a folder of the launcher's own, such as `roms` beside the executable, then open the launcher and choose each ROM again in Cartridge from there. In the portable mode, the launcher remembers a ROM or a patch inside its folder by where it is in that folder, so a USB stick that takes another drive letter on another computer, or the whole folder moved elsewhere, still finds them. A ROM outside the folder is remembered by its full path, as without the portable mode.
+- **ROMs and saves are never moved or copied**: a save is always beside its ROM ([Saves](#saves)), wherever that is. To take your games along, close the launcher, move each ROM (and patch) with the files beside it that share its name (`.sav`, `.state`, the `.mods.` files) and its `Backups` folder into a folder inside the game folder, such as `roms` beside the executable, then open the launcher and choose each ROM again in Cartridge from there. In the portable mode, the launcher remembers a ROM or a patch inside the game folder by where it is in it, so a USB stick that takes another drive letter on another computer, or the whole folder moved elsewhere, still finds them. A ROM outside the game folder is remembered by its full path, as without the portable mode.
 - **A folder the launcher cannot write in**, such as one under `C:\Program Files`: the launcher ignores `portable.txt`, uses your user folder, and says so in its log ([Reporting a problem](#reporting-a-problem)).
 - **The macOS application, Android and the Linux AppImage** have no portable mode: a `portable.txt` put beside the macOS application or beside the AppImage is ignored.
 
-**Updating a portable copy.** The new version comes in a folder of its own, without `portable.txt`: started there as it is, it would use your user folder, and deleting the old folder would delete your settings, your mods and, if your ROMs are there, your saves. Either copy the new version's files over the old folder (its executable, its libraries and its licences, replacing them), or, with the launcher closed, move `portable.txt`, `user-data` and your `roms` folder (and any other folder of ROMs, patches and saves you keep there) from the old folder into the new one, and delete the old folder only after the new one shows your games.
+**Updating a portable copy.** The new version comes in a folder of its own, without `portable.txt`: started there as it is, it would use your user folder, and deleting the old game folder would delete your settings, your mods and, if your ROMs are there, your saves. Either copy the new version's files over the old game folder (its executable, its libraries and its licenses, replacing them), or, with the launcher closed, move `portable.txt`, `user-data` and your `roms` folder (and any other folder of ROMs, patches and saves you keep there) from the old game folder into the new one, and delete the old one only after the new one shows your games.
 
 ## Android
 
@@ -548,7 +549,7 @@ Never attach a ROM, or a file made from one.
 
 ## Settings and privacy
 
-The **Settings** button at the bottom left of the home screen opens **Settings**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on it works too, in the 16:9 layout down to the screen's corner. The version beside it is plain text. Settings has the row **Update check**, on Windows and on Linux with the `.tar.gz` the row **Portable mode** ([Portable mode](#portable-mode)), then **About**: the version, where the source and this guide are, the two emulator cores and their authors, and **Licences**, which opens the list of every licence the launcher ships with ([`THIRD_PARTY.md`](THIRD_PARTY.md)) in your browser. **Update check**:
+The **Settings** button at the bottom left of the home screen opens **Settings**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on it works too, in the 16:9 layout down to the screen's corner. The version beside it is plain text. Settings has the row **Update check**, on Windows and on Linux with the `.tar.gz` the row **Portable mode** ([Portable mode](#portable-mode)), then **About**: the version, where the source and this guide are, the two emulator cores and their authors, and **Licenses**, which opens the list of every license the launcher ships with ([`THIRD_PARTY.md`](THIRD_PARTY.md)) in your browser. **Update check**:
 
 - **On**, the default: the launcher asks GitHub once at launch whether a newer version is out.
 - **Off**: no request to GitHub. Off hides the notice at once; On asks again at the next launch.

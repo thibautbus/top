@@ -504,7 +504,7 @@ typedef enum OraclesHomePortableStatus {
     ORACLES_PORTABLE_STATUS_COPIED,          /* the data copied into the folder the next launch uses */
     ORACLES_PORTABLE_STATUS_MOVED,           /* nothing to copy: the next launch uses the other folder */
     ORACLES_PORTABLE_STATUS_KEPT,            /* the folder the next launch uses has settings of its own */
-    ORACLES_PORTABLE_STATUS_READ_ONLY,       /* the launcher's folder cannot be written in: nothing changed */
+    ORACLES_PORTABLE_STATUS_READ_ONLY,       /* the game folder cannot be written in: nothing changed */
     ORACLES_PORTABLE_STATUS_FAILED           /* the copy failed: nothing changed */
 } OraclesHomePortableStatus;
 extern const char oracles_about_portable_label[];               /* "Portable mode" */

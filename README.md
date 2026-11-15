@@ -4,7 +4,7 @@
 
 **Play Oracle of Ages and Oracle of Seasons in widescreen, on Windows, macOS, Linux and Android.**
 
-Your own ROM, untouched · Item hotkeys · European languages · Lua mods · Fan games
+Your own ROM, untouched · Item hotkeys · European languages · RetroAchievements · Lua mods · Fan games
 
 [![Latest release](https://img.shields.io/github/v/release/thibautbus/top)](https://github.com/thibautbus/top/releases) [![Downloads](https://img.shields.io/github/downloads/thibautbus/top/total)](https://github.com/thibautbus/top/releases) [![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg)](#contributors-)
 
@@ -25,6 +25,7 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 - **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
 - **[RetroAchievements](docs/PLAYING.md#retroachievements)**, if you want them: log in with your account for achievements on Ages and Seasons' original ROMs, in casual mode, savestates included.
 - **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.
+- **[Portable mode](docs/PLAYING.md#portable-mode)**: on Windows, and on Linux with the `.tar.gz`, the settings and mods stay in the game folder, to play from a USB stick or keep several copies side by side.
 - **Lua mods**: houses, characters who talk and minigames, which act on the game through the game's own routines and replay exactly.
 - **Fan games** from their BPS patch, applied in memory to your ROM: Gifts of Kinomi and Moonrise Regalia on Oracle of Ages, Temple of Seasons on Oracle of Seasons, and Oracles Combined, both Oracles in one, on their two European ROMs.
 - **Two emulator cores**: [SameBoy](https://sameboy.github.io/), the accurate reference, or [mGBA](https://mgba.io/)'s Game Boy core, lighter, for small devices.
@@ -60,14 +61,14 @@ The [latest release](https://github.com/thibautbus/top/releases/latest) has a fi
 | System | File | First launch |
 | --- | --- | --- |
 | Windows, 64-bit | `…-windows.zip` | Unzip the folder and run `the-oracles-project.exe`. It is not signed: if SmartScreen warns, choose **More info**, then **Run anyway**. |
-| macOS 11 or later, Apple Silicon and Intel | `…-macos.zip` | Unzip it and move The Oracles Project to Applications. It is not notarised. On macOS 11 to 14, right-click it the first time and choose **Open**. On macOS 15 or later, open it once, then choose **Open Anyway** in **System Settings › Privacy & Security**. |
+| macOS 11 or later, Apple Silicon and Intel | `…-macos.zip` | Unzip it and move The Oracles Project to Applications. It is not notarized. On macOS 11 to 14, right-click it the first time and choose **Open**. On macOS 15 or later, open it once, then choose **Open Anyway** in **System Settings › Privacy & Security**. |
 | Linux x86_64 | `…-linux-x86_64.AppImage`, `.tar.gz` | Make it executable (`chmod +x`, or in the file's properties) and run it. If it does not start, take the `.tar.gz`, extract it and run `./the-oracles-project`. |
 | Linux ARM64 (Raspberry Pi 5, Asahi Linux...) | `…-linux-arm64.AppImage`, `.tar.gz` | As on x86_64. Experimental, not yet tried on real hardware; feedback welcome. |
 | Android 10 or later | `…-android.apk` | Open it to install it, allowing your browser or file manager to do so when Android asks. |
 
 ## What you need
 
-Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognises by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on (Oracles Combined, the two European ROMs). A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
+Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognizes by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on (Oracles Combined, the two European ROMs). A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
 
 | File you provide | Expected SHA-1 |
 |---|---|
@@ -84,10 +85,10 @@ Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, whic
 
 1. **Install** the file for your system (above), and open The Oracles Project. The home screen lists Oracle of Ages, Oracle of Seasons and Fan games: the arrows or the d-pad choose, Enter or A opens, Escape or B goes back, and the mouse and touch work too.
 2. **Choose a game**, then **Cartridge** in its menu.
-3. **Choose ROM…** and pick your ROM (a fan game asks for its patch too); on a computer, dropping the file on the window does the same. The page says whether the port recognises it.
+3. **Choose ROM…** and pick your ROM (a fan game asks for its patch too); on a computer, dropping the file on the window does the same. The page says whether the port recognizes it.
 4. **Play**, at the bottom of the page, or **Start game** in the game's menu. The game starts in Enhanced, the widescreen view; **Display** changes the view, the window and the quality.
 
-![The Cartridge page: the ROM recognised, the save beside it, the optional European ROM and the language](docs/assets/launcher-cartridge.png)
+![The Cartridge page: the ROM recognized, the save beside it, the optional European ROM and the language](docs/assets/launcher-cartridge.png)
 
 In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace is Select; Escape, or L3 on a controller, opens the pause menu. Your save is written beside your ROM, under its name (`Oracle of Ages.sav` for `Oracle of Ages.gbc`), in the format other emulators use. The [manual](docs/PLAYING.md) has every page, key and setting.
 
@@ -99,7 +100,7 @@ In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace 
 
 **How do I bring my save from another emulator?** Open the game's **Cartridge** page and choose **Import save…**. It takes a `.sav` from another emulator, another device or the European game, keeps the save it replaces in a `Backups` folder beside it, and refuses a file that is not a save of that game. On Android, **Export save…** puts a copy where you choose. [Saves](docs/PLAYING.md#saves) says more.
 
-**Will an update keep my saves and settings?** Yes. Your saves stay beside your ROMs and your settings in your user folder, so the new version finds both: on Windows, unzip it where you like; on macOS and Linux, put it in place of the old one; on Android, install the new APK over the old one. On Android, 1.1.0 and earlier were a different application, which the new one installs beside and does not read: copy your save from the old application's `files/roms` folder over USB, bring it in with **Import save…**, then uninstall the old application. Each release's notes say whether the savestates (F5) of the version before still load. The home screen says when a newer version is out.
+**Will an update keep my saves and settings?** Yes. Your saves stay beside your ROMs and your settings in your user folder, so the new version finds both: on Windows, unzip it where you like; on macOS and Linux, put it in place of the old one; on Android, install the new APK over the old one. A portable copy (**Settings › Portable mode**) keeps its settings in the game folder: move `portable.txt`, `user-data` and your ROMs into the new version's folder before deleting the old one ([Portable mode](docs/PLAYING.md#portable-mode)). On Android, 1.1.0 and earlier were a different application, which the new one installs beside and does not read: copy your save from the old application's `files/roms` folder over USB, bring it in with **Import save…**, then uninstall the old application. Each release's notes say whether the savestates (F5) of the version before still load. The home screen says when a newer version is out.
 
 **Where do I get the fan games?** From their authors, as BPS patches. The port needs the exact versions in the table of [What you need](#what-you-need), and applies the patch in memory to your own US ROM (Oracles Combined, to your two European ROMs joined): the game's **Cartridge** page asks for the files. [Fan games](docs/PLAYING.md#fan-games) says more.
 
@@ -131,20 +132,22 @@ This repository was developed with AI assistance. Every change, whoever writes i
 ## Credits
 
 - [oracles-disasm](https://github.com/Stewmath/oracles-disasm), the disassembly of both games by Stewmath and its contributors: the addresses and symbol names the host reads and hooks are generated from its symbol files.
-- [SameBoy](https://sameboy.github.io/) by Lior Halphon: the emulator core the game runs in, unmodified, the accurate one.
+- [SameBoy](https://sameboy.github.io/) by Lior Halphon and its contributors: the emulator core the game runs in, unmodified, the accurate one.
 - [mGBA](https://mgba.io/) by Vicki Pfau and its contributors: the lighter core the game can run in, for small devices.
-- The fan games the port recognises, and their authors: Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro; Moonrise Regalia, by PontiusStone; Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro; Oracles Combined, by soaresden, continuing Crossworld, by vinheim3.
+- The fan games the port recognizes, and their authors: Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro; Moonrise Regalia, by PontiusStone; Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro; Oracles Combined, by soaresden, continuing Crossworld, by vinheim3.
 
-## Licence
+## License
 
-The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries (the full list, with each licence's file, is [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md)):
+The port is under the MIT license ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own license, shipped with the binaries (the full list, with each license's file, is [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md)):
 
 - [SameBoy](third_party/sameboy/) (Expat/MIT), the emulator core;
 - [mGBA](third_party/mgba/)'s Game Boy core (Mozilla Public License 2.0), with one patch, and the [inih](third_party/mgba/core/src/third-party/inih/) it uses (BSD 3-Clause), the lighter emulator core;
+- the picture filters: SameBoy's CRT, LCD, HQ2x and OmniScale shaders (Expat/MIT) and Hyllian's xBR (MIT), in [`launcher/shaders/`](launcher/shaders/);
 - [Lua](third_party/lua/) (MIT), the mods' runtime;
 - [SDL 3](https://libsdl.org/) (zlib), built from the release pinned in `config/sdl3.json`;
 - [stb_truetype](third_party/stb/) (MIT or public domain) and [NanoSVG](third_party/nanosvg/) (zlib), the launcher's text and motifs;
-- the fonts [Marcellus](third_party/fonts/marcellus/), [Alegreya Sans](third_party/fonts/alegreya-sans/) and [JetBrains Mono](third_party/fonts/jetbrains-mono/) (SIL Open Font Licence);
+- [rcheevos](third_party/rcheevos/) (MIT), for RetroAchievements;
+- the fonts [Marcellus](third_party/fonts/marcellus/), [Alegreya Sans](third_party/fonts/alegreya-sans/) and [JetBrains Mono](third_party/fonts/jetbrains-mono/) (SIL Open Font License);
 - the Gradle wrapper of the Android build (Apache 2.0).
 
 Oracle of Ages and Oracle of Seasons are Nintendo's; this project is not affiliated with Nintendo. The fan games are their authors'.

@@ -73,7 +73,7 @@ const char oracles_ui_transitions_note[] = "A savestate taken with this on is re
 const char oracles_ui_core_note[] = "Save states keep their core.";
 const char oracles_ui_scaling_note[] = "Fill applies in fullscreen.";
 const char oracles_ui_window_fit_note[] = "Window sizes follow the view: a farther view makes a larger window.";
-const char oracles_ui_display_later[] = "Greyed rows change from the home screen; the rest applies at once.";
+const char oracles_ui_display_later[] = "Grayed rows change from the home screen; the rest applies at once.";
 const char *const oracles_ui_transition_choices[2] = { "Off", "On" };
 
 OraclesUiLine pl_line_at(const OraclesUiTextStyle *style, const char *text, float x, float y, float line_height)

@@ -699,7 +699,7 @@ static void portable_row(void)
     nav.portable_status = ORACLES_PORTABLE_STATUS_MOVED;
     CHECK(!strcmp(oracles_about_portable_status(&nav, &tone), "Settings and mods now stay in your user folder."));
     nav.portable_status = ORACLES_PORTABLE_STATUS_READ_ONLY;
-    CHECK(!strncmp(oracles_about_portable_status(&nav, &tone), "The launcher's folder cannot be written in", 42) && tone == ORACLES_TONE_ERROR);
+    CHECK(!strncmp(oracles_about_portable_status(&nav, &tone), "The game folder cannot be written in", 36) && tone == ORACLES_TONE_ERROR);
     nav.portable_status = ORACLES_PORTABLE_STATUS_FAILED;
     CHECK(!strcmp(oracles_about_portable_status(&nav, &tone), "The settings could not be copied: nothing changed.") && tone == ORACLES_TONE_ERROR);
     /* Up and down wrap between the two rows and Licences; Update check's keys are its own. */

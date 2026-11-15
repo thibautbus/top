@@ -398,7 +398,7 @@ static void open_licences(home_app *app)
     snprintf(url, sizeof url, "https://github.com/%s/blob/main/docs/THIRD_PARTY.md", oracles_update_repository());
     if (SDL_OpenURL(url)) { fprintf(stderr, "oracles: the licences opened\n"); return; }
     fprintf(stderr, "oracles: the licences cannot be opened: %s\n", SDL_GetError());
-    snprintf(message, sizeof message, "No browser opened the licences: %s", url + 8);
+    snprintf(message, sizeof message, "No browser opened the licenses: %s", url + 8);
     oracles_ui_home_toast(&app->view, message, now_ms());
     changed(app);
 }

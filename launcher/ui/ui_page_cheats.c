@@ -93,10 +93,10 @@ const char oracles_about_portable_hint[] = "Your games and their saves stay wher
 const char oracles_about_block_label[] = "About";
 const char oracles_about_product[] = "The Oracles Project";
 const char oracles_about_source[] = "Source and player\xe2\x80\x99s guide: github.com/";
-const char oracles_about_credits[] = "Accurate core: SameBoy, by Lior Halphon. Fast core: mGBA, by Jeffrey Pfau.";
-const char oracles_about_licences_label[] = "Licences";
+const char oracles_about_credits[] = "Accurate core: SameBoy, by Lior Halphon. Fast core: mGBA, by Vicki Pfau.";
+const char oracles_about_licences_label[] = "Licenses";
 const char oracles_about_licences_line[] = "The full list: launcher, cores, libraries and fonts.";
-const char oracles_about_licences_help[] = "Every licence: launcher, cores, libraries, fonts.";
+const char oracles_about_licences_help[] = "Every license: launcher, cores, libraries, fonts.";
 const char oracles_about_licences_help_note[] = "Opens the full list in your browser.";
 
 unsigned oracles_about_rows(const OraclesHomeNav *nav) { return 2u + (nav->portable_shown != 0); }
@@ -123,8 +123,8 @@ const char *oracles_about_portable_status(const OraclesHomeNav *nav, OraclesTone
                         "folder stay in it.";
         case ORACLES_PORTABLE_STATUS_READ_ONLY:
             *tone = ORACLES_TONE_ERROR;
-            return nav->windows ? "The launcher's folder cannot be written in (such as Program Files): nothing changed. Move the launcher to a folder of yours."
-                                : "The launcher's folder cannot be written in (such as /opt): nothing changed. Move the launcher to a folder of yours.";
+            return nav->windows ? "The game folder cannot be written in (such as Program Files): nothing changed. Move the game to a folder of yours."
+                                : "The game folder cannot be written in (such as /opt): nothing changed. Move the game to a folder of yours.";
         case ORACLES_PORTABLE_STATUS_FAILED: *tone = ORACLES_TONE_ERROR; return "The settings could not be copied: nothing changed.";
         case ORACLES_PORTABLE_STATUS_NONE: break;
     }

@@ -66,7 +66,7 @@ body:
       label: Log
       description: |
         What the launcher wrote while it happened, pasted here or attached as a file.
-        - Windows: a console window opens with the launcher. Play until it happens, choose Quit to launcher in the pause menu, which writes the end-of-game report, then select the console's text and copy it before you close the launcher: closing the console closes the launcher too. Or, from a Command Prompt in the launcher's folder, run `the-oracles-project.exe > log.txt 2>&1` and attach `log.txt`.
+        - Windows: a console window opens with the launcher. Play until it happens, choose Quit to launcher in the pause menu, which writes the end-of-game report, then select the console's text and copy it before you close the launcher: closing the console closes the launcher too. Or, from a Command Prompt in the game folder, run `the-oracles-project.exe > log.txt 2>&1` and attach `log.txt`.
         - macOS: once the application has opened from the Finder, run in Terminal `"/Applications/The Oracles Project.app/Contents/MacOS/The Oracles Project" 2>&1 | tee ~/Desktop/the-oracles-project.log`, play until it happens, and attach the file from the Desktop.
         - Linux: from a terminal in the file's folder, run `./the-oracles-project-X.Y.Z-linux-x86_64.AppImage 2>&1 | tee the-oracles-project.log` (or `./the-oracles-project` in the archive's folder), play until it happens, and attach the file.
         - Android: `Android/data/org.theoraclesproject/files/the-oracles-project.log`, reachable from a computer over USB; the run before is kept beside it as `the-oracles-project.previous.log`.

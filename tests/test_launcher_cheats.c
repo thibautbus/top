@@ -423,8 +423,8 @@ static void portable(OraclesUiLayout layout, const char *frame, int on, int stat
     }
 }
 
-/* The launcher's folder not writable on Linux, /opt for Program Files: as many lines as on Windows in both layouts,
- * nothing under it moving. */
+/* The game folder not writable on Linux, /opt for Program Files: one line where Windows takes two, in both layouts,
+ * the About block moving up by that line, 31 px in 16:9 and 38 in 4:3 (turn 46 of the mockup). */
 static void read_only_linux(void)
 {
     for (int layout = ORACLES_UI_LAYOUT_16_9; layout <= ORACLES_UI_LAYOUT_4_3; layout++) {
@@ -441,7 +441,9 @@ static void read_only_linux(void)
             CHECK(strstr(oracles_about_portable_status(&nav, &tone), windows ? "(such as Program Files)" : "(such as /opt)") != NULL);
             oracles_ui_layout_about((OraclesUiLayout)layout, &nav, "v0.1.0", "thibautbus/top", &l[windows]);
         }
-        CHECK(l[0].status.count == l[1].status.count && l[0].status.h == l[1].status.h);
+        const float line = layout == ORACLES_UI_LAYOUT_16_9 ? 31.0f : 38.0f;
+        CHECK(l[0].status.count == 1 && l[1].status.count == 2);
+        CHECK(l[1].status.h - l[0].status.h == line && l[1].about.rule.y - l[0].about.rule.y == line);
     }
 }
 

@@ -2956,7 +2956,7 @@ static void display_hud(void)
     oracles_ui_layout_display(ORACLES_UI_LAYOUT_16_9, &t, &l);
     hud_probes("19e", &l);
     layout_text("19e", "page note", &l.page_note.lines[0]);
-    CHECK(!strcmp(oracles_ui_display_later, "Greyed rows change from the home screen; the rest applies at once."));
+    CHECK(!strcmp(oracles_ui_display_later, "Grayed rows change from the home screen; the rest applies at once."));
     layout_box("19e", "picture row", &l.rows[ORACLES_DISPLAY_PICTURE]);
     layout_box("19e", "panel", &l.panel);
     CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_HUD, 0) == ORACLES_HOME_STORE && nav.display.hud == 0);
