@@ -3,8 +3,12 @@
 #include "core.h"
 
 #include <SDL3/SDL.h>
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 
 #include <math.h>
+#include <stdio.h>
 
 #define SEGMENTS 40
 
@@ -24,6 +28,70 @@ int oracles_touch_sdl_event(OraclesTouchScreen *screen, SDL_Renderer *renderer, 
     *buttons = oracles_touch_finger(&screen->touch, safe.w, safe.h, (uint64_t)event->tfinger.fingerID, kind,
                                     event->tfinger.x * (float)width - safe.x, event->tfinger.y * (float)height - safe.y, pause);
     return 1;
+}
+
+#ifdef __ANDROID__
+/* The ticks are asked of Android on a thread of their own, which the game's wakes: the call into Java, slow on a
+ * debuggable build or a cold start, never holds the game.  Ticks asked while one is under way make one more. */
+static SDL_Semaphore *tick_wanted;
+static SDL_AtomicInt tick_pending, tick_wake_us;
+
+static int SDLCALL tick_thread(void *unused)
+{
+    (void)unused;
+    /* The activity's class and its method looked up at the first tick, kept for the run. */
+    jclass activity_class = NULL;
+    jmethodID tick = NULL;
+    int ticks = 0;
+    Uint64 first_ns = 0;
+    for (;;) {
+        SDL_WaitSemaphore(tick_wanted);
+        if (!SDL_SetAtomicInt(&tick_pending, 0)) continue;
+        const Uint64 start = SDL_GetTicksNS();
+        JNIEnv *env = SDL_GetAndroidJNIEnv();
+        if (!env) continue;
+        if (!activity_class) {
+            jobject activity = SDL_GetAndroidActivity();
+            if (!activity) continue;
+            jclass class = (*env)->GetObjectClass(env, activity);
+            tick = (*env)->GetStaticMethodID(env, class, "touchTick", "()V");
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); tick = NULL; }
+            activity_class = (jclass)(*env)->NewGlobalRef(env, class);
+            (*env)->DeleteLocalRef(env, class);
+            (*env)->DeleteLocalRef(env, activity);
+        }
+        if (!tick) continue;
+        (*env)->CallStaticVoidMethod(env, activity_class, tick);
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        /* What a tick costs, said at the second: the first looked the method up. */
+        if (ticks == 0) first_ns = SDL_GetTicksNS() - start;
+        else if (ticks == 1)
+            fprintf(stderr, "oracles: touch vibration: a tick costs the game's thread %d us, asked of Android on its own thread in "
+                    "%.0f us (the first, the method looked up, in %.0f us)\n", SDL_GetAtomicInt(&tick_wake_us),
+                    (double)(SDL_GetTicksNS() - start) / 1000.0, (double)first_ns / 1000.0);
+        if (ticks < 2) ticks++;
+    }
+    return 0;
+}
+#endif
+
+void oracles_touch_sdl_tick(void)
+{
+#ifdef __ANDROID__
+    static int started;
+    if (!started) {
+        started = 1;
+        tick_wanted = SDL_CreateSemaphore(0);
+        SDL_Thread *thread = tick_wanted ? SDL_CreateThread(tick_thread, "touch vibration", NULL) : NULL;
+        if (thread) SDL_DetachThread(thread);
+        else { if (tick_wanted) SDL_DestroySemaphore(tick_wanted); tick_wanted = NULL; }
+    }
+    if (!tick_wanted) return;
+    const Uint64 start = SDL_GetTicksNS();
+    SDL_SetAtomicInt(&tick_pending, 1);
+    SDL_SignalSemaphore(tick_wanted);
+    SDL_SetAtomicInt(&tick_wake_us, (int)((SDL_GetTicksNS() - start) / 1000u));
+#endif
 }
 
 static void disc(SDL_Renderer *renderer, float x, float y, float radius, SDL_FColor colour)

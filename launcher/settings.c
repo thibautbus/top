@@ -311,13 +311,14 @@ void oracles_settings_defaults(oracles_settings *s)
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
     s->scaling_fill = 0;   /* sharp, Android included */
     s->screen_margin = ORACLES_SCREEN_MARGIN_OFF;
+    s->touch_vibration = 1;
     s->quality_hint = -1;
     s->menu_tip = s->hotkeys_tip = 0;
     s->update_check = 1;
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `touch_vibration=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
@@ -386,6 +387,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     if (!strcmp(name, "menu_toast")) return 1;   /* 1.3's toast, shown once: dropped, the reminder due again */
     if (!strcmp(name, "update_check")) {
         if (!strcmp(word, "on") || !strcmp(word, "off")) s->update_check = !strcmp(word, "on");
+        return 1;
+    }
+    if (!strcmp(name, "touch_vibration")) {
+        if (!strcmp(word, "on") || !strcmp(word, "off")) s->touch_vibration = !strcmp(word, "on");
         return 1;
     }
     if (!strcmp(name, "ghosts")) {
@@ -710,6 +715,9 @@ int oracles_settings_store(const oracles_settings *s)
                "# curved edge Android reports above or below), small or large (24 or 48 dp clear at the top and at the bottom,\n"
                "# for a screen whose edges hide part of the picture, auto's too where it is larger).\n");
     put(&w, "screen_margin=%s\n", oracles_screen_margin_names[s->screen_margin >= 0 && s->screen_margin < ORACLES_SCREEN_MARGINS ? s->screen_margin : 0]);
+    put(&w, "# The touch controls on Android: on (a short vibration as a finger presses a button or adds a direction on the\n"
+               "# d-pad, when the system's touch feedback is on) or off (none).\n");
+    put(&w, "touch_vibration=%s\n", s->touch_vibration ? "on" : "off");
     put(&w, "# The update check: on (when the home screen opens, one anonymous request to GitHub for the latest release, which\n"
                "# the home screen names when it is newer; nothing is sent but the request) or off (no request).\n");
     put(&w, "update_check=%s\n", s->update_check ? "on" : "off");

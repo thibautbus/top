@@ -123,6 +123,28 @@ static void spaces_and_case(const char *path)
     write_text(path, "Update_Check=On\n");
     oracles_settings_load(&s);
     CHECK(s.update_check == 1);
+    /* touch_vibration=: on by default, off read and written back. */
+    oracles_settings_defaults(&s);
+    CHECK(s.touch_vibration == 1);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    write_text(path, "Touch_Vibration = Off\n");
+    oracles_settings_load(&s);
+    CHECK(s.touch_vibration == 0 && s.unknown[0] == 0);
+    oracles_settings_store(&s);
+    CHECK(file_has_line(path, "touch_vibration=off\n"));
+    write_text(path, "touch_vibration=maybe\n");
+    oracles_settings_defaults(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    oracles_settings_load(&s);
+    CHECK(s.touch_vibration == 1);
+    /* Controls' Touch vibration reads it and writes it back. */
+    OraclesHomeControls controls;
+    s.touch_vibration = 0;
+    oracles_home_inspect_controls(&s, &controls);
+    CHECK(controls.touch_vibration == 0);
+    controls.touch_vibration = 1;
+    oracles_home_store_controls(&controls, &s);
+    CHECK(s.touch_vibration == 1);
 }
 
 /* menu_pad= `name` with pad_select= `select` and pad_hotkey1= `hotkey`, read as every screen takes it: the menu's

@@ -7,7 +7,10 @@
  * Item hotkeys line and its grid, or the fixed shortcuts as a list and
  * Swimming; no panels, no slots' note.  The fixed shortcuts begin with Menu:
  * Esc, then the cell of the controller's button that opens it too; the keys
- * show once a key was pressed, or on a desktop until a controller's input. */
+ * show once a key was pressed, or on a desktop until a controller's input.
+ * On Android, Touch vibration: in 16:9 under the item hotkeys' panel, the
+ * fixed shortcuts then beside the title; in 4:3's In game, under Swimming,
+ * the other fixed keys after it. */
 #ifndef ORACLES_UI_CONTROLS_LAYOUT_H
 #define ORACLES_UI_CONTROLS_LAYOUT_H
 
@@ -68,6 +71,11 @@ typedef struct OraclesUiControlsLayout {
     const char *swim_later_text;
     OraclesUiChipLayout swim_choices[2];
     OraclesUiWrapped swim_text;
+    /* Touch vibration, on Android: its box (its highlight, the pointer's target), its title and On and Off on one line,
+     * its explanation under them (in 4:3 its note too); zero elsewhere, and in 4:3's Buttons and Hotkeys. */
+    OraclesUiBox vibration;
+    OraclesUiLine vibration_title, vibration_text, vibration_note;
+    OraclesUiChipLayout vibration_choices[2];
 } OraclesUiControlsLayout;
 
 extern const OraclesUiTextStyle oracles_ui_controls_title, oracles_ui_controls_prompt, oracles_ui_controls_heading;
@@ -86,6 +94,9 @@ extern const char *const oracles_ui_controls_mode_choices[2];
 extern const char oracles_ui_controls_swim_text[], oracles_ui_controls_swim_fan[];
 extern const char oracles_ui_controls_original_only[];   /* "Needs an original ROM.": Swimming's, the Item hotkeys' reason */
 extern const char *const oracles_ui_controls_swim_choices[2];   /* "Tap", "Hold" */
+/* Touch vibration's: 16:9's explanation, 4:3's and its note, its choices "On", "Off". */
+extern const char oracles_ui_controls_vibration_text[], oracles_ui_controls_vibration_text_4_3[], oracles_ui_controls_vibration_note_4_3[];
+extern const char *const oracles_ui_controls_vibration_choices[2];
 
 /* The styles a layout draws Controls in; 4:3 has no slots' note (NULL), 16:9 no tabs (NULL). */
 typedef struct OraclesUiControlsStyles {

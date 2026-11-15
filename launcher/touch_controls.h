@@ -31,7 +31,14 @@ typedef enum OraclesTouchFingerKind { ORACLES_TOUCH_DOWN, ORACLES_TOUCH_MOTION, 
 typedef struct OraclesTouch {
     int shown;
     OraclesTouchLayout layout;
-    struct { int used; uint64_t id; OraclesTouchOn on; unsigned buttons; } fingers[ORACLES_TOUCH_FINGERS];
+    /* felt: the buttons the finger feels pressed, which the vibration ticks for: the game's, held a little past their
+     * borders. */
+    struct { int used; uint64_t id; OraclesTouchOn on; unsigned buttons, felt; } fingers[ORACLES_TOUCH_FINGERS];
+    /* The last finger given to oracles_touch_finger pressed something new: it went down on the pause, onto a button
+     * other than the one it felt, or onto a direction of the d-pad added to those it felt (up to up and right, not on
+     * to right); never as it goes up, slides off, holds still or rests on a border.  What the vibration ticks for
+     * (touch_vibration=). */
+    int tick;
 } OraclesTouch;
 
 void oracles_touch_layout(float width, float height, OraclesTouchLayout *out);
@@ -43,7 +50,8 @@ int oracles_touch_on_pause(const OraclesTouchLayout *layout, float x, float y);
 
 /* A finger went down, moved or went up at (x, y) on a screen of width x height: the controls show, and are laid out
  * again when the screen's size changed; a finger unknown as it moves (held through a pause) is taken as going down
- * there.  Returns the game's buttons all the fingers press now; *pause is set when this finger went down on the pause. */
+ * there.  Returns the game's buttons all the fingers press now; *pause is set when this finger went down on the pause, and
+ * touch->tick when it pressed something new. */
 unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, uint64_t id, OraclesTouchFingerKind kind,
                               float x, float y, int *pause);
 /* Where the game's frame of frame_w x frame_h goes on a screen of width x height, as SDL's logical presentation puts

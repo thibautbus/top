@@ -431,6 +431,7 @@ static void window_options(session *s, const OraclesSessionOptions *o)
     s->sdl.overlay_opaque = s;
     s->sdl.fill = prefs->scaling_fill;
     s->sdl.screen_margin = oracles_session_screen_margin(o->screen_margin, prefs);
+    s->sdl.touch_vibration = prefs->touch_vibration;
     for (unsigned i = 0; i < ORACLES_BINDINGS; i++) s->sdl.key_names[i] = prefs->key_names[i];
     for (unsigned i = 0; i < 4; i++) s->sdl.pad_names[i] = prefs->pad_names[i];
     s->sdl.menu_pad_name = prefs->menu_pad;

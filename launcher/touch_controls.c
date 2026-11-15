@@ -11,6 +11,13 @@
  * gives the diagonals between (sin 22.5 degrees). */
 #define DPAD_DEAD 0.2f
 #define DPAD_AXIS 0.3827f
+/* What a finger feels pressed, which the vibration ticks for, is steadier than what the game is given: a direction held
+ * is felt a little past where the game lets it go, a new one only a little past where the game takes it, the dead
+ * centre lets them go only well inside it, and a button is felt a little beyond its reach.  A thumb resting on a border,
+ * which the game's directions flicker across, ticks once. */
+#define FELT_AXIS 0.06f
+#define FELT_DEAD 0.15f
+#define FELT_REACH 0.1f
 
 void oracles_touch_layout(float width, float height, OraclesTouchLayout *out)
 {
@@ -49,9 +56,9 @@ static int in_circle(const OraclesTouchCircle *c, float x, float y, float reach)
     return dx * dx + dy * dy <= r * r;
 }
 
-static int in_box(const OraclesTouchBox *b, float x, float y)
+static int in_box(const OraclesTouchBox *b, float x, float y, float reach)
 {
-    const float grow = (REACH - 1.0f) * b->h;
+    const float grow = (reach - 1.0f) * b->h;
     return x >= b->x - grow && x <= b->x + b->w + grow && y >= b->y - grow && y <= b->y + b->h + grow;
 }
 
@@ -78,9 +85,34 @@ unsigned oracles_touch_button_at(const OraclesTouchLayout *layout, float x, floa
     }
     if (on_a) return ORACLES_KEY_A;
     if (on_b) return ORACLES_KEY_B;
-    if (in_box(&layout->select, x, y)) return ORACLES_KEY_SELECT;
-    if (in_box(&layout->start, x, y)) return ORACLES_KEY_START;
+    if (in_box(&layout->select, x, y, REACH)) return ORACLES_KEY_SELECT;
+    if (in_box(&layout->start, x, y, REACH)) return ORACLES_KEY_START;
     return 0;
+}
+
+/* The directions a finger on the d-pad feels at (x, y), having felt `felt`. */
+static unsigned felt_dpad(const OraclesTouchCircle *dpad, unsigned felt, float x, float y)
+{
+    if (!felt) return oracles_touch_dpad(dpad, x, y);
+    const float dx = x - dpad->x, dy = y - dpad->y, length = sqrtf(dx * dx + dy * dy);
+    if (length < FELT_DEAD * dpad->r) return 0;
+    const float keep = (DPAD_AXIS - FELT_AXIS) * length, add = (DPAD_AXIS + FELT_AXIS) * length;
+    unsigned keys = 0;
+    if (dx > ((felt & ORACLES_KEY_RIGHT) ? keep : add)) keys |= ORACLES_KEY_RIGHT;
+    if (dx < -((felt & ORACLES_KEY_LEFT) ? keep : add)) keys |= ORACLES_KEY_LEFT;
+    if (dy > ((felt & ORACLES_KEY_DOWN) ? keep : add)) keys |= ORACLES_KEY_DOWN;
+    if (dy < -((felt & ORACLES_KEY_UP) ? keep : add)) keys |= ORACLES_KEY_UP;
+    return keys;
+}
+
+/* The button a finger feels at (x, y), having felt `felt`. */
+static unsigned felt_button(const OraclesTouchLayout *layout, unsigned felt, float x, float y)
+{
+    const float reach = REACH + FELT_REACH;
+    const int still = (felt == ORACLES_KEY_A && in_circle(&layout->a, x, y, reach)) || (felt == ORACLES_KEY_B && in_circle(&layout->b, x, y, reach))
+                      || (felt == ORACLES_KEY_SELECT && in_box(&layout->select, x, y, reach))
+                      || (felt == ORACLES_KEY_START && in_box(&layout->start, x, y, reach));
+    return still ? felt : oracles_touch_button_at(layout, x, y);
 }
 
 int oracles_touch_on_pause(const OraclesTouchLayout *layout, float x, float y)
@@ -100,6 +132,7 @@ unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, ui
                               float x, float y, int *pause)
 {
     *pause = 0;
+    touch->tick = 0;
     touch->shown = 1;
     if (touch->layout.width != width || touch->layout.height != height) oracles_touch_layout(width, height, &touch->layout);
     int slot = -1, free_slot = -1;
@@ -116,7 +149,7 @@ unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, ui
         touch->fingers[slot].on = oracles_touch_on_pause(l, x, y) ? ORACLES_TOUCH_ON_PAUSE
                                   : in_circle(&l->dpad, x, y, REACH) ? ORACLES_TOUCH_ON_DPAD
                                   : oracles_touch_button_at(l, x, y) ? ORACLES_TOUCH_ON_BUTTONS : ORACLES_TOUCH_ON_NOTHING;
-        *pause = touch->fingers[slot].on == ORACLES_TOUCH_ON_PAUSE;
+        *pause = touch->tick = touch->fingers[slot].on == ORACLES_TOUCH_ON_PAUSE;
     } else if (slot < 0 && kind == ORACLES_TOUCH_MOTION) {
         /* A finger that went down before the controls took it, one held through a pause: taken as it moves, as if it
          * went down there, the pause's excepted, which only a finger going down on it opens. */
@@ -132,13 +165,24 @@ unsigned oracles_touch_finger(OraclesTouch *touch, float width, float height, ui
     }
     if (kind == ORACLES_TOUCH_UP) {
         touch->fingers[slot].used = 0;
-        touch->fingers[slot].buttons = 0;
+        touch->fingers[slot].buttons = touch->fingers[slot].felt = 0;
         return oracles_touch_pressed(touch);
     }
+    /* A tick for a direction the d-pad's finger did not feel, added to those it felt (up to up and right, not on to
+     * right), or a button other than the one it felt. */
+    const unsigned felt = touch->fingers[slot].felt;
     switch (touch->fingers[slot].on) {
-        case ORACLES_TOUCH_ON_DPAD: touch->fingers[slot].buttons = oracles_touch_dpad(&touch->layout.dpad, x, y); break;
-        case ORACLES_TOUCH_ON_BUTTONS: touch->fingers[slot].buttons = oracles_touch_button_at(&touch->layout, x, y); break;
-        default: touch->fingers[slot].buttons = 0; break;
+        case ORACLES_TOUCH_ON_DPAD:
+            touch->fingers[slot].buttons = oracles_touch_dpad(&touch->layout.dpad, x, y);
+            touch->fingers[slot].felt = felt_dpad(&touch->layout.dpad, felt, x, y);
+            touch->tick |= (touch->fingers[slot].felt & ~felt) != 0;
+            break;
+        case ORACLES_TOUCH_ON_BUTTONS:
+            touch->fingers[slot].buttons = oracles_touch_button_at(&touch->layout, x, y);
+            touch->fingers[slot].felt = felt_button(&touch->layout, felt, x, y);
+            touch->tick |= touch->fingers[slot].felt && touch->fingers[slot].felt != felt;
+            break;
+        default: touch->fingers[slot].buttons = touch->fingers[slot].felt = 0; break;
     }
     return oracles_touch_pressed(touch);
 }
@@ -179,7 +223,7 @@ OraclesTouchBox oracles_touch_band(int width, int height, const OraclesTouchEdge
 
 void oracles_touch_release(OraclesTouch *touch)
 {
-    for (int i = 0; i < ORACLES_TOUCH_FINGERS; i++) { touch->fingers[i].used = 0; touch->fingers[i].buttons = 0; }
+    for (int i = 0; i < ORACLES_TOUCH_FINGERS; i++) { touch->fingers[i].used = 0; touch->fingers[i].buttons = touch->fingers[i].felt = 0; }
 }
 
 void oracles_touch_hide(OraclesTouch *touch)

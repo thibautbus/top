@@ -14767,69 +14767,69 @@
   "21k": {
    "menu": {
     "x": 1117.063,
-    "y": 930,
+    "y": 92,
     "w": 206.156,
     "h": 34
    },
    "menu pad": {
     "x": 1117.063,
-    "y": 930,
+    "y": 92,
     "w": 64,
     "h": 34
    },
    "menu pad text": {
     "x": 1140.625,
     "w": 16.875,
-    "glyph_top": 937,
+    "glyph_top": 99,
     "glyph_h": 20,
-    "top": 935,
+    "top": 97,
     "h": 24,
-    "baseline": 953,
+    "baseline": 115,
     "width": 16.875,
     "lines": 1
    },
    "In game row": {
     "x": 968,
-    "y": 930,
+    "y": 92,
     "w": 824,
     "h": 34
    },
    "menu label": {
     "x": 1269.063,
     "w": 54.156,
-    "glyph_top": 934.5,
+    "glyph_top": 96.5,
     "glyph_h": 24,
-    "top": 932.5,
+    "top": 94.5,
     "h": 29,
-    "baseline": 953.5,
+    "baseline": 115.5,
     "width": 54.156,
     "lines": 1
    },
    "menu back": {
     "x": 1191.063,
-    "y": 932,
+    "y": 94,
     "w": 68,
     "h": 30
    },
    "menu back text": {
     "x": 1201.063,
     "w": 48,
-    "glyph_top": 934,
+    "glyph_top": 96,
     "glyph_h": 26,
-    "top": 934,
+    "top": 96,
     "h": 26,
-    "baseline": 954,
+    "baseline": 116,
     "width": 48,
     "lines": 1
    },
    "In game": {
     "x": 968,
     "w": 121.063,
-    "glyph_top": 933.5,
+    "glyph_top": 95.5,
     "glyph_h": 27,
-    "top": 933.5,
+    "top": 95.5,
     "h": 27,
-    "baseline": 954.5,
+    "baseline": 116.5,
     "width": 121.063,
     "lines": 1
    }
@@ -14837,198 +14837,198 @@
   "21l": {
    "menu": {
     "x": 1117.063,
-    "y": 930,
+    "y": 92,
     "w": 272.156,
     "h": 34
    },
    "menu pad": {
     "x": 1183.063,
-    "y": 930,
+    "y": 92,
     "w": 64,
     "h": 34
    },
    "menu pad text": {
     "x": 1206.625,
     "w": 16.875,
-    "glyph_top": 937,
+    "glyph_top": 99,
     "glyph_h": 20,
-    "top": 935,
+    "top": 97,
     "h": 24,
-    "baseline": 953,
+    "baseline": 115,
     "width": 16.875,
     "lines": 1
    },
    "In game row": {
     "x": 968,
-    "y": 930,
+    "y": 92,
     "w": 824,
     "h": 74
    },
    "menu key": {
     "x": 1117.063,
-    "y": 932,
+    "y": 94,
     "w": 56,
     "h": 30
    },
    "menu key text": {
     "x": 1127.063,
     "w": 36,
-    "glyph_top": 934,
+    "glyph_top": 96,
     "glyph_h": 26,
-    "top": 934,
+    "top": 96,
     "h": 26,
-    "baseline": 954,
+    "baseline": 116,
     "width": 36,
     "lines": 1
    },
    "menu label": {
     "x": 1335.063,
     "w": 54.156,
-    "glyph_top": 934.5,
+    "glyph_top": 96.5,
     "glyph_h": 24,
-    "top": 932.5,
+    "top": 94.5,
     "h": 29,
-    "baseline": 953.5,
+    "baseline": 115.5,
     "width": 54.156,
     "lines": 1
    },
    "key 0": {
     "x": 1417.219,
-    "y": 932,
+    "y": 94,
     "w": 44,
     "h": 30
    },
    "key 1": {
     "x": 968,
-    "y": 974,
+    "y": 136,
     "w": 44,
     "h": 30
    },
    "key 2": {
     "x": 1241.328,
-    "y": 974,
+    "y": 136,
     "w": 44,
     "h": 30
    },
    "key 3": {
     "x": 1415.813,
-    "y": 974,
+    "y": 136,
     "w": 44,
     "h": 30
    },
    "key 0 text": {
     "x": 1427.219,
     "w": 24,
-    "glyph_top": 934,
+    "glyph_top": 96,
     "glyph_h": 26,
-    "top": 934,
+    "top": 96,
     "h": 26,
-    "baseline": 954,
+    "baseline": 116,
     "width": 24,
     "lines": 1
    },
    "key 1 text": {
     "x": 978,
     "w": 24,
-    "glyph_top": 976,
+    "glyph_top": 138,
     "glyph_h": 26,
-    "top": 976,
+    "top": 138,
     "h": 26,
-    "baseline": 996,
+    "baseline": 158,
     "width": 24,
     "lines": 1
    },
    "key 2 text": {
     "x": 1251.328,
     "w": 24,
-    "glyph_top": 976,
+    "glyph_top": 138,
     "glyph_h": 26,
-    "top": 976,
+    "top": 138,
     "h": 26,
-    "baseline": 996,
+    "baseline": 158,
     "width": 24,
     "lines": 1
    },
    "key 3 text": {
     "x": 1425.813,
     "w": 24,
-    "glyph_top": 976,
+    "glyph_top": 138,
     "glyph_h": 26,
-    "top": 976,
+    "top": 138,
     "h": 26,
-    "baseline": 996,
+    "baseline": 158,
     "width": 24,
     "lines": 1
    },
    "key 0 label": {
     "x": 1471.219,
     "w": 49.016,
-    "glyph_top": 934.5,
+    "glyph_top": 96.5,
     "glyph_h": 24,
-    "top": 932.5,
+    "top": 94.5,
     "h": 29,
-    "baseline": 953.5,
+    "baseline": 115.5,
     "width": 49.016,
     "lines": 1
    },
    "key 1 label": {
     "x": 1022,
     "w": 191.328,
-    "glyph_top": 976.5,
+    "glyph_top": 138.5,
     "glyph_h": 24,
-    "top": 974.5,
+    "top": 136.5,
     "h": 29,
-    "baseline": 995.5,
+    "baseline": 157.5,
     "width": 191.328,
     "lines": 1
    },
    "key 2 label": {
     "x": 1295.328,
     "w": 92.484,
-    "glyph_top": 976.5,
+    "glyph_top": 138.5,
     "glyph_h": 24,
-    "top": 974.5,
+    "top": 136.5,
     "h": 29,
-    "baseline": 995.5,
+    "baseline": 157.5,
     "width": 92.484,
     "lines": 1
    },
    "key 3 label": {
     "x": 1469.813,
     "w": 94.906,
-    "glyph_top": 976.5,
+    "glyph_top": 138.5,
     "glyph_h": 24,
-    "top": 974.5,
+    "top": 136.5,
     "h": 29,
-    "baseline": 995.5,
+    "baseline": 157.5,
     "width": 94.906,
     "lines": 1
    },
    "menu back": {
     "x": 1257.063,
-    "y": 932,
+    "y": 94,
     "w": 68,
     "h": 30
    },
    "menu back text": {
     "x": 1267.063,
     "w": 48,
-    "glyph_top": 934,
+    "glyph_top": 96,
     "glyph_h": 26,
-    "top": 934,
+    "top": 96,
     "h": 26,
-    "baseline": 954,
+    "baseline": 116,
     "width": 48,
     "lines": 1
    },
    "In game": {
     "x": 968,
     "w": 121.063,
-    "glyph_top": 933.5,
+    "glyph_top": 95.5,
     "glyph_h": 27,
-    "top": 933.5,
+    "top": 95.5,
     "h": 27,
-    "baseline": 954.5,
+    "baseline": 116.5,
     "width": 121.063,
     "lines": 1
    }
@@ -16300,7 +16300,7 @@
     "x": 64,
     "y": 140,
     "w": 1312,
-    "h": 343
+    "h": 515
    },
    "title": {
     "x": 84,
@@ -16338,63 +16338,63 @@
    },
    "swim": {
     "x": 64,
-    "y": 307,
+    "y": 299,
     "w": 1312,
     "h": 176
    },
    "swim label": {
     "x": 84,
     "w": 153.328,
-    "glyph_top": 333.5,
+    "glyph_top": 325.5,
     "glyph_h": 36,
-    "top": 330.5,
+    "top": 322.5,
     "h": 43,
-    "baseline": 362.5,
+    "baseline": 354.5,
     "width": 153.328,
     "lines": 1
    },
    "swim tap": {
     "x": 1107.75,
-    "y": 307,
+    "y": 299,
     "w": 110,
     "h": 90
    },
    "swim hold": {
     "x": 1229.75,
-    "y": 307,
+    "y": 299,
     "w": 126.25,
     "h": 90
    },
    "swim tap text": {
     "x": 1133.797,
     "w": 57.906,
-    "glyph_top": 329.297,
+    "glyph_top": 321.297,
     "glyph_h": 45,
-    "top": 331.297,
+    "top": 323.297,
     "h": 41.391,
-    "baseline": 364.297,
+    "baseline": 356.297,
     "width": 57.906,
     "lines": 1
    },
    "swim hold text": {
     "x": 1253.75,
     "w": 78.25,
-    "glyph_top": 329.297,
+    "glyph_top": 321.297,
     "glyph_h": 45,
-    "top": 331.297,
+    "top": 323.297,
     "h": 41.391,
-    "baseline": 364.297,
+    "baseline": 356.297,
     "width": 78.25,
     "lines": 1
    },
    "swim explanation": {
     "x": 84,
     "w": 1154.203,
-    "glyph_top": 404,
+    "glyph_top": 396,
     "glyph_h": 30,
-    "top": 401,
+    "top": 393,
     "h": 36,
-    "baseline": 428,
+    "baseline": 420,
     "width": 1154.203,
     "lines": 2
    },
@@ -16466,7 +16466,7 @@
     "x": 64,
     "y": 140,
     "w": 1312,
-    "h": 663
+    "h": 835
    },
    "title": {
     "x": 84,
@@ -16504,63 +16504,63 @@
    },
    "swim": {
     "x": 64,
-    "y": 627,
+    "y": 299,
     "w": 1312,
     "h": 176
    },
    "swim label": {
     "x": 84,
     "w": 153.328,
-    "glyph_top": 653.5,
+    "glyph_top": 325.5,
     "glyph_h": 36,
-    "top": 650.5,
+    "top": 322.5,
     "h": 43,
-    "baseline": 682.5,
+    "baseline": 354.5,
     "width": 153.328,
     "lines": 1
    },
    "swim tap": {
     "x": 1107.75,
-    "y": 627,
+    "y": 299,
     "w": 110,
     "h": 90
    },
    "swim hold": {
     "x": 1229.75,
-    "y": 627,
+    "y": 299,
     "w": 126.25,
     "h": 90
    },
    "swim tap text": {
     "x": 1133.797,
     "w": 57.906,
-    "glyph_top": 649.297,
+    "glyph_top": 321.297,
     "glyph_h": 45,
-    "top": 651.297,
+    "top": 323.297,
     "h": 41.391,
-    "baseline": 684.297,
+    "baseline": 356.297,
     "width": 57.906,
     "lines": 1
    },
    "swim hold text": {
     "x": 1253.75,
     "w": 78.25,
-    "glyph_top": 649.297,
+    "glyph_top": 321.297,
     "glyph_h": 45,
-    "top": 651.297,
+    "top": 323.297,
     "h": 41.391,
-    "baseline": 684.297,
+    "baseline": 356.297,
     "width": 78.25,
     "lines": 1
    },
    "swim explanation": {
     "x": 84,
     "w": 1154.203,
-    "glyph_top": 724,
+    "glyph_top": 396,
     "glyph_h": 30,
-    "top": 721,
+    "top": 393,
     "h": 36,
-    "baseline": 748,
+    "baseline": 420,
     "width": 1154.203,
     "lines": 2
    },
@@ -16594,113 +16594,113 @@
    },
    "key 0": {
     "x": 84,
-    "y": 304,
+    "y": 676,
     "w": 66,
     "h": 46
    },
    "key 1": {
     "x": 84,
-    "y": 384,
+    "y": 756,
     "w": 66,
     "h": 46
    },
    "key 2": {
     "x": 84,
-    "y": 464,
+    "y": 836,
     "w": 66,
     "h": 46
    },
    "key 3": {
     "x": 84,
-    "y": 544,
+    "y": 916,
     "w": 66,
     "h": 46
    },
    "key 0 text": {
     "x": 99,
     "w": 36,
-    "glyph_top": 307,
+    "glyph_top": 679,
     "glyph_h": 40,
-    "top": 307,
+    "top": 679,
     "h": 40,
-    "baseline": 338,
+    "baseline": 710,
     "width": 36,
     "lines": 1
    },
    "key 1 text": {
     "x": 99,
     "w": 36,
-    "glyph_top": 387,
+    "glyph_top": 759,
     "glyph_h": 40,
-    "top": 387,
+    "top": 759,
     "h": 40,
-    "baseline": 418,
+    "baseline": 790,
     "width": 36,
     "lines": 1
    },
    "key 2 text": {
     "x": 99,
     "w": 36,
-    "glyph_top": 467,
+    "glyph_top": 839,
     "glyph_h": 40,
-    "top": 467,
+    "top": 839,
     "h": 40,
-    "baseline": 498,
+    "baseline": 870,
     "width": 36,
     "lines": 1
    },
    "key 3 text": {
     "x": 99,
     "w": 36,
-    "glyph_top": 547,
+    "glyph_top": 919,
     "glyph_h": 40,
-    "top": 547,
+    "top": 919,
     "h": 40,
-    "baseline": 578,
+    "baseline": 950,
     "width": 36,
     "lines": 1
    },
    "key 0 label": {
     "x": 472,
     "w": 73.516,
-    "glyph_top": 308.5,
+    "glyph_top": 680.5,
     "glyph_h": 36,
-    "top": 305.5,
+    "top": 677.5,
     "h": 43,
-    "baseline": 337.5,
+    "baseline": 709.5,
     "width": 73.516,
     "lines": 1
    },
    "key 1 label": {
     "x": 472,
     "w": 287,
-    "glyph_top": 388.5,
+    "glyph_top": 760.5,
     "glyph_h": 36,
-    "top": 385.5,
+    "top": 757.5,
     "h": 43,
-    "baseline": 417.5,
+    "baseline": 789.5,
     "width": 287,
     "lines": 1
    },
    "key 2 label": {
     "x": 472,
     "w": 138.719,
-    "glyph_top": 468.5,
+    "glyph_top": 840.5,
     "glyph_h": 36,
-    "top": 465.5,
+    "top": 837.5,
     "h": 43,
-    "baseline": 497.5,
+    "baseline": 869.5,
     "width": 138.719,
     "lines": 1
    },
    "key 3 label": {
     "x": 472,
     "w": 142.359,
-    "glyph_top": 548.5,
+    "glyph_top": 920.5,
     "glyph_h": 36,
-    "top": 545.5,
+    "top": 917.5,
     "h": 43,
-    "baseline": 577.5,
+    "baseline": 949.5,
     "width": 142.359,
     "lines": 1
    }
@@ -46482,6 +46482,541 @@
     "baseline": 408,
     "width": 257.828,
     "lines": 1
+   }
+  },
+  "vibration": {
+   "vibration": {
+    "x": 968,
+    "y": 905,
+    "w": 824,
+    "h": 96
+   },
+   "vibration label": {
+    "x": 988,
+    "w": 170.078,
+    "glyph_top": 923.5,
+    "glyph_h": 28,
+    "top": 920.5,
+    "h": 34,
+    "baseline": 945.5,
+    "width": 170.078,
+    "lines": 1
+   },
+   "vibration on": {
+    "x": 1625.484,
+    "y": 917,
+    "w": 68.359,
+    "h": 41
+   },
+   "vibration off": {
+    "x": 1701.844,
+    "y": 917,
+    "w": 70.156,
+    "h": 41
+   },
+   "menu": {
+    "x": 1117.063,
+    "y": 92,
+    "w": 206.156,
+    "h": 34
+   },
+   "menu pad": {
+    "x": 1117.063,
+    "y": 92,
+    "w": 64,
+    "h": 34
+   },
+   "menu pad text": {
+    "x": 1140.625,
+    "w": 16.875,
+    "glyph_top": 99,
+    "glyph_h": 20,
+    "top": 97,
+    "h": 24,
+    "baseline": 115,
+    "width": 16.875,
+    "lines": 1
+   },
+   "In game row": {
+    "x": 968,
+    "y": 92,
+    "w": 824,
+    "h": 34
+   },
+   "In game": {
+    "x": 968,
+    "w": 121.063,
+    "glyph_top": 95.5,
+    "glyph_h": 27,
+    "top": 95.5,
+    "h": 27,
+    "baseline": 116.5,
+    "width": 121.063,
+    "lines": 1
+   },
+   "vibration explanation": {
+    "x": 988,
+    "w": 680.266,
+    "glyph_top": 962,
+    "glyph_h": 24,
+    "top": 960,
+    "h": 29,
+    "baseline": 981,
+    "width": 680.266,
+    "lines": 1
+   },
+   "right panel": {
+    "x": 936,
+    "y": 190,
+    "w": 888,
+    "h": 675
+   },
+   "title": {
+    "x": 96,
+    "w": 305.438,
+    "glyph_top": 54,
+    "glyph_h": 100,
+    "top": 64,
+    "h": 80,
+    "baseline": 132,
+    "width": 305.438,
+    "lines": 1
+   }
+  },
+  "vibration 640x480": {
+   "vibration": {
+    "x": 64,
+    "y": 483,
+    "w": 1312,
+    "h": 172
+   },
+   "vibration label": {
+    "x": 84,
+    "w": 218.672,
+    "glyph_top": 509.5,
+    "glyph_h": 36,
+    "top": 506.5,
+    "h": 43,
+    "baseline": 538.5,
+    "width": 218.672,
+    "lines": 1
+   },
+   "vibration on": {
+    "x": 1124,
+    "y": 483,
+    "w": 110,
+    "h": 90
+   },
+   "vibration off": {
+    "x": 1246,
+    "y": 483,
+    "w": 110,
+    "h": 90
+   },
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "list": {
+    "x": 64,
+    "y": 140,
+    "w": 1312,
+    "h": 515
+   },
+   "title": {
+    "x": 84,
+    "w": 366.234,
+    "glyph_top": 140,
+    "glyph_h": 37,
+    "top": 140,
+    "h": 37,
+    "baseline": 169,
+    "width": 366.234,
+    "lines": 1
+   },
+   "menu": {
+    "x": 84,
+    "y": 193,
+    "w": 1272,
+    "h": 90
+   },
+   "menu pad": {
+    "x": 268,
+    "y": 193,
+    "w": 180,
+    "h": 90
+   },
+   "menu pad text": {
+    "x": 345.344,
+    "w": 25.297,
+    "glyph_top": 223,
+    "glyph_h": 30,
+    "top": 220,
+    "h": 36,
+    "baseline": 247,
+    "width": 25.297,
+    "lines": 1
+   },
+   "swim": {
+    "x": 64,
+    "y": 299,
+    "w": 1312,
+    "h": 176
+   },
+   "swim label": {
+    "x": 84,
+    "w": 153.328,
+    "glyph_top": 325.5,
+    "glyph_h": 36,
+    "top": 322.5,
+    "h": 43,
+    "baseline": 354.5,
+    "width": 153.328,
+    "lines": 1
+   },
+   "swim tap": {
+    "x": 1107.75,
+    "y": 299,
+    "w": 110,
+    "h": 90
+   },
+   "swim hold": {
+    "x": 1229.75,
+    "y": 299,
+    "w": 126.25,
+    "h": 90
+   },
+   "swim tap text": {
+    "x": 1133.797,
+    "w": 57.906,
+    "glyph_top": 321.297,
+    "glyph_h": 45,
+    "top": 323.297,
+    "h": 41.391,
+    "baseline": 356.297,
+    "width": 57.906,
+    "lines": 1
+   },
+   "swim hold text": {
+    "x": 1253.75,
+    "w": 78.25,
+    "glyph_top": 321.297,
+    "glyph_h": 45,
+    "top": 323.297,
+    "h": 41.391,
+    "baseline": 356.297,
+    "width": 78.25,
+    "lines": 1
+   },
+   "swim explanation": {
+    "x": 84,
+    "w": 1154.203,
+    "glyph_top": 396,
+    "glyph_h": 30,
+    "top": 393,
+    "h": 36,
+    "baseline": 420,
+    "width": 1154.203,
+    "lines": 2
+   },
+   "vibration explanation": {
+    "x": 84,
+    "w": 771.516,
+    "glyph_top": 581,
+    "glyph_h": 30,
+    "top": 577,
+    "h": 38,
+    "baseline": 605,
+    "width": 771.516,
+    "lines": 1
+   },
+   "vibration note": {
+    "x": 84,
+    "w": 463.844,
+    "glyph_top": 620,
+    "glyph_h": 27,
+    "top": 617,
+    "h": 34,
+    "baseline": 642,
+    "width": 463.844,
+    "lines": 1
+   }
+  },
+  "vibration 640x480 keys": {
+   "vibration": {
+    "x": 64,
+    "y": 483,
+    "w": 1312,
+    "h": 172
+   },
+   "vibration label": {
+    "x": 84,
+    "w": 218.672,
+    "glyph_top": 509.5,
+    "glyph_h": 36,
+    "top": 506.5,
+    "h": 43,
+    "baseline": 538.5,
+    "width": 218.672,
+    "lines": 1
+   },
+   "vibration on": {
+    "x": 1124,
+    "y": 483,
+    "w": 110,
+    "h": 90
+   },
+   "vibration off": {
+    "x": 1246,
+    "y": 483,
+    "w": 110,
+    "h": 90
+   },
+   "tab 0": {
+    "x": 310.172,
+    "y": 24,
+    "w": 171.109,
+    "h": 90
+   },
+   "tab 1": {
+    "x": 489.281,
+    "y": 24,
+    "w": 177.063,
+    "h": 90
+   },
+   "tab 2": {
+    "x": 674.344,
+    "y": 24,
+    "w": 179.75,
+    "h": 90
+   },
+   "tab 0 label": {
+    "x": 334.172,
+    "w": 123.109,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 123.109,
+    "lines": 1
+   },
+   "tab 1 label": {
+    "x": 513.281,
+    "w": 129.063,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 129.063,
+    "lines": 1
+   },
+   "tab 2 label": {
+    "x": 698.344,
+    "w": 131.75,
+    "glyph_top": 45,
+    "glyph_h": 45,
+    "top": 45,
+    "h": 45,
+    "baseline": 80,
+    "width": 131.75,
+    "lines": 1
+   },
+   "list": {
+    "x": 64,
+    "y": 140,
+    "w": 1312,
+    "h": 835
+   },
+   "title": {
+    "x": 84,
+    "w": 366.234,
+    "glyph_top": 140,
+    "glyph_h": 37,
+    "top": 140,
+    "h": 37,
+    "baseline": 169,
+    "width": 366.234,
+    "lines": 1
+   },
+   "menu": {
+    "x": 84,
+    "y": 193,
+    "w": 1272,
+    "h": 90
+   },
+   "menu pad": {
+    "x": 268,
+    "y": 193,
+    "w": 180,
+    "h": 90
+   },
+   "menu pad text": {
+    "x": 345.344,
+    "w": 25.297,
+    "glyph_top": 223,
+    "glyph_h": 30,
+    "top": 220,
+    "h": 36,
+    "baseline": 247,
+    "width": 25.297,
+    "lines": 1
+   },
+   "swim": {
+    "x": 64,
+    "y": 299,
+    "w": 1312,
+    "h": 176
+   },
+   "swim label": {
+    "x": 84,
+    "w": 153.328,
+    "glyph_top": 325.5,
+    "glyph_h": 36,
+    "top": 322.5,
+    "h": 43,
+    "baseline": 354.5,
+    "width": 153.328,
+    "lines": 1
+   },
+   "swim tap": {
+    "x": 1107.75,
+    "y": 299,
+    "w": 110,
+    "h": 90
+   },
+   "swim hold": {
+    "x": 1229.75,
+    "y": 299,
+    "w": 126.25,
+    "h": 90
+   },
+   "swim tap text": {
+    "x": 1133.797,
+    "w": 57.906,
+    "glyph_top": 321.297,
+    "glyph_h": 45,
+    "top": 323.297,
+    "h": 41.391,
+    "baseline": 356.297,
+    "width": 57.906,
+    "lines": 1
+   },
+   "swim hold text": {
+    "x": 1253.75,
+    "w": 78.25,
+    "glyph_top": 321.297,
+    "glyph_h": 45,
+    "top": 323.297,
+    "h": 41.391,
+    "baseline": 356.297,
+    "width": 78.25,
+    "lines": 1
+   },
+   "swim explanation": {
+    "x": 84,
+    "w": 1154.203,
+    "glyph_top": 396,
+    "glyph_h": 30,
+    "top": 393,
+    "h": 36,
+    "baseline": 420,
+    "width": 1154.203,
+    "lines": 2
+   },
+   "vibration explanation": {
+    "x": 84,
+    "w": 771.516,
+    "glyph_top": 581,
+    "glyph_h": 30,
+    "top": 577,
+    "h": 38,
+    "baseline": 605,
+    "width": 771.516,
+    "lines": 1
+   },
+   "vibration note": {
+    "x": 84,
+    "w": 463.844,
+    "glyph_top": 620,
+    "glyph_h": 27,
+    "top": 617,
+    "h": 34,
+    "baseline": 642,
+    "width": 463.844,
+    "lines": 1
+   },
+   "fixed 0": {
+    "x": 84,
+    "y": 663,
+    "w": 1272,
+    "h": 72
+   },
+   "fixed 1": {
+    "x": 84,
+    "y": 743,
+    "w": 1272,
+    "h": 72
+   },
+   "fixed 2": {
+    "x": 84,
+    "y": 823,
+    "w": 1272,
+    "h": 72
+   },
+   "fixed 3": {
+    "x": 84,
+    "y": 903,
+    "w": 1272,
+    "h": 72
    }
   },
   "credit cartridge 640x480": {

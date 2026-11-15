@@ -111,6 +111,7 @@ text_speed=classic
 window_scale=full
 scaling=sharp
 screen_margin=off
+touch_vibration=on
 update_check=on
 launcher_window=1280x720
 key_right=Right
@@ -188,6 +189,7 @@ Edit `settings.txt` only while the launcher is closed. The launcher reads it whe
 | `cheats_ages`, `cheats_seasons`, `cheats_kinomi`, `cheats_moonrise`, `cheats_temple` | `no-damage`, `ammo`, `rupees`, comma-separated | empty | the Cheats page | at the next Play; from the pause when the game resumes |
 | `item_hotkeys_ages`, `item_hotkeys_seasons` | `off`, `use`, `equip` | `off` | Controls › Item hotkeys (Off, On: `use`; `equip` only by hand) | at the next Play; from the pause when the game resumes |
 | `swim_hold` | `off`, `on` | `off` | Controls › Swimming (Tap, Hold) | at the next Play; from the pause when the game resumes |
+| `touch_vibration` | `on`, `off` | `on` | Controls › Touch vibration (On, Off), on Android: a short vibration as a finger presses a touch control, a button or a direction it adds on the d-pad, when the system's touch feedback is on too; nothing elsewhere | at once, from the pause too |
 | `key_right`, `key_left`, `key_up`, `key_down`, `key_a`, `key_b`, `key_select`, `key_start` | an SDL key name, or empty for none | `Right`, `Left`, `Up`, `Down`, `X`, `Z`, `Backspace`, `Return` | Controls › Buttons, Keyboard | at once, from the pause too |
 | `pad_a`, `pad_b`, `pad_select`, `pad_start` | an SDL controller button name, or empty | `a`, `b`, `back`, `start` | Controls › Buttons, Gamepad | at once, from the pause too |
 | `menu_pad` | a button name, `lefttrigger`, `righttrigger`, or empty for Guide alone | `leftstick` | Controls › In game › Menu | at once, from the pause too |

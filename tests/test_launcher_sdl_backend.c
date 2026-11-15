@@ -107,18 +107,24 @@ static void touch_drain(oracles_host_backend *backend, unsigned *pressed, unsign
 
 static int output_w = 1, output_h = 1;   /* the lent renderer's output, which fingers are fractions of */
 
-/* A finger's event at (x, y) in the output's pixels. */
-static void finger(SDL_EventType type, SDL_FingerID id, float x, float y)
+/* A finger's event at (x, y) in the output's pixels, at `ns` (0: now). */
+static void finger_at(SDL_EventType type, SDL_FingerID id, float x, float y, Uint64 ns)
 {
     SDL_Event e;
     SDL_zero(e);
     e.type = type;
+    e.common.timestamp = ns;
     e.tfinger.touchID = 1;
     e.tfinger.fingerID = id;
     e.tfinger.x = x / (float)output_w;
     e.tfinger.y = y / (float)output_h;
     e.tfinger.pressure = 1.0f;
     SDL_PushEvent(&e);
+}
+
+static void finger(SDL_EventType type, SDL_FingerID id, float x, float y)
+{
+    finger_at(type, id, x, y, 0);
 }
 
 static void key(SDL_Keycode code)
@@ -217,6 +223,47 @@ static void touches(SDL_Window *window, SDL_Renderer *renderer)
         finger(SDL_EVENT_FINGER_UP, 4, l.b.x, l.b.y);
         touch_drain(&backend, &pressed, &released, &pauses);
         CHECK(released == ORACLES_KEY_B);
+        CHECK(oracles_sdl_backend_touch_ticks(&backend) == 0);   /* touch_vibration=off */
+    } else {
+        CHECK(0);
+    }
+    backend.stop(backend.opaque);
+    oracles_sdl_backend_release(&backend);
+}
+
+/* touch_vibration=on: a tick for a finger going down on a button, none for one going up; fingers pressing within 40
+ * ms tick once, and the same buttons pressed later tick again. */
+static void vibration(SDL_Window *window, SDL_Renderer *renderer)
+{
+    OraclesTouchLayout l;
+    oracles_touch_layout((float)output_w, (float)output_h, &l);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    options.touch_controls = 1;
+    options.touch_vibration = 1;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); return; }
+    unsigned pressed, released;
+    int pauses;
+    if (backend.start(backend.opaque, 160, 144, 48000, 0)) {
+        SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
+        const Uint64 t0 = 1000000000u, ms = 1000000u;
+        finger_at(SDL_EVENT_FINGER_DOWN, 1, l.a.x, l.a.y, t0);
+        touch_drain(&backend, &pressed, &released, &pauses);
+        CHECK(pressed == ORACLES_KEY_A && oracles_sdl_backend_touch_ticks(&backend) == 1);
+        finger_at(SDL_EVENT_FINGER_DOWN, 2, l.b.x, l.b.y, t0 + 10 * ms);
+        finger_at(SDL_EVENT_FINGER_UP, 1, l.a.x, l.a.y, t0 + 20 * ms);
+        finger_at(SDL_EVENT_FINGER_UP, 2, l.b.x, l.b.y, t0 + 30 * ms);
+        touch_drain(&backend, &pressed, &released, &pauses);
+        CHECK(pressed == ORACLES_KEY_B && oracles_sdl_backend_touch_ticks(&backend) == 1);
+        finger_at(SDL_EVENT_FINGER_DOWN, 3, l.b.x, l.b.y, t0 + 60 * ms);
+        touch_drain(&backend, &pressed, &released, &pauses);
+        CHECK(pressed == ORACLES_KEY_B && oracles_sdl_backend_touch_ticks(&backend) == 2);
+        finger_at(SDL_EVENT_FINGER_UP, 3, l.b.x, l.b.y, t0 + 200 * ms);
+        touch_drain(&backend, &pressed, &released, &pauses);
+        CHECK(released == ORACLES_KEY_B && oracles_sdl_backend_touch_ticks(&backend) == 2);
     } else {
         CHECK(0);
     }
@@ -1161,6 +1208,7 @@ int main(int argc, char **argv)
     unsigned south = 0, east = 0;
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
     touches(window, renderer);
+    vibration(window, renderer);
     enlarged_menus(window, renderer);
     subpixel_band(window, renderer);
     pause_image(window, renderer);

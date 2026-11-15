@@ -64,6 +64,10 @@ const char oracles_ui_controls_swim_text[] =
 const char oracles_ui_controls_swim_fan[] = "Fan games ignore it for now.";
 const char oracles_ui_controls_original_only[] = "Needs an original ROM.";
 const char *const oracles_ui_controls_swim_choices[2] = { "Tap", "Hold" };
+const char oracles_ui_controls_vibration_text[] = "A light tick on touch presses; Android's touch feedback setting applies too.";
+const char oracles_ui_controls_vibration_text_4_3[] = "A light tick when a finger presses a touch button or a new direction.";
+const char oracles_ui_controls_vibration_note_4_3[] = "Android's own touch feedback setting applies too.";
+const char *const oracles_ui_controls_vibration_choices[2] = { "On", "Off" };
 
 /* Controls' geometry, in scene pixels. */
 #define TITLE_X 96.0f
@@ -105,6 +109,8 @@ const char *const oracles_ui_controls_swim_choices[2] = { "Tap", "Hold" };
 #define SHORTCUTS_X (RIGHT_X + PANEL_PAD_X)
 #define SHORTCUTS_W (RIGHT_W - 2.0f * PANEL_PAD_X)
 #define SHORTCUTS_Y 930.0f
+#define SHORTCUTS_Y_ANDROID 92.0f   /* beside the title, Touch vibration in their place */
+#define VIBRATION_BOTTOM (1080.0f - 79.0f)
 #define SHORTCUTS_GAP 28.0f
 #define SHORTCUTS_LINE_GAP 10.0f
 #define SHORTCUT_GAP 10.0f
@@ -153,6 +159,9 @@ const char *const oracles_ui_controls_swim_choices[2] = { "Tap", "Hold" };
 #define MENU_CELL_W_4_3 180.0f     /* Menu's controller cell, at least, its column as wide */
 #define MENU_ROW_H_4_3 90.0f
 #define SWIM_MARGIN_4_3 16.0f      /* above Swimming, under the fixed keys */
+#define SWIM_MARGIN_ANDROID_4_3 8.0f   /* under Menu's row, Touch vibration and the fixed keys under Swimming */
+#define VIBRATION_TEXT_LINE_4_3 38.0f
+#define VIBRATION_NOTE_LINE_4_3 34.0f
 #define KEY_PAD_X_4_3 14.0f
 #define KEY_PAD_Y_4_3 2.0f
 
@@ -480,7 +489,7 @@ static void layout_shortcuts(const OraclesHomeNav *nav, OraclesUiControlsLayout 
             h[p] = max_f(max_f(h[p], out->menu_pad.h), out->menu_back.h);
         }
     }
-    float y = SHORTCUTS_Y;
+    float y = nav->android ? SHORTCUTS_Y_ANDROID : SHORTCUTS_Y;
     for (int first = 0; first < pieces;) {
         int last = first;
         float line_w = w[first], line_h = h[first];
@@ -514,6 +523,21 @@ static void layout_shortcuts(const OraclesHomeNav *nav, OraclesUiControlsLayout 
         y += line_h + SHORTCUTS_LINE_GAP;
         first = last + 1;
     }
+}
+
+/* Touch vibration under the item hotkeys' panel, its bottom 79 above the scene's: its title and On and Off on one line,
+ * its explanation under them. */
+static void layout_vibration(OraclesUiControlsLayout *out)
+{
+    const float chip_h = line_at(&oracles_ui_controls_chip, oracles_ui_controls_vibration_choices[0], 0.0f, 0.0f, 0.0f).h + 2.0f * (CHIP_PAD_Y + BORDER);
+    const float text_h = line_at(&oracles_ui_controls_mode_text_style, oracles_ui_controls_vibration_text, 0.0f, 0.0f, 0.0f).h;
+    const float h = 2.0f * MODE_PAD_Y + chip_h + MODE_LINE_GAP + text_h, y = VIBRATION_BOTTOM - h;
+    const float inner_x = SHORTCUTS_X + MODE_PAD_X, inner_y = y + MODE_PAD_Y;
+    const float top_h = chips(oracles_ui_controls_vibration_choices, SHORTCUTS_X + SHORTCUTS_W - MODE_PAD_X, inner_y, out->vibration_choices);
+    out->vibration_title = line_at(&oracles_ui_controls_mode_title, "Touch vibration", inner_x, 0.0f, 0.0f);
+    move_line(&out->vibration_title, inner_x, inner_y + (top_h - out->vibration_title.h) * 0.5f);
+    out->vibration_text = line_at(&oracles_ui_controls_mode_text_style, oracles_ui_controls_vibration_text, inner_x, inner_y + top_h + MODE_LINE_GAP, 0.0f);
+    out->vibration = box(SHORTCUTS_X, y, SHORTCUTS_W, h);
 }
 
 /* 4:3's header, 90 tall: the title, then the tabs or, during a capture, the prompt, all centred on it. */
@@ -626,65 +650,85 @@ static void hotkeys_4_3(const OraclesHomeNav *nav, OraclesUiControlsLayout *out)
         out->hotkeys_off = line_at(&oracles_ui_row_text_4_3, oracles_ui_controls_hotkeys_off, left, y + HOTKEYS_OFF_PAD_4_3, 0.0f);
 }
 
-/* In game: "Fixed keys in game", then Menu's row of 90, Esc framed, Menu's controller cell and its meaning, then a
- * row of 72 for each other key, framed, and its meaning, all centred in their rows; then Swimming, its title and Tap and
- * Hold on a line 90 tall, its explanation and its lines under them.  Every row has the keys' column, the
- * controller's (Menu's cell) and the meaning's, so that every meaning starts at the same place; the keys the screen
- * does not recall (oracles_controls_shortcut_shown) take no row, Esc's leaving its column empty. */
-static void shortcuts_4_3(const OraclesHomeNav *nav, OraclesUiControlsLayout *out)
+/* A fixed key's row of In game's tab from `y` (Esc's, Menu's, first), or none when the screen does not recall the key;
+ * returns the next row's top. */
+static float fixed_row_4_3(const OraclesHomeNav *nav, OraclesUiControlsLayout *out, int i, float y)
 {
     const float left = LEFT_4_3 + GRID_PAD_X_4_3;
+    const int menu = i == 5, shown = oracles_controls_shortcut_shown(nav, i);
+    if (!shown && !menu) return y;
+    OraclesUiLine *key = &out->shortcut_key_texts[i], *label = &out->shortcut_labels[i];
+    float key_w = 0.0f, key_h = 0.0f;
+    if (shown) {
+        *key = line_at(&oracles_ui_controls_shortcut_key_4_3, oracles_controls_shortcuts[i][0], 0.0f, 0.0f, 0.0f);
+        key_w = key->w + 2.0f * (KEY_PAD_X_4_3 + BORDER);
+        key_h = key->h + 2.0f * (KEY_PAD_Y_4_3 + BORDER);
+    }
+    /* Three columns in every row, empty where a row has nothing for them: the keys', the controller's (Menu's
+     * cell), the meaning's. */
+    const float cell_x = left + SHORTCUT_KEY_W_4_3 + SHORTCUT_GAP_4_3;
+    const float column = cell_x + MENU_CELL_W_4_3 + SHORTCUT_GAP_4_3;
+    const float label_w = LEFT_4_3 + WIDTH_4_3 - GRID_PAD_X_4_3 - column;
+    float label_h;
+    if (menu) {
+        oracles_ui_wrap(&oracles_ui_help_4_3, oracles_controls_menu_label(nav), label_w, column, 0.0f, &out->menu_label);
+        label_h = out->menu_label.h;
+    } else {
+        *label = line_at(&oracles_ui_help_4_3, oracles_controls_shortcuts[i][1], column, 0.0f, 0.0f);
+        label_h = label->h;
+    }
+    const float height = max_f(menu ? MENU_ROW_H_4_3 : SHORTCUT_H_4_3, max_f(key_h, label_h));
+    if (shown) {
+        out->shortcut_keys[i] = box(left, y + (height - key_h) * 0.5f, key_w, key_h);
+        move_line(key, left + BORDER + KEY_PAD_X_4_3, out->shortcut_keys[i].y + BORDER + KEY_PAD_Y_4_3);
+    }
+    if (menu) {
+        menu_cell(nav, out, &oracles_ui_controls_menu_cell_4_3, &oracles_ui_controls_menu_cell_waiting_4_3, MENU_CELL_W_4_3, MENU_ROW_H_4_3, cell_x,
+                  y + (height - MENU_ROW_H_4_3) * 0.5f);
+        const float top = y + (height - label_h) * 0.5f;
+        for (unsigned l = 0; l < out->menu_label.count; l++) move_line(&out->menu_label.lines[l], column, out->menu_label.lines[l].y + top);
+        *label = out->menu_label.lines[0];
+    } else {
+        move_line(label, column, y + (height - label->h) * 0.5f);
+    }
+    return y + height + SHORTCUTS_GAP_4_3;
+}
+
+/* In game: "Fixed keys in game", then Menu's row of 90, Esc framed, Menu's controller cell and its meaning, then a
+ * row of 72 for each other key, framed, and its meaning, all centred in their rows; then Swimming, its title and Tap and
+ * Hold on a line 90 tall, its explanation and its lines under them.  On Android, Swimming 8 under Menu's row, Touch
+ * vibration under it, its title and On and Off on a line 90 tall, its explanation and its note, then the other keys.
+ * Every row of keys has the keys' column, the controller's (Menu's cell) and the meaning's, so that every meaning
+ * starts at the same place; the keys the screen does not recall (oracles_controls_shortcut_shown) take no row, Esc's
+ * leaving its column empty. */
+static void shortcuts_4_3(const OraclesHomeNav *nav, OraclesUiControlsLayout *out)
+{
+    const float left = LEFT_4_3 + GRID_PAD_X_4_3, right = LEFT_4_3 + WIDTH_4_3 - GRID_PAD_X_4_3;
     out->shortcuts_text = "Fixed keys in game";
     out->shortcuts_label = line_at(&oracles_ui_controls_heading_4_3, out->shortcuts_text, left, SHORTCUTS_Y_4_3, 0.0f);
     float y = out->shortcuts_label.y + out->shortcuts_label.h + SHORTCUTS_TITLE_PAD_4_3 + SHORTCUTS_GAP_4_3;
-    static const int order[6] = { 5, 0, 1, 2, 3, 4 };   /* Esc first */
-    for (int n = 0; n < 6; n++) {
-        const int i = order[n], menu = i == 5, shown = oracles_controls_shortcut_shown(nav, i);
-        if (!shown && !menu) continue;
-        OraclesUiLine *key = &out->shortcut_key_texts[i], *label = &out->shortcut_labels[i];
-        float key_w = 0.0f, key_h = 0.0f;
-        if (shown) {
-            *key = line_at(&oracles_ui_controls_shortcut_key_4_3, oracles_controls_shortcuts[i][0], 0.0f, 0.0f, 0.0f);
-            key_w = key->w + 2.0f * (KEY_PAD_X_4_3 + BORDER);
-            key_h = key->h + 2.0f * (KEY_PAD_Y_4_3 + BORDER);
-        }
-        /* Three columns in every row, empty where a row has nothing for them: the keys', the controller's (Menu's
-         * cell), the meaning's. */
-        const float cell_x = left + SHORTCUT_KEY_W_4_3 + SHORTCUT_GAP_4_3;
-        const float column = cell_x + MENU_CELL_W_4_3 + SHORTCUT_GAP_4_3;
-        const float label_w = LEFT_4_3 + WIDTH_4_3 - GRID_PAD_X_4_3 - column;
-        float label_h;
-        if (menu) {
-            oracles_ui_wrap(&oracles_ui_help_4_3, oracles_controls_menu_label(nav), label_w, column, 0.0f, &out->menu_label);
-            label_h = out->menu_label.h;
-        } else {
-            *label = line_at(&oracles_ui_help_4_3, oracles_controls_shortcuts[i][1], column, 0.0f, 0.0f);
-            label_h = label->h;
-        }
-        const float height = max_f(menu ? MENU_ROW_H_4_3 : SHORTCUT_H_4_3, max_f(key_h, label_h));
-        if (shown) {
-            out->shortcut_keys[i] = box(left, y + (height - key_h) * 0.5f, key_w, key_h);
-            move_line(key, left + BORDER + KEY_PAD_X_4_3, out->shortcut_keys[i].y + BORDER + KEY_PAD_Y_4_3);
-        }
-        if (menu) {
-            menu_cell(nav, out, &oracles_ui_controls_menu_cell_4_3, &oracles_ui_controls_menu_cell_waiting_4_3, MENU_CELL_W_4_3, MENU_ROW_H_4_3, cell_x,
-                      y + (height - MENU_ROW_H_4_3) * 0.5f);
-            const float top = y + (height - label_h) * 0.5f;
-            for (unsigned l = 0; l < out->menu_label.count; l++) move_line(&out->menu_label.lines[l], column, out->menu_label.lines[l].y + top);
-            *label = out->menu_label.lines[0];
-        } else {
-            move_line(label, column, y + (height - label->h) * 0.5f);
-        }
-        y += height + SHORTCUTS_GAP_4_3;
-    }
-    out->swim = box(LEFT_4_3, y + SWIM_MARGIN_4_3, WIDTH_4_3, MODE_H_4_3);
-    chips_4_3(oracles_ui_controls_swim_choices, LEFT_4_3 + WIDTH_4_3 - GRID_PAD_X_4_3, out->swim.y, out->swim_choices);
+    y = fixed_row_4_3(nav, out, 5, y);   /* Esc first */
+    if (!nav->android) for (int i = 0; i < 5; i++) y = fixed_row_4_3(nav, out, i, y);
+    out->swim = box(LEFT_4_3, y + (nav->android ? SWIM_MARGIN_ANDROID_4_3 : SWIM_MARGIN_4_3), WIDTH_4_3, MODE_H_4_3);
+    chips_4_3(oracles_ui_controls_swim_choices, right, out->swim.y, out->swim_choices);
     out->swim_title = line_at(&oracles_ui_row_title_4_3, "Swimming", left, 0.0f, 0.0f);
     move_line(&out->swim_title, left, out->swim.y + (MODE_H_4_3 - out->swim_title.h) * 0.5f);
     oracles_ui_wrap_pretty(&oracles_ui_row_text_4_3, oracles_ui_controls_swim_text, WIDTH_4_3 - 2.0f * GRID_PAD_X_4_3, left,
                            out->swim.y + MODE_H_4_3 + MODE_TEXT_PAD_TOP_4_3, &out->swim_text);
     const float bottom = swim_lines(ORACLES_UI_LAYOUT_4_3, nav, out, left, out->swim_text.lines[0].y + out->swim_text.h);
     out->swim.h = bottom + MODE_TEXT_PAD_BOTTOM_4_3 - out->swim.y;
+    if (!nav->android) return;
+    const float top = out->swim.y + out->swim.h + SHORTCUTS_GAP_4_3;
+    chips_4_3(oracles_ui_controls_vibration_choices, right, top, out->vibration_choices);
+    out->vibration_title = line_at(&oracles_ui_row_title_4_3, "Touch vibration", left, 0.0f, 0.0f);
+    move_line(&out->vibration_title, left, top + (MODE_H_4_3 - out->vibration_title.h) * 0.5f);
+    out->vibration_text = line_at(&oracles_ui_row_text_4_3, oracles_ui_controls_vibration_text_4_3, left, top + MODE_H_4_3 + MODE_TEXT_PAD_TOP_4_3,
+                                  VIBRATION_TEXT_LINE_4_3);
+    out->vibration_note = line_at(&oracles_ui_page_note_4_3, oracles_ui_controls_vibration_note_4_3, left,
+                                  out->vibration_text.y + out->vibration_text.h + MODE_LINE_GAP, VIBRATION_NOTE_LINE_4_3);
+    out->vibration = box(LEFT_4_3, top, WIDTH_4_3, out->vibration_note.y + out->vibration_note.h + MODE_TEXT_PAD_TOP_4_3 - top);
+    y = out->vibration.y + out->vibration.h + SHORTCUTS_GAP_4_3;
+    for (int i = 0; i < 5; i++) y = fixed_row_4_3(nav, out, i, y);
 }
 
 void oracles_ui_layout_controls(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiControlsLayout *out)
@@ -703,4 +747,5 @@ void oracles_ui_layout_controls(OraclesUiLayout layout, const OraclesHomeNav *na
     layout_buttons(nav, out);
     layout_hotkeys(nav, out);
     layout_shortcuts(nav, out);
+    if (nav->android) layout_vibration(out);
 }

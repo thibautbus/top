@@ -56,6 +56,7 @@ void oracles_controls_defaults(OraclesHomeControls *controls)
     copy_name(controls->menu_pad, oracles_controls_default_menu_pad);
     memset(controls->items, 0, sizeof controls->items);
     controls->swim_hold = 0;
+    controls->touch_vibration = 1;
     controls->menu_tip = controls->hotkeys_tip = 0;
     controls->column = controls->row = 0;
     controls->capturing = 0;
@@ -74,13 +75,13 @@ int oracles_controls_tab(const OraclesHomeNav *nav)
 {
     const OraclesHomeControls *c = &nav->controls;
     if (c->row == ORACLES_CONTROLS_ROW_TAB) return c->tab;
-    if (c->row == ORACLES_CONTROLS_ROW_SWIM || c->row == ORACLES_CONTROLS_ROW_MENU) return ORACLES_CONTROLS_TAB_IN_GAME;
+    if (c->row == ORACLES_CONTROLS_ROW_SWIM || c->row == ORACLES_CONTROLS_ROW_MENU || c->row == ORACLES_CONTROLS_ROW_VIBRATION) return ORACLES_CONTROLS_TAB_IN_GAME;
     return c->column >= 2 ? ORACLES_CONTROLS_TAB_HOTKEYS : ORACLES_CONTROLS_TAB_BUTTONS;
 }
 
 int oracles_controls_cell_exists(int column, int row)
 {
-    if (row == ORACLES_CONTROLS_ROW_MENU) return column >= 0 && column < ORACLES_CONTROLS_COLUMNS;
+    if (row == ORACLES_CONTROLS_ROW_MENU || row == ORACLES_CONTROLS_ROW_VIBRATION) return column >= 0 && column < ORACLES_CONTROLS_COLUMNS;
     switch (column) {
         case 0:
         case 1: return row >= 0 && row <= ORACLES_CONTROLS_ROW_SWIM;
@@ -249,6 +250,7 @@ static int cells(const OraclesHomeNav *nav, cell *out)
                 out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_TAB };
                 out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_MENU };
                 out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_SWIM };
+                if (nav->android) out[n++] = (cell){ 0, ORACLES_CONTROLS_ROW_VIBRATION };
                 break;
         }
         return n;
@@ -265,24 +267,31 @@ static int cells(const OraclesHomeNav *nav, cell *out)
     out[n++] = (cell){ 3, ORACLES_CONTROLS_ROW_MODE };
     out[n++] = (cell){ 2, ORACLES_CONTROLS_ROW_MENU };
     out[n++] = (cell){ 3, ORACLES_CONTROLS_ROW_MENU };
+    if (nav->android) {
+        out[n++] = (cell){ 2, ORACLES_CONTROLS_ROW_VIBRATION };
+        out[n++] = (cell){ 3, ORACLES_CONTROLS_ROW_VIBRATION };
+    }
     return n;
 }
 
 /* Where a row stands among its column's for the moves: Menu's button under the hotkeys' rows, beside Start's (16:9),
- * or first in In game's tab (4:3). */
+ * above the Item hotkeys line on Android, where the In game line sits beside the title, or first in In game's tab
+ * (4:3); Touch vibration under Bind to A (16:9), or after Swimming (4:3). */
 static int place(const OraclesHomeNav *nav, int row)
 {
+    const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
+    if (row == ORACLES_CONTROLS_ROW_VIBRATION) return four_three ? ORACLES_CONTROLS_ROW_VIBRATION : ORACLES_HOME_HOTKEY_ROWS;
     if (row != ORACLES_CONTROLS_ROW_MENU) return row;
-    return nav->layout == ORACLES_UI_LAYOUT_4_3 ? 0 : ORACLES_HOME_BUTTONS - 1;
+    return four_three ? 0 : nav->android ? ORACLES_CONTROLS_ROW_MODE - 1 : ORACLES_HOME_BUTTONS - 1;
 }
 
-/* Reset, Swimming, the Item hotkeys line, Menu's button and the tabs' strip are one place each, whatever column they
- * were reached from. */
+/* Reset, Swimming, the Item hotkeys line, Menu's button, Touch vibration and the tabs' strip are one place each,
+ * whatever column they were reached from. */
 static void settle(const OraclesHomeNav *nav, OraclesHomeControls *c)
 {
     if (c->row == ORACLES_CONTROLS_ROW_RESET || c->row == ORACLES_CONTROLS_ROW_SWIM) c->column = 0;
     if (c->row == ORACLES_CONTROLS_ROW_MODE) c->column = 2;
-    if (c->row == ORACLES_CONTROLS_ROW_MENU) c->column = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 0 : 2;
+    if (c->row == ORACLES_CONTROLS_ROW_MENU || c->row == ORACLES_CONTROLS_ROW_VIBRATION) c->column = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 0 : 2;
     if (c->row == ORACLES_CONTROLS_ROW_TAB) c->column = c->tab == ORACLES_CONTROLS_TAB_HOTKEYS ? 2 : 0;
 }
 
@@ -340,7 +349,16 @@ static OraclesHomeCommand set_swim(OraclesHomeNav *nav, int hold)
     return ORACLES_HOME_STORE;
 }
 
-/* The keys and buttons, and the reminder and the pause menu's line due again; the slots' items and Swimming kept. */
+/* Touch vibration: On (1) or Off (0), Android's; from the pause too, the game taking it as the pause closes. */
+static OraclesHomeCommand set_vibration(OraclesHomeNav *nav, int on)
+{
+    if (!nav->android || nav->controls.touch_vibration == on) return ORACLES_HOME_STAY;
+    nav->controls.touch_vibration = on;
+    return ORACLES_HOME_STORE;
+}
+
+/* The keys and buttons, Touch vibration on, and the reminder and the pause menu's line due again; the slots' items and
+ * Swimming kept. */
 static OraclesHomeCommand reset(OraclesHomeNav *nav)
 {
     OraclesHomeControls *c = &nav->controls;
@@ -362,6 +380,7 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav)
     OraclesHomeControls *c = &nav->controls;
     if (c->row == ORACLES_CONTROLS_ROW_MODE) return toggle_hotkeys(nav, !oracles_controls_hotkeys_on(nav));
     if (c->row == ORACLES_CONTROLS_ROW_SWIM) return set_swim(nav, !c->swim_hold);
+    if (c->row == ORACLES_CONTROLS_ROW_VIBRATION) return set_vibration(nav, !c->touch_vibration);
     if (c->row == ORACLES_CONTROLS_ROW_RESET) return reset(nav);
     if (name_of(c, c->column, c->row)) c->capturing = 1;
     return ORACLES_HOME_STAY;
@@ -399,6 +418,7 @@ OraclesHomeCommand oracles_controls_act(OraclesHomeNav *nav, OraclesHomeAction a
         case ORACLES_HOME_RIGHT:
             if (c->row == ORACLES_CONTROLS_ROW_MODE) return toggle_hotkeys(nav, !oracles_controls_hotkeys_on(nav));
             if (c->row == ORACLES_CONTROLS_ROW_SWIM) return set_swim(nav, !c->swim_hold);
+            if (c->row == ORACLES_CONTROLS_ROW_VIBRATION) return set_vibration(nav, !c->touch_vibration);
             move(nav, action);
             return ORACLES_HOME_STAY;
         case ORACLES_HOME_UP:
@@ -437,6 +457,7 @@ OraclesHomeCommand oracles_controls_click(OraclesHomeNav *nav, int column, int r
     settle(nav, c);
     if (row == ORACLES_CONTROLS_ROW_MODE) return option >= 0 ? toggle_hotkeys(nav, option == 1) : ORACLES_HOME_STAY;
     if (row == ORACLES_CONTROLS_ROW_SWIM) return option >= 0 ? set_swim(nav, option == 1) : ORACLES_HOME_STAY;
+    if (row == ORACLES_CONTROLS_ROW_VIBRATION) return option >= 0 ? set_vibration(nav, option == 0) : ORACLES_HOME_STAY;
     return activate(nav);
 }
 

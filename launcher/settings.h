@@ -150,6 +150,9 @@ typedef struct oracles_settings {
     int screen_margin;            /* an OraclesScreenMargin: screen_margin=off|auto|small|large, the band of the screen the game, the
                                    * touch controls and the launcher's pages keep to (oracles_touch_band); off, the whole screen, by
                                    * default; a value the launcher does not know is off */
+    int touch_vibration;          /* touch_vibration=on|off: on Android, a short tick of the touch feedback as a finger presses a
+                                   * touch control, a button or a direction added on the d-pad (oracles_touch_sdl_tick); on by
+                                   * default, as the system's touch feedback setting allows; not in Controls */
     /* menu_tip=, the reminder over each game started that names the key opening the menu: the games it was shown over, 0
      * to 9 (0 by default), or off (ORACLES_TIP_OFF) once the menu was opened by its key or after ten.  hotkeys_tip=, the
      * line under the pause menu of Ages or Seasons while their item hotkeys are off: the pause menus it was shown in, 0 to

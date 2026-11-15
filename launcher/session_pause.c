@@ -36,7 +36,7 @@ void oracles_session_hotkey_keys(session *s, int on)
     s->sdl.hotkey_bind_a = on ? prefs->hotkey_bind_a : NULL;
 }
 
-/* Controls or Display changed the settings: the keys, the colour correction, vsync, the scaling, the status bar's width,
+/* Controls or Display changed the settings: the keys, the touch vibration, the colour correction, vsync, the scaling, the status bar's width,
  * the large menus, the text size and the screen margin apply at once, the swim's hold, the text speed, the rooms never visited and the item hotkeys from the frame the game resumes on (the item
  * hotkeys turned off once their policy is at rest), the rest at the next Play (the window: pause_window_chosen).  The
  * colour correction, the swim's hold and the item hotkeys apply when the pause changed them: --colour-correction,
@@ -126,6 +126,7 @@ static int pause_settings_changed(void *opaque)
         s->hotkeys_pending = 1;
         oracles_session_hotkey_keys(s, s->hotkeys_next != ORACLES_HOTKEYS_OFF);   /* off: the slots' keys do nothing from now on */
     }
+    s->sdl.touch_vibration = s->settings->touch_vibration;   /* Controls' Touch vibration, from the pause too */
     oracles_sdl_backend_rebind(&s->backend, &s->sdl);   /* s->sdl's names are the settings' own */
     return s->sdl.screen_margin;
 }

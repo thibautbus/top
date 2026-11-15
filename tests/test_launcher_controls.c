@@ -16,7 +16,8 @@
  * fan), and its Swimming in 4:3 (swim fan 4:3, and from the pause, swim fan
  * pause 4:3); Menu's controller button, its moves,
  * its capture and its toast, highlighted in 16:9 (18a) and in 4:3's In game
- * (18b, 18c), and waiting (menu capture, menu capture 4:3). */
+ * (18b, 18c), and waiting (menu capture, menu capture 4:3); Android's Touch vibration in 16:9 (vibration) and in
+ * 4:3's In game tab at 640x480 (vibration 640x480, vibration 640x480 keys). */
 #include "home_fixture.h"
 #include "layout_reference.h"
 #include "ui_page_layout.h"
@@ -854,6 +855,109 @@ static void menu(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && !c->capturing);
 }
 
+/* Touch vibration against a frame's: its box, its title, On and Off, its explanation, in 4:3 its note. */
+static void vibration_probes(const char *frame, const OraclesUiControlsLayout *l, int four_three)
+{
+    layout_box(frame, "vibration", &l->vibration);
+    layout_line(frame, "vibration label", &l->vibration_title);
+    layout_box(frame, "vibration on", &l->vibration_choices[0].box);
+    layout_box(frame, "vibration off", &l->vibration_choices[1].box);
+    layout_line(frame, "vibration explanation", &l->vibration_text);
+    if (four_three) layout_line(frame, "vibration note", &l->vibration_note);
+}
+
+/* Touch vibration, on Android only.  16:9 (vibration, after a touch): under the item hotkeys' panel, the In game line
+ * beside the title, Menu's button then above the Item hotkeys line, Touch vibration under Bind to A.  4:3's In game tab
+ * (vibration 640x480, with a controller): under Swimming, 8 closer to Menu's row; after a key, the fixed keys under it
+ * (vibration 640x480 keys).  Left, right and OK turn it, a click on On or Off sets it, each stored; Reset to defaults
+ * turns it on again; from the pause too.  None on a desktop. */
+static void vibration(void)
+{
+    OraclesHomeNav nav;
+    controls_nav(&nav);
+    OraclesHomeControls *c = &nav.controls;
+    OraclesUiControlsLayout l;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(c->touch_vibration == 1 && l.vibration.w == 0.0f && l.vibration_choices[0].box.w == 0.0f);
+    c->column = 2; c->row = 5;
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(c->row == ORACLES_CONTROLS_ROW_MENU);
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_VIBRATION, 1) == ORACLES_HOME_STAY && c->touch_vibration == 1);
+
+    controls_nav(&nav);
+    nav.android = 1;
+    oracles_home_input(&nav, ORACLES_INPUT_POINTER);
+    c->column = 2; c->row = ORACLES_CONTROLS_ROW_MODE;
+    oracles_home_act(&nav, ORACLES_HOME_UP);
+    CHECK(c->column == 2 && c->row == ORACLES_CONTROLS_ROW_MENU);
+    c->column = 2; c->row = 5;
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(c->column == 2 && c->row == ORACLES_CONTROLS_ROW_VIBRATION);
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    vibration_probes("vibration", &l, 0);
+    layout_near("vibration", "In game row", "y", l.menu_pad.y);
+    layout_box("vibration", "menu pad", &l.menu_pad);
+    layout_line("vibration", "In game", &l.shortcuts_label);
+    layout_box("vibration", "right panel", &l.right_panel);
+    layout_line("vibration", "title", &l.title);
+    CHECK(l.vibration.y >= l.right_panel.y + l.right_panel.h && l.shortcuts_label.y + l.shortcuts_label.h <= l.right_panel.y);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && c->touch_vibration == 0);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && c->touch_vibration == 1);
+    CHECK(oracles_controls_click(&nav, 3, ORACLES_CONTROLS_ROW_VIBRATION, 1) == ORACLES_HOME_STORE && c->touch_vibration == 0 && c->column == 2);
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_VIBRATION, 1) == ORACLES_HOME_STAY);
+    oracles_home_act(&nav, ORACLES_HOME_UP);
+    CHECK(c->column == 2 && c->row == 5);
+    CHECK(oracles_controls_click(&nav, 0, ORACLES_CONTROLS_ROW_RESET, -1) == ORACLES_HOME_STORE && c->touch_vibration == 1);
+    /* From the pause, at once. */
+    nav.in_game = 1;
+    CHECK(oracles_controls_click(&nav, 2, ORACLES_CONTROLS_ROW_VIBRATION, 1) == ORACLES_HOME_STORE && c->touch_vibration == 0);
+    nav.in_game = 0;
+    /* Under the panel whatever lines it has: the item hotkeys off, a fan game's line, the reason from its pause. */
+    nav.games[0].hotkeys = 0;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+    CHECK(l.hotkeys_off.h > 0.0f && l.vibration.y >= l.right_panel.y + l.right_panel.h);
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = ORACLES_HOME_HERO_MOONRISE;
+    for (int paused = 0; paused < 2; paused++) {
+        nav.in_game = paused;
+        oracles_ui_layout_controls(ORACLES_UI_LAYOUT_16_9, &nav, &l);
+        CHECK((paused ? l.mode_later.h : l.mode_fan.h) > 0.0f && l.vibration.y >= l.right_panel.y + l.right_panel.h);
+    }
+    nav.in_game = 0;
+
+    /* 4:3's In game tab: Menu's button, Swimming, Touch vibration. */
+    controls_nav(&nav);
+    nav.android = 1;
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
+    oracles_controls_click(&nav, 0, ORACLES_CONTROLS_ROW_TAB, ORACLES_CONTROLS_TAB_IN_GAME);
+    for (int i = 0; i < 3; i++) oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(c->column == 0 && c->row == ORACLES_CONTROLS_ROW_VIBRATION && oracles_controls_tab(&nav) == ORACLES_CONTROLS_TAB_IN_GAME);
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);
+    CHECK(c->row == ORACLES_CONTROLS_ROW_VIBRATION);
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    vibration_probes("vibration 640x480", &l, 1);
+    swim_probes("vibration 640x480", &l);
+    layout_near("vibration 640x480", "list", "h", l.vibration.y + l.vibration.h - l.shortcuts_label.y);
+    oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    vibration_probes("vibration 640x480 keys", &l, 1);
+    for (int i = 0; i < 4; i++) {
+        char what[32];
+        snprintf(what, sizeof what, "fixed %d", i);
+        layout_near("vibration 640x480 keys", what, "y", l.shortcut_keys[i].y + l.shortcut_keys[i].h * 0.5f - 36.0f);
+    }
+    CHECK(l.shortcut_keys[0].y > l.vibration.y + l.vibration.h && l.shortcut_keys[4].w == 0.0f);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && c->touch_vibration == 0);
+    CHECK(oracles_controls_click(&nav, 0, ORACLES_CONTROLS_ROW_VIBRATION, 0) == ORACLES_HOME_STORE && c->touch_vibration == 1);
+    oracles_home_act(&nav, ORACLES_HOME_UP);
+    CHECK(c->row == ORACLES_CONTROLS_ROW_SWIM);
+    /* A desktop's In game tab has none. */
+    nav.android = 0;
+    oracles_ui_layout_controls(ORACLES_UI_LAYOUT_4_3, &nav, &l);
+    CHECK(l.vibration.w == 0.0f && l.shortcut_keys[0].y < l.swim.y);
+}
+
 /* Hotkeys with Ages' item hotkeys off (37i, 37i 4:3): under the grid, dimmed, the sentence that says what On does,
  * the right panel growing by it in 16:9; on, neither (37j, 37j 4:3).  Never for a fan game, nor where they are refused. */
 static void hotkeys_off(void)
@@ -921,6 +1025,7 @@ int main(int argc, char **argv)
     pause_4_3();
     layout_4_3();
     hotkeys_off();
+    vibration();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }
     printf("launcher controls: the capture, the moves, Swimming, the 4:3 tabs and the pause menu behave as expected, and Controls matches the layout reference in both layouts within %.1f px\n", (double)LAYOUT_TOLERANCE);
     return 0;

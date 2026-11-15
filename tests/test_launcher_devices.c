@@ -78,16 +78,22 @@ static void in_game_row(const char *frame, const OraclesUiControlsLayout *l)
     layout_line(frame, "In game", &l->shortcuts_label);
 }
 
-/* 4:3's In game tab: Menu's row, its meaning on one line or two, the list down to Swimming's end. */
+/* 4:3's In game tab: Menu's row, its meaning on one line or two, the list down to its last row's end (Swimming's, or on
+ * Android Touch vibration's, or the last key's, 72 tall, after it). */
 static void in_game_4_3(const char *frame, const OraclesUiControlsLayout *l)
 {
+    float bottom = l->swim.y + l->swim.h;
+    if (l->vibration.y + l->vibration.h > bottom) bottom = l->vibration.y + l->vibration.h;
+    for (int i = 0; i < 5; i++)
+        if (l->shortcut_keys[i].w > 0.0f && l->shortcut_keys[i].y + l->shortcut_keys[i].h * 0.5f + 36.0f > bottom)
+            bottom = l->shortcut_keys[i].y + l->shortcut_keys[i].h * 0.5f + 36.0f;
     layout_box(frame, "menu pad", &l->menu_pad);
     layout_line(frame, "menu pad text", &l->menu_pad_text);
     layout_line(frame, "menu label", &l->shortcut_labels[5]);
     layout_near(frame, "menu label", "lines", (float)l->menu_label.count);
     layout_near(frame, "menu label", "width", l->menu_label.w);
     layout_line(frame, "title", &l->shortcuts_label);
-    layout_near(frame, "list", "h", l->swim.y + l->swim.h - l->shortcuts_label.y);
+    layout_near(frame, "list", "h", bottom - l->shortcuts_label.y);
     layout_box(frame, "swim", &l->swim);
     layout_line(frame, "swim label", &l->swim_title);
     layout_box(frame, "swim tap", &l->swim_choices[0].box);
@@ -97,7 +103,7 @@ static void in_game_4_3(const char *frame, const OraclesUiControlsLayout *l)
 
 /* 16:9: every key on a desktop before any input and after a key (21i), none but Menu's cell after a controller's input
  * alone (21j, from the pause 21m), where Menu's cell waiting says its button cancels (21n); on Android none until a key
- * is pressed, Back framed after Menu's cell (21k), then the keys but F11 (21l). */
+ * is pressed, Back framed after Menu's cell (21k), then the keys but F11 (21l), the line beside the title there. */
 static void layout_16_9(void)
 {
     OraclesHomeNav nav;
@@ -160,7 +166,8 @@ static void layout_16_9(void)
 
 /* 4:3's In game tab, after a key (21o) and a controller's input alone (21p: the keys' column left empty, Menu's cell and
  * meaning in place, Swimming under them, which the moves reach in turn), from the pause (21s, 21t), on Android ("Menu ·
- * also Back" on one line: 21q; with a key, the keys but F11: 21r).  Every meaning starts in the same column. */
+ * also Back" on one line, Swimming 8 closer to it, Touch vibration under it: 21q; with a key, the keys but F11, after
+ * Touch vibration: 21r).  Every meaning starts in the same column. */
 static void layout_4_3(void)
 {
     OraclesHomeNav nav;

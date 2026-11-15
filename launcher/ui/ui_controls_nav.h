@@ -10,11 +10,14 @@
  * six rows) and a controller column (column 3, the four slots), and each
  * slot's item, read-only.  Under it, the fixed keys in game, Menu first: Esc,
  * fixed, and the controller's button that opens the menu too (row 10, one
- * place for columns 2 and 3, under their last rows).
+ * place for columns 2 and 3, under their last rows).  On Android, that line
+ * sits beside the title, Menu's button above the Item hotkeys line, and Touch
+ * vibration, On or Off, takes its place under the hotkeys' panel (row 11, one
+ * place for columns 2 and 3, under Bind to A).
  *
  * The arrows move between cells: up and down in a column, left and right to
  * the nearest row of the next column; on the Item hotkeys line and on
- * Swimming they change it.  OK on a cell waits for a key (keyboard columns)
+ * Swimming and Touch vibration they change it.  OK on a cell waits for a key (keyboard columns)
  * or a button (controller columns, and Menu's); Escape cancels the wait.  A key or a
  * button already held by another cell of the same device moves: that cell is
  * left without one ("—"), Menu's too.  Menu takes only a button the game and
@@ -26,7 +29,8 @@
  * In the 4:3 layout (nav->layout) the page is split in three tabs, Buttons
  * (columns 0 and 1, Reset), Hotkeys (the Item hotkeys line, columns 2 and 3)
  * and In game (Menu's button, then the other fixed shortcuts, read-only, then
- * Swimming, all on column 0), whose strip
+ * Swimming; on Android Menu's button, Swimming, Touch vibration, then the other
+ * fixed shortcuts; all on column 0), whose strip
  * is a row of its own above the cells (row -2): left, right and OK there
  * change the tab, down enters it.  The arrows move among the shown tab's
  * cells as above, the strip being the nearest row of both columns.  The tab
@@ -46,6 +50,7 @@
 #define ORACLES_CONTROLS_ROW_SWIM 9        /* Swimming, on columns 0 and 1: under Reset, in 4:3 In game's */
 #define ORACLES_CONTROLS_ROW_TAB (-2)      /* 4:3: the tabs' strip, on the shown tab's columns */
 #define ORACLES_CONTROLS_ROW_MENU 10       /* Menu's controller button: on columns 2 and 3, in 4:3 In game's on column 0 */
+#define ORACLES_CONTROLS_ROW_VIBRATION 11  /* Android's Touch vibration: on columns 2 and 3, in 4:3 In game's on column 0 */
 
 /* 4:3's tabs, in their order. */
 enum { ORACLES_CONTROLS_TAB_BUTTONS, ORACLES_CONTROLS_TAB_HOTKEYS, ORACLES_CONTROLS_TAB_IN_GAME, ORACLES_CONTROLS_TABS };
@@ -68,7 +73,7 @@ int oracles_controls_shortcut_shown(const OraclesHomeNav *nav, int i);
 /* Menu's meaning in 4:3's In game tab: "Menu", on Android "Menu · also Back". */
 const char *oracles_controls_menu_label(const OraclesHomeNav *nav);
 
-/* The defaults' names, no item in any slot, Swimming on Tap, the first cell highlighted. */
+/* The defaults' names, no item in any slot, Swimming on Tap, Touch vibration on, the first cell highlighted. */
 void oracles_controls_defaults(OraclesHomeControls *controls);
 /* Opens Controls on its first cell, Buttons in 4:3. */
 void oracles_controls_open(OraclesHomeNav *nav);
@@ -126,7 +131,7 @@ const char *oracles_controls_item(const OraclesHomeNav *nav, int slot);
 
 OraclesHomeCommand oracles_controls_act(OraclesHomeNav *nav, OraclesHomeAction action);
 /* The pointer: a cell clicked (it waits), Reset, the Item hotkeys line's Off (0) or On (1), Swimming's Tap (0) or Hold
- * (1), a tab (row -2, its index in `option`). */
+ * (1), Touch vibration's On (0) or Off (1), a tab (row -2, its index in `option`). */
 void oracles_controls_hover(OraclesHomeNav *nav, int column, int row);
 OraclesHomeCommand oracles_controls_click(OraclesHomeNav *nav, int column, int row, int option);
 

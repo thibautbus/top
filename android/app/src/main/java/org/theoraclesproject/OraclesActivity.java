@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import android.provider.OpenableColumns;
 import android.app.Activity;
 import android.view.DisplayCutout;
+import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -262,6 +263,25 @@ public class OraclesActivity extends SDLActivity {
         s.append(", cutout mode ").append(window.getAttributes().layoutInDisplayCutoutMode)
          .append(", UI flags 0x").append(Integer.toHexString(decor.getSystemUiVisibility()));
         return s.toString();
+    }
+
+    /* A short tick for a touch control pressed (launcher/touch_sdl.c), asked on a thread of its own and given on the
+     * activity's: the view's touch feedback of an on-screen key, which Android gives as its system's touch feedback
+     * setting says, no permission needed, nothing where the device has no vibrator.  Ticks asked faster than the
+     * activity's thread gives them make one. */
+    private static final Runnable giveTouchTick = () -> {
+        final Activity activity = (Activity) getContext();
+        final Window window = activity != null ? activity.getWindow() : null;
+        if (window != null) window.getDecorView().performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+    };
+
+    public static void touchTick() {
+        final Activity activity = (Activity) getContext();
+        final Window window = activity != null ? activity.getWindow() : null;
+        if (window == null) return;
+        final View decor = window.getDecorView();
+        decor.removeCallbacks(giveTouchTick);
+        decor.post(giveTouchTick);
     }
 
     /* The display cutout's safe insets at the window's top and bottom, "top bottom" in pixels, a curved edge's included:

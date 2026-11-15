@@ -47,6 +47,7 @@ typedef struct oracles_sdl_options {
     int touch_controls;   /* the game's buttons on a touch screen: always on Android, where the tests ask elsewhere */
     int fill;             /* Scaling's Fill: in fullscreen the image fills the screen in its proportions; a window keeps whole scales */
     int screen_margin;    /* screen_margin=, an OraclesScreenMargin: the band of the screen the image and the touch controls keep to */
+    int touch_vibration;  /* touch_vibration=: a tick of the touch feedback as a finger presses a touch control (Android) */
     /* Drawn over each game frame before it is presented, while it returns 1 (the toast over the first game started with
      * a controller): NULL, nothing. */
     int (*overlay)(void *opaque, struct SDL_Renderer *renderer);
@@ -201,6 +202,8 @@ oracles_sdl_menu_source oracles_sdl_backend_menu_source(const oracles_host_backe
 /* The device of the last input in the game, a key (Android's Back apart), a controller's button or its stick, or a
  * finger, named as a menu's source; NONE before any. */
 oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backend *backend);
+/* The vibration's ticks the touch controls asked for in the session (touch_vibration), whether the device gave them or not. */
+unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend);
 /* The sound stops and its queue empties; it starts again with the next frames, from its prebuffer. */
 void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend);
 /* The pause menu holds the session from a call with 1 to a call with 0, at its resume: that time is no

@@ -404,6 +404,7 @@ int oracles_sdl_backend_init(oracles_host_backend *backend, const oracles_sdl_op
 #else
     state->touch_enabled = options && options->touch_controls;
 #endif
+    state->touch_vibration = options && options->touch_vibration;
     sb_resolve_bindings(state, options);
     sb_resolve_hotkeys(state, options);
     sb_resolve_menu(state, options);
@@ -499,6 +500,12 @@ oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backen
     return state->last_input;
 }
 
+unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend)
+{
+    const sdl_backend *state = backend->opaque;
+    return state->touch_ticks;
+}
+
 void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend)
 {
     sdl_backend *state = backend->opaque;
@@ -536,6 +543,7 @@ void oracles_sdl_backend_rebind(const oracles_host_backend *backend, const oracl
     sb_resolve_hotkeys(state, options);
     sb_resolve_menu(state, options);
     state->axis_buttons = 0;
+    state->touch_vibration = options && options->touch_vibration;
 }
 
 void oracles_sdl_backend_set_window_closed(const oracles_host_backend *backend)

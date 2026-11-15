@@ -2,7 +2,13 @@
 
 What changed in each version of The Oracles Project, the newest first. The release page of each version on GitHub carries the same text, under the installation notes.
 
+## 1.5.0 (unreleased)
+
+### New
+
+- **Vibration of the touch controls.** On Android, the touch controls now give a short vibration as you press them: A, B, Select, Start, the pause, sliding onto the other button, and each direction your thumb adds on the d-pad as it slides (from up to up and right, not on from there to right alone), never while it holds still, rests on a border or lets go. It follows Android's touch feedback setting: turn that off and the controls do not vibrate either. **Controls > Touch vibration** turns the vibration off without changing Android's setting, from the pause too.
 - **The fan games' authors.** Gifts of Kinomi, Moonrise Regalia and Temple of Seasons now name their authors, as their release pages do, on their **Cartridge** page and under their name on the home screen.
+
 ## 1.4.0 (2026-11-05)
 
 ### New

@@ -162,6 +162,18 @@ static void swim(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUi
     if (l->swim_later.h > 0.0f) text(draw, st->note, &l->swim_later, l->swim_later_text, oracles_ui_rgba(NOTE, opacity));
 }
 
+/* Touch vibration, on Android: its line, its explanation, in 4:3 its note. */
+static void vibration(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiControlsLayout *l, const OraclesUiControlsStyles *st, const look *lk,
+                      OraclesUiColor accent)
+{
+    if (l->vibration.w <= 0.0f) return;
+    choice_line(draw, &l->vibration, &l->vibration_title, "Touch vibration", l->vibration_choices, oracles_ui_controls_vibration_choices,
+                nav->controls.touch_vibration ? 0 : 1, nav->controls.row == ORACLES_CONTROLS_ROW_VIBRATION, st, lk, accent, 1.0f);
+    const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
+    text(draw, st->mode_text, &l->vibration_text, four_three ? oracles_ui_controls_vibration_text_4_3 : oracles_ui_controls_vibration_text, oracles_ui_rgb(TEXT));
+    if (four_three) text(draw, st->note, &l->vibration_note, oracles_ui_controls_vibration_note_4_3, oracles_ui_rgb(NOTE));
+}
+
 /* The item hotkeys: their line, then the grid, dimmed while they are off. */
 static void hotkeys(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiControlsLayout *l, const OraclesUiControlsStyles *st, const look *lk,
                     OraclesUiColor accent)
@@ -244,6 +256,7 @@ void oracles_ui_controls_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Or
             default:
                 shortcuts(draw, nav, &l, st, &look_4_3, accent);
                 swim(draw, nav, &l, st, &look_4_3, accent);
+                vibration(draw, nav, &l, st, &look_4_3, accent);
                 break;
         }
         return;
@@ -253,7 +266,9 @@ void oracles_ui_controls_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Or
     swim(draw, nav, &l, st, &look_16_9, accent);
     panel(draw, &l.right_panel);
     hotkeys(draw, nav, &l, st, &look_16_9, accent);
-    shortcuts(draw, nav, &l, st, &look_16_9, accent);
+    /* On Android the line beside the title gives way to the prompt while a cell waits. */
+    if (!(nav->android && nav->controls.capturing)) shortcuts(draw, nav, &l, st, &look_16_9, accent);
+    vibration(draw, nav, &l, st, &look_16_9, accent);
 }
 
 static int inside(const OraclesUiBox *b, float x, float y) { return x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h; }
@@ -272,6 +287,10 @@ int oracles_ui_controls_hit(const OraclesHomeNav *nav, float x, float y, int *co
     if (inside(&l.menu_pad, x, y)) { *column = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 0 : 2; *row = ORACLES_CONTROLS_ROW_MENU; return 1; }
     for (int i = 0; i < 2; i++) if (inside(&l.swim_choices[i].box, x, y)) { *column = 0; *row = ORACLES_CONTROLS_ROW_SWIM; *option = i; return 1; }
     if (inside(&l.swim, x, y)) { *column = 0; *row = ORACLES_CONTROLS_ROW_SWIM; return 1; }
+    const int vibration_column = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 0 : 2;
+    for (int i = 0; i < 2; i++)
+        if (inside(&l.vibration_choices[i].box, x, y)) { *column = vibration_column; *row = ORACLES_CONTROLS_ROW_VIBRATION; *option = i; return 1; }
+    if (inside(&l.vibration, x, y)) { *column = vibration_column; *row = ORACLES_CONTROLS_ROW_VIBRATION; return 1; }
     for (int i = 0; i < 2; i++) if (inside(&l.mode_choices[i].box, x, y)) { *column = 2; *row = ORACLES_CONTROLS_ROW_MODE; *option = i; return 1; }
     if (inside(&l.mode, x, y)) { *column = 2; *row = ORACLES_CONTROLS_ROW_MODE; return 1; }
     return 0;

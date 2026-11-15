@@ -38,6 +38,11 @@ typedef struct OraclesTouchScreen {
  * set when this finger went down on the pause.  0 for any other event. */
 int oracles_touch_sdl_event(OraclesTouchScreen *screen, struct SDL_Renderer *renderer, const union SDL_Event *event,
                             unsigned *buttons, int *pause);
+/* A short tick of the device's touch feedback, for a finger that pressed something new (OraclesTouch.tick): on Android,
+ * a thread of the launcher's woken to ask the activity to give it from its own thread, as Android's own on-screen keys
+ * do, following the system's touch feedback setting; nothing elsewhere.  What a tick costs is said once a run on the
+ * standard error. */
+void oracles_touch_sdl_tick(void);
 /* The game's frame, `frame`, drawn to the whole screen with the controls over it when they show: 1, from the first
  * touch of the session on, or with a band less than the whole screen.  0 before it, the caller drawing the frame through the logical presentation. */
 int oracles_touch_sdl_frame(OraclesTouchScreen *screen, struct SDL_Renderer *renderer, struct SDL_Texture *frame, const struct SDL_FRect *part);

@@ -233,6 +233,13 @@ static int touch_event(sdl_backend *backend, const SDL_Event *e)
     for (unsigned bit = 1; bit <= ORACLES_KEY_START; bit <<= 1)
         if ((now ^ backend->touch_buttons) & bit) sb_push_button(backend, bit, (now & bit) != 0);
     backend->touch_buttons = now;
+    /* At most a tick every 40 ms, about the shortest a vibrator clicks apart: fingers pressing together tick once. */
+    if (finger && backend->touch.touch.tick && backend->touch_vibration
+        && (!backend->touch_ticks || e->common.timestamp - backend->touch_tick_ns >= 40000000u)) {
+        backend->touch_ticks++;
+        backend->touch_tick_ns = e->common.timestamp;
+        oracles_touch_sdl_tick();
+    }
     if (pause && backend->pause_menu) { backend->menu_source = ORACLES_SDL_MENU_FROM_TOUCH; sb_push_event(backend, ORACLES_HOST_EVENT_PAUSE); }
     return finger;
 }

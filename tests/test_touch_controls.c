@@ -5,7 +5,8 @@
  * one sliding from A to B moves the press, a finger going up releases, one held through a pause presses again as it
  * moves; the frame goes where SDL's integer-scaled logical presentation puts it; the screen margin's band is the whole
  * screen off, whatever the insets, keeps clear of the insets at the screen's top and bottom with auto, and of 24 or 48
- * dp with small and large, an inset there where it is larger; the frame and the controls lie in it. */
+ * dp with small and large, an inset there where it is larger; the frame and the controls lie in it; the vibration ticks as a
+ * finger presses something new, never as it holds, slides off, rests on a border or goes up, the game given the same. */
 #include "touch_controls.h"
 
 #include "core.h"
@@ -198,6 +199,83 @@ int main(void)
     oracles_touch_finger(&t, 2400, 1080, 6, ORACLES_TOUCH_UP, 0, 0, &pause);
     oracles_touch_hide(&t);
     CHECK(!t.shown && oracles_touch_pressed(&t) == 0);
+
+    /* The vibration's ticks: a finger going down on a button or the pause; onto a direction of the d-pad added to those
+     * it held, or onto the other button; never as it holds still, slides off a button or from a diagonal to one of its
+     * directions, goes up, or touches the game. */
+    t = (OraclesTouch){ 0 };
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_DOWN, l.a.x, l.a.y, &pause);
+    CHECK(t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_MOTION, l.a.x + 1, l.a.y, &pause);
+    CHECK(!t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_MOTION, l.b.x, l.b.y, &pause);
+    CHECK(t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_MOTION, 1200, 300, &pause);
+    CHECK(!t.tick && oracles_touch_pressed(&t) == 0);
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_MOTION, l.b.x, l.b.y, &pause);
+    CHECK(t.tick);   /* back onto B */
+    oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_UP, l.b.x, l.b.y, &pause);
+    CHECK(!t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_DOWN, d->x + 0.1f * d->r, d->y, &pause);
+    CHECK(!t.tick);   /* the d-pad's dead centre */
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x, d->y - 0.7f * d->r, &pause);
+    CHECK(t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.05f * d->r, d->y - 0.8f * d->r, &pause);
+    CHECK(!t.tick && oracles_touch_pressed(&t) == ORACLES_KEY_UP);   /* up still */
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.5f * d->r, d->y - 0.5f * d->r, &pause);
+    CHECK(t.tick);   /* up and right */
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.7f * d->r, d->y, &pause);
+    CHECK(!t.tick && oracles_touch_pressed(&t) == ORACLES_KEY_RIGHT);   /* right, held as part of the diagonal */
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.5f * d->r, d->y + 0.5f * d->r, &pause);
+    CHECK(t.tick);   /* down and right: down added */
+    oracles_touch_finger(&t, 2400, 1080, 3, ORACLES_TOUCH_DOWN, l.start.x + 1, l.start.y + 1, &pause);
+    CHECK(t.tick);   /* a second finger, the d-pad's still held */
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.7f * d->r, d->y + 1, &pause);
+    CHECK(!t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 2, ORACLES_TOUCH_MOTION, d->x + 0.1f * d->r, d->y, &pause);
+    CHECK(!t.tick && oracles_touch_pressed(&t) == ORACLES_KEY_START);   /* back to the centre: released */
+    oracles_touch_finger(&t, 2400, 1080, 4, ORACLES_TOUCH_DOWN, 1200, 300, &pause);
+    CHECK(!t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 5, ORACLES_TOUCH_DOWN, l.pause.x, l.pause.y, &pause);
+    CHECK(t.tick && pause);
+    /* After a pause, a finger held through it ticks once as it presses again. */
+    oracles_touch_release(&t);
+    oracles_touch_finger(&t, 2400, 1080, 3, ORACLES_TOUCH_MOTION, l.start.x + 1, l.start.y + 1, &pause);
+    CHECK(t.tick);
+    oracles_touch_finger(&t, 2400, 1080, 3, ORACLES_TOUCH_MOTION, l.start.x + 2, l.start.y + 1, &pause);
+    CHECK(!t.tick);
+    oracles_touch_hide(&t);
+
+    /* A thumb resting on a border, the touch screen's noise moving it a pixel or two at each event: the game's buttons
+     * flicker as they did, given as oracles_touch_dpad and oracles_touch_button_at give them, and the vibration ticks
+     * once at most. */
+    static const float up_right = 0.38268343f, up = 0.92387953f;   /* 22.5 degrees from up: up meets up and right */
+    /* Where the finger goes down, then the border it rests on. */
+    const float borders[4][4] = { { d->x, d->y - 0.6f * d->r, d->x + 0.7f * d->r * up_right, d->y - 0.7f * d->r * up },
+                                  { d->x, d->y, d->x, d->y - 0.2f * d->r },   /* the dead centre's edge */
+                                  { l.a.x, l.a.y, l.a.x, l.a.y - 1.3f * l.a.r },   /* A's reach */
+                                  { l.select.x + 0.5f * l.select.w, l.select.y + 0.5f * l.select.h,
+                                    l.select.x + 0.5f * l.select.w, l.select.y - 0.3f * l.select.h } };   /* Select's */
+    for (int b = 0; b < 4; b++) {
+        const float bx = borders[b][2], by = borders[b][3];
+        unsigned noise = 12345u, first = 0;
+        int ticks = 0, same = 1, flickers = 0;
+        t = (OraclesTouch){ 0 };
+        oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_DOWN, borders[b][0], borders[b][1], &pause);
+        for (int i = 0; i < 240; i++) {
+            noise = noise * 1103515245u + 12345u;
+            const float x = bx + (float)((noise >> 8) % 301u) / 100.0f - 1.5f;
+            noise = noise * 1103515245u + 12345u;
+            const float y = by + (float)((noise >> 8) % 301u) / 100.0f - 1.5f;
+            const unsigned game = oracles_touch_finger(&t, 2400, 1080, 1, ORACLES_TOUCH_MOTION, x, y, &pause);
+            same &= game == (b < 2 ? oracles_touch_dpad(d, x, y) : oracles_touch_button_at(&l, x, y));
+            if (i == 0) first = game;
+            flickers += game != first;
+            ticks += t.tick;
+        }
+        CHECK(same && ticks <= 1);
+        CHECK(flickers > 0);   /* the game's buttons did flicker there */
+    }
 
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("test_touch_controls: ok\n");

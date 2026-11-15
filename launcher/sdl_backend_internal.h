@@ -58,6 +58,9 @@ typedef struct sdl_backend {
     OraclesTouchScreen touch;   /* the game's buttons on a touch screen (Android), and those its fingers press */
     unsigned touch_buttons;
     int touch_enabled;
+    int touch_vibration;   /* a tick as a finger presses a touch control (oracles_touch_sdl_tick) */
+    unsigned touch_ticks;  /* the ticks asked, the last at the event time touch_tick_ns */
+    uint64_t touch_tick_ns;
     int (*overlay)(void *, SDL_Renderer *);   /* over the frames while it returns 1 (oracles_sdl_options) */
     void *overlay_opaque;
     void (*on_suspend)(void *);   /* the host's store at a suspension (watch_suspend), and its argument */
