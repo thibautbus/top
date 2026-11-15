@@ -16,6 +16,13 @@ The Oracles Project is under the MIT licence. The launcher builds in, or ships b
 | [mGBA](https://mgba.io/)'s Game Boy core, by Jeffrey Pfau and the mGBA contributors: the Fast core, with one change, [`boot-rom.patch`](../third_party/mgba/boot-rom.patch) | Mozilla Public License 2.0 | [`third_party/mgba/LICENSE`](../third_party/mgba/LICENSE), and the notice that says where its source is, [`third_party/mgba/NOTICE.txt`](../third_party/mgba/NOTICE.txt) |
 | [inih](https://github.com/benhoyt/inih), by Ben Hoyt, which mGBA uses | BSD 3-Clause | [`third_party/mgba/core/src/third-party/inih/LICENSE.txt`](../third_party/mgba/core/src/third-party/inih/LICENSE.txt) |
 
+## The picture filters
+
+| What | Licence | File |
+| --- | --- | --- |
+| SameBoy's CRT, LCD, HQ2x and OmniScale shaders, by Lior Halphon: Display › Picture › Filter, adapted to the launcher's renderer | Expat (MIT) | [`third_party/sameboy/LICENSE`](../third_party/sameboy/LICENSE), and the notice in each shader under [`launcher/shaders/`](../launcher/shaders/) |
+| xBR, by Hyllian: Display › Picture › Filter, translated from its xBR-lv2 shader | MIT | [`launcher/shaders/xBR-LICENSE.txt`](../launcher/shaders/xBR-LICENSE.txt) |
+
 ## The libraries
 
 | What | Licence | File |

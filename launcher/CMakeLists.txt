@@ -12,7 +12,8 @@ set(ORACLES_UI_ASSETS
     ${ORACLES_THIRD_PARTY_DIR}/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf
     ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/ages.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/seasons.svg
-    ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/fan.svg)
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/fan.svg
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/sample-picture.png)
 # NAME=PATH pairs joined by "|", which the script turns back into a list: a ";" would split the command's argument.
 set(ORACLES_UI_ASSET_ARGUMENTS "")
 foreach(asset ${ORACLES_UI_ASSETS})
@@ -103,12 +104,13 @@ if(ORACLES_BUILD_LAUNCHER)
     target_compile_definitions(oracles_update PUBLIC "ORACLES_PRODUCT_VERSION=\"${ORACLES_PRODUCT_VERSION}\""
                                PRIVATE "ORACLES_UPDATE_REPOSITORY=\"${ORACLES_UPDATE_REPOSITORY}\"")
     oracles_set_warnings(oracles_update)
-    set(ORACLES_LAUNCHER_SOURCES main.c session.c session_options.c session_route.c file_folder.c session_live.c session_pause.c session_report.c home.c home_input.c pause.c home_games.c home_files.c home_save.c save_transfer.c home_choices.c home_screenshot.c session_achievements.c file_dialog.c portable.c sdl_backend.c sdl_window.c sdl_input.c sdl_present.c safe_area.c ${ORACLES_HOST_DIR}/null_backend.c ${ORACLES_SESSION_DIR}/route.c diagnostics.c settings.c ${ORACLES_SESSION_DIR}/hotkey_lines.c hotkeys_session.c ${ORACLES_SESSION_DIR}/route_effects.c ${ORACLES_SESSION_DIR}/hotbar_model.c ${ORACLES_SESSION_DIR}/state_refusal.c session_state.c state_display.c ${ORACLES_SESSION_DIR}/mod_session.c ${ORACLES_SESSION_DIR}/mod_folder.c ${ORACLES_SESSION_DIR}/language_session.c touch_controls.c touch_sdl.c)
+    set(ORACLES_LAUNCHER_SOURCES main.c session.c session_options.c session_route.c file_folder.c session_live.c session_pause.c session_report.c home.c home_input.c pause.c home_games.c home_files.c home_save.c save_transfer.c home_choices.c home_screenshot.c session_achievements.c file_dialog.c portable.c sdl_backend.c sdl_window.c sdl_input.c sdl_present.c sdl_filter.c filter_preview.c safe_area.c ${ORACLES_HOST_DIR}/null_backend.c ${ORACLES_SESSION_DIR}/route.c diagnostics.c settings.c ${ORACLES_SESSION_DIR}/hotkey_lines.c hotkeys_session.c ${ORACLES_SESSION_DIR}/route_effects.c ${ORACLES_SESSION_DIR}/hotbar_model.c ${ORACLES_SESSION_DIR}/state_refusal.c session_state.c state_display.c ${ORACLES_SESSION_DIR}/mod_session.c ${ORACLES_SESSION_DIR}/mod_folder.c ${ORACLES_SESSION_DIR}/language_session.c touch_controls.c touch_sdl.c)
     if(ANDROID)
         # Android runs no executable: SDL's activity (android) loads libmain.so and calls its main, SDL_main.
         add_library(oracles SHARED ${ORACLES_LAUNCHER_SOURCES})
         set_target_properties(oracles PROPERTIES OUTPUT_NAME main)
         target_link_libraries(oracles PRIVATE log)   # the standard error forwarded to the system's log (main.c)
+        target_link_libraries(oracles PRIVATE EGL)   # the window's EGL surface released for the GPU renderer (sdl_filter.c)
     else()
         add_executable(oracles ${ORACLES_LAUNCHER_SOURCES})
         set_target_properties(oracles PROPERTIES OUTPUT_NAME the-oracles-project)
@@ -142,7 +144,8 @@ if(ORACLES_BUILD_LAUNCHER)
         set_property(TARGET oracles APPEND PROPERTY LINK_DEPENDS ${ORACLES_INFO_PLIST})
     endif()
     # The fonts are embedded, and their licence goes with them: each OFL.txt beside the executable;
-    # so does SameBoy's, the core compiled in, whose Expat licence asks that its notice go with copies; so do mGBA's and
+    # so does SameBoy's, the core compiled in and the filters translated from its shaders, whose Expat licence asks that
+    # its notice go with copies; so does the MIT notice of Hyllian's xBR, the filter translated from it; so do mGBA's and
     # inih's, with the notice that says where their source is and the one change made to mGBA, in source form (the
     # Mozilla Public License asks both of a binary); so does Lua's, the mods' runtime compiled in, whose MIT licence asks
     # that its notice go with copies.
@@ -151,6 +154,7 @@ if(ORACLES_BUILD_LAUNCHER)
         ${ORACLES_THIRD_PARTY_DIR}/fonts/alegreya-sans/OFL.txt AlegreyaSans-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/fonts/jetbrains-mono/OFL.txt JetBrainsMono-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/sameboy/LICENSE SameBoy-LICENSE.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/xBR-LICENSE.txt xBR-LICENSE.txt
         ${ORACLES_THIRD_PARTY_DIR}/mgba/LICENSE mGBA-LICENSE.txt
         ${ORACLES_THIRD_PARTY_DIR}/mgba/NOTICE.txt mGBA-NOTICE.txt
         ${ORACLES_THIRD_PARTY_DIR}/mgba/boot-rom.patch mGBA-boot-rom.patch

@@ -323,6 +323,13 @@ typedef struct OraclesHomeDisplay {
     int unvisited;              /* Unvisited rooms: 0 Shown (the default), 1 Hidden, the settings' unvisited_rooms=; in Enhanced only,
                                  * from a game too, where it applies when the game resumes */
     int unvisited_fixed;        /* --unvisited-rooms gave it for the run: the row shows it, dimmed and inert, and it is never stored */
+    int filter;                 /* Filter: an index of oracles_display_filter_names, 0 Off (the default), the settings' filter=; in either
+                                 * profile, from a game too, where it applies at once */
+    int filter_shown;           /* the choice the row shows while it has the focus, one it refuses (not kept); -1: the one kept */
+    int filters_basic;          /* the device runs no shader filter (no GPU device): Off and Smooth alone */
+    unsigned filters_refused;   /* the filters the device refused (1 << index): greyed as the device's */
+    float picture_scale;        /* from the pause, the scale the game's picture has on the screen; 0: worked out from the choices */
+    char last_picture[64];      /* the game the home screen's last picture is of ("Oracle of Ages"); empty: the sample picture */
     int room_w, room_h;         /* the room a window has there: the usable area, less the title bar */
     int fullscreen_only;        /* the platform plays every game fullscreen (Android): one size whatever Window says */
     unsigned windows_refused;   /* from the pause, the windows (1 << Window's value) whose pause would keep only its own

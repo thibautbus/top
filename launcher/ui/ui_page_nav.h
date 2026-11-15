@@ -39,7 +39,7 @@
  * the core, continuous transitions (on by default, dimmed in Faithful), vsync, the neighbour workers, the camera (Pixel,
  * Smooth: the sub-pixel camera; dimmed and inert in Faithful; the platform's default shown until one is chosen).
  * Display › Picture, which Picture opens in their place, the diagram kept: the scaling (Sharp, the whole scales; Fill,
- * the whole screen in the image's proportions, in fullscreen only), the screen margin (Off, Auto, Small, Large: the band
+ * the whole screen in the image's proportions, in fullscreen only), the filter (below), the screen margin (Off, Auto, Small, Large: the band
  * of the screen the picture keeps to), color correction, the three in either profile, then Far size where it changes
  * something and Menus & scenes (below).  Left and right change the option of the row, OK takes its
  * next one (Quality stops at Low and at Max; from Custom, right takes Low and
@@ -191,8 +191,8 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row, int opt
 
 /* Display's rows: its own, Advanced the last for the keys, Picture before it (Color correction's former place); the
  * Advanced rows, which show in their place; the Text rows (Display › Text, ui_page_text.h); and the Picture rows,
- * Scaling, Screen margin, Color correction, Far size, Menus & scenes and Unvisited rooms for the keys (Display › Picture), which Picture
- * opens in their place. */
+ * Scaling, Filter, Screen margin, Color correction, Far size, Menus & scenes and Unvisited rooms for the keys (Display › Picture),
+ * which Picture opens in their place. */
 typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_PROFILE,
     ORACLES_DISPLAY_QUALITY,
@@ -217,6 +217,7 @@ typedef enum OraclesDisplayRow {
     ORACLES_DISPLAY_MENUS,         /* Display › Picture's Menus & scenes: View or Large */
     ORACLES_DISPLAY_FAR_SIZE,      /* its Far size: Fitted or Fixed, where it changes something */
     ORACLES_DISPLAY_UNVISITED,     /* its Unvisited rooms, the last: Shown or Hidden */
+    ORACLES_DISPLAY_FILTER,        /* its Filter, after Scaling: one of ORACLES_DISPLAY_FILTERS, stepped */
     ORACLES_DISPLAY_ROWS
 } OraclesDisplayRow;
 
@@ -367,6 +368,32 @@ extern const char *const oracles_display_far_size_choices[2];
 extern const char *const oracles_display_unvisited_choices[2];
 int oracles_display_size_row_live(const OraclesHomeNav *nav, unsigned row);
 void oracles_display_size_note(const OraclesHomeNav *nav, unsigned row, char *out, size_t capacity);
+/* Display › Picture's Filter: Off, Scanlines, CRT, LCD, Smooth, xBR, HQ2x and OmniScale (settings.txt's filter=, in that
+ * order), the game's picture drawn through a shader, Smooth the usual bilinear sampling; never the launcher's menus nor
+ * Text size's box.  Left and right step through the eight and wrap.  A choice the device cannot run (filters_basic: all
+ * but Off and Smooth) or the picture is too small for (under oracles_display_filter_min_scale, the picture's scale
+ * being oracles_display_filter_scale) shows greyed with its reason, the device's first, and is not kept: the row shows
+ * the kept one again once it loses the focus.  A kept filter the picture becomes too small for stays kept, the row
+ * greyed with the reason, and the game draws without it until the picture is large enough again
+ * (oracles_display_filter_drawn).  From the pause it applies at once, "Applies when the game resumes." under it. */
+#define ORACLES_DISPLAY_FILTERS 8
+#define ORACLES_DISPLAY_FILTER_SMOOTH 4   /* no shader: it runs everywhere, as Off does */
+extern const char *const oracles_display_filter_names[ORACLES_DISPLAY_FILTERS];
+extern const int oracles_display_filter_min_scale[ORACLES_DISPLAY_FILTERS];
+extern const char oracles_display_filter_device_reason[], oracles_display_filter_size_reason[];
+const char *oracles_display_filter_explanation(int filter);
+/* 1 for a filter drawn through a shader: neither Off nor Smooth, which run everywhere. */
+int oracles_display_filter_shader(int filter);
+/* The scale of the game's picture on the screen, the smaller of its two: Sharp's whole step (on a platform always
+ * fullscreen, the step that fills the screen), Fill's real one, in the band the screen margin leaves. */
+float oracles_display_filter_scale(const OraclesHomeNav *nav);
+/* Why `filter` cannot run here (the device's reason first), NULL when it can. */
+const char *oracles_display_filter_reason(const OraclesHomeNav *nav, int filter);
+/* The choice the row shows, and the one the game is drawn with: the kept one where it runs, else Off. */
+int oracles_display_filter_shown(const OraclesHomeNav *nav);
+int oracles_display_filter_drawn(const OraclesHomeNav *nav);
+/* The row's note: the shown choice's reason, else from the pause "Applies when the game resumes.", else empty. */
+const char *oracles_display_filter_note(const OraclesHomeNav *nav);
 
 OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction action);
 /* A click on a row, or on one of its options (a profile, a quality, a window, Off/On, Auto/On/Off): `option` -1 for the

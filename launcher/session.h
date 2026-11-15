@@ -22,6 +22,8 @@ struct OraclesEnhancedSize;
 typedef struct OraclesSessionOptions {
     const char *rom_path;
     const char *patch_path;          /* a BPS patch applied to rom_path in memory (a fan game), or NULL */
+    const char *last_picture;        /* a game the home screen starts: its name, its last picture kept as it ends for Display's
+                                      * preview of the filter (filter_preview.h); NULL: none kept */
     const char *joined_path;         /* with patch_path, a ROM joined after rom_path before the patch applies (Oracles Combined:
                                       * Seasons' European ROM after Ages'), or NULL */
     const char *save_path;           /* NULL: next to the ROM, or to the patch when there is one */
@@ -156,6 +158,7 @@ typedef struct OraclesSessionApplied {
     int vsync;
     int menus_large;   /* menus=large (-1 without the Enhanced view) */
     int unvisited_hidden;   /* unvisited_rooms=hidden (-1 without the Enhanced view, or while --unvisited-rooms holds it for the run) */
+    int filter;             /* filter= (oracles_settings_filter_names), which the renderer draws the game through; 0 for the tests that leave it */
 } OraclesSessionApplied;
 #define ORACLES_SESSION_CHANGED_COLOUR 1u
 #define ORACLES_SESSION_CHANGED_FILL 2u
@@ -168,6 +171,7 @@ typedef struct OraclesSessionApplied {
 #define ORACLES_SESSION_CHANGED_VSYNC 256u
 #define ORACLES_SESSION_CHANGED_MENUS 512u
 #define ORACLES_SESSION_CHANGED_UNVISITED 1024u
+#define ORACLES_SESSION_CHANGED_FILTER 2048u
 /* The settings after the pause's Display changed them, set against what the game shows: `applied` takes them, and the
  * ORACLES_SESSION_CHANGED_* bits say which changed.  The margin is --screen-margin's for the run when `margin_option`
  * gives one (oracles_session_screen_margin), and the text size --text-size's when `text_size_option` gives one (the

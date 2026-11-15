@@ -40,6 +40,8 @@ typedef enum OraclesAspect {
 } OraclesAspect;
 /* Their names in settings.txt and on the command line: "auto", "16:9", "4:3". */
 extern const char *const oracles_settings_aspect_names[3];
+extern const char *const oracles_settings_filter_names[8];   /* filter=, by the value of oracles_settings.filter */
+int oracles_settings_filter_index(const char *name);          /* its index, 0 (off) for a name it does not have */
 extern const char *const oracles_settings_hud_names[3];   /* hud=, by the value of oracles_settings.hud */
 /* The cores' names in settings.txt and on the command line, by OraclesCoreKind: "sameboy", "mgba". */
 extern const char *const oracles_settings_core_names[2];
@@ -156,6 +158,9 @@ typedef struct oracles_settings {
     int window_scale;             /* window_scale=2|3|4|full, Display's window for the games the home screen starts: 2 to 4, 0 fullscreen (the default) */
     int scaling_fill;             /* scaling=sharp|fill, Display's Scaling: the game in fullscreen at its largest whole scale (sharp, the
                                    * default), or filling the screen in its proportions (fill); a window keeps its whole scales */
+    int filter;                   /* filter=off|scanlines|crt|lcd|smooth|xbr|hq2x|omniscale (oracles_settings_filter_names): the
+                                   * game's picture drawn through a shader on SDL's GPU renderer, which only a shader takes (smooth
+                                   * is the usual renderer's bilinear sampling); off by default */
     int screen_margin;            /* an OraclesScreenMargin: screen_margin=off|auto|small|large, the band of the screen the game, the
                                    * touch controls and the launcher's pages keep to (oracles_touch_band); off, the whole screen, by
                                    * default; a value the launcher does not know is off */
@@ -276,6 +281,9 @@ void oracles_settings_mods_folder(const oracles_settings *settings, char *out, s
  * password), achievements-pending.txt (the unlocks not yet acknowledged) or achievement-badges (the badges' images);
  * empty when there is no settings directory. */
 void oracles_settings_achievements_path(const oracles_settings *settings, const char *name, char *out, size_t capacity);
+/* The last picture of the last game played, which Display's Filter previews: last-picture.png (`title` 0) and the name of
+ * its game, last-picture.txt (1), beside settings.txt; empty when there is no settings directory. */
+void oracles_settings_last_picture(const oracles_settings *settings, int title, char *out, size_t capacity);
 /* The language pack of game `g`, extracted from its European ROM at its first game in a language and read after:
  * language-ages.pack or language-seasons.pack beside settings.txt; empty when there is no settings directory. */
 void oracles_settings_language_pack(const oracles_settings *settings, OraclesSettingsGame g, char *out, size_t capacity);

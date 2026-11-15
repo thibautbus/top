@@ -1,5 +1,7 @@
 #include "pause.h"
 
+#include "sdl_filter.h"
+
 #include "home_input.h"
 #include "safe_area.h"
 #include "touch_controls.h"
@@ -12,6 +14,7 @@
 #include "ui_achievements_draw.h"
 #endif
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -237,6 +240,29 @@ void oracles_pause_prepare(OraclesPause *pause, SDL_Renderer *renderer)
     prepare(pause, w, h, "before the first frame");
 }
 
+/* Display's preview of the filter: the game's picture enlarged in it, unveiled, through the filter drawn. */
+typedef struct paint_inset {
+    const OraclesPauseSession *session;
+    const OraclesHomeNav *nav;
+    int width, height;
+} paint_inset;
+
+static void inset(void *opaque, SDL_Renderer *renderer, const SDL_FRect *to)
+{
+    const paint_inset *in = opaque;
+    if (!in->session || !in->session->game_inset || in->width <= 0 || in->height <= 0) return;
+    SDL_FRect at;
+    oracles_ui_draw_inset_place(to, in->width, in->height, &at);
+    /* Cut to the preview inside the scene's own cut, which is set back after. */
+    SDL_Rect cut = { (int)to->x, (int)to->y, (int)to->w, (int)to->h }, before = { 0, 0, 0, 0 };
+    const bool clipped = SDL_RenderClipEnabled(renderer);
+    if (clipped) SDL_GetRenderClipRect(renderer, &before);
+    if (clipped && !SDL_GetRectIntersection(&before, &cut, &cut)) return;
+    SDL_SetRenderClipRect(renderer, &cut);
+    in->session->game_inset(in->session->opaque, renderer, &at, oracles_display_filter_shader(oracles_display_filter_drawn(in->nav)));
+    SDL_SetRenderClipRect(renderer, clipped ? &before : NULL);
+}
+
 int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, int width, int height, int fill,
                         int out_width, int out_height, OraclesUiHome *view, const OraclesHomeNav *nav, double now_ms,
                         const OraclesPauseSession *session)
@@ -270,10 +296,13 @@ int oracles_pause_paint(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture
         SDL_RenderFillRect(renderer, NULL);
     }
     oracles_ui_draw_layout(draw, oracles_ui_home_scene(nav));
+    const paint_inset in = { session, nav, width, height };
+    oracles_ui_draw_set_inset(draw, inset, (void *)&in);
     if (oracles_ui_draw_begin_over(draw, out_width, out_height, min_scale(nav->narrow), now_ms)) {
         moving = oracles_ui_home_draw(draw, view, nav, now_ms);
         oracles_ui_draw_end(draw);
     }
+    oracles_ui_draw_set_inset(draw, NULL, NULL);
     return moving;
 }
 
@@ -488,6 +517,24 @@ static void command(pause_loop *p, OraclesHomeCommand c)
                 p->session->cheats_changed(p->session->opaque, p->nav.games[p->pause->game].cheats);
             if (p->session->settings_changed) {
                 const int margin = p->session->settings_changed(p->session->opaque);
+                /* A change of filter told the renderer's users, made again or not, whose presentation the game's is again:
+                 * the menu draws in the window's pixels.  Without any renderer left, the game cannot go on. */
+                SDL_Renderer *renderer = SDL_GetRenderer(p->window);
+                if (!renderer) {
+                    fprintf(stderr, "oracles: no renderer after the change of filter: back to the home screen\n");
+                    p->result = ORACLES_PAUSE_QUIT;
+                    p->done = 1;
+                    return;
+                }
+                p->renderer = renderer;
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+                if (oracles_sdl_filter_index() != p->nav.display.filter) {
+                    /* No renderer for it: the filter in force kept, else none (the session stored it), the row saying it. */
+                    snprintf(message, sizeof message, "%s cannot be drawn here: %s %s", oracles_display_filter_names[p->nav.display.filter],
+                             oracles_display_filter_names[oracles_sdl_filter_index()], oracles_sdl_filter_kept() ? "kept" : "instead");
+                    p->nav.display.filter = oracles_sdl_filter_index();
+                    oracles_ui_home_toast(&p->view, message, now_ms());
+                }
                 if (margin != p->pause->edges.margin) margin_changed(p, margin);
                 else window_changed(p);
             }
@@ -684,6 +731,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     while (!p.done) {
         const double now = now_ms();
         if (p.dirty || ((p.moving || p.redraws > 0) && now - presented >= FRAME_MS) || (oracles_ui_home_due_ms(&p.view) >= 0.0 && now >= oracles_ui_home_due_ms(&p.view))) {
+            renderer = p.renderer;   /* made again by a change of filter */
             SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
             p.nav.layout = oracles_ui_layout_pause(out_w, out_h, p.nav.display.aspect);
             p.nav.narrow = oracles_ui_layout_narrow(p.nav.layout, out_w);
@@ -696,6 +744,15 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
 #else
             (void)shown;
 #endif
+            /* Filter's rules: whether the device runs the shaders (asked once Picture opens), the game picture's scale. */
+            if (p.nav.picture_page) p.nav.display.filters_basic = !oracles_sdl_filters_runnable();
+            p.nav.display.filters_refused = oracles_sdl_filters_refused_codes();
+            int shown_w = width, shown_h = height;
+            if (session->game_size) session->game_size(session->opaque, &shown_w, &shown_h);
+            if (shown_w > 0 && shown_h > 0) {
+                const OraclesTouchBox at = oracles_touch_frame(out_w, (int)shown.h, shown_w, shown_h, fill);
+                p.nav.display.picture_scale = fminf(at.w / (float)shown_w, at.h / (float)shown_h);
+            }
             p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, fill, out_w, out_h, &p.view, &p.nav, now, session);
             SDL_RenderPresent(renderer);
             presented = now;
@@ -727,6 +784,7 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     pause->device = p.nav.device;
     pause->keyboard_used = p.nav.keyboard_used;
     /* Back to the game's own drawing; what the menu left in the queue is not the game's. */
+    renderer = p.renderer;
     SDL_SetRenderClipRect(renderer, NULL);
     SDL_SetRenderLogicalPresentation(renderer, logical_w, logical_h, presentation);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);

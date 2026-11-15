@@ -68,7 +68,7 @@ if (versionParts.size() != 3 || versionParts[1] > 99 || versionParts[2] > 99) {
 }
 def productVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
 
-// The licences that go with the application, as beside the desktop's executable: the embedded fonts' (OFL), SameBoy's,
+// The licences that go with the application, as beside the desktop's executable: the embedded fonts' (OFL), SameBoy's, xBR's,
 // mGBA's with its notice and inih's, Lua's, and SDL's; in the APK's assets, under licences/.
 def licenceFolder = layout.buildDirectory.dir("generated/licences").get().asFile
 def copyLicences = tasks.register("copyLicences", Copy) {
@@ -77,6 +77,7 @@ def copyLicences = tasks.register("copyLicences", Copy) {
     from(new File(repository, "third_party/fonts/alegreya-sans/OFL.txt")) { rename { "AlegreyaSans-OFL.txt" } }
     from(new File(repository, "third_party/fonts/jetbrains-mono/OFL.txt")) { rename { "JetBrainsMono-OFL.txt" } }
     from(new File(repository, "third_party/sameboy/LICENSE")) { rename { "SameBoy-LICENSE.txt" } }
+    from(new File(repository, "launcher/shaders/xBR-LICENSE.txt"))
     from(new File(repository, "third_party/mgba/LICENSE")) { rename { "mGBA-LICENSE.txt" } }
     from(new File(repository, "third_party/mgba/NOTICE.txt")) { rename { "mGBA-NOTICE.txt" } }
     from(new File(repository, "third_party/mgba/boot-rom.patch")) { rename { "mGBA-boot-rom.patch" } }

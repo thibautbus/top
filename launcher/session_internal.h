@@ -109,6 +109,7 @@ typedef struct session {
     int unvisited_option;       /* --unvisited-rooms', 1 shown, 2 hidden, which holds for the run; 0: the settings' */
     OraclesEnhancedFarChoice far_choice;   /* what decided the far view's size at the start, for a savestate's refusal */
     int subpixel_followed;      /* in a window: the view's sub-pixel camera follows the settings at the scale the screen shows it */
+    uint32_t frames_presented;  /* the run's, once it ended: a run that presented none keeps no last picture */
     int subpixel_said;          /* the camera's line written, once the first frame knew that scale */
     const OraclesSessionOptions *options;   /* the session's, for the settings a savestate's load asks for */
     int load_at_start;          /* the savestate is loaded before the first frame (options' load_state) */

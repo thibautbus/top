@@ -39,6 +39,11 @@ typedef struct sdl_backend {
     SDL_Texture *texture;
     SDL_Texture *layer;           /* the sub-pixel camera's layer (Link drawn apart), made at its first use */
     int layer_w, layer_h;
+    uint32_t *layer_pixels;       /* sb_upload_layer's, the whole texture's */
+    size_t layer_pixels_size;
+    int layer_margin, layer_bend; /* sb_upload_layer's, for the filter it was written for (oracles_sdl_filter_bend) */
+    int layer_written;            /* the texture written whole once since it was made */
+    uint32_t layer_part_w, layer_part_h;   /* the size of Link's part written last, the rest of `layer_pixels` 0 */
     /* The last frame as it was shown, which the pause shows: moved by the sub-pixel camera (the band, the patch and
      * the layer as `shown` placed them, the layer's texture holding them when `shown_layered`), or the texture as it is. */
     oracles_host_video_subpixel shown;
@@ -96,7 +101,15 @@ typedef struct sdl_backend {
     unsigned presents;
     uint64_t first_present_ns, last_present_ns;
     uint64_t hold_started_ns, held_ns;   /* the pauses between two presents: no present waited then */
-    char renderer_name[32];   /* the SDL renderer the session presents with, and whether it said it had vsync */
+    struct OraclesSdlFilter *filter;   /* ORACLES_FILTER over the game's picture, on the GPU renderer */
+    /* The last pixels uploaded, the frame's and the layer's (their owners keep them while the game is held), uploaded
+     * again into the textures made on a new renderer (oracles_sdl_renderer_swap). */
+    unsigned swaps;   /* renderers made again during the session */
+    int renderer_lost;   /* told the renderer went, not yet the one that follows */
+    const void *last_pixels;
+    size_t last_pitch;
+    const uint32_t *last_layer, *last_patch;
+    char renderer_name[96];   /* the SDL renderer the session presents with, and whether it said it had vsync */
     int renderer_vsync;
     unsigned axis_buttons;  /* ORACLES_KEY_* currently held through the left stick */
     oracles_sdl_menu_source menu_source;   /* what asked for the pause menu last */
@@ -130,6 +143,10 @@ int sb_sdl_poll_event(void *opaque, oracles_host_event *event, int *has_event);
 int sb_draw_subpixel(sdl_backend *backend, const oracles_host_video_subpixel *sp, int layered, const SDL_FRect *to);
 /* The last frame's move (`shown`) drawn into `to`, in the window's pixels, placed at its whole pixels and cut to it. */
 int sb_draw_subpixel_cut(sdl_backend *backend, const SDL_FRect *to);
+/* Link's layer and the patch under him, placed as `at` places them, into the layer's texture, with the frame's pixels
+ * around them (`frame`, `frame_pitch` bytes a line; NULL: none), made or made again as their pitch needs: 1 when done. */
+int sb_upload_layer(sdl_backend *backend, const uint32_t *layer, const uint32_t *patch, const oracles_host_video_subpixel *at, const uint32_t *frame,
+                    size_t frame_pitch);
 int sb_put(SDL_Renderer *r, SDL_Texture *texture, const SDL_FRect *src, const SDL_FRect *dst, const SDL_FRect *to, float sx, float sy);
 int sb_draw_shown_box(sdl_backend *backend, const SDL_FRect *to);
 /* The pause's image of the last frame shown alone at `rect` (x, y, w, h in the frame) from now on, or whole (NULL). */

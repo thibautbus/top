@@ -210,6 +210,12 @@ typedef struct OraclesUiDisplayTexts {
     const char *view_note, *core_note, *transitions_note, *vsync_note, *workers_note;
     char workers_names[3][16];            /* "Auto · 2", "1", "2" */
     char scaling_sizes[2][24];            /* the image's size in fullscreen with Sharp, with Fill */
+    /* Display › Picture's Filter: the choice shown, whether it runs here, its explanation and note ("" for none); while it
+     * has the focus, the preview of the picture through it, in the diagram's place (16:9) or right of the rows (4:3), and
+     * its caption. */
+    int filter, filter_ok, filter_preview;
+    const char *filter_explanation, *filter_note;
+    char filter_caption[96];
     const char *camera_explanation, *camera_note;   /* Camera's, and its note (NULL: none) where it has no effect */
     /* Display › Picture's Menus & scenes, Far size and Unvisited rooms: their explanations and notes (empty: none). */
     const char *size_explanations[3];
@@ -289,7 +295,21 @@ typedef struct OraclesUiDisplayLayout {
     OraclesUiWrapped camera_explanation;              /* 16:9 */
     OraclesUiLine camera_note;                        /* 16:9: under its explanation */
     OraclesUiLine help, help_note;                   /* 4:3: in the header, the highlighted row's explanation and its note */
+    /* Display › Picture's Filter: its value framed, the arrows' places either side (each a triangle in its `_arrow` box),
+     * the name and the eight marks under it; its explanation (16:9, two lines kept) and note (16:9: under it).  The
+     * preview's frame and its caption under it. */
+    OraclesUiBox filter_value, filter_prev, filter_next, filter_prev_arrow, filter_next_arrow, filter_marks[ORACLES_DISPLAY_FILTERS];
+    OraclesUiLine filter_name, filter_note;
+    OraclesUiWrapped filter_explanation;
+    OraclesUiBox filter_preview;
+    OraclesUiWrapped filter_caption;
 } OraclesUiDisplayLayout;
+
+/* The filter's preview: 432x243 in the diagram's place in 16:9, 376x282 right of the rows from (1000, 420) in 4:3. */
+#define ORACLES_UI_FILTER_PREVIEW_W 432.0f
+#define ORACLES_UI_FILTER_PREVIEW_H 243.0f
+#define ORACLES_UI_FILTER_PREVIEW_W_4_3 376.0f
+#define ORACLES_UI_FILTER_PREVIEW_H_4_3 282.0f
 
 /* The diagram's box in 16:9, the screen's shape at its height (texts->diagram_box_w its width); 4:3 draws it and its
  * window at half these, rounded. */

@@ -1,6 +1,7 @@
 /* The SDL 3 backend's windows and screens (backends.h): the window's flags and its size on the display, the screen's
  * shape, the renderer, and the gamepads plugged in. */
 #include "sdl_backend_internal.h"
+#include "sdl_filter.h"
 
 uint64_t oracles_sdl_window_flags(void)
 {
@@ -90,9 +91,23 @@ struct SDL_Window *oracles_sdl_create_window(int width, int height, uint64_t fla
 
 struct SDL_Renderer *oracles_sdl_create_renderer(struct SDL_Window *window, int vsync)
 {
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
+    /* ORACLES_RENDERER=gpu: SDL's GPU renderer, which takes the filters' shaders; the usual renderer when it cannot be
+     * made (no Vulkan, Direct3D 12 or Metal device). */
+    SDL_Renderer *renderer = NULL;
+    if (oracles_sdl_gpu_wanted()) {
+        renderer = oracles_sdl_gpu_renderer(window, vsync);
+        if (!renderer && oracles_sdl_window_away(window)) {
+            /* Not the device's doing: the filters stay offered, a later choice tries again. */
+            fprintf(stderr, "oracles: no GPU renderer while the app is in the background (%s): the usual one instead\n", SDL_GetError());
+        } else if (!renderer) {
+            fprintf(stderr, "oracles: no GPU renderer (%s): the usual one instead\n", SDL_GetError());
+            oracles_sdl_filters_refused();
+        }
+    }
+    if (!renderer) renderer = SDL_CreateRenderer(window, NULL);
     if (!renderer) renderer = SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER);
     if (renderer && vsync) SDL_SetRenderVSync(renderer, 1);
+    oracles_sdl_renderer_report(renderer, "window");
     return renderer;
 }
 

@@ -64,6 +64,8 @@ void oracles_home_inspect_display(const oracles_settings *settings, OraclesHomeD
     display->far_fixed = settings->far_fixed;
     display->menus = settings->menus_large;
     display->unvisited = settings->unvisited_hidden;
+    display->filter = settings->filter >= 0 && settings->filter < ORACLES_DISPLAY_FILTERS ? settings->filter : 0;
+    display->filter_shown = -1;
     display->unvisited_fixed = 0;
     display->core = oracles_settings_core(settings);
     display->window = settings->window_scale ? settings->window_scale - 2 : 3;
@@ -205,6 +207,7 @@ void oracles_home_store_display(const OraclesHomeDisplay *display, int in_game, 
     prefs->view = display->view;
     prefs->menus_large = display->menus;   /* a running game takes it at once (the pause's settings_changed) */
     if (!in_game) prefs->far_fixed = display->far_fixed;   /* the view's size: the next Play's, never the pause's */
+    prefs->filter = display->filter;   /* a running game takes it at once (the pause's settings_changed) */
     if (!display->unvisited_fixed) prefs->unvisited_hidden = display->unvisited;   /* a running game takes it when it resumes; never --unvisited-rooms' */
     /* The core is stored once the player chooses one other than the playing default; a game's core is its own, perhaps
      * --core's, never stored. */

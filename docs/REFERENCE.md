@@ -105,6 +105,7 @@ hud=full
 aspect=auto
 far=screen
 unvisited_rooms=shown
+filter=off
 ghosts=auto
 transitions=on
 swim_hold=off
@@ -193,6 +194,7 @@ On Windows, Linux and a macOS build run outside an application bundle, a file `p
 | `far` | `screen`, `fixed` | `screen` | Display › Picture › Far size (Fitted, Fixed) | at the next Play |
 | `menus` | `view`, `large` | `large` on Android, `view` elsewhere | Display › Picture › Menus & scenes | at once, from the pause too |
 | `unvisited_rooms` | `shown`, `hidden` | `shown` | Display › Picture › Unvisited rooms | at the next Play; from the pause when the game resumes |
+| `filter` | `off`, `scanlines`, `crt`, `lcd`, `smooth`, `xbr`, `hq2x`, `omniscale` | `off` | Display › Picture › Filter; an unknown value is `off` | at once, from the pause too |
 | `transitions` | `on`, `off` | `on` | Display › Advanced › Continuous transitions | at the next Play |
 | `vsync` | `auto`, `on`, `off` | `auto` | Display › Advanced › Vsync | at the next Play; from the pause when the game resumes |
 | `subpixel_camera` | `0`, `1` | absent: the platform's default | Display › Advanced › Camera (Pixel, Smooth); with Smooth the camera also tells a stop on Link's first still frame ([the camera](#the-camera)) | at once, from the pause too |

@@ -63,6 +63,7 @@ void oracles_home_init(OraclesHomeNav *nav)
     nav->display.camera = -1;   /* the platform's default */
     nav->display.view = 2;
     nav->display.window = 2;
+    nav->display.filter_shown = -1;
     nav->update_check = 1;
     nav->display.screen_w = 1920;
     nav->display.screen_h = 1080;

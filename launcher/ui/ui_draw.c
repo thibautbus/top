@@ -60,6 +60,8 @@ struct OraclesUiDraw {
     int band_top, band_height;           /* the output's band the scene keeps to (oracles_ui_draw_band); 0 high: the whole output */
     int overflow;                        /* the scene is larger than the output (a minimum scale): its parts are anchored */
     unsigned glyphs_rasterised;          /* since the drawing began, for the pause to say none came during a session */
+    OraclesUiInset inset;                /* oracles_ui_draw_inset's */
+    void *inset_opaque;
     SDL_Texture *picture;                /* oracles_ui_draw_picture's, and its pixels, to tell a new one */
     uint32_t *picture_pixels;
     int picture_w, picture_h;
@@ -126,6 +128,27 @@ void oracles_ui_draw_destroy(OraclesUiDraw *draw)
     if (draw->picture) SDL_DestroyTexture(draw->picture);
     free(draw->picture_pixels);
     free(draw);
+}
+
+void oracles_ui_draw_rebind(OraclesUiDraw *draw, SDL_Renderer *renderer)
+{
+    for (int i = 0; i < draw->atlas_count; i++) {
+        atlas *a = &draw->atlases[i];
+        if (a->texture) SDL_DestroyTexture(a->texture);
+        a->texture = NULL;
+        a->dirty = 1;
+    }
+    for (int i = 0; i < ORACLES_UI_MOTIF_COUNT; i++) {
+        if (draw->motifs[i]) SDL_DestroyTexture(draw->motifs[i]);
+        draw->motifs[i] = NULL;
+    }
+    if (draw->picture) SDL_DestroyTexture(draw->picture);
+    draw->picture = NULL;
+    draw->picture_w = draw->picture_h = 0;
+    if (!renderer) return;
+    draw->renderer = renderer;
+    const Sint64 side = SDL_GetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0);
+    draw->max_texture_side = side > 0 && side <= INT_MAX ? (int)side : 16384;
 }
 
 /* ---- motifs ---------------------------------------------------------------- */
@@ -596,6 +619,31 @@ void oracles_ui_draw_picture(OraclesUiDraw *draw, const uint32_t *pixels, int w,
     const SDL_FRect source = { (cx0 - x0) * kx, (cy0 - y0) * ky, (cx1 - cx0) * kx, (cy1 - cy0) * ky };
     const SDL_FRect target = { cx0, cy0, cx1 - cx0, cy1 - cy0 };
     SDL_RenderTexture(draw->renderer, draw->picture, &source, &target);
+}
+
+void oracles_ui_draw_set_inset(OraclesUiDraw *draw, OraclesUiInset inset, void *opaque)
+{
+    draw->inset = inset;
+    draw->inset_opaque = opaque;
+}
+
+void oracles_ui_draw_inset(OraclesUiDraw *draw, const float rect[4])
+{
+    if (!draw->inset) return;
+    const float s = draw->scale;
+    const float x0 = roundf(draw->origin_x + rect[0] * s), y0 = roundf(draw->origin_y + rect[1] * s);
+    const SDL_FRect to = { x0, y0, roundf(draw->origin_x + (rect[0] + rect[2]) * s) - x0, roundf(draw->origin_y + (rect[1] + rect[3]) * s) - y0 };
+    if (to.w > 0.0f && to.h > 0.0f) draw->inset(draw->inset_opaque, draw->renderer, &to);
+}
+
+void oracles_ui_draw_inset_place(const SDL_FRect *to, int w, int h, SDL_FRect *out)
+{
+    const float cover = fmaxf(to->w / (float)w, to->h / (float)h);
+    const float k = fmaxf(3.0f, ceilf(cover - 1e-3f));
+    out->w = k * (float)w;
+    out->h = k * (float)h;
+    out->x = floorf(to->x + (to->w - out->w) * 0.5f);
+    out->y = floorf(to->y + (to->h - out->h) * 0.5f);
 }
 
 SDL_Renderer *oracles_ui_draw_renderer(const OraclesUiDraw *draw) { return draw->renderer; }

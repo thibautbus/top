@@ -1,5 +1,7 @@
-/* The launcher's embedded files: the vendored fonts (third_party/fonts/)
- * and the background motifs (motifs/), compiled into the binary by ui_embed.cmake. */
+/* The launcher's embedded files: the vendored fonts (third_party/fonts/),
+ * the background motifs (motifs/) and the sample picture Display's Filter
+ * previews before any game (sample-picture.png, 160x144), compiled into the
+ * binary by ui_embed.cmake. */
 #ifndef ORACLES_UI_ASSETS_H
 #define ORACLES_UI_ASSETS_H
 

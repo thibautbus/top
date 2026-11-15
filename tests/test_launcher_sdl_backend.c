@@ -13,6 +13,7 @@
  * a cancel; it opens in the ROM's folder. */
 #include "backends.h"
 #include "file_dialog.h"
+#include "sdl_filter.h"
 #include "text_box_enlarge.h"
 #include "touch_controls.h"
 
@@ -1129,6 +1130,282 @@ static void copies(const char *base)
     CHECK(!SDL_GetPathInfo(expected, &info));
 }
 
+/* Under Smooth, Link's layer drawn apart and sampled bilinearly: its texels the layer leaves transparent, whatever colour
+ * they carry, and the texture around it never show, at its edges as inside. */
+static void smooth_layer(SDL_Window *window, SDL_Renderer *renderer)
+{
+    static uint32_t pixels[160 * 144], layer[4 * 4], patch[4 * 4];
+    for (unsigned i = 0; i < 160u * 144u; i++) pixels[i] = 0xff2040a0u;
+    for (unsigned i = 0; i < 16u; i++) { layer[i] = 0x00ff00ffu; patch[i] = 0xff2040a0u; }   /* transparent, magenta under */
+    layer[1 * 4 + 1] = 0xff00c000u;   /* Link, one pixel */
+    oracles_sdl_filter_start("smooth");
+    SDL_SetWindowSize(window, 640, 576);
+    SDL_SyncWindow(window);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); oracles_sdl_filter_start("off"); return; }
+    if (backend.start(backend.opaque, 160, 144, 48000, 0)) {
+        const oracles_host_video_subpixel sub = { 128, 96, 16, 128, layer, 60, 70, 3, 3, 4, 96, 32, patch, 0, { { 0, 0, 0, 0 } } };
+        const oracles_host_video_frame image = { pixels, 160, 144, 160 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+        CHECK(backend.present_frame(backend.opaque, &image));
+        SDL_Surface *shown = picture(renderer);
+        long magenta = 0, green = 0;
+        for (int y = 0; shown && y < shown->h; y++)
+            for (int x = 0; x < shown->w; x++) {
+                const uint32_t p = ((const uint32_t *)((const uint8_t *)shown->pixels + (size_t)y * (size_t)shown->pitch))[x];
+                const unsigned r = p >> 16 & 0xffu, g = p >> 8 & 0xffu, b = p & 0xffu;
+                if (r > 0x40u) magenta++;   /* the background has none, Link none, a blend of the two none */
+                if (g > 0x80u && b < 0x80u) green++;
+            }
+        CHECK(shown && magenta == 0 && green > 0);
+        SDL_DestroySurface(shown);
+        backend.stop(backend.opaque);
+    } else CHECK(0);
+    oracles_sdl_backend_release(&backend);
+    oracles_sdl_filter_start("off");
+}
+
+/* Under Smooth, Link drawn apart at his own fraction of a pixel, a quarter to three quarters across and down, the band
+ * still or moved: the frame's own drawing of him, at his whole pixels, shows nowhere around him, at the patch's edges as
+ * inside his holes, and he is drawn at his own place.  The frame's Link is red, his layer's green, the ground blue. */
+static void smooth_fringe(SDL_Window *window, SDL_Renderer *renderer)
+{
+    static uint32_t pixels[160 * 144], layer[8 * 8], patch[8 * 8];
+    const uint32_t ground = 0xff2040a0u;
+    for (unsigned i = 0; i < 160u * 144u; i++) pixels[i] = ground;
+    for (unsigned i = 0; i < 64u; i++) layer[i] = patch[i] = 0x00ff00ffu;   /* transparent, magenta under */
+    long mask_x = 0, mask_y = 0, mask = 0;
+    for (unsigned y = 1; y < 7u; y++)
+        for (unsigned x = 1; x < 7u; x++) {
+            if ((x == 3u || x == 4u) && y == 4u) continue;   /* a hole in him */
+            pixels[(69u + y) * 160u + 59u + x] = 0xffc00000u;
+            layer[y * 8u + x] = 0xff00c000u;
+            patch[y * 8u + x] = ground;
+            mask_x += (long)(59u + x); mask_y += (long)(69u + y); mask++;
+        }
+    oracles_sdl_filter_start("smooth");
+    SDL_SetWindowSize(window, 640, 576);
+    SDL_SyncWindow(window);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    oracles_host_backend backend;
+    if (!oracles_sdl_backend_init(&backend, &options)) { CHECK(0); oracles_sdl_filter_start("off"); return; }
+    if (backend.start(backend.opaque, 160, 144, 48000, 0)) {
+        static const int32_t bands[2][2] = { { 0, 0 }, { 64, 192 } };
+        for (unsigned b = 0; b < 2u; b++)
+            for (int32_t fy = 0; fy < 256; fy += 64)
+                for (int32_t fx = 0; fx < 256; fx += 64) {
+                    const oracles_host_video_subpixel sub = { bands[b][0], bands[b][1], 16, 128, layer, 59, 69, 8, 8, 8, fx, fy, patch, 0, { { 0, 0, 0, 0 } } };
+                    const oracles_host_video_frame image = { pixels, 160, 144, 160 * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+                    CHECK(backend.present_frame(backend.opaque, &image));
+                    SDL_FRect area;
+                    CHECK(SDL_GetRenderLogicalPresentationRect(renderer, &area) && (int)(area.w / 160.0f) == 4);
+                    SDL_Surface *shown = picture(renderer);
+                    long red = 0;
+                    double weight = 0.0, at_x = 0.0, at_y = 0.0;
+                    for (int y = 0; shown && y < shown->h; y++)
+                        for (int x = 0; x < shown->w; x++) {
+                            const uint32_t p = ((const uint32_t *)((const uint8_t *)shown->pixels + (size_t)y * (size_t)shown->pitch))[x];
+                            const unsigned r = p >> 16 & 0xffu, g = p >> 8 & 0xffu;
+                            if (r > 0x24u) red++;   /* the ground has 0x20, Link none, a blend of the two no more */
+                            if (g > 0x40u) { weight += g - 0x40u; at_x += (g - 0x40u) * (x + 0.5); at_y += (g - 0x40u) * (y + 0.5); }
+                        }
+                    CHECK(shown && red == 0 && weight > 0.0);
+                    const double want_x = area.x + 4.0 * ((double)mask_x / (double)mask + 0.5 + (double)fx / 256.0);
+                    const double want_y = area.y + 4.0 * ((double)mask_y / (double)mask + 0.5 + (double)fy / 256.0);
+                    CHECK(weight > 0.0 && SDL_fabs(at_x / weight - want_x) < 0.5 && SDL_fabs(at_y / weight - want_y) < 0.5);
+                    SDL_DestroySurface(shown);
+                }
+        backend.stop(backend.opaque);
+    } else CHECK(0);
+    oracles_sdl_backend_release(&backend);
+    oracles_sdl_filter_start("off");
+}
+
+/* One frame of `width` x 144 under the shader filter `name`, presented at four times on an offscreen window through the
+ * GPU renderer; `layered`: with Link's layer (the frame's own pixels under it otherwise).  The ground is blue, Link
+ * `size` pixels square at (at_x + 1, at_y + 1) of the frame and moved a quarter of a pixel right and down by his own
+ * fraction: green (`colours` 0), the ground's colour (1), or red in his layer and green in the frame (2), so that the
+ * frame's Link left showing is told from his layer's; or wholly transparent on a ground of every colour (3), the frame
+ * without him.  The texels his layer and the patch leave transparent carry magenta.  `band`: the band's move (x, y),
+ * NULL for none.  `fill`: in fullscreen with Fill, the window 16/3 times the frame, the picture as the pause then
+ * shows it, at the window's size, with Fill's sampling (a picture presented in fullscreen does not read back here).
+ * `paused`: then shown by the pause, too small for the filter, its picture written again there with a grey ground (the
+ * patch with it), and at the window's size again.  NULL when the GPU renderer or the window cannot be made here. */
+static SDL_Surface *filtered_frame(const char *name, int layered, int colours, int at_x, int at_y, int width, int size, const int32_t *band, int fill,
+                                   int paused)
+{
+    static uint32_t pixels[480 * 144], layer[16 * 16], patch[16 * 16];
+    const uint32_t ground = 0xff2040a0u, in_frame = colours == 1 ? ground : 0xff00c000u, him = colours == 2 ? 0xffd00000u : colours == 3 ? 0x00ff00ffu : in_frame;
+    for (int i = 0; i < width * 144; i++)
+        pixels[i] = colours == 3 ? 0xff000000u | ((uint32_t)i * 37u & 0xffu) << 16 | ((uint32_t)(i / width) * 53u & 0xffu) << 8 | ((uint32_t)i * 29u & 0xffu) : ground;
+    for (unsigned i = 0; i < 256u; i++) layer[i] = patch[i] = 0x00ff00ffu;
+    for (int y = 1; y <= size; y++)
+        for (int x = 1; x <= size; x++) {
+            layer[y * 16 + x] = him;
+            uint32_t *at = &pixels[(at_y + y) * width + at_x + x];
+            patch[y * 16 + x] = colours == 3 ? *at : ground;
+            if (colours != 3) *at = in_frame;   /* the frame has him at the band's place */
+        }
+    SDL_Window *window = SDL_CreateWindow("filter", fill ? 16 * width / 3 : 4 * width, fill ? 768 : 576, 0);
+    if (window && fill) { SDL_SetWindowFullscreen(window, true); SDL_SyncWindow(window); }
+    SDL_Renderer *renderer = window ? oracles_sdl_gpu_renderer(window, 0) : NULL;
+    SDL_Surface *shown = NULL;
+    oracles_sdl_filter_start(name);
+    oracles_sdl_options options = { 0 };
+    options.scale = 4;
+    options.window = window;
+    options.renderer = renderer;
+    options.fill = fill;
+    oracles_host_backend backend;
+    if (renderer && oracles_sdl_backend_init(&backend, &options)) {
+        if (backend.start(backend.opaque, (uint32_t)width, 144, 48000, 0)) {
+            const oracles_host_video_subpixel sub = { band ? band[0] : 0, band ? band[1] : 0, 16, 128, layered ? layer : NULL, at_x, at_y, (uint32_t)size + 2,
+                                                      (uint32_t)size + 2, 16, 64, 64, patch, 0, { { 0, 0, 0, 0 } } };
+            const oracles_host_video_frame image = { pixels, (uint32_t)width, 144, (size_t)width * sizeof(uint32_t), 0, 0, 0, 0, &sub, 0, 0, 0, 0, 0, 0, 0u };
+            CHECK(backend.present_frame(backend.opaque, &image));
+            if (paused || fill) {
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                int out_w = 0, out_h = 0;
+                SDL_GetRenderOutputSize(renderer, &out_w, &out_h);
+                const SDL_FRect small = { 0.0f, 0.0f, 2.0f * (float)width, 288.0f }, at = { 0.0f, 0.0f, (float)out_w, (float)out_h };
+                if (paused) {
+                    CHECK(oracles_sdl_backend_pause_image(&backend, &small));   /* too small for the filter */
+                    static uint32_t again[480 * 144];   /* a picture written again there, its ground another colour, its layer with it */
+                    for (int i = 0; i < width * 144; i++) again[i] = pixels[i] == ground ? 0xff181818u : pixels[i];
+                    for (unsigned i = 0; i < 256u; i++) if (patch[i] == ground) patch[i] = 0xff181818u;
+                    oracles_sdl_backend_pause_pixels(&backend, again);
+                }
+                SDL_RenderClear(renderer);
+                CHECK(oracles_sdl_backend_pause_image(&backend, &at));
+            }
+            shown = picture(renderer);
+            backend.stop(backend.opaque);
+        } else CHECK(0);
+        oracles_sdl_backend_release(&backend);
+    }
+    oracles_sdl_filter_start("off");
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    return shown;
+}
+
+static uint32_t surface_at(const SDL_Surface *s, int x, int y) { return ((const uint32_t *)((const uint8_t *)s->pixels + (size_t)y * (size_t)s->pitch))[x]; }
+
+/* The pixels of two pictures of a size that differ by more than `levels` in a channel (a curve's rounding apart). */
+static long differing_by(const SDL_Surface *a, const SDL_Surface *b, unsigned levels)
+{
+    if (!a || !b || a->w != b->w || a->h != b->h) return -1;
+    long count = 0;
+    for (int y = 0; y < a->h; y++)
+        for (int x = 0; x < a->w; x++) {
+            const uint32_t p = surface_at(a, x, y), q = surface_at(b, x, y);
+            for (unsigned shift = 0; shift < 24; shift += 8) {
+                const unsigned c = p >> shift & 0xffu, d = q >> shift & 0xffu;
+                if ((c > d ? c - d : d - c) > levels) { count++; break; }
+            }
+        }
+    return count;
+}
+
+static int greenish(uint32_t p) { return (p >> 8 & 0xffu) > 0x80u && (p >> 16 & 0xffu) < 0x40u && (p & 0xffu) < 0x80u; }
+
+/* The pixels of a picture whose channel at `shift` (16 red, 8 green, 0 blue) stands above the two others (Link, through any
+ * filter). */
+static long colour_in(const SDL_Surface *s, unsigned shift)
+{
+    long count = 0;
+    for (int y = 0; s && y < s->h; y++)
+        for (int x = 0; x < s->w; x++) {
+            const uint32_t p = surface_at(s, x, y), c = p >> shift & 0xffu;
+            int above = 1;
+            for (unsigned other = 0; other < 24u; other += 8u)
+                if (other != shift && c <= (p >> other & 0xffu) + 0x30u) above = 0;
+            count += above;
+        }
+    return s ? count : -1;
+}
+
+/* Under a shader filter, Link drawn apart at his own fraction of a pixel over the ground the frame has under him: the
+ * magenta his transparent texels carry never shows, nor anything darker than the ground or him (a fringe filtered
+ * against nothing); his place takes a quarter of a pixel of the frame, one of the window's.  A Link of the ground's own
+ * colour is the frame itself under Scanlines: his layer keeps the band's rows.  Under CRT, in the picture's bottom
+ * corners, he shows whole and once. */
+static void filter_layer(void)
+{
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("filter layer: no offscreen video, skipped\n"); return; }
+    SDL_Surface *shown = filtered_frame("xbr", 1, 0, 60, 70, 160, 4, NULL, 0, 0);
+    if (!shown) printf("filter layer: no GPU renderer here (%s), skipped\n", SDL_GetError());
+    else {
+        long magenta = 0, dark = 0;
+        for (int y = 64; y < 512; y++)
+            for (int x = 0; x < shown->w; x++) {
+                const uint32_t p = surface_at(shown, x, y), r = p >> 16 & 0xffu, g = p >> 8 & 0xffu, b = p & 0xffu;
+                if (r > 0x40u) magenta++;
+                if (g < 0x30u && b < 0x60u) dark++;
+            }
+        CHECK(magenta == 0 && dark == 0);
+        /* At the band's place he would take 244 to 259 across; at his own, 245 to 260. */
+        CHECK(!greenish(surface_at(shown, 244, 291)) && greenish(surface_at(shown, 245, 291)));
+        CHECK(greenish(surface_at(shown, 260, 291)) && !greenish(surface_at(shown, 261, 291)));
+        SDL_DestroySurface(shown);
+        SDL_Surface *apart = filtered_frame("scanlines", 1, 1, 60, 70, 160, 4, NULL, 0, 0), *whole = filtered_frame("scanlines", 0, 1, 60, 70, 160, 4, NULL, 0, 0);
+        CHECK(apart && whole && differing_by(apart, whole, 2) == 0);
+        SDL_DestroySurface(apart);
+        SDL_DestroySurface(whole);
+        /* In the band's corners, in a picture as wide as Far's, where CRT's curve moves what it reads by up to ten pixels
+         * of the frame: him whole, as much of him red as the frame drawn whole shows green, and once, none of the
+         * frame's green left beside him; in play, and in the pause's image after its picture was written again with
+         * another ground while too small for CRT, none of the ground before left around him. */
+        static const int corners[4][2] = { { -1, 135 }, { 471, 135 }, { -1, 15 }, { 471, 15 } };
+        for (int i = 0; i < 8; i++) {
+            apart = filtered_frame("crt", 1, 2, corners[i % 4][0], corners[i % 4][1], 480, 8, NULL, 0, i / 4);
+            whole = filtered_frame("crt", 0, 2, corners[i % 4][0], corners[i % 4][1], 480, 8, NULL, 0, 0);
+            const long red = colour_in(apart, 16), green = colour_in(whole, 8);
+            CHECK(green > 400 && red * 10 >= green * 9 && red * 9 <= green * 10 && colour_in(apart, 8) == 0);
+            CHECK(i < 4 || colour_in(apart, 0) == 0);
+            SDL_DestroySurface(apart);
+            SDL_DestroySurface(whole);
+        }
+        /* Sampled smoothly by the GPU, in play and in the pause's image, in the band's middle and at the frame's edges:
+         * none of the frame's green around him at his own fraction, under the Smooth filter in a window, under Fill at
+         * the screen's scale, and under both. */
+        static const int places[5][3] = { { 60, 70, 0 }, { 60, 70, 1 }, { -1, 70, 0 }, { 155, 70, 0 }, { 60, 139, 0 } };
+        for (int i = 0; i < 11; i++) {
+            const int *place = places[i < 10 ? i % 5 : 0];
+            apart = filtered_frame(i < 5 || i == 10 ? "smooth" : "off", 1, 2, place[0], place[1], 160, 4, NULL, i >= 5, place[2]);
+            long green = 0;
+            for (int y = 0; apart && y < apart->h; y++)
+                for (int x = 0; x < apart->w; x++) green += (surface_at(apart, x, y) >> 8 & 0xffu) > (place[2] ? 0x20u : 0x48u);   /* above the ground's */
+            CHECK(apart && green == 0 && colour_in(apart, 16) > 0);
+            SDL_DestroySurface(apart);
+        }
+        /* On a ground of every colour, the ground drawn under a transparent Link the band's to the pixel, under the
+         * Smooth filter, Off, Scanlines and CRT: in the band's middle, and at its top, the band moved down by a fraction,
+         * where the status bar's last line stays out of the band. */
+        static const char *const plain[4] = { "smooth", "off", "scanlines", "crt" };
+        static const int32_t moved[2] = { 0, -128 };
+        static const int tops[3] = { 70, 16, 13 };
+        for (int i = 0; i < 12; i++) {
+            const int32_t *band = i % 3 ? moved : NULL;
+            apart = filtered_frame(plain[i / 3], 1, 3, 60, tops[i % 3], 160, 4, band, 0, 0);
+            whole = filtered_frame(plain[i / 3], 0, 3, 60, tops[i % 3], 160, 4, band, 0, 0);
+            CHECK(apart && whole && differing_by(apart, whole, 2) == 0);
+            SDL_DestroySurface(apart);
+            SDL_DestroySurface(whole);
+        }
+    }
+    oracles_sdl_gpu_device_release();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
 int main(int argc, char **argv)
 {
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -1212,6 +1489,8 @@ int main(int argc, char **argv)
     enlarged_menus(window, renderer);
     subpixel_band(window, renderer);
     pause_image(window, renderer);
+    smooth_layer(window, renderer);
+    smooth_fringe(window, renderer);
     pause_menus(window, renderer);
     pause_settings(window, renderer);
     scaling(window, renderer);
@@ -1233,6 +1512,8 @@ int main(int argc, char **argv)
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_Quit();
+    filter_layer();
     SDL_Quit();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("oracles-launcher-sdl-backend: ok\n");

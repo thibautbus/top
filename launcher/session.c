@@ -860,6 +860,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
         char error[256];
         const int status = oracles_host_run(&config, &s->backend, &report, error, sizeof error);
         s->ran = 1;
+        s->frames_presented = report.frames_presented;
         s->display_unpaced_frame = report.display_unpaced_frame;
         s->present_unwaited_frame = report.present_unwaited_frame;
         s->present_rewaited_frame = report.present_rewaited_frame;

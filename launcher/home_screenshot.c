@@ -3,7 +3,9 @@
 #include "home.h"
 
 #include "backends.h"
+#include "filter_preview.h"
 #include "pause.h"
+#include "sdl_filter.h"
 #include "touch_controls.h"
 #include "ui_controls_nav.h"
 #include "ui_home.h"
@@ -71,6 +73,44 @@ static SDL_Texture *read_ppm(SDL_Renderer *renderer, const char *path, int *widt
     return texture;
 }
 
+/* ORACLES_RENDERER=gpu: the capture drawn by SDL's GPU renderer offscreen, into `target`, then read back into the
+ * surface; the software renderer draws into the surface itself. */
+static int capture(SDL_Renderer *renderer, SDL_Texture *target, SDL_Surface *surface)
+{
+    int read = 1;
+    if (target) {
+        SDL_Surface *pixels = SDL_RenderReadPixels(renderer, NULL);
+        SDL_Surface *argb = pixels ? SDL_ConvertSurface(pixels, SDL_PIXELFORMAT_ARGB8888) : NULL;
+        read = argb && argb->w == surface->w && argb->h == surface->h;
+        for (int y = 0; read && y < surface->h; y++)
+            memcpy((Uint8 *)surface->pixels + (size_t)y * (size_t)surface->pitch, (const Uint8 *)argb->pixels + (size_t)y * (size_t)argb->pitch, (size_t)surface->w * 4u);
+        SDL_DestroySurface(argb);
+        SDL_DestroySurface(pixels);
+    }
+    SDL_RenderPresent(renderer);
+    return read;
+}
+
+typedef struct FilteredImage {
+    SDL_Texture *texture;
+    OraclesSdlFilter *filter;
+    int w, h;
+} FilteredImage;
+
+/* The game's image under the pause, through the filter (`filtered`) as a game shows it, or without it. */
+static int filtered_inset(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image, int filtered)
+{
+    const FilteredImage *f = opaque;
+    OraclesSdlFilter *filter = filtered ? f->filter : NULL;
+    oracles_sdl_filter_place(filter, image, (float)f->w, (float)f->h);
+    oracles_sdl_filter_use(filter, 1);
+    const int drawn = SDL_RenderTexture(renderer, f->texture, NULL, image);
+    oracles_sdl_filter_use(filter, 0);
+    return drawn;
+}
+
+static int filtered_image(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image) { return filtered_inset(opaque, renderer, image, 1); }
+
 /* The pause of `game` over its frame, in the profile its page plays. */
 static void pause(OraclesHomeNav *nav, int game, int width)
 {
@@ -104,8 +144,9 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
      * there, the row's status after an import that kept the save and its savestate in Backups and set the language to
      * English; `mods` before either, the game with mods having a save, a savestate and mods' data of its own, which the
      * import puts in Backups too, and which Mods' Save row (`android`) exports; `reminder`, over a game's frame, the game
-     * in play with the reminder over it that names the menu's key, in place of the pause. */
-    int mods = 0, offline = 0;
+     * in play with the reminder over it that names the menu's key, in place of the pause; `bare`, over a game's frame,
+     * the game's image alone as a game shows it; `basic`, a device that runs no shader filter. */
+    int mods = 0, offline = 0, bare = 0;
     for (const char *p = inputs; p && *p;) {
         const size_t length = strcspn(p, ",");
         OraclesHomeAction action;
@@ -117,6 +158,8 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         else if (length == 8 && !strncmp(p, "combined", 8) && frame) pause(&nav, ORACLES_HOME_GAME_COMBINED, width);
         else if (length == 4 && !strncmp(p, "mods", 4)) mods = nav.games[ORACLES_HOME_GAME_AGES].mods_save = nav.games[ORACLES_HOME_GAME_SEASONS].mods_save = 1;
         else if (length == 8 && !strncmp(p, "reminder", 8) && frame) reminder = 1;
+        else if (length == 4 && !strncmp(p, "bare", 4) && frame) bare = 1;   /* the game's image alone, as a game shows it */
+        else if (length == 5 && !strncmp(p, "basic", 5)) nav.display.filters_basic = 1;
 #ifdef ORACLES_RETROACHIEVEMENTS
         else if (length == 7 && !strncmp(p, "offline", 7) && frame) offline = 1;   /* RetroAchievements' offline toast over the game */
         else if (length == 12 && !strncmp(p, "achievements", 12) && frame) nav.achievements.active = 1;   /* the pause's Achievements */
@@ -139,16 +182,40 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
                                      nav.save_flow.text, nav.save_flow.text2);
         }
         else if (!parse_action(p, length, &action)) {
-            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, combined, mods, import, imported, reminder%s)",
+            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, combined, mods, import, imported, reminder, bare, basic%s)",
                      (int)length, p, ORACLES_SCREENSHOT_MORE_INPUTS);
             return 1;
         }
         else oracles_home_act(&nav, action);
         p += length + (p[length] == ',');
     }
+    /* The filter the page leaves drawn, for the image and the preview; the last picture, the settings'. */
+    oracles_sdl_filter_start(oracles_settings_filter_names[oracles_display_filter_drawn(&nav)]);
+    OraclesFilterPreview preview = { NULL, NULL, 0, 0, oracles_display_filter_drawn(&nav) };
     SDL_Surface *surface = SDL_CreateSurface(width, height, SDL_PIXELFORMAT_ARGB8888);
-    SDL_Renderer *renderer = surface ? SDL_CreateSoftwareRenderer(surface) : NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *target = NULL;
+    SDL_Window *hidden = NULL;
+    /* A shader filter or ORACLES_RENDERER=gpu: SDL's GPU renderer offscreen; another renderer's name (opengl), that
+     * renderer for a hidden window: each into a texture, read back. */
+    const char *asked = getenv("ORACLES_RENDERER");
+    if (surface && (oracles_sdl_gpu_wanted() || (asked && strcmp(asked, SDL_SOFTWARE_RENDERER))) && SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+        if (oracles_sdl_gpu_wanted()) renderer = oracles_sdl_gpu_renderer(NULL, 0);
+        else if ((hidden = SDL_CreateWindow("capture", 64, 64, SDL_WINDOW_HIDDEN))) renderer = SDL_CreateRenderer(hidden, asked);
+        target = renderer ? SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height) : NULL;
+        if (!target || !SDL_SetRenderTarget(renderer, target)) {
+            fprintf(stderr, "oracles: no %s renderer offscreen (%s): the software one instead\n", oracles_sdl_gpu_wanted() ? "gpu" : asked, SDL_GetError());
+            if (target) SDL_DestroyTexture(target);
+            if (renderer) SDL_DestroyRenderer(renderer);
+            renderer = NULL;
+            target = NULL;
+        }
+    }
+    if (surface && !renderer) renderer = SDL_CreateSoftwareRenderer(surface);
+    oracles_sdl_renderer_report(renderer, "capture");
+    OraclesSdlFilter *filter = renderer ? oracles_sdl_filter_open(renderer) : NULL;
     OraclesUiDraw *draw = renderer ? oracles_ui_draw_create(renderer) : NULL;
+    if (draw) oracles_ui_draw_set_inset(draw, oracles_filter_preview_draw, &preview);
     int frame_width = 0, frame_height = 0;
     SDL_Texture *image = draw && frame ? read_ppm(renderer, frame, &frame_width, &frame_height) : NULL;
     int status = 1;
@@ -156,13 +223,27 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         snprintf(error, capacity, "cannot draw offscreen: %s", SDL_GetError());
     } else if (frame && !image) {
         snprintf(error, capacity, "cannot read the game's image %s (a binary PPM, as --screenshot writes)", frame);
+    } else if (frame && bare) {
+        /* The game's image alone, at its whole scale or Fill's size, centred, as a game shows it fullscreen. */
+        int presentation, scale_mode;
+        oracles_sdl_presentation(1, nav.display.scaling, &presentation, &scale_mode);
+        SDL_SetTextureScaleMode(image, (SDL_ScaleMode)scale_mode);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        const OraclesTouchBox box = oracles_touch_frame(width, height, frame_width, frame_height, presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX);
+        const SDL_FRect at = { box.x, box.y, box.w, box.h };
+        const FilteredImage filtered = { image, filter, frame_width, frame_height };
+        filtered_image((void *)&filtered, renderer, &at);
+        if (capture(renderer, target, surface) && write_ppm(path, surface)) status = 0;
+        else snprintf(error, capacity, "cannot write %s", path);
     } else if (frame && (reminder || offline)) {
         /* The game's image at its whole scale, centred, as a game in play shows it, and the reminder over it. */
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         const OraclesTouchBox box = oracles_touch_frame(width, height, frame_width, frame_height, 0);
         const SDL_FRect at = { box.x, box.y, box.w, box.h };
-        SDL_RenderTexture(renderer, image, NULL, &at);
+        const FilteredImage filtered = { image, filter, frame_width, frame_height };
+        filtered_image((void *)&filtered, renderer, &at);
         OraclesPause *over = oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, nav.display.aspect, 0, &nav);
         const OraclesPauseFrame shown = { 1, -1, frame_width, frame_height, 0 };
         if (over) {
@@ -173,8 +254,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
             oracles_pause_overlay(over, renderer, &shown);
         }
         oracles_pause_destroy(over);
-        SDL_RenderPresent(renderer);
-        if (over && write_ppm(path, surface)) status = 0;
+        if (capture(renderer, target, surface) && over && write_ppm(path, surface)) status = 0;
         else snprintf(error, capacity, "cannot write %s", path);
     } else if (frame) {
         /* The game fullscreen when Display says so, Scaling's Fill then filling the capture as it fills the screen. */
@@ -184,10 +264,15 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         OraclesUiHome view;
         oracles_controls_tips_opened(&nav, 0);   /* the pause as it opens, its line on the item hotkeys when due */
         oracles_ui_home_start(&view, &nav);
+        FilteredImage filtered = { image, filter, frame_width, frame_height };
+        OraclesPauseSession session;
+        memset(&session, 0, sizeof session);
+        session.opaque = &filtered;
+        session.game_image = filtered_image;
+        session.game_inset = filtered_inset;
         oracles_pause_paint(draw, renderer, image, frame_width, frame_height, presentation == SDL_LOGICAL_PRESENTATION_LETTERBOX, width, height,
-                            &view, &nav, 0.0, NULL);
-        SDL_RenderPresent(renderer);
-        if (write_ppm(path, surface)) status = 0;
+                            &view, &nav, 0.0, &session);
+        if (capture(renderer, target, surface) && write_ppm(path, surface)) status = 0;
         else snprintf(error, capacity, "cannot write %s", path);
     } else {
         OraclesUiHome view;
@@ -198,14 +283,19 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         } else {
             oracles_ui_home_draw(draw, &view, &nav, 0.0);
             oracles_ui_draw_end(draw);
-            SDL_RenderPresent(renderer);
-            if (write_ppm(path, surface)) status = 0;
+            if (capture(renderer, target, surface) && write_ppm(path, surface)) status = 0;
             else snprintf(error, capacity, "cannot write %s", path);
         }
     }
     if (image) SDL_DestroyTexture(image);
+    oracles_filter_preview_forget(&preview);
     oracles_ui_draw_destroy(draw);
+    oracles_sdl_filter_close(filter);
+    oracles_sdl_filter_forget(renderer);
+    if (target) SDL_DestroyTexture(target);
     if (renderer) SDL_DestroyRenderer(renderer);
+    oracles_sdl_gpu_device_release();
+    if (hidden) SDL_DestroyWindow(hidden);
     if (surface) SDL_DestroySurface(surface);
     return status;
 }

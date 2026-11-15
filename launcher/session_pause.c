@@ -4,7 +4,9 @@
 
 #include "home_choices.h"
 #include "home_input.h"
+#include "filter_preview.h"
 #include "hotkeys_session.h"
+#include "sdl_filter.h"
 #include "view.h"
 
 #include <stdio.h>
@@ -47,8 +49,21 @@ static int pause_settings_changed(void *opaque)
     OraclesSessionApplied applied = { s->colour_setting, s->sdl.fill, s->view ? oracles_enhanced_view_hud(s->view) : -1, s->sdl.screen_margin,
                                       s->view && oracles_compat_text_size(s->profile) ? (int)oracles_enhanced_view_text_size(s->view) : -1,
                                       s->swim_setting, s->hotkeys_game, s->hotkeys_setting, s->text_speed_setting, s->vsync_setting,
-                                      s->view ? s->menus_large : -1, s->view && !s->unvisited_option ? oracles_enhanced_view_unvisited_hidden(s->view) : -1 };
+                                      s->view ? s->menus_large : -1, s->view && !s->unvisited_option ? oracles_enhanced_view_unvisited_hidden(s->view) : -1,
+                                      oracles_settings_filter_index(oracles_sdl_filter_name()) };
     const unsigned changed = oracles_session_settings_changed(s->settings, s->screen_margin_option, s->text_size_option, &applied);
+    if (changed & ORACLES_SESSION_CHANGED_FILTER) {   /* the image behind the pause at once, through the renderer made again if need be */
+        SDL_Window *window;
+        SDL_Renderer *renderer;
+        SDL_Texture *frame;
+        int width, height;
+        oracles_sdl_backend_pause_view(&s->backend, &window, &renderer, &frame, &width, &height);
+        if (!oracles_filter_apply(renderer, applied.filter)) fprintf(stderr, "oracles: no renderer for the filter %s\n", oracles_settings_filter_names[applied.filter]);
+        else if (oracles_sdl_filter_index() != applied.filter) {   /* none for it: the filter in force kept, and stored */
+            s->settings->filter = oracles_sdl_filter_index();
+            oracles_settings_store(s->settings);
+        }
+    }
     if (changed & ORACLES_SESSION_CHANGED_COLOUR) {
         s->colour_applied = s->colour_setting = applied.colour;
         oracles_core_set_colour_correction(s->core, s->colour_applied);
@@ -180,6 +195,13 @@ static int pause_game_image(void *opaque, SDL_Renderer *renderer, const SDL_FRec
     return oracles_sdl_backend_pause_image(&s->backend, image);
 }
 
+static int pause_game_inset(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image, int filtered)
+{
+    session *s = opaque;
+    (void)renderer;
+    return oracles_sdl_backend_pause_image_as(&s->backend, image, filtered);
+}
+
 static void pause_game_size(void *opaque, int *width, int *height)
 {
     session *s = opaque;
@@ -247,7 +269,7 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
 #endif
     const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, pause_cheats_changed,
                                            pause_window_chosen, (int)oracles_core_kind(s->core), s->ghosts, device, pause_cheats(s),
-                                           s->pause_cheats, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
+                                           s->pause_cheats, pause_game_image, pause_game_inset, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
                                            window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size,
                                            oracles_home_menu_by_key((int)source), s->achievements ? oracles_session_achievements_idle : NULL
 #ifdef ORACLES_RETROACHIEVEMENTS

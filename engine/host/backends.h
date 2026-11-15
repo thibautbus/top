@@ -178,6 +178,8 @@ void oracles_sdl_backend_pause_view(const oracles_host_backend *backend, struct 
  * changing the large menus changes the part the image shows (oracles_sdl_backend_pause_crop: x, y, w, h in the frame,
  * or NULL for the whole frame). */
 int oracles_sdl_backend_pause_image(const oracles_host_backend *backend, const struct SDL_FRect *image);
+/* The same at `image`, through the shader filter (`filtered`) or without it: Display's preview of the filter drawn. */
+int oracles_sdl_backend_pause_image_as(const oracles_host_backend *backend, const struct SDL_FRect *image, int filtered);
 void oracles_sdl_backend_pause_size(const oracles_host_backend *backend, int *width, int *height);
 void oracles_sdl_backend_pause_crop(const oracles_host_backend *backend, const uint32_t rect[4]);
 /* The pause changing Text size changes the box it shows again larger (oracles_sdl_backend_pause_box: x, y, w, h in the

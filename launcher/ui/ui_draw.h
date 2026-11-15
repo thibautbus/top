@@ -32,6 +32,17 @@ typedef struct OraclesUiDraw OraclesUiDraw;
 
 OraclesUiDraw *oracles_ui_draw_create(SDL_Renderer *renderer);
 void oracles_ui_draw_destroy(OraclesUiDraw *draw);
+/* The textures made on the drawing's renderer released (`renderer` NULL: it goes), or `renderer` taken in its place:
+ * each texture is made again there when next drawn, from the glyphs, motifs and picture kept rasterised. */
+void oracles_ui_draw_rebind(OraclesUiDraw *draw, SDL_Renderer *renderer);
+/* A picture the host draws in a rectangle of the scene (x, y, w, h), the filter's preview: `inset` draws it at `to`, in
+ * the output's pixels; nothing without one. */
+typedef void (*OraclesUiInset)(void *opaque, SDL_Renderer *renderer, const SDL_FRect *to);
+void oracles_ui_draw_set_inset(OraclesUiDraw *draw, OraclesUiInset inset, void *opaque);
+void oracles_ui_draw_inset(OraclesUiDraw *draw, const float rect[4]);
+/* Where a picture of w x h pixels is drawn so that it fills `to`, centred and cut to it: at a whole scale of 3 at least,
+ * at which every filter runs. */
+void oracles_ui_draw_inset_place(const SDL_FRect *to, int w, int h, SDL_FRect *out);
 
 /* The layout of the frames begun from now on (16:9 until one is set): its scene's width, where the motifs sit in it.
  * A motif rasterised for the other layout is rasterised again when it is next shown. */

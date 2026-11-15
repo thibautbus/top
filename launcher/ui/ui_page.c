@@ -46,6 +46,10 @@
 #define PREVIEW_HUD 0x2a2d33u
 #define PREVIEW_ARROW 0xe0302au
 #define PREVIEW_LETTERBOX 0x050507u     /* around the band where it is smaller than its frame, as around the game */
+#define FILTER_REFUSED 0x6f6c78u        /* Filter's name where it cannot run here */
+#define FILTER_MARK_REFUSED 0x77747fu   /* its mark */
+#define FILTER_MARK_OPACITY 0.5f        /* the marks of the other choices, fainter where they cannot run here */
+#define FILTER_MARK_REFUSED_OPACITY 0.16f
 
 #define MODS_PATH 0xc9c6cfu
 #define MODS_EMPTY 0xd6d3dcu
@@ -434,6 +438,46 @@ static void link(OraclesUiDraw *draw, const OraclesUiPageStyles *st, const Oracl
     if (a->w > 0.0f) oracles_ui_fill_polygon(draw, arrow, 3, color);
 }
 
+/* Display › Picture's Filter: its value framed, in the accent while the row has the focus (its frame lighter on a choice
+ * that cannot run here), the arrows either side, the name, greyed on such a choice, and the eight marks, the shown one
+ * filled. */
+static void filter_value(OraclesUiDraw *draw, const look *lk, const OraclesHomeNav *nav, const OraclesUiDisplayTexts *t, const OraclesUiDisplayLayout *l,
+                         const OraclesUiPageStyles *st, OraclesUiColor accent)
+{
+    const int focused = nav->row == ORACLES_DISPLAY_FILTER, ok = t->filter_ok;
+    const OraclesUiBox *v = &l->filter_value;
+    const OraclesUiColor frame = focused ? (ok ? accent : oracles_ui_rgba(0xffffffu, 0.3f)) : oracles_ui_rgba(0xffffffu, FRAME_ON_OPACITY);
+    oracles_ui_stroke_round_rect(draw, v->x, v->y, v->w, v->h, lk->choice_radius, lk->frame_width, frame);
+    const OraclesUiColor arrow = focused ? accent : oracles_ui_rgb(CHOICE_OFF);
+    const OraclesUiBox *p = &l->filter_prev_arrow, *n = &l->filter_next_arrow;
+    const float left[6] = { p->x + p->w, p->y, p->x, p->y + p->h * 0.5f, p->x + p->w, p->y + p->h };
+    const float right[6] = { n->x, n->y, n->x + n->w, n->y + n->h * 0.5f, n->x, n->y + n->h };
+    oracles_ui_fill_polygon(draw, left, 3, arrow);
+    oracles_ui_fill_polygon(draw, right, 3, arrow);
+    text(draw, st->choice, &l->filter_name, oracles_display_filter_names[t->filter],
+         !ok ? oracles_ui_rgb(FILTER_REFUSED) : focused ? accent : oracles_ui_rgb(TEXT));
+    const float border = lk->frame_width, radius = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 2.0f : 1.0f;
+    for (int f = 0; f < ORACLES_DISPLAY_FILTERS; f++) {
+        const OraclesUiBox *m = &l->filter_marks[f];
+        if (f == t->filter)
+            oracles_ui_fill_round_rect(draw, m->x, m->y, m->w, m->h, radius, !ok ? oracles_ui_rgb(FILTER_MARK_REFUSED) : focused ? accent : oracles_ui_rgb(TEXT));
+        else oracles_ui_stroke_round_rect(draw, m->x, m->y, m->w, m->h, radius, border,
+                                          oracles_ui_rgba(0xffffffu, oracles_display_filter_reason(nav, f) ? FILTER_MARK_REFUSED_OPACITY : FILTER_MARK_OPACITY));
+    }
+}
+
+/* The filter's preview: the host's picture through the filter (oracles_ui_draw_inset), framed, and its caption. */
+static void filter_preview(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiPageStyles *st, const look *lk, const OraclesUiDisplayLayout *l)
+{
+    const OraclesUiBox *b = &l->filter_preview;
+    const float radius = nav->layout == ORACLES_UI_LAYOUT_4_3 ? 6.0f : 4.0f;
+    oracles_ui_fill_round_rect(draw, b->x, b->y, b->w, b->h, radius, oracles_ui_rgb(0x000000u));
+    const float inset[4] = { b->x + lk->frame_width, b->y + lk->frame_width, b->w - 2.0f * lk->frame_width, b->h - 2.0f * lk->frame_width };
+    oracles_ui_draw_inset(draw, inset);
+    oracles_ui_stroke_round_rect(draw, b->x, b->y, b->w, b->h, radius, lk->frame_width, oracles_ui_rgba(0xffffffu, DIAGRAM_BORDER_OPACITY));
+    wrapped(draw, st->diagram_label, &l->filter_caption, oracles_ui_rgb(DIAGRAM_LABEL));
+}
+
 void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
     const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
@@ -454,16 +498,19 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         text_page(draw, nav, st, lk, &t, &l, accent);
         return;
     }
-    /* The window on the screen. */
-    oracles_ui_fill_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, oracles_ui_rgba(DIAGRAM, DIAGRAM_OPACITY));
-    oracles_ui_stroke_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, 1.0f, oracles_ui_rgba(0xffffffu, DIAGRAM_BORDER_OPACITY));
-    const OraclesUiBox *w = &l.diagram_window;
-    oracles_ui_fill_rect(draw, w->x, w->y, w->w, w->h, oracles_ui_rgba(0xffffffu, DIAGRAM_WINDOW_OPACITY));
-    oracles_ui_stroke_round_rect(draw, w->x, w->y, w->w, w->h, 0.0f, 2.0f, accent);
-    text(draw, st->diagram_label, &l.diagram_label, t.diagram_label, oracles_ui_rgb(DIAGRAM_LABEL));
-    /* 16:9: Window's note under it, and the line on the window's size. */
-    wrapped(draw, st->diagram_label, &l.window_note, oracles_ui_rgb(NOTE));
-    wrapped(draw, st->row_note, &l.window_reduced, oracles_ui_rgb(NOTE_ITALIC));
+    /* The window on the screen; in 16:9 the filter's preview in its place while Filter has the focus. */
+    const int diagram = !(t.filter_preview && nav->layout != ORACLES_UI_LAYOUT_4_3);
+    if (diagram) {
+        oracles_ui_fill_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, oracles_ui_rgba(DIAGRAM, DIAGRAM_OPACITY));
+        oracles_ui_stroke_round_rect(draw, l.diagram.x, l.diagram.y, l.diagram.w, l.diagram.h, 4.0f, 1.0f, oracles_ui_rgba(0xffffffu, DIAGRAM_BORDER_OPACITY));
+        const OraclesUiBox *w = &l.diagram_window;
+        oracles_ui_fill_rect(draw, w->x, w->y, w->w, w->h, oracles_ui_rgba(0xffffffu, DIAGRAM_WINDOW_OPACITY));
+        oracles_ui_stroke_round_rect(draw, w->x, w->y, w->w, w->h, 0.0f, 2.0f, accent);
+        text(draw, st->diagram_label, &l.diagram_label, t.diagram_label, oracles_ui_rgb(DIAGRAM_LABEL));
+        /* 16:9: Window's note under it, and the line on the window's size. */
+        wrapped(draw, st->diagram_label, &l.window_note, oracles_ui_rgb(NOTE));
+        wrapped(draw, st->row_note, &l.window_reduced, oracles_ui_rgb(NOTE_ITALIC));
+    }
     /* Advanced, in the accent while highlighted, its arrow with it: under the diagram (16:9), or beside it (4:3), framed,
      * the frame in the accent too; on Display's own rows alone. */
     if (l.link < ORACLES_DISPLAY_ROWS) {
@@ -487,13 +534,14 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
          * size, Menus & scenes and Unvisited rooms where they change (oracles_display_size_row_live), dimmed with their
          * reason else. */
         const float margin_applied = oracles_display_row_fixed(nav, ORACLES_DISPLAY_MARGIN) ? ROW_NOT_APPLIED : 1.0f;
-        const unsigned rows[6] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS,
-                                   ORACLES_DISPLAY_UNVISITED };
-        for (unsigned i = 0; i < 6u; i++) {
+        const unsigned rows[7] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_FILTER, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE,
+                                   ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
+        for (unsigned i = 0; i < 7u; i++) {
             const unsigned r = rows[i];
             if (r == ORACLES_DISPLAY_FAR_SIZE && !t.far_size) continue;
             const float opacity = r == ORACLES_DISPLAY_MARGIN ? margin_applied
-                                : r >= ORACLES_DISPLAY_MENUS ? (oracles_display_size_row_live(nav, r) ? 1.0f : ROW_NOT_APPLIED) : 1.0f;
+                                : r >= ORACLES_DISPLAY_MENUS && r <= ORACLES_DISPLAY_UNVISITED ? (oracles_display_size_row_live(nav, r) ? 1.0f : ROW_NOT_APPLIED)
+                                : 1.0f;
             highlight_dimmed(draw, lk, &l.rows[r], r == row, opacity);
             wrapped(draw, st->row_label, &l.labels[r], oracles_ui_rgba(LABEL, opacity));
         }
@@ -502,6 +550,10 @@ void oracles_ui_display_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Ora
         for (int c = 0; c < 2; c++)
             option(draw, st, lk, &l.scaling[c], 0, oracles_display_scaling_choices[c], t.scaling_sizes[c], c == nav->display.scaling,
                    row == ORACLES_DISPLAY_SCALING, accent, CHOICE_OFF, 1.0f);
+        wrapped(draw, st->row_text, &l.filter_explanation, oracles_ui_rgb(NOTE));
+        text(draw, st->row_note, &l.filter_note, t.filter_note, oracles_ui_rgb(NOTE_ITALIC));
+        filter_value(draw, lk, nav, &t, &l, st, accent);
+        if (t.filter_preview) filter_preview(draw, nav, st, lk, &l);
         wrapped(draw, st->row_text, &l.explanations[7], oracles_ui_rgba(NOTE, margin_applied));
         for (int c = 0; c < ORACLES_DISPLAY_MARGINS; c++)
             option(draw, st, lk, &l.margin[c], 0, oracles_display_margin_choices[c], NULL, c == nav->display.margin, row == ORACLES_DISPLAY_MARGIN, accent,
@@ -651,9 +703,11 @@ int oracles_ui_display_hit(const OraclesHomeNav *nav, float x, float y, int *opt
         for (int c = 0; t.far_size && c < 2; c++) if (inside(&l.far_size[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_FAR_SIZE; }
         for (int c = 0; c < 2; c++) if (inside(&l.menus[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_MENUS; }
         for (int c = 0; c < 2; c++) if (inside(&l.unvisited[c].box, x, y)) { *option = c; return ORACLES_DISPLAY_UNVISITED; }
-        const unsigned rows[6] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE, ORACLES_DISPLAY_MENUS,
-                                   ORACLES_DISPLAY_UNVISITED };
-        for (int i = 0; i < 6; i++) if (inside(&l.rows[rows[i]], x, y)) return (int)rows[i];
+        if (inside(&l.filter_prev, x, y)) { *option = 0; return ORACLES_DISPLAY_FILTER; }
+        if (inside(&l.filter_next, x, y)) { *option = 1; return ORACLES_DISPLAY_FILTER; }
+        const unsigned rows[7] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_FILTER, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE,
+                                   ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
+        for (int i = 0; i < 7; i++) if (inside(&l.rows[rows[i]], x, y)) return (int)rows[i];
         return -1;
     }
     if (t.advanced) {

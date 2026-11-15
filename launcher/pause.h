@@ -43,6 +43,8 @@ typedef struct OraclesPauseSession {
      * camera's band at its fraction of a pixel, Link at his place, Text size's box enlarged); NULL: the frame drawn there
      * as it is. */
     int (*game_image)(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image);
+    /* The same through the shader filter (`filtered`) or without it, for Display's preview of the filter; NULL: none. */
+    int (*game_inset)(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image, int filtered);
     int has_swim, has_hotkeys;   /* its profile has the swim's hold, the item hotkeys: else an Oracle's Controls dims them */
     /* Its window as window_scale= counts it (2 to 4, 0 fullscreen), F11's toggle included, which Display shows, -2 for
      * a window no choice is (its size window_w x window_h); -1 when Display cannot change it.  The windows (1 <<

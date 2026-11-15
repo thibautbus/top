@@ -22,7 +22,7 @@ static const char *const profile_notes[ORACLES_PROFILES] = {
 const char *const oracles_display_labels[ORACLES_DISPLAY_ROWS] = { "Profile", "Quality", "Window", "View", "HUD", "Text", "Color correction", "Advanced", "Core",
                                                                    "Continuous transitions", "Vsync", "Neighbor workers", "Scaling", "Camera", "Screen margin",
                                                                    "Text", "Text box", "Text size", "Text speed", "Picture", "Menus & scenes", "Far size",
-                                                                   "Unvisited rooms" };
+                                                                   "Unvisited rooms", "Filter" };
 const char *const oracles_display_view_names[3] = { "Near", "Medium", "Far" };
 const char *const oracles_display_colour_choices[2] = { "Off", "On" };
 const char *const oracles_display_hud_choices[3] = { "Original", "Full width", "Wide layout" };
@@ -47,7 +47,7 @@ static const unsigned main_rows[] = { ORACLES_DISPLAY_PROFILE, ORACLES_DISPLAY_Q
                                       ORACLES_DISPLAY_HUD, ORACLES_DISPLAY_TEXT, ORACLES_DISPLAY_PICTURE, ORACLES_DISPLAY_ADVANCED };
 static const unsigned advanced_rows[] = { ORACLES_DISPLAY_CORE, ORACLES_DISPLAY_TRANSITIONS, ORACLES_DISPLAY_VSYNC, ORACLES_DISPLAY_WORKERS,
                                           ORACLES_DISPLAY_CAMERA };
-static const unsigned picture_rows[] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE,
+static const unsigned picture_rows[] = { ORACLES_DISPLAY_SCALING, ORACLES_DISPLAY_FILTER, ORACLES_DISPLAY_MARGIN, ORACLES_DISPLAY_COLOUR, ORACLES_DISPLAY_FAR_SIZE,
                                          ORACLES_DISPLAY_MENUS, ORACLES_DISPLAY_UNVISITED };
 static const unsigned text_rows[] = { ORACLES_DISPLAY_LETTERS, ORACLES_DISPLAY_TEXT_BOX, ORACLES_DISPLAY_TEXT_SIZE, ORACLES_DISPLAY_TEXT_SPEED };
 
@@ -245,8 +245,17 @@ void oracles_display_picture_summary(const OraclesHomeNav *nav, char *out, size_
     if (enhanced && !nav->display.menus != !nav->android) extras[count++] = nav->display.menus ? "Large menus" : "View menus";
     if (enhanced && nav->display.unvisited) extras[count++] = "Rooms hidden";
     for (unsigned i = 0; i < count; i++) length += (unsigned)strlen(extras[i]) + (i ? 3u : 0u);   /* " · " is three characters */
-    int used = snprintf(out, capacity, "%s \xc2\xb7 %s \xc2\xb7 Color %s", nav->display.scaling ? "Fill" : "Sharp", margins[margin], nav->display.colour ? "on" : "off");
-    if (count && length > (nav->layout == ORACLES_UI_LAYOUT_4_3 ? 23u : 12u)) {
+    /* A filter other than Off after the scaling, which takes its room from the extras: in 16:9 they are then neither named
+     * nor counted, the row keeping its two lines. */
+    const int filter = nav->display.filter > 0 && nav->display.filter < ORACLES_DISPLAY_FILTERS ? nav->display.filter : 0;
+    const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
+    char named[24] = "";
+    if (filter) snprintf(named, sizeof named, " \xc2\xb7 %s", oracles_display_filter_names[filter]);
+    int used = snprintf(out, capacity, "%s%s \xc2\xb7 %s \xc2\xb7 Color %s", nav->display.scaling ? "Fill" : "Sharp", named, margins[margin],
+                        nav->display.colour ? "on" : "off");
+    if (filter && !four_three) return;
+    const unsigned room = (four_three ? 23u : 12u) - (filter ? (unsigned)strlen(oracles_display_filter_names[filter]) + 3u : 0u);
+    if (count && length > room) {
         if (used >= 0 && (size_t)used < capacity) snprintf(out + used, capacity - (size_t)used, " \xc2\xb7 %u more", count);
         return;
     }
@@ -497,6 +506,60 @@ void oracles_display_diagram(const OraclesHomeNav *nav, float box_w, float box_h
              nav->display.screen_w, nav->display.screen_h);
 }
 
+const char *const oracles_display_filter_names[ORACLES_DISPLAY_FILTERS] = { "Off", "Scanlines", "CRT", "LCD", "Smooth", "xBR", "HQ2x", "OmniScale" };
+/* The scale from which each draws within the game's pixels: CRT's and LCD's grid takes three screen pixels a pixel. */
+const int oracles_display_filter_min_scale[ORACLES_DISPLAY_FILTERS] = { 0, 2, 3, 3, 0, 2, 2, 2 };
+const char oracles_display_filter_device_reason[] = "Not available on this device.";
+const char oracles_display_filter_size_reason[] = "Needs a larger picture: try a nearer view or Faithful.";
+
+const char *oracles_display_filter_explanation(int filter)
+{
+    static const char *const texts[ORACLES_DISPLAY_FILTERS] = {
+        "No filter: the game's own pixels.", "Dark lines between the rows, as on an old TV.", "The glow and lines of an old TV.",
+        "The grid of a Game Boy screen.", "Softens the pixels.", "Rounds diagonals and curves.", "Smooths edges, keeps the pixel look.", "Smooths edges at any size.",
+    };
+    return filter >= 0 && filter < ORACLES_DISPLAY_FILTERS ? texts[filter] : texts[0];
+}
+
+float oracles_display_filter_scale(const OraclesHomeNav *nav)
+{
+    if (nav->display.picture_scale > 0.0f) return nav->display.picture_scale;
+    if (nav->display.fullscreen_only && !nav->display.scaling) {
+        int w, h;
+        oracles_display_surface(nav, &w, &h);
+        const int m = nav->display.margin, lines = m >= 0 && m < ORACLES_DISPLAY_MARGINS ? nav->display.margin_lines[m] : 0;
+        const int room_h = lines > 0 && 2 * lines <= nav->display.screen_h ? nav->display.screen_h - lines : nav->display.screen_h;
+        return (float)whole_scale(nav->display.screen_w, room_h, w, h);
+    }
+    return oracles_display_band_scale(nav);
+}
+
+int oracles_display_filter_shader(int filter) { return filter > 0 && filter < ORACLES_DISPLAY_FILTERS && filter != ORACLES_DISPLAY_FILTER_SMOOTH; }
+
+const char *oracles_display_filter_reason(const OraclesHomeNav *nav, int filter)
+{
+    if (!oracles_display_filter_shader(filter)) return NULL;
+    if (nav->display.filters_basic || (nav->display.filters_refused >> filter & 1u)) return oracles_display_filter_device_reason;
+    return oracles_display_filter_scale(nav) < (float)oracles_display_filter_min_scale[filter] ? oracles_display_filter_size_reason : NULL;
+}
+
+int oracles_display_filter_shown(const OraclesHomeNav *nav)
+{
+    const int shown = nav->row == ORACLES_DISPLAY_FILTER && nav->picture_page ? nav->display.filter_shown : -1;
+    return shown >= 0 && shown < ORACLES_DISPLAY_FILTERS ? shown : nav->display.filter;
+}
+
+int oracles_display_filter_drawn(const OraclesHomeNav *nav)
+{
+    return oracles_display_filter_reason(nav, nav->display.filter) ? 0 : nav->display.filter;
+}
+
+const char *oracles_display_filter_note(const OraclesHomeNav *nav)
+{
+    const char *reason = oracles_display_filter_reason(nav, oracles_display_filter_shown(nav));
+    return reason ? reason : nav->in_game ? "Applies at once." : "";
+}
+
 const char *oracles_display_profile_note(const OraclesHomeNav *nav)
 {
     /* An image no profile recognises, which plays in Faithful. */
@@ -541,7 +604,7 @@ const char *oracles_display_explanation(unsigned row)
             return "Keeps the picture clear of screen edges a device hides. Auto follows what the system reports; Small and Large keep a fixed margin at "
                    "the top and bottom.";
         case ORACLES_DISPLAY_ADVANCED: return "Core, transitions, Vsync, workers, camera.";
-        case ORACLES_DISPLAY_PICTURE: return "Scaling, screen margin, colors, and the size of menus and scenes.";
+        case ORACLES_DISPLAY_PICTURE: return "Scaling, filter, screen margin, colors, and the size of menus and scenes.";
         case ORACLES_DISPLAY_MENUS:
             return "Large: menus, map, cutscenes and the file screen alone, at their own largest scale, easier to read on a small screen. View: "
                    "at the view's scale.";
@@ -559,18 +622,26 @@ const char *oracles_display_explanation(unsigned row)
 static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int value)
 {
     static const int counts[ORACLES_DISPLAY_ROWS] = { ORACLES_PROFILES, 0, 4, 3, 3, 0, 2, 0, 2, 2, 3, 3, 2, 2, ORACLES_DISPLAY_MARGINS,
-                                                      2, 2, ORACLES_DISPLAY_TEXT_SIZES, 2, 0, 2, 2, 2 };
+                                                      2, 2, ORACLES_DISPLAY_TEXT_SIZES, 2, 0, 2, 2, 2, ORACLES_DISPLAY_FILTERS };
     int profile = (int)nav->display.profile;
     int *fields[ORACLES_DISPLAY_ROWS] = { &profile, NULL, &nav->display.window, &nav->display.view, &nav->display.hud, NULL,
                                           &nav->display.colour, NULL, &nav->display.core, &nav->display.transitions, &nav->display.vsync,
                                           &nav->display.workers, &nav->display.scaling, NULL, &nav->display.margin,
                                           &nav->display.text, &nav->display.text_box, &nav->display.text_size, &nav->display.text_speed, NULL,
-                                          &nav->display.menus, &nav->display.far_fixed, &nav->display.unvisited };
+                                          &nav->display.menus, &nav->display.far_fixed, &nav->display.unvisited, &nav->display.filter };
     const int enhanced_only = row == ORACLES_DISPLAY_TRANSITIONS || row == ORACLES_DISPLAY_VIEW;
     if (row == ORACLES_DISPLAY_CAMERA) {   /* the shown value the platform's default until one is chosen, then written */
         value = (value % 2 + 2) % 2;
         if (!oracles_display_camera_applies(nav) || value == oracles_display_camera(nav)) return ORACLES_HOME_STAY;
         nav->display.camera = value;
+        return ORACLES_HOME_STORE;
+    }
+    if (row == ORACLES_DISPLAY_FILTER) {   /* a choice that cannot run here is shown, not kept */
+        value = (value % ORACLES_DISPLAY_FILTERS + ORACLES_DISPLAY_FILTERS) % ORACLES_DISPLAY_FILTERS;
+        if (oracles_display_filter_reason(nav, value)) { nav->display.filter_shown = value; return ORACLES_HOME_STAY; }
+        nav->display.filter_shown = -1;
+        if (value == nav->display.filter) return ORACLES_HOME_STAY;
+        nav->display.filter = value;
         return ORACLES_HOME_STORE;
     }
     const int text_row = row >= ORACLES_DISPLAY_LETTERS && row <= ORACLES_DISPLAY_TEXT_SPEED;
@@ -594,7 +665,7 @@ static int display_value(const OraclesHomeNav *nav, unsigned row)
                                                nav->display.colour, 0, nav->display.core, nav->display.transitions, nav->display.vsync, nav->display.workers,
                                                nav->display.scaling, oracles_display_camera(nav), nav->display.margin, nav->display.text, nav->display.text_box,
                                                nav->display.text_size, nav->display.text_speed, 0, nav->display.menus, nav->display.far_fixed,
-                                               nav->display.unvisited };
+                                               nav->display.unvisited, oracles_display_filter_shown(nav) };
     return row < ORACLES_DISPLAY_ROWS ? values[row] : 0;
 }
 
@@ -654,6 +725,7 @@ OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction ac
         case ORACLES_HOME_UP:
         case ORACLES_HOME_DOWN: {
             const unsigned step = action == ORACLES_HOME_UP ? count - 1u : 1u;
+            nav->display.filter_shown = -1;
             unsigned i = row_index(rows, count, row);
             do i = (i + step) % count; while (!oracles_display_row_shown(nav, rows[i]));
             nav->row = rows[i];
@@ -671,6 +743,7 @@ OraclesHomeCommand oracles_display_act(OraclesHomeNav *nav, OraclesHomeAction ac
             if (row == ORACLES_DISPLAY_QUALITY) return quality_step(nav, 1);
             return display_set(nav, row, display_step(nav, row, 1));
         case ORACLES_HOME_BACK:
+            nav->display.filter_shown = -1;
             if (nav->picture_page) { display_picture(nav, 0); return ORACLES_HOME_STAY; }
             if (nav->advanced) { display_advanced(nav, 0); return ORACLES_HOME_STAY; }
             if (nav->text_page) { display_text_page(nav, 0); return ORACLES_HOME_STAY; }
@@ -688,7 +761,9 @@ OraclesHomeCommand oracles_display_click(OraclesHomeNav *nav, unsigned row, int 
     if (row == ORACLES_DISPLAY_ADVANCED) { display_advanced(nav, 1); return ORACLES_HOME_STAY; }
     if (row == ORACLES_DISPLAY_PICTURE) { display_picture(nav, 1); return ORACLES_HOME_STAY; }
     if (row == ORACLES_DISPLAY_TEXT) { display_text_page(nav, 1); return ORACLES_HOME_STAY; }
+    if (row != nav->row) nav->display.filter_shown = -1;
     nav->row = row;
     if (option < 0) return ORACLES_HOME_STAY;
+    if (row == ORACLES_DISPLAY_FILTER) return display_set(nav, row, display_step(nav, row, option ? 1 : -1));   /* ‹ 0, › 1 */
     return row == ORACLES_DISPLAY_QUALITY ? quality_set(nav, option) : display_set(nav, row, option);
 }

@@ -1914,6 +1914,7 @@ static void display_navigation(void)
     nav.display.scaling = 0;
     /* The screen margin under it, Off, Auto, Small, Large, going round, by a key and by a click; in Faithful and from a game
      * too, where it applies at once. */
+    oracles_home_act(&nav, ORACLES_HOME_DOWN);   /* past Filter */
     oracles_home_act(&nav, ORACLES_HOME_DOWN);
     CHECK(nav.row == ORACLES_DISPLAY_MARGIN && nav.display.margin == 0 && !oracles_display_row_fixed(&nav, ORACLES_DISPLAY_MARGIN));
     CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STORE && nav.display.margin == 3);

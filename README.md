@@ -21,6 +21,7 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 - **Widescreen**: Enhanced shows the rooms around Link in the shape of your screen, at three distances, Near, Medium and Far; Faithful keeps the original picture, 160x144, exactly what the game draws.
 - **Easier to play**: item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped, continuous transitions (Link keeps walking as the screen scrolls), and cheats if you want them (no damage, ammo and rupees that never run out).
 - **Easier to read**: a compact text whose letters take their own width, a wider text box, a larger text for small screens, and instant text.
+- **[Filters](docs/PLAYING.md#display--picture)**: Scanlines, CRT, LCD (the grid of a Game Boy screen), Smooth, xBR, HQ2x or OmniScale over the game's picture, with a preview as you choose.
 - **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
 - **[RetroAchievements](docs/PLAYING.md#retroachievements)**, if you want them: log in with your account for achievements on Ages and Seasons' original ROMs, in casual mode, savestates included.
 - **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.

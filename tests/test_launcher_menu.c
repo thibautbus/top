@@ -4,8 +4,10 @@
  * from, which the key hints follow, kept from the home screen to the pause and back; the toast over the first game
  * started with a controller, shown once it was drawn. */
 #include "backends.h"
+#include "filter_preview.h"
 #include "home_input.h"
 #include "pause.h"
+#include "sdl_filter.h"
 #include "ui_draw.h"
 #include "ui_page_layout.h"
 #include "ui_controls_nav.h"
@@ -494,11 +496,201 @@ static void reminder(SDL_Renderer *renderer)
     oracles_ui_draw_destroy(draw);
 }
 
+/* Display › Picture's Filter changed from the pause: the renderer's users hear of it, the session's backend setting the
+ * game's presentation again, made again or not; the pause takes the window's renderer back and draws its menu in the
+ * window's pixels, never through the game's presentation, until it resumes. */
+typedef struct filter_pause {
+    SDL_Window *window;
+    OraclesUiDraw *draw;
+    int step, changes, paints, enlarged, stale;
+    const char *filters[2];
+} filter_pause;
+
+static const SDL_Keycode filter_keys[] = { SDLK_DOWN, SDLK_DOWN, SDLK_DOWN, SDLK_DOWN, SDLK_RETURN, SDLK_DOWN, SDLK_DOWN, SDLK_DOWN, SDLK_DOWN,
+                                           SDLK_DOWN, SDLK_DOWN, SDLK_RETURN, SDLK_DOWN, SDLK_RIGHT, SDLK_RIGHT, SDLK_RIGHT,
+                                           SDLK_RIGHT, SDLK_LEFT, SDLK_LEFT, SDLK_LEFT, SDLK_LEFT, SDLK_ESCAPE, SDLK_ESCAPE,
+                                           SDLK_ESCAPE };
+
+/* Each drawing of the game's image: the presentation the menu draws through, then the next key. */
+static int filter_paint(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image)
+{
+    (void)image;
+    filter_pause *f = opaque;
+    int w = 0, h = 0;
+    SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_DISABLED;
+    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    f->paints++;
+    if (mode != SDL_LOGICAL_PRESENTATION_DISABLED) f->enlarged++;
+    if (renderer != SDL_GetRenderer(f->window)) f->stale++;
+    if (f->step < (int)(sizeof filter_keys / sizeof filter_keys[0])) {
+        SDL_Event e;
+        SDL_zero(e);
+        e.type = SDL_EVENT_KEY_DOWN;
+        e.key.key = filter_keys[f->step++];
+        SDL_PushEvent(&e);
+    }
+    return 1;
+}
+
+static int filter_changed(void *opaque)
+{
+    filter_pause *f = opaque;
+    oracles_sdl_renderer_swap(SDL_GetRenderer(f->window), f->filters[f->changes++ % 2]);
+    return 0;
+}
+
+static void filter_heard(void *opaque, SDL_Renderer *renderer) { oracles_ui_draw_rebind(((filter_pause *)opaque)->draw, renderer); }
+
+static void filter_from_pause(int remade)
+{
+    SDL_Window *window = SDL_CreateWindow("filter", 1280, 720, 0);
+    SDL_Renderer *renderer = window ? SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER) : NULL;
+    oracles_host_backend backend;
+    OraclesUiDraw *draw = renderer ? oracles_ui_draw_create(renderer) : NULL;
+    if (!draw || !menu_session(&backend, window, renderer, 1, NULL, NULL)) { CHECK(0); return; }
+    filter_pause f = { window, draw, 0, 0, 0, 0, 0, { "smooth", "off" } };
+    oracles_sdl_filters_refused();   /* Scanlines, CRT and LCD stepped over as the device's, whatever the video driver */
+    oracles_sdl_renderer_listen(filter_heard, &f);
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    OraclesPause *pause = oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, 0, 0, &nav);
+    OraclesPauseSession session;
+    memset(&session, 0, sizeof session);
+    session.opaque = &f;
+    session.game_image = filter_paint;
+    session.settings_changed = filter_changed;
+    session.device = -1;
+    session.window = -1;
+    SDL_Texture *frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 160, 144);
+    /* A change of renderer, which ORACLES_RENDERER=gpu asks for whatever the filter: the GPU renderer, or where none
+     * can be made (SDL's dummy video), the usual one made again. */
+    if (remade) SDL_setenv_unsafe("ORACLES_RENDERER", "gpu", 1);
+    const unsigned remade_before = oracles_sdl_filter_changes(1);
+    CHECK(pause && oracles_pause_run(pause, window, renderer, frame, 160, 144, &session) == ORACLES_PAUSE_RESUME);
+    if (remade) SDL_unsetenv_unsafe("ORACLES_RENDERER");
+    CHECK(f.changes == 2 && f.step == (int)(sizeof filter_keys / sizeof filter_keys[0]));
+    CHECK(remade ? oracles_sdl_filter_changes(1) > remade_before : oracles_sdl_filter_changes(1) == remade_before);
+    CHECK(f.paints > 3 && f.enlarged == 0 && f.stale == 0);
+    oracles_sdl_renderer_unlisten(&f);
+    oracles_pause_destroy(pause);
+    if (frame && !remade) SDL_DestroyTexture(frame);
+    menu_end(&backend);
+    oracles_ui_draw_destroy(draw);
+    oracles_sdl_filter_forget(SDL_GetRenderer(window));
+    SDL_DestroyRenderer(SDL_GetRenderer(window));
+    oracles_sdl_gpu_device_release();
+    SDL_DestroyWindow(window);
+}
+
+/* A shader filter chosen where the GPU renderer cannot be made (SDL's dummy video has no Vulkan window): the usual
+ * renderer made again draws the filter before, which is chosen again, and a shader filter chosen after it on the same
+ * renderer is taken back too; from a shader filter kept from the start, which that renderer cannot draw either, to none. */
+static void filter_taken_back(void)
+{
+    SDL_Window *window = SDL_CreateWindow("taken back", 640, 480, 0);
+    SDL_Renderer *renderer = window ? SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER) : NULL;
+    if (!renderer) { CHECK(0); return; }
+    oracles_sdl_filter_start("smooth");
+    const unsigned remade = oracles_sdl_filter_changes(1);
+    renderer = oracles_sdl_renderer_swap(renderer, "scanlines");
+    CHECK(renderer && renderer == SDL_GetRenderer(window));
+    CHECK(oracles_sdl_filter_changes(1) == remade + 1);
+    CHECK(!strcmp(oracles_sdl_filter_name(), "smooth") && oracles_sdl_filter_index() == ORACLES_DISPLAY_FILTER_SMOOTH);
+    CHECK(!oracles_sdl_filters_runnable());
+    CHECK(renderer && !oracles_sdl_filter_open(renderer));
+    CHECK(oracles_sdl_filter_kept());
+    renderer = oracles_sdl_renderer_swap(renderer, "crt");
+    CHECK(renderer && oracles_sdl_filter_changes(1) == remade + 1);
+    CHECK(!strcmp(oracles_sdl_filter_name(), "smooth") && oracles_sdl_filter_kept());
+    oracles_sdl_filter_start("scanlines");
+    renderer = oracles_sdl_renderer_swap(renderer, "crt");
+    CHECK(renderer && !strcmp(oracles_sdl_filter_name(), "off") && !oracles_sdl_filter_kept());
+    renderer = oracles_sdl_renderer_swap(renderer, "off");
+    CHECK(renderer && !strcmp(oracles_sdl_filter_name(), "off"));
+    if (renderer) {
+        oracles_sdl_filter_forget(renderer);
+        SDL_DestroyRenderer(renderer);
+    }
+    oracles_sdl_gpu_device_release();
+    SDL_DestroyWindow(window);
+}
+
+/* A GPU renderer refused where the device was made: the shader filters say they cannot run from then on.  SDL's
+ * offscreen video, which has Vulkan where the system does (lavapipe); skipped where no device can be made. */
+static void filters_refused(void)
+{
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("filters refused: no offscreen video, skipped\n"); return; }
+    SDL_Renderer *renderer = oracles_sdl_gpu_renderer(NULL, 0);
+    if (!renderer) printf("filters refused: no GPU device here (%s), skipped\n", SDL_GetError());
+    else {
+        CHECK(oracles_sdl_filters_runnable());
+        oracles_sdl_filters_refused();
+        CHECK(!oracles_sdl_filters_runnable());
+        SDL_DestroyRenderer(renderer);
+    }
+    oracles_sdl_gpu_device_release();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
+/* The previews of Display › Picture's Filter take the filter drawn: Smooth sampled bilinearly, the others at the nearest
+ * texel; the pause's game image through the shader for a shader filter alone, never for Off or Smooth. */
+static int inset_filtered;
+
+static int record_inset(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image, int filtered)
+{
+    (void)opaque;
+    (void)renderer;
+    (void)image;
+    inset_filtered = filtered;
+    return 1;
+}
+
+static void filter_previews(SDL_Renderer *renderer)
+{
+    OraclesUiDraw *draw = oracles_ui_draw_create(renderer);
+    SDL_Texture *frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 160, 144);
+    if (!draw || !frame) { CHECK(0); return; }
+    const SDL_FRect box = { 100.0f, 100.0f, 480.0f, 432.0f };
+    for (int f = 0; f < ORACLES_DISPLAY_FILTERS; f++) {
+        SDL_Texture *picture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 160, 144);
+        OraclesFilterPreview preview = { renderer, picture, 160, 144, f };
+        oracles_filter_preview_draw(&preview, renderer, &box);
+        SDL_ScaleMode mode = SDL_SCALEMODE_INVALID;
+        CHECK(picture && SDL_GetTextureScaleMode(picture, &mode) && mode == (f == ORACLES_DISPLAY_FILTER_SMOOTH ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST));
+        oracles_filter_preview_forget(&preview);
+    }
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[0].usable = 1;
+    nav.games[0].rom = ORACLES_ROM_ORIGINAL;
+    nav.screen = ORACLES_SCREEN_DISPLAY;
+    nav.display.profile = nav.playing = ORACLES_PROFILE_ENHANCED;
+    nav.in_game = nav.picture_page = 1;
+    nav.row = ORACLES_DISPLAY_FILTER;
+    nav.display.picture_scale = 3.0f;
+    OraclesPauseSession session;
+    memset(&session, 0, sizeof session);
+    session.game_inset = record_inset;
+    for (int f = 0; f < ORACLES_DISPLAY_FILTERS; f++) {
+        nav.display.filter = f;
+        OraclesUiHome view;
+        oracles_ui_home_start(&view, &nav);
+        inset_filtered = -1;
+        oracles_pause_paint(draw, renderer, frame, 160, 144, 0, 1280, 720, &view, &nav, 0.0, &session);
+        CHECK(inset_filtered == oracles_display_filter_shader(f));
+    }
+    CHECK(oracles_display_filter_shader(1) && !oracles_display_filter_shader(ORACLES_DISPLAY_FILTER_SMOOTH) && !oracles_display_filter_shader(0));
+    SDL_DestroyTexture(frame);
+    oracles_ui_draw_destroy(draw);
+}
+
 int main(void)
 {
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) { fprintf(stderr, "SDL_Init: %s\n", SDL_GetError()); return 1; }
+    filter_taken_back();   /* first: the GPU filters not yet asked about, its window gone before the menus' */
     SDL_Window *window = SDL_CreateWindow("home", 1280, 720, SDL_WINDOW_RESIZABLE);
     SDL_Renderer *renderer = window ? SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER) : NULL;
     if (!renderer) { fprintf(stderr, "window: %s\n", SDL_GetError()); return 1; }
@@ -509,8 +701,13 @@ int main(void)
     input_devices();
     device_kept(renderer);
     reminder(renderer);
+    filter_previews(renderer);
+    filter_from_pause(0);
+    filter_from_pause(1);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_Quit();
+    filters_refused();
     SDL_Quit();
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
     printf("oracles-launcher-menu: ok\n");

@@ -24,6 +24,8 @@
  * file is written with every setting so that it can be edited.  An option on
  * the command line holds for its run alone: the file changes when
  * it is edited, by Display and Controls, and by F2 in game. */
+#include "filter_preview.h"
+#include "sdl_filter.h"
 #include "backends.h"
 #include "home.h"
 #include "home_choices.h"
@@ -316,6 +318,9 @@ static void load_settings(oracles_settings *prefs, const OraclesSessionOptions *
 #endif
     }
     oracles_settings_load(prefs);
+    oracles_sdl_log_start();
+    oracles_sdl_filter_start(oracles_settings_filter_names[prefs->filter]);
+    oracles_filter_preview_files(prefs);
     oracles_home_resolve_menu_pad(prefs);
     /* A first opening takes the device's quality: what weighs on it set for it, Display's Quality to change. */
     if (prefs->first_run) {

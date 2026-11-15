@@ -1,3 +1,4 @@
+#include "filter_preview.h"
 #include "home_games.h"
 
 #include "home_choices.h"
@@ -522,6 +523,7 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
     OraclesHomeGames *games = opaque;
     nav->fan_languages = games->fan_languages;
     oracles_home_inspect_display(games->settings, &nav->display, window);
+    oracles_filter_preview_title(nav->display.last_picture, sizeof nav->display.last_picture);   /* Filter's preview: the last game's name */
     nav->display.margin = oracles_session_screen_margin(games->options ? games->options->screen_margin : 0, games->settings);   /* --screen-margin's, for the run */
     nav->display.margin_fixed = games->options && games->options->screen_margin;
     if (games->options && games->options->compact_text) {   /* --text's, for every game the home screen starts */
@@ -876,6 +878,7 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
                                 : game == ORACLES_HOME_START_SEASONS || game == ORACLES_HOME_START_SEASONS_MODS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES;
     const char *name = fan ? fan_title(fan) : oracles_game_name(game_of(g));
     OraclesSessionOptions o = *games->options;
+    o.last_picture = name;
     o.rom_path = games->settings->rom[g];
     if (fan && fan->joined) o.rom_path = fan_base(games, fan, &o.joined_path);
     o.patch_path = fan ? games->settings->patch[fan_index(fan)] : NULL;

@@ -42,6 +42,61 @@ float oracles_ui_display_row(float x, float y, float w, const char *label, float
     return label_h > row->h ? label_h : row->h;
 }
 
+/* Display › Picture's Filter: its value framed from (x, y), an arrow's place either side of its name and of the eight
+ * marks under it, all centred in it; 16:9's measures or 4:3's. */
+typedef struct FilterStep {
+    const OraclesUiTextStyle *style;
+    float name_line, border, pad_x, pad_y, min_h, gap, arrow_w, arrow_h, triangle_w, triangle_h, middle_w, name_gap, marks_h, mark, mark_gap;
+} FilterStep;
+static const FilterStep step_16_9 = { &oracles_ui_choice, 0.0f, 1.0f, 4.0f, 3.0f, 0.0f, 2.0f, 32.0f, 50.0f, 9.0f, 12.0f, 132.0f, 2.0f, 14.0f, 8.0f, 5.0f };
+static const FilterStep step_4_3 = { &oracles_ui_row_button_4_3, OPTION_NAME_LINE_4_3, 2.0f, 6.0f, 4.0f, OPTION_MIN_H_4_3, 2.0f, 48.0f, 76.0f, 13.0f, 18.0f,
+                                     190.0f, 4.0f, 20.0f, 12.0f, 8.0f };
+
+static void filter_step(const FilterStep *k, const char *name, float x, float y, OraclesUiDisplayLayout *out)
+{
+    out->filter_name = pl_line_at(k->style, name, 0.0f, 0.0f, k->name_line);
+    const float middle_w = pl_max_f(k->middle_w, out->filter_name.w), middle_h = out->filter_name.h + k->name_gap + k->marks_h;
+    const float w = 2.0f * (k->border + k->pad_x + k->arrow_w + k->gap) + middle_w;
+    const float h = pl_max_f(k->min_h, pl_max_f(k->arrow_h, middle_h) + 2.0f * (k->border + k->pad_y));
+    out->filter_value = pl_box(x, y, w, h);
+    const float centre = y + h * 0.5f, left = x + k->border + k->pad_x, middle_x = left + k->arrow_w + k->gap;
+    out->filter_prev = pl_box(left, centre - k->arrow_h * 0.5f, k->arrow_w, k->arrow_h);
+    out->filter_next = pl_box(middle_x + middle_w + k->gap, centre - k->arrow_h * 0.5f, k->arrow_w, k->arrow_h);
+    out->filter_prev_arrow = pl_box(left + (k->arrow_w - k->triangle_w) * 0.5f, centre - k->triangle_h * 0.5f, k->triangle_w, k->triangle_h);
+    out->filter_next_arrow = pl_box(out->filter_next.x + (k->arrow_w - k->triangle_w) * 0.5f, centre - k->triangle_h * 0.5f, k->triangle_w, k->triangle_h);
+    const float top = centre - middle_h * 0.5f;
+    pl_move_line(&out->filter_name, middle_x + (middle_w - out->filter_name.w) * 0.5f, top);
+    const float marks_w = (float)ORACLES_DISPLAY_FILTERS * k->mark + (float)(ORACLES_DISPLAY_FILTERS - 1) * k->mark_gap;
+    const float mark_y = top + out->filter_name.h + k->name_gap + (k->marks_h - k->mark) * 0.5f;
+    for (int i = 0; i < ORACLES_DISPLAY_FILTERS; i++)
+        out->filter_marks[i] = pl_box(middle_x + (middle_w - marks_w) * 0.5f + (float)i * (k->mark + k->mark_gap), mark_y, k->mark, k->mark);
+}
+
+/* 16:9's Filter row: its explanation, two lines kept, and its note beside the value at the row's right.  Returns the
+ * row's height. */
+static float filter_row_16_9(const OraclesUiDisplayTexts *t, float x, float y, float w, float label_x, OraclesUiDisplayLayout *out)
+{
+    const unsigned r = ORACLES_DISPLAY_FILTER;
+    oracles_ui_wrap(&oracles_ui_row_label, oracles_display_labels[r], DISPLAY_LABEL_W, label_x, y + LABEL_PAD_TOP, &out->labels[r]);
+    const float inner_x = x + ROW_PAD_X, inner_y = y + DISPLAY_ROW_PAD_Y, right = x + w - ROW_PAD_X;
+    const char *name = oracles_display_filter_names[t->filter];
+    filter_step(&step_16_9, name, 0.0f, 0.0f, out);
+    const float step_w = out->filter_value.w, step_h = out->filter_value.h;
+    oracles_ui_wrap(&oracles_ui_row_text, t->filter_explanation, right - inner_x - ROW_GAP - step_w, inner_x, inner_y, &out->filter_explanation);
+    const float reserved = pl_max_f(out->filter_explanation.h, ADVANCED_EXPLANATION_H);
+    float text_h = reserved;
+    if (t->filter_note && t->filter_note[0]) {
+        out->filter_note = pl_line_at(&oracles_ui_row_note, t->filter_note, inner_x, 0.0f, 0.0f);
+        text_h += NOTE_GAP + out->filter_note.h;
+    }
+    const float inner_h = pl_max_f(text_h, step_h);
+    pl_move_wrapped(&out->filter_explanation, inner_y + (inner_h - text_h) * 0.5f);
+    if (out->filter_note.h > 0.0f) pl_move_line(&out->filter_note, inner_x, out->filter_explanation.lines[0].y + reserved + NOTE_GAP);
+    filter_step(&step_16_9, name, right - step_w, inner_y + (inner_h - step_h) * 0.5f, out);
+    out->rows[r] = pl_box(x, y, w, inner_h + 2.0f * DISPLAY_ROW_PAD_Y);
+    return pl_max_f(LABEL_PAD_TOP + out->labels[r].h, out->rows[r].h);
+}
+
 static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *out)
 {
     pl_page_head_16_9(t->section ? t->section : "Display", t->over, t->title, NULL, &out->head);
@@ -65,6 +120,12 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
         return;
     }
     out->link = t->advanced || t->picture ? ORACLES_DISPLAY_ROWS : ORACLES_DISPLAY_ADVANCED;
+    /* While Filter has the focus, the preview and its caption in the diagram's place, which goes with its lines. */
+    if (t->filter_preview) {
+        out->filter_preview = pl_box(HEAD_X, head_bottom + DIAGRAM_MARGIN, ORACLES_UI_FILTER_PREVIEW_W, ORACLES_UI_FILTER_PREVIEW_H);
+        oracles_ui_wrap(&oracles_ui_diagram_label, t->filter_caption, HEAD_W, HEAD_X, out->filter_preview.y + out->filter_preview.h + DIAGRAM_LABEL_GAP,
+                        &out->filter_caption);
+    }
     out->diagram = pl_box(HEAD_X, head_bottom + DIAGRAM_MARGIN, diagram_w, ORACLES_UI_DIAGRAM_H);
     /* A window as wide as the screen (Fill) stays inside the box's border across, over it top and bottom. */
     const float window_w = t->diagram_w < diagram_w - 2.0f * DIAGRAM_BORDER ? t->diagram_w : diagram_w - 2.0f * DIAGRAM_BORDER;
@@ -102,6 +163,7 @@ static void display_16_9(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout 
         y += oracles_ui_display_row(value_x, y, value_w, oracles_display_labels[ORACLES_DISPLAY_SCALING], left, t->explanations[5], ADVANCED_EXPLANATION_H,
                          scaling_notes, 1, oracles_display_scaling_choices, scaling_sizes, 2, &out->labels[ORACLES_DISPLAY_SCALING], &out->explanations[5],
                          scaling_out, out->scaling, &out->rows[ORACLES_DISPLAY_SCALING]) + DISPLAY_ROW_GAP;
+        y += filter_row_16_9(t, value_x, y, value_w, left, out) + DISPLAY_ROW_GAP;
         /* Screen margin: its explanation too long beside four choices, they stand above it from the row's left, as
          * Quality's do, the explanation under them on the row's width, two lines kept. */
         oracles_ui_wrap(&oracles_ui_row_label, oracles_display_labels[ORACLES_DISPLAY_MARGIN], DISPLAY_LABEL_W, left, y + LABEL_PAD_TOP,
@@ -338,6 +400,17 @@ static void display_4_3(const OraclesUiDisplayTexts *t, OraclesUiDisplayLayout *
         const char *scaling_sizes[2];
         for (int i = 0; i < 2; i++) scaling_sizes[i] = t->scaling_sizes[i];
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_SCALING, oracles_display_scaling_choices, scaling_sizes, NULL, 2, out->scaling, out) + DISPLAY_ROW_GAP_4_3;
+        filter_step(&step_4_3, oracles_display_filter_names[t->filter], 0.0f, 0.0f, out);
+        const float filter_top = oracles_ui_display_row_4_3(y, oracles_display_labels[ORACLES_DISPLAY_FILTER], out->filter_value.h,
+                                                            &out->labels[ORACLES_DISPLAY_FILTER], &out->rows[ORACLES_DISPLAY_FILTER]);
+        filter_step(&step_4_3, oracles_display_filter_names[t->filter], DISPLAY_VALUE_X_4_3, filter_top, out);
+        y = out->rows[ORACLES_DISPLAY_FILTER].y + out->rows[ORACLES_DISPLAY_FILTER].h + DISPLAY_ROW_GAP_4_3;
+        /* While Filter has the focus, the preview right of the rows, under Filter, where they have no choices. */
+        if (t->filter_preview) {
+            out->filter_preview = pl_box(FILTER_PREVIEW_X_4_3, FILTER_PREVIEW_Y_4_3, ORACLES_UI_FILTER_PREVIEW_W_4_3, ORACLES_UI_FILTER_PREVIEW_H_4_3);
+            pl_wrap_pretty_lines(&oracles_ui_diagram_label_4_3, t->filter_caption, ORACLES_UI_FILTER_PREVIEW_W_4_3, FILTER_PREVIEW_X_4_3,
+                                 out->filter_preview.y + out->filter_preview.h + FILTER_CAPTION_GAP_4_3, FILTER_CAPTION_LINE_4_3, &out->filter_caption);
+        }
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_MARGIN, oracles_display_margin_choices, NULL, NULL, ORACLES_DISPLAY_MARGINS, out->margin, out)
             + DISPLAY_ROW_GAP_4_3;
         y = oracles_ui_display_options_row_4_3(y, ORACLES_DISPLAY_COLOUR, oracles_display_colour_choices, NULL, NULL, 2, out->colour, out) + DISPLAY_ROW_GAP_4_3;
@@ -443,6 +516,14 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
     }
     if (nav->text_page) oracles_display_text_preview(nav, &t->preview);
     for (int s = 0; s < 2; s++) oracles_display_scaling_size(nav, s, t->scaling_sizes[s], sizeof t->scaling_sizes[s]);
+    t->filter = oracles_display_filter_shown(nav);
+    t->filter_ok = !oracles_display_filter_reason(nav, t->filter);
+    t->filter_explanation = oracles_display_filter_explanation(t->filter);
+    t->filter_note = oracles_display_filter_note(nav);
+    t->filter_preview = nav->picture_page && nav->row == ORACLES_DISPLAY_FILTER;
+    if (nav->in_game) snprintf(t->filter_caption, sizeof t->filter_caption, "Your game, as it resumes");
+    else if (nav->display.last_picture[0]) snprintf(t->filter_caption, sizeof t->filter_caption, "%s, where you left it", nav->display.last_picture);
+    else snprintf(t->filter_caption, sizeof t->filter_caption, "Sample picture: play to see your own.");
     t->view_explanation = oracles_display_explanation(ORACLES_DISPLAY_VIEW);
     for (int i = 0; i < 3; i++) oracles_display_workers_choice(nav, i, t->workers_names[i], sizeof t->workers_names[i]);
     for (int p = 0; p < ORACLES_PROFILES; p++) oracles_profile_size(nav, p, t->profile_sizes[p], sizeof t->profile_sizes[p]);
@@ -464,8 +545,8 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         "Wide layout: hearts left, items right.", NULL, NULL, "Core, transitions, Vsync, workers, camera.",
         "Accurate: the reference. Fast: lighter.", "Rooms scroll into one another, swimming too.", VSYNC_SHORT, "Two fill the view faster, on one more core.",
         "Sharp: exact pixels. Fill: the whole screen.", "Smooth: diagonal walks glide.", "Keeps the picture clear of hidden screen edges.", NULL, NULL,
-        NULL, NULL, "Scaling, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
-        "Fitted: a Far made for this screen.", "Hidden: rooms you never entered stay dark.",
+        NULL, NULL, "Scaling, filter, margin, colors, menus and scenes.", "Large: menus and scenes at their largest scale.",
+        "Fitted: a Far made for this screen.", "Hidden: rooms you never entered stay dark.", NULL,
     };
     const unsigned row = nav->row < ORACLES_DISPLAY_ROWS ? nav->row : ORACLES_DISPLAY_PROFILE;
     t->help = row == ORACLES_DISPLAY_COLOUR ? oracles_display_colour_explanation(nav, 1) : help_4_3[row];
@@ -504,6 +585,10 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
         case ORACLES_DISPLAY_CORE: t->help_note = oracles_ui_core_note; break;
         case ORACLES_DISPLAY_SCALING: t->help_note = oracles_ui_scaling_note; break;
         case ORACLES_DISPLAY_CAMERA: t->help_note = t->camera_note; break;
+        case ORACLES_DISPLAY_FILTER:
+            t->help = t->filter_explanation;
+            if (t->filter_note[0]) t->help_note = t->filter_note;
+            break;
         case ORACLES_DISPLAY_MENUS:
         case ORACLES_DISPLAY_FAR_SIZE:
         case ORACLES_DISPLAY_UNVISITED: {

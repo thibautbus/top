@@ -172,6 +172,10 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define DISPLAY_PAGE_NOTE_LINE_4_3 33.0f       /* Display's note from a game, under the title */
 #define DIAGRAM_RIGHT_4_3 (1440.0f - 64.0f)
 #define DIAGRAM_H_4_3 122.0f
+#define FILTER_PREVIEW_X_4_3 1000.0f     /* the filter's preview, right of the rows, under Filter */
+#define FILTER_PREVIEW_Y_4_3 420.0f
+#define FILTER_CAPTION_GAP_4_3 8.0f
+#define FILTER_CAPTION_LINE_4_3 34.0f
 #define MODS_LABEL_PAD_4_3 34.0f
 #define MODS_ROW_PAD_Y_4_3 10.0f
 #define MODS_ROW_GAP_4_3 6.0f

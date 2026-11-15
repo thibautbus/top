@@ -150,7 +150,13 @@ int oracles_settings_subpixel_camera(const oracles_settings *s, unsigned scale)
 }
 
 const char *const oracles_settings_aspect_names[3] = { "auto", "16:9", "4:3" };   /* ORACLES_ASPECT_AUTO's order */
+const char *const oracles_settings_filter_names[8] = { "off", "scanlines", "crt", "lcd", "smooth", "xbr", "hq2x", "omniscale" };
 const char *const oracles_settings_hud_names[3] = { "original", "full", "wide" };
+int oracles_settings_filter_index(const char *name)
+{
+    for (int f = 1; f < 8; f++) if (name && !strcmp(name, oracles_settings_filter_names[f])) return f;
+    return 0;
+}
 /* The launcher window at its first opening. */
 #define LAUNCHER_WIDTH 1280
 #define LAUNCHER_HEIGHT 720
@@ -310,6 +316,11 @@ void oracles_settings_achievements_path(const oracles_settings *s, const char *n
     beside(s, name, out, capacity);
 }
 
+void oracles_settings_last_picture(const oracles_settings *s, int title, char *out, size_t capacity)
+{
+    beside(s, title ? "last-picture.txt" : "last-picture.png", out, capacity);
+}
+
 void oracles_settings_language_pack(const oracles_settings *s, OraclesSettingsGame g, char *out, size_t capacity)
 {
     char name[32];
@@ -390,6 +401,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->launcher_height = LAUNCHER_HEIGHT;
     s->window_scale = 0;   /* fullscreen; --rom keeps its own scale, 4 */
     s->scaling_fill = 0;   /* sharp, Android included */
+    s->filter = 0;   /* off */
     s->screen_margin = ORACLES_SCREEN_MARGIN_OFF;
     s->touch_vibration = 1;
     s->quality_hint = -1;
@@ -398,7 +410,7 @@ void oracles_settings_defaults(oracles_settings *s)
     s->first_run = 0;
 }
 
-/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `screen_margin=`, `touch_vibration=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
+/* `rom_<game>=`, `patch_<fan game>=`, `eu_rom_<game>=`, `language_<game>=`, `language_<fan game>=`, `profile=`, `transitions=`, `swim_hold=`, `text=`, `text_box=`, `text_size=`, `text_speed=`, `view=`, `aspect=`, `far=`, `unvisited_rooms=`, `ghosts=`, `menus=`, `hud=`, `core=`, `item_hotkeys_<game>=`, `mods_<game>=`, `cheats_<game>=`, `cheats_<fan game>=`, `window_scale=`, `scaling=`, `filter=`, `screen_margin=`, `touch_vibration=`, `quality_hint=`, `menu_tip=`, `hotkeys_tip=`, `menu_toast=`, `update_check=` and `launcher_window=`: 1 when the
  * line was one of them.  `value` is the line's after its =, without the spaces around it (the paths'), `word` the same in lower
  * case (the other keys'): `update_check = OFF` reads as update_check=off.  A value the launcher does not know leaves the
  * key's default. */
@@ -537,6 +549,10 @@ static int load_launcher(oracles_settings *s, const char *name, const char *valu
     }
     if (!strcmp(name, "scaling")) {
         if (!strcmp(word, "sharp") || !strcmp(word, "fill")) s->scaling_fill = !strcmp(word, "fill");
+        return 1;
+    }
+    if (!strcmp(name, "filter")) {
+        s->filter = oracles_settings_filter_index(word);   /* unknown: off */
         return 1;
     }
     if (!strcmp(name, "screen_margin")) {
@@ -814,6 +830,9 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "# The game in fullscreen: sharp (its largest whole scale, every pixel exact) or fill (the whole screen in its\n"
                "# proportions, sampled for pixel art); a window keeps its whole scales.\n");
     put(&w, "scaling=%s\n", s->scaling_fill ? "fill" : "sharp");
+    put(&w, "# Display's Filter, the game's picture drawn through it: off, scanlines, crt, lcd, smooth (bilinear), xbr, hq2x\n"
+               "# or omniscale; smooth draws with the usual renderer, the others with the GPU renderer (Vulkan, or Metal on macOS).\n");
+    put(&w, "filter=%s\n", oracles_settings_filter_names[s->filter >= 0 && s->filter < 8 ? s->filter : 0]);
     put(&w, "# The band of the screen the game and the launcher keep to: off (the whole screen), auto (clear of a notch or a\n"
                "# curved edge Android reports above or below), small or large (24 or 48 dp clear at the top and at the bottom,\n"
                "# for a screen whose edges hide part of the picture, auto's too where it is larger).\n");

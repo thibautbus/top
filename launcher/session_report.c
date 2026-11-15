@@ -1,6 +1,8 @@
 /* A game session's end (session.h): its screenshot, its save written a last time, and the report of its frames on the
  * standard error. */
 #include "session_internal.h"
+#include "filter_preview.h"
+#include "sdl_filter.h"
 
 #include "home_choices.h"
 #include "view.h"
@@ -82,6 +84,12 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o)
         const uint32_t *pixels = s->view ? oracles_enhanced_view_surface(s->view) : oracles_core_pixels(s->core);
         const int ok = write_screenshot(o->screenshot, oracles_mod_session_screen(s->mod, pixels, width, height), width, height);
         if (!ok) fprintf(stderr, "oracles: cannot write %s\n", o->screenshot);
+    }
+    if (o->last_picture && s->ran && s->frames_presented) {
+        const uint32_t width = s->view ? oracles_enhanced_view_width(s->view) : ORACLES_SCREEN_WIDTH;
+        const uint32_t height = s->view ? oracles_enhanced_view_height(s->view) : ORACLES_SCREEN_HEIGHT;
+        const uint32_t *pixels = s->view ? oracles_enhanced_view_surface(s->view) : oracles_core_pixels(s->core);
+        oracles_filter_preview_keep(o->last_picture, oracles_mod_session_screen(s->mod, pixels, width, height), width, height, width * sizeof(uint32_t));
     }
     if (s->check) { if (s->ran) oracles_frame_check_report(s->check, stderr); oracles_frame_check_stop(s->check); }
     if (s->transition) {
@@ -174,6 +182,8 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o)
         oracles_sdl_backend_present_steps(&s->backend, step_average, step_max);
         fprintf(stderr, "oracles: presentation by step: texture upload %.2f ms, drawing %.2f ms, SDL_RenderPresent %.2f ms on average; at most %.2f, %.2f and %.2f ms\n",
                 step_average[0], step_average[1], step_average[2], step_max[0], step_max[1], step_max[2]);
+        fprintf(stderr, "oracles: filter %s at the end; %u filter changes, %u of them making the renderer again, since the start\n", oracles_sdl_filter_name(),
+                oracles_sdl_filter_changes(0), oracles_sdl_filter_changes(1));
         int fill = 0, filled = 0;
         oracles_sdl_backend_scaling(&s->backend, &fill, &filled);
         fprintf(stderr, "oracles: scaling %s: %s\n", fill ? "fill" : "sharp",

@@ -133,6 +133,7 @@ unsigned oracles_session_settings_changed(const oracles_settings *settings, int 
     const int vsync = !strcmp(settings->vsync, "on") ? 1 : !strcmp(settings->vsync, "off") ? 2 : 0;
     if (vsync != applied->vsync) { applied->vsync = vsync; changed |= ORACLES_SESSION_CHANGED_VSYNC; }
     if (applied->menus_large >= 0 && settings->menus_large != applied->menus_large) { applied->menus_large = settings->menus_large; changed |= ORACLES_SESSION_CHANGED_MENUS; }
+    if (settings->filter != applied->filter) { applied->filter = settings->filter; changed |= ORACLES_SESSION_CHANGED_FILTER; }
     if (applied->unvisited_hidden >= 0 && settings->unvisited_hidden != applied->unvisited_hidden) {
         applied->unvisited_hidden = settings->unvisited_hidden;
         changed |= ORACLES_SESSION_CHANGED_UNVISITED;

@@ -16,6 +16,7 @@
 #include "state_display.h"
 #include "core.h"
 #include "room_transition.h"
+#include "sdl_filter.h"
 #include "ui_controls_nav.h"
 #include "ui_page_nav.h"
 #include "ui_page_text.h"
@@ -397,6 +398,13 @@ static void display_stored(void)
     CHECK(s.screen_margin == ORACLES_SCREEN_MARGIN_LARGE && s.ghosts != 2);
     oracles_home_store_display(&display, 0, &s);
     CHECK(s.ghosts == 2);
+    /* Filter: from the settings, the choice shown being the kept one; stored from the pause too. */
+    s.filter = 3;
+    oracles_home_inspect_display(&s, &display, NULL);
+    CHECK(display.filter == 3 && display.filter_shown == -1);
+    display.filter = 5;
+    oracles_home_store_display(&display, 1, &s);
+    CHECK(s.filter == 5);
     /* The text is stored from the pause too, for the next Play, but never --text's. */
     CHECK(display.text == 0 && !display.text_fixed);
     display.text = 1;
@@ -472,7 +480,7 @@ static void pause_changes(void)
 {
     oracles_settings s;
     oracles_settings_defaults(&s);
-    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1, -1 };
+    OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, -1, -1, 0, -1, 0, -1, -1, s.filter };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
     s.hud = !s.hud;
     s.screen_margin = ORACLES_SCREEN_MARGIN_SMALL;
@@ -533,7 +541,7 @@ static void pause_live_changes(void)
     oracles_settings s;
     oracles_settings_defaults(&s);
     OraclesSessionApplied applied = { s.colour_correction, s.scaling_fill, s.hud, s.screen_margin, s.text_size, s.swim_hold, ORACLES_SETTINGS_SEASONS,
-                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden };
+                                      (int)s.item_hotkeys[ORACLES_SETTINGS_SEASONS], s.text_instant, 0, s.menus_large, s.unvisited_hidden, s.filter };
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
     /* Vsync, at once: off, then on, then auto again; it presents in step with a display of 59 to 61 Hz or of 100 Hz or
      * more alone on auto (never on Android), on any but a display slower than the game on on, never on off. */
@@ -584,6 +592,12 @@ static void pause_live_changes(void)
     applied.unvisited_hidden = -1;
     s.unvisited_hidden = 0;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0 && applied.unvisited_hidden == -1);
+    /* The filter, at once (the renderer made again for it, if need be), in either profile. */
+    s.filter = 4;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_FILTER && applied.filter == 4);
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
+    s.filter = 0;
+    CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_FILTER && applied.filter == 0);
     s.swim_hold = !s.swim_hold;
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == ORACLES_SESSION_CHANGED_SWIM && applied.swim_hold == s.swim_hold);
     CHECK(oracles_session_settings_changed(&s, 0, 0, &applied) == 0);
@@ -1376,6 +1390,37 @@ int main(int argc, char **argv)
     oracles_settings_defaults(&read_back);
     oracles_settings_load(&read_back);
     CHECK(read_back.unvisited_hidden == 0);
+    /* Display's Filter: off at the first opening, each of the eight written and read back by its name, case aside, an
+     * unknown one off. */
+    oracles_settings_defaults(&read_back);
+    CHECK(read_back.filter == 0);
+    for (int f = 0; f < 8; f++) {
+        read_back.filter = f;
+        oracles_settings_store(&read_back);
+        oracles_settings_defaults(&read_back);
+        oracles_settings_load(&read_back);
+        CHECK(read_back.filter == f && oracles_settings_filter_index(oracles_settings_filter_names[f]) == f);
+    }
+    write_text(path, "filter = OmniScale\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.filter == 7);
+    write_text(path, "filter=bogus\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.filter == 0);
+    /* The name is stored, never the row's place: a filter= written while Smooth came second still means Smooth, and
+     * each index names the same filter in the settings, on the row and for the renderer. */
+    write_text(path, "filter=smooth\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.filter == ORACLES_DISPLAY_FILTER_SMOOTH && !strcmp(oracles_display_filter_names[read_back.filter], "Smooth"));
+    write_text(path, "filter=scanlines\n");
+    oracles_settings_load(&read_back);
+    CHECK(read_back.filter == 1 && !strcmp(oracles_display_filter_names[read_back.filter], "Scanlines"));
+    for (int f = 0; f < ORACLES_DISPLAY_FILTERS; f++) {
+        CHECK(!SDL_strcasecmp(oracles_settings_filter_names[f], oracles_display_filter_names[f]));
+        oracles_sdl_filter_start(oracles_settings_filter_names[f]);
+        CHECK(oracles_sdl_filter_index() == f && !strcmp(oracles_sdl_filter_name(), oracles_settings_filter_names[f]));
+    }
+    oracles_sdl_filter_start("off");
     /* Fitted only where the view takes the screen's shape and far= is screen. */
     {
         OraclesSessionOptions options;

@@ -5,6 +5,8 @@
 #include "home_input.h"
 #include "portable.h"
 #include "safe_area.h"
+#include "filter_preview.h"
+#include "sdl_filter.h"
 #include "touch_controls.h"
 #include "ui_controls_nav.h"
 #include "ui_home.h"
@@ -52,8 +54,10 @@ typedef struct home_app {
     const OraclesHomeHost *host;
     SDL_Window *window;
     SDL_Renderer *renderer;
+    int renderer_lost;        /* told the renderer went, not yet the one that follows */
     OraclesSdlPads pads;      /* every gamepad plugged in */
     OraclesUiDraw *draw;
+    OraclesFilterPreview preview;   /* Display's preview of the filter */
     OraclesHomeNav nav;
     OraclesScreen screen;    /* the one shown when the navigation last changed */
     OraclesUiHome view;
@@ -111,6 +115,7 @@ static void read_edges(home_app *app)
 static void refresh(home_app *app)
 {
     if (app->host && app->host->refresh) app->host->refresh(app->host->opaque, &app->nav, app->window);
+    oracles_filter_preview_reload(&app->preview);   /* a game played meanwhile kept its last picture */
     oracles_page_keep_row(&app->nav);
     if (app->nav.display.margin != app->edges.margin) read_edges(app);
 }
@@ -225,6 +230,19 @@ static void page_command(home_app *app, OraclesHomeCommand c)
     if (c == ORACLES_HOME_STORE && host->store) {
         host->store(host->opaque, &app->nav);
         if (app->nav.display.margin != app->edges.margin) read_edges(app);
+        /* The renderer made again for the filter, if need be; without any renderer left, the launcher cannot go on. */
+        if (!oracles_filter_apply(app->renderer, app->nav.display.filter)) {
+            fprintf(stderr, "oracles: no renderer after the change of filter: the launcher closes\n");
+            app->running = 0;
+        } else if (oracles_sdl_filter_index() != app->nav.display.filter) {
+            /* No renderer for it: the filter in force kept (else none), the row and settings.txt saying it. */
+            char message[96];
+            snprintf(message, sizeof message, "%s cannot be drawn here: %s %s", oracles_display_filter_names[app->nav.display.filter],
+                     oracles_display_filter_names[oracles_sdl_filter_index()], oracles_sdl_filter_kept() ? "kept" : "instead");
+            app->nav.display.filter = oracles_sdl_filter_index();
+            host->store(host->opaque, &app->nav);
+            oracles_ui_home_toast(&app->view, message, now_ms());
+        }
         return;
     }
     if (host->file_chosen && ((c == ORACLES_HOME_CHOOSE_ROM && host->choose_rom) || (c == ORACLES_HOME_CHOOSE_PATCH && host->choose_patch)
@@ -657,6 +675,11 @@ static int render(home_app *app, double now)
     oracles_ui_draw_layout(app->draw, oracles_ui_home_scene(&app->nav));
     const OraclesTouchBox safe = oracles_touch_band(w, h, &app->edges);
     oracles_ui_draw_band(app->draw, (int)safe.y, (int)safe.h);
+    /* Filter's rules: whether the device runs the shaders, asked once Picture opens; its preview. */
+    if (app->nav.picture_page) app->nav.display.filters_basic = !oracles_sdl_filters_runnable();
+    app->nav.display.filters_refused = oracles_sdl_filters_refused_codes();
+    app->preview.drawn = oracles_display_filter_drawn(&app->nav);
+    oracles_ui_draw_set_inset(app->draw, oracles_filter_preview_draw, &app->preview);
     if (!oracles_ui_draw_begin(app->draw, w, h, now)) return 0;
     app->moving = oracles_ui_home_draw(app->draw, &app->view, &app->nav, now);
     oracles_ui_draw_end(app->draw);
@@ -706,6 +729,22 @@ static int wait_ms(const home_app *app, double now)
     return polled && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
 }
 
+/* oracles_sdl_renderer_swap's news: the drawing's textures released, then made again on the renderer that follows. */
+static void renderer_heard(void *opaque, SDL_Renderer *renderer)
+{
+    home_app *app = opaque;
+    if (!renderer || renderer != app->renderer || app->renderer_lost) {   /* the same address may come back */
+        oracles_ui_draw_rebind(app->draw, renderer);
+        oracles_filter_preview_forget(&app->preview);
+    }
+    app->renderer_lost = !renderer;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (!renderer) oracles_ui_achievements_forget_badges();
+#endif
+    app->renderer = renderer;   /* NULL until the next one, if any */
+    app->dirty = 1;
+}
+
 static int open_window(home_app *app)
 {
     const float scale = oracles_sdl_point_scale(NULL);
@@ -727,6 +766,7 @@ static int open_window(home_app *app)
     if (!app->renderer) return 0;
     oracles_sdl_pads_open(&app->pads);
     app->draw = oracles_ui_draw_create(app->renderer);
+    if (app->draw) oracles_sdl_renderer_listen(renderer_heard, app);
     return app->draw != NULL;
 }
 
@@ -805,9 +845,13 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
 #endif
     *width = app.width;
     *height = app.height;
+    oracles_filter_preview_forget(&app.preview);
     oracles_ui_draw_destroy(app.draw);
     oracles_sdl_pads_close(&app.pads);
+    oracles_sdl_renderer_unlisten(&app);
+    oracles_sdl_filter_forget(app.renderer);
     if (app.renderer) SDL_DestroyRenderer(app.renderer);
+    oracles_sdl_gpu_device_release();
     if (app.window) SDL_DestroyWindow(app.window);
     oracles_update_check_close();   /* no event pushed past SDL_Quit */
     SDL_Quit();

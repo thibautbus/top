@@ -15374,40 +15374,40 @@
    "Color correction": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 1
    },
    "Color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "color Off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color On": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
@@ -15415,7 +15415,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    }
   },
   "21v": {
@@ -19190,7 +19190,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    },
    "scaling Sharp size text": {
     "x": 1536,
@@ -19507,7 +19507,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling Sharp size text": {
     "x": 432,
@@ -19703,19 +19703,19 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "Color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
@@ -19723,7 +19723,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling Sharp size text": {
     "x": 432,
@@ -26317,69 +26317,69 @@
    "Screen margin": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "margin Small text": {
     "x": 1121.938,
     "w": 58.469,
-    "glyph_top": 222,
+    "glyph_top": 322,
     "glyph_h": 31,
-    "top": 222,
+    "top": 322,
     "h": 31,
-    "baseline": 246,
+    "baseline": 346,
     "width": 58.469,
     "lines": 1
    },
    "margin Large text": {
     "x": 1222.406,
     "w": 62.391,
-    "glyph_top": 222,
+    "glyph_top": 322,
     "glyph_h": 31,
-    "top": 222,
+    "top": 322,
     "h": 31,
-    "baseline": 246,
+    "baseline": 346,
     "width": 62.391,
     "lines": 1
    },
@@ -26387,7 +26387,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 549
+    "h": 649
    },
    "scaling row": {
     "x": 909,
@@ -26398,11 +26398,11 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
@@ -26410,76 +26410,76 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    }
   },
   "margin 4:3": {
    "Screen margin": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "margin Small text": {
     "x": 694.328,
     "w": 84.188,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 84.188,
     "lines": 1
    },
    "margin Large text": {
     "x": 838.516,
     "w": 89.828,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 89.828,
     "lines": 1
    },
@@ -26487,7 +26487,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling row": {
     "x": 64,
@@ -26529,69 +26529,69 @@
    "Screen margin": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "margin Small text": {
     "x": 694.328,
     "w": 84.188,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 84.188,
     "lines": 1
    },
    "margin Large text": {
     "x": 838.516,
     "w": 89.828,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 89.828,
     "lines": 1
    },
@@ -26599,7 +26599,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling row": {
     "x": 64,
@@ -26641,69 +26641,69 @@
    "Screen margin": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 355,
     "glyph_h": 27,
-    "top": 227,
+    "top": 355,
     "h": 27,
-    "baseline": 248,
+    "baseline": 376,
     "width": 112.5,
     "lines": 2
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 337,
     "w": 1142,
     "h": 121
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 337,
     "w": 922,
     "h": 121
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 345,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 345,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 345,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 345,
     "w": 96.391,
     "h": 41
    },
    "margin Small text": {
     "x": 1121.938,
     "w": 58.469,
-    "glyph_top": 222,
+    "glyph_top": 350,
     "glyph_h": 31,
-    "top": 222,
+    "top": 350,
     "h": 31,
-    "baseline": 246,
+    "baseline": 374,
     "width": 58.469,
     "lines": 1
    },
    "margin Large text": {
     "x": 1222.406,
     "w": 62.391,
-    "glyph_top": 222,
+    "glyph_top": 350,
     "glyph_h": 31,
-    "top": 222,
+    "top": 350,
     "h": 31,
-    "baseline": 246,
+    "baseline": 374,
     "width": 62.391,
     "lines": 1
    },
@@ -26711,7 +26711,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 577
+    "h": 705
    },
    "scaling row": {
     "x": 909,
@@ -26722,11 +26722,11 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 394,
     "glyph_h": 24,
-    "top": 264,
+    "top": 392,
     "h": 29,
-    "baseline": 285,
+    "baseline": 413,
     "width": 845.672,
     "lines": 2
    },
@@ -26734,7 +26734,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 627
+    "h": 755
    },
    "page note": {
     "x": 96,
@@ -26752,69 +26752,69 @@
    "Screen margin": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "margin Small text": {
     "x": 694.328,
     "w": 84.188,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 84.188,
     "lines": 1
    },
    "margin Large text": {
     "x": 838.516,
     "w": 89.828,
-    "glyph_top": 341.297,
+    "glyph_top": 447.297,
     "glyph_h": 45,
-    "top": 343.297,
+    "top": 449.297,
     "h": 41.391,
-    "baseline": 376.297,
+    "baseline": 482.297,
     "width": 89.828,
     "lines": 1
    },
@@ -26822,7 +26822,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling row": {
     "x": 64,
@@ -26875,69 +26875,69 @@
    "Screen margin": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "margin Small text": {
     "x": 1121.938,
     "w": 58.469,
-    "glyph_top": 222,
+    "glyph_top": 322,
     "glyph_h": 31,
-    "top": 222,
+    "top": 322,
     "h": 31,
-    "baseline": 246,
+    "baseline": 346,
     "width": 58.469,
     "lines": 1
    },
    "margin Large text": {
     "x": 1222.406,
     "w": 62.391,
-    "glyph_top": 222,
+    "glyph_top": 322,
     "glyph_h": 31,
-    "top": 222,
+    "top": 322,
     "h": 31,
-    "baseline": 246,
+    "baseline": 346,
     "width": 62.391,
     "lines": 1
    },
@@ -26945,7 +26945,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 605
+    "h": 705
    },
    "scaling row": {
     "x": 909,
@@ -26956,11 +26956,11 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
@@ -26968,7 +26968,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 655
+    "h": 755
    }
   },
   "22g": {
@@ -30184,13 +30184,13 @@
    },
    "picture explanation": {
     "x": 929,
-    "w": 482,
+    "w": 467.094,
     "glyph_top": 909,
     "glyph_h": 24,
     "top": 907,
     "h": 29,
     "baseline": 928,
-    "width": 482,
+    "width": 467.094,
     "lines": 2
    },
    "hint 0": {
@@ -38735,13 +38735,13 @@
    },
    "picture explanation": {
     "x": 929,
-    "w": 482,
+    "w": 467.094,
     "glyph_top": 909,
     "glyph_h": 24,
     "top": 907,
     "h": 29,
     "baseline": 928,
-    "width": 482,
+    "width": 467.094,
     "lines": 2
    },
    "advanced": {
@@ -38977,13 +38977,13 @@
    },
    "help text": {
     "x": 64,
-    "w": 587.281,
+    "w": 666.516,
     "glyph_top": 74,
     "glyph_h": 36,
     "top": 69,
     "h": 47,
     "baseline": 103,
-    "width": 587.281,
+    "width": 666.516,
     "lines": 1
    },
    "help note": {
@@ -38998,7 +38998,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 549
+    "h": 649
    },
    "scaling grid": {
     "x": 689,
@@ -39008,25 +39008,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 444,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 544,
     "w": 1142,
     "h": 86
    },
    "unvisited grid": {
     "x": 689,
-    "y": 544,
+    "y": 644,
     "w": 1142,
     "h": 86
    },
@@ -39038,25 +39038,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 544,
     "w": 922,
     "h": 86
    },
    "unvisited row": {
     "x": 909,
-    "y": 544,
+    "y": 644,
     "w": 922,
     "h": 86
    },
@@ -39074,44 +39074,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 562,
     "glyph_h": 27,
-    "top": 462,
+    "top": 562,
     "h": 27,
-    "baseline": 483,
+    "baseline": 583,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 562,
+    "glyph_top": 662,
     "glyph_h": 27,
-    "top": 562,
+    "top": 662,
     "h": 27,
-    "baseline": 583,
+    "baseline": 683,
     "width": 143.313,
     "lines": 2
    },
@@ -39129,105 +39129,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 466.5,
+    "y": 566.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 466.5,
+    "y": 566.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 566.5,
+    "y": 666.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 566.5,
+    "y": 666.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 82.156,
     "lines": 1
    },
@@ -39246,7 +39246,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    },
    "scaling explanation": {
     "x": 929,
@@ -39273,44 +39273,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 560,
     "glyph_h": 24,
-    "top": 458,
+    "top": 558,
     "h": 29,
-    "baseline": 479,
+    "baseline": 579,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 560,
+    "glyph_top": 660,
     "glyph_h": 24,
-    "top": 558,
+    "top": 658,
     "h": 29,
-    "baseline": 579,
+    "baseline": 679,
     "width": 597.844,
     "lines": 2
    },
@@ -39473,7 +39473,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling grid": {
     "x": 64,
@@ -39483,25 +39483,25 @@
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color grid": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus grid": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited grid": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -39513,25 +39513,25 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited row": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -39549,44 +39549,44 @@
    "margin label": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "color label": {
     "x": 84,
     "w": 121.203,
-    "glyph_top": 433,
+    "glyph_top": 539,
     "glyph_h": 37,
-    "top": 433,
+    "top": 539,
     "h": 37,
-    "baseline": 462,
+    "baseline": 568,
     "width": 229.172,
     "lines": 2
    },
    "menus label": {
     "x": 84,
     "w": 163.844,
-    "glyph_top": 539,
+    "glyph_top": 645,
     "glyph_h": 37,
-    "top": 539,
+    "top": 645,
     "h": 37,
-    "baseline": 568,
+    "baseline": 674,
     "width": 163.844,
     "lines": 2
    },
    "unvisited label": {
     "x": 84,
     "w": 184.609,
-    "glyph_top": 645,
+    "glyph_top": 751,
     "glyph_h": 37,
-    "top": 645,
+    "top": 751,
     "h": 37,
-    "baseline": 674,
+    "baseline": 780,
     "width": 184.609,
     "lines": 2
    },
@@ -39604,105 +39604,105 @@
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "color off": {
     "x": 408,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "color on": {
     "x": 530,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "menus view": {
     "x": 408,
-    "y": 531,
+    "y": 637,
     "w": 126.219,
     "h": 90
    },
    "menus large": {
     "x": 546.219,
-    "y": 531,
+    "y": 637,
     "w": 137.828,
     "h": 90
    },
    "unvisited shown": {
     "x": 408,
-    "y": 637,
+    "y": 743,
     "w": 153.953,
     "h": 90
    },
    "unvisited hidden": {
     "x": 573.953,
-    "y": 637,
+    "y": 743,
     "w": 166.313,
     "h": 90
    },
    "menus view text": {
     "x": 432,
     "w": 78.219,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 78.219,
     "lines": 1
    },
    "menus large text": {
     "x": 570.219,
     "w": 89.828,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 89.828,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 432,
     "w": 105.953,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 105.953,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 597.953,
     "w": 118.313,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 118.313,
     "lines": 1
    },
@@ -39775,7 +39775,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling grid": {
     "x": 64,
@@ -39785,25 +39785,25 @@
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color grid": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus grid": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited grid": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -39815,25 +39815,25 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited row": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -39851,44 +39851,44 @@
    "margin label": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "color label": {
     "x": 84,
     "w": 121.203,
-    "glyph_top": 433,
+    "glyph_top": 539,
     "glyph_h": 37,
-    "top": 433,
+    "top": 539,
     "h": 37,
-    "baseline": 462,
+    "baseline": 568,
     "width": 229.172,
     "lines": 2
    },
    "menus label": {
     "x": 84,
     "w": 163.844,
-    "glyph_top": 539,
+    "glyph_top": 645,
     "glyph_h": 37,
-    "top": 539,
+    "top": 645,
     "h": 37,
-    "baseline": 568,
+    "baseline": 674,
     "width": 163.844,
     "lines": 2
    },
    "unvisited label": {
     "x": 84,
     "w": 184.609,
-    "glyph_top": 645,
+    "glyph_top": 751,
     "glyph_h": 37,
-    "top": 645,
+    "top": 751,
     "h": 37,
-    "baseline": 674,
+    "baseline": 780,
     "width": 184.609,
     "lines": 2
    },
@@ -39906,105 +39906,105 @@
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "color off": {
     "x": 408,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "color on": {
     "x": 530,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "menus view": {
     "x": 408,
-    "y": 531,
+    "y": 637,
     "w": 126.219,
     "h": 90
    },
    "menus large": {
     "x": 546.219,
-    "y": 531,
+    "y": 637,
     "w": 137.828,
     "h": 90
    },
    "unvisited shown": {
     "x": 408,
-    "y": 637,
+    "y": 743,
     "w": 153.953,
     "h": 90
    },
    "unvisited hidden": {
     "x": 573.953,
-    "y": 637,
+    "y": 743,
     "w": 166.313,
     "h": 90
    },
    "menus view text": {
     "x": 432,
     "w": 78.219,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 78.219,
     "lines": 1
    },
    "menus large text": {
     "x": 570.219,
     "w": 89.828,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 89.828,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 432,
     "w": 105.953,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 105.953,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 597.953,
     "w": 118.313,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 118.313,
     "lines": 1
    },
@@ -40213,7 +40213,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 630
+    "h": 736
    },
    "scaling grid": {
     "x": 64,
@@ -40223,19 +40223,19 @@
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color grid": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "unvisited grid": {
     "x": 64,
-    "y": 738,
+    "y": 844,
     "w": 1312,
     "h": 100
    },
@@ -40247,19 +40247,19 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "unvisited row": {
     "x": 64,
-    "y": 738,
+    "y": 844,
     "w": 1312,
     "h": 100
    },
@@ -40277,33 +40277,33 @@
    "margin label": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "color label": {
     "x": 84,
     "w": 121.203,
-    "glyph_top": 433,
+    "glyph_top": 539,
     "glyph_h": 37,
-    "top": 433,
+    "top": 539,
     "h": 37,
-    "baseline": 462,
+    "baseline": 568,
     "width": 229.172,
     "lines": 2
    },
    "unvisited label": {
     "x": 84,
     "w": 184.609,
-    "glyph_top": 751,
+    "glyph_top": 857,
     "glyph_h": 37,
-    "top": 751,
+    "top": 857,
     "h": 37,
-    "baseline": 780,
+    "baseline": 886,
     "width": 184.609,
     "lines": 2
    },
@@ -40321,71 +40321,71 @@
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "color off": {
     "x": 408,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "color on": {
     "x": 530,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "unvisited shown": {
     "x": 408,
-    "y": 743,
+    "y": 849,
     "w": 153.953,
     "h": 90
    },
    "unvisited hidden": {
     "x": 573.953,
-    "y": 743,
+    "y": 849,
     "w": 166.313,
     "h": 90
    },
    "unvisited shown text": {
     "x": 432,
     "w": 105.953,
-    "glyph_top": 765.297,
+    "glyph_top": 871.297,
     "glyph_h": 45,
-    "top": 767.297,
+    "top": 873.297,
     "h": 41.391,
-    "baseline": 800.297,
+    "baseline": 906.297,
     "width": 105.953,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 597.953,
     "w": 118.313,
-    "glyph_top": 765.297,
+    "glyph_top": 871.297,
     "glyph_h": 45,
-    "top": 767.297,
+    "top": 873.297,
     "h": 41.391,
-    "baseline": 800.297,
+    "baseline": 906.297,
     "width": 118.313,
     "lines": 1
    },
@@ -40425,64 +40425,64 @@
    },
    "menus row": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
    "far row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "far grid": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "far label": {
     "x": 84,
     "w": 148.125,
-    "glyph_top": 557.5,
+    "glyph_top": 663.5,
     "glyph_h": 37,
-    "top": 557.5,
+    "top": 663.5,
     "h": 37,
-    "baseline": 586.5,
+    "baseline": 692.5,
     "width": 148.125,
     "lines": 1
    },
    "far screen": {
     "x": 408,
-    "y": 531,
+    "y": 637,
     "w": 142.344,
     "h": 90
    },
    "far fixed": {
     "x": 562.344,
-    "y": 531,
+    "y": 637,
     "w": 133.547,
     "h": 90
    },
    "far screen text": {
     "x": 432,
     "w": 94.344,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 94.344,
     "lines": 1
    },
    "far fixed text": {
     "x": 586.344,
     "w": 85.547,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 85.547,
     "lines": 1
    },
@@ -40520,7 +40520,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 577
+    "h": 705
    },
    "scaling grid": {
     "x": 689,
@@ -40530,25 +40530,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 337,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 472,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 572,
     "w": 1142,
     "h": 86
    },
    "unvisited grid": {
     "x": 689,
-    "y": 544,
+    "y": 672,
     "w": 1142,
     "h": 114
    },
@@ -40560,25 +40560,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 337,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 472,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 572,
     "w": 922,
     "h": 86
    },
    "unvisited row": {
     "x": 909,
-    "y": 544,
+    "y": 672,
     "w": 922,
     "h": 114
    },
@@ -40596,44 +40596,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 355,
     "glyph_h": 27,
-    "top": 227,
+    "top": 355,
     "h": 27,
-    "baseline": 248,
+    "baseline": 376,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 490,
     "glyph_h": 27,
-    "top": 362,
+    "top": 490,
     "h": 27,
-    "baseline": 383,
+    "baseline": 511,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 590,
     "glyph_h": 27,
-    "top": 462,
+    "top": 590,
     "h": 27,
-    "baseline": 483,
+    "baseline": 611,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 562,
+    "glyph_top": 690,
     "glyph_h": 27,
-    "top": 562,
+    "top": 690,
     "h": 27,
-    "baseline": 583,
+    "baseline": 711,
     "width": 143.313,
     "lines": 2
    },
@@ -40651,105 +40651,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 345,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 345,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 345,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 345,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 494.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 494.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 466.5,
+    "y": 594.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 466.5,
+    "y": 594.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 580.5,
+    "y": 708.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 580.5,
+    "y": 708.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 471.5,
+    "glyph_top": 599.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 599.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 623.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 471.5,
+    "glyph_top": 599.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 599.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 623.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 585.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 585.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 609.5,
+    "baseline": 737.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 585.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 585.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 609.5,
+    "baseline": 737.5,
     "width": 82.156,
     "lines": 1
    },
@@ -40768,7 +40768,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 627
+    "h": 755
    },
    "scaling explanation": {
     "x": 929,
@@ -40795,44 +40795,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 394,
     "glyph_h": 24,
-    "top": 264,
+    "top": 392,
     "h": 29,
-    "baseline": 285,
+    "baseline": 413,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 488,
     "glyph_h": 24,
-    "top": 358,
+    "top": 486,
     "h": 29,
-    "baseline": 379,
+    "baseline": 507,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 588,
     "glyph_h": 24,
-    "top": 458,
+    "top": 586,
     "h": 29,
-    "baseline": 479,
+    "baseline": 607,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 560,
+    "glyph_top": 688,
     "glyph_h": 24,
-    "top": 558,
+    "top": 686,
     "h": 29,
-    "baseline": 579,
+    "baseline": 707,
     "width": 597.844,
     "lines": 2
    },
@@ -40859,7 +40859,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 605
+    "h": 705
    },
    "scaling grid": {
     "x": 689,
@@ -40869,25 +40869,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 444,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 544,
     "w": 1142,
     "h": 114
    },
    "unvisited grid": {
     "x": 689,
-    "y": 572,
+    "y": 672,
     "w": 1142,
     "h": 114
    },
@@ -40899,25 +40899,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 544,
     "w": 922,
     "h": 114
    },
    "unvisited row": {
     "x": 909,
-    "y": 572,
+    "y": 672,
     "w": 922,
     "h": 114
    },
@@ -40935,44 +40935,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 562,
     "glyph_h": 27,
-    "top": 462,
+    "top": 562,
     "h": 27,
-    "baseline": 483,
+    "baseline": 583,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 590,
+    "glyph_top": 690,
     "glyph_h": 27,
-    "top": 590,
+    "top": 690,
     "h": 27,
-    "baseline": 611,
+    "baseline": 711,
     "width": 143.313,
     "lines": 2
    },
@@ -40990,105 +40990,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 480.5,
+    "y": 580.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 480.5,
+    "y": 580.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 608.5,
+    "y": 708.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 608.5,
+    "y": 708.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 485.5,
+    "glyph_top": 585.5,
     "glyph_h": 31,
-    "top": 485.5,
+    "top": 585.5,
     "h": 31,
-    "baseline": 509.5,
+    "baseline": 609.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 485.5,
+    "glyph_top": 585.5,
     "glyph_h": 31,
-    "top": 485.5,
+    "top": 585.5,
     "h": 31,
-    "baseline": 509.5,
+    "baseline": 609.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 613.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 613.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 637.5,
+    "baseline": 737.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 613.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 613.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 637.5,
+    "baseline": 737.5,
     "width": 82.156,
     "lines": 1
    },
@@ -41107,7 +41107,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 655
+    "h": 755
    },
    "scaling explanation": {
     "x": 929,
@@ -41134,44 +41134,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 560,
     "glyph_h": 24,
-    "top": 458,
+    "top": 558,
     "h": 29,
-    "baseline": 479,
+    "baseline": 579,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 588,
+    "glyph_top": 688,
     "glyph_h": 24,
-    "top": 586,
+    "top": 686,
     "h": 29,
-    "baseline": 607,
+    "baseline": 707,
     "width": 597.844,
     "lines": 2
    },
@@ -41184,11 +41184,11 @@
    "menus note": {
     "x": 929,
     "w": 116.453,
-    "glyph_top": 520,
+    "glyph_top": 620,
     "glyph_h": 22,
-    "top": 518,
+    "top": 618,
     "h": 26,
-    "baseline": 538,
+    "baseline": 638,
     "width": 116.453,
     "lines": 1
    }
@@ -41870,7 +41870,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 549
+    "h": 649
    },
    "scaling grid": {
     "x": 689,
@@ -41880,25 +41880,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 444,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 544,
     "w": 1142,
     "h": 86
    },
    "unvisited grid": {
     "x": 689,
-    "y": 544,
+    "y": 644,
     "w": 1142,
     "h": 86
    },
@@ -41910,25 +41910,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 544,
     "w": 922,
     "h": 86
    },
    "unvisited row": {
     "x": 909,
-    "y": 544,
+    "y": 644,
     "w": 922,
     "h": 86
    },
@@ -41946,44 +41946,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 562,
     "glyph_h": 27,
-    "top": 462,
+    "top": 562,
     "h": 27,
-    "baseline": 483,
+    "baseline": 583,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 562,
+    "glyph_top": 662,
     "glyph_h": 27,
-    "top": 562,
+    "top": 662,
     "h": 27,
-    "baseline": 583,
+    "baseline": 683,
     "width": 143.313,
     "lines": 2
    },
@@ -42001,105 +42001,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 466.5,
+    "y": 566.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 466.5,
+    "y": 566.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 566.5,
+    "y": 666.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 566.5,
+    "y": 666.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 82.156,
     "lines": 1
    },
@@ -42118,7 +42118,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    },
    "scaling explanation": {
     "x": 929,
@@ -42145,44 +42145,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 560,
     "glyph_h": 24,
-    "top": 458,
+    "top": 558,
     "h": 29,
-    "baseline": 479,
+    "baseline": 579,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 560,
+    "glyph_top": 660,
     "glyph_h": 24,
-    "top": 558,
+    "top": 658,
     "h": 29,
-    "baseline": 579,
+    "baseline": 679,
     "width": 597.844,
     "lines": 2
    },
@@ -42334,7 +42334,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 549
+    "h": 649
    },
    "scaling grid": {
     "x": 689,
@@ -42344,25 +42344,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 444,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 544,
     "w": 1142,
     "h": 86
    },
    "unvisited grid": {
     "x": 689,
-    "y": 544,
+    "y": 644,
     "w": 1142,
     "h": 86
    },
@@ -42374,25 +42374,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 544,
     "w": 922,
     "h": 86
    },
    "unvisited row": {
     "x": 909,
-    "y": 544,
+    "y": 644,
     "w": 922,
     "h": 86
    },
@@ -42410,44 +42410,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 562,
     "glyph_h": 27,
-    "top": 462,
+    "top": 562,
     "h": 27,
-    "baseline": 483,
+    "baseline": 583,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 562,
+    "glyph_top": 662,
     "glyph_h": 27,
-    "top": 562,
+    "top": 662,
     "h": 27,
-    "baseline": 583,
+    "baseline": 683,
     "width": 143.313,
     "lines": 2
    },
@@ -42465,105 +42465,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 466.5,
+    "y": 566.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 466.5,
+    "y": 566.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 566.5,
+    "y": 666.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 566.5,
+    "y": 666.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 471.5,
+    "glyph_top": 571.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 571.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 595.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 571.5,
+    "glyph_top": 671.5,
     "glyph_h": 31,
-    "top": 571.5,
+    "top": 671.5,
     "h": 31,
-    "baseline": 595.5,
+    "baseline": 695.5,
     "width": 82.156,
     "lines": 1
    },
@@ -42582,7 +42582,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 599
+    "h": 699
    },
    "scaling explanation": {
     "x": 929,
@@ -42609,44 +42609,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 560,
     "glyph_h": 24,
-    "top": 458,
+    "top": 558,
     "h": 29,
-    "baseline": 479,
+    "baseline": 579,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 560,
+    "glyph_top": 660,
     "glyph_h": 24,
-    "top": 558,
+    "top": 658,
     "h": 29,
-    "baseline": 579,
+    "baseline": 679,
     "width": 597.844,
     "lines": 2
    },
@@ -42662,7 +42662,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling grid": {
     "x": 64,
@@ -42672,25 +42672,25 @@
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color grid": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus grid": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited grid": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -42702,25 +42702,25 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited row": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -42738,44 +42738,44 @@
    "margin label": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "color label": {
     "x": 84,
     "w": 121.203,
-    "glyph_top": 433,
+    "glyph_top": 539,
     "glyph_h": 37,
-    "top": 433,
+    "top": 539,
     "h": 37,
-    "baseline": 462,
+    "baseline": 568,
     "width": 229.172,
     "lines": 2
    },
    "menus label": {
     "x": 84,
     "w": 163.844,
-    "glyph_top": 539,
+    "glyph_top": 645,
     "glyph_h": 37,
-    "top": 539,
+    "top": 645,
     "h": 37,
-    "baseline": 568,
+    "baseline": 674,
     "width": 163.844,
     "lines": 2
    },
    "unvisited label": {
     "x": 84,
     "w": 184.609,
-    "glyph_top": 645,
+    "glyph_top": 751,
     "glyph_h": 37,
-    "top": 645,
+    "top": 751,
     "h": 37,
-    "baseline": 674,
+    "baseline": 780,
     "width": 184.609,
     "lines": 2
    },
@@ -42793,105 +42793,105 @@
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "color off": {
     "x": 408,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "color on": {
     "x": 530,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "menus view": {
     "x": 408,
-    "y": 531,
+    "y": 637,
     "w": 126.219,
     "h": 90
    },
    "menus large": {
     "x": 546.219,
-    "y": 531,
+    "y": 637,
     "w": 137.828,
     "h": 90
    },
    "unvisited shown": {
     "x": 408,
-    "y": 637,
+    "y": 743,
     "w": 153.953,
     "h": 90
    },
    "unvisited hidden": {
     "x": 573.953,
-    "y": 637,
+    "y": 743,
     "w": 166.313,
     "h": 90
    },
    "menus view text": {
     "x": 432,
     "w": 78.219,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 78.219,
     "lines": 1
    },
    "menus large text": {
     "x": 570.219,
     "w": 89.828,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 89.828,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 432,
     "w": 105.953,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 105.953,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 597.953,
     "w": 118.313,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 118.313,
     "lines": 1
    },
@@ -42964,7 +42964,7 @@
     "x": 64,
     "y": 208,
     "w": 1312,
-    "h": 524
+    "h": 630
    },
    "scaling grid": {
     "x": 64,
@@ -42974,25 +42974,25 @@
    },
    "margin grid": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color grid": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus grid": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited grid": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -43004,25 +43004,25 @@
    },
    "margin row": {
     "x": 64,
-    "y": 314,
+    "y": 420,
     "w": 1312,
     "h": 100
    },
    "color row": {
     "x": 64,
-    "y": 420,
+    "y": 526,
     "w": 1312,
     "h": 100
    },
    "menus row": {
     "x": 64,
-    "y": 526,
+    "y": 632,
     "w": 1312,
     "h": 100
    },
    "unvisited row": {
     "x": 64,
-    "y": 632,
+    "y": 738,
     "w": 1312,
     "h": 100
    },
@@ -43040,44 +43040,44 @@
    "margin label": {
     "x": 84,
     "w": 287.859,
-    "glyph_top": 345.5,
+    "glyph_top": 451.5,
     "glyph_h": 37,
-    "top": 345.5,
+    "top": 451.5,
     "h": 37,
-    "baseline": 374.5,
+    "baseline": 480.5,
     "width": 287.859,
     "lines": 1
    },
    "color label": {
     "x": 84,
     "w": 121.203,
-    "glyph_top": 433,
+    "glyph_top": 539,
     "glyph_h": 37,
-    "top": 433,
+    "top": 539,
     "h": 37,
-    "baseline": 462,
+    "baseline": 568,
     "width": 229.172,
     "lines": 2
    },
    "menus label": {
     "x": 84,
     "w": 163.844,
-    "glyph_top": 539,
+    "glyph_top": 645,
     "glyph_h": 37,
-    "top": 539,
+    "top": 645,
     "h": 37,
-    "baseline": 568,
+    "baseline": 674,
     "width": 163.844,
     "lines": 2
    },
    "unvisited label": {
     "x": 84,
     "w": 184.609,
-    "glyph_top": 645,
+    "glyph_top": 751,
     "glyph_h": 37,
-    "top": 645,
+    "top": 751,
     "h": 37,
-    "baseline": 674,
+    "baseline": 780,
     "width": 184.609,
     "lines": 2
    },
@@ -43095,105 +43095,105 @@
    },
    "margin off": {
     "x": 408,
-    "y": 319,
+    "y": 425,
     "w": 110,
     "h": 90
    },
    "margin auto": {
     "x": 530,
-    "y": 319,
+    "y": 425,
     "w": 128.328,
     "h": 90
    },
    "margin small": {
     "x": 670.328,
-    "y": 319,
+    "y": 425,
     "w": 132.188,
     "h": 90
    },
    "margin large": {
     "x": 814.516,
-    "y": 319,
+    "y": 425,
     "w": 137.828,
     "h": 90
    },
    "color off": {
     "x": 408,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "color on": {
     "x": 530,
-    "y": 425,
+    "y": 531,
     "w": 110,
     "h": 90
    },
    "menus view": {
     "x": 408,
-    "y": 531,
+    "y": 637,
     "w": 126.219,
     "h": 90
    },
    "menus large": {
     "x": 546.219,
-    "y": 531,
+    "y": 637,
     "w": 137.828,
     "h": 90
    },
    "unvisited shown": {
     "x": 408,
-    "y": 637,
+    "y": 743,
     "w": 153.953,
     "h": 90
    },
    "unvisited hidden": {
     "x": 573.953,
-    "y": 637,
+    "y": 743,
     "w": 166.313,
     "h": 90
    },
    "menus view text": {
     "x": 432,
     "w": 78.219,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 78.219,
     "lines": 1
    },
    "menus large text": {
     "x": 570.219,
     "w": 89.828,
-    "glyph_top": 553.297,
+    "glyph_top": 659.297,
     "glyph_h": 45,
-    "top": 555.297,
+    "top": 661.297,
     "h": 41.391,
-    "baseline": 588.297,
+    "baseline": 694.297,
     "width": 89.828,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 432,
     "w": 105.953,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 105.953,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 597.953,
     "w": 118.313,
-    "glyph_top": 659.297,
+    "glyph_top": 765.297,
     "glyph_h": 45,
-    "top": 661.297,
+    "top": 767.297,
     "h": 41.391,
-    "baseline": 694.297,
+    "baseline": 800.297,
     "width": 118.313,
     "lines": 1
    },
@@ -43402,7 +43402,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 577
+    "h": 705
    },
    "scaling grid": {
     "x": 689,
@@ -43412,25 +43412,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 337,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 472,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 572,
     "w": 1142,
     "h": 86
    },
    "unvisited grid": {
     "x": 689,
-    "y": 544,
+    "y": 672,
     "w": 1142,
     "h": 114
    },
@@ -43442,25 +43442,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 337,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 472,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 572,
     "w": 922,
     "h": 86
    },
    "unvisited row": {
     "x": 909,
-    "y": 544,
+    "y": 672,
     "w": 922,
     "h": 114
    },
@@ -43478,44 +43478,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 355,
     "glyph_h": 27,
-    "top": 227,
+    "top": 355,
     "h": 27,
-    "baseline": 248,
+    "baseline": 376,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 490,
     "glyph_h": 27,
-    "top": 362,
+    "top": 490,
     "h": 27,
-    "baseline": 383,
+    "baseline": 511,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 590,
     "glyph_h": 27,
-    "top": 462,
+    "top": 590,
     "h": 27,
-    "baseline": 483,
+    "baseline": 611,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 562,
+    "glyph_top": 690,
     "glyph_h": 27,
-    "top": 562,
+    "top": 690,
     "h": 27,
-    "baseline": 583,
+    "baseline": 711,
     "width": 143.313,
     "lines": 2
    },
@@ -43533,105 +43533,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 345,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 345,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 345,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 345,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 494.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 494.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 466.5,
+    "y": 594.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 466.5,
+    "y": 594.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 580.5,
+    "y": 708.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 580.5,
+    "y": 708.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 471.5,
+    "glyph_top": 599.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 599.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 623.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 471.5,
+    "glyph_top": 599.5,
     "glyph_h": 31,
-    "top": 471.5,
+    "top": 599.5,
     "h": 31,
-    "baseline": 495.5,
+    "baseline": 623.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 585.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 585.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 609.5,
+    "baseline": 737.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 585.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 585.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 609.5,
+    "baseline": 737.5,
     "width": 82.156,
     "lines": 1
    },
@@ -43650,7 +43650,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 627
+    "h": 755
    },
    "scaling explanation": {
     "x": 929,
@@ -43677,44 +43677,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 394,
     "glyph_h": 24,
-    "top": 264,
+    "top": 392,
     "h": 29,
-    "baseline": 285,
+    "baseline": 413,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 488,
     "glyph_h": 24,
-    "top": 358,
+    "top": 486,
     "h": 29,
-    "baseline": 379,
+    "baseline": 507,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 588,
     "glyph_h": 24,
-    "top": 458,
+    "top": 586,
     "h": 29,
-    "baseline": 479,
+    "baseline": 607,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 560,
+    "glyph_top": 688,
     "glyph_h": 24,
-    "top": 558,
+    "top": 686,
     "h": 29,
-    "baseline": 579,
+    "baseline": 707,
     "width": 597.844,
     "lines": 2
    },
@@ -43738,11 +43738,11 @@
    "unvisited note": {
     "x": 929,
     "w": 251.156,
-    "glyph_top": 620,
+    "glyph_top": 748,
     "glyph_h": 22,
-    "top": 618,
+    "top": 746,
     "h": 26,
-    "baseline": 638,
+    "baseline": 766,
     "width": 251.156,
     "lines": 1
    }
@@ -43752,7 +43752,7 @@
     "x": 689,
     "y": 81,
     "w": 1142,
-    "h": 605
+    "h": 705
    },
    "scaling grid": {
     "x": 689,
@@ -43762,25 +43762,25 @@
    },
    "margin grid": {
     "x": 689,
-    "y": 209,
+    "y": 309,
     "w": 1142,
     "h": 121
    },
    "color grid": {
     "x": 689,
-    "y": 344,
+    "y": 444,
     "w": 1142,
     "h": 86
    },
    "menus grid": {
     "x": 689,
-    "y": 444,
+    "y": 544,
     "w": 1142,
     "h": 114
    },
    "unvisited grid": {
     "x": 689,
-    "y": 572,
+    "y": 672,
     "w": 1142,
     "h": 114
    },
@@ -43792,25 +43792,25 @@
    },
    "margin row": {
     "x": 909,
-    "y": 209,
+    "y": 309,
     "w": 922,
     "h": 121
    },
    "color row": {
     "x": 909,
-    "y": 344,
+    "y": 444,
     "w": 922,
     "h": 86
    },
    "menus row": {
     "x": 909,
-    "y": 444,
+    "y": 544,
     "w": 922,
     "h": 114
    },
    "unvisited row": {
     "x": 909,
-    "y": 572,
+    "y": 672,
     "w": 922,
     "h": 114
    },
@@ -43828,44 +43828,44 @@
    "margin label": {
     "x": 689,
     "w": 99.484,
-    "glyph_top": 227,
+    "glyph_top": 327,
     "glyph_h": 27,
-    "top": 227,
+    "top": 327,
     "h": 27,
-    "baseline": 248,
+    "baseline": 348,
     "width": 112.5,
     "lines": 2
    },
    "color label": {
     "x": 689,
     "w": 93.281,
-    "glyph_top": 362,
+    "glyph_top": 462,
     "glyph_h": 27,
-    "top": 362,
+    "top": 462,
     "h": 27,
-    "baseline": 383,
+    "baseline": 483,
     "width": 176.859,
     "lines": 2
    },
    "menus label": {
     "x": 689,
     "w": 126.313,
-    "glyph_top": 462,
+    "glyph_top": 562,
     "glyph_h": 27,
-    "top": 462,
+    "top": 562,
     "h": 27,
-    "baseline": 483,
+    "baseline": 583,
     "width": 126.313,
     "lines": 2
    },
    "unvisited label": {
     "x": 689,
     "w": 143.313,
-    "glyph_top": 590,
+    "glyph_top": 690,
     "glyph_h": 27,
-    "top": 590,
+    "top": 690,
     "h": 27,
-    "baseline": 611,
+    "baseline": 711,
     "width": 143.313,
     "lines": 2
    },
@@ -43883,105 +43883,105 @@
    },
    "margin off": {
     "x": 929,
-    "y": 217,
+    "y": 317,
     "w": 70.156,
     "h": 41
    },
    "margin auto": {
     "x": 1007.156,
-    "y": 217,
+    "y": 317,
     "w": 89.781,
     "h": 41
    },
    "margin small": {
     "x": 1104.938,
-    "y": 217,
+    "y": 317,
     "w": 92.469,
     "h": 41
    },
    "margin large": {
     "x": 1205.406,
-    "y": 217,
+    "y": 317,
     "w": 96.391,
     "h": 41
    },
    "color off": {
     "x": 1664.484,
-    "y": 366.5,
+    "y": 466.5,
     "w": 70.156,
     "h": 41
    },
    "color on": {
     "x": 1742.641,
-    "y": 366.5,
+    "y": 466.5,
     "w": 68.359,
     "h": 41
    },
    "menus view": {
     "x": 1618.297,
-    "y": 480.5,
+    "y": 580.5,
     "w": 88.313,
     "h": 41
    },
    "menus large": {
     "x": 1714.609,
-    "y": 480.5,
+    "y": 580.5,
     "w": 96.391,
     "h": 41
    },
    "unvisited shown": {
     "x": 1579.266,
-    "y": 608.5,
+    "y": 708.5,
     "w": 107.578,
     "h": 41
    },
    "unvisited hidden": {
     "x": 1694.844,
-    "y": 608.5,
+    "y": 708.5,
     "w": 116.156,
     "h": 41
    },
    "menus view text": {
     "x": 1635.297,
     "w": 54.313,
-    "glyph_top": 485.5,
+    "glyph_top": 585.5,
     "glyph_h": 31,
-    "top": 485.5,
+    "top": 585.5,
     "h": 31,
-    "baseline": 509.5,
+    "baseline": 609.5,
     "width": 54.313,
     "lines": 1
    },
    "menus large text": {
     "x": 1731.609,
     "w": 62.391,
-    "glyph_top": 485.5,
+    "glyph_top": 585.5,
     "glyph_h": 31,
-    "top": 485.5,
+    "top": 585.5,
     "h": 31,
-    "baseline": 509.5,
+    "baseline": 609.5,
     "width": 62.391,
     "lines": 1
    },
    "unvisited shown text": {
     "x": 1596.266,
     "w": 73.578,
-    "glyph_top": 613.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 613.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 637.5,
+    "baseline": 737.5,
     "width": 73.578,
     "lines": 1
    },
    "unvisited hidden text": {
     "x": 1711.844,
     "w": 82.156,
-    "glyph_top": 613.5,
+    "glyph_top": 713.5,
     "glyph_h": 31,
-    "top": 613.5,
+    "top": 713.5,
     "h": 31,
-    "baseline": 637.5,
+    "baseline": 737.5,
     "width": 82.156,
     "lines": 1
    },
@@ -44000,7 +44000,7 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 655
+    "h": 755
    },
    "scaling explanation": {
     "x": 929,
@@ -44027,44 +44027,44 @@
    "margin explanation": {
     "x": 929,
     "w": 845.672,
-    "glyph_top": 266,
+    "glyph_top": 366,
     "glyph_h": 24,
-    "top": 264,
+    "top": 364,
     "h": 29,
-    "baseline": 285,
+    "baseline": 385,
     "width": 845.672,
     "lines": 2
    },
    "color explanation": {
     "x": 929,
     "w": 689.719,
-    "glyph_top": 360,
+    "glyph_top": 460,
     "glyph_h": 24,
-    "top": 358,
+    "top": 458,
     "h": 29,
-    "baseline": 379,
+    "baseline": 479,
     "width": 689.719,
     "lines": 2
    },
    "menus explanation": {
     "x": 929,
     "w": 624.391,
-    "glyph_top": 460,
+    "glyph_top": 560,
     "glyph_h": 24,
-    "top": 458,
+    "top": 558,
     "h": 29,
-    "baseline": 479,
+    "baseline": 579,
     "width": 643.547,
     "lines": 2
    },
    "unvisited explanation": {
     "x": 929,
     "w": 597.844,
-    "glyph_top": 588,
+    "glyph_top": 688,
     "glyph_h": 24,
-    "top": 586,
+    "top": 686,
     "h": 29,
-    "baseline": 607,
+    "baseline": 707,
     "width": 597.844,
     "lines": 2
    },
@@ -44077,22 +44077,22 @@
    "menus note": {
     "x": 929,
     "w": 116.453,
-    "glyph_top": 520,
+    "glyph_top": 620,
     "glyph_h": 22,
-    "top": 518,
+    "top": 618,
     "h": 26,
-    "baseline": 538,
+    "baseline": 638,
     "width": 116.453,
     "lines": 1
    },
    "unvisited note": {
     "x": 929,
     "w": 116.453,
-    "glyph_top": 648,
+    "glyph_top": 748,
     "glyph_h": 22,
-    "top": 646,
+    "top": 746,
     "h": 26,
-    "baseline": 666,
+    "baseline": 766,
     "width": 116.453,
     "lines": 1
    }
@@ -44113,17 +44113,17 @@
     "x": 909,
     "y": 893,
     "w": 922,
-    "h": 86
+    "h": 115
    },
    "picture link": {
     "x": 1281.344,
-    "y": 907,
+    "y": 921.5,
     "w": 529.656,
     "h": 58
    },
    "picture summary": {
     "x": 1281.344,
-    "y": 920.5,
+    "y": 935,
     "w": 506.656,
     "h": 31
    },
@@ -44131,29 +44131,29 @@
     "x": 656,
     "y": 56,
     "w": 1208,
-    "h": 948
+    "h": 977
    },
    "picture summary text": {
     "x": 1281.344,
     "w": 506.656,
-    "glyph_top": 920.5,
+    "glyph_top": 935,
     "glyph_h": 31,
-    "top": 920.5,
+    "top": 935,
     "h": 31,
-    "baseline": 944.5,
+    "baseline": 959,
     "width": 506.656,
     "lines": 1
    },
    "picture explanation": {
     "x": 929,
-    "w": 317.313,
+    "w": 266.313,
     "glyph_top": 909,
     "glyph_h": 24,
     "top": 907,
     "h": 29,
     "baseline": 928,
-    "width": 317.313,
-    "lines": 2
+    "width": 304.188,
+    "lines": 3
    }
   },
   "35g 2 more": {
@@ -63203,6 +63203,3259 @@
     "h": 36,
     "baseline": 756,
     "width": 267.156,
+    "lines": 1
+   }
+  },
+  "43a": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 649
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 86
+   },
+   "margin row": {
+    "x": 909,
+    "y": 309,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 444,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 544,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 644,
+    "w": 922,
+    "h": 86
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 86
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 309,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 444,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 544,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 644,
+    "w": 1142,
+    "h": 86
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 223,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1687.922,
+    "y": 228.5,
+    "w": 36.156,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 261.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1687.922,
+    "w": 36.156,
+    "glyph_top": 228.5,
+    "glyph_h": 31,
+    "top": 228.5,
+    "h": 31,
+    "baseline": 252.5,
+    "width": 36.156,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 699
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 293.438,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 293.438,
+    "lines": 1
+   },
+   "preview": {
+    "x": 96,
+    "y": 363,
+    "w": 432,
+    "h": 243
+   },
+   "preview label": {
+    "x": 96,
+    "y": 618,
+    "w": 520,
+    "h": 26
+   },
+   "preview label text": {
+    "x": 96,
+    "w": 266.781,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 266.781,
+    "lines": 1
+   }
+  },
+  "43a 640x480": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 534.969,
+    "y": 331.297,
+    "w": 52.063,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 534.969,
+    "w": 52.063,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 52.063,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 440.141,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 440.141,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 327.406,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 327.406,
+    "lines": 1
+   }
+  },
+  "43b": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 649
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 86
+   },
+   "margin row": {
+    "x": 909,
+    "y": 309,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 444,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 544,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 644,
+    "w": 922,
+    "h": 86
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 86
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 309,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 444,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 544,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 644,
+    "w": 1142,
+    "h": 86
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 223,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1656.109,
+    "y": 228.5,
+    "w": 99.781,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 261.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1656.109,
+    "w": 99.781,
+    "glyph_top": 228.5,
+    "glyph_h": 31,
+    "top": 228.5,
+    "h": 31,
+    "baseline": 252.5,
+    "width": 99.781,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 699
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 412.641,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 412.641,
+    "lines": 1
+   },
+   "diagram": {
+    "x": 96,
+    "y": 363,
+    "w": 432,
+    "h": 243
+   }
+  },
+  "43b display": {
+   "Picture": {
+    "x": 689,
+    "w": 112.266,
+    "glyph_top": 911,
+    "glyph_h": 27,
+    "top": 911,
+    "h": 27,
+    "baseline": 932,
+    "width": 112.266,
+    "lines": 1
+   },
+   "picture row": {
+    "x": 909,
+    "y": 893,
+    "w": 922,
+    "h": 86
+   },
+   "picture link": {
+    "x": 1343,
+    "y": 907,
+    "w": 468,
+    "h": 58
+   },
+   "picture summary": {
+    "x": 1343,
+    "y": 920.5,
+    "w": 445,
+    "h": 31
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 948
+   },
+   "picture summary text": {
+    "x": 1343,
+    "w": 445,
+    "glyph_top": 920.5,
+    "glyph_h": 31,
+    "top": 920.5,
+    "h": 31,
+    "baseline": 944.5,
+    "width": 445,
+    "lines": 1
+   },
+   "picture explanation": {
+    "x": 929,
+    "w": 370.141,
+    "glyph_top": 909,
+    "glyph_h": 24,
+    "top": 907,
+    "h": 29,
+    "baseline": 928,
+    "width": 370.141,
+    "lines": 2
+   }
+  },
+  "43b display 640x480": {
+   "Picture": {
+    "x": 84,
+    "w": 144.672,
+    "glyph_top": 875.5,
+    "glyph_h": 37,
+    "top": 875.5,
+    "h": 37,
+    "baseline": 904.5,
+    "width": 144.672,
+    "lines": 1
+   },
+   "picture row": {
+    "x": 64,
+    "y": 844,
+    "w": 1312,
+    "h": 100
+   },
+   "picture link": {
+    "x": 408,
+    "y": 849,
+    "w": 673.797,
+    "h": 90
+   },
+   "picture summary text": {
+    "x": 408,
+    "w": 640.797,
+    "glyph_top": 871.5,
+    "glyph_h": 45,
+    "top": 871.5,
+    "h": 45,
+    "baseline": 906.5,
+    "width": 640.797,
+    "lines": 1
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 666.516,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 666.516,
+    "lines": 1
+   }
+  },
+  "43c": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 705
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 114
+   },
+   "margin row": {
+    "x": 909,
+    "y": 337,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 472,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 572,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 672,
+    "w": 922,
+    "h": 114
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 114
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 337,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 472,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 572,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 672,
+    "w": 1142,
+    "h": 114
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 237,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 241,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 241,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1682.859,
+    "y": 242.5,
+    "w": 46.266,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 275.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1682.859,
+    "w": 46.266,
+    "glyph_top": 242.5,
+    "glyph_h": 31,
+    "top": 242.5,
+    "h": 31,
+    "baseline": 266.5,
+    "width": 46.266,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 755
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 281.438,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 281.438,
+    "lines": 1
+   },
+   "filter note": {
+    "x": 929,
+    "w": 119.203,
+    "glyph_top": 285,
+    "glyph_h": 22,
+    "top": 283,
+    "h": 26,
+    "baseline": 303,
+    "width": 119.203,
+    "lines": 1
+   },
+   "preview": {
+    "x": 96,
+    "y": 412,
+    "w": 432,
+    "h": 243
+   },
+   "preview label": {
+    "x": 96,
+    "y": 667,
+    "w": 520,
+    "h": 26
+   },
+   "preview label text": {
+    "x": 96,
+    "w": 209.016,
+    "glyph_top": 669,
+    "glyph_h": 22,
+    "top": 667,
+    "h": 26,
+    "baseline": 687,
+    "width": 209.016,
+    "lines": 1
+   },
+   "page note": {
+    "x": 96,
+    "w": 510.719,
+    "glyph_top": 330,
+    "glyph_h": 22,
+    "top": 327,
+    "h": 29,
+    "baseline": 348,
+    "width": 510.719,
+    "lines": 1
+   }
+  },
+  "43c 640x480": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 527.688,
+    "y": 331.297,
+    "w": 66.625,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 527.688,
+    "w": 66.625,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 66.625,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 422.141,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 422.141,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 162.547,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 162.547,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
+    "lines": 1
+   }
+  },
+  "43d": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 649
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 86
+   },
+   "margin row": {
+    "x": 909,
+    "y": 309,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 444,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 544,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 644,
+    "w": 922,
+    "h": 86
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 86
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 309,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 444,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 544,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 644,
+    "w": 1142,
+    "h": 86
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 223,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1685.063,
+    "y": 228.5,
+    "w": 41.875,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 261.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1685.063,
+    "w": 41.875,
+    "glyph_top": 228.5,
+    "glyph_h": 31,
+    "top": 228.5,
+    "h": 31,
+    "baseline": 252.5,
+    "width": 41.875,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 699
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 272.484,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 272.484,
+    "lines": 1
+   },
+   "preview": {
+    "x": 96,
+    "y": 363,
+    "w": 432,
+    "h": 243
+   },
+   "preview label": {
+    "x": 96,
+    "y": 618,
+    "w": 520,
+    "h": 26
+   },
+   "preview label text": {
+    "x": 96,
+    "w": 266.781,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 266.781,
+    "lines": 1
+   }
+  },
+  "43d sample": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 649
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 86
+   },
+   "margin row": {
+    "x": 909,
+    "y": 309,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 444,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 544,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 644,
+    "w": 922,
+    "h": 86
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 86
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 309,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 444,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 544,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 644,
+    "w": 1142,
+    "h": 86
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 223,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 227,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1656.109,
+    "y": 228.5,
+    "w": 99.781,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 261.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1656.109,
+    "w": 99.781,
+    "glyph_top": 228.5,
+    "glyph_h": 31,
+    "top": 228.5,
+    "h": 31,
+    "baseline": 252.5,
+    "width": 99.781,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 699
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 412.641,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 412.641,
+    "lines": 1
+   },
+   "preview": {
+    "x": 96,
+    "y": 363,
+    "w": 432,
+    "h": 243
+   },
+   "preview label": {
+    "x": 96,
+    "y": 618,
+    "w": 520,
+    "h": 26
+   },
+   "preview label text": {
+    "x": 96,
+    "w": 312.875,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 312.875,
+    "lines": 1
+   }
+  },
+  "43d 640x480": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 527.688,
+    "y": 331.297,
+    "w": 66.625,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 527.688,
+    "w": 66.625,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 66.625,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 422.141,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 422.141,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 327.406,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 327.406,
+    "lines": 1
+   }
+  },
+  "43d sample 640x480": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 530.844,
+    "y": 331.297,
+    "w": 60.297,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 530.844,
+    "w": 60.297,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 60.297,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 408.719,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 408.719,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 68
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 277.25,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 277.25,
+    "lines": 2
+   }
+  },
+  "43e": {
+   "rows": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 677
+   },
+   "scaling row": {
+    "x": 909,
+    "y": 81,
+    "w": 922,
+    "h": 114
+   },
+   "filter row": {
+    "x": 909,
+    "y": 209,
+    "w": 922,
+    "h": 114
+   },
+   "margin row": {
+    "x": 909,
+    "y": 337,
+    "w": 922,
+    "h": 121
+   },
+   "color row": {
+    "x": 909,
+    "y": 472,
+    "w": 922,
+    "h": 86
+   },
+   "menus row": {
+    "x": 909,
+    "y": 572,
+    "w": 922,
+    "h": 86
+   },
+   "unvisited row": {
+    "x": 909,
+    "y": 672,
+    "w": 922,
+    "h": 86
+   },
+   "scaling grid": {
+    "x": 689,
+    "y": 81,
+    "w": 1142,
+    "h": 114
+   },
+   "filter grid": {
+    "x": 689,
+    "y": 209,
+    "w": 1142,
+    "h": 114
+   },
+   "margin grid": {
+    "x": 689,
+    "y": 337,
+    "w": 1142,
+    "h": 121
+   },
+   "color grid": {
+    "x": 689,
+    "y": 472,
+    "w": 1142,
+    "h": 86
+   },
+   "menus grid": {
+    "x": 689,
+    "y": 572,
+    "w": 1142,
+    "h": 86
+   },
+   "unvisited grid": {
+    "x": 689,
+    "y": 672,
+    "w": 1142,
+    "h": 86
+   },
+   "filter label": {
+    "x": 689,
+    "w": 85.016,
+    "glyph_top": 227,
+    "glyph_h": 27,
+    "top": 227,
+    "h": 27,
+    "baseline": 248,
+    "width": 85.016,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 1601,
+    "y": 237,
+    "w": 210,
+    "h": 58
+   },
+   "filter prev": {
+    "x": 1606,
+    "y": 241,
+    "w": 32,
+    "h": 50
+   },
+   "filter next": {
+    "x": 1774,
+    "y": 241,
+    "w": 32,
+    "h": 50
+   },
+   "filter name": {
+    "x": 1656.109,
+    "y": 242.5,
+    "w": 99.781,
+    "h": 31
+   },
+   "filter marks": {
+    "x": 1656.5,
+    "y": 275.5,
+    "w": 99,
+    "h": 14
+   },
+   "section": {
+    "x": 96,
+    "w": 305.828,
+    "glyph_top": 88,
+    "glyph_h": 32,
+    "top": 88,
+    "h": 32,
+    "baseline": 113,
+    "width": 305.828,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 1656.109,
+    "w": 99.781,
+    "glyph_top": 242.5,
+    "glyph_h": 31,
+    "top": 242.5,
+    "h": 31,
+    "baseline": 266.5,
+    "width": 99.781,
+    "lines": 1
+   },
+   "panel": {
+    "x": 656,
+    "y": 56,
+    "w": 1208,
+    "h": 727
+   },
+   "filter explanation": {
+    "x": 929,
+    "w": 412.641,
+    "glyph_top": 225,
+    "glyph_h": 24,
+    "top": 223,
+    "h": 29,
+    "baseline": 244,
+    "width": 412.641,
+    "lines": 1
+   },
+   "filter note": {
+    "x": 929,
+    "w": 214.656,
+    "glyph_top": 285,
+    "glyph_h": 22,
+    "top": 283,
+    "h": 26,
+    "baseline": 303,
+    "width": 214.656,
+    "lines": 1
+   },
+   "preview": {
+    "x": 96,
+    "y": 363,
+    "w": 432,
+    "h": 243
+   },
+   "preview label": {
+    "x": 96,
+    "y": 618,
+    "w": 520,
+    "h": 26
+   },
+   "preview label text": {
+    "x": 96,
+    "w": 266.781,
+    "glyph_top": 620,
+    "glyph_h": 22,
+    "top": 618,
+    "h": 26,
+    "baseline": 638,
+    "width": 266.781,
+    "lines": 1
+   }
+  },
+  "43e 640x480": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 527.688,
+    "y": 331.297,
+    "w": 66.625,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 527.688,
+    "w": 66.625,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 66.625,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 422.141,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 422.141,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 292.719,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 292.719,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 327.406,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 327.406,
+    "lines": 1
+   }
+  },
+  "43f": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 489.156,
+    "y": 331.297,
+    "w": 143.688,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 489.156,
+    "w": 143.688,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 143.688,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 618.953,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 618.953,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 542.859,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 542.859,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
+    "lines": 1
+   }
+  },
+  "43f lcd": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 527.688,
+    "y": 331.297,
+    "w": 66.625,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 527.688,
+    "w": 66.625,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 66.625,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 422.141,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 422.141,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 542.859,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 542.859,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
+    "lines": 1
+   }
+  },
+  "43f 2.5": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 527.969,
+    "y": 331.297,
+    "w": 66.063,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 527.969,
+    "w": 66.063,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 66.063,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 432.516,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 432.516,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 542.859,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 542.859,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
+    "lines": 1
+   }
+  },
+  "43f near": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 489.156,
+    "y": 331.297,
+    "w": 143.688,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 489.156,
+    "w": 143.688,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 143.688,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 618.953,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 618.953,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 162.547,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 162.547,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
+    "lines": 1
+   }
+  },
+  "43f far": {
+   "rows": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 630
+   },
+   "scaling row": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter row": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin row": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color row": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus row": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited row": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "scaling grid": {
+    "x": 64,
+    "y": 208,
+    "w": 1312,
+    "h": 100
+   },
+   "filter grid": {
+    "x": 64,
+    "y": 314,
+    "w": 1312,
+    "h": 100
+   },
+   "margin grid": {
+    "x": 64,
+    "y": 420,
+    "w": 1312,
+    "h": 100
+   },
+   "color grid": {
+    "x": 64,
+    "y": 526,
+    "w": 1312,
+    "h": 100
+   },
+   "menus grid": {
+    "x": 64,
+    "y": 632,
+    "w": 1312,
+    "h": 100
+   },
+   "unvisited grid": {
+    "x": 64,
+    "y": 738,
+    "w": 1312,
+    "h": 100
+   },
+   "filter label": {
+    "x": 84,
+    "w": 108.719,
+    "glyph_top": 345.5,
+    "glyph_h": 37,
+    "top": 345.5,
+    "h": 37,
+    "baseline": 374.5,
+    "width": 108.719,
+    "lines": 1
+   },
+   "filter value": {
+    "x": 408,
+    "y": 319,
+    "w": 306,
+    "h": 90
+   },
+   "filter prev": {
+    "x": 416,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter next": {
+    "x": 658,
+    "y": 326,
+    "w": 48,
+    "h": 76
+   },
+   "filter name": {
+    "x": 489.156,
+    "y": 331.297,
+    "w": 143.688,
+    "h": 41.391
+   },
+   "filter marks": {
+    "x": 485,
+    "y": 376.688,
+    "w": 152,
+    "h": 20
+   },
+   "section": {
+    "x": 64,
+    "w": 342.672,
+    "glyph_top": 28,
+    "glyph_h": 37,
+    "top": 28,
+    "h": 37,
+    "baseline": 57,
+    "width": 342.672,
+    "lines": 1
+   },
+   "filter name text": {
+    "x": 489.156,
+    "w": 143.688,
+    "glyph_top": 329.297,
+    "glyph_h": 45,
+    "top": 331.297,
+    "h": 41.391,
+    "baseline": 364.297,
+    "width": 143.688,
+    "lines": 1
+   },
+   "head": {
+    "x": 64,
+    "y": 28,
+    "w": 860,
+    "h": 37
+   },
+   "help": {
+    "x": 64,
+    "y": 69,
+    "w": 860,
+    "h": 47
+   },
+   "help text": {
+    "x": 64,
+    "w": 618.953,
+    "glyph_top": 74,
+    "glyph_h": 36,
+    "top": 69,
+    "h": 47,
+    "baseline": 103,
+    "width": 618.953,
+    "lines": 1
+   },
+   "help note": {
+    "x": 64,
+    "y": 120,
+    "w": 860,
+    "h": 40
+   },
+   "help note text": {
+    "x": 64,
+    "w": 542.859,
+    "glyph_top": 125,
+    "glyph_h": 30,
+    "top": 120,
+    "h": 40,
+    "baseline": 149,
+    "width": 542.859,
+    "lines": 1
+   },
+   "preview": {
+    "x": 1000,
+    "y": 420,
+    "w": 376,
+    "h": 282
+   },
+   "preview label": {
+    "x": 1000,
+    "y": 710,
+    "w": 376,
+    "h": 34
+   },
+   "preview label text": {
+    "x": 1000,
+    "w": 256.5,
+    "glyph_top": 713,
+    "glyph_h": 27,
+    "top": 710,
+    "h": 34,
+    "baseline": 735,
+    "width": 256.5,
     "lines": 1
    }
   }

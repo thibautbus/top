@@ -12,6 +12,7 @@
 #endif
 
 #include "portable.h"
+#include "sdl_filter.h"
 
 const char *const oracles_sdl_binding_names[ORACLES_BINDINGS] = { "right", "left", "up", "down", "a", "b", "select", "start" };
 const char *const oracles_sdl_default_key_names[ORACLES_BINDINGS] = { "Right", "Left", "Up", "Down", "X", "Z", "Backspace", "Return" };
@@ -74,7 +75,7 @@ void oracles_sdl_presentation(int fullscreen, int fill, int *presentation, int *
 {
     const int filled = fullscreen && fill;
     *presentation = filled ? SDL_LOGICAL_PRESENTATION_LETTERBOX : SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
-    *scale_mode = filled ? SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
+    *scale_mode = oracles_sdl_filter_smooth() ? SDL_SCALEMODE_LINEAR : filled ? SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
 }
 
 int sb_window_fullscreen(const sdl_backend *backend)
@@ -128,6 +129,39 @@ void oracles_sdl_backend_unlock_sound(const oracles_host_backend *backend)
 }
 #endif
 
+/* oracles_sdl_renderer_swap's news: NULL, the renderer goes, the textures made on it are released; the renderer kept,
+ * the filter changed; another renderer, the textures made again on it, the last frame (and the layer the pause shows)
+ * uploaded again, the presentation and the draw state set as they were. */
+static void renderer_heard(void *opaque, SDL_Renderer *renderer)
+{
+    sdl_backend *backend = opaque;
+    oracles_sdl_filter_close(backend->filter);
+    backend->filter = NULL;
+    const int another = !renderer || renderer != backend->renderer || backend->renderer_lost;   /* the same address may come back */
+    backend->renderer_lost = !renderer;
+    if (another) {
+        if (backend->texture) SDL_DestroyTexture(backend->texture);
+        if (backend->layer) SDL_DestroyTexture(backend->layer);
+        backend->texture = backend->layer = NULL;
+        backend->layer_w = backend->layer_h = 0;
+    }
+    if (!renderer) { backend->renderer = NULL; return; }
+    if (another) {
+        backend->renderer = renderer;
+        backend->texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, backend->frame_width, backend->frame_height);
+        if (backend->texture && backend->last_pixels) SDL_UpdateTexture(backend->texture, NULL, backend->last_pixels, (int)backend->last_pitch);
+        oracles_sdl_renderer_describe(renderer, backend->renderer_name, sizeof backend->renderer_name);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        backend->swaps++;
+    }
+    if (backend->texture) sb_present_as(backend, backend->logical_w, backend->logical_h);   /* Smooth's sampling, or no longer */
+    backend->filter = oracles_sdl_filter_open(renderer);
+    /* The layer the pause shows, written again for the filter now in force (its margin follows the filter's curve). */
+    backend->shown_layered = backend->shown_layered && sb_upload_layer(backend, backend->last_layer, backend->last_patch, &backend->shown,
+                                                                       backend->last_pixels, backend->last_pitch);
+}
+
 static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sample_rate_hz, int audio_enabled)
 {
     sdl_backend *backend = opaque;
@@ -159,12 +193,14 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     }
     /* Its own renderer or the home screen's, whose vsync borrow_window has set. */
     int vsync = 0;
-    SDL_snprintf(backend->renderer_name, sizeof backend->renderer_name, "%s", SDL_GetRendererName(backend->renderer));
+    oracles_sdl_renderer_describe(backend->renderer, backend->renderer_name, sizeof backend->renderer_name);
     backend->renderer_vsync = SDL_GetRenderVSync(backend->renderer, &vsync) && vsync != 0;
     SDL_SetRenderDrawColor(backend->renderer, 0, 0, 0, 255);
     backend->texture = SDL_CreateTexture(backend->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                          (int)width, (int)height);
     if (!backend->texture) return 0;
+    backend->filter = oracles_sdl_filter_open(backend->renderer);
+    oracles_sdl_renderer_listen(renderer_heard, backend);
     backend->frame_width = (int)width;
     backend->frame_height = (int)height;
     oracles_safe_area_edges(backend->window, backend->touch.edges.margin, &backend->touch.edges);
@@ -267,7 +303,9 @@ void oracles_sdl_backend_present_report(const oracles_host_backend *backend, uns
                                         const char **renderer, int *renderer_vsync)
 {
     const sdl_backend *state = backend->opaque;
-    *renderer = state && state->renderer_name[0] ? state->renderer_name : "unknown";
+    static char name[96];   /* as it is at the end: the GPU renderer's present mode follows vsync */
+    if (state && state->renderer) oracles_sdl_renderer_describe(state->renderer, name, sizeof name);
+    *renderer = state && state->renderer ? name : state && state->renderer_name[0] ? state->renderer_name : "unknown";
     *renderer_vsync = state ? state->renderer_vsync : 0;
     *presents = state ? state->presents : 0;
     const uint64_t span = state && state->presents > 1 ? state->last_present_ns - state->first_present_ns : 0;
@@ -429,10 +467,18 @@ static void sdl_stop(void *opaque)
     backend->unlock_frames = backend->unlock_cursor = backend->unlock_mixed_capacity = 0;
 #endif
     oracles_sdl_pads_close(&backend->pads);
+    oracles_sdl_renderer_unlisten(backend);
+    oracles_sdl_filter_close(backend->filter);
+    backend->filter = NULL;
+    backend->last_pixels = NULL;
+    backend->last_layer = backend->last_patch = NULL;
     if (backend->texture) SDL_DestroyTexture(backend->texture);
     backend->texture = NULL;
     if (backend->layer) SDL_DestroyTexture(backend->layer);
     backend->layer = NULL; backend->layer_w = backend->layer_h = 0;
+    SDL_free(backend->layer_pixels);
+    backend->layer_pixels = NULL;
+    backend->layer_pixels_size = 0;
     if (backend->borrowed) {
         /* The launcher's window goes back as it was lent, even when the start failed half way: no logical size, the
          * launcher sets its own size again; only the subsystems the loan started are quit. */
@@ -441,7 +487,9 @@ static void sdl_stop(void *opaque)
         backend->subsystems = 0;
         return;
     }
+    oracles_sdl_filter_forget(backend->renderer);
     if (backend->renderer) SDL_DestroyRenderer(backend->renderer);
+    oracles_sdl_gpu_device_release();
     if (backend->window) SDL_DestroyWindow(backend->window);
     backend->renderer = NULL; backend->window = NULL;
     if (SDL_WasInit(0)) SDL_Quit();
@@ -535,20 +583,40 @@ void oracles_sdl_backend_pause_fixed(const oracles_host_backend *backend, const 
 
 void oracles_sdl_backend_pause_pixels(const oracles_host_backend *backend, const uint32_t *pixels)
 {
-    const sdl_backend *state = backend->opaque;
+    sdl_backend *state = backend->opaque;
     if (state->texture) SDL_UpdateTexture(state->texture, NULL, pixels, state->frame_width * (int)sizeof *pixels);
+    state->last_pixels = pixels;
+    state->last_pitch = (size_t)state->frame_width * sizeof *pixels;
+    /* The ground drawn again around Link taken from the new picture too. */
+    if (state->shown_layered && state->renderer)   /* a renderer lost: the layer written again when the next one comes */
+        state->shown_layered = sb_upload_layer(state, state->last_layer, state->last_patch, &state->shown, pixels, state->last_pitch);
 }
 
 int oracles_sdl_backend_pause_image(const oracles_host_backend *backend, const struct SDL_FRect *image)
 {
+    return oracles_sdl_backend_pause_image_as(backend, image, 1);
+}
+
+int oracles_sdl_backend_pause_image_as(const oracles_host_backend *backend, const struct SDL_FRect *image, int filtered)
+{
     sdl_backend *state = backend->opaque;
     if (!state->texture) return 0;
+    OraclesSdlFilter *filter = filtered ? state->filter : NULL;
+    oracles_sdl_filter_place(filter, image, state->shown_cropped ? state->shown_part.w : (float)state->frame_width,
+                             state->shown_cropped ? state->shown_part.h : (float)state->frame_height);
+    oracles_sdl_filter_use(filter, 1);
     if (!state->shown_subpixel) {
-        if (!SDL_RenderTexture(state->renderer, state->texture, state->shown_cropped ? &state->shown_part : NULL, image)) return 0;
+        const int drawn = SDL_RenderTexture(state->renderer, state->texture, state->shown_cropped ? &state->shown_part : NULL, image);
+        oracles_sdl_filter_use(filter, 0);
+        if (!drawn) return 0;
         sb_draw_shown_box(state, image);   /* Text size Large's box, which the presenter drew over the frame */
         return 1;
     }
+    OraclesSdlFilter *kept = state->filter;
+    state->filter = filter;   /* the layer apart where the shader is not drawn */
     const int drawn = sb_draw_subpixel_cut(state, image);
+    state->filter = kept;
+    oracles_sdl_filter_use(filter, 0);
     if (drawn) sb_draw_shown_box(state, image);
     return drawn;
 }

@@ -160,7 +160,7 @@ static void layouts(void)
     layout_line("34b", "picture summary text", &l.picture_summary);
     layout_box("34b", "advanced", &l.rows[ORACLES_DISPLAY_ADVANCED]);
     layout_line("34b", "help text", &l.help);
-    CHECK(!strcmp(t.help, "Scaling, margin, colors, menus and scenes.") && !t.help_note);
+    CHECK(!strcmp(t.help, "Scaling, filter, margin, colors, menus and scenes.") && !t.help_note);
 
     /* 34d: the page in 4:3, Screen margin highlighted. */
     picture(&nav, ORACLES_DISPLAY_MARGIN);

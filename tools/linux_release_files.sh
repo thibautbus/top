@@ -28,7 +28,7 @@ linux_release_files() {
     cp -L "$build/_deps/sdl3-build/libSDL3.so.0" "$dir/libSDL3.so.0"
     # The library beside the executable, and no path of the build machine.
     patchelf --set-rpath '$ORIGIN' "$dir/the-oracles-project"
-    cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
+    cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/xBR-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
         "$build/Lua-LICENSE.txt" "$build/SDL3-LICENSE.txt" "$dir/"
     # RetroAchievements' licence where the build has them (ORACLES_RETROACHIEVEMENTS).
     if grep -q '^ORACLES_RETROACHIEVEMENTS:BOOL=ON' "$build/CMakeCache.txt" 2>/dev/null; then cp "$build/rcheevos-LICENSE.txt" "$dir/"; fi
