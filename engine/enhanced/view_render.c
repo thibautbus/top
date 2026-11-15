@@ -375,6 +375,7 @@ int ev_washed_out(const OraclesEnhancedView *v)
     return 0;
 }
 int oracles_enhanced_view_washed_out(const OraclesEnhancedView *v) { return ev_washed_out(v); }
+int oracles_enhanced_view_faded(const OraclesEnhancedView *v) { return v->fade_effective != 0; }
 
 /* Washed out with every background palette too (ev_washed_out lets a fade spare two, the Maku Tree's remote voice
  * putting its text box's back): nothing of the world shows, its tiles of any palette. */
@@ -538,6 +539,93 @@ static unsigned changed_lines(const entry *e, const uint8_t *oam, int draw_objec
     return count;
 }
 
+/* The ghost's window inside a large room: its camera, where the game placed
+ * the objects whose sprites the capture keeps.  0 when it is not inside the room. */
+static int large_entry_window(const entry *e)
+{
+    return e->camera_x >= 0 && e->camera_y >= 0 && e->camera_x + (int)ORACLES_ENHANCED_CORE_WIDTH <= (int)LARGE_ROOM_W
+        && e->camera_y + (int)ORACLES_ENHANCED_AREA_HEIGHT <= (int)LARGE_ROOM_H;
+}
+
+/* A large room's objects, as the game drew them on the ghost's window: that
+ * window rendered with them, the registers as captured, laid over the room's
+ * terrain where it stands in the room: the OAM's places are the window's,
+ * not the room's. */
+static void large_entry_objects(OraclesEnhancedView *v, entry *e, OraclesPpuInput *in, uint8_t lcdc)
+{
+    if (!large_entry_window(e)) return;
+    const OraclesPpuRegs r = { lcdc, e->regs3[1], e->regs3[2], e->regs3[3], e->regs3[4] };
+    for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in->lines[ly] = r;
+    oracles_ppu_render_wide_lines(in, v->strip, ORACLES_ENHANCED_CORE_WIDTH, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + ORACLES_ENHANCED_AREA_HEIGHT);
+    for (unsigned y = 0; y < ORACLES_ENHANCED_AREA_HEIGHT; y++)
+        memcpy(e->live_area + ((unsigned)e->camera_y + y) * LARGE_ROOM_W + (unsigned)e->camera_x, v->strip + (ORACLES_ENHANCED_HUD_HEIGHT + y) * ORACLES_ENHANCED_CORE_WIDTH,
+               ORACLES_ENHANCED_CORE_WIDTH * sizeof *v->strip);
+}
+
+/* With the harness's check, a large room's entry just rendered with its
+ * objects: each object whose capture shows the pose its record holds, that
+ * pose built where the ghost's window placed it, its pixels looked for in the
+ * room's render at their place there (those the background hides aside, a
+ * puddle lowering it a pixel); found at fewer than half, it is drawn
+ * elsewhere, or not at all. */
+static void check_large_entry_people(OraclesEnhancedView *v, const entry *e, const OraclesPpuInput *in, uint8_t lcdc)
+{
+    if (!large_entry_window(e)) return;
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    const int before = e->tag_count_before && (v->frame & 1u);   /* the tags ev_neighbour_oam drew from */
+    const OraclesSpriteTag *tags = before ? e->tags_before : e->tags;
+    const unsigned tag_count = before ? e->tag_count_before : e->tag_count, height = (lcdc & 0x04u) ? 16u : 8u;
+    const OraclesPpuMaps maps = { { in->vram, in->vram + 0x2000u }, in->vram + MAP_OFFSET, in->vram + 0x2000u + MAP_OFFSET };
+    const OraclesPpuRegs r = { lcdc, e->regs3[1], e->regs3[2], e->regs3[3], e->regs3[4] };
+    unsigned off = 0;
+    for (unsigned i = 0; i < tag_count; i++) {
+        const OraclesSpriteTag *tag = &tags[i];
+        if (!tag->kind || tag->terrain_effect || !tag->count || (unsigned)tag->first + tag->count > 40u) continue;
+        const OraclesObjectRecord *record = NULL;
+        for (unsigned k = 0; k < e->object_count && !record; k++)
+            if (e->objects[k].kind == tag->kind && e->objects[k].slot == tag->slot) record = &e->objects[k];
+        if (!record) continue;
+        const OraclesObjectRecord d = oracles_objects_as_drawn(record);
+        const OraclesObjectPlace place = { d.yh, d.xh, d.zh, (uint8_t)e->camera_y, (uint8_t)e->camera_x, d.oam_flags, d.oam_tile_base };
+        OraclesObjectSprite s[ORACLES_OBJECT_SPRITES_MAX];
+        const int n = oracles_object_sprites_pose(t, v->rom, v->rom_size, &place, d.oam_data_address, s, ORACLES_OBJECT_SPRITES_MAX);
+        int last = n - 1;
+        while (last >= 0 && !s[last].in_window) last--;
+        if (last < 0) continue;
+        /* Its own sprites are the tag's last entries, those the game's window holds: the same pose, or a pose past
+         * its record's (left unjudged). */
+        const uint8_t *drawn = in->oam + ((unsigned)tag->first + tag->count - 1u) * 4u;
+        const int lower = (int)drawn[0] - (int)s[last].oam_y;
+        if (!drawn[0] || drawn[2] != s[last].tile || drawn[1] != s[last].oam_x || (lower != 0 && lower != 1)) continue;
+        unsigned seen = 0, found = 0;
+        for (int k = 0; k <= last; k++) {
+            if (!s[k].in_window) continue;
+            const uint8_t attr = s[k].attr, *tiles = in->vram + ((attr & 0x08u) ? 0x2000u : 0u);
+            for (unsigned row = 0; row < height; row++) {
+                const int ly = s[k].y + lower + (int)row;   /* the screen's line, the status bar's included */
+                if (ly < (int)ORACLES_ENHANCED_HUD_HEIGHT || ly >= (int)(ORACLES_ENHANCED_HUD_HEIGHT + ORACLES_ENHANCED_AREA_HEIGHT)) continue;
+                const unsigned line = (attr & 0x40u) ? height - 1u - row : row, tile = height == 16u ? (s[k].tile & 0xfeu) + (line >> 3) : s[k].tile;
+                const uint8_t lo = tiles[tile * 16u + (line & 7u) * 2u], hi = tiles[tile * 16u + (line & 7u) * 2u + 1u];
+                for (unsigned col = 0; col < 8u; col++) {
+                    const int x = s[k].x + (int)col;
+                    const unsigned bit = (attr & 0x20u) ? col : 7u - col, colour = ((lo >> bit) & 1u) | (((hi >> bit) & 1u) << 1);
+                    if (!colour || x < 0 || x >= (int)ORACLES_ENHANCED_CORE_WIDTH) continue;
+                    if (oracles_ppu_hides_object(lcdc, oracles_ppu_background_at(&maps, &r, (unsigned)x, (unsigned)ly), attr)) continue;
+                    const unsigned at = (attr & 7u) * 8u + colour * 2u;
+                    const uint32_t want = in->colours[(in->obj_palettes[at] | (in->obj_palettes[at + 1u] << 8)) & 0x7fffu];
+                    seen++;
+                    found += e->live_area[(unsigned)(ly - (int)ORACLES_ENHANCED_HUD_HEIGHT + e->camera_y) * LARGE_ROOM_W + (unsigned)(x + e->camera_x)] == want;
+                }
+            }
+        }
+        if (!seen) continue;
+        v->large_entry_people++;
+        if (found * 2u < seen) off++;
+    }
+    v->large_entry_people_off += off;
+    if (off) v->large_entry_off_renders++;
+}
+
 const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
@@ -681,8 +769,10 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
         in.colours = v->colours;
         const unsigned width = e->large ? LARGE_ROOM_W : ORACLES_GHOST_AREA_WIDTH, height = e->large ? LARGE_ROOM_H : ORACLES_GHOST_AREA_HEIGHT;
         /* Bit 1 of LCDC: the objects are drawn only when the neighbour has
-         * some to show, and never in a large room, which the view shows alone. */
+         * some to show; a large room's terrain is drawn without them, and they
+         * are drawn after it where the ghost's window was (large_entry_objects). */
         const uint8_t lcdc = (uint8_t)(draw_objects ? (e->regs3[0] | 0x82u) : ((e->regs3[0] | 0x80u) & ~0x02u));
+        const uint8_t terrain_lcdc = e->large ? (uint8_t)(lcdc & ~0x02u) : lcdc;
         /* What the render reads besides its tiles; the same as the last render's,
          * only the lines showing a tile that changed since are drawn again.  A
          * large room is drawn whole, and so is a room under a window, whose lines
@@ -718,12 +808,16 @@ const uint32_t *ev_neighbour_pixels(OraclesEnhancedView *v, entry *e)
                 y = end;
             }
             if (pose_lines) ev_poses_check_lines(v, e, &in, width);
-        } else for (unsigned pass = 0; pass * ORACLES_ENHANCED_AREA_HEIGHT < height; pass++) {
-            const OraclesPpuRegs r = { lcdc, (uint8_t)(e->regs3[1] - e->camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
-            for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
-            const unsigned rows = height - pass * ORACLES_ENHANCED_AREA_HEIGHT < ORACLES_ENHANCED_AREA_HEIGHT ? height - pass * ORACLES_ENHANCED_AREA_HEIGHT : ORACLES_ENHANCED_AREA_HEIGHT;
-            oracles_ppu_render_wide_lines(&in, v->strip, width, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + rows);   /* the lines kept */
-            memcpy(e->live_area + pass * ORACLES_ENHANCED_AREA_HEIGHT * width, v->strip + ORACLES_ENHANCED_HUD_HEIGHT * width, rows * width * sizeof *v->strip);
+        } else {
+            for (unsigned pass = 0; pass * ORACLES_ENHANCED_AREA_HEIGHT < height; pass++) {
+                const OraclesPpuRegs r = { terrain_lcdc, (uint8_t)(e->regs3[1] - e->camera_y + pass * ORACLES_ENHANCED_AREA_HEIGHT), (uint8_t)(e->regs3[2] - e->camera_x), e->regs3[3], e->regs3[4] };
+                for (unsigned ly = 0; ly < ORACLES_PPU_HEIGHT; ly++) in.lines[ly] = r;
+                const unsigned rows = height - pass * ORACLES_ENHANCED_AREA_HEIGHT < ORACLES_ENHANCED_AREA_HEIGHT ? height - pass * ORACLES_ENHANCED_AREA_HEIGHT : ORACLES_ENHANCED_AREA_HEIGHT;
+                oracles_ppu_render_wide_lines(&in, v->strip, width, ORACLES_ENHANCED_HUD_HEIGHT, ORACLES_ENHANCED_HUD_HEIGHT + rows);   /* the lines kept */
+                memcpy(e->live_area + pass * ORACLES_ENHANCED_AREA_HEIGHT * width, v->strip + ORACLES_ENHANCED_HUD_HEIGHT * width, rows * width * sizeof *v->strip);
+            }
+            if (e->large && draw_objects) large_entry_objects(v, e, &in, lcdc);
+            if (e->large && draw_objects && v->pose_verify) check_large_entry_people(v, e, &in, lcdc);
         }
         /* Blocks that differ from the ghost's render although their tile is
          * not one the live VRAM animates: none if the live render is right.

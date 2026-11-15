@@ -738,9 +738,17 @@ OraclesRoomPredictVerdict oracles_room_predict(const OraclesRom *rom, const Orac
 #define ROOM_AGES_MAKU_TREE 0x38u        /* checkTilesetOverride@checkMakuTreeSaved: group 0, its tileset set by a flag of the past */
 #define PACK_AGES_NUUN 0x7fu             /* checkTilesetOverride: Nuun Highlands, the tileset of the animal companion */
 
+const OraclesRoomSceneSubids oracles_room_scene_waits_seasons[] = {
+    { 0x22, 0x00000000000000ffu },
+    { 0, 0 }
+};
+
 static int marked(const OraclesRoomScenes *scenes, unsigned kind, unsigned id, unsigned subid)
 {
     if (kind >= 3u) return 0;
+    if (kind == 0u && scenes->waits && subid < 64u)
+        for (const OraclesRoomSceneSubids *p = scenes->waits; p->id; p++)
+            if (p->id == id && ((p->subids >> subid) & 1u)) return 0;
     if ((scenes->ids[kind][(id >> 3) & 31u] >> (id & 7u)) & 1u) return 1;
     if (kind != 0u || !scenes->subids) return 0;
     for (const OraclesRoomSceneSubids *p = scenes->subids; p->id; p++)
@@ -748,12 +756,12 @@ static int marked(const OraclesRoomScenes *scenes, unsigned kind, unsigned id, u
     return 0;
 }
 
-int oracles_room_predict_scene(const OraclesRoomScenes *scenes, const uint8_t *objects)
+static int scene_among(const OraclesRoomScenes *scenes, const uint8_t *objects, unsigned kinds)
 {
     if (!scenes || !scenes->ids) return 1;
     if (!objects) return -1;
     for (unsigned slot = 0; slot < 16u; slot++)
-        for (unsigned kind = 0; kind < 3u; kind++) {
+        for (unsigned kind = 0; kind < kinds; kind++) {
             /* Interactions at $dx40, enemies at $dx80, parts at $dxc0; the room left's, enabled 2 since the load
              * (setObjectsEnabledTo2), go at the scroll's end. */
             const uint8_t *o = objects + slot * 0x100u + (kind + 1u) * 0x40u;
@@ -762,6 +770,14 @@ int oracles_room_predict_scene(const OraclesRoomScenes *scenes, const uint8_t *o
             if (marked(scenes, kind, o[1], o[2])) return 1;
         }
     return 0;
+}
+
+int oracles_room_predict_scene(const OraclesRoomScenes *scenes, const uint8_t *objects) { return scene_among(scenes, objects, 3u); }
+
+static OraclesRoomScenes game_scenes(const OraclesGuestTransitionState *s, int waits)
+{
+    if (s->game == ORACLES_GAME_AGES) return (OraclesRoomScenes){ oracles_room_scenes_ages, oracles_room_scene_subids_ages, NULL };
+    return (OraclesRoomScenes){ oracles_room_scenes_seasons, oracles_room_scene_subids_seasons, waits ? oracles_room_scene_waits_seasons : NULL };
 }
 
 /* getMoblinKeepScreenIndex (Seasons' engine): one of the five rooms of the image's moblinKeepRooms, which take a tileset
@@ -780,6 +796,14 @@ static int moblin_keep(const OraclesRom *rom, const OraclesGuestTransitionState 
 static int room_pack(const OraclesRom *rom, const OraclesGuestTransitionState *s, unsigned group, unsigned room, uint8_t *pack)
 {
     return read8(rom, s->room_pack_bank, s->room_pack_table + group * 0x100u + room, pack);
+}
+
+OraclesRoomFirstFrame oracles_room_predict_first_frame(const OraclesGuestTransitionState *s)
+{
+    if (!s) return ORACLES_ROOM_FIRST_FRAME_QUIET;
+    const OraclesRoomScenes all = game_scenes(s, 0), held = game_scenes(s, s->load.scene_wait_rules);
+    if (scene_among(&all, s->load.objects, 1u) <= 0) return ORACLES_ROOM_FIRST_FRAME_QUIET;
+    return scene_among(&held, s->load.objects, 1u) ? ORACLES_ROOM_FIRST_FRAME_MARKED : ORACLES_ROOM_FIRST_FRAME_WAITS;
 }
 
 OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, const OraclesTables *data, const OraclesGuestTransitionState *s,
@@ -829,8 +853,7 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
     }
     /* The room entered's objects, created by its load (its list and initializeRoom), run their first frame once the
      * scroll beside is decided. */
-    const OraclesRoomScenes scenes = ages ? (OraclesRoomScenes){ oracles_room_scenes_ages, oracles_room_scene_subids_ages }
-                                          : (OraclesRoomScenes){ oracles_room_scenes_seasons, oracles_room_scene_subids_seasons };
+    const OraclesRoomScenes scenes = game_scenes(s, s->load.scene_wait_rules);
     const int scene = oracles_room_predict_scene(&scenes, s->load.objects);
     if (scene < 0) return ORACLES_ROOM_PREDICT_EARLY;
     if (scene) return ORACLES_ROOM_PREDICT_SCENE;

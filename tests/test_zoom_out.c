@@ -996,6 +996,88 @@ static void state_across_viewports(void)
     rig_stop(&r);
 }
 
+/* Seasons' Lost Woods: a scroll up out of 0:40 that the game sends back into 0:40, against one into 0:30, the room
+ * above.  The room re-entered keeps its place, a room lower than 0:30's: the world moves under Link by the room's
+ * height at the arrival (rebase_y), the window the frame on screen shows with it, and the camera follows, a room lower
+ * than through 0:30 on every frame from the arrival on and the same before, at both bands and both profiles.  A loop
+ * out of the map's first column toward its side off the map moves nothing. */
+static void loop_frame(OraclesGuest *guest, uint8_t room, int scrolling, int camera_y, int link_x, int link_y, uint8_t direction)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(guest);
+    uint8_t *w0 = oracles_guest_wram_writable(guest, 0), *link = oracles_guest_wram_writable(guest, 1) + (ORACLES_OBJECTS_BASE - 0xd000u);
+    w0[t->game_state.addr - 0xc000u] = 2; w0[t->cutscene_index.addr - 0xc000u] = 0;
+    w0[t->scroll_mode.addr - 0xc000u] = scrolling ? ORACLES_SCROLL_MODE_TRANSITION : 1u;
+    w0[t->screen_transition_state.addr - 0xc000u] = scrolling ? 4u : 2u;
+    w0[t->screen_transition_direction.addr - 0xc000u] = direction;
+    w0[t->active_group.addr - 0xc000u] = 0; w0[t->active_room.addr - 0xc000u] = room;
+    w0[t->keys_pressed.addr - 0xc000u] = 0x40u;
+    uint8_t *cy = (uint8_t *)oracles_guest_ptr(guest, t->camera_y, 2), *cx = (uint8_t *)oracles_guest_ptr(guest, t->camera_x, 2);
+    cy[0] = (uint8_t)camera_y; cy[1] = (uint8_t)((unsigned)camera_y >> 8); cx[0] = cx[1] = 0;
+    link[ORACLES_OBJ_ENABLED] = 1; link[ORACLES_OBJ_STATE] = 1;
+    link[ORACLES_OBJ_XH] = (uint8_t)link_x; link[ORACLES_OBJ_YH] = (uint8_t)link_y;
+}
+
+static void small_room_loop(void)
+{
+    rig r;
+    memset(&r, 0, sizeof r);
+    CHECK(rig_start_game(&r, ORACLES_GAME_SEASONS));
+    if (!r.guest) { rig_stop(&r); return; }
+    for (unsigned band = 0; band < 2u; band++) {
+        for (unsigned profile = 1; profile <= 2u; profile++) {
+            OraclesEnhancedCamera *cameras[2] = { oracles_enhanced_camera_start(r.guest), oracles_enhanced_camera_start(r.guest) };
+            OraclesEnhancedObserver observers[2];
+            memset(observers, 0, sizeof observers);
+            for (unsigned k = 0; k < 2u; k++) {
+                observers[k].map_width = 16;
+                if (band) oracles_enhanced_camera_set_band(cameras[k], W, BAND_H);
+                oracles_enhanced_camera_set_profile(cameras[k], profile);
+            }
+            const uint8_t entered[2] = { 0x30, 0x40 };
+            unsigned same_before = 0, lower_after = 0, windows = 0, rebased = 0;
+            for (uint32_t f = 0; f < 140u; f++) {
+                /* 40 frames walking up in 0:40, 32 of the scroll, the game's window up a room and Link 40 px on, then
+                 * the walk up in the room entered. */
+                const int scrolling = f >= 40u && f < 72u;
+                const int camera_y = scrolling ? -4 * (int)(f - 39u) : 0;
+                const int link_y = f < 40u ? 60 - (int)f : scrolling ? 20 - (int)(f - 39u) * 40 / 32 : 108 - (int)(f - 72u);
+                OraclesEnhancedObservation ob[2];
+                int32_t cam[2] = { 0, 0 }, cam_y[2] = { 0, 0 };
+                for (unsigned k = 0; k < 2u; k++) {
+                    loop_frame(r.guest, f < 40u ? 0x40 : entered[k], scrolling, camera_y, 80, link_y, 0);
+                    oracles_enhanced_observe(r.guest, &observers[k], &ob[k]);
+                    CHECK(oracles_enhanced_camera_reduce(cameras[k], f, &ob[k], &cam[k], &cam_y[k]) == 1);
+                }
+                if (ob[1].rebase_y) rebased++;
+                CHECK(ob[0].rebase_x == 0 && ob[0].rebase_y == 0 && ob[1].rebase_x == 0);
+                CHECK(ob[1].rebase_y == (f == 72u ? 128 : 0));
+                if (f < 72u) { if (cam[1] == cam[0] && cam_y[1] == cam_y[0]) same_before++; }
+                else if (cam[1] == cam[0] && cam_y[1] == cam_y[0] + 128) lower_after++;
+                if (f >= 72u && ob[1].window_top == ob[0].window_top + 128 && ob[1].link_step_y == ob[0].link_step_y) windows++;
+            }
+            CHECK(rebased == 1u && same_before == 72u && lower_after == 68u && windows == 68u);
+            for (unsigned k = 0; k < 2u; k++) oracles_enhanced_camera_stop(cameras[k]);
+        }
+    }
+    /* Left out of 0:40, the map's first column, and back: off the map, nothing moves; out of 0:41, a room across. */
+    for (unsigned k = 0; k < 2u; k++) {
+        const uint8_t room = k ? 0x41 : 0x40;
+        OraclesEnhancedObserver observer;
+        memset(&observer, 0, sizeof observer);
+        observer.map_width = 16;
+        OraclesEnhancedObservation ob;
+        int moved = 0;
+        for (uint32_t f = 0; f < 50u; f++) {
+            const int scrolling = f >= 10u && f < 42u;
+            loop_frame(r.guest, room, scrolling, 0, f < 10u ? 20 - (int)f : scrolling ? 10 - (int)(f - 9u) * 20 / 32 : 150, 64, 3);
+            oracles_enhanced_observe(r.guest, &observer, &ob);
+            if (ob.rebase_x || ob.rebase_y) moved = ob.rebase_x;
+        }
+        CHECK(moved == (k ? 160 : 0));
+    }
+    rig_stop(&r);
+}
+
 /* A walk at the game's sub-pixel speeds: whole pixels on the frames the
  * sub-pixel carries over.  The frame on screen draws Link where the previous
  * observation had him (link_step), and the camera steps with him there: once
@@ -1854,6 +1936,10 @@ static void objects_refresh_pace(void)
     CHECK(oracles_enhanced_objects_refresh_may_start(1, 60));
     CHECK(!oracles_enhanced_objects_refresh_put_off(1));          /* in play: taken, or failed if interrupted or blank */
     CHECK(oracles_enhanced_objects_refresh_put_off(0));           /* the game held as it came back */
+    CHECK(oracles_enhanced_load_window_holds(0, 0));                /* a load: the window opens */
+    CHECK(!oracles_enhanced_load_window_holds(1, 1));               /* the band filled in play */
+    CHECK(oracles_enhanced_load_window_holds(1827, 0));             /* the longest close measured, the Lost Woods with the thread */
+    CHECK(!oracles_enhanced_load_window_holds(ORACLES_ENHANCED_LOAD_WINDOW_FRAMES, 0));   /* a ghost always busy: closed all the same */
 }
 
 /* A parent found no start from a run beyond it that came back elsewhere,
@@ -2134,6 +2220,7 @@ int main(void)
     dungeon_diagonal_band();
     dungeon_diagonal_band_4_3();
     state_across_viewports();
+    small_room_loop();
     diagonal_walk();
     stairs_walk();
     pixel_stop_turn();

@@ -48,7 +48,7 @@ static const OraclesCompatProfile profiles[] = {
        * Holodrum's columns 13 to 15 and rows 3 to 11, Subrosia's columns 4 to 10 and rows 0 to 7. */
       .map_width = 16, .map_height = 12, .map_left = 13, .map_top = 3,
       .second_map_width = 11, .second_map_height = 8, .second_map_left = 4, .second_map_top = 0,
-      .maku_tree_rules = 1, .seasons_rules = 1, .lost_woods_rules = 1, .tileset_map_rules = 1,
+      .maku_tree_rules = 1, .seasons_rules = 1, .lost_woods_rules = 1, .tileset_map_rules = 1, .scene_wait_rules = 1,
       .language_bank = ORACLES_IMAGE_LANGUAGE_BANK },   /* its 4 MiB leave $5f to $7f empty */
     /* Gifts of Kinomi: Ages' engine on hack-base, bound from a build of its published source
      * (gifts-of-kinomi/manifest.json).  Its 8 x 8 map is its source's OVERWORLD_WIDTH/HEIGHT; the rooms its
@@ -228,6 +228,10 @@ int oracles_compat_interior_area_rules(const OraclesCompatProfile *profile)
 int oracles_compat_tileset_override_rules(const OraclesCompatProfile *profile)
 {
     return profile ? profile->tileset_override_rules : 0;
+}
+int oracles_compat_scene_wait_rules(const OraclesCompatProfile *profile)
+{
+    return profile ? profile->scene_wait_rules : 0;
 }
 unsigned oracles_compat_language_bank(const OraclesCompatProfile *profile)
 {

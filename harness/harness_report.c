@@ -82,8 +82,8 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
                              r->glides, r->glides_unlike, r->edge_glides, r->edge_glides_unlike, r->edge_glide_off_max);
         fprintf(stderr, "continuous transitions: frames of a scroll swum %u, of them moved otherwise than his motion %u\n", r->swim_scroll_frames, r->swim_scroll_off_frames);
         if (summary) fprintf(summary, "swim.scroll_frames=%u\nswim.scroll_off_frames=%u\n", r->swim_scroll_frames, r->swim_scroll_off_frames);
-        fprintf(stderr, "continuous transitions: a diagonal held (--continuous-diagonal) carried Link across the axis on %u frames, withheld on %u (a collision across, the room's collisions not loaded)\n", oracles_guest_transition_carried(r->guest), stats.carry_withheld_frames);
-        if (summary) fprintf(summary, "transitions.carried_frames=%u\ntransitions.carry_asked_frames=%u\ntransitions.carry_withheld_frames=%u\n", oracles_guest_transition_carried(r->guest), stats.carry_asked_frames, stats.carry_withheld_frames);
+        fprintf(stderr, "continuous transitions: a diagonal held (--continuous-diagonal) carried Link across the axis on %u frames, withheld on %u (a collision across, the room's collisions not loaded; the step itself clear, by what lies further along on %u)\n", oracles_guest_transition_carried(r->guest), stats.carry_withheld_frames, stats.carry_ahead_frames);
+        if (summary) fprintf(summary, "transitions.carried_frames=%u\ntransitions.carry_asked_frames=%u\ntransitions.carry_withheld_frames=%u\ntransitions.carry_ahead_frames=%u\n", oracles_guest_transition_carried(r->guest), stats.carry_asked_frames, stats.carry_withheld_frames, stats.carry_ahead_frames);
         if (summary) fprintf(summary, "transitions.resumed_frames=%u\n", stats.refused_by[10]);
         fprintf(stderr, "continuous transitions: frames of a scene's walk across an edge with the game's own keys, left to the game: %u\n", stats.simulated_frames);
         if (summary) fprintf(summary, "transitions.simulated_frames=%u\n", stats.simulated_frames);
@@ -100,13 +100,13 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
             OraclesGuestLineCounts line;
             oracles_guest_line_counts(r->guest, &line);
             fprintf(stderr, "continuous transitions: at the line (--continuous-line), edge tests the game's bound would have held with Link inside the room %u, held at the line %u "
-                            "(below zero %u), left to the game and held %u; frames of a scroll he stood with no direction held %u (in the game's standing pose %u), walked back %u (held at the line %u, past it into the room left %u, held there by a wall %u; transitions back forced from there %u of %u asked, kept untaken %u frames, lowered %u; put back on the line %u)\n",
+                            "(below zero %u), left to the game and held %u; frames of a scroll he stood with no direction held %u (in the game's standing pose %u), walked back %u (held at the line %u, past it into the room left %u, held there by a wall %u; transitions back started from there %u of %u asked; put back on the line %u), scrolls that cut a scene %u, first frames held back from a scroll %u\n",
                     line.rests, line.clamps, line.wraps, line.native_backs, stats.stopped_frames, stats.standing_frames, stats.back_frames, stats.back_line_frames,
-                    stats.back_past_frames, stats.back_wall_frames, oracles_guest_transition_back_forced(r->guest), stats.back_reversals, stats.back_kept_frames, stats.back_lowered, oracles_guest_transition_put_back(r->guest));
+                    stats.back_past_frames, stats.back_wall_frames, oracles_guest_transition_back_forced(r->guest), stats.back_reversals, oracles_guest_transition_put_back(r->guest), stats.scene_cuts, oracles_guest_transition_edge_holds(r->guest));
             if (summary) fprintf(summary, "transitions.line_rests=%u\ntransitions.line_clamps=%u\ntransitions.line_wraps=%u\ntransitions.line_native_backs=%u\n"
-                                          "transitions.stopped_frames=%u\ntransitions.standing_frames=%u\ntransitions.back_frames=%u\ntransitions.back_line_frames=%u\ntransitions.back_past_frames=%u\ntransitions.back_wall_frames=%u\ntransitions.back_reversals=%u\ntransitions.back_forced=%u\ntransitions.back_lowered=%u\ntransitions.back_kept_frames=%u\ntransitions.put_back=%u\n",
+                                          "transitions.stopped_frames=%u\ntransitions.standing_frames=%u\ntransitions.back_frames=%u\ntransitions.back_line_frames=%u\ntransitions.back_past_frames=%u\ntransitions.back_wall_frames=%u\ntransitions.back_reversals=%u\ntransitions.back_forced=%u\ntransitions.scene_cuts=%u\ntransitions.edge_holds=%u\ntransitions.put_back=%u\n",
                                  line.rests, line.clamps, line.wraps, line.native_backs, stats.stopped_frames, stats.standing_frames, stats.back_frames, stats.back_line_frames,
-                                 stats.back_past_frames, stats.back_wall_frames, stats.back_reversals, oracles_guest_transition_back_forced(r->guest), stats.back_lowered, stats.back_kept_frames, oracles_guest_transition_put_back(r->guest));
+                                 stats.back_past_frames, stats.back_wall_frames, stats.back_reversals, oracles_guest_transition_back_forced(r->guest), stats.scene_cuts, oracles_guest_transition_edge_holds(r->guest), oracles_guest_transition_put_back(r->guest));
             fprintf(stderr, "continuous transitions: rooms beside the room entered across (--continuous-line) predicted %u (%u the same as the game's load of them, %u not, %u not entered next), "
                             "left to the slowed carry %u (", stats.beside_predicted, stats.beside_matched, stats.beside_mismatched, stats.beside_unchecked, stats.beside_fallbacks);
             for (unsigned v = 1, listed = 0; v < ORACLES_ROOM_PREDICT_VERDICTS; v++)
@@ -123,9 +123,11 @@ void harness_report_transitions(run *r, FILE *summary, uint8_t *rom)
                             "%u different (the first at %u); scroll frames swum by that step %u (a move held %u, made across untested %u), the motion written %u\n",
                     stats.swim_model_frames, stats.swim_model_mismatched, stats.swim_model_first_mismatch, stats.swim_line_frames, stats.swim_held_frames, stats.swim_untested_frames,
                     oracles_guest_transition_swim_steps(r->guest));
-            fprintf(stderr, "continuous transitions: on foot past the game's own place (--continuous-line), steps along the axis held by a wall of the room entered on %u frames, by its collisions unknown on %u\n",
-                    stats.line_wall_frames, stats.line_unknown_frames);
-            if (summary) fprintf(summary, "transitions.line_wall_frames=%u\ntransitions.line_unknown_frames=%u\n", stats.line_wall_frames, stats.line_unknown_frames);
+            fprintf(stderr, "continuous transitions: on foot past the game's own place (--continuous-line), steps along the axis held by a wall of the room entered on %u frames, by its collisions unknown on %u; "
+                            "scrolls left to the game from the line that took him into a wall, ended at its place instead %u; respawns put at the game's place, the line's in a wall, %u\n",
+                    stats.line_wall_frames, stats.line_unknown_frames, oracles_guest_transition_placed(r->guest), stats.respawns_placed);
+            if (summary) fprintf(summary, "transitions.line_wall_frames=%u\ntransitions.line_unknown_frames=%u\ntransitions.refused_placed=%u\ntransitions.respawns_placed=%u\n",
+                                 stats.line_wall_frames, stats.line_unknown_frames, oracles_guest_transition_placed(r->guest), stats.respawns_placed);
             if (summary) fprintf(summary, "transitions.swim_model_frames=%u\ntransitions.swim_model_mismatched=%u\ntransitions.swim_line_frames=%u\ntransitions.swim_held_frames=%u\n"
                                           "transitions.swim_untested_frames=%u\ntransitions.swim_steps=%u\ntransitions.swim_lifted_frames=%u\n",
                                  stats.swim_model_frames, stats.swim_model_mismatched, stats.swim_line_frames, stats.swim_held_frames, stats.swim_untested_frames,

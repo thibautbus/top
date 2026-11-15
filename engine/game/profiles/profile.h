@@ -63,6 +63,9 @@ typedef struct OraclesCompatProfile {
                                         from $7f by the season (Gifts of Kinomi); 0 none followed */
     int interior_area_rules;         /* the interiors (groups 2 and 3) are areas of small rooms joined by scrolls, its caves among them:
                                         laid out as a room off an overworld's map, in the drawn-back view's whole band (Gifts of Kinomi) */
+    int scene_wait_rules;            /* interaction $22's subids 0 to 7 (Seasons' engine) start their script, which takes the controls, only
+                                        past returnIfScrollMode01Unset, in normal play: never at a first frame the scroll beside is decided
+                                        in, their room's own scene not a scene there (Temple of Seasons, its script its own) */
     /* A language's banks (docs/ROM_DATA_FORMATS.md, section 16): from this one, its index at its start, to bank $7f, banks
      * the image leaves empty (the extension of an original, which a language composes to 2 MiB). */
     uint8_t language_bank;
@@ -111,6 +114,7 @@ int oracles_compat_lost_woods_rules(const OraclesCompatProfile *profile);
 int oracles_compat_own_routing_rules(const OraclesCompatProfile *profile);
 int oracles_compat_interior_area_rules(const OraclesCompatProfile *profile);
 int oracles_compat_tileset_override_rules(const OraclesCompatProfile *profile);
+int oracles_compat_scene_wait_rules(const OraclesCompatProfile *profile);
 /* The first of a language's banks in the image (ORACLES_IMAGE_LANGUAGE_BANK for an original), 0 for none. */
 unsigned oracles_compat_language_bank(const OraclesCompatProfile *profile);
 

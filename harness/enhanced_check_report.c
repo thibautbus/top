@@ -68,6 +68,7 @@ static void summary_of_the_band(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.sprite_hidden_pixels=%u\nenhanced.sprite_hidden_frames=%u\n", pixels, frames);
     }
     fprintf(out, "enhanced.camera_jumps=%u\nenhanced.largest_jump=%" PRId32 "\nenhanced.camera_jumps_y=%u\nenhanced.largest_jump_y=%" PRId32 "\n", c->camera_jumps, c->largest_jump, c->camera_jumps_y, c->largest_jump_y);
+    fprintf(out, "enhanced.loop_rebases=%u\n", c->loop_rebases);
     fprintf(out, "enhanced.return_glide_frames=%u\nenhanced.return_glide_pixels=%u\n", c->return_glide_frames, c->return_glide_pixels);
     fprintf(out, "enhanced.band_still_glide_frames=%u\n", c->band_still_glide_frames);
     fprintf(out, "enhanced.link_jumps=%u\nenhanced.link_jumps_y=%u\nenhanced.window_jumps=%u\n", c->link_jumps, c->link_jumps_y, c->window_jumps);
@@ -171,6 +172,9 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         unsigned drawn = 0, unmatched = 0;
         oracles_enhanced_view_large_object_counts(c->view, &drawn, &unmatched);
         fprintf(out, "enhanced.large_object_sprites_drawn=%u\nenhanced.large_object_frames_unmatched=%u\n", drawn, unmatched);
+        unsigned people = 0, off = 0, off_renders = 0;
+        oracles_enhanced_view_large_entry_people(c->view, &people, &off, &off_renders);
+        fprintf(out, "enhanced.large_entry_people=%u\nenhanced.large_entry_people_off=%u\nenhanced.large_entry_off_renders=%u\n", people, off, off_renders);
         fprintf(out, "enhanced.neighbour_objects_outdated=%u\nenhanced.refresh_given_up=%u\nenhanced.parents_run_for_kills=%u\n", oracles_enhanced_view_objects_outdated(c->view), oracles_enhanced_view_refresh_given_up(c->view), oracles_enhanced_view_parents_run_for_kills(c->view));
         fprintf(out, "enhanced.objects_story_refreshes=%u\nenhanced.objects_story_dropped=%u\nenhanced.objects_stale_frames=%u\n", oracles_enhanced_view_objects_story_refreshes(c->view),
                 oracles_enhanced_view_objects_story_dropped(c->view), oracles_enhanced_view_objects_stale_frames(c->view));
@@ -184,6 +188,7 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         unsigned matched = 0, followed = 0;
         oracles_enhanced_view_stream_counts(c->view, &matched, &followed);
         fprintf(out, "enhanced.neighbour_streams_matched=%u\nenhanced.neighbour_streams_followed=%u\n", matched, followed);
+        fprintf(out, "enhanced.neighbour_obj_palettes_retaken=%u\n", oracles_enhanced_view_obj_palettes_retaken(c->view));
         /* A scroll's animation run by the view: where it landed against the game, and its pace. */
         OraclesEnhancedScrollCounts sc;
         oracles_enhanced_view_scroll_animation_counts(c->view, &sc);
@@ -233,13 +238,20 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
                 p.renders, p.lines, p.resets, p.drawn_wrong, p.lines_wrong, p.lag_max, p.probes, p.probe_frames);
     }
     if (c->reload_at)
-        fprintf(out, "enhanced.reload=%s\nenhanced.reload_camera_delta=%" PRId32 "\nenhanced.reload_camera_frozen=%u\nenhanced.reload_transition_frames=%u\nenhanced.reload_transition_differing=%u\n",
-                !c->reload_done ? "not-performed" : c->reload_settled == 1 ? "neighbours-back" : "neighbours-not-back", c->reload_camera_delta,
+        fprintf(out, "enhanced.reload=%s\nenhanced.reload_settled_after=%u\nenhanced.reload_camera_delta=%" PRId32 "\nenhanced.reload_camera_frozen=%u\nenhanced.reload_transition_frames=%u\nenhanced.reload_transition_differing=%u\n",
+                !c->reload_done ? "not-performed" : c->reload_settled == 1 ? "neighbours-back" : "neighbours-not-back", c->reload_settled_after, c->reload_camera_delta,
                 c->reload_done && c->reload_link_travel > 16 && c->reload_camera_travel == 0 ? 1u : 0u, c->reload_track_compared, c->reload_track_differing);
 }
 
 void oracles_enhanced_check_summary(OraclesEnhancedCheck *c, FILE *out)
 {
+    if (c->surfaces_out) fclose(c->surfaces_out);
+    if (c->surfaces_against) {
+        fclose(c->surfaces_against);
+        free(c->surface_other);
+        fprintf(out, "enhanced.against_frames=%u\nenhanced.against_camera_apart=%u\nenhanced.against_faded=%u\nenhanced.against_compared=%u\nenhanced.against_wrong_frames=%u\nenhanced.against_wrong_max=%u\nenhanced.against_last_wrong=%u\nenhanced.against_black_max=%u\nenhanced.against_last_black=%u\nenhanced.against_unmatched=%u\n",
+                c->against_frames, c->against_camera_apart, c->against_faded, c->against_compared, c->against_wrong_frames, c->against_wrong_max, c->against_last_wrong, c->against_black_max, c->against_last_black, c->against_unmatched);
+    }
     summary_of_the_band(c, out);
     summary_of_what_was_shown(c, out);
     if (c->host_box || c->wide || c->text_size) ec_host_text_box_summary(c, out);

@@ -62,7 +62,9 @@ struct OraclesGuest {
     unsigned transition_end_steps;                   /* steps of the frame that ends a scroll applied (--continuous-steps) */
     unsigned transition_respawns;                    /* respawns in the room entered moved where the game would have left Link (--continuous-steps) */
     unsigned transition_put_back;                    /* Link put back on the line, past it with no transition back (--continuous-line) */
-    unsigned transition_back_forced;                 /* transitions back forced at the end of a scroll, Link past the line (--continuous-line) */
+    unsigned transition_placed;                      /* Link taken back to the game's place at the end of a scroll it made from the line into a wall (--continuous-line) */
+    unsigned transition_back_forced;                 /* transitions back started at the end of a scroll on foot, Link past the line (--continuous-line) */
+    unsigned transition_edge_holds;                  /* frames of normal play the game's edge test was asked to wait, a scene possible or begun */
     unsigned transition_cross_started;               /* scrolls into the room beside started at the end of a scroll, Link past the line across (--continuous-line) */
     unsigned transition_swim_steps;                  /* frames Link's swim's state was written in a scroll (--continuous-line) */
     uint32_t policy_not_asked;                       /* such vblanks since the policy was last asked */

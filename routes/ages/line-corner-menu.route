@@ -4,9 +4,9 @@ rom_sha1 880374fb978b18af4aa529e2e32f7ffb4d7dd2f4
 sram_sha1 5066fd92af3a71202140ab168abbac57eb073d4c
 options continuous-transitions,continuous-swim,continuous-diagonal,continuous-steps,continuous-line
 core joypad-bouncing-off
-# ages/line-corner.route's keys, Start pressed by hand at frame 1380, the frame after the scroll from 0:67 into 0:68
-# Link walked back out of ends, the transition back raised: the menu opens before the game takes it, and closes at
-# 1480.
+# ages/line-corner.route's keys, Start pressed by hand at frame 1378, the frame after the scroll from 0:67 into 0:68
+# Link walked back out of ends, the scroll back started at that end: the press falls on the scroll, which no menu
+# opens in; the press at 1478 opens one after it.
 inputs
 0 keys 00
 458 keys 80
@@ -32,9 +32,9 @@ inputs
 1268 keys 00
 1320 keys 01
 1355 keys 02
-1380 keys 82
-1381 keys 02
+1378 keys 82
+1379 keys 02
 1405 keys 00
-1480 keys 80
-1482 keys 00
+1478 keys 80
+1480 keys 00
 1600 keys 00

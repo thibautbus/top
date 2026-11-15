@@ -302,6 +302,9 @@ struct OraclesEnhancedView {
     uint8_t black_place_transition[4];
     uint32_t black_cold_from;
     int black_have_ref, black_loaded;
+    int since_load;                  /* a state was loaded, the band not filled since in play: a text box does not wait for it */
+    uint32_t load_frame;             /* the view's frame of that load */
+    int release_live;                /* the runs from the live state close the box (oracles_ghost_set_release) */
     uint8_t black_ref_group, black_ref_room;
     char black_log[512];
     OraclesEnhancedSize size;        /* the surface's, a level's in a shape (oracles_enhanced_view_size), chosen before the first composition */
@@ -479,6 +482,7 @@ struct OraclesEnhancedView {
     unsigned render_wait_max;         /* the most frames in a row a neighbour's own-animation render waited, the frame it was made past the budget counted */
     unsigned renders_forced;          /* such renders made past the frame's budget, having waited RENDER_WAIT_LIMIT frames */
     unsigned image_live_tiles;        /* tiles a neighbour of another animation took live, the live room showing one of its images */
+    unsigned obj_palettes_retaken;    /* sprite palettes of the rooms delivered that the ghost took again from the room's own */
     unsigned streams_matched;         /* neighbour streams matched with a live stream of the same loop */
     unsigned streams_followed;        /* frames a matched stream was moved to its live twin's step (the view's own step not landing there) */
     unsigned own_animation_copies;    /* copies written into a neighbour's tiles by its own animation */
@@ -728,6 +732,9 @@ struct OraclesEnhancedView {
     unsigned sea_runs;               /* runs started across the sea's surface, ahead of a dive or a return to it */
     unsigned large_object_sprites_drawn;   /* sprites drawn beyond the window, over the run */
     unsigned large_object_frames_unmatched;  /* compositions in a large room whose OAM on screen matched no drawing kept */
+    unsigned large_entry_people;     /* objects a large room's entry drew, looked for at their place in the room (check_large_entry_people) */
+    unsigned large_entry_people_off; /* of them, those not found there */
+    unsigned large_entry_off_renders; /* renders with one at least */
     int blurb_built_x;               /* its x when the OAM on screen was built */
     uint8_t blurb_built_y;           /* and its y */
     int blurb_built_camera_x;        /* the camera that OAM placed it by */

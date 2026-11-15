@@ -296,6 +296,8 @@ void oracles_enhanced_view_load_counts(const OraclesEnhancedView *view, unsigned
 /* The last composition's screen washed out by the game's fade, at its full or nearly (white or black), the background
  * and the sprites alike: nothing of the world shows, a move of the camera neither. */
 int oracles_enhanced_view_washed_out(const OraclesEnhancedView *view);
+/* Whether the band takes the game's palette fade this frame. */
+int oracles_enhanced_view_faded(const OraclesEnhancedView *view);
 /* Frames composed under a scene's tint of the game's screen, which the other rooms took, and the first and last of them. */
 void oracles_enhanced_view_scene_tint_counts(const OraclesEnhancedView *view, unsigned *frames, uint32_t *first, uint32_t *last);
 /* Frames that drew the fade of objects appearing on entry, and objects that started one. */
@@ -612,6 +614,12 @@ unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *view)
 /* Parents run again from the live state before a room was chained from them: an enemy of that room killed since their run. */
 unsigned oracles_enhanced_view_parents_run_for_kills(const OraclesEnhancedView *view);
 void oracles_enhanced_view_large_object_counts(const OraclesEnhancedView *view, unsigned *sprites_drawn, unsigned *frames_unmatched);
+/* With oracles_enhanced_view_pose_verify: the objects a large room's entry drew at its renders, each whose capture shows
+ * its record's pose looked for at its place in the room (its pixels the background leaves); those found at fewer than
+ * half of them, and the renders with one at least. */
+void oracles_enhanced_view_large_entry_people(const OraclesEnhancedView *view, unsigned *people, unsigned *off, unsigned *renders);
+/* Sprite palettes of the rooms delivered that their objects had copied from the room left's background palettes, taken again from their own. */
+unsigned oracles_enhanced_view_obj_palettes_retaken(const OraclesEnhancedView *view);
 /* Copies a neighbour's own animation wrote into its tiles; `other`: into a neighbour whose tileset or animation is not the live room's;
  * `in_step_tiles`: tiles such a neighbour took live at a render, the live room showing on them an image of its own animation. */
 void oracles_enhanced_view_animation_counts(const OraclesEnhancedView *view, unsigned *own, unsigned *other, unsigned *in_step_tiles);
@@ -754,6 +762,11 @@ int oracles_enhanced_parent_mark_lifts(int marked_apart, int beside_ref);
  * live game not in play as it comes back.  A run interrupted or blank is a
  * failure. */
 int oracles_enhanced_objects_refresh_put_off(int live_in_play);
+/* After a state's load, until the band has been filled in play once, a run from the live state closes its text box;
+ * the window closes at a frame in play with no run in flight (`filled`), or after
+ * ORACLES_ENHANCED_LOAD_WINDOW_FRAMES whatever, so that a ghost always busy cannot hold it open. */
+#define ORACLES_ENHANCED_LOAD_WINDOW_FRAMES 3600u
+int oracles_enhanced_load_window_holds(uint32_t frames_since_load, int filled);
 /* Whether a room around the reference room `ref` is settled for the band's
  * fill: delivered, under way, failed, or waiting for another parent than one
  * whose state is no start (`waits_start`, marked around `waits_ref`), which

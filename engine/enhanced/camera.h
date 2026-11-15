@@ -105,6 +105,7 @@ typedef struct OraclesEnhancedObserver {
     uint8_t ref_group, ref_room, ref_large;
     uint8_t last_group, last_room;
     int scrolling;                           /* a scrolling transition has loaded its room since normal play */
+    unsigned scrolling_direction;            /* and its direction (the game's) */
     uint64_t epoch;
     int have_held;                           /* Link's last position while he is not warping: held during a warp */
     int held_x, held_y;
@@ -172,6 +173,7 @@ typedef struct OraclesEnhancedObservation {
     int scroll_chained;                      /* the frame between two scrolls with no normal play between, counted as the room entered's */
     unsigned scroll_direction;               /* its direction, the game's: 0 up, 1 right, 2 down, 3 left */
     int32_t scroll_start_left, scroll_start_top;   /* the game's window at the scroll's first frame */
+    int32_t rebase_x, rebase_y;              /* the world moved under Link this observation, a small room's loop (the camera follows it) */
     int grid;                                /* a small room of groups 0 to 3: on the 16-wide grid */
     int large;                               /* wRoomIsLarge: a 15x11 room (dungeons, wide interiors) */
     int large_grid;                          /* a large room of groups 2 to 5: on the 16-wide grid of 240x176 cells, its neighbours through its doors */

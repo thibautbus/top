@@ -60,6 +60,9 @@ struct OraclesGhost {
     int level_request;                  /* Ages: the group a run crosses the sea's surface to before priming, -1 none (oracles_ghost_set_level_change) */
     int job_level;                      /* the request's, copied under the mutex */
     int run_level;                      /* the run's */
+    int release_request;                /* a run lets go of what holds its state (oracles_ghost_set_release) */
+    int job_release;                    /* the request's, copied under the mutex */
+    int run_release;                    /* the run's */
     int await_group;                    /* the group the run primes in once its warp has taken it there, -1 any */
     uint8_t fixed_season[256];          /* Seasons: 1 for a room pack whose season never changes (no stump, or $f0 and up) */
     uint8_t room_pack_of[256];          /* Seasons: the pack of each overworld room (roomPackData) */
@@ -70,6 +73,8 @@ struct OraclesGhost {
     unsigned prerun_max;                /* frames a pre-run may take, 0: a state that cannot be primed is refused */
     OraclesGhostDirection direction;
     uint8_t prior_warp_tiles;
+    uint8_t primed_bg_palettes[64];     /* w2TilesetBgPalettes when the run primed: the room left's, which the objects of the room entered may copy */
+    int have_primed_bg_palettes;
     unsigned settled_frame;
     uint8_t *settled_state;
     size_t settled_size;

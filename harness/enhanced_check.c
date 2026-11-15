@@ -45,6 +45,46 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
 }
 
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *c, uint32_t frame) { c->reload_at = frame; }
+void oracles_enhanced_check_reload_in_place(OraclesEnhancedCheck *c) { c->reload_in_place = 1; }
+
+void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *c, const char *out, uint32_t from, const char *against)
+{
+    if (out) c->surfaces_out = fopen(out, "wb");
+    if (against) c->surfaces_against = fopen(against, "rb");
+    c->surfaces_from = from;
+}
+
+#define SURFACE_STEP 8u   /* a frame in eight: a row's file stays in the tens of megabytes */
+
+/* From `from`, every eighth frame's camera and surface: written, or held against those of the replay without the load
+ * from the frame after the load.  A pixel lit that differs is a wrong picture; a pixel left black is what the view has
+ * not filled yet.  The frames whose camera stands elsewhere than in that replay, and those of a fade, which lights the
+ * black, say nothing of what is drawn. */
+static void measure_surfaces(OraclesEnhancedCheck *c, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame)
+{
+    if (!surface || (!c->surfaces_out && !c->surfaces_against) || frame < c->surfaces_from || (frame - c->surfaces_from) % SURFACE_STEP) return;
+    const size_t pixels = (size_t)c->width * oracles_enhanced_view_height(c->view);
+    const int32_t camera[2] = { camera_x, camera_y };
+    if (c->surfaces_out) { fwrite(camera, sizeof camera, 1, c->surfaces_out); fwrite(surface, sizeof *surface, pixels, c->surfaces_out); }
+    if (!c->surfaces_against || !c->reload_done || frame <= c->reload_frame) return;
+    if (!c->surface_other) c->surface_other = malloc(pixels * sizeof *surface);
+    int32_t other_camera[2];
+    const long record = (long)(sizeof camera + pixels * sizeof *surface);
+    if (!c->surface_other || fseek(c->surfaces_against, (long)((frame - c->surfaces_from) / SURFACE_STEP) * record, SEEK_SET) != 0
+        || fread(other_camera, sizeof other_camera, 1, c->surfaces_against) != 1
+        || fread(c->surface_other, sizeof *surface, pixels, c->surfaces_against) != pixels) { c->against_unmatched++; return; }
+    c->against_frames++;
+    if (memcmp(camera, other_camera, sizeof camera) != 0) { c->against_camera_apart++; return; }
+    if (oracles_enhanced_view_faded(c->view)) { c->against_faded++; return; }
+    c->against_compared++;
+    unsigned wrong = 0, black = 0;
+    for (size_t i = 0; i < pixels; i++) {
+        if (surface[i] == c->surface_other[i]) continue;
+        if (surface[i] & 0x00ffffffu) wrong++; else black++;
+    }
+    if (wrong) { c->against_wrong_frames++; c->against_last_wrong = frame; if (wrong > c->against_wrong_max) c->against_wrong_max = wrong; }
+    if (black) { c->against_last_black = frame; if (black > c->against_black_max) c->against_black_max = black; }
+}
 void oracles_enhanced_check_set_transition(OraclesEnhancedCheck *c, OraclesRoomTransition *transition) { c->transition = transition; }
 void oracles_enhanced_check_set_paced(OraclesEnhancedCheck *c, int paced) { c->paced = paced; }
 
@@ -233,10 +273,12 @@ void oracles_enhanced_check_frame_end(OraclesEnhancedCheck *c, uint32_t frame)
     const uint64_t hash = oracles_guest_hash((const uint8_t *)surface, (size_t)c->width * oracles_enhanced_view_height(c->view) * sizeof *surface, ORACLES_HASH_SEED);
     c->run_hash = oracles_guest_hash((const uint8_t *)&hash, sizeof hash, c->run_hash);
     for (unsigned i = 0; i < c->surfaces; i++) if (c->surface_at[i] == frame) write_surface(c, surface, c->surface_path[i]);
+    measure_surfaces(c, surface, camera_x, camera_y, frame);
     c->frames++;
     const OraclesEnhancedObservation *ob = oracles_enhanced_view_observation(c->view);
     int blank = surface != NULL;   /* one colour: the screen faded out, where a camera that moves shows nothing moving */
     for (size_t i = 1, n = (size_t)c->width * oracles_enhanced_view_height(c->view); blank && i < n; i++) blank = surface[i] == surface[0];
+    if (ob->rebase_x || ob->rebase_y) { c->loop_rebases++; ec_rebase(c, ob->rebase_x, ob->rebase_y); }
     ec_measure_camera(c, ob, mode, camera_x, camera_y, blank || oracles_enhanced_view_washed_out(c->view));
     ec_measure_window_darker(c, ob, mode, surface, camera_x, camera_y, blank, frame);
     ec_measure_whole_room(c, ob, mode, surface, camera_x, camera_y);

@@ -37,6 +37,9 @@ typedef struct harness_options {
     int beside_witness;   /* --beside-witness: the rooms drawn beside the room in play against the game's own entry into them */
     uint32_t enhanced_subpixel_switch[8];   /* --enhanced-subpixel-switch: the frames the sub-pixel camera switches at, as from the pause */
     unsigned enhanced_subpixel_switches;
+    int enhanced_reload_in_place;
+    const char *enhanced_surfaces_out, *enhanced_surfaces_against;
+    uint32_t enhanced_surfaces_from;
     uint32_t enhanced_reload_at, frames, corrupt_at, sample_rate_hz, colour_toggle_at;
     uint32_t framed_toggle[8];               /* --framed-toggle-at: the frames F3 switches between the wide world and the framed core */
     unsigned framed_toggles;

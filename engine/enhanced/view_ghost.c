@@ -129,6 +129,7 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
     /* Its objects and their sprites, when the run captured them. */
     memcpy(e->oam, r->oam, sizeof e->oam);
     memcpy(e->obj_palettes, r->obj_palettes, sizeof e->obj_palettes);
+    v->obj_palettes_retaken += r->obj_palettes_retaken;
     e->tag_count = r->tag_count < ORACLES_SPRITE_TAGS ? r->tag_count : ORACLES_SPRITE_TAGS;
     memcpy(e->tags, r->tags, e->tag_count * sizeof e->tags[0]);
     memcpy(e->oam_before, r->oam_before, sizeof e->oam_before);
@@ -255,7 +256,7 @@ static void record_failure(OraclesEnhancedView *v, entry *e, const OraclesGhostR
     /* The text box an interaction on Link's way opens (a dungeon's name):
      * the live Link crosses it too, and the interaction goes; the run is
      * tried again once he has walked on. */
-    if (!v->pending_chained) {
+    if (!v->pending_chained && !v->since_load) {
         e->failed = 0;
         e->retry_when_link_moves = 1;
         e->link_x = v->observation.world.link_x; e->link_y = v->observation.world.link_y;
@@ -541,6 +542,7 @@ int ev_start_job(OraclesEnhancedView *v, entry *e, const uint8_t *state, size_t 
     /* A run from the live state for the other side of the sea crosses it first. */
     const int across = !chained && v->level_change >= 0;
     oracles_ghost_set_level_change(v->ghost, across ? v->level_change : -1);
+    oracles_ghost_set_release(v->ghost, !chained && v->release_live);
     int started;
     if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, state, size, dir, 1, v->colours, v->job) == 0;
     /* In the thread the budget is the whole job's: a run across the surface plays its warp first, as a pre-run does. */
@@ -623,6 +625,7 @@ void ev_blind_prerun(OraclesEnhancedView *v)
          * (checkRoomPackAfterWarp): it holds the one the ghost has once loaded, the game's. */
         oracles_ghost_set_held_season(v->ghost, oracles_compat_seasons_rules(oracles_guest_profile(v->guest)) ? ORACLES_GHOST_HOLD_OWN : -1);
         oracles_ghost_set_level_change(v->ghost, -1);
+        oracles_ghost_set_release(v->ghost, 0);
         if (v->sync_budget) started = oracles_ghost_begin_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, v->job) == 0;
         else started = oracles_ghost_request_ex(v->ghost, v->snapshot, v->state_size, dir, 1, v->colours, GHOST_BLIND_SETTLE_FRAMES) == 0;
         v->requested++;

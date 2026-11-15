@@ -239,6 +239,11 @@ int oracles_enhanced_objects_refresh_put_off(int live_in_play)
     return !live_in_play;
 }
 
+int oracles_enhanced_load_window_holds(uint32_t frames_since_load, int filled)
+{
+    return !filled && frames_since_load < ORACLES_ENHANCED_LOAD_WINDOW_FRAMES;
+}
+
 /* Whether a room whose objects read the side it was entered by was run from
  * another side than the one the game would enter it by from the room in play,
  * beside it in the same group (Ages' 0:39 run from the Maku Tree's room, with

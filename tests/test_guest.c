@@ -73,12 +73,35 @@ static void scroll_end_policy(void *opaque, const OraclesGuestTransitionState *s
     }
 }
 
+/* The transitions at the line: at the frame that ends a scroll the game made from the line, Link back along the axis to
+ * the game's place, `place_back` pixels (8.8), and his respawn with him, at a corner (y=125, past the bottom boundary). */
+static int place_back, place_across;
+static void place_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque;
+    policy_calls++;
+    if (s->transition_state == 2u) {
+        m->set_place = 1; m->scroll_end = 1; m->link_x_delta = (int16_t)-place_back; m->link_y_delta = (int16_t)place_across;
+        m->set_respawn = 1; m->respawn_y = 125; m->respawn_x = 9;
+    }
+}
+
 /* The transitions at the line: at the frame that ends a scroll, the transition back toward the left asked. */
 static void back_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
 {
     (void)opaque;
     policy_calls++;
-    if (s->transition_state == 2u) { m->force_transition = 1; m->forced_direction = 3; }
+    if (s->transition_state == 2u) { m->force_transition = 3; m->forced_direction = 3; }
+}
+
+/* A scene possible at the first frame of normal play: at the frame that ends a scroll, the edge test asked to wait, a
+ * transition left there put back on the line or started there; at the next, the wait given back. */
+static int hold_asked, hold_force;
+static void hold_policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    (void)opaque;
+    policy_calls++;
+    if (s->transition_state == 2u) { m->hold_edge = (uint8_t)hold_asked; m->force_transition = (uint8_t)hold_force; m->forced_direction = 3; }
 }
 
 /* The transitions at the line: at the frame that ends a scroll, the scroll up into the room beside started there. */
@@ -354,7 +377,8 @@ int main(void)
         respawn_below_edge = 0;
         /* The transitions at the line: Link walked back past the line (x=230.25, 26 px into the room left, to the
          * left), the transition back asked at the frame that ends the scroll.  A script has disabled the transitions:
-         * not raised, and he is put back on the line, x=0, his y untouched.  Enabled: raised from where he stands. */
+         * not started, and he is put back on the line, x=0, his y untouched.  Enabled: started there, with no frame of
+         * normal play before it, from where he stands. */
         CHECK(oracles_guest_set_transition_line(guest, 1) == 0);
         oracles_guest_set_transition_policy(guest, back_policy, NULL, NULL);
         put8(guest, t->room_width, 20); put8(guest, t->room_height, 16); put8(guest, t->room_is_large, 0);
@@ -372,11 +396,75 @@ int main(void)
             oracles_core_run_frame(core);
             const uint8_t *link = oracles_guest_wram(guest, 1);
             const uint8_t direction = oracles_guest_read8(guest, t->screen_transition_direction);
-            if (!enabled) CHECK(link[0x0d] == 0 && link[0x0c] == 0 && direction == 1 && oracles_guest_transition_put_back(guest) == put_back + 1);
-            else CHECK(link[0x0d] == 230 && link[0x0c] == 0x40 && direction == 0x83 && oracles_guest_transition_back_forced(guest) == forced + 1
+            const uint8_t state = oracles_guest_read8(guest, t->screen_transition_state), mode = oracles_guest_read8(guest, t->scroll_mode);
+            if (!enabled) CHECK(link[0x0d] == 0 && link[0x0c] == 0 && direction == 1 && state == 2 && mode == 1 && oracles_guest_transition_put_back(guest) == put_back + 1);
+            else CHECK(link[0x0d] == 230 && link[0x0c] == 0x40 && direction == 3 && state == 3 && mode == 4 && oracles_guest_transition_back_forced(guest) == forced + 1
                        && oracles_guest_transition_put_back(guest) == put_back);
             CHECK(link[0x0b] == 60 && link[0x0a] == 0x80);
         }
+        /* The first frame of normal play kept from starting a scroll: wScreenTransitionDelay at 1 at the frame that ends
+         * the last, given back at the next if it was not taken; left as it is if the game holds it or the scroll has
+         * started there; Link past the line with no scroll put back on it. */
+        oracles_guest_set_transition_policy(guest, hold_policy, NULL, NULL);
+        for (int mode_asked = 0; mode_asked < 4; mode_asked++) {
+            put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+            oracles_core_run_frame(core);
+            oracles_guest_clear_hooks(guest);
+            CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1); put8(guest, t->screen_transition_direction, 1);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0x40); put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 230);
+            put8(guest, t->disable_screen_transitions, 0);
+            const uint8_t held = mode_asked == 1 ? 4 : 0;
+            put8(guest, t->screen_transition_delay, held);
+            hold_asked = 1;
+            hold_force = mode_asked == 2 ? 3 : mode_asked == 3 ? 4 : 0;
+            const unsigned holds = oracles_guest_transition_edge_holds(guest), put_back = oracles_guest_transition_put_back(guest);
+            oracles_core_run_frame(core);
+            const uint8_t *link = oracles_guest_wram(guest, 1);
+            CHECK(oracles_guest_read8(guest, t->screen_transition_delay) == (mode_asked == 1 ? 4 : mode_asked == 2 ? 0 : 1));
+            CHECK(oracles_guest_transition_edge_holds(guest) == holds + (mode_asked == 0 || mode_asked == 3 ? 1u : 0u));
+            CHECK(link[0x0d] == (mode_asked == 3 ? 0 : 230) && oracles_guest_transition_put_back(guest) == put_back + (mode_asked == 3 ? 1u : 0u));
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1);
+            hold_asked = 2;
+            hold_force = 0;
+            oracles_core_run_frame(core);
+            CHECK(oracles_guest_read8(guest, t->screen_transition_delay) == (mode_asked == 1 ? 4 : 0));
+        }
+        put8(guest, t->screen_transition_delay, 0);
+        oracles_guest_set_transition_policy(guest, back_policy, NULL, NULL);
+        /* A scroll the game made from the line, an item out: x=14 taken back 5 px to the game's place, at the frame that
+         * ends it alone, his respawn's x with him and its y left as the game wrote it, past the bottom boundary at a
+         * corner; never 7 px, more than the line lies past the game's edge, nor with a move across too, nor with Link out
+         * of his normal state (jumping down a ledge, $12), on an animal (wLinkObjectIndex $d1), in a large room, and his
+         * respawn then untouched. */
+        oracles_guest_set_transition_policy(guest, place_policy, NULL, NULL);
+        put8(guest, t->weapon_item_enabled, 1);
+        for (int far = 0; far < 6; far++) {
+            place_back = far == 1 ? 7 << 8 : 5 << 8;
+            place_across = far == 2 ? 0x100 : 0;
+            put8(guest, (OraclesGuestSym){ 1, 0xd004 }, far == 3 ? 0x12 : 1);
+            put8(guest, t->link_object_index, far == 4 ? 0xd1 : 0xd0);
+            put8(guest, t->room_is_large, far == 5);
+            put8(guest, t->screen_transition_state, 5); put8(guest, t->scroll_mode, 8);
+            oracles_core_run_frame(core);
+            oracles_guest_clear_hooks(guest);
+            CHECK(oracles_guest_add_hook(guest, sub_entry, ORACLES_EVENT_FRAME_DONE, ORACLES_EVENT_FRAME_DRAWN) == 0);
+            put8(guest, t->screen_transition_state, 2); put8(guest, t->scroll_mode, 1); put8(guest, t->screen_transition_direction, 1);
+            put8(guest, (OraclesGuestSym){ 1, 0xd00c }, 0x40); put8(guest, (OraclesGuestSym){ 1, 0xd00d }, 14);
+            const unsigned placed = oracles_guest_transition_placed(guest);
+            put8(guest, t->link_local_respawn, 125); put8(guest, (OraclesGuestSym){ 0, (uint16_t)(t->link_local_respawn.addr + 1u) }, 14);
+            oracles_core_run_frame(core);
+            const uint8_t *link = oracles_guest_wram(guest, 1);
+            CHECK(oracles_guest_read16(guest, t->link_local_respawn) == ((far ? 14u : 9u) << 8 | 125u));
+            if (!far) CHECK(link[0x0d] == 9 && link[0x0c] == 0x40 && oracles_guest_transition_placed(guest) == placed + 1);
+            else CHECK(link[0x0d] == 14 && oracles_guest_transition_placed(guest) == placed);
+            oracles_core_run_frame(core);
+            CHECK(link[0x0d] == (far ? 14 : 9));
+        }
+        place_across = 0;
+        put8(guest, (OraclesGuestSym){ 1, 0xd004 }, 1); put8(guest, t->link_object_index, 0xd0); put8(guest, t->room_is_large, 0);
+        put8(guest, t->weapon_item_enabled, 0);
+        oracles_guest_set_transition_policy(guest, back_policy, NULL, NULL);
         /* Carried past the line across into the room beside (y=244.5, 12 px past the top), the scroll up into it
          * asked at the frame that ends the scroll: the transitions disabled, not started, and he is put back on the
          * line, y=0, his x untouched; enabled, started there as @startTransition starts one, from where he stands. */

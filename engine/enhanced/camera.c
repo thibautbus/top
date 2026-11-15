@@ -185,17 +185,35 @@ static void shift_by_loops(const OraclesEnhancedObserver *o, OraclesEnhancedWorl
  * has.  A change that did not come through a scrolling transition is a
  * teleport.  A scroll of a large room that came back into the room it left
  * (the game's loops) moves the room's place on: the last window stands where
- * it was in the world, the game's camera jumps back by the room's size. */
-static void update_reference(OraclesGuest *guest, const OraclesGuestTables *t, OraclesEnhancedObserver *o, const OraclesEnhancedObservation *out, uint8_t is_large)
+ * it was in the world, the game's camera jumps back by the room's size.  A
+ * small room of an overworld's map that a scroll came back into (the Lost
+ * Woods' loops) keeps its place, the room beside it drawn as the room the
+ * game enters there: the world moves under Link by the room's size, his last
+ * place and the last window with it, and the camera follows (rebase), the
+ * picture the same.  Toward a side off the map, where nothing is drawn as the
+ * room, it does not. */
+static void update_reference(OraclesGuest *guest, const OraclesGuestTables *t, OraclesEnhancedObserver *o, OraclesEnhancedObservation *out, uint8_t is_large)
 {
     if ((out->group != o->last_group || out->room != o->last_room) && !o->scrolling) o->epoch++;
     if (o->loop_epoch != o->epoch) { o->loop_epoch = o->epoch; o->loop_cols = 0; o->loop_rows = 0; }
-    if (o->scrolling && is_large && (out->group & 7u) >= 2u && out->group == o->last_group && out->room == o->last_room) {
+    const int loop = o->scrolling && out->group == o->last_group && out->room == o->last_room;
+    if (loop && is_large && (out->group & 7u) >= 2u) {
         switch (oracles_guest_read8(guest, t->screen_transition_direction) & 3u) {
         case 0: o->loop_rows--; o->last_origin_y -= LARGE_ROOM_H; break;
         case 1: o->loop_cols++; o->last_origin_x += LARGE_ROOM_W; break;
         case 2: o->loop_rows++; o->last_origin_y += LARGE_ROOM_H; break;
         default: o->loop_cols--; o->last_origin_x -= LARGE_ROOM_W; break;
+        }
+    } else if (loop && !is_large && (out->group & 7u) <= 1u && !o->isolated) {
+        const unsigned direction = o->scrolling_direction;
+        const int col = (int)(out->room & 0x0fu) + (direction == DIR_RIGHT) - (direction == DIR_LEFT);
+        const int row = (int)(out->room >> 4u) + (direction == DIR_DOWN) - (direction == DIR_UP);
+        const int width = o->map_width ? (int)o->map_width : 16, height = o->map_height ? (int)o->map_height : 16;
+        if (col >= (int)o->map_left && col < width && row >= (int)o->map_top && row < height) {
+            out->rebase_x = direction == DIR_RIGHT ? -SMALL_ROOM_W : direction == DIR_LEFT ? SMALL_ROOM_W : 0;
+            out->rebase_y = direction == DIR_DOWN ? -SMALL_ROOM_H : direction == DIR_UP ? SMALL_ROOM_H : 0;
+            o->last_origin_x -= out->rebase_x; o->last_origin_y -= out->rebase_y;
+            o->last_link_x += out->rebase_x; o->last_link_y += out->rebase_y;
         }
     }
     o->ref_group = out->group; o->ref_room = out->room; o->ref_large = is_large;
@@ -299,7 +317,7 @@ void oracles_enhanced_observe(OraclesGuest *guest, OraclesEnhancedObserver *o, O
     out->grid = (out->group & 7u) <= 3u && !is_large;
     out->large = is_large != 0;
     out->large_grid = is_large != 0 && (out->group & 7u) >= 2u;   /* dungeons and their sidescrolling areas (groups 4 to 7) */
-    if (scroll_mode == ORACLES_SCROLL_MODE_TRANSITION) o->scrolling = 1;
+    if (scroll_mode == ORACLES_SCROLL_MODE_TRANSITION) { o->scrolling = 1; o->scrolling_direction = oracles_guest_read8(guest, t->screen_transition_direction) & 3u; }
 
     if (!o->have_reference) {
         o->have_reference = 1;
@@ -431,6 +449,18 @@ static void note_fresh(int *fresh, const OraclesE11State *before, const OraclesE
     if (after->status != ORACLES_E11_TRACKING) *fresh = 0;
     else if (before->status != ORACLES_E11_TRACKING || before->segment != after->segment || before->epoch != after->epoch) *fresh = 1;
     else if (after->idle_ticks == 0) *fresh = 0;
+}
+
+/* The world moved under Link by `along` pixels on the reducer's axis and `across` on the other (a small room's loop,
+ * oracles_enhanced_observe): the reducer's place and its last of Link move with it, and the whole offset's last of
+ * him, so that the camera follows as if the world had not moved. */
+static void rebase(OraclesE11State *state, OraclesEnhancedShownOffset *shown, int32_t along, int32_t across)
+{
+    if (state->status == ORACLES_E11_UNINITIALIZED) return;
+    state->camera_pos += along * ORACLES_E11_F256;
+    state->last_link_x += along * ORACLES_E11_F256;
+    state->last_link_y += across * ORACLES_E11_F256;
+    if (shown->valid && shown->last_link != INT32_MIN) shown->last_link += along;
 }
 
 /* The vertical reducer sees the world turned on its side: Link's y as its x,
@@ -821,6 +851,10 @@ int oracles_enhanced_camera_reduce(OraclesEnhancedCamera *c, uint32_t frame, con
                 c->state_y.camera_pos = (int32_t)(((int64_t)c->shown_y.last_link - c->shown_y.offset) * ORACLES_E11_F256);
         }
         c->fed_exact = c->exact;
+    }
+    if (observation->rebase_x || observation->rebase_y) {
+        rebase(&c->state, &c->shown_x, observation->rebase_x, observation->rebase_y);
+        rebase(&c->state_y, &c->shown_y, observation->rebase_y, observation->rebase_x);
     }
     OraclesE11Observation obs;
     reducer_observation(c, frame, observation, 1, &obs);

@@ -72,7 +72,9 @@ OraclesRoomPredictVerdict oracles_room_predict_beside(const OraclesRom *rom, con
 
 /* The objects whose first frames may leave the player without the controls once the scroll after them is decided
  * (room_scenes.c, generated from the disassembly's sources by gen_room_scenes.py): by kind (interactions, enemies,
- * parts) a bit an id, for every subid; and the interactions marked for some subids alone, ended by an id 0. */
+ * parts) a bit an id, for every subid; and the interactions marked for some subids alone, ended by an id 0.  `waits`,
+ * unless NULL: the interactions whose subids listed wait for normal play (wScrollMode's bit 0) before what may take the
+ * controls, in an image whose profile says so (scene_wait_rules), never marked, ended by an id 0. */
 typedef struct OraclesRoomSceneSubids {
     uint8_t id;
     uint64_t subids;   /* a bit a subid, 0 to 63 */
@@ -80,13 +82,33 @@ typedef struct OraclesRoomSceneSubids {
 typedef struct OraclesRoomScenes {
     const uint8_t (*ids)[32];
     const OraclesRoomSceneSubids *subids;
+    const OraclesRoomSceneSubids *waits;
 } OraclesRoomScenes;
 extern const uint8_t oracles_room_scenes_ages[3][32], oracles_room_scenes_seasons[3][32];
 extern const OraclesRoomSceneSubids oracles_room_scene_subids_ages[], oracles_room_scene_subids_seasons[];
+/* Seasons' engine's interaction $22 (INTERAC_MAKU_CUTSCENES' code), subids 0 to 7: state 0 calls
+ * returnIfScrollMode01Unset before it sets its script.  At the first frame of the room entered's objects, the scroll
+ * beside decided at the frame before (wScrollMode 4, then 8 by the load), it returns there; the scroll's end
+ * (screenTransitionState5) sets wScrollMode 1 and clears the room left's objects (finishScrollingTransition,
+ * clearObjectsWithEnabled2) in one call.  The subids 8 and up set theirs at once and stay marked. */
+extern const OraclesRoomSceneSubids oracles_room_scene_waits_seasons[];
 
 /* Whether the room's live objects (`objects`, WRAM bank 1 from $d000: interactions, enemies and parts of the room
  * entered, created by its load) hold one marked in `scenes`; -1 when they are not known (NULL). */
 int oracles_room_predict_scene(const OraclesRoomScenes *scenes, const uint8_t *objects);
+
+/* What the room's live interactions may do at the first frame of normal play after a scroll, which runs them before
+ * the game's edge test (updateAllObjects, bank1.func_4000), so that a scroll started in that frame cuts what they began:
+ * nothing that takes the controls; a scene that a scroll decided at the frame before holds back, its object waiting for
+ * normal play (the profile's scene_wait_rules); or a scene nothing but normal play's own frame gives room to.  The
+ * enemies and parts marked have run their first frame in the scroll, state 0 being all the load's objects run then, as
+ * the interactions' own, whose scripts wait for that frame. */
+typedef enum OraclesRoomFirstFrame {
+    ORACLES_ROOM_FIRST_FRAME_QUIET,
+    ORACLES_ROOM_FIRST_FRAME_WAITS,
+    ORACLES_ROOM_FIRST_FRAME_MARKED
+} OraclesRoomFirstFrame;
+OraclesRoomFirstFrame oracles_room_predict_first_frame(const OraclesGuestTransitionState *state);
 
 /* The steps, testable alone. */
 /* The substitutions of applyAllTileSubstitutions on `layout`, the room's as loadRoomLayout decoded it, a small room of

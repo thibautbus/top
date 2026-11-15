@@ -847,7 +847,10 @@
     },
     "status_bar_needs_refresh": null,
     "dont_update_status_bar": null,
-    "menu_disabled": null,
+    "menu_disabled": {
+      "bank": 0,
+      "address": "0xcc02"
+    },
     "disable_link_collisions_and_menu": null,
     "link_death_trigger": null,
     "use_simulated_input": {
@@ -1147,7 +1150,6 @@
     "selected_harp_song": "item hotkeys not qualified for this revision",
     "status_bar_needs_refresh": "item hotkeys not qualified for this revision",
     "dont_update_status_bar": "item hotkeys not qualified for this revision",
-    "menu_disabled": "item hotkeys not qualified for this revision",
     "disable_link_collisions_and_menu": "item hotkeys not qualified for this revision",
     "link_death_trigger": "item hotkeys not qualified for this revision",
     "in_boxing_match": "item hotkeys not qualified for this revision",

@@ -65,6 +65,7 @@ struct OraclesEnhancedCheck {
     int32_t largest_jump;
     unsigned camera_jumps_y;          /* the same, on the vertical camera */
     int32_t largest_jump_y, last_camera_y;
+    unsigned loop_rebases;                   /* observations whose world moved under Link (a small room's loop, the observation's rebase) */
     int last_blank;                          /* the last world frame's surface was of one colour, or washed out by a fade */
     /* The camera moving on its own after a stretch not seen (the core framed, a screen blank or washed out): frames
      * seen, one after the other, on which it moved while Link stood still, and their pixels, both axes. */
@@ -356,6 +357,12 @@ struct OraclesEnhancedCheck {
     int last_playing, last_mode_world;
     /* the reload check */
     uint32_t reload_at;
+    int reload_in_place;
+    FILE *surfaces_out, *surfaces_against;
+    uint32_t surfaces_from;
+    uint32_t *surface_other;
+    unsigned against_frames, against_camera_apart, against_faded, against_compared, against_wrong_frames, against_wrong_max, against_black_max, against_unmatched;
+    uint32_t against_last_wrong, against_last_black;
     uint32_t subpixel_switch_at[8];         /* --enhanced-subpixel-switch, and those done */
     unsigned subpixel_switches, subpixel_switched;
     unsigned surfaces;                      /* --surface-at: composed surfaces to write out, as PPM */
@@ -393,6 +400,7 @@ double ec_monotonic_us(void);
 
 /* The camera, the scrolls and the savestate reload (enhanced_check_camera.c). */
 void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, const int shown[4], const uint8_t room[4]);
+void ec_rebase(OraclesEnhancedCheck *c, int32_t dx, int32_t dy);
 /* `blank`: the composed surface is of one colour (a fade at its end): a camera that moves to or from it shows no jump. */
 void ec_measure_camera(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_x, int32_t camera_y, int blank);
 void ec_measure_coverage(OraclesEnhancedCheck *c, uint32_t frame, unsigned uncovered);

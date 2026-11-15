@@ -125,6 +125,7 @@ typedef struct OraclesGhostResult {
     OraclesSpriteTag tags_before[ORACLES_SPRITE_TAGS];
     unsigned tag_count_before;
     uint8_t obj_palettes[64];
+    unsigned obj_palettes_retaken;                /* of them, those taken again from the room's own (oracles_ghost_retake_copied_palettes) */
 } OraclesGhostResult;
 
 
@@ -165,6 +166,18 @@ unsigned oracles_ghost_object_watch_ranges(const OraclesCompatProfile *profile, 
 /* Tiles whose state depends on the entry itself, shown as they stand before
  * it: the shutters replaceShutterForLinkEntering opens under Link. */
 int oracles_ghost_entry_dependent_tile(const OraclesGuestTables *t, uint8_t tile);
+
+/* The sprite palette of a capture that holds a copy of a background palette
+ * of the room left: the game initialises the objects of the room entered
+ * during the scroll, before it loads the room's own palettes, and an object
+ * drawn as a tile of the room (objectMimicBgTile: the bush or rock an enemy
+ * hides under, a pot, a scrub's bush) copies that tile's palette into sprite
+ * palette 6 then.  That palette, when it is one of `before`'s that `after`
+ * changed and none of `after`'s, is taken again from `after` at the same
+ * place, as an entry under the room's own palettes copies it; one that several
+ * places of `before` hold, which `after` does not agree on, stays.  The other
+ * sprite palettes are never touched.  Returns the palettes taken again. */
+unsigned oracles_ghost_retake_copied_palettes(const uint8_t before[64], const uint8_t after[64], uint8_t obj_palettes[64]);
 
 typedef struct OraclesGhost OraclesGhost;
 
@@ -215,6 +228,14 @@ int oracles_ghost_primeable(OraclesGuest *guest, const char **reason);
  * pre-run budget times out. */
 int oracles_ghost_prerunnable(OraclesGuest *guest, const char **reason);
 void oracles_ghost_set_prerun(OraclesGhost *ghost, unsigned max_frames);
+/* Whether a state would allow priming but for its text box.  With
+ * `oracles_ghost_set_release`, the next runs close the box in the ghost's copy
+ * before priming.  A scene is no such state: it leaves its palettes and tiles
+ * in the video, which a scroll into a room of the same tileset does not load
+ * again, and the room delivered would show them.  The view asks for it only
+ * after a load, the rooms around gone: in play, they are there from before. */
+int oracles_ghost_releasable(OraclesGuest *guest);
+void oracles_ghost_set_release(OraclesGhost *ghost, int release);
 /* Seasons: the season (0-3) the next runs start in on the overworld, kept by a
  * forced scroll into another area that follows the season instead of that
  * area's own (the Enhanced band shown in one season, the live one); -1 none,

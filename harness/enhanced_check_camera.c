@@ -88,9 +88,9 @@ void ec_reload_step(OraclesEnhancedCheck *c, uint32_t frame, int32_t camera_x, c
     reload_track_transition(c, frame);
     if (frame == c->reload_at && !c->reload_saved) {
         if (!reload_save_state(c, camera_x, shown, room)) return;
-        return;
+        if (!c->reload_in_place) return;
     }
-    if (c->reload_saved && !c->reload_done && frame == c->reload_at + 120u) {
+    if (c->reload_saved && !c->reload_done && frame == c->reload_at + (c->reload_in_place ? 0u : 120u)) {
         if (!reload_load_state(c, shown, room)) return;
         c->reload_done = 1;
         c->reload_frame = frame;
@@ -348,6 +348,25 @@ static int32_t shown_pixels_down(int32_t fraction)
 static int32_t shown_link(int32_t layer_fraction, int32_t band_fraction)
 {
     return layer_fraction ? shown_pixels_down(layer_fraction + band_fraction) : shown_pixels(band_fraction);
+}
+
+/* The world moved under Link (a small room's loop, the observation's rebase): the places kept from the frames before
+ * move with it, so that the camera and Link following it are measured as the picture shows them, unmoved. */
+void ec_rebase(OraclesEnhancedCheck *c, int32_t dx, int32_t dy)
+{
+    const int32_t d[2] = { dx, dy };
+    c->last_camera += dx; c->last_camera_y += dy;
+    c->return_link_x += dx; c->return_link_y += dy;
+    c->last_link_x += dx; c->last_link_y += dy; c->last_window_left += dx;
+    for (unsigned i = 0; i < 8u; i++) { c->recent_x[i] += dx; c->recent_y[i] += dy; }
+    for (unsigned i = 0; i < 9u; i++) for (unsigned a = 0; a < 2u; a++) c->wobble_world[i][a] += d[a];
+    for (unsigned a = 0; a < 2u; a++) {
+        c->wobble_camera[a] += d[a];
+        c->drawn_world[a] += d[a]; c->zig_world[a] += d[a]; c->swim_last_world[a] += d[a];
+        c->scroll_back_place[a] += d[a] * 256;
+        c->shown_band[a] += d[a] * MEASURE_SCALE; c->jolt_band[a] += d[a] * MEASURE_SCALE;
+        c->alone_band[a] += d[a] * MEASURE_SCALE; c->swim_band[a] += d[a] * MEASURE_SCALE;
+    }
 }
 
 /* The band's place (the world's pixel at the screen's left and top) and Link's on the screen, in pixels of the

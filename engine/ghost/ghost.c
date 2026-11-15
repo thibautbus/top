@@ -246,31 +246,47 @@ void oracles_ghost_set_level_change(OraclesGhost *g, int group)
     pthread_mutex_unlock(&g->mutex);
 }
 
-int oracles_ghost_primeable(OraclesGuest *guest, const char **reason)
+/* Why a state cannot be primed, NULL when it can.  `text_closed`: but for its text box (oracles_ghost_set_release). */
+static const char *not_primeable(OraclesGuest *guest, int text_closed)
 {
     const OraclesGuestTables *t = oracles_guest_tables(guest);
-    const char *why = NULL;
-    if (oracles_guest_read8(guest, t->game_state) != GAME_STATE_PLAYING) why = "game state is not 2 (playing)";
-    else if (oracles_guest_read8(guest, t->cutscene_index) > CUTSCENE_INGAME) why = "a cutscene is running";
+    if (oracles_guest_read8(guest, t->game_state) != GAME_STATE_PLAYING) return "game state is not 2 (playing)";
+    if (oracles_guest_read8(guest, t->cutscene_index) > CUTSCENE_INGAME) return "a cutscene is running";
     /* Index 0 is the room load's own: the main loop is still in it, and a
      * transition forced then is reset by the initialisation that follows. */
-    else if (oracles_guest_read8(guest, t->cutscene_index) < CUTSCENE_INGAME) why = "a room is loading";
-    else if (oracles_guest_read8(guest, t->cutscene_trigger) != 0) why = "a cutscene is triggered";
-    else if ((oracles_guest_read8(guest, t->scroll_mode) & 0x7fu) != NORMAL_PLAY_SCROLL_MODE) why = "scroll mode is not 1 (normal play)";
-    else if (oracles_guest_read8(guest, t->screen_transition_state) != TRANSITION_STATE_IDLE) why = "a transition is in progress";
-    else if (oracles_guest_read8(guest, t->text_is_active) != 0) why = "text is active";
+    if (oracles_guest_read8(guest, t->cutscene_index) < CUTSCENE_INGAME) return "a room is loading";
+    if (oracles_guest_read8(guest, t->cutscene_trigger) != 0) return "a cutscene is triggered";
+    if ((oracles_guest_read8(guest, t->scroll_mode) & 0x7fu) != NORMAL_PLAY_SCROLL_MODE) return "scroll mode is not 1 (normal play)";
+    if (oracles_guest_read8(guest, t->screen_transition_state) != TRANSITION_STATE_IDLE) return "a transition is in progress";
+    if (!text_closed && oracles_guest_read8(guest, t->text_is_active) != 0) return "text is active";
     /* The frame Start opens the inventory, the game's state is still the room's:
      * a run from it plays the menu instead of the transition, and times out. */
-    else if (oracles_guest_read8(guest, t->opened_menu_type) != 0) why = "a menu is open";
-    else if (oracles_guest_read8(guest, t->disable_screen_transitions) != 0) why = "transitions are disabled";
-    else if (oracles_guest_read8(guest, t->link_force_state) != 0) why = "Link's state is forced";
+    if (oracles_guest_read8(guest, t->opened_menu_type) != 0) return "a menu is open";
+    if (oracles_guest_read8(guest, t->disable_screen_transitions) != 0) return "transitions are disabled";
+    if (oracles_guest_read8(guest, t->link_force_state) != 0) return "Link's state is forced";
     /* Seasons: the rod of seasons set a season (setSeason writes wcc4c): the
      * main loop reloads the room through a fade before it looks at any
      * transition, and a forced one would run after that reload, elsewhere. */
-    else if (oracles_compat_seasons_rules(oracles_guest_profile(guest))
-             && oracles_guest_read8(guest, t->season_reload) != 0) why = "a season change is reloading the room";
+    if (oracles_compat_seasons_rules(oracles_guest_profile(guest))
+        && oracles_guest_read8(guest, t->season_reload) != 0) return "a season change is reloading the room";
+    return NULL;
+}
+
+int oracles_ghost_primeable(OraclesGuest *guest, const char **reason)
+{
+    const char *why = not_primeable(guest, 0);
     if (reason) *reason = why;
     return why == NULL;
+}
+
+int oracles_ghost_releasable(OraclesGuest *guest) { return not_primeable(guest, 1) == NULL; }
+
+void oracles_ghost_set_release(OraclesGhost *g, int release)
+{
+    pthread_mutex_lock(&g->mutex);
+    g->release_request = release != 0;
+    if (!g->thread_started) g->run_release = g->release_request;   /* synchronous runs read it directly */
+    pthread_mutex_unlock(&g->mutex);
 }
 
 static const OraclesGuestTables *t_of(const OraclesGhost *g) { return oracles_guest_tables(g->guest); }
@@ -278,6 +294,14 @@ static const OraclesGuestTables *t_of(const OraclesGhost *g) { return oracles_gu
 int oracles_ghost_bank0_symbol(OraclesGuestSym sym)
 {
     return sym.bank != ORACLES_GUEST_ABSENT && sym.addr >= WRAM_BANK0_BASE && sym.addr < WRAM_BANKED_BASE;
+}
+
+/* The text box closed in the ghost's copy: the live game is never touched. */
+static void release_text(OraclesGhost *g)
+{
+    const OraclesGuestSym text = t_of(g)->text_is_active;
+    uint8_t *wram = oracles_guest_wram_writable(g->guest, 0);
+    if (wram && oracles_ghost_bank0_symbol(text)) wram[text.addr - WRAM_BANK0_BASE] = 0;
 }
 
 /* The forced transition is decided by screenTransitionState2, but cutscene01
@@ -294,6 +318,9 @@ static int prime(OraclesGhost *g, OraclesGhostDirection direction)
     if (!oracles_ghost_bank0_symbol(sym) || !oracles_ghost_bank0_symbol(warp)) return -1;
     uint8_t *wram = oracles_guest_wram_writable(g->guest, 0);
     if (!wram) return -1;
+    const uint8_t *palettes = oracles_guest_ptr(g->guest, t->tileset_bg_palettes, sizeof g->primed_bg_palettes);
+    g->have_primed_bg_palettes = palettes != NULL;
+    if (palettes) memcpy(g->primed_bg_palettes, palettes, sizeof g->primed_bg_palettes);
     g->prior_warp_tiles = wram[warp.addr - WRAM_BANK0_BASE];
     wram[warp.addr - WRAM_BANK0_BASE] = 1;
     g->warp_tiles_guarded = 1;
@@ -450,6 +477,24 @@ static void render_terrain(OraclesGhost *g, uint32_t *out)
            ORACLES_GHOST_AREA_WIDTH * ORACLES_GHOST_AREA_HEIGHT * sizeof *out);
 }
 
+/* The sprite palette objectMimicBgTile copies a background palette into. */
+#define MIMIC_SPRITE_PALETTE 6u
+
+unsigned oracles_ghost_retake_copied_palettes(const uint8_t before[64], const uint8_t after[64], uint8_t obj_palettes[64])
+{
+    uint8_t *palette = obj_palettes + MIMIC_SPRITE_PALETTE * 8u;
+    int own = 0, from = -1, agreed = 1;
+    for (unsigned k = 0; k < 8u; k++) own |= memcmp(palette, after + k * 8u, 8u) == 0;
+    for (unsigned k = 0; k < 8u && !own; k++) {
+        if (memcmp(palette, before + k * 8u, 8u) != 0) continue;
+        if (from < 0) from = (int)k;
+        else agreed &= memcmp(after + (unsigned)from * 8u, after + k * 8u, 8u) == 0;
+    }
+    if (own || from < 0 || !agreed) return 0;
+    memcpy(palette, after + (unsigned)from * 8u, 8u);
+    return 1;
+}
+
 static int run_finished(const OraclesGhost *g) { return g->initialized && (!g->settle || g->settled); }
 
 /* What the host needs besides the pixels: the map, the registers, the tileset, the state. */
@@ -488,6 +533,8 @@ static void capture_settled(OraclesGhost *g, OraclesGhostResult *result)
     const uint8_t *base = oracles_guest_ptr(g->guest, t->tileset_bg_palettes, sizeof result->base_bg_palettes);
     if (base) memcpy(result->base_bg_palettes, base, sizeof result->base_bg_palettes);
     else memcpy(result->base_bg_palettes, result->bg_palettes, sizeof result->base_bg_palettes);
+    /* A sprite palette its objects copied during the scroll from the room left's palettes. */
+    if (g->capture && base && g->have_primed_bg_palettes) result->obj_palettes_retaken = oracles_ghost_retake_copied_palettes(g->primed_bg_palettes, base, result->obj_palettes);
     result->palette_offset = (int8_t)oracles_guest_read8(g->guest, t->palette_thread_parameter);
     result->camera_x = (int16_t)oracles_guest_read16(g->guest, t->camera_x);
     result->camera_y = (int16_t)oracles_guest_read16(g->guest, t->camera_y);
@@ -571,6 +618,7 @@ int oracles_ghost_begin_ex(OraclesGhost *g, const uint8_t *state, size_t size, O
     g->primed = 0;
     g->primed_at = 0;
     g->await_group = -1;
+    if (g->run_release) release_text(g);
     if (g->run_level >= 0) {
         /* A run to the other side of the sea: the warp is set on a state in
          * normal play, and the run primes once it has reached that group. */
@@ -726,6 +774,7 @@ static void *worker(void *arg)
         const int settle = g->job_settle;
         g->run_hold = g->job_hold;
         g->run_level = g->job_level;
+        g->run_release = g->job_release;
         const uint32_t *colours = g->job_has_colours ? g->job_colours_copy : NULL;
         pthread_mutex_unlock(&g->mutex);
         OraclesGhostResult result;
@@ -767,6 +816,7 @@ int oracles_ghost_request_ex(OraclesGhost *g, const uint8_t *state, size_t size,
     g->job_max_frames = max_frames;
     g->job_hold = g->hold_request;
     g->job_level = g->level_request;
+    g->job_release = g->release_request;
     g->job_pending = 1;
     g->job_done = 0;
     if (!g->thread_started) {

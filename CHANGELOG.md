@@ -14,8 +14,29 @@ What changed in each version of The Oracles Project, the newest first. The relea
 ### Fixed
 
 - **Tearing on a fast display.** On a computer with a display of 100 Hz or more, such as 120 Hz or 144 Hz, **Display > Advanced > Vsync** now keeps each frame whole, on Auto as on On, instead of letting a line run down the screen. On used to turn itself off on such a display, and Auto stayed off there; both now keep vsync, and the game keeps the Game Boy's own pace. On a computer that cannot keep up with waiting for the display, vsync turns itself off so that the game does not slow down, and tries again after each pause. On also keeps it on a display between 60 and 100 Hz, where some frames stay on the screen longer than others, which is why Auto stays off there.
+- **Diagonals beside a wall.** With **Continuous transitions**, walking diagonally into the next room no longer keeps Link from going sideways for the whole scroll when a wall stands a little further on in that room: he goes sideways as far as the ground lets him, and the wall stops him as it would when walking. It showed most at the corners of Subrosia in Temple of Seasons, where walking diagonally from one room into the room across also no longer slows Link down sideways as he nears the edge: he crosses the corner at his own pace.
+- **Stopping at a room's corner.** With **Continuous transitions**, walking diagonally through a corner where four rooms meet, Link no longer stops going forward for a moment once he is well into the room beside: he keeps walking both ways as the next scroll starts, turning back sideways there answers at once, and with the Smooth camera he no longer slips back slightly.
 - **Vsync on a 50 Hz display.** With **Vsync** on On, a display slower than the game, such as a television at 50 Hz, no longer slows the game down: it keeps the Game Boy's pace, and vsync stays off there, as waiting for such a display could only slow the game.
 - **Recording a route into a new folder.** `--record routes\temple.route`, from a folder without a `routes` folder, no longer stops the game with "cannot write the starting SRAM": the missing folders are made. When a folder cannot be made or a file cannot be written, the message says which.
+- **Lost Woods.** In Enhanced, when Seasons' Lost Woods send Link back into the part of the woods he was leaving as he goes north or south, the view no longer jumps: the normal view no longer flashes a misplaced picture, and in the wider views Link no longer jumps a room's height across the screen before the camera catches up with him.
+
+## 1.5.0 (unreleased)
+
+### Fixed
+
+- **A bush in the wrong colours beside Link.** In Enhanced, a bush or a rock that hides an enemy in a room shown beside Link's could take the colours of Link's room when the two rooms have different colours, such as a grey bush in the woods above Ages' graveyard. It now has its own room's colours.
+
+## 1.5.0 (unreleased)
+
+### Fixed
+
+- **People of a large room as Link walks in.** In Enhanced, when Link walks into a large room from the room beside it, as in Gifts of Kinomi's castle near the start of the game, the people of the room he enters now stand where they are while the screen scrolls and on the room's first moment, instead of showing a second time above and to the left of their place before the room settles.
+
+### Fixed
+
+- **A scene lost at a room's edge.** With **Continuous transitions**, turning back or walking on just as a scroll ended could start the next scroll in the very moment a scene of that room began: the scene was lost for good and the menu stayed shut until the next scene. The scene now waits for Link's next stop, or plays at once.
+- **Stuck in a wall with the shield up.** With **Continuous transitions**, crossing into the next room with the shield up, running on Pegasus seeds or with an item in use, such as a charged sword, could leave Link inside a wall just past the room's edge, stuck there while you held the pad. He now ends the room change where the game itself puts him. Walking into the next room against such a wall, a fall there afterwards no longer brings him back inside it either.
+- **Loading a state during a dialogue.** In Enhanced, loading a state saved while a text box is open no longer leaves only the game's own screen, black all around, until the text ends: the rooms around it come back shortly after the load. During a story scene they still come back when the scene ends.
 
 ## 1.4.0 (2026-11-05)
 

@@ -6,9 +6,10 @@ options continuous-transitions,continuous-swim,continuous-diagonal,continuous-st
 core joypad-bouncing-off
 # A swim at the surface with the flippers across the rooms' edges, with the transitions at the line and the swim's
 # hold, as the home screen plays them, from swim-steps.route's save: the inputs of a session to 4700, a frame
-# earlier from 640 (replayed without the French it was played in, the game is in 0:5e a frame sooner): scrolls swum
-# through the sea, two corners carried past the line across into the room beside, and a turn back during a
-# scroll; then written by hand, at the edge between 0:74 and 0:75: a tap left (4730), whose stroke and glide cross
+# earlier from 640 (replayed without the French it was played in, the game is in 0:5e a frame sooner), the walk
+# up-right ending at 1820 for the session's 1823 (he keeps his step along the axis past the line across there): scrolls
+# swum through the sea, a corner carried past the line across into the room beside, and a turn back during a
+# scroll; then written by hand, at the edge between 0:65 and 0:66: a tap left (4730), whose stroke and glide cross
 # it and slow down in the scroll as in the middle of a room, a tap right (4824) back across, and another left
 # (4918).
 inputs
@@ -43,7 +44,7 @@ inputs
 1695 keys 05
 1725 keys 01
 1744 keys 05
-1823 keys 04
+1820 keys 04
 1831 keys 05
 1855 keys 04
 1880 keys 14

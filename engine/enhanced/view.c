@@ -845,6 +845,11 @@ void oracles_enhanced_view_large_object_counts(const OraclesEnhancedView *v, uns
     if (sprites_drawn) *sprites_drawn = v->large_object_sprites_drawn;
     if (frames_unmatched) *frames_unmatched = v->large_object_frames_unmatched;
 }
+void oracles_enhanced_view_large_entry_people(const OraclesEnhancedView *v, unsigned *people, unsigned *off, unsigned *renders)
+{
+    *people = v->large_entry_people; *off = v->large_entry_people_off; *renders = v->large_entry_off_renders;
+}
+unsigned oracles_enhanced_view_obj_palettes_retaken(const OraclesEnhancedView *v) { return v->obj_palettes_retaken; }
 void oracles_enhanced_view_animation_counts(const OraclesEnhancedView *v, unsigned *own, unsigned *other, unsigned *in_step_tiles) { if (own) *own = v->own_animation_copies; if (other) *other = v->other_animation_copies; if (in_step_tiles) *in_step_tiles = v->image_live_tiles; }
 void oracles_enhanced_view_stream_counts(const OraclesEnhancedView *v, unsigned *matched, unsigned *followed) { if (matched) *matched = v->streams_matched; if (followed) *followed = v->streams_followed; }
 int oracles_enhanced_view_blurb_drawn(const OraclesEnhancedView *v) { return v->blurb_shown && v->blurb_mask != 0; }

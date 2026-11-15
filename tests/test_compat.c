@@ -93,6 +93,7 @@ int main(void)
     CHECK(temple && oracles_compat_seasons_rules(temple) && oracles_compat_lost_woods_rules(temple) && oracles_compat_maku_tree_rules(temple)
           && !oracles_compat_sea_level_rules(temple) && !oracles_compat_forest_scrambler_rules(temple) && !oracles_compat_open_water_rules(temple)
           && !oracles_compat_maku_isolation_rules(temple));
+    CHECK(temple && oracles_compat_scene_wait_rules(temple) && !oracles_compat_scene_wait_rules(seasons) && !oracles_compat_scene_wait_rules(ages));
     CHECK(temple && oracles_compat_guest_tables(temple) != &oracles_guest_tables_seasons && oracles_compat_data_tables(temple) != &oracles_tables_seasons);
     CHECK(temple && oracles_compat_room_flag_page(temple, 2) == 1 && oracles_compat_map_width(temple) == 16 && oracles_compat_map_height(temple) == 12);
     CHECK(temple && oracles_compat_tileset_map_rules(temple) && oracles_compat_group_map_width(temple, 1) == 11 && oracles_compat_group_map_height(temple, 1) == 8

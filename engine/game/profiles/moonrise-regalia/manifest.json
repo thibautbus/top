@@ -656,7 +656,11 @@
       "address": "0x4475"
     },
     "tile_types_table": null,
-    "screen_transition_delay": null,
+    "screen_transition_delay": {
+      "bank": 0,
+      "address": "0xcd15",
+      "name": "wScreenTransitionDelay"
+    },
     "active_tile_index": null,
     "screen_transition_boundary_x": {
       "bank": 0,
@@ -1105,7 +1109,10 @@
     },
     "map_transition_group_table": "sites.map_transition_group_table",
     "menu_active_state": null,
-    "menu_disabled": null,
+    "menu_disabled": {
+      "bank": 0,
+      "address": "0xcc02"
+    },
     "menu_load_state": null,
     "obtained_treasure_flags": {
       "bank": 0,
@@ -1420,14 +1427,12 @@
     "link_in_spinner": "item hotkeys not qualified for this revision",
     "load_equipped_item_gfx": "item hotkeys not qualified for this revision",
     "menu_active_state": "item hotkeys not qualified for this revision",
-    "menu_disabled": "item hotkeys not qualified for this revision",
     "menu_load_state": "item hotkeys not qualified for this revision",
     "satchel_selected_seeds": "item hotkeys not qualified for this revision",
     "selected_harp_song": "item hotkeys not qualified for this revision",
     "shooter_selected_seeds": "item hotkeys not qualified for this revision",
     "status_bar_needs_refresh": "item hotkeys not qualified for this revision",
     "tile_types_table": "continuous swim not qualified for this revision",
-    "screen_transition_delay": "continuous swim not qualified for this revision",
     "active_tile_index": "continuous swim not qualified for this revision",
     "treasure_collection_behaviours": "mods not qualified for this revision",
     "treasure_object_data": "mods not qualified for this revision",

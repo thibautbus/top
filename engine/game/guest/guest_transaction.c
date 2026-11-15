@@ -34,6 +34,7 @@ int oracles_guest_has_transition_policy(const OraclesGuest *guest)
 #define SCROLL_MODE_TRANSITION_DECIDED 4u
 #define SCROLL_MODE_TRANSITION_LOADED 8u
 #define LINK_STATE_NORMAL 1u
+#define LINK_HELD 0x81u                /* wDisabledObjects: DISABLE_LINK, DISABLE_ALL_BUT_INTERACTIONS (a scene's disableinput) */
 #define SWIM_SPEED_MAX 0x41u           /* SPEED_1a0: past the fastest swim's cap (the mermaid suit with the swimmer's ring, a stroke on top) */
 #define WARP_TILES_HELD 0x80u          /* wDisableWarpTiles as the bus sets it for the frame after a scroll it starts (the game's own value is 1) */
 
@@ -128,7 +129,7 @@ static int edge_swim_safe(const OraclesGuest *guest, const OraclesGuestTransitio
     const int held_across = (held & 0x80u) || ((held - dir * 8u - 8u) & 15u) == 0u;
     const int held_away = !(held & 0x80u) && ((held - dir * 8u + 16u + 4u) & 31u) <= 8u;
     return guest->transition_swim && at_edge && s->link_enabled && (line ? !held_away : held_across)
-        && !s->disable_screen_transitions && !s->screen_transition_delay && !s->hole_or_conveyor
+        && !s->disable_screen_transitions && !s->screen_transition_delay && !s->hole_or_conveyor && !(s->disabled_objects & LINK_HELD)
         && s->game_state == 2u && s->cutscene_index <= 1u && !s->text_is_active
         && !(s->tileset_flags & ORACLES_TILESETFLAG_SIDESCROLL) && (line || !floor)
         && s->transition_state == TRANSITION_STATE_IDLE && s->scroll_mode == SCROLL_MODE_NORMAL
@@ -274,6 +275,8 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     s->ages_water = (uint8_t)oracles_compat_ages_water_rules(oracles_guest_profile(guest));
     s->game_frame = oracles_guest_read8(guest, t->frame_counter);
     s->screen_transition_delay = oracles_guest_read8(guest, t->screen_transition_delay);
+    s->menu_disabled = oracles_guest_read8(guest, t->menu_disabled);
+    s->disabled_objects = oracles_guest_read8(guest, t->disabled_objects);
     s->disable_screen_transitions = oracles_guest_read8(guest, t->disable_screen_transitions);
     s->use_simulated_input = oracles_guest_simulated_input(guest);
     s->hole_or_conveyor = oracles_guest_read8(guest, t->hole_or_conveyor);
@@ -340,6 +343,7 @@ static void read_transition_state(OraclesGuest *guest, OraclesGuestTransitionSta
     }
     s->load.room_code_replay = (uint8_t)oracles_compat_room_code_replay(oracles_guest_profile(guest));
     s->load.tileset_override_rules = (uint8_t)oracles_compat_tileset_override_rules(oracles_guest_profile(guest));
+    s->load.scene_wait_rules = (uint8_t)oracles_compat_scene_wait_rules(oracles_guest_profile(guest));
     s->load.chest_opened_tile = t->tileindex_chest_opened;
     s->load.roomflag_item = t->roomflag_item;
     s->load.timewarp_transition = t->transition_dest_timewarp;
@@ -402,7 +406,7 @@ static void shift_link_sprites(uint8_t *buffer, const OraclesGuestTransitionStat
 static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTransitionState *s, const OraclesGuestTransitionMutation *m, int at_vblank)
 {
     const OraclesGuestTables *t = guest->tables;
-    int wrote = 0, put_back = 0;
+    int wrote = 0, put_back = 0, started = 0;
     /* The warp tiles held off for the frame after a scroll the bus started (below): given back once the game has named
      * the room the scroll enters (wScrollMode 8), func_60e9 behind it. */
     uint8_t *warp_tiles = bank0_field(guest, t->disable_warp_tiles, 1);
@@ -425,26 +429,25 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
      * policy raised it and it was not taken; never at a vblank. */
     if (m->force_transition && !at_vblank && s->game_state == 2u && s->transition_state == TRANSITION_STATE_IDLE) {
         uint8_t *direction = bank0_field(guest, t->screen_transition_direction, 1);
-        if (direction && m->force_transition == 1u && m->forced_direction <= 3u
-            && (edge_swim_safe(guest, s, m->forced_direction) || edge_walk_back_safe(guest, s, m->forced_direction, m->link_x_delta, m->link_y_delta))) {
+        if (direction && m->force_transition == 1u && m->forced_direction <= 3u && edge_swim_safe(guest, s, m->forced_direction)) {
             *direction = (uint8_t)(0x80u | m->forced_direction);
             wrote = 1;
-            if (guest->transition_line && guest->transition_at_entry && !m->set_swim) guest->transition_back_forced++;
         }
-        /* The transition back refused at the frame that ends the scroll: never left past the line. */
-        else if (m->force_transition == 1u && guest->transition_line && guest->transition_at_entry
+        else if ((m->force_transition == 1u || m->force_transition == 4u) && guest->transition_line && guest->transition_at_entry
                  && line_put_back(guest, s, m->forced_direction, m->link_x_delta, m->link_y_delta)) { wrote = put_back = 1; }
         else if (direction && m->force_transition == 2u && (guest->transition_swim || guest->transition_line) && (*direction & 0x80u)) {
             *direction &= 0x7fu;
             wrote = 1;
             if (line_put_back(guest, s, m->forced_direction, 0, 0)) put_back = 1;
         }
-        /* The scroll into the room beside, Link carried past the line across at the frame that ends a scroll: started
-         * there as @startTransition starts one (wScrollMode 4, wScreenTransitionState 3, the direction), so that Link is
-         * not moved, nor his tile and his walls read, by a frame of normal play outside the room entered.  The frame
-         * after is still one of the game's logic, whose warps (func_60e9) read the tile under him: past the top line
-         * that is the scripts' variables, past wRoomLayout's last row; the warp tiles are held off for it
-         * (wDisableWarpTiles), unless the game holds them off already.  Never left past the line otherwise. */
+        /* The scroll into the room beside, or back into the room left, Link past the line at the frame that ends a
+         * scroll: started there as @startTransition starts one (wScrollMode 4, wScreenTransitionState 3, the direction),
+         * so that Link is not moved, nor his tile and his walls read, by a frame of normal play outside the room entered,
+         * and the room's objects, which run before the game's edge test, do not begin in a frame of normal play what
+         * that scroll would cut.  The frame after is still one of the game's logic, whose warps (func_60e9) read the
+         * tile under him: past the top line that is the scripts' variables, past wRoomLayout's last row; the warp tiles
+         * are held off for it (wDisableWarpTiles), unless the game holds them off already.  Never left past the line
+         * otherwise. */
         else if (m->force_transition == 3u && guest->transition_line && guest->transition_at_entry) {
             uint8_t *scroll_mode = bank0_field(guest, t->scroll_mode, 1), *state = bank0_field(guest, t->screen_transition_state, 1);
             if (direction && scroll_mode && state && m->forced_direction <= 3u && edge_walk_back_safe(guest, s, m->forced_direction, m->link_x_delta, m->link_y_delta)) {
@@ -453,15 +456,33 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
                 *direction = m->forced_direction;
                 if (warp_tiles && !*warp_tiles) *warp_tiles = WARP_TILES_HELD;
                 wrote = 1;
-                guest->transition_cross_started++;
+                started = 1;
+                if (!m->set_swim && m->forced_direction == ((s->transition_direction + 2u) & 3u)) guest->transition_back_forced++;
+                else guest->transition_cross_started++;
             } else if (line_put_back(guest, s, m->forced_direction, m->link_x_delta, m->link_y_delta)) wrote = put_back = 1;
         }
+    }
+    /* The first frame of normal play after a scroll, whose objects run before the edge test, kept from starting a scroll
+     * that would cut what they begin there: @transition waits one frame on wScreenTransitionDelay, Link back on the
+     * edge, as after a jump, and again a frame at a time while a scene begun there holds him on the line.  Given back
+     * if the edge test did not come to it. */
+    uint8_t *delay = m->hold_edge ? bank0_field(guest, t->screen_transition_delay, 1) : NULL;
+    if (delay && m->hold_edge == 2u) { if (*delay == 1u) *delay = 0; }
+    else if (delay && !started && !at_vblank && s->transition_state == TRANSITION_STATE_IDLE && s->scroll_mode == SCROLL_MODE_NORMAL && !*delay) {
+        *delay = 1;
+        guest->transition_edge_holds++;
     }
     const int state_safe = transition_state_safe(s) || scroll_end_safe(guest, s, m);
     if (!state_safe) { if (wrote && at_vblank) guest->vblank_writes[s->transition_state & 7u]++; return; }
     const int walk_safe = transition_walk_safe(s, state_safe), swim_safe = transition_swim_safe(guest, s, state_safe), floor_safe = transition_floor_safe(guest, s, state_safe);
     const int step_max = swim_safe || floor_safe ? (guest->transition_line ? ORACLES_TRANSITION_SWIM_LINE_STEP_MAX : ORACLES_TRANSITION_SWIM_STEP_MAX)
                        : guest->transition_line ? ORACLES_TRANSITION_LINE_STEP_MAX : ORACLES_TRANSITION_WALK_STEP_MAX;
+    /* --continuous-line, at the frame that ends a scroll the game made from the line, whatever hinders him: on foot, back along
+     * the axis alone to the place the game's own scroll leaves him. */
+    const int placed = guest->transition_line && m->set_place && scroll_end_safe(guest, s, m) && !s->room_is_large && !s->link_swimming_state
+                       && !(s->tileset_flags & ORACLES_TILESETFLAG_UNDERWATER) && !((s->transition_direction & 1u) ? m->link_y_delta : m->link_x_delta)
+                       && abs((s->transition_direction & 1u) ? m->link_x_delta : m->link_y_delta) <= ORACLES_TRANSITION_PLACE_MAX;
+    const int most = placed ? ORACLES_TRANSITION_PLACE_MAX : step_max;
     /* The scroll step: the game's own value or twice it, while the scroll runs. */
     if (m->set_scroll_delta && s->transition_state == TRANSITION_STATE_SCROLL && (s->transition_substate == 1u || s->transition_substate == 2u)) {
         const uint8_t v = m->scroll_delta;
@@ -471,15 +492,16 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
         }
     }
     /* Link's position: at most a pixel a frame on each axis on foot, the fastest swim swimming. */
-    if (!put_back && (walk_safe || swim_safe || floor_safe) && (m->link_x_delta || m->link_y_delta)
-        && m->link_x_delta >= -step_max && m->link_x_delta <= step_max && m->link_y_delta >= -step_max && m->link_y_delta <= step_max) {
+    if (!put_back && (walk_safe || swim_safe || floor_safe || placed) && (m->link_x_delta || m->link_y_delta)
+        && m->link_x_delta >= -most && m->link_x_delta <= most && m->link_y_delta >= -most && m->link_y_delta <= most) {
         uint8_t *x = link_field(guest, (OraclesGuestSym){ ORACLES_OBJECTS_BANK, ORACLES_OBJECTS_BASE + ORACLES_OBJ_X }, 2);
         uint8_t *y = link_field(guest, (OraclesGuestSym){ ORACLES_OBJECTS_BANK, ORACLES_OBJECTS_BASE + ORACLES_OBJ_Y }, 2);
         int dx = 0, dy = 0;
         if (x && m->link_x_delta) { const uint16_t v = (uint16_t)((x[0] | (x[1] << 8)) + m->link_x_delta); dx = (int8_t)((v >> 8) - x[1]); x[0] = (uint8_t)v; x[1] = (uint8_t)(v >> 8); }
         if (y && m->link_y_delta) { const uint16_t v = (uint16_t)((y[0] | (y[1] << 8)) + m->link_y_delta); dy = (int8_t)((v >> 8) - y[1]); y[0] = (uint8_t)v; y[1] = (uint8_t)(v >> 8); }
         if (m->carried && x && y) guest->transition_carried++;
-        if (m->scroll_end && !transition_state_safe(s)) guest->transition_end_steps++;
+        if (placed) guest->transition_placed++;
+        else if (m->scroll_end && !transition_state_safe(s)) guest->transition_end_steps++;
         /* His sprite follows: in wOam, drawn this frame before the move and
          * copied at the coming vblank; in the core's OAM as well when the
          * game did not draw this frame (no copy comes, the LCD shows the OAM).
@@ -534,14 +556,19 @@ static void apply_transition_mutation(OraclesGuest *guest, const OraclesGuestTra
     }
     /* His respawn in the room entered (--continuous-steps), which finishScrollingTransition took from where he then
      * stood: within the room, from 1 to the boundary past which the game starts a transition down or right, as the game
-     * itself may leave him there; the room small. */
-    if (guest->transition_steps && m->set_respawn && scroll_end_safe(guest, s, m) && !s->room_is_large
-        && m->respawn_y && m->respawn_y <= s->boundary_y && m->respawn_x && m->respawn_x <= s->boundary_x) {
+     * itself may leave him there; the room small.  Taken back to the game's place (set_place), the coordinate along the
+     * axis alone, the one across left as the game wrote it, which the line lets lie past that boundary; never when the
+     * place is not applied. */
+    const int along_x = (s->transition_direction & 1u) != 0;
+    const int respawn_y_ok = m->respawn_y && m->respawn_y <= s->boundary_y, respawn_x_ok = m->respawn_x && m->respawn_x <= s->boundary_x;
+    if (guest->transition_steps && m->set_respawn && scroll_end_safe(guest, s, m) && !s->room_is_large && (!m->set_place || placed)
+        && (m->set_place ? (along_x ? respawn_x_ok : respawn_y_ok) : respawn_y_ok && respawn_x_ok)) {
         uint8_t *respawn = bank0_field(guest, t->link_local_respawn, 2);
         if (respawn) {
-            if (respawn[0] != m->respawn_y || respawn[1] != m->respawn_x) guest->transition_respawns++;
-            respawn[0] = m->respawn_y;
-            respawn[1] = m->respawn_x;
+            const uint8_t y = m->set_place && along_x ? respawn[0] : m->respawn_y, x = m->set_place && !along_x ? respawn[1] : m->respawn_x;
+            if (respawn[0] != y || respawn[1] != x) guest->transition_respawns++;
+            respawn[0] = y;
+            respawn[1] = x;
             wrote = 1;
         }
     }
@@ -611,7 +638,9 @@ unsigned oracles_guest_transition_carried(const OraclesGuest *guest) { return gu
 unsigned oracles_guest_transition_end_steps(const OraclesGuest *guest) { return guest->transition_end_steps; }
 unsigned oracles_guest_transition_respawns(const OraclesGuest *guest) { return guest->transition_respawns; }
 unsigned oracles_guest_transition_back_forced(const OraclesGuest *guest) { return guest->transition_back_forced; }
+unsigned oracles_guest_transition_edge_holds(const OraclesGuest *guest) { return guest->transition_edge_holds; }
 unsigned oracles_guest_transition_put_back(const OraclesGuest *guest) { return guest->transition_put_back; }
+unsigned oracles_guest_transition_placed(const OraclesGuest *guest) { return guest->transition_placed; }
 unsigned oracles_guest_transition_cross_started(const OraclesGuest *guest) { return guest->transition_cross_started; }
 unsigned oracles_guest_transition_swim_steps(const OraclesGuest *guest) { return guest->transition_swim_steps; }
 void oracles_guest_set_transition_last_state(OraclesGuest *guest, uint8_t state) { guest->transition_last_state = state; }

@@ -443,6 +443,8 @@ static int start_checks(run *r, const harness_options *o, uint8_t *rom, size_t r
         r->enhanced = oracles_enhanced_check_start(r->core, r->guest, rom, rom_size, o->enhanced_dir, o->enhanced_threaded ? 0u : o->enhanced_budget);
         if (!r->enhanced) { fprintf(stderr, "harness: the Enhanced view could not start\n"); return 1; }
         if (o->enhanced_reload_at) oracles_enhanced_check_reload_at(r->enhanced, o->enhanced_reload_at);
+        if (o->enhanced_reload_in_place) oracles_enhanced_check_reload_in_place(r->enhanced);
+        if (o->enhanced_surfaces_out || o->enhanced_surfaces_against) oracles_enhanced_check_surfaces(r->enhanced, o->enhanced_surfaces_out, o->enhanced_surfaces_from, o->enhanced_surfaces_against);
         for (unsigned i = 0; i < o->surfaces; i++) oracles_enhanced_check_surface_at(r->enhanced, o->surface_at[i], o->surface_path[i]);
         /* Slots given without --hotkeys-live: the hotbar of a replay, its icons checked against the core's image. */
         int slots = 0;

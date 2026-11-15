@@ -406,7 +406,7 @@ int main(void)
         CHECK(part.id != 0 && other < 64u);
         static uint8_t objects[0x1000];
         memset(objects, 0, sizeof objects);
-        const OraclesRoomScenes ages_scenes = { oracles_room_scenes_ages, oracles_room_scene_subids_ages };
+        const OraclesRoomScenes ages_scenes = { oracles_room_scenes_ages, oracles_room_scene_subids_ages, NULL };
         uint8_t *inter = objects + 0x240, *inter2 = objects + 0x340, *foe = objects + 0x480;
         inter[0] = 1; inter[1] = (uint8_t)quiet;
         inter2[0] = 1; inter2[1] = part.id; inter2[2] = (uint8_t)other;
@@ -423,7 +423,47 @@ int main(void)
         foe[0] = 1; foe[1] = (uint8_t)enemy;
         CHECK(oracles_room_predict_scene(&ages_scenes, objects) == 1);
         foe[0] = 0;
+        /* Seasons' engine's interaction $22, marked for every subid: with the profile's scene_wait_rules, its subids 0
+         * to 7 wait for normal play and are not; 8 and up are. */
+        const OraclesRoomScenes seasons_scenes = { oracles_room_scenes_seasons, oracles_room_scene_subids_seasons, NULL };
+        const OraclesRoomScenes waiting_scenes = { oracles_room_scenes_seasons, oracles_room_scene_subids_seasons, oracles_room_scene_waits_seasons };
+        CHECK((oracles_room_scenes_seasons[0][0x22 >> 3] >> (0x22 & 7)) & 1u);
+        inter[0] = 1; inter[1] = 0x22;
+        for (unsigned subid = 0; subid < 12u; subid++) {
+            inter[2] = (uint8_t)subid;
+            CHECK(oracles_room_predict_scene(&seasons_scenes, objects) == 1);
+            CHECK(oracles_room_predict_scene(&waiting_scenes, objects) == (subid >= 8u));
+        }
+        inter[2] = 1;
+        foe[0] = 1;
+        CHECK(oracles_room_predict_scene(&waiting_scenes, objects) == 1);
+        foe[0] = 0;
+        /* The same object through the room beside and the first frame of normal play: the wait read by the profile's
+         * rule alone. */
+        s.game = ORACLES_GAME_SEASONS;
+        inter[2] = 1;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_SCENE);
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_MARKED);
+        s.load.scene_wait_rules = 1;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICTED);
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_WAITS);
+        inter[2] = 8;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_SCENE);
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_MARKED);
+        inter[0] = 0;
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_QUIET);
+        s.game = ORACLES_GAME_AGES;
+        s.load.scene_wait_rules = 0;
+        inter[0] = 1; inter[1] = (uint8_t)whole;
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_MARKED);
+        /* An enemy marked has run its first frame in the scroll: the scroll beside waits, not the first frame of normal play. */
+        inter[0] = 0; inter[2] = 0;
+        foe[0] = 1;
+        CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_SCENE);
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_QUIET);
+        foe[0] = 0;
         s.load.objects = NULL;
+        CHECK(oracles_room_predict_first_frame(&s) == ORACLES_ROOM_FIRST_FRAME_QUIET);
         CHECK(oracles_room_predict_beside(&rom, &f.tables, &s, 0, special_room, NULL, &room, layout, collisions, NULL) == ORACLES_ROOM_PREDICT_EARLY);
     }
     /* The rooms whose own code is replayed (applyRoomSpecificTileChanges): each routine for its own room, a byte it

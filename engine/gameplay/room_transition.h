@@ -122,6 +122,7 @@ typedef struct OraclesRoomTransitionStats {
     unsigned palette_refreshes;  /* palettes refreshed after a palette transition's fade outlived the doubled scroll */
     unsigned carry_asked_frames; /* frames the policy asked to move Link across the axis too (--continuous-diagonal): a diagonal held on foot, his motion in the water; those the bus applied are oracles_guest_transition_carried */
     unsigned carry_withheld_frames; /* frames it did not: a collision across in the room entered, or its collisions not loaded */
+    unsigned carry_ahead_frames;    /* of them, the step across clear, held by a wall or a hole further along the axis where the scroll may leave him */
     unsigned carry_unknown_frames;  /* of them, those the room entered's collisions were neither loaded nor predicted */
     unsigned carry_unnamed_frames;  /* of those, the ones before the game named the room (wScrollMode not 8 yet), predicted a frame later */
     unsigned carry_predicted_frames; /* frames a carry was tested on the room entered's collisions as predicted, the game not having loaded them yet */
@@ -147,8 +148,7 @@ typedef struct OraclesRoomTransitionStats {
     unsigned back_past_frames;      /* frames he walked back past the line into the room left, on its collisions (--continuous-line) */
     unsigned back_wall_frames;      /* frames a wall or a hole of the room left held that walk */
     unsigned back_reversals;        /* scrolls that ended with him back in the room left, the transition back forced from where he stood */
-    unsigned back_lowered;          /* of those, the transitions back the next frame did not take, lowered: Link no longer past the line, or the transitions disabled */
-    unsigned back_kept_frames;      /* frames of normal play a transition back not taken yet was kept, Link past the line (a menu, a text) */
+    unsigned scene_cuts;            /* scrolls started with wMenuDisabled raised, no scene walking Link with the game's keys: a scene they cut */
     /* --continuous-line: the room beside the room entered across the axis (room_predict.h), and the carry past the line into it: */
     unsigned beside_predicted;      /* rooms beside predicted, at the first frame a carry toward them asked for them in a transition */
     unsigned beside_fallbacks;      /* those not predicted, the carry held short of the line as without them */
@@ -172,6 +172,7 @@ typedef struct OraclesRoomTransitionStats {
     /* --continuous-line, on foot, a direction held toward the edge, past the place the game's own scroll would have left him: */
     unsigned line_wall_frames;      /* frames a wall of the room entered held his step along the axis, as the game's walk would */
     unsigned line_unknown_frames;   /* frames its collisions, neither loaded nor predicted, held him at that place */
+    unsigned respawns_placed;       /* respawns of a scroll from the line put at the game's own place, the one from the line in a wall */
 } OraclesRoomTransitionStats;
 /* The policy's progress through the transition in progress, for a savestate: ORACLES_ROOM_TRANSITION_STATE_SIZE bytes
  * written into `out`, their count returned; 0 when `capacity` is short. */

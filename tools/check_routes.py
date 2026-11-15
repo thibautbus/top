@@ -108,12 +108,15 @@ ALWAYS = {
                  "object_sprites.frames_checked>=1", "animation.frames_checked>=1", "enhanced.transitions_other_room=0",
                  # a scroll's animation, run by the view alone, lands on the game's step, image for image, at the frame its plan
                  # spread the loops over (a jump at the landing is a landing off that frame)
-                 "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES + UNVISITED,
+                 "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0",
+                 # the people of a large room drawn from its entry, as Link walks into it, where the live game has them
+                 "enhanced.large_entry_people_off=0"] + POSES + UNVISITED,
     "enhanced-threaded": ["result=ok", "enhanced.camera_jumps=0", "enhanced.window_misplaced=0", "enhanced.terrains_different=0",
                           "enhanced.live_diff_max=0", "enhanced.plain_shown_frames=0", "enhanced.text_box_frames_at_origin=0",
                           "enhanced.blurb_frames_in_window=0",
                           "enhanced.transitions_other_room=0",   # never a room drawn that way other than the one entered
-                          "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0"] + POSES + UNVISITED,
+                          "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0",
+                          "enhanced.large_entry_people_off=0"] + POSES + UNVISITED,
 }
 # The band must fill at least once: the black is counted from its first full frame, and a route whose band never fills
 # would count none and pass any ceiling.
@@ -407,6 +410,21 @@ def compare_cores_rooms(reference: Path, positions: Path, reference_exit: int, r
     return []
 
 
+def without_load(options: list) -> list:
+    """The options of a row less the load of a state and the surfaces it writes: the replay its surface is held against."""
+    out, skip = [], 0
+    for option in options:
+        if skip:
+            skip -= 1
+        elif option == "--enhanced-reload-at":
+            skip = 1
+        elif option == "--surface-at":
+            skip = 2
+        elif option != "--enhanced-reload-in-place":
+            out.append(option)
+    return out
+
+
 def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_dir: Path, work: Path, threaded_args: tuple = ()) -> dict:
     # A route's rows for one core and its rows for both may share a mode: the line tells them apart.
     name = f"{row['label']}-{row['mode']}" + (f"-{row['line']}" if row["options"] or row["core"] != "-" else "") + ("" if core == "sameboy" else f"-{core}")
@@ -429,8 +447,23 @@ def run_row(row: dict, harness: Path, core: str, routes: Path, roms: dict, rom_d
     compare_cores = core != "sameboy" and row["mode"] == "faithful"
     positions = [] if not compare_cores else ["--positions", str(w / "positions.tsv")]
     extra = list(threaded_args) if row["mode"].endswith("-threaded") else []
-    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + extra + positions + ["--summary", str(summary)]
+    # A row loading a state on the spot is held, pixel by pixel, against the same replay without the load.
+    against = []
+    reference_retried = ""
+    if "--enhanced-reload-in-place" in options:
+        blocks = w / "surfaces-without-load.bin"
+        at = options[options.index("--enhanced-reload-at") + 1]
+        unloaded = without_load(options)
+        reference_dir = w / "without-load"
+        reference_dir.mkdir(exist_ok=True)
+        _, reference_retried = run_harness([str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](reference_dir) + unloaded
+                                           + ["--enhanced-surfaces-out", str(blocks), at], w / "harness-without-load.log")
+        against = ["--enhanced-surfaces-against", str(blocks), at]
+    cmd = [str(harness)] + rom + ["--route", str(route_path)] + MODE_FLAGS[row["mode"]](w) + options + against + extra + positions + ["--summary", str(summary)]
     returncode, retried = run_harness(cmd, w / "harness.log")
+    retried += reference_retried
+    if against:
+        blocks.unlink(missing_ok=True)
     values = parse_summary(summary)
     violations = []
     if compare_cores and values:

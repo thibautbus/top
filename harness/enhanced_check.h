@@ -31,6 +31,12 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
  * wait is 300 frames (the route diverges after the load, so the run hash is
  * not the plain one). */
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *check, uint32_t frame);
+/* The state loaded at the frame it was saved, not 120 frames later: the game stays on the route, frame for frame as
+ * without the load, and only the view has lost what it held. */
+void oracles_enhanced_check_reload_in_place(OraclesEnhancedCheck *check);
+/* The surfaces from frame `from`, written to `out` or held against those a run wrote to `against`: a pixel the view
+ * shows that the run without the load showed otherwise is a wrong picture, one left black is not (enhanced.against_*). */
+void oracles_enhanced_check_surfaces(OraclesEnhancedCheck *check, const char *out, uint32_t from, const char *against);
 /* The continuous transitions, whose progress the reload saves and loads back with the rest, as the launcher does. */
 void oracles_enhanced_check_set_transition(OraclesEnhancedCheck *check, OraclesRoomTransition *transition);
 /* Writes the surface composed at `frame` to `path` as a PPM, sixteen at most: to look at what a figure says. */

@@ -1,10 +1,12 @@
 /* The ghost instance without a game ROM: the closed account of the cache key
  * and its coarse list hold in both games, the coarse list's comparison ignores
  * a room's visited bit and the global flags the load does not read, a savestate of one core loads into the ghost, a
- * synthetic state is refused as not primeable with a reason, a run to the
+ * synthetic state is refused as not primeable with a reason, a run that closes
+ * its text box primes all the same, a run to the
  * other side of the sea primes only once the warp it sets has taken it there, and the read
  * trace records the reads of the program but not those of its interrupt
- * handler. */
+ * handler; a sprite palette copied from a background palette of the room left
+ * is taken again from the room's own. */
 #include "core.h"
 #include "ghost.h"
 #include "guest.h"
@@ -223,6 +225,44 @@ static void check_coarse_global_flags(OraclesCore *core, OraclesGame game, uint8
     oracles_guest_detach(guest);
 }
 
+static void set_palette(uint8_t palettes[64], unsigned index, uint16_t first)
+{
+    for (unsigned c = 0; c < 4u; c++) {
+        palettes[index * 8u + c * 2u] = (uint8_t)(first + c);
+        palettes[index * 8u + c * 2u + 1u] = (uint8_t)((first + c) >> 8);
+    }
+}
+
+/* Ages' 0:4d entered from the graveyard below it: the bush its beetle hides
+ * under copied the graveyard's palette 2 into sprite palette 6, and takes the
+ * room's own palette 2 again.  Another sprite palette equal to a background
+ * palette of the room left, a palette 6 the room holds, and one two places of
+ * the room left hold that the room does not agree on, stay. */
+static void check_retake_copied_palettes(void)
+{
+    uint8_t before[64], after[64], obj[64], expected[64];
+    for (unsigned k = 0; k < 8u; k++) { set_palette(before, k, (uint16_t)(0x1000u + k * 0x10u)); set_palette(after, k, (uint16_t)(0x2000u + k * 0x10u)); }
+    set_palette(after, 0, 0x1000u);   /* a palette both rooms share */
+    for (unsigned p = 0; p < 8u; p++) set_palette(obj, p, (uint16_t)(0x3000u + p * 0x10u));
+    memcpy(obj + 6u * 8u, before + 2u * 8u, 8u);
+    memcpy(obj + 2u * 8u, before + 3u * 8u, 8u);   /* a standard palette the room left has as a background */
+    memcpy(expected, obj, sizeof expected);
+    memcpy(expected + 6u * 8u, after + 2u * 8u, 8u);
+    CHECK(oracles_ghost_retake_copied_palettes(before, after, obj) == 1);
+    CHECK(memcmp(obj, expected, sizeof obj) == 0);
+    CHECK(oracles_ghost_retake_copied_palettes(before, after, obj) == 0 && memcmp(obj, expected, sizeof obj) == 0);
+    memcpy(obj + 6u * 8u, before + 0u * 8u, 8u);
+    memcpy(expected, obj, sizeof expected);
+    CHECK(oracles_ghost_retake_copied_palettes(before, after, obj) == 0 && memcmp(obj, expected, sizeof obj) == 0);
+    memcpy(before + 4u * 8u, before + 3u * 8u, 8u);
+    memcpy(obj + 6u * 8u, before + 3u * 8u, 8u);
+    memcpy(expected, obj, sizeof expected);
+    CHECK(oracles_ghost_retake_copied_palettes(before, after, obj) == 0 && memcmp(obj, expected, sizeof obj) == 0);
+    memcpy(after + 4u * 8u, after + 3u * 8u, 8u);
+    memcpy(expected + 6u * 8u, after + 3u * 8u, 8u);
+    CHECK(oracles_ghost_retake_copied_palettes(before, after, obj) == 1 && memcmp(obj, expected, sizeof obj) == 0);
+}
+
 static void on_read(void *opaque, uint16_t address, uint16_t sp)
 {
     (void)opaque;
@@ -295,6 +335,7 @@ int main(void)
         CHECK(oracles_ghost_routing_key_ranges(original_profile(ORACLES_GAME_AGES), 0, r, ORACLES_GHOST_ROUTING_KEY_BYTES) == 0);
     }
 
+    check_retake_copied_palettes();
     check_object_watch(original_profile(ORACLES_GAME_AGES));
     check_object_watch(original_profile(ORACLES_GAME_SEASONS));
     check_coarse_comparison(core);
@@ -310,6 +351,7 @@ int main(void)
     CHECK(oracles_ghost_run(ghost, state, state_size, ORACLES_DIR_UP, 4, &result) == -1);
     CHECK(result.status == ORACLES_GHOST_NOT_PRIMEABLE);
     uint8_t *sea = NULL;   /* a state in normal play, for the thread's budget below */
+    uint8_t *held = NULL;  /* and a state a text box and a scene hold */
     /* A run to the other side of the sea (Ages): from a state in normal play,
      * the ghost sets the warp the game sets for a dive, the room's own index in
      * the group asked for, and primes only once the warp has taken it there. */
@@ -338,6 +380,28 @@ int main(void)
             CHECK(oracles_ghost_run(ghost, state, state_size, ORACLES_DIR_LEFT, 4, &result) == -1 && result.status == ORACLES_GHOST_NOT_PRIMEABLE);
             oracles_ghost_set_level_change(ghost, -1);
             oracles_ghost_set_prerun(ghost, 0);
+            /* A state a text box holds: refused, but for a run that closes the box, which primes where it starts.
+             * Nothing else is let go: a scene, a menu, a room loading stay refused. */
+            #define W0(sym) wram[(sym).addr - 0xc000u]
+            W0(t->text_is_active) = 1;
+            CHECK(!oracles_ghost_primeable(live, NULL) && oracles_ghost_releasable(live));
+            held = malloc(state_size);
+            CHECK(oracles_core_save_state(core, held, state_size) == 0);
+            CHECK(oracles_ghost_run(ghost, held, state_size, ORACLES_DIR_LEFT, 4, &result) == -1 && result.status == ORACLES_GHOST_NOT_PRIMEABLE);
+            oracles_ghost_set_release(ghost, 1);
+            CHECK(oracles_ghost_begin(ghost, held, state_size, ORACLES_DIR_LEFT, &result) == 0 && oracles_ghost_step(ghost, 100, 4, &result) == -1);
+            CHECK(result.status == ORACLES_GHOST_TIMEOUT && result.from_group == 0 && result.from_room == 0xa7 && result.prerun_frames == 0);
+            oracles_ghost_set_release(ghost, 0);
+            W0(t->cutscene_index) = 6;
+            CHECK(!oracles_ghost_releasable(live));   /* a scene: its palettes and tiles are in the video */
+            W0(t->cutscene_index) = 1;
+            W0(t->opened_menu_type) = 1;
+            CHECK(!oracles_ghost_releasable(live));
+            W0(t->opened_menu_type) = 0;
+            W0(t->cutscene_index) = 0;
+            CHECK(!oracles_ghost_releasable(live));   /* a room loading */
+            W0(t->text_is_active) = 0; W0(t->cutscene_index) = 1;
+            #undef W0
         }
         if (live) oracles_guest_detach(live);
     }
@@ -369,6 +433,19 @@ int main(void)
         CHECK(polled == 1 && result.status == ORACLES_GHOST_TIMEOUT);
     }
     free(sea);
+    /* In the thread too, the box is closed when the request asks for it. */
+    if (held) {
+        oracles_ghost_set_release(ghost, 1);
+        CHECK(oracles_ghost_request(ghost, held, state_size, ORACLES_DIR_LEFT, 4) == 0);
+        oracles_ghost_set_release(ghost, 0);
+        timespec_get(&start, TIME_UTC);
+        do {
+            polled = oracles_ghost_poll(ghost, &result);
+            timespec_get(&now, TIME_UTC);
+        } while (polled == 0 && now.tv_sec - start.tv_sec < GHOST_WAIT_SECONDS);
+        CHECK(polled == 1 && result.status == ORACLES_GHOST_TIMEOUT);
+    }
+    free(held);
 
     /* The read trace on a guest: the program's reads are seen, the handler's are not. */
     OraclesGuest *guest = oracles_guest_attach(core, fixture_profile());

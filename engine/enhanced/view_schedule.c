@@ -772,7 +772,11 @@ void ev_update_neighbours(OraclesEnhancedView *v)
     for (unsigned d = 0; d < 4; d++) v->shown_slot[d] = SLOTS;
     for (unsigned l = 0; l < v->lane_count; l++) { ev_lane_serve(v, l); ev_blind_prerun(v); }
     ev_lane_serve(v, 0);
-    if (!ev_on_map(v)) { v->keep_count = 0; v->live_quiet = 0; return; }   /* a house's text and menu count as the game held */
+    if (!ev_on_map(v)) {   /* a house's text and menu count as the game held */
+        v->keep_count = 0; v->live_quiet = 0;
+        if (!oracles_enhanced_load_window_holds(v->frame - v->load_frame, v->observation.playing && oracles_ghost_primeable(v->guest, NULL))) v->since_load = 0;
+        return;
+    }
     plan_runs(v, p, v->observer.ref_group, 0);
     /* Ages: the same place on the other side of the sea, planned too, so that
      * neither plan takes the other's slots. */
@@ -791,15 +795,20 @@ void ev_update_neighbours(OraclesEnhancedView *v)
         for (unsigned w = 0; w < p->wanted_count; w++) if (p->wanted[w] == c->room) { c->near = w < p->near_count; break; }
     }
     mark_shown_sides(v, p);
-    p->live_primeable = v->observation.playing && oracles_ghost_primeable(v->guest, NULL);
-    v->live_quiet = p->live_primeable ? (v->live_quiet < OBJECT_REFRESH_QUIET ? v->live_quiet + 1u : v->live_quiet) : 0u;
+    const int primeable = v->observation.playing && oracles_ghost_primeable(v->guest, NULL);
+    v->live_quiet = primeable ? (v->live_quiet < OBJECT_REFRESH_QUIET ? v->live_quiet + 1u : v->live_quiet) : 0u;
+    v->release_live = !primeable && v->since_load && oracles_enhanced_load_window_holds(v->frame - v->load_frame, 0) && v->observation.playing && oracles_ghost_releasable(v->guest);
+    p->live_primeable = primeable || v->release_live;
     /* Each idle ghost takes the next run of the order; the one in flight in
      * another ghost is not wanted again (entry_wanting). */
+    int idle = 1;
     for (unsigned l = 0; l < v->lane_count; l++) {
         ev_lane_serve(v, l);
         if (!v->pending) schedule_idle(v, p, q);
+        idle = idle && !v->pending;
     }
     ev_lane_serve(v, 0);
+    if (!oracles_enhanced_load_window_holds(v->frame - v->load_frame, primeable && idle)) v->since_load = 0;
 }
 
 /* A pass of the other side of the sea's plan, which takes the key and the

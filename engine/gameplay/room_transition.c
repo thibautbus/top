@@ -20,6 +20,9 @@
 #define ONE_PIXEL 0x100
 #define BACK_PAST_LINE (32 * 0x100)    /* --continuous-line: the most he walks back into the room left during a scroll */
 #define BACK_PAST_UP (5 * 0x100)       /* and back up into the room above, his tile (y+5) still in the room entered's rows once rebased */
+#define EDGE_NATIVE 5u                  /* screenTransitionState2: the game's bound at the top and the left of a room */
+#define EDGE_STEP 3u                    /* more than a frame's step takes Link, on foot or swimming, in pixels */
+#define DISABLED_LINK 0x81u             /* wDisabledObjects: DISABLE_LINK, DISABLE_ALL_BUT_INTERACTIONS */
 #define BORDER -2                       /* point_tile: past the room's edge across, on the collision buffer's border */
 #define SWIM_UNDER_LINE(s) ((SMALL_ROOM_H - 2 - (int)(s)->boundary_y) << 8)   /* a swimmer's line to the room's bottom edge (guest_line.c) */
 #define BESIDE_PAST_LINE (32 * 0x100)  /* --continuous-line: the most a carry takes Link past the line across, into the room beside */
@@ -76,8 +79,9 @@ struct OraclesRoomTransition {
     int left_known;                     /* --continuous-line: left_collisions holds the collisions of the room a scroll leaves, as the last frame of
                                            normal play had them */
     uint8_t left_collisions[ORACLES_ROOM_LAYOUT_BYTES];
-    int back_forced;                    /* --continuous-line: the frame that ended the last scroll raised the transition back, to lower if not taken */
-    unsigned back_dir;                  /* its direction */
+    int edge_held;                      /* the game's edge test was asked to wait at the end of the last scroll: given back at the next frame, or when
+                                           a scene begun at that frame lets Link go */
+    uint8_t held_group, held_room;      /* the room it was asked in: a warp ends it */
     uint8_t left_room;                  /* the room of left_collisions (wActiveRoom), in the group of the transition */
     int carrying;                       /* the last frame asked about was one of a transition the policy took Link through */
     int last_known;                     /* last_x and last_y are where the last frame asked about left Link, the policy's move included */
@@ -227,7 +231,8 @@ static int swim_edge(const OraclesGuestTransitionState *s, int line, int (*cross
     during.transition_state = STATE_PREPARE;
     during.scroll_mode = 4u;
     if (oracles_room_transition_refusal(&during, 1) >= 0) return -1;
-    if (!s->link_enabled || s->disable_screen_transitions || s->screen_transition_delay) return -1;
+    /* Nor while a scene holds him (disableinput), as the game holds him: never at the edge. */
+    if (!s->link_enabled || s->disable_screen_transitions || s->screen_transition_delay || (s->disabled_objects & DISABLED_LINK)) return -1;
     /* A hole under him forbids it; a current (the low bits) lets the game take it without the direction. */
     if (s->hole_or_conveyor) return -1;
     /* A stroke of the flippers (A) carries him on without the direction
@@ -642,6 +647,13 @@ static int line_travel(const OraclesRoomTransition *tr, const OraclesGuestTransi
     return forward ? (size << 8) - (int)(uint16_t)tr->start_pos : (int)(int16_t)(uint16_t)tr->start_pos + 1;
 }
 
+/* --continuous-line: the room entered, loaded, holds an object that may take the controls at the first frame of normal
+ * play, which no scroll holds back: that frame comes first, the scroll back after it. */
+static int scene_first(const OraclesGuestTransitionState *s)
+{
+    return s->scroll_mode == 8u && oracles_room_predict_first_frame(s) == ORACLES_ROOM_FIRST_FRAME_MARKED;
+}
+
 /* --continuous-line, walking back past the line into the room left during the scroll, at (x, y) in its coordinates
  * (8.8): its collisions as the last frame of normal play had them, the two points calculateAdjacentWallsBitset tests
  * on the side he goes (`back`) free and his own tile neither a hole nor water, a point past that room's edges on the
@@ -886,8 +898,9 @@ static void room_pixel(unsigned dir, int w, int h, int x, int y, int *px, int *p
 /* Link at (cx, cy), 8.8 in the room left's coordinates, carried `offset` (8.8, signed along x or y) off the straight
  * path across the axis, from there to `rest` further along it, a pixel at a time: every point
  * calculateAdjacentWallsBitset tests, and the tile the game takes as his own, clear on the straight path stay clear
- * carried, on the room entered's collisions.  The game resumes its wall tests and its tile's effects (a fall, a
- * drowning) wherever the scroll leaves him, and finishScrollingTransition makes that place his respawn. */
+ * carried, on the room entered's collisions, and past the line across on those of the room beside where `r` names it.
+ * The game resumes its wall tests and its tile's effects (a fall, a drowning) wherever the scroll leaves him, and
+ * finishScrollingTransition makes that place his respawn. */
 static int carry_keeps_clear(const OraclesGuestTransitionState *s, const tile_rule *r, int cx, int cy, int offset, int rest)
 {
     const unsigned dir = s->transition_direction;
@@ -966,6 +979,8 @@ static int in_scroll_substate(const OraclesGuestTransitionState *s)
 }
 
 static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m, int machine_moved);
+static int line_anchor(const OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, int *start);
+static int side_in_wall(const OraclesGuestTransitionState *s, unsigned dir, int x, int y);
 
 static OraclesSwimMotion swim_motion_of(const OraclesGuestTransitionState *s)
 {
@@ -1070,7 +1085,8 @@ int oracles_room_transition_machine_rest(const OraclesGuestTransitionState *s, i
 static int carry_allowed(const OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, int swimming, unsigned across, int delta, int along, int offset,
                          int rest, int beside)
 {
-    if (beside) {
+    /* Coming back across from past the line on that side, on foot, his points still there read the room beside too. */
+    if (beside || (!swimming && tr->line && tr->beside_have && across != tr->beside_dir)) {
         const tile_rule r = { NULL, 0, 0, 0, 1, tr->beside_collisions, tr->beside_dir, NULL, 0 };
         return across_allowed(s, &r, across, delta, along, offset, rest);
     }
@@ -1195,6 +1211,20 @@ static void predict_room(OraclesRoomTransition *tr, const OraclesGuestTransition
     }
 }
 
+/* The first frame of normal play after a scroll runs the room entered's objects, then the game's edge test, which a
+ * scene they begin there would not stop.  A scene possible, Link within a step of the room's edges as this frame's move
+ * leaves him: the test waits a frame. */
+static void hold_first_frame(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    const unsigned x = ((unsigned)(s->link_x + m->link_x_delta) >> 8) & 0xffu, y = ((unsigned)(s->link_y + m->link_y_delta) >> 8) & 0xffu;
+    if (s->screen_transition_delay || oracles_room_predict_first_frame(s) == ORACLES_ROOM_FIRST_FRAME_QUIET) return;
+    if (x > EDGE_NATIVE + EDGE_STEP && x + EDGE_STEP <= s->boundary_x && y > EDGE_NATIVE + EDGE_STEP && y + EDGE_STEP <= s->boundary_y) return;
+    m->hold_edge = 1;
+    tr->edge_held = 1;
+    tr->held_group = s->active_group;
+    tr->held_room = s->active_room;
+}
+
 /* Whether Link goes on as the scroll ends: on foot a direction held toward the edge, or across it with the diagonal, in
  * the water his motion, which the game takes up after the scroll whether a direction is held or not. */
 static int going_on(const OraclesRoomTransition *tr, const OraclesGuestTransitionState *s)
@@ -1211,6 +1241,8 @@ static int going_on(const OraclesRoomTransition *tr, const OraclesGuestTransitio
  * against the room entered's collisions, asked at the entry of drawAllSprites, which draws him there.  His walk is left
  * to the game, which loaded this frame's pose already and takes it up at the next frame. */
 static int swim_crosses(const OraclesGuestTransitionState *s, unsigned dir, const void *opaque);
+
+static void hold_first_frame(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m);
 
 static void scroll_end_step(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
 {
@@ -1237,18 +1269,33 @@ static void scroll_end_step(OraclesRoomTransition *tr, const OraclesGuestTransit
     const int horizontal = dir & 1u, forward = dir == 1u || dir == 2u;
     const int native = tr->start_pos + (forward ? 1 : -1) * (horizontal ? NATIVE_TOTAL_X : NATIVE_TOTAL_Y);
     const int size = horizontal ? SMALL_ROOM_W : SMALL_ROOM_H;
-    const uint8_t along = (uint8_t)((((uint16_t)native) >> 8) + (forward ? -size : size)), cross = (uint8_t)((uint16_t)tr->start_cross >> 8);
+    uint8_t along = (uint8_t)((((uint16_t)native) >> 8) + (forward ? -size : size));
+    const uint8_t cross = (uint8_t)((uint16_t)tr->start_cross >> 8);
+    /* With the line, that distance runs from the line, 5 or 6 px past the game's own place: where it leaves his points on
+     * the scroll's side deeper in a wall of the room entered than the game's walk leaves them, and the place from the
+     * game's edge clear of it by the same rule, the respawn is that place. */
+    if (tr->line && s->play_collisions && !s->room_is_large && !oracles_room_transition_in_water(&during)) {
+        int start = 0;
+        const int anchor = line_anchor(tr, &during, &start);
+        const uint8_t place = (uint8_t)((((uint16_t)(anchor + (forward ? 1 : -1) * (horizontal ? NATIVE_TOTAL_X : NATIVE_TOTAL_Y))) >> 8) + (forward ? -size : size));
+        if (anchor != start && place != along && side_in_wall(s, dir, horizontal ? along : cross, horizontal ? cross : along)
+            && !side_in_wall(s, dir, horizontal ? place : cross, horizontal ? cross : place)) {
+            along = place;
+            tr->stats.respawns_placed++;
+        }
+    }
     m->set_respawn = 1;
     m->respawn_y = horizontal ? cross : along;
     m->respawn_x = horizontal ? along : cross;
     m->update_walk_animation = 0;
     /* Swimming, the way he faces is his swim's, which the game steps from (a stroke of the flippers starts that way). */
     if (!m->set_swim) m->set_facing = 0;
+    const OraclesRoomFirstFrame first_frame = oracles_room_predict_first_frame(s);
     /* --continuous-line: walked back past the line into the room left, he stays there: the transition back starts at
-     * the next frame from where he stands (wScreenTransitionDirection's bit 7, which screenTransitionState2 takes
-     * before it would put him back on the line), not from the line.  Swimming, at this very frame, as the scroll into
-     * the room beside starts (below): a frame of normal play would read his tile (y+5) outside the room entered, no
-     * water, and take him out of it. */
+     * this very frame, from where he stands, as the scroll into the room beside does (below).  A frame of normal play
+     * would run the room entered's objects before the game's edge test, which then cuts what they begin, and read his
+     * tile (y+5) outside the room entered: swimming no water, which would take him out of it.  A scene that no scroll
+     * decided at the frame before holds back comes first: he goes back on the line. */
     if (tr->line && tr->left_known) {
         const int pos = (horizontal ? during.link_x + m->link_x_delta : during.link_y + m->link_y_delta);
         const int travelled = (int16_t)(uint16_t)(forward ? pos - tr->start_pos : tr->start_pos - pos);
@@ -1256,11 +1303,9 @@ static void scroll_end_step(OraclesRoomTransition *tr, const OraclesGuestTransit
          * row), he is the room left's as far as a frame of normal play goes: the scroll back starts there too. */
         const int under = dir == 0u && oracles_room_transition_swimming(&during) ? SWIM_UNDER_LINE(s) : 0;
         if (travelled < line_travel(tr, &during) + under) {
-            m->force_transition = m->set_swim ? 3 : 1;
+            m->force_transition = first_frame == ORACLES_ROOM_FIRST_FRAME_MARKED ? 4 : 3;
             m->forced_direction = (uint8_t)((dir + 2u) & 3u);
-            tr->back_forced = 1;
-            tr->back_dir = (dir + 2u) & 3u;
-            tr->stats.back_reversals++;
+            if (m->force_transition == 3) tr->stats.back_reversals++;
         }
     }
     /* --continuous-line: carried past the line across into the room beside, he stays there: the scroll into it starts at
@@ -1277,8 +1322,9 @@ static void scroll_end_step(OraclesRoomTransition *tr, const OraclesGuestTransit
         }
     }
     /* Swimming, his swim that takes him across a line at the next frame starts that scroll there (the bit 7, as in
-     * normal play), never put back on the line by the game's edge test first. */
-    if (m->set_swim && tr->swim && !m->force_transition) {
+     * normal play), never put back on the line by the game's edge test first; not where
+     * the room entered's objects may begin in that frame a scene the scroll would cut. */
+    if (m->set_swim && tr->swim && !m->force_transition && first_frame == ORACLES_ROOM_FIRST_FRAME_QUIET) {
         OraclesGuestTransitionState after = *s;
         after.link_x = (uint16_t)(s->link_x + m->link_x_delta);
         after.link_y = (uint16_t)(s->link_y + m->link_y_delta);
@@ -1298,6 +1344,7 @@ static void scroll_end_step(OraclesRoomTransition *tr, const OraclesGuestTransit
             tr->forced = 1;
         }
     }
+    hold_first_frame(tr, s, m);
     if (m->link_x_delta || m->link_y_delta) m->scroll_end = 1;
     else if (tr->last_asked && going_on(tr, &during)) tr->stats.end_stalls++;
 }
@@ -1319,6 +1366,54 @@ static int swim_crosses(const OraclesGuestTransitionState *s, unsigned dir, cons
     if (dir == 1u) return (x >> 8) > (int)s->boundary_x + 5;
     /* At the bottom a swimmer's line is where his own tile is still the room's last row; the sea floor's, the room's. */
     return (y >> 8) > (int)s->boundary_y + (s->link_swimming_state ? 1 : 6);
+}
+
+/* --continuous-line: whether one of the two points calculateAdjacentWallsBitset tests on the side `dir` of Link standing
+ * at (x, y) in the room entered lies in its walls (raised on Ages' floor, $1e left out) deeper than the game's walk
+ * leaves it, looked back toward him (oracles_room_transition_wall_excess): a point on a wall's first pixel is Link
+ * resting against it. */
+static int side_in_wall(const OraclesGuestTransitionState *s, unsigned dir, int x, int y)
+{
+    for (unsigned i = 0; i < 2u; i++) {
+        int depth = -1;
+        for (int n = 0; n <= WALL_DEPTH_WALKED[dir] + 1; n++) {
+            const int px = x + WALL_POINTS[dir][i][0] + WALL_BACK[dir][0] * n, py = y + WALL_POINTS[dir][i][1] + WALL_BACK[dir][1] * n;
+            if (px < 0 || px >= SMALL_ROOM_W || py < 0 || py >= SMALL_ROOM_H || !collisions_wall_raised(s->play_collisions, px, py, s->link_raised_floor != 0u)) break;
+            depth = n;
+        }
+        if (depth > WALL_DEPTH_WALKED[dir]) return 1;
+    }
+    return 0;
+}
+
+/* --continuous-line, on foot: the frame that ends a scroll the policy left to the game (Link holding his shield, running
+ * on Pegasus seeds, using an item), started at the line.  The game's own 15 or 16 pixels ran from there, untested, as
+ * far past the place its scroll leaves him as the line lies past its edge (5 px at the right, 6 elsewhere); where that
+ * leaves his points on the scroll's side deeper in a wall of the room entered than the game's walk leaves them, and that
+ * place clear of it by the same rule, he goes back there along the axis, once, his respawn with him. */
+static void refused_end_place(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
+{
+    const unsigned dir = tr->direction;
+    if (!s->play_collisions || s->room_is_large || oracles_room_transition_in_water(s)) return;
+    const int horizontal = dir & 1u, forward = dir == 1u || dir == 2u, sign = forward ? 1 : -1;
+    OraclesGuestTransitionState at = *s;
+    at.transition_direction = (uint8_t)dir;
+    int start = 0;
+    const int anchor = line_anchor(tr, &at, &start);
+    if (anchor == start) return;
+    const int place = ((anchor + sign * (horizontal ? NATIVE_TOTAL_X : NATIVE_TOTAL_Y)) >> 8) - sign * (horizontal ? SMALL_ROOM_W : SMALL_ROOM_H);
+    const int now = ((horizontal ? s->link_x : s->link_y) >> 8) & 0xff, cross = ((horizontal ? s->link_y : s->link_x) >> 8) & 0xff;
+    const int past = sign * (now - place);
+    if (past <= 0 || past << 8 > ORACLES_TRANSITION_PLACE_MAX) return;
+    if (!side_in_wall(s, dir, horizontal ? now : cross, horizontal ? cross : now) || side_in_wall(s, dir, horizontal ? place : cross, horizontal ? cross : place)) return;
+    if (horizontal) m->link_x_delta = (int16_t)(-sign * past << 8);
+    else m->link_y_delta = (int16_t)(-sign * past << 8);
+    m->set_place = 1;
+    m->scroll_end = 1;
+    /* finishScrollingTransition took his respawn in the room entered from where the game's pixels left him: it goes there too. */
+    m->set_respawn = 1;
+    m->respawn_y = (uint8_t)(horizontal ? cross : place);
+    m->respawn_x = (uint8_t)(horizontal ? place : cross);
 }
 
 static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, OraclesGuestTransitionMutation *m)
@@ -1357,6 +1452,7 @@ static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransition
         tr->beside_refused = 0;
         tr->current = s->hole_or_conveyor != 0u;
         if (tr->check_pending == 1) tr->check_pending = 2;
+        if (unbroken && s->menu_disabled && !s->use_simulated_input) tr->stats.scene_cuts++;
         /* The frame that starts it: the game made its own step in it (linkState01), then put him back on the edge along
          * the axis (screenTransitionState2@transition). */
         if (unbroken && tr->last_known) {
@@ -1365,7 +1461,15 @@ static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransition
             tr->starting = 1;
         }
     }
+    /* A scene begun in the frame held may hold Link on the line at the top or the left, which the edge test takes as
+     * past it (guest_line.c), his direction held or not: the test waits as long as he is held, its keys none of his.  */
+    if (tr->edge_held) {
+        tr->edge_held = (s->disabled_objects & DISABLED_LINK) != 0 && !in_transition && s->active_group == tr->held_group && s->active_room == tr->held_room;
+        m->hold_edge = tr->edge_held ? 1 : 2;
+    }
     const int scroll_ended = unbroken && tr->carrying && !in_transition && s->transition_state == 2u && s->scroll_mode == 1u;
+    const int refused_ended = unbroken && tr->line && tr->steps && tr->in_transition && !tr->carrying && !tr->resumed && tr->straight_known
+                              && !in_transition && s->transition_state == 2u && s->scroll_mode == 1u;
     tr->carrying = 0;
     /* A smooth palette transition (paletteTransitions.s) mixes BG2-7 from the
      * palette left to the one entered over about thirty frames, the loaded
@@ -1400,22 +1504,8 @@ static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransition
         at.transition_direction = (uint8_t)tr->direction;
         if (tr->last_asked && going_on(tr, &at)) tr->stats.end_stalls++;
     }
+    if (refused_ended) { refused_end_place(tr, s, m); hold_first_frame(tr, s, m); }
 
-    /* --continuous-line: the transition back raised at the end of a scroll and not taken at the next frame (a text or a
-     * menu opened there): lowered, so that it never starts later, elsewhere. */
-    if (tr->back_forced && !in_transition) {
-        /* Still past the line, the transitions enabled: kept, the game taking it at the first frame its edge test runs
-         * (after the menu, the text), from where he stands, which nothing moved meanwhile. */
-        const int kept = past_line(s, tr->back_dir) && !s->disable_screen_transitions;
-        if ((s->transition_direction_raw & 0x80u) && s->transition_state == 2u && !kept) {
-            /* Else lowered, the bus putting him back on the line if he is past it. */
-            m->force_transition = 2;
-            m->forced_direction = (uint8_t)tr->back_dir;
-            tr->stats.back_lowered++;
-        }
-        if (!(s->transition_direction_raw & 0x80u) || s->transition_state != 2u || !kept) tr->back_forced = 0;
-        else tr->stats.back_kept_frames++;
-    }
     /* --continuous-swim: the transition a swim's momentum takes him to, the game asking the direction held. */
     if (tr->swim && !in_transition) {
         /* With the line, a swim forced across it at the frame before the one whose step takes him past it, so that the
@@ -1432,7 +1522,7 @@ static void policy_frame(OraclesRoomTransition *tr, const OraclesGuestTransition
             tr->forced = 0;
         }
     }
-    if (in_transition) tr->forced = tr->back_forced = 0;
+    if (in_transition) tr->forced = 0;
     const int refusal = oracles_room_transition_refusal(s, tr->swim);
     /* A state loaded in a transition without the policy's progress (one saved before it was kept): where it began, and
      * what the policy moved Link by then, are not known; the machine takes him to its end alone, its step as the
@@ -1614,7 +1704,7 @@ static void swim_line_move(OraclesRoomTransition *tr, const OraclesGuestTransiti
         /* Back past the line into the room left, onto its water, as far as BACK_PAST_LINE, as on foot. */
         const int past_allowed = tr->left_known && !oracles_room_transition_special_room(tr->rom, tr->rom_size, s, s->active_group, tr->left_room)
                                  && !oracles_room_transition_special_room(tr->rom, tr->rom_size, s, s->active_group, s->active_room)
-                                 && !past_line(s, (tr->direction + 1u) & 3u) && !past_line(s, (tr->direction + 3u) & 3u);
+                                 && !past_line(s, (tr->direction + 1u) & 3u) && !past_line(s, (tr->direction + 3u) & 3u) && !scene_first(s);
         const int floor = past_allowed ? to_line - BACK_PAST_LINE : to_line;
         int to = to_along;
         if (to < floor) { to = floor < from_along ? floor : from_along; held = 1; }
@@ -1715,6 +1805,19 @@ static void swim_line_move(OraclesRoomTransition *tr, const OraclesGuestTransiti
     if (extra) { tr->stats.walked_frames++; tr->stats.swum_frames++; }
 }
 
+/* --continuous-line: where the game would have started the scroll (8.8, the room left's coordinates, unwrapped), its edge
+ * or the line's start where that comes first, and the scroll's start, the line's, as `start`. */
+static int line_anchor(const OraclesRoomTransition *tr, const OraclesGuestTransitionState *s, int *start)
+{
+    const unsigned dir = s->transition_direction;
+    const int horizontal = dir & 1u, forward = dir == 1u || dir == 2u;
+    /* In the room left's coordinates, unwrapped: leftward and upward they run below zero ($ffc2), the start too when the
+     * scroll began past the line already (a corner's second scroll). */
+    *start = forward ? (int)tr->start_pos : (int)(int16_t)(uint16_t)tr->start_pos;
+    const int game_start = forward ? (int)(horizontal ? s->boundary_x : s->boundary_y) << 8 : (int)(EDGE + 1u) << 8;
+    return forward ? (*start < game_start ? *start : game_start) : (*start > game_start ? *start : game_start);
+}
+
 /* --continuous-line, on foot, a direction held toward the edge: his move along the axis this frame, `extra` (8.8) after
  * the machine's `machine_now`, as the game's walk would make it once he is past the place its own scroll would have left
  * him (its distance from the game's edge, where the transition starts without the line, not from the line, where his
@@ -1726,11 +1829,8 @@ static int line_wall_hold(OraclesRoomTransition *tr, const OraclesGuestTransitio
     const unsigned dir = s->transition_direction;
     const int horizontal = dir & 1u, forward = dir == 1u || dir == 2u, sign = forward ? 1 : -1;
     const int native_total = horizontal ? NATIVE_TOTAL_X : NATIVE_TOTAL_Y;
-    /* In the room left's coordinates, unwrapped: leftward and upward they run below zero ($ffc2), the start too when the
-     * scroll began past the line already (a corner's second scroll). */
-    const int start = forward ? (int)tr->start_pos : (int)(int16_t)(uint16_t)tr->start_pos;
-    const int game_start = forward ? (int)(horizontal ? s->boundary_x : s->boundary_y) << 8 : (int)(EDGE + 1u) << 8;
-    const int anchor = forward ? (start < game_start ? start : game_start) : (start > game_start ? start : game_start);
+    int start = 0;
+    const int anchor = line_anchor(tr, s, &start);
     const int place = (anchor + sign * native_total) >> 8;
     const int pos = horizontal ? s->link_x : s->link_y;
     const int now = start + sign * (int)(int16_t)(uint16_t)(forward ? pos - tr->start_pos : tr->start_pos - pos);
@@ -1821,9 +1921,12 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
      * found it under way (the step it arms the scroll with at its start, or hands back with control). */
     const int machine_rest = oracles_room_transition_machine_rest(s, in_scroll_substate(s) ? tr->armed : 1);
     /* Carried off the straight path across the axis (`offset`), only where the carry keeps every point of his as
-     * clear as the straight path does. */
+     * clear as the straight path does.  At the line, carried past it across into the room beside, his points there read
+     * that room's collisions, as the carry's do: with no room beside to read, the collision buffer's border for 16 px
+     * (neither a wall nor a hole), then walls. */
     const int offset = (int16_t)(uint16_t)((horizontal ? s->link_y : s->link_x) - tr->start_cross);
-    const tile_rule rule = { tr->rom, tr->rom_size, swimming, 0, tr->line && !swimming, NULL, 0, NULL, 0 };
+    const int on_line = tr->line && !swimming;
+    const tile_rule rule = { tr->rom, tr->rom_size, swimming, 0, on_line, on_line && tr->beside_have ? tr->beside_collisions : NULL, tr->beside_dir, NULL, 0 };
     const int reach = extra + machine_rest;
     const int reach_x = s->link_x + (s->transition_direction == 1u ? reach : s->transition_direction == 3u ? -reach : 0);
     const int reach_y = s->link_y + (s->transition_direction == 2u ? reach : s->transition_direction == 0u ? -reach : 0);
@@ -1877,10 +1980,9 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
             /* Not where either room has a transition of its own: the scroll back may lead elsewhere than the room left. */
             const int past_allowed = tr->left_known && !oracles_room_transition_special_room(tr->rom, tr->rom_size, s, s->active_group, tr->left_room)
                                      && !oracles_room_transition_special_room(tr->rom, tr->rom_size, s, s->active_group, s->active_room)
-                                     && !past_line(s, (tr->direction + 1u) & 3u) && !past_line(s, (tr->direction + 3u) & 3u);
-            /* Back up into the room above, his coordinate runs below zero once the scroll is over, and the frame after it
-             * updates him there before the game takes the transition back: his tile (y+5) read past the room's buffers
-             * beyond 5 px. */
+                                     && !past_line(s, (tr->direction + 1u) & 3u) && !past_line(s, (tr->direction + 3u) & 3u) && !scene_first(s);
+            /* Back up into the room above, his coordinate runs below zero once the scroll is over: his tile (y+5) lies
+             * past the room's buffers beyond 5 px, should a frame of normal play update him there, the scroll back refused. */
             const int past_max = tr->direction == 2u ? BACK_PAST_UP : BACK_PAST_LINE;
             const int floor = past_allowed ? to_line - past_max : to_line;
             if (travelled + extra < floor) { extra = floor - travelled < 0 ? floor - travelled : 0; tr->stats.back_line_frames++; }
@@ -1937,8 +2039,14 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
     const int beside_past = travelled + extra >= line_travel(tr, s) ? BESIDE_PAST_LINE : 0;
     int beside = beside_allowed && tr->beside_have && tr->beside_dir == (unsigned)across;
     /* The scroll may leave him anywhere up to the game's own distance, or the machine's steps still to come beyond it;
-     * the cap holds him further on. */
-    const int rest = native_total - travelled - extra > machine_rest ? native_total - travelled - extra : machine_rest;
+     * the cap holds him further on.  At the line, on foot, past the game's own place he goes only as the game's walk
+     * would (line_wall_hold): up to that place alone, counted from the game's own start, not the line's. */
+    int rest = native_total - travelled - extra > machine_rest ? native_total - travelled - extra : machine_rest;
+    if (keyed && tr->line) {
+        int start = 0;
+        const int anchor = line_anchor(tr, s, &start), gap = forward ? start - anchor : anchor - start;
+        rest = native_total - travelled - extra - gap > 0 ? native_total - travelled - extra - gap : 0;
+    }
     if (across >= 0 && across_step > 0) {
         if (c != s && tr->predicted == 1) tr->stats.carry_predicted_frames++;
         if (tr->owed_across != across) { tr->owed_along = tr->owed = 0; tr->owed_across = across; }
@@ -1968,6 +2076,8 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
                 if (carry_allowed(tr, c, swimming, (unsigned)across, across_step, extra, offset, rest, beside)) carried = across_step;
                 else {
                     tr->stats.carry_withheld_frames++;
+                    /* The step itself clear, held by what lies further along the axis. */
+                    if (carry_allowed(tr, c, swimming, (unsigned)across, across_step, extra, offset, 0, beside)) tr->stats.carry_ahead_frames++;
                     /* Held by the room beside's walls, holes or water, where the line's border alone would let him go. */
                     if (beside && carry_allowed(tr, c, swimming, (unsigned)across, across_step, extra, offset, rest, 0)) tr->stats.beside_wall_frames++;
                 }
@@ -1998,7 +2108,7 @@ static void move_link(OraclesRoomTransition *tr, const OraclesGuestTransitionSta
     }
     /* Past the line across, the room beside's walls and holes hold him as the game's would: his step across given up
      * first, then the one along the axis, where a point of his would go into one it is not in. */
-    if (keyed && tr->line && tr->beside_have && (extra || carried)) {
+    if (keyed && tr->line && tr->beside_have && (extra || carried || machine_moved)) {
         const int per_step = horizontal ? NATIVE_STEP_X : NATIVE_STEP_Y, machine_now = machine_moved ? per_step : 0;
         const int sign = forward ? 1 : -1, cross_sign = across == 1 || across == 2 ? 1 : -1;
         const int fx = horizontal ? s->link_x - sign * machine_now : s->link_x, fy = horizontal ? s->link_y : s->link_y - sign * machine_now;
@@ -2109,7 +2219,7 @@ static void reset(void *opaque)
     tr->carrying = tr->last_known = tr->last_asked = 0;
     tr->walk_along = ONE_PIXEL;
     tr->along_owed = 0;
-    tr->left_known = tr->back_forced = 0;
+    tr->left_known = tr->edge_held = 0;
     tr->beside_have = 0;
     tr->beside_refused = 0;
     tr->check_pending = 0;
@@ -2152,7 +2262,7 @@ size_t oracles_room_transition_save_state(const OraclesRoomTransition *tr, uint8
     at += sizeof tr->predicted_collisions;
     at = put_int(at, tr->carrying); at = put_int(at, tr->last_known); at = put_int(at, tr->last_x); at = put_int(at, tr->last_y);
     at = put_int(at, tr->last_asked); at = put_int(at, tr->last_state); at = put_int(at, tr->walk_along); at = put_int(at, tr->along_owed);
-    *at++ = (uint8_t)((tr->left_known != 0) | (tr->back_forced != 0) << 1 | (tr->back_dir & 3u) << 2);
+    *at++ = (uint8_t)((tr->left_known != 0) | (tr->edge_held != 0) << 1);
     memcpy(at, tr->left_collisions, sizeof tr->left_collisions);
     at += sizeof tr->left_collisions;
     *at++ = tr->left_room;
@@ -2203,7 +2313,7 @@ int oracles_room_transition_load_state(OraclesRoomTransition *tr, const uint8_t 
         memcpy(tr->predicted_collisions, at + sizeof tr->predicted_layout, sizeof tr->predicted_collisions);
         at += sizeof tr->predicted_layout + sizeof tr->predicted_collisions;
     }
-    tr->left_known = tr->back_forced = 0;
+    tr->left_known = tr->edge_held = 0;
     if (data[0] >= 3u) {
         at = get_int(at, &tr->carrying); at = get_int(at, &tr->last_known); at = get_int(at, &tr->last_x); at = get_int(at, &tr->last_y);
         at = get_int(at, &tr->last_asked); at = get_int(at, &tr->last_state); at = get_int(at, &tr->walk_along); at = get_int(at, &tr->along_owed);
@@ -2214,8 +2324,11 @@ int oracles_room_transition_load_state(OraclesRoomTransition *tr, const uint8_t 
     /* The fourth version, without the room left's index, goes on with the walk back held at the line. */
     if (data[0] >= 4u) {
         tr->left_known = data[0] >= 5u && (*at & 1u) != 0;
-        tr->back_forced = (*at & 2u) != 0;
-        tr->back_dir = (*at++ >> 2) & 3u;
+        /* Bit 1 was the transition back raised by the bit 7 before the scroll back started at the scroll's end, which
+         * the game takes by itself from the state's RAM; now the edge test's wait, given back at the next frame (its
+         * room not kept: a wait loaded is not repeated). */
+        tr->edge_held = (*at++ & 2u) != 0;
+        tr->held_group = 0xffu;
         memcpy(tr->left_collisions, at, sizeof tr->left_collisions);
         at += sizeof tr->left_collisions;
         tr->left_room = data[0] >= 5u ? *at++ : 0;
