@@ -6,7 +6,9 @@
  * character including the last, and a line box whose ascent, descent and
  * line gap are each rounded to whole pixels (the OS/2 typographic metrics
  * when the font sets USE_TYPO_METRICS, else hhea), the leading split with
- * its first half rounded down. */
+ * its first half rounded down.  A character a face does not have is drawn
+ * from a fallback, a subset of Noto Sans CJK (日本語), at the same size on the
+ * same baseline, the line keeping the face's metrics. */
 #ifndef ORACLES_UI_FONT_H
 #define ORACLES_UI_FONT_H
 
@@ -40,6 +42,9 @@ int oracles_ui_fonts_load(void);
 /* One line of text in a block of `line_height` px (0: `normal`): the block's
  * height and the baseline's distance from its top. */
 void oracles_ui_line_box(const OraclesUiTextStyle *style, float line_height, float *height, float *baseline);
+/* The same for the line of `utf8`: with a glyph from the fallback in a `normal` line, the box grows to hold the
+ * fallback's ascent and descent too, on the face's baseline, as a browser's line does. */
+void oracles_ui_text_line_box(const OraclesUiTextStyle *style, const char *utf8, float line_height, float *height, float *baseline);
 /* The height of the text's own box (ascent plus descent), as a span of inline text has. */
 float oracles_ui_content_height(const OraclesUiTextStyle *style);
 

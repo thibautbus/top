@@ -497,6 +497,7 @@ void oracles_ui_layout_cheats(OraclesUiLayout layout, const OraclesHomeNav *nav,
     page.help = oracles_cheats_texts[row];
     page.help_note = oracles_cheats_row_note(nav, row);
     page.extras_row = ORACLES_CHEATS_ROWS - 1u;
+    page.centred = 1;
     for (unsigned r = 0; r < ORACLES_CHEATS_ROWS; r++) {
         page.labels[r] = oracles_cheats_labels[r];
         page.choices[r] = choice_names;

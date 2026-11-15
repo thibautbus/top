@@ -661,6 +661,7 @@ static OraclesHomeCommand display_set(OraclesHomeNav *nav, unsigned row, int val
         return ORACLES_HOME_STORE;
     }
     const int text_row = row >= ORACLES_DISPLAY_LETTERS && row <= ORACLES_DISPLAY_TEXT_SPEED;
+    if (row == ORACLES_DISPLAY_LETTERS && oracles_display_japanese(nav)) return ORACLES_HOME_STAY;   /* Classic alone in Japanese */
     const int size_row = row == ORACLES_DISPLAY_MENUS || row == ORACLES_DISPLAY_FAR_SIZE || row == ORACLES_DISPLAY_UNVISITED;
     if (row >= ORACLES_DISPLAY_ROWS || !fields[row] || (enhanced_only && !oracles_display_transitions_apply(nav))
         || ((row == ORACLES_DISPLAY_HUD || row == ORACLES_DISPLAY_PANELS) && !oracles_display_hud_applies(nav)) || (text_row && !oracles_display_text_row_live(nav, row))
@@ -680,7 +681,7 @@ static int display_value(const OraclesHomeNav *nav, unsigned row)
 {
     const int values[ORACLES_DISPLAY_ROWS] = { (int)nav->display.profile, 0, nav->display.window, nav->display.view, nav->display.hud, 0,
                                                nav->display.colour, 0, nav->display.core, nav->display.transitions, nav->display.vsync, nav->display.workers,
-                                               nav->display.scaling, oracles_display_camera(nav), nav->display.margin, nav->display.text, nav->display.text_box,
+                                               nav->display.scaling, oracles_display_camera(nav), nav->display.margin, oracles_display_text_shown(nav), nav->display.text_box,
                                                nav->display.text_size, nav->display.text_speed, 0, nav->display.menus, nav->display.far_fixed,
                                                oracles_display_unvisited_choice(nav->display.unvisited), oracles_display_filter_shown(nav),
                                                nav->display.hud_panel };

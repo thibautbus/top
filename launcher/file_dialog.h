@@ -27,7 +27,9 @@ typedef enum OraclesDialogKind {
     ORACLES_DIALOG_EU_ROM,
     ORACLES_DIALOG_SAVE,
     ORACLES_DIALOG_EXPORT,
-    ORACLES_DIALOG_EXPORT_MODS
+    ORACLES_DIALOG_EXPORT_MODS,
+    ORACLES_DIALOG_JP_ROM,         /* an Oracle's Japanese ROM (Cartridge › Editions) */
+    ORACLES_DIALOG_PL_ROM          /* its Polish ROM, or Kaxus's patch (a .bps, or a zip of one) */
 } OraclesDialogKind;
 
 /* Opens the system's dialog for a file of `kind` for game `game`, starting in `folder` (may be empty), over `window`,

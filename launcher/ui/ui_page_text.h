@@ -40,6 +40,12 @@ extern const char *const oracles_display_text_speed_choices[2];   /* "Classic", 
 /* A Text row's choices and their count. */
 const char *const *oracles_display_text_row_choices(unsigned row, unsigned *count);
 
+/* The game shown plays in Japanese, from the home screen: its own font draws the text, Text keeps Classic, Compact greyed
+ * with "Not available in Japanese." (oracles_display_japanese_reason) in its note's place; the choice kept stays for the
+ * other languages.  The Text the game takes, so: Classic in Japanese, else the one chosen. */
+int oracles_display_japanese(const OraclesHomeNav *nav);
+extern const char oracles_display_japanese_reason[];
+int oracles_display_text_shown(const OraclesHomeNav *nav);
 /* Text, Text box and Text size apply in Enhanced chosen. */
 int oracles_display_text_applies(const OraclesHomeNav *nav);
 /* The Text link applies where one of its rows does: Text speed's everywhere but for a game whose profile has no

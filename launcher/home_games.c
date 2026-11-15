@@ -248,6 +248,50 @@ static OraclesRomState own_rom_state(OraclesHomeGames *games, const char *path, 
     return own ? ORACLES_ROM_ORIGINAL : ORACLES_ROM_UNRECOGNISED;
 }
 
+const char *oracles_home_own_source(OraclesHomeGames *games, OraclesSettingsGame g, int own, const char *given)
+{
+    const int polish = own == ORACLES_SETTINGS_POLISH;
+    char reason[ORACLES_HOME_TEXT_LENGTH];
+    if (given && own_rom_state(games, given, game_of(g), polish ? ORACLES_LANGUAGE_POLISH : ORACLES_LANGUAGE_JAPANESE, reason, sizeof reason)
+                     == ORACLES_ROM_ORIGINAL)
+        return given;
+    const char *const own_rom = polish ? games->settings->pl_rom[g] : games->settings->jp_rom[g];
+    return own_rom[0] ? own_rom : NULL;
+}
+
+void oracles_home_own_language(OraclesHomeGames *games, OraclesSettingsGame g, int own, int recognized, OraclesSessionOptions *o, char *note,
+                               size_t capacity)
+{
+    if (!own || (o->language && o->eu_rom_path)) return;
+    note[0] = 0;
+    const int polish = own == ORACLES_SETTINGS_POLISH;
+    const char *const edition = polish ? "Polish" : "Japanese", *const code = oracles_settings_language_names[own];
+    const char *const oracle_name = oracles_game_name(game_of(g)), *const given = o->eu_rom_path;
+    o->eu_rom_path = oracles_home_own_source(games, g, own, given);
+    if (given && o->eu_rom_path != given)
+        fprintf(stderr, "oracles: --eu-rom %s is not the %s ROM of %s%s, which language_%s=%s plays from: set aside\n", given, edition, oracle_name,
+                polish ? " nor its patch" : "", g == ORACLES_SETTINGS_SEASONS ? "seasons" : "ages", code);
+    oracles_home_files_forget(&games->files);
+    if (!recognized) return;
+    char reason[ORACLES_HOME_TEXT_LENGTH] = "";
+    const char *const key = polish ? (game_of(g) == ORACLES_GAME_AGES ? "pl_rom_ages" : "pl_rom_seasons")
+                                   : (game_of(g) == ORACLES_GAME_AGES ? "jp_rom_ages" : "jp_rom_seasons");
+    const OraclesRomState found = o->eu_rom_path ? own_rom_state(games, o->eu_rom_path, game_of(g), polish ? ORACLES_LANGUAGE_POLISH : ORACLES_LANGUAGE_JAPANESE,
+                                                                 reason, sizeof reason)
+                                                 : ORACLES_ROM_NONE;
+    o->language = found == ORACLES_ROM_ORIGINAL ? code : NULL;
+    if (found == ORACLES_ROM_UNRECOGNISED)
+        snprintf(note, capacity, "%s is not the %s ROM of %s%s: the game played in English.", o->eu_rom_path, edition, oracle_name, polish ? " nor its patch" : "");
+    else if (found == ORACLES_ROM_NONE) {
+        snprintf(note, capacity, "No %s ROM of %s: the game played in English. Choose it in Cartridge \xe2\x80\xba Editions.", edition, oracle_name);
+        fprintf(stderr, "oracles: %s= in settings.txt names no %s ROM\n", key, edition);
+    }
+    else if (found != ORACLES_ROM_ORIGINAL)
+        snprintf(note, capacity, "The %s ROM of %s cannot be read (%s): the game played in English.", edition, oracle_name, reason);
+    if (note[0]) fprintf(stderr, "oracles: %s\n", note);
+    oracles_home_files_forget(&games->files);
+}
+
 /* eu_state, kept in games->eu_found[g] while the file is the same: read again only once it changed. */
 static OraclesRomState eu_found(OraclesHomeGames *games, OraclesSettingsGame g, const char *path, char *reason, size_t capacity)
 {
@@ -271,17 +315,42 @@ static OraclesGame european_game(OraclesHomeGames *games, const char *path)
     return identify(games, path, &info, NULL, error, sizeof error) ? oracles_language_source_game(&info) : ORACLES_GAME_UNKNOWN;
 }
 
-/* An Oracle's European ROM as settings.txt names it, and its language, English unless the ROM is recognized. */
+/* Oracle `g`'s Japanese ROM (`edition` 0) or Polish source (1) as settings.txt names it (jp_rom_<game>=, pl_rom_<game>=),
+ * kept in games->edition_found while the file is the same; the Polish source as a patched ROM, Kaxus's .bps or its zip. */
+static void inspect_edition(OraclesHomeGames *games, OraclesSettingsGame g, int edition, OraclesHomeEdition *e)
+{
+    const char *path = edition ? games->settings->pl_rom[g] : games->settings->jp_rom[g];
+    memset(e, 0, sizeof *e);
+    if (!path[0]) return;
+    split_path(path, e->file, sizeof e->file, e->folder, sizeof e->folder);
+    if (edition && oracles_zip_is_patch_file(path) == 1) {
+        const size_t length = strlen(path);
+        e->patch = length > 4 && !SDL_strcasecmp(path + length - 4, ".zip") ? 2 : 1;
+    }
+    struct stat file;
+    int there;
+    OraclesHomeFound *found = &games->edition_found[edition][g];
+    if (still_found(found, path, &file, &there)) {
+        snprintf(e->reason, sizeof e->reason, "%s", found->reason);
+        e->state = found->state;
+        return;
+    }
+    e->state = own_rom_state(games, path, game_of(g), edition ? ORACLES_LANGUAGE_POLISH : ORACLES_LANGUAGE_JAPANESE, e->reason, sizeof e->reason);
+    keep_found(found, path, &file, there, e->state, e->reason);
+}
+
+/* An Oracle's European ROM as settings.txt names it, its Japanese ROM and its Polish source, and its language as
+ * settings.txt keeps it, which it plays in once its source is recognized (oracles_page_language). */
 static void inspect_eu(OraclesHomeGames *games, OraclesSettingsGame g, OraclesHomeGame *state)
 {
     const char *path = games->settings->eu_rom[g];
     state->eu = ORACLES_ROM_NONE;
     state->eu_file[0] = state->eu_folder[0] = state->eu_reason[0] = 0;
-    state->language = 0;
+    for (int e = 0; e < 2; e++) inspect_edition(games, g, e, &state->editions[e]);
+    state->language = games->settings->language[g];
     if (!path[0]) return;
     split_path(path, state->eu_file, sizeof state->eu_file, state->eu_folder, sizeof state->eu_folder);
     state->eu = eu_found(games, g, path, state->eu_reason, sizeof state->eu_reason);
-    if (state->eu == ORACLES_ROM_ORIGINAL) state->language = games->settings->language[g];
 }
 
 /* Oracles Combined's base, the European ROMs of Ages and Seasons as their pages show them, each in state->joined: ORIGINAL
@@ -328,6 +397,7 @@ static void inspect_fan(OraclesHomeGames *games, const OraclesHomeFanGame *fan, 
         inspect_eu(games, base, &oracle);
         state->eu = oracle.eu;
         state->language = oracle.eu == ORACLES_ROM_ORIGINAL ? settings->fan_language[f] : 0;
+        memset(state->editions, 0, sizeof state->editions);
     }
     const int base_usable = state->usable;
     state->usable = 0;
@@ -617,12 +687,18 @@ static void store(void *opaque, const OraclesHomeNav *nav)
      * while its Oracle's European ROM is recognized, with its Oracle's original ROM. */
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
         const OraclesHomeGame *game = &nav->games[g];
+        /* A source removed on Cartridge › Editions goes, with a language it gave; the language chosen is kept, one that
+         * waits for its source too. */
+        int language = game->rom == ORACLES_ROM_ORIGINAL ? game->language : prefs->language[g];
         if (game->eu == ORACLES_ROM_NONE) {
             prefs->eu_rom[g][0] = 0;
-            if (prefs->language[g] < ORACLES_SETTINGS_EUROPEAN_LANGUAGES) prefs->language[g] = 0;   /* Japanese and Polish need no European ROM */
-        } else if (game->eu == ORACLES_ROM_ORIGINAL) {
-            prefs->language[g] = game->language;
+            if (language < ORACLES_SETTINGS_EUROPEAN_LANGUAGES) language = 0;
         }
+        /* Japanese and Polish wait for their source: the game plays in English meanwhile, and the language comes back with
+         * it.  Removing it on the page set the language back to English already. */
+        if (game->editions[0].state == ORACLES_ROM_NONE) prefs->jp_rom[g][0] = 0;
+        if (game->editions[1].state == ORACLES_ROM_NONE) prefs->pl_rom[g][0] = 0;
+        prefs->language[g] = language;
     }
     for (unsigned f = 0; nav->fan_languages && f < ORACLES_HOME_FAN_GAMES; f++) {
         const OraclesHomeGame *game = &nav->games[oracles_home_fan_games[f].game];
@@ -772,11 +848,51 @@ static void choose_eu_rom(void *opaque, int game, struct SDL_Window *window)
     choose(window, ORACLES_DIALOG_EU_ROM, games->settings->eu_rom[g][0] ? games->settings->eu_rom[g] : other, game);
 }
 
+static void choose_edition(void *opaque, int game, int edition, struct SDL_Window *window)
+{
+    const OraclesHomeGames *games = opaque;
+    if (oracles_home_fan_game(game) || edition < 1 || edition > 2) return;
+    const OraclesSettingsGame g = rom_setting(game);
+    const char *current = edition == 1 ? games->settings->jp_rom[g] : games->settings->pl_rom[g];
+    /* The dialog opens where the file is, or else where the game's ROM is. */
+    choose(window, edition == 1 ? ORACLES_DIALOG_JP_ROM : ORACLES_DIALOG_PL_ROM, current[0] ? current : games->settings->rom[g], game);
+}
+
+/* A Japanese ROM or a Polish source for Oracle `g`: kept in settings.txt whatever it is, its row saying whether it is the
+ * game's; another file sets a language it gave back to English. */
+static void offer_edition(OraclesHomeGames *games, OraclesSettingsGame g, int edition, const char *path)
+{
+    char *setting = edition == 1 ? games->settings->jp_rom[g] : games->settings->pl_rom[g];
+    snprintf(setting, ORACLES_SETTINGS_PATH_LENGTH, "%s", path);
+    OraclesHomeEdition e;
+    inspect_edition(games, g, edition - 1, &e);
+    const int language = edition == 1 ? ORACLES_SETTINGS_JAPANESE : ORACLES_SETTINGS_POLISH;
+    if (e.state != ORACLES_ROM_ORIGINAL && games->settings->language[g] == language) games->settings->language[g] = 0;
+    oracles_settings_store(games->settings);
+    fprintf(stderr, "oracles: %s %s set to %s (%s)\n", oracles_game_name(game_of(g)), edition == 1 ? "Japanese ROM" : "Polish ROM or patch", path,
+            e.state == ORACLES_ROM_ORIGINAL ? "recognized" : e.state == ORACLES_ROM_UNRECOGNISED ? "not its own" : e.reason);
+}
+
+static int edition_of(OraclesHomeGames *games, const char *path, int page_game, OraclesSettingsGame *g);
+
+/* An edition filed for Oracle `g` in place of a ROM: kept in Cartridge › Editions, the toast saying so, and that the US
+ * ROM it plays with is still to choose when it is not there. */
+static void file_edition(OraclesHomeGames *games, OraclesSettingsGame g, int edition, const char *path, char *message, size_t capacity)
+{
+    offer_edition(games, g, edition, path);
+    char reason[ORACLES_HOME_TEXT_LENGTH];
+    int combined = 0;
+    const int us = games->settings->rom[g][0] && rom_found(games, g, games->settings->rom[g], reason, sizeof reason, &combined) == ORACLES_ROM_ORIGINAL;
+    snprintf(message, capacity, "%s %s set in Cartridge \xe2\x80\xba Editions%s", oracles_game_name(game_of(g)), edition == 1 ? "Japanese ROM" : "Polish ROM or patch",
+             us ? "" : ": it plays with the US ROM, still to choose");
+}
+
 static void file_chosen(void *opaque, int game, int kind, int result, const char *path, int copied, char *message, size_t capacity)
 {
     OraclesHomeGames *games = opaque;
     char error[ORACLES_HOME_TEXT_LENGTH];
-    const char *what = kind == ORACLES_DIALOG_PATCH ? "patch" : kind == ORACLES_DIALOG_EU_ROM ? "European ROM" : "ROM";
+    const char *what = kind == ORACLES_DIALOG_PATCH ? "patch" : kind == ORACLES_DIALOG_EU_ROM ? "European ROM" : kind == ORACLES_DIALOG_JP_ROM ? "Japanese ROM"
+                     : kind == ORACLES_DIALOG_PL_ROM ? "Polish ROM or patch" : "ROM";
     switch ((OraclesDialogResult)result) {
         case ORACLES_DIALOG_UNAVAILABLE:
             snprintf(message, capacity, "No file dialog on this system: drop the %s on this window", what);
@@ -787,8 +903,21 @@ static void file_chosen(void *opaque, int game, int kind, int result, const char
         case ORACLES_DIALOG_CANCELLED: return;
         case ORACLES_DIALOG_CHOSEN: break;
     }
-    /* An Oracle's European ROM is kept whatever it is, its page saying whether it is the game's: a copy made for it stays. */
+    /* An Oracle's European ROM is kept whatever it is, its page saying whether it is the game's: a copy made for it stays;
+     * so are its Japanese ROM and its Polish source. */
     const OraclesHomeFanGame *fan = oracles_home_fan_game(game);
+    if ((kind == ORACLES_DIALOG_JP_ROM || kind == ORACLES_DIALOG_PL_ROM) && !fan) {
+        offer_edition(games, rom_setting(game), kind == ORACLES_DIALOG_JP_ROM ? 1 : 2, path);
+        return;
+    }
+    /* Choose ROM… given a Japanese ROM, a Polish ROM or Kaxus's patch: never the game's ROM, filed in Cartridge ›
+     * Editions. */
+    OraclesSettingsGame edition_game;
+    const int edition = kind == ORACLES_DIALOG_ROM && !fan ? edition_of(games, path, game, &edition_game) : 0;
+    if (edition) {
+        file_edition(games, edition_game, edition, path, message, capacity);
+        return;
+    }
     if (kind == ORACLES_DIALOG_EU_ROM && !fan) {
         offer_eu(games, rom_setting(game), path);
         return;
@@ -828,10 +957,39 @@ static void open_mods(void *opaque, char *message, size_t capacity)
 #endif
 }
 
+/* The Oracle and the edition (1 Japanese, 2 Polish) a file is the source of, the Oracle whose page is open looked at
+ * first: a Japanese ROM, a Polish ROM, Kaxus's patch or its zip; 0 for none. */
+static int edition_of(OraclesHomeGames *games, const char *path, int page_game, OraclesSettingsGame *g)
+{
+    const OraclesSettingsGame first = page_game == ORACLES_HOME_GAME_SEASONS ? ORACLES_SETTINGS_SEASONS : ORACLES_SETTINGS_AGES;
+    for (int i = 0; i < ORACLES_SETTINGS_GAMES; i++) {
+        const OraclesSettingsGame oracle = i ? (OraclesSettingsGame)(1 - first) : first;
+        for (int edition = 1; edition <= 2; edition++) {
+            char reason[ORACLES_HOME_TEXT_LENGTH];
+            if (own_rom_state(games, path, game_of(oracle), edition == 1 ? ORACLES_LANGUAGE_JAPANESE : ORACLES_LANGUAGE_POLISH, reason, sizeof reason)
+                != ORACLES_ROM_ORIGINAL)
+                continue;
+            *g = oracle;
+            return edition;
+        }
+    }
+    return 0;
+}
+
 static int drop(void *opaque, const char *path, int page_game, char *message, size_t capacity)
 {
     OraclesHomeGames *games = opaque;
     char error[200];
+    /* A Japanese ROM, a Polish ROM or Kaxus's patch is the source of its Oracle's Japanese or Polish (Cartridge ›
+     * Editions), never a game's ROM: kept there, a toast naming it; the Oracle's page stays, else the home screen shows
+     * that Oracle. */
+    OraclesSettingsGame edition_game;
+    const int edition = edition_of(games, path, page_game, &edition_game);
+    if (edition) {
+        file_edition(games, edition_game, edition, path, message, capacity);
+        if (page_game >= 0) return -1;
+        return edition_game == ORACLES_SETTINGS_AGES ? ORACLES_HOME_AGES : ORACLES_HOME_SEASONS;
+    }
     /* A patch (zip.h: a .bps, or a zip of one) goes to the fan game whose page is open, which shows it, and so does a zip
      * whose directory cannot be read, there; elsewhere to the fan game whose image it makes of its Oracle's ROM, a toast
      * saying so, and the home screen then shows the list of fan games. */
@@ -854,14 +1012,14 @@ static int drop(void *opaque, const char *path, int page_game, char *message, si
         else snprintf(message, capacity, "Refused: %s.", error);
         return page_game >= 0 ? -1 : ORACLES_HOME_FAN;
     }
-    /* A European ROM is the European ROM of the Oracle whose page is open, which says whether it is its own; elsewhere,
-     * of the game it is the European ROM of, a toast saying so. */
+    /* A European ROM is the European ROM of the game it is of, as the Japanese and the Polish sources are: on its own
+     * Oracle's page the page says so, elsewhere a toast. */
     const OraclesGame eu_game = european_game(games, path);
     if (eu_game != ORACLES_GAME_UNKNOWN) {
-        const int oracle = page_game == ORACLES_HOME_GAME_AGES || page_game == ORACLES_HOME_GAME_SEASONS;
-        const OraclesSettingsGame g = oracle ? rom_setting(page_game) : eu_game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS;
+        const OraclesSettingsGame g = eu_game == ORACLES_GAME_AGES ? ORACLES_SETTINGS_AGES : ORACLES_SETTINGS_SEASONS;
         offer_eu(games, g, path);
-        if (oracle) return -1;
+        /* On its own Oracle's page the page says it; elsewhere a toast. */
+        if (page_game == (g == ORACLES_SETTINGS_AGES ? ORACLES_HOME_GAME_AGES : ORACLES_HOME_GAME_SEASONS)) return -1;
         snprintf(message, capacity, "%s European ROM set", oracles_game_name(game_of(g)));
         return page_game >= 0 ? -1 : g == ORACLES_SETTINGS_AGES ? ORACLES_HOME_AGES : ORACLES_HOME_SEASONS;
     }
@@ -922,7 +1080,9 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
      * Japanese and Polish, which settings.txt alone sets yet (language_<game>=ja, =pl), play with the Oracle's Japanese
      * ROM (jp_rom_<game>=), its Polish ROM or Kaxus's patch (pl_rom_<game>=), found as a session finds them; so do
      * --language ja and pl without --eu-rom, never with the European ROM.
-     * The command line's --language and --eu-rom win, for the session alone.  The pack is the game's own, beside
+     * The command line's --language and --eu-rom win, for the session alone; --eu-rom without --language serves
+     * Japanese or Polish only when it is that language's ROM or patch, by its SHA-1, a European ROM there set aside for
+     * jp_rom_<game>= or pl_rom_<game>= (oracles_home_own_language).  The pack is the game's own, beside
      * settings.txt, extracted at the first game in a language and read after; never --language-pack's, which names one
      * game's pack: the home screen starts several, and a session extracting another game's would write it over that
      * file.  A European ROM gone, or another file there since, plays in English, and the toast says why. */
@@ -940,29 +1100,7 @@ static int start(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, str
     if (fan) oracles_settings_fan_language_pack(games->settings, fan_index(fan), pack, sizeof pack);
     else oracles_settings_language_pack(games->settings, g, own, pack, sizeof pack);
     o.language_pack = pack[0] ? pack : NULL;
-    const int rom_given = o.eu_rom_path != NULL;
-    const char *const own_rom = own == ORACLES_SETTINGS_POLISH ? games->settings->pl_rom[g] : games->settings->jp_rom[g];
-    if (own && !o.eu_rom_path && own_rom[0]) o.eu_rom_path = own_rom;
-    if (own && (!o.language || !rom_given) && recognized) {
-        char reason[ORACLES_HOME_TEXT_LENGTH] = "";
-        const int polish = own == ORACLES_SETTINGS_POLISH;
-        const char *const edition = polish ? "Polish" : "Japanese", *const code = oracles_settings_language_names[own];
-        const char *const key = polish ? (game_of(g) == ORACLES_GAME_AGES ? "pl_rom_ages" : "pl_rom_seasons")
-                                       : (game_of(g) == ORACLES_GAME_AGES ? "jp_rom_ages" : "jp_rom_seasons");
-        const OraclesRomState found = o.eu_rom_path ? own_rom_state(games, o.eu_rom_path, game_of(g), polish ? ORACLES_LANGUAGE_POLISH : ORACLES_LANGUAGE_JAPANESE,
-                                                                    reason, sizeof reason)
-                                                    : ORACLES_ROM_NONE;
-        o.language = found == ORACLES_ROM_ORIGINAL ? code : NULL;
-        if (found == ORACLES_ROM_UNRECOGNISED)
-            snprintf(language_note, sizeof language_note, "%s is not the %s ROM of %s%s: the game played in English.", o.eu_rom_path, edition, oracle_name,
-                     polish ? " nor its patch" : "");
-        else if (found == ORACLES_ROM_NONE)
-            snprintf(language_note, sizeof language_note, "No %s ROM of %s (%s= in settings.txt): the game played in English.", edition, oracle_name, key);
-        else if (found != ORACLES_ROM_ORIGINAL)
-            snprintf(language_note, sizeof language_note, "The %s ROM of %s cannot be read (%s): the game played in English.", edition, oracle_name, reason);
-        if (language_note[0]) fprintf(stderr, "oracles: %s\n", language_note);
-        oracles_home_files_forget(&games->files);
-    }
+    oracles_home_own_language(games, g, own, recognized, &o, language_note, sizeof language_note);
     if (!own && !o.eu_rom_path && games->settings->eu_rom[g][0]) o.eu_rom_path = games->settings->eu_rom[g];
     if (!o.language && !own && language > 0 && language < ORACLES_SETTINGS_EUROPEAN_LANGUAGES && recognized) {
         if (oracle.eu == ORACLES_ROM_ORIGINAL) o.language = oracles_settings_language_names[language];
@@ -1093,6 +1231,7 @@ void oracles_home_games_host(OraclesHomeGames *games, OraclesHomeHost *host)
     host->choose_rom = choose_rom;
     host->choose_patch = choose_patch;
     host->choose_eu_rom = choose_eu_rom;
+    host->choose_edition = choose_edition;
     host->file_chosen = file_chosen;
     host->read_mods = read_mods;
     host->open_mods = open_mods;

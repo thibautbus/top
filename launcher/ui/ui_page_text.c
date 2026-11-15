@@ -54,6 +54,15 @@ const char *const *oracles_display_text_row_choices(unsigned row, unsigned *coun
            : row == ORACLES_DISPLAY_TEXT_SIZE ? oracles_display_text_size_choices : oracles_display_text_speed_choices;
 }
 
+const char oracles_display_japanese_reason[] = "Not available in Japanese.";
+
+int oracles_display_japanese(const OraclesHomeNav *nav)
+{
+    return !nav->in_game && oracles_page_language(nav, oracles_page_game_const(nav)) == ORACLES_PAGE_JAPANESE;
+}
+
+int oracles_display_text_shown(const OraclesHomeNav *nav) { return oracles_display_japanese(nav) ? 0 : nav->display.text; }
+
 int oracles_display_text_applies(const OraclesHomeNav *nav) { return nav->display.profile == ORACLES_PROFILE_ENHANCED; }
 
 int oracles_display_text_link_applies(const OraclesHomeNav *nav)
@@ -85,7 +94,7 @@ void oracles_display_text_summary(const OraclesHomeNav *nav, char *out, size_t c
     }
     const char *const box = box_refused(nav) ? NULL : oracles_display_text_box_choices[clamp(nav->display.text_box, 2)];
     const char *const size = size_refused(nav) ? NULL : oracles_display_text_size_choices[clamp(nav->display.text_size, ORACLES_DISPLAY_TEXT_SIZES)];
-    snprintf(out, capacity, "%s%s%s%s%s%s", oracles_display_text_choices[clamp(nav->display.text, 2)], box ? " \xc2\xb7 " : "", box ? box : "",
+    snprintf(out, capacity, "%s%s%s%s%s%s", oracles_display_text_choices[clamp(oracles_display_text_shown(nav), 2)], box ? " \xc2\xb7 " : "", box ? box : "",
              size ? " \xc2\xb7 " : "", size ? size : "", instant);
 }
 
@@ -167,7 +176,7 @@ const char *oracles_display_text_note(const OraclesHomeNav *nav, unsigned row)
     if (row == ORACLES_DISPLAY_TEXT_SIZE ? !oracles_display_hud_applies(nav) : !oracles_display_text_applies(nav)) return enhanced_reason;
     if ((row == ORACLES_DISPLAY_TEXT_BOX && box_refused(nav)) || (row == ORACLES_DISPLAY_TEXT_SIZE && size_refused(nav))) return oracles_display_fan_reason;
     if (oracles_display_pause_locked(nav, row)) return oracles_display_pause_reason;
-    if (row == ORACLES_DISPLAY_LETTERS) return "Savestates taken with Compact need Compact.";   /* as Continuous transitions says of its own */
+    if (row == ORACLES_DISPLAY_LETTERS) return oracles_display_japanese(nav) ? oracles_display_japanese_reason : "Savestates taken with Compact need Compact.";   /* as Continuous transitions says of its own */
     if (row == ORACLES_DISPLAY_TEXT_BOX) return "Savestates taken with Wide need Wide.";
     if (row != ORACLES_DISPLAY_TEXT_SIZE) return "";
     const preview_box p = preview_of(nav);
@@ -183,7 +192,7 @@ void oracles_display_text_preview(const OraclesHomeNav *nav, OraclesDisplayTextP
     out->box_w = p.box_w;
     out->box_h = BOX_H;
     out->text_w = p.text_w;
-    out->compact = p.enhanced && nav->display.text;
+    out->compact = p.enhanced && oracles_display_text_shown(nav);
     out->size = p.size;
     out->scale_num = p.num;
     out->scale_den = p.den;

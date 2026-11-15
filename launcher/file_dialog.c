@@ -84,7 +84,10 @@ static int local_copy(const char *uri, OraclesDialogKind kind, char *path, size_
     if (!base) return 0;
     char name[256], folder[1024];
     display_name(uri, name, sizeof name);
-    snprintf(folder, sizeof folder, "%s/%s", base, kind == ORACLES_DIALOG_PATCH ? "patches" : "roms");
+    /* A patch goes to patches, Kaxus's for Polish too (a .bps, or the zip he gives it in); a ROM to roms. */
+    const size_t named = strlen(name);
+    const int patch_named = named > 4 && (!SDL_strcasecmp(name + named - 4, ".bps") || !SDL_strcasecmp(name + named - 4, ".zip"));
+    snprintf(folder, sizeof folder, "%s/%s", base, kind == ORACLES_DIALOG_PATCH || (kind == ORACLES_DIALOG_PL_ROM && patch_named) ? "patches" : "roms");
     SDL_IOStream *in = SDL_IOFromFile(uri, "rb");
     if (!in) return 0;
     const Sint64 length = SDL_GetIOSize(in);
@@ -134,8 +137,10 @@ static const struct {
     { "Import save", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
     { "Export save", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
     { "Export save with mods", { { "Game Boy save", "sav;srm" }, { "All files", "*" } } },
+    { "Choose Japanese ROM", { { "Game Boy Color ROM", "gbc;gb;zip" }, { "All files", "*" } } },
+    { "Choose Polish ROM or patch", { { "ROM or BPS patch", "gbc;gb;bps;zip" }, { "All files", "*" } } },
 };
-_Static_assert(sizeof kinds / sizeof kinds[0] == ORACLES_DIALOG_EXPORT_MODS + 1, "a title and filters for each dialog's kind");
+_Static_assert(sizeof kinds / sizeof kinds[0] == ORACLES_DIALOG_PL_ROM + 1, "a title and filters for each dialog's kind");
 
 void oracles_choose_file(struct SDL_Window *window, OraclesDialogKind kind, const char *folder, int game)
 {

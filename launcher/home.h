@@ -43,6 +43,8 @@ typedef struct OraclesHomeHost {
     void (*choose_rom)(void *opaque, int game, struct SDL_Window *window);
     void (*choose_patch)(void *opaque, int game, struct SDL_Window *window);
     void (*choose_eu_rom)(void *opaque, int game, struct SDL_Window *window);   /* an Oracle's European ROM */
+    /* An Oracle's Japanese ROM (`edition` 1) or Polish source (2), Cartridge › Editions'. */
+    void (*choose_edition)(void *opaque, int game, int edition, struct SDL_Window *window);
     void (*file_chosen)(void *opaque, int game, int kind, int result, const char *path, int copied, char *message, size_t capacity);
     void (*open_folder)(void *opaque, int game, char *message, size_t capacity);
     /* Cartridge's Save row (ui_page_nav.h): the system's dialog for a save to import into game `game` (`kind`, an

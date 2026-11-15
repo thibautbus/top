@@ -155,7 +155,7 @@ static OraclesUiLine line_at(const OraclesUiTextStyle *style, const char *text, 
 {
     OraclesUiLine line;
     float baseline;
-    oracles_ui_line_box(style, line_height, &line.h, &baseline);
+    oracles_ui_text_line_box(style, text, line_height, &line.h, &baseline);
     line.w = text && text[0] ? oracles_ui_text_width(style, text) : 0.0f;
     line.x = x;
     line.y = y;

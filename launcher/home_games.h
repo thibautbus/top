@@ -57,6 +57,7 @@ typedef struct OraclesHomeGames {
      * pause, reads none again.  Each Oracle's ROM and European ROM; each fan game's patch, and the image it makes of its
      * Oracle's ROM (kept with that ROM, and forgotten with the patch). */
     OraclesHomeFound rom_found[ORACLES_SETTINGS_GAMES], eu_found[ORACLES_SETTINGS_GAMES];
+    OraclesHomeFound edition_found[2][ORACLES_SETTINGS_GAMES];   /* each Oracle's Japanese ROM, its Polish ROM or patch */
     OraclesHomeFound patch_found[ORACLES_HOME_FAN_GAMES], image_found[ORACLES_HOME_FAN_GAMES];
     OraclesHomeFound joined_found;   /* Seasons' European ROM, which Oracles Combined's image is kept with too */
     /* The files a refresh, and the choice or the drop before it, read: each once, forgotten at its end. */
@@ -91,6 +92,16 @@ typedef struct OraclesHomeGames {
 void oracles_home_games_host(OraclesHomeGames *games, OraclesHomeHost *host);
 /* The Save row's part of it (home_save.c): Open folder, Import save… and Export save…. */
 void oracles_home_save_host(OraclesHomeGames *games, OraclesHomeHost *host);
+/* The file Oracle `g` plays from in `own`, its Japanese or Polish settings index: `given` (the command line's --eu-rom)
+ * when it is that language's ROM of the game, or for Polish Kaxus's patch of it, by its SHA-1; else what settings.txt's
+ * jp_rom_<game>= or pl_rom_<game>= names; NULL without it. */
+const char *oracles_home_own_source(OraclesHomeGames *games, OraclesSettingsGame g, int own, const char *given);
+/* The session's language and its source for Oracle `g` in `own`, its Japanese or Polish settings index (0: none, left
+ * as it is), unless the command line gave both --language and --eu-rom: the file oracles_home_own_source says, a
+ * --eu-rom that is not it set aside on stderr; `o->language` that language when the file is its source and the ROM
+ * `recognized`, else NULL with what the player is told in `note` (empty otherwise). */
+void oracles_home_own_language(OraclesHomeGames *games, OraclesSettingsGame g, int own, int recognized, OraclesSessionOptions *o, char *note,
+                               size_t capacity);
 /* The save of game `game` (ORACLES_HOME_GAME_*), beside its ROM or a fan game's patch; empty without that file. */
 void oracles_home_games_save_path(const OraclesHomeGames *games, int game, char *path, size_t capacity);
 

@@ -76,6 +76,7 @@ def copyLicences = tasks.register("copyLicences", Copy) {
     from(new File(repository, "third_party/fonts/marcellus/OFL.txt")) { rename { "Marcellus-OFL.txt" } }
     from(new File(repository, "third_party/fonts/alegreya-sans/OFL.txt")) { rename { "AlegreyaSans-OFL.txt" } }
     from(new File(repository, "third_party/fonts/jetbrains-mono/OFL.txt")) { rename { "JetBrainsMono-OFL.txt" } }
+    from(new File(repository, "third_party/fonts/noto-sans-cjk/OFL.txt")) { rename { "NotoSansCJK-OFL.txt" } }
     from(new File(repository, "third_party/sameboy/LICENSE")) { rename { "SameBoy-LICENSE.txt" } }
     from(new File(repository, "launcher/shaders/xBR-LICENSE.txt"))
     from(new File(repository, "third_party/mgba/LICENSE")) { rename { "mGBA-LICENSE.txt" } }

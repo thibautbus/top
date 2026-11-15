@@ -72,7 +72,7 @@ static void frame_22h(void)
         layout_near("22h", name, "y", l.rows[r].y);
         layout_near("22h", name, "h", l.rows[r].h);
         if (!oracles_cheats_row_live(&nav, (unsigned)r)) continue;
-        /* The explanation with its note, beside the choices, on as many lines as the browser breaks it into. */
+        /* The explanation with its note, beside the choices, on as many lines as the browser breaks it into, one line centred in two. */
         snprintf(name, sizeof name, "%s explanation", ids[r]);
         layout_line("22h", name, &l.explanations[r].lines[0]);
         layout_near("22h", name, "lines", (float)l.explanations[r].count);

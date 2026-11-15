@@ -65,6 +65,7 @@ void oracles_home_init(OraclesHomeNav *nav)
     nav->display.view = 2;
     nav->display.window = 2;
     nav->display.filter_shown = -1;
+    nav->language_shown = -1;
     nav->update_check = 1;
     nav->display.screen_w = 1920;
     nav->display.screen_h = 1080;
@@ -435,7 +436,12 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
     switch (it->id) {
         case ORACLES_HOME_ITEM_START: return oracles_home_start_command(oracles_home_game(nav));
         case ORACLES_HOME_ITEM_EXIT: return ORACLES_HOME_EXIT;
-        case ORACLES_HOME_ITEM_GAME: nav->screen = ORACLES_SCREEN_GAME; nav->row = 0; nav->eu_action = 0; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_ITEM_GAME:
+            nav->screen = ORACLES_SCREEN_GAME;
+            nav->row = 0;
+            nav->eu_action = nav->editions = 0;
+            nav->language_shown = -1;
+            return ORACLES_HOME_STAY;
         case ORACLES_HOME_ITEM_DISPLAY:
             nav->screen = ORACLES_SCREEN_DISPLAY;
             nav->row = 0;
@@ -484,6 +490,8 @@ int oracles_home_command_needs_game(OraclesHomeCommand command)
         case ORACLES_HOME_CHOOSE_ROM:
         case ORACLES_HOME_CHOOSE_PATCH:
         case ORACLES_HOME_CHOOSE_EU_ROM:
+        case ORACLES_HOME_CHOOSE_JP_ROM:
+        case ORACLES_HOME_CHOOSE_PL_ROM:
         case ORACLES_HOME_OPEN_FOLDER:
         case ORACLES_HOME_OPEN_MODS:
         case ORACLES_HOME_MODS_LIMIT:

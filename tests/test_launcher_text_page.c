@@ -88,7 +88,12 @@ static void page_probes(const char *frame, const OraclesUiDisplayLayout *l, int 
     layout_near(frame, "rows", "y", l->rows[ORACLES_DISPLAY_LETTERS].y);
     layout_box(frame, "preview", &l->preview);
     layout_box(frame, "preview frame", &l->preview_frame);
-    layout_box(frame, "preview hud", &l->preview_hud);
+    if (l->preview_hud.h > 0.0f) layout_box(frame, "preview hud", &l->preview_hud);
+    else
+        for (int i = 0; i < 4; i++) {   /* Floating: the panels in the band's place */
+            snprintf(what, sizeof what, "preview panel %d", i);
+            layout_box(frame, what, &l->preview_panels[i]);
+        }
     layout_box(frame, "preview box", &l->preview_box);
     layout_near(frame, "preview label", "y", l->preview_label.y);
     layout_near(frame, "preview label", "h", l->preview_label.h);
@@ -106,6 +111,47 @@ static void page_probes(const char *frame, const OraclesUiDisplayLayout *l, int 
     }
     /* No diagram, no Advanced on the page. */
     CHECK(l->diagram.w == 0.0f && l->rows[ORACLES_DISPLAY_ADVANCED].w == 0.0f);
+}
+
+/* Turn 48: the page in Japanese, Text on Classic whatever is kept, Compact greyed with its reason in Text's note, left
+ * and right not changing it (48d, and at 640x480 its reason on the help's note line); and with HUD on Floating, the
+ * preview without the band, the panels over the world (48k, 48k 4:3). */
+static void japanese_and_floating(void)
+{
+    OraclesHomeNav nav;
+    OraclesUiDisplayTexts t;
+    OraclesUiDisplayLayout l;
+    for (int four_three = 0; four_three < 2; four_three++) {
+        const char *frame = four_three ? "48d 640x480" : "48d";
+        if (four_three) ages(&nav, ORACLES_UI_LAYOUT_4_3, 640, 480);
+        else ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080);
+        nav.games[0].editions[0].state = ORACLES_ROM_ORIGINAL;
+        nav.games[0].language = ORACLES_PAGE_JAPANESE;
+        text_page(&nav, ORACLES_DISPLAY_LETTERS);
+        CHECK(oracles_display_japanese(&nav) && oracles_display_text_shown(&nav) == 0 && nav.display.text == 1);
+        CHECK(oracles_display_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STAY && nav.display.text == 1);
+        CHECK(oracles_display_click(&nav, ORACLES_DISPLAY_LETTERS, 1) == ORACLES_HOME_STAY && nav.display.text == 1);
+        lay_out(&nav, &t, &l);
+        CHECK(!strcmp(t.text_notes[0], "Not available in Japanese.") && !t.preview.compact);
+        char summary[64];
+        oracles_display_text_summary(&nav, summary, sizeof summary);
+        CHECK(!strncmp(summary, "Classic", 7));
+        page_probes(frame, &l, four_three);
+        if (four_three) layout_text(frame, "help note text", &l.help_note);
+        else layout_text(frame, "text note", &l.text_notes[0]);
+        /* In another language, Compact again. */
+        nav.games[0].language = 0;
+        CHECK(!oracles_display_japanese(&nav) && oracles_display_text_shown(&nav) == 1);
+    }
+    for (int four_three = 0; four_three < 2; four_three++) {
+        if (four_three) ages(&nav, ORACLES_UI_LAYOUT_4_3, 1440, 1080);
+        else ages(&nav, ORACLES_UI_LAYOUT_16_9, 1920, 1080);
+        nav.display.hud = ORACLES_DISPLAY_HUD_FLOATING;
+        text_page(&nav, ORACLES_DISPLAY_TEXT_BOX);
+        lay_out(&nav, &t, &l);
+        CHECK(t.preview.floating && l.preview_hud.h == 0.0f);
+        page_probes(four_three ? "48k 4:3" : "48k", &l, four_three);
+    }
 }
 
 static void layouts(void)
@@ -634,6 +680,7 @@ int main(int argc, char **argv)
     if (argc < 2 || !layout_reference_load(argv[1])) { fprintf(stderr, "usage: oracles-test-launcher-text-page launcher_layout_reference.json\n"); return 2; }
     if (!oracles_ui_fonts_load()) { fprintf(stderr, "FAIL the embedded fonts do not load\n"); return 1; }
     layouts();
+    japanese_and_floating();
     link();
     keys();
     preview_sizes();

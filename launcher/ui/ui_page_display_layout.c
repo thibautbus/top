@@ -697,7 +697,8 @@ void oracles_ui_display_texts(const OraclesHomeNav *nav, OraclesUiDisplayTexts *
 
 float oracles_ui_display_follow(const OraclesHomeNav *nav)
 {
-    if (nav->layout != ORACLES_UI_LAYOUT_4_3) return 0.0f;
+    /* The keys may act before anything is drawn (a capture's inputs): the fonts the layout measures with, loaded here. */
+    if (nav->layout != ORACLES_UI_LAYOUT_4_3 || !oracles_ui_fonts_load()) return 0.0f;
     static OraclesUiDisplayTexts t;
     static OraclesUiDisplayLayout l;
     oracles_ui_display_texts(nav, &t);

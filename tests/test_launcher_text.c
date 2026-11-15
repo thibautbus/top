@@ -67,6 +67,32 @@ static void ligatures(void)
     if (a[0].glyph == b[0].glyph) { fprintf(stderr, "FAIL ft: the contextual f is not substituted\n"); layout_fail(); }
 }
 
+static void fallback(void)
+{
+    /* 日本語, which none of the three faces has, from the fallback's glyphs: each a full em wide, on the line of the face it
+     * is drawn in, its glyph past the face's own and not empty. */
+    const OraclesUiTextStyle serif = { ORACLES_UI_FONT_SERIF, 25.0f, 0.0f, 0 };
+    const OraclesUiTextStyle sans = { ORACLES_UI_FONT_SANS, 24.0f, 0.0f, 0 };
+    const char *japanese = "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e";
+    OraclesUiGlyph glyphs[4];
+    float width = 0.0f;
+    if (oracles_ui_text_glyphs(&serif, japanese, glyphs, 4, &width) != 3 || fabsf(width - 75.0f) > 0.01f) {
+        fprintf(stderr, "FAIL 日本語, Marcellus 25: %.3f wide, not three glyphs of an em\n", (double)width);
+        layout_fail();
+    }
+    for (int i = 0; i < 3; i++) {
+        int x0, y0, x1, y1;
+        oracles_ui_glyph_box(serif.font, glyphs[i].glyph, 25.0f, &x0, &y0, &x1, &y1);
+        if (glyphs[i].glyph < oracles_ui_font_glyph_count(serif.font) - 4 || x1 <= x0 || y1 <= y0 || fabsf(glyphs[i].x - 25.0f * (float)i) > 0.01f) {
+            fprintf(stderr, "FAIL 日本語, Marcellus 25: glyph %d not the fallback's\n", i);
+            layout_fail();
+        }
+    }
+    /* Mixed with the face's own letters: the face's advances, the fallback's em. */
+    const float latin = oracles_ui_text_width(&sans, "Polski ");
+    if (fabsf(oracles_ui_text_width(&sans, "Polski \xe6\x97\xa5") - latin - 24.0f) > 0.01f) { fprintf(stderr, "FAIL a fallback glyph after Latin letters\n"); layout_fail(); }
+}
+
 static void line_boxes(void)
 {
     /* Ascent, descent and line gap rounded each at the size; the leading's first half rounded down. */
@@ -107,6 +133,7 @@ int main(int argc, char **argv)
     if (!oracles_ui_fonts_load()) { fprintf(stderr, "FAIL the embedded fonts do not load\n"); return 1; }
     widths();
     ligatures();
+    fallback();
     line_boxes();
     curves();
     if (layout_failures()) { fprintf(stderr, "%d failure(s)\n", layout_failures()); return 1; }

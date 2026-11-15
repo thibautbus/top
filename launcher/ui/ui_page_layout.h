@@ -55,13 +55,20 @@ typedef struct OraclesUiGameTexts {
     const char *save_actions[ORACLES_PAGE_SAVE_ACTIONS];
     const char *save_note, *save_status, *save_status2;
     const char *rom_note, *rom_hotkeys_note, *play_note;
-    /* An Oracle with its original ROM (`european`): its European ROM's file, folder (empty without a file) and status,
-     * its buttons (Choose…, or Change… and Remove).  Its Language row, or a fan game's (`languages`): its explanation,
-     * and its note, empty in English (US). */
-    int european, languages;
-    char eu_file[ORACLES_HOME_TEXT_LENGTH], eu_folder[ORACLES_HOME_TEXT_LENGTH * 4], eu_status[ORACLES_HOME_TEXT_LENGTH];
-    unsigned eu_buttons;
-    const char *eu_button_labels[2];
+    /* An Oracle with its original ROM (`european`): on Cartridge's own rows the Editions link, its explanation (16:9) and
+     * its summary; Cartridge › Editions open (`editions`, `section` its name), its three rows alone: each edition's file,
+     * folder (empty without a file) and status, its buttons (Choose…, or Change… and Remove).  Its Language row, or a fan
+     * game's (`languages`): the languages shown, in order, `language_count` of them in lines of `language_columns` in 16:9
+     * (an Oracle's four, a fan game's three; 4:3 four); its explanation, and its note, empty in English (US). */
+    int european, editions, languages;
+    const char *section;
+    const char *editions_explanation;
+    char editions_summary[64];
+    char edition_file[ORACLES_PAGE_EDITIONS][ORACLES_HOME_TEXT_LENGTH], edition_folder[ORACLES_PAGE_EDITIONS][ORACLES_HOME_TEXT_LENGTH * 4];
+    char edition_status[ORACLES_PAGE_EDITIONS][ORACLES_HOME_TEXT_LENGTH];
+    unsigned edition_buttons[ORACLES_PAGE_EDITIONS];
+    const char *edition_button_labels[ORACLES_PAGE_EDITIONS][2];
+    int language_order[ORACLES_PAGE_LANGUAGES], language_count, language_columns;
     const char *language_explanation;
     char language_note[ORACLES_HOME_TEXT_LENGTH];
     /* A fan game made on the two European ROMs joined (`joined`): a row for each, Ages' and Seasons', in Base ROM's
@@ -77,7 +84,7 @@ typedef struct OraclesUiGameLayout {
     OraclesUiPageHead head;
     OraclesUiBox panel;
     OraclesUiLine label_rom, label_patch, label_save;   /* "ROM", or "Base ROM" and "Patch" */
-    OraclesUiLine label_eu, label_language;            /* "European ROM", "Language" */
+    OraclesUiLine label_editions, label_language;      /* "Editions", "Language" */
     /* Each row's highlight, the pointer's target; no Patch row but a fan game's, no European ROM row but an Oracle's
      * with its original ROM, no Language row but that Oracle's and a fan game's, no Seasons ROM row but Oracles Combined's.  They keep their heights whatever the
      * choices and the highlight. */
@@ -85,13 +92,21 @@ typedef struct OraclesUiGameLayout {
     OraclesUiLine rom_file, rom_folder, rom_button, rom_button_dot;
     OraclesUiWrapped rom_status, rom_note, rom_hotkeys_note;   /* broken into lines in the file's column */
     OraclesUiBox rom_dot;
-    /* European ROM: its file, folder (its line kept without a file), status, and its buttons with their dots, each
-     * button's box the pointer's target; Language: the six languages framed, each as wide, laid out whether they show
-     * or not, in 16:9 on two lines of three, its explanation and its note (its line kept in English (US)); in 4:3 its
-     * label over them, on one line, and one line under them, the note while there is one (the explanation's line then
-     * zero), else the explanation (the note's zero). */
-    OraclesUiLine eu_file, eu_folder, eu_status, eu_buttons[2], eu_button_dots[2];
-    OraclesUiBox eu_dot, eu_button_boxes[2];
+    /* Editions: its explanation (16:9), its summary and its arrow at the row's right (4:3: from the values' column).
+     * Cartridge › Editions: each edition's label (on two lines where it is long), file, folder (its line kept without a
+     * file), status, and its buttons with their dots, each button's box the pointer's target.  Language: the languages
+     * shown framed, each as wide, in their order (`languages` by a language's index, zero for those not shown), in 16:9
+     * on lines of language_columns, its explanation and its note (its line kept in English (US)) under them; in 4:3 its
+     * label at the left of four columns, and one line under them across the row, the note while there is one (the
+     * explanation's line then zero), else the explanation (the note's zero).  A line of frames is as tall as its tallest
+     * name (日本語 takes its font's height). */
+    OraclesUiWrapped editions_explanation;
+    OraclesUiLine editions_summary;
+    OraclesUiBox editions_arrow, editions_link;
+    OraclesUiWrapped edition_labels[ORACLES_PAGE_EDITIONS];
+    OraclesUiLine edition_files[ORACLES_PAGE_EDITIONS], edition_folders[ORACLES_PAGE_EDITIONS], edition_statuses[ORACLES_PAGE_EDITIONS];
+    OraclesUiLine edition_buttons[ORACLES_PAGE_EDITIONS][2], edition_button_dots[ORACLES_PAGE_EDITIONS][2];
+    OraclesUiBox edition_dots[ORACLES_PAGE_EDITIONS], edition_button_boxes[ORACLES_PAGE_EDITIONS][2];
     OraclesUiOptionLayout languages[ORACLES_PAGE_LANGUAGES];
     OraclesUiLine language_explanation, language_note;
     /* Patch: its status broken into lines beside its dot, the image's line, and the lines under it. */
@@ -149,6 +164,13 @@ extern const char oracles_ui_transitions_note[], oracles_ui_core_note[], oracles
 /* Under Display's title, opened from a game: that the dimmed rows change from the home screen, the rest at once. */
 extern const char oracles_ui_display_later[];
 extern const char *const oracles_ui_transition_choices[2];
+
+/* The tones of Cartridge's status lines, and its texts for the state of `nav`, `state` holding the state's line
+ * (ORACLES_HOME_STATE_LENGTH bytes). */
+typedef struct OraclesUiGameTones {
+    OraclesTone rom, patch, image, save, joined[2], editions[ORACLES_PAGE_EDITIONS];
+} OraclesUiGameTones;
+void oracles_ui_game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *state, OraclesUiGameTones *tones);
 
 /* The head of a page in `layout`, under the section's name ("Cartridge", "Display"); NULL `state`: none. */
 void oracles_ui_layout_page_head(OraclesUiLayout layout, const char *section, const char *over, const char *title, const char *state,

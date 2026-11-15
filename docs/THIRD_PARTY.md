@@ -40,6 +40,7 @@ The Oracles Project is under the MIT license. The launcher builds in, or ships b
 | [Alegreya Sans](https://github.com/huertatipografica/Alegreya-Sans) | SIL Open Font License 1.1 | [`third_party/fonts/alegreya-sans/OFL.txt`](../third_party/fonts/alegreya-sans/OFL.txt) |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | SIL Open Font License 1.1 | [`third_party/fonts/jetbrains-mono/OFL.txt`](../third_party/fonts/jetbrains-mono/OFL.txt) |
 | [Marcellus](https://fonts.google.com/specimen/Marcellus) | SIL Open Font License 1.1 | [`third_party/fonts/marcellus/OFL.txt`](../third_party/fonts/marcellus/OFL.txt) |
+| [Noto Sans CJK](https://github.com/notofonts/noto-cjk), the glyphs of 日本語 alone: the launcher's fallback for the characters the three faces above do not have | SIL Open Font License 1.1 | [`third_party/fonts/noto-sans-cjk/OFL.txt`](../third_party/fonts/noto-sans-cjk/OFL.txt) |
 
 ## Each platform's own
 

@@ -85,6 +85,8 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_CHOOSE_ROM,     /* the game's page: the system's file dialog for the page's game (a fan game's base ROM) */
     ORACLES_HOME_CHOOSE_PATCH,   /* a fan game's page: the system's file dialog for its patch */
     ORACLES_HOME_CHOOSE_EU_ROM,  /* an Oracle's page: the system's file dialog for its European ROM */
+    ORACLES_HOME_CHOOSE_JP_ROM,  /* Cartridge › Editions: the system's file dialog for its Japanese ROM */
+    ORACLES_HOME_CHOOSE_PL_ROM,  /* Cartridge › Editions: the same for its Polish ROM or Kaxus's patch */
     ORACLES_HOME_OPEN_FOLDER,    /* the game's page: the folder of its save in the system's file manager */
     ORACLES_HOME_OPEN_MODS,      /* Mods: the mods folder in the system's file manager, made if it is not there */
     ORACLES_HOME_START_AGES_MODS,      /* Mods' Play: the game with the mods active on its page, on its own save */
@@ -222,6 +224,17 @@ typedef struct OraclesHomeEuropean {
     char reason[ORACLES_HOME_TEXT_LENGTH];
 } OraclesHomeEuropean;
 
+/* One of an Oracle's other editions (Cartridge › Editions), its Japanese ROM or its Polish source, as the page keeps it:
+ * NONE, ORIGINAL when it is this game's (recognized), UNRECOGNISED for another file, REFUSED with the loader's reason
+ * when it cannot be read; the Polish source as `patch` names it, 0 a patched ROM, 1 Kaxus's patch (a .bps), 2 its zip. */
+typedef struct OraclesHomeEdition {
+    OraclesRomState state;
+    int patch;
+    char file[ORACLES_HOME_TEXT_LENGTH];
+    char folder[ORACLES_HOME_TEXT_LENGTH * 4];
+    char reason[ORACLES_HOME_TEXT_LENGTH];
+} OraclesHomeEdition;
+
 /* A game as the launcher found it, and the choice of its page. */
 typedef struct OraclesHomeGame {
     int usable;               /* a ROM is set, is there and is recognised as this game (a fan game: its image is built) */
@@ -253,12 +266,15 @@ typedef struct OraclesHomeGame {
     unsigned cheats;                             /* the game's cheats on, settings.txt's cheats_<game>= (ui_page_nav.h) */
     /* An Oracle's European ROM, which its English and official translations come from: NONE, ORIGINAL when it is this
      * game's (recognized), UNRECOGNISED for another file, REFUSED with the loader's reason when it cannot be read; a fan
-     * game's, its Oracle's (the state alone), NONE while the fan games' languages are off.  The language the game plays in, an index of oracles_page_language_names,
-     * English (US) (0) unless the ROM is recognized. */
+     * game's, its Oracle's (the state alone), NONE while the fan games' languages are off.  The language the game plays in, an index of oracles_page_language_names
+     * as settings.txt keeps it: it plays in English (US) (0) while its source is not recognized (oracles_page_language). */
     OraclesRomState eu;
     char eu_file[ORACLES_HOME_TEXT_LENGTH];
     char eu_folder[ORACLES_HOME_TEXT_LENGTH * 4];
     char eu_reason[ORACLES_HOME_TEXT_LENGTH];
+    /* An Oracle's Japanese ROM (`editions[0]`) and its Polish ROM or Kaxus's patch (`editions[1]`), which Japanese and Polish
+     * come from; NONE for a fan game. */
+    OraclesHomeEdition editions[2];
     int language;
     OraclesHomeFont font;                        /* its ROM's, a fan game's base ROM's */
     /* What its profile does not qualify (ORACLES_HOME_REFUSES_*), which its pages dim, say or leave out: the profile of
@@ -453,7 +469,9 @@ typedef struct OraclesHomeNav {
     OraclesHomeHero fan_pick;          /* ORACLES_HOME_HERO_FAN while the list shows */
     unsigned focus;
     unsigned row;                      /* the highlighted row of the game's page, or of Display */
-    int eu_action;                     /* Cartridge's European ROM row with a file: 0 Change, 1 Remove, as left and right set it */
+    int eu_action;                     /* Cartridge › Editions' row with a file: 0 Change, 1 Remove, as left and right set it */
+    int editions;                      /* Cartridge shows its Editions rows in place of its own (Cartridge › Editions) */
+    int language_shown;                /* Language's choice shown with the focus, one whose source is missing (not kept); -1: the one kept */
     int save_action;                   /* Cartridge's Save row: 0 Open folder (Android: Export save…), 1 Import save… */
     OraclesHomeSaveFlow save_flow;
     int advanced;                      /* Display shows its Advanced rows in place of its own */

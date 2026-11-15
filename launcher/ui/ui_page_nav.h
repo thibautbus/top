@@ -14,15 +14,22 @@
  * (Gifts of Kinomi, Moonrise Regalia, Temple of Seasons) has a Base ROM row in place of ROM,
  * its Oracle's ROM that the Oracle's page shows too, then a Patch row (Choose
  * patch), its folder and the image the two make.  An Oracle whose ROM is the
- * original has two more rows after Save: European ROM (Choose…, or Change…
- * and Remove, which left and right move between; a file that is not the
- * game's European ROM says so) and Language: English (US), the US ROM's own,
- * and the five languages of the European ROM written in their own, greyed
- * with English (US) alone shown until the European ROM is recognized; left,
- * right and OK change it.  Removing the European ROM, or choosing another
- * file, sets the language back to English (US).  With nav->fan_languages on, a
+ * original has two more rows after Save: Editions, the link to Cartridge ›
+ * Editions (OK and right open it, Back returns on it), its sources recognized
+ * summed up beside it ("European, Japanese", "None"), and Language: English
+ * (US), the US ROM's own, the five languages of the European ROM written in
+ * their own, then 日本語 and Polski, each always shown, greyed while its
+ * source is missing; left, right
+ * and OK change it, stopping on a greyed one, which is shown with its reason
+ * and not kept (as Filter's), with English (US) alone too.
+ * Cartridge › Editions has the sources' rows: European ROM, Japanese ROM and
+ * Polish ROM or patch (Kaxus's fan translation: the patched ROM, his .bps or
+ * its zip), each Choose…, or Change… and Remove, which left and right move
+ * between, a file that is not the game's saying so.  Removing a source, or
+ * choosing another file, sets a language it gave back to English (US).  With nav->fan_languages on, a
  * fan game has the Language row after Save, its languages those of the
- * European ROM of its Oracle's page, with its Oracle's original ROM.
+ * European ROM of its Oracle's page, shown with its Oracle's original ROM,
+ * greyed while that European ROM is missing.
  * Up and down move through the rows and wrap; OK
  * activates the row; Back returns to the home screen, on Cartridge.  The
  * item hotkeys' mode is set in Controls and kept in settings.txt.
@@ -69,7 +76,10 @@ typedef enum OraclesGameRow {
     ORACLES_ROW_JOINED,          /* Oracles Combined's: Seasons' European ROM */
     ORACLES_ROW_PATCH,
     ORACLES_ROW_SAVE,
-    ORACLES_ROW_EU_ROM,
+    ORACLES_ROW_EDITIONS,        /* the link to Cartridge › Editions */
+    ORACLES_ROW_EU_ROM,          /* Cartridge › Editions' rows */
+    ORACLES_ROW_JP_ROM,
+    ORACLES_ROW_PL_ROM,
     ORACLES_ROW_LANGUAGE,
     ORACLES_ROW_PLAY,
     ORACLES_GAME_ROWS
@@ -152,16 +162,61 @@ enum {
 void oracles_page_import_done(unsigned kept, int fan, int english, char *first, char *second);
 const char *oracles_page_play_note(const OraclesHomeNav *nav);          /* shown beside Play; empty mostly */
 
-/* The European ROM row: an Oracle's (not a fan game's), with its original US ROM.  The Language row: that Oracle's, or a
- * fan game's while nav->fan_languages is on. */
+/* The Editions row and Cartridge › Editions: an Oracle's (not a fan game's), with its original US ROM.  The Language row:
+ * that Oracle's, or a fan game's while nav->fan_languages is on. */
 int oracles_page_eu_shown(const OraclesHomeGame *game);
 int oracles_page_language_shown(const OraclesHomeNav *nav, const OraclesHomeGame *game);
 /* The languages, each named in its own language, by index (oracles_settings_language_names' order): English (US), the
- * US ROM's, then English (EU), French, German, Italian and Spanish, the European ROM's.  English (US) is always there;
- * the others with the European ROM recognized (a fan game's: its Oracle's, with its Oracle's original ROM). */
-#define ORACLES_PAGE_LANGUAGES 6
+ * US ROM's, then English (EU), French, German, Italian and Spanish, the European ROM's, then 日本語, the Japanese ROM's,
+ * and Polski, Kaxus's fan translation.  English (US) is always there; the European ones with the European ROM
+ * recognized (a fan game's: its Oracle's, with its Oracle's original ROM); 日本語 and Polski with their source
+ * recognized, never a fan game's. */
+#define ORACLES_PAGE_LANGUAGES 8
+#define ORACLES_PAGE_EUROPEAN_LANGUAGES 6
+#define ORACLES_PAGE_JAPANESE 6
+#define ORACLES_PAGE_POLISH 7
 extern const char *const oracles_page_language_names[ORACLES_PAGE_LANGUAGES];
 int oracles_page_language_available(const OraclesHomeGame *game, int language);
+/* How many languages the game has, their sources there. */
+int oracles_page_languages_available(const OraclesHomeGame *game);
+/* The languages the row lists: an Oracle's eight (`count` 8), a fan game's six. */
+int oracles_page_language_count(const OraclesHomeGame *game);
+/* The row shows the language: every one of an Oracle's, greyed while its source is missing; a fan game's English (US),
+ * and its European ones on its Oracle's original ROM, greyed while its Oracle's European ROM is missing.  The ones
+ * shown, in order, into `out`; returns how many. */
+int oracles_page_language_visible(const OraclesHomeGame *game, int language);
+int oracles_page_languages_shown(const OraclesHomeGame *game, int out[ORACLES_PAGE_LANGUAGES]);
+/* The row is dimmed while it lists English (US) alone; listing more, greyed ones included, it is not. */
+int oracles_page_language_dimmed(const OraclesHomeGame *game);
+/* The language the row shows with the focus: one whose source is missing while left and right stop on it
+ * (nav->language_shown), else the language the game plays in. */
+int oracles_page_language_focus(const OraclesHomeNav *nav, const OraclesHomeGame *game);
+/* Why a language is greyed, in place of the row's note: "Needs your European ROM: Cartridge › Editions." (a fan game's:
+ * "Needs your European ROM of Oracle of Ages: its Cartridge › Editions."), "Needs your Japanese ROM: Cartridge ›
+ * Editions.", "Needs your Polish ROM or patch: Cartridge › Editions."; NULL for one that is there. */
+const char *oracles_page_language_reason(const OraclesHomeGame *game, int language);
+/* Cartridge › Editions: its rows (European ROM, Japanese ROM, Polish ROM or patch, `edition` 0 to 2), the link's
+ * explanation ("Other editions of the game, and fan translations.", 16:9) and summary, the sources recognized in that
+ * order, "European, Japanese", or "None". */
+#define ORACLES_PAGE_EDITIONS 3
+extern const char *const oracles_page_edition_labels[ORACLES_PAGE_EDITIONS];   /* "European ROM", "Japanese ROM", "Polish ROM or patch" */
+extern const char oracles_page_editions_explanation[];
+void oracles_page_editions_summary(const OraclesHomeGame *game, char *out, size_t capacity);
+/* The section's name: "Cartridge", or "Cartridge › Editions" while its rows show. */
+const char *oracles_page_section(const OraclesHomeNav *nav);
+/* The row of an edition, ORACLES_ROW_EU_ROM to ORACLES_ROW_PL_ROM, and the edition of a row (-1 for none). */
+unsigned oracles_page_edition_row(int edition);
+int oracles_page_row_edition(unsigned row);
+/* An edition's state, file ("None" without one), status and buttons, as the European ROM's (oracles_page_eu_*): the
+ * Japanese ROM's "Recognized: Oracle of Ages (Japan)", "Optional: 日本語", "Not the Japanese ROM of Oracle of Ages"; the
+ * Polish source's "Kaxus's patch, applied to your US ROM" (its zip: "Kaxus's patch, from its zip, applied to your US
+ * ROM"), "Recognized: Kaxus's translation, already in this ROM", "Optional: Polski, Kaxus's fan translation", "Not
+ * Kaxus's Polish translation of Oracle of Ages". */
+OraclesRomState oracles_page_edition_state(const OraclesHomeGame *game, int edition);
+const char *oracles_page_edition_file(const OraclesHomeGame *game, int edition);
+const char *oracles_page_edition_folder(const OraclesHomeGame *game, int edition);
+void oracles_page_edition_status(const OraclesHomeNav *nav, int edition, char *out, size_t capacity, OraclesTone *tone);
+unsigned oracles_page_edition_buttons(const OraclesHomeGame *game, int edition, const char *labels[2]);
 /* The language the game plays in: its choice where the rows show and the European ROM is recognized, else 0. */
 int oracles_page_language(const OraclesHomeNav *nav, const OraclesHomeGame *game);
 /* The European ROM's file ("None" without one) and status: optional, recognized with its languages, not the game's
@@ -171,9 +226,11 @@ void oracles_page_eu_status(const OraclesHomeNav *nav, char *out, size_t capacit
 /* Its buttons: "Choose…" without a file, else "Change…" and "Remove". Returns their number. */
 unsigned oracles_page_eu_buttons(const OraclesHomeGame *game, const char *labels[2]);
 /* Language's explanation, and its note, empty in English (US): an Oracle's corrections, the share of a fan game's texts
- * the language translates. */
+ * the language translates; in Japanese the edition's text and font, in Polish the fan translation's credit ("Polish fan
+ * translation by Kaxus, from your Polish ROM or patch."), neither with a note.  With the focus on a language whose
+ * source is missing, its reason in the note's place (oracles_page_language_reason). */
 const char *oracles_page_language_explanation(const OraclesHomeGame *game);
-void oracles_page_language_note(const OraclesHomeGame *game, char *out, size_t capacity);
+void oracles_page_language_note(const OraclesHomeNav *nav, const OraclesHomeGame *game, char *out, size_t capacity);
 extern const char *const oracles_profile_names[ORACLES_PROFILES];
 /* The size written under a profile: Faithful's, or Enhanced's at the view chosen in the screen's shape. */
 void oracles_profile_size(const OraclesHomeNav *nav, int profile, char *out, size_t capacity);

@@ -57,7 +57,12 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define JOINED_LABEL_LINE 28.0f
 #define EU_BUTTONS_GAP 20.0f        /* between Change… and Remove */
 #define EU_FOLDER_LINE 26.0f        /* the European ROM's folder, its line kept without a file */
+#define EDITION_STATUS_LINE 30.0f   /* an edition's status, whatever its characters (日本語) */
 #define LANGUAGE_W 200.0f           /* each language's frame */
+#define EDITIONS_PAD_Y 14.0f        /* Editions' row, its link at the right */
+#define EDITIONS_ARROW_GAP 14.0f
+#define EDITIONS_ARROW_W 9.0f
+#define EDITIONS_ARROW_H 12.0f
 #define LANGUAGE_COLUMNS 3          /* the frames of a line */
 #define LANGUAGE_GAP 8.0f           /* between the frames, and under them */
 #define LANGUAGE_LINE 29.0f         /* Language's explanation and its note, each line kept */
@@ -136,6 +141,7 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define LABEL_W_4_3 200.0f                /* Mods' labels */
 #define CARTRIDGE_LABEL_W_4_3 310.0f      /* Cartridge's, as wide as European ROM */
 #define EU_FOLDER_LINE_4_3 34.0f
+#define EDITION_STATUS_LINE_4_3 36.0f
 #define EU_BUTTON_GAP_4_3 12.0f           /* between European ROM's buttons and their dots */
 #define LANGUAGE_W_4_3 205.0f
 #define LANGUAGE_MIN_H_4_3 90.0f
@@ -143,6 +149,13 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define LANGUAGE_PAD_BOTTOM_4_3 10.0f
 #define LANGUAGE_LINE_GAP_4_3 8.0f
 #define LANGUAGE_LINE_4_3 38.0f
+#define LANGUAGE_PAD_Y_4_3 7.0f            /* since turn 48: the label at the left of four columns, inner margins 7 */
+#define LANGUAGE_LABEL_PAD_4_3 26.0f
+#define LANGUAGE_HELP_GAP_4_3 6.0f
+#define EDITIONS_PAD_Y_4_3 5.0f            /* Editions' row, its link from the values' column */
+#define EDITIONS_ARROW_GAP_4_3 20.0f
+#define EDITIONS_ARROW_W_4_3 13.0f
+#define EDITIONS_ARROW_H_4_3 18.0f
 #define GRID_GAP_4_3 24.0f
 #define GRID_ROW_GAP_4_3 2.0f
 #define BUTTON_GAP_4_3 14.0f

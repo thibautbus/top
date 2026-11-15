@@ -59,43 +59,8 @@ static void moonrise(OraclesHomeNav *nav, int android, OraclesUiLayout layout)
 /* The page's texts, as ui_page.c makes them, and its layout. */
 static void lay_out(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *state, OraclesUiGameLayout *l)
 {
-    const OraclesHomeGame *g = oracles_page_game_const(nav);
-    OraclesTone tone;
-    memset(t, 0, sizeof *t);
-    oracles_home_state(nav, oracles_home_hero(nav), state);
-    t->over = oracles_home_over(oracles_home_hero(nav));
-    t->title = oracles_home_title(oracles_home_hero(nav));
-    t->state = state;
-    t->patched = g->fan != NULL;
-    if (g->fan) {
-        snprintf(t->patch_file, sizeof t->patch_file, "%s", oracles_page_patch_file(g));
-        snprintf(t->patch_folder, sizeof t->patch_folder, "%s", g->patch_folder);
-        oracles_page_patch_status(g, t->patch_status, sizeof t->patch_status, &tone);
-        oracles_page_image_status(g, t->image_status, sizeof t->image_status, &tone);
-    }
-    snprintf(t->rom_file, sizeof t->rom_file, "%s", oracles_page_rom_file(g));
-    snprintf(t->rom_folder, sizeof t->rom_folder, "%s", g->rom_folder);
-    oracles_page_rom_status(g, t->rom_status, sizeof t->rom_status, &tone);
-    snprintf(t->save_file, sizeof t->save_file, "%s", oracles_page_save_file(g));
-    oracles_page_save_line(g, t->save_line, sizeof t->save_line);
-    for (int i = 0; i < ORACLES_PAGE_SAVE_ACTIONS; i++) t->save_actions[i] = oracles_page_save_action(nav, i);
-    t->save_note = oracles_page_save_note(nav, nav->layout == ORACLES_UI_LAYOUT_4_3);
-    t->save_status = oracles_page_save_status(nav, &tone, &t->save_status2);
-    t->rom_note = oracles_page_rom_note(nav);
-    t->rom_hotkeys_note = oracles_page_rom_hotkeys_note(nav);
-    t->play_note = oracles_page_play_note(nav);
-    t->european = oracles_page_eu_shown(g);
-    if (t->european) {
-        snprintf(t->eu_file, sizeof t->eu_file, "%s", oracles_page_eu_file(g));
-        snprintf(t->eu_folder, sizeof t->eu_folder, "%s", g->eu_folder);
-        oracles_page_eu_status(nav, t->eu_status, sizeof t->eu_status, &tone);
-        t->eu_buttons = oracles_page_eu_buttons(g, t->eu_button_labels);
-    }
-    t->languages = oracles_page_language_shown(nav, g);
-    if (t->languages) {
-        t->language_explanation = oracles_page_language_explanation(g);
-        oracles_page_language_note(g, t->language_note, sizeof t->language_note);
-    }
+    OraclesUiGameTones tones;
+    oracles_ui_game_texts(nav, t, state, &tones);
     oracles_ui_layout_game(nav->layout, t, l);
 }
 
@@ -121,7 +86,7 @@ static void save_row(const char *frame, const char *first, const OraclesUiGameLa
     line(frame, "Import save dot", &l->save_button_dots[1], four_three);
     if (european) {
         layout_box(frame, "Import save box", &l->save_button_boxes[1]);
-        layout_box(frame, "EU row", &l->rows[ORACLES_ROW_EU_ROM]);
+        layout_box(frame, "editions row", &l->rows[ORACLES_ROW_EDITIONS]);
     }
     layout_box(frame, "Play row", &l->rows[ORACLES_ROW_PLAY]);
 }
@@ -176,7 +141,7 @@ static void layout_33abc(void)
     layout_box("33 android", "Save row", &l.rows[ORACLES_ROW_SAVE]);
     layout_text("33 android", "Export save", &l.save_buttons[0]);
     layout_text("33 android", "Import save", &l.save_buttons[1]);
-    layout_box("33 android", "EU row", &l.rows[ORACLES_ROW_EU_ROM]);
+    layout_box("33 android", "editions row", &l.rows[ORACLES_ROW_EDITIONS]);
     note("33 android", &l, 2);
 
     /* Import save… highlighted on Android: its own note, whole, the row as tall as with Export save…'s. */
@@ -204,9 +169,12 @@ static void layout_33ef(void)
         ages(&nav, 0, four_three ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9);
         nav.save_action = 1;
         nav.save_flow.state = ORACLES_SAVE_FLOW_DONE;
-        snprintf(nav.save_flow.text, sizeof nav.save_flow.text, "Save imported. The previous one is in Backups, beside the ROM.");
-        snprintf(nav.save_flow.text2, sizeof nav.save_flow.text2, "Its language was set to English for this game.");
+        snprintf(nav.save_flow.text, sizeof nav.save_flow.text, "Save imported. Its language was set to English for this game.");
+        /* The launcher's own lines (turn 48: the mockup takes them), its second naming where Backups is, each on one line. */
+        oracles_page_import_done(ORACLES_PAGE_KEPT_SAVE | ORACLES_PAGE_KEPT_STATE, 0, 1, nav.save_flow.text, nav.save_flow.text2);
+        CHECK(!strcmp(nav.save_flow.text2, "In Backups, beside the ROM: the old save and its savestate."));
         lay_out(&nav, &t, state, &l);
+        CHECK(l.save_status.count == 1 && l.save_status2.count == 1);
         save_row(frame, "Open folder", &l, four_three, 1);
         CHECK(l.save_note.count == 0 && (four_three ? l.save_line.h == 0.0f : l.save_line.h > 0.0f));
         line(frame, "status", &l.save_status.lines[0], four_three);
@@ -347,7 +315,7 @@ static void notes(void)
     nav.save_action = 1;
     CHECK(!strcmp(oracles_page_save_note(&nav, 0), "Import a save from another emulator or another device, also one made with the European ROM: its language is then set to English for this game."));
     CHECK(!strcmp(oracles_page_save_note(&nav, 1), "Import a save from elsewhere, the European ROM's too."));
-    nav.row = ORACLES_ROW_EU_ROM;
+    nav.row = ORACLES_ROW_EDITIONS;
     CHECK(!strncmp(oracles_page_save_note(&nav, 1), "Export a copy", 13));
     nav.row = ORACLES_ROW_SAVE;
     nav.android = 0;
@@ -460,6 +428,9 @@ static void hover(void)
     oracles_page_hover(&nav, ORACLES_ROW_SAVE, 0);
     CHECK(nav.save_action == 0 && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_OPEN_FOLDER);
     oracles_page_hover(&nav, ORACLES_ROW_EU_ROM, 1);
+    CHECK(nav.row == ORACLES_ROW_SAVE);   /* Cartridge › Editions' row, not on Cartridge's own */
+    nav.editions = 1;
+    oracles_page_hover(&nav, ORACLES_ROW_EU_ROM, 1);
     CHECK(nav.row == ORACLES_ROW_EU_ROM && nav.eu_action == 1 && nav.save_action == 0);
     oracles_page_hover(&nav, ORACLES_ROW_EU_ROM, 0);
     CHECK(nav.eu_action == 0 && oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_CHOOSE_EU_ROM);
@@ -467,6 +438,7 @@ static void hover(void)
     nav.eu_action = 0;
     oracles_page_hover(&nav, ORACLES_ROW_EU_ROM, 1);
     CHECK(nav.eu_action == 0);
+    nav.editions = 0;
     /* The confirmation open: its buttons alone, the rows under it left as they are. */
     nav.row = ORACLES_ROW_SAVE;
     nav.save_flow.state = ORACLES_SAVE_FLOW_CONFIRM;

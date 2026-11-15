@@ -273,13 +273,131 @@ int oracles_page_language_shown(const OraclesHomeNav *nav, const OraclesHomeGame
 }
 
 const char *const oracles_page_language_names[ORACLES_PAGE_LANGUAGES] = {
-    "English (US)", "English (EU)", "Fran\xc3\xa7" "ais", "Deutsch", "Italiano", "Espa\xc3\xb1" "ol"
+    "English (US)", "English (EU)", "Fran\xc3\xa7" "ais", "Deutsch", "Italiano", "Espa\xc3\xb1" "ol", "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e", "Polski"
 };
 
 int oracles_page_language_available(const OraclesHomeGame *game, int language)
 {
     const int european = game->eu == ORACLES_ROM_ORIGINAL && (!game->fan || game->rom == ORACLES_ROM_ORIGINAL);
-    return language == 0 || (language > 0 && language < ORACLES_PAGE_LANGUAGES && european);
+    if (language == ORACLES_PAGE_JAPANESE || language == ORACLES_PAGE_POLISH)
+        return !game->fan && game->editions[language - ORACLES_PAGE_JAPANESE].state == ORACLES_ROM_ORIGINAL;
+    return language == 0 || (language > 0 && language < ORACLES_PAGE_EUROPEAN_LANGUAGES && european);
+}
+
+int oracles_page_language_count(const OraclesHomeGame *game) { return game->fan ? ORACLES_PAGE_EUROPEAN_LANGUAGES : ORACLES_PAGE_LANGUAGES; }
+
+int oracles_page_language_visible(const OraclesHomeGame *game, int language)
+{
+    if (language < 0 || language >= oracles_page_language_count(game)) return 0;
+    /* A fan game's European languages on its Oracle's original ROM alone, where the European ROM is all they miss. */
+    return language == 0 || !game->fan || game->rom == ORACLES_ROM_ORIGINAL;
+}
+
+int oracles_page_languages_shown(const OraclesHomeGame *game, int out[ORACLES_PAGE_LANGUAGES])
+{
+    int count = 0;
+    for (int l = 0; l < ORACLES_PAGE_LANGUAGES; l++) if (oracles_page_language_visible(game, l)) out[count++] = l;
+    return count;
+}
+
+int oracles_page_language_dimmed(const OraclesHomeGame *game)
+{
+    int shown[ORACLES_PAGE_LANGUAGES];
+    return oracles_page_languages_shown(game, shown) < 2;
+}
+
+const char *oracles_page_language_reason(const OraclesHomeGame *game, int language)
+{
+    if (oracles_page_language_available(game, language)) return NULL;
+    if (language == ORACLES_PAGE_JAPANESE) return "Needs your Japanese ROM: Cartridge \xe2\x80\xba Editions.";
+    if (language == ORACLES_PAGE_POLISH) return "Needs your Polish ROM or patch: Cartridge \xe2\x80\xba Editions.";
+    if (language <= 0 || language >= ORACLES_PAGE_EUROPEAN_LANGUAGES) return NULL;
+    if (!game->fan) return "Needs your European ROM: Cartridge \xe2\x80\xba Editions.";
+    return game->fan->base == ORACLES_HOME_GAME_AGES ? "Needs your European ROM of Oracle of Ages: its Cartridge \xe2\x80\xba Editions."
+                                                     : "Needs your European ROM of Oracle of Seasons: its Cartridge \xe2\x80\xba Editions.";
+}
+
+int oracles_page_language_focus(const OraclesHomeNav *nav, const OraclesHomeGame *game)
+{
+    const int shown = nav->language_shown;
+    if (nav->row == ORACLES_ROW_LANGUAGE && !nav->editions && shown >= 0 && oracles_page_language_visible(game, shown)) return shown;
+    return oracles_page_language(nav, game);
+}
+
+const char *const oracles_page_edition_labels[ORACLES_PAGE_EDITIONS] = { "European ROM", "Japanese ROM", "Polish ROM or patch" };
+const char oracles_page_editions_explanation[] = "Other editions of the game, and fan translations.";
+
+OraclesRomState oracles_page_edition_state(const OraclesHomeGame *game, int edition)
+{
+    return edition == 0 ? game->eu : edition > 0 && edition < ORACLES_PAGE_EDITIONS ? game->editions[edition - 1].state : ORACLES_ROM_NONE;
+}
+
+void oracles_page_editions_summary(const OraclesHomeGame *game, char *out, size_t capacity)
+{
+    static const char *const names[ORACLES_PAGE_EDITIONS] = { "European", "Japanese", "Polish" };
+    size_t used = 0;
+    if (capacity) out[0] = 0;
+    for (int e = 0; e < ORACLES_PAGE_EDITIONS && used < capacity; e++)
+        if (oracles_page_edition_state(game, e) == ORACLES_ROM_ORIGINAL) used += (size_t)snprintf(out + used, capacity - used, "%s%s", used ? ", " : "", names[e]);
+    if (!used) snprintf(out, capacity, "None");
+}
+
+const char *oracles_page_section(const OraclesHomeNav *nav) { return nav->editions ? "Cartridge \xe2\x80\xba Editions" : "Cartridge"; }
+
+unsigned oracles_page_edition_row(int edition) { return ORACLES_ROW_EU_ROM + (unsigned)edition; }
+int oracles_page_row_edition(unsigned row) { return row >= ORACLES_ROW_EU_ROM && row <= ORACLES_ROW_PL_ROM ? (int)(row - ORACLES_ROW_EU_ROM) : -1; }
+
+const char *oracles_page_edition_file(const OraclesHomeGame *game, int edition)
+{
+    if (edition == 0) return oracles_page_eu_file(game);
+    const OraclesHomeEdition *e = &game->editions[edition - 1];
+    return e->state != ORACLES_ROM_NONE && e->file[0] ? e->file : "None";
+}
+
+const char *oracles_page_edition_folder(const OraclesHomeGame *game, int edition)
+{
+    if (edition == 0) return game->eu_folder;
+    return game->editions[edition - 1].state != ORACLES_ROM_NONE ? game->editions[edition - 1].folder : "";
+}
+
+void oracles_page_edition_status(const OraclesHomeNav *nav, int edition, char *out, size_t capacity, OraclesTone *tone)
+{
+    if (edition == 0) { oracles_page_eu_status(nav, out, capacity, tone); return; }
+    const OraclesHomeGame *game = oracles_page_game_const(nav);
+    const OraclesHomeEdition *e = &game->editions[edition - 1];
+    const char *name = page_game(nav) == ORACLES_HOME_GAME_SEASONS ? "Seasons" : "Ages";
+    const int polish = edition == 2;
+    switch (e->state) {
+        case ORACLES_ROM_ORIGINAL:
+            if (!polish) snprintf(out, capacity, "Recognized: Oracle of %s (Japan)", name);
+            else snprintf(out, capacity, "%s", e->patch == 2 ? "Kaxus's patch, from its zip, applied to your US ROM"
+                                             : e->patch ? "Kaxus's patch, applied to your US ROM" : "Recognized: Kaxus's translation, already in this ROM");
+            *tone = ORACLES_TONE_OK;
+            break;
+        case ORACLES_ROM_UNRECOGNISED:
+            if (polish) snprintf(out, capacity, "Not Kaxus's Polish translation of Oracle of %s", name);
+            else snprintf(out, capacity, "Not the Japanese ROM of Oracle of %s", name);
+            *tone = ORACLES_TONE_ERROR;
+            break;
+        case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", e->reason); *tone = ORACLES_TONE_ERROR; break;
+        default:
+            snprintf(out, capacity, "%s", polish ? "Optional: Polski, Kaxus's fan translation" : "Optional: \xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e");
+            *tone = ORACLES_TONE_NONE;
+            break;
+    }
+}
+
+unsigned oracles_page_edition_buttons(const OraclesHomeGame *game, int edition, const char *labels[2])
+{
+    if (edition == 0) return oracles_page_eu_buttons(game, labels);
+    if (game->editions[edition - 1].state == ORACLES_ROM_NONE) {
+        labels[0] = "Choose\xe2\x80\xa6";
+        labels[1] = NULL;
+        return 1;
+    }
+    labels[0] = "Change\xe2\x80\xa6";
+    labels[1] = "Remove";
+    return 2;
 }
 
 /* The language chosen, when the game has it; its row shown or not. */
@@ -298,7 +416,7 @@ void oracles_page_eu_status(const OraclesHomeNav *nav, char *out, size_t capacit
     switch (game->eu) {
         case ORACLES_ROM_ORIGINAL: {
             size_t used = (size_t)snprintf(out, capacity, "Recognized: ");
-            for (int l = 1; l < ORACLES_PAGE_LANGUAGES && used < capacity; l++)
+            for (int l = 1; l < ORACLES_PAGE_EUROPEAN_LANGUAGES && used < capacity; l++)
                 used += (size_t)snprintf(out + used, capacity - used, "%s%s", l > 1 ? ", " : "", oracles_page_language_names[l]);
             *tone = ORACLES_TONE_OK;
             break;
@@ -310,7 +428,7 @@ void oracles_page_eu_status(const OraclesHomeNav *nav, char *out, size_t capacit
         case ORACLES_ROM_REFUSED: snprintf(out, capacity, "Refused: %s.", game->eu_reason); *tone = ORACLES_TONE_ERROR; break;
         default: {
             size_t used = (size_t)snprintf(out, capacity, "Optional: ");
-            for (int l = 1; l < ORACLES_PAGE_LANGUAGES && used < capacity; l++)
+            for (int l = 1; l < ORACLES_PAGE_EUROPEAN_LANGUAGES && used < capacity; l++)
                 used += (size_t)snprintf(out + used, capacity - used, "%s%s", l > 1 ? ", " : "", oracles_page_language_names[l]);
             *tone = ORACLES_TONE_NONE;
             break;
@@ -341,12 +459,18 @@ const char *oracles_page_language_explanation(const OraclesHomeGame *game)
         return ages ? "Texts the fan game shares with Oracle of Ages, from its European edition."
                     : "Texts the fan game shares with Oracle of Seasons, from its European edition.";
     }
-    return chosen_language(game) ? "The European edition's text, from your European ROM." : "The original text of your US ROM.";
+    const int language = chosen_language(game);
+    if (language == ORACLES_PAGE_JAPANESE) return "The Japanese edition's text and font, from your Japanese ROM.";
+    if (language == ORACLES_PAGE_POLISH) return "Polish fan translation by Kaxus, from your Polish ROM or patch.";
+    return language ? "The European edition's text, from your European ROM." : "The original text of your US ROM.";
 }
 
-void oracles_page_language_note(const OraclesHomeGame *game, char *out, size_t capacity)
+void oracles_page_language_note(const OraclesHomeNav *nav, const OraclesHomeGame *game, char *out, size_t capacity)
 {
-    if (!chosen_language(game)) snprintf(out, capacity, "%s", "");
+    const char *reason = oracles_page_language_reason(game, oracles_page_language_focus(nav, game));
+    const int language = chosen_language(game);
+    if (reason) snprintf(out, capacity, "%s", reason);
+    else if (!language || language >= ORACLES_PAGE_EUROPEAN_LANGUAGES) snprintf(out, capacity, "%s", "");
     else if (!game->fan) snprintf(out, capacity, "Where the official translation was wrong, the port corrects it.");
     else
         snprintf(out, capacity, "Only the texts it shares with Oracle of %s are translated; its own dialogues stay in English.",
@@ -358,7 +482,10 @@ void oracles_page_language_note(const OraclesHomeGame *game, char *out, size_t c
 static int has_row(const OraclesHomeNav *nav, unsigned row)
 {
     const OraclesHomeGame *game = oracles_page_game_const(nav);
-    if (row == ORACLES_ROW_EU_ROM) return oracles_page_eu_shown(game);
+    /* Cartridge › Editions: its three rows alone. */
+    if (nav->editions && oracles_page_eu_shown(game)) return oracles_page_row_edition(row) >= 0;
+    if (oracles_page_row_edition(row) >= 0) return 0;
+    if (row == ORACLES_ROW_EDITIONS) return oracles_page_eu_shown(game);
     if (row == ORACLES_ROW_LANGUAGE) return oracles_page_language_shown(nav, game);
     if (row == ORACLES_ROW_JOINED) return game->fan && game->fan->joined;
     return row < ORACLES_GAME_ROWS && (row != ORACLES_ROW_PATCH || game->fan);
@@ -371,28 +498,58 @@ static OraclesHomeCommand remove_eu(OraclesHomeNav *nav)
     OraclesHomeGame *game = oracles_page_game(nav);
     game->eu = ORACLES_ROM_NONE;
     game->eu_file[0] = game->eu_folder[0] = game->eu_reason[0] = 0;
-    game->language = 0;
+    if (game->language < ORACLES_PAGE_EUROPEAN_LANGUAGES) game->language = 0;
     for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++)
         if (&nav->games[oracles_home_fan_games[f].base] == game) nav->games[oracles_home_fan_games[f].game].eu = ORACLES_ROM_NONE;
     nav->eu_action = 0;
     return ORACLES_HOME_STORE;
 }
 
-/* The language `language`, when the game has it. */
+/* The Japanese ROM or the Polish source gone: no file, and English (US) for a game in its language; the host forgets them
+ * (ORACLES_HOME_STORE). */
+static OraclesHomeCommand remove_edition(OraclesHomeNav *nav, int edition)
+{
+    OraclesHomeGame *game = oracles_page_game(nav);
+    OraclesHomeEdition *e = &game->editions[edition - 1];
+    e->state = ORACLES_ROM_NONE;
+    e->patch = 0;
+    e->file[0] = e->folder[0] = e->reason[0] = 0;
+    if (game->language == ORACLES_PAGE_JAPANESE + edition - 1) game->language = 0;
+    nav->eu_action = 0;
+    return ORACLES_HOME_STORE;
+}
+
+int oracles_page_languages_available(const OraclesHomeGame *game)
+{
+    int count = 0;
+    for (int l = 0; l < ORACLES_PAGE_LANGUAGES; l++) count += oracles_page_language_available(game, l);
+    return count;
+}
+
+/* The language `language`, when the game has it; one the row shows greyed is shown with its reason and not kept. */
 static OraclesHomeCommand language_set(OraclesHomeNav *nav, int language)
 {
     OraclesHomeGame *game = oracles_page_game(nav);
-    if (!oracles_page_language_available(game, language) || language == game->language) return ORACLES_HOME_STAY;
+    if (!oracles_page_language_available(game, language)) {
+        if (oracles_page_language_visible(game, language)) nav->language_shown = language;
+        return ORACLES_HOME_STAY;
+    }
+    nav->language_shown = -1;
+    if (language == chosen_language(game)) return ORACLES_HOME_STAY;
     game->language = language;
     return ORACLES_HOME_STORE;
 }
 
-/* The next language (`by` 1) or the one before (-1), wrapping; English alone changes nothing. */
+/* The next language the row shows (`by` 1) or the one before (-1), from the one it shows, wrapping, greyed ones
+ * included, with English alone too. */
 static OraclesHomeCommand language_step(OraclesHomeNav *nav, int by)
 {
     const OraclesHomeGame *game = oracles_page_game_const(nav);
-    if (!oracles_page_language_available(game, 1)) return ORACLES_HOME_STAY;
-    return language_set(nav, ((game->language + by) % ORACLES_PAGE_LANGUAGES + ORACLES_PAGE_LANGUAGES) % ORACLES_PAGE_LANGUAGES);
+    int shown[ORACLES_PAGE_LANGUAGES];
+    const int count = oracles_page_languages_shown(game, shown), now = oracles_page_language_focus(nav, game);
+    int i = 0;
+    while (i < count && shown[i] != now) i++;
+    return language_set(nav, shown[((i < count ? i : 0) + by + count) % count]);
 }
 
 static OraclesHomeCommand activate(OraclesHomeNav *nav, unsigned row)
@@ -407,7 +564,18 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, unsigned row)
         case ORACLES_ROW_SAVE:
             if (!oracles_page_save_action_live(nav, nav->save_action)) return ORACLES_HOME_STAY;
             return nav->save_action == 1 ? ORACLES_HOME_IMPORT_SAVE : nav->android ? ORACLES_HOME_EXPORT_SAVE : ORACLES_HOME_OPEN_FOLDER;
+        case ORACLES_ROW_EDITIONS:
+            nav->editions = 1;
+            nav->row = ORACLES_ROW_EU_ROM;
+            nav->eu_action = 0;
+            return ORACLES_HOME_STAY;
         case ORACLES_ROW_EU_ROM: return game->eu != ORACLES_ROM_NONE && nav->eu_action == 1 ? remove_eu(nav) : ORACLES_HOME_CHOOSE_EU_ROM;
+        case ORACLES_ROW_JP_ROM:
+        case ORACLES_ROW_PL_ROM: {
+            const int edition = oracles_page_row_edition(row);
+            if (game->editions[edition - 1].state != ORACLES_ROM_NONE && nav->eu_action == 1) return remove_edition(nav, edition);
+            return edition == 1 ? ORACLES_HOME_CHOOSE_JP_ROM : ORACLES_HOME_CHOOSE_PL_ROM;
+        }
         case ORACLES_ROW_LANGUAGE: return language_step(nav, 1);
         case ORACLES_ROW_PLAY: return game->usable ? oracles_home_start_command(page_game(nav)) : ORACLES_HOME_STAY;
         default: return ORACLES_HOME_STAY;
@@ -435,20 +603,37 @@ static OraclesHomeCommand confirm_act(OraclesHomeNav *nav, OraclesHomeAction act
 OraclesHomeCommand oracles_page_act(OraclesHomeNav *nav, OraclesHomeAction action)
 {
     if (nav->save_flow.state == ORACLES_SAVE_FLOW_CONFIRM) return confirm_act(nav, action);
-    const unsigned row = has_row(nav, nav->row) ? nav->row : 0;
+    if (nav->editions && !oracles_page_eu_shown(oracles_page_game_const(nav))) nav->editions = 0;   /* its game's ROM gone */
+    const unsigned row = has_row(nav, nav->row) ? nav->row : nav->editions ? ORACLES_ROW_EU_ROM : 0;
     switch (action) {
-        case ORACLES_HOME_UP: nav->row = step(nav, row, ORACLES_GAME_ROWS - 1u); return ORACLES_HOME_STAY;
-        case ORACLES_HOME_DOWN: nav->row = step(nav, row, 1u); return ORACLES_HOME_STAY;
+        case ORACLES_HOME_UP:
+        case ORACLES_HOME_DOWN:
+            nav->row = step(nav, row, action == ORACLES_HOME_UP ? ORACLES_GAME_ROWS - 1u : 1u);
+            nav->language_shown = -1;
+            if (oracles_page_row_edition(nav->row) >= 0) nav->eu_action = 0;
+            return ORACLES_HOME_STAY;
         case ORACLES_HOME_LEFT:
-        case ORACLES_HOME_RIGHT:
-            /* European ROM: between Change and Remove, once there is a file; Language: the language before or after. */
-            if (row == ORACLES_ROW_EU_ROM && oracles_page_game_const(nav)->eu != ORACLES_ROM_NONE) nav->eu_action = action == ORACLES_HOME_RIGHT;
+        case ORACLES_HOME_RIGHT: {
+            /* An edition's row: between Change and Remove, once there is a file; Language: the language before or after;
+             * Editions: right opens it, as OK does. */
+            const int edition = oracles_page_row_edition(row);
+            if (edition >= 0 && oracles_page_edition_state(oracles_page_game_const(nav), edition) != ORACLES_ROM_NONE) nav->eu_action = action == ORACLES_HOME_RIGHT;
             if (row == ORACLES_ROW_SAVE) nav->save_action = action == ORACLES_HOME_RIGHT;
             if (row == ORACLES_ROW_LANGUAGE) return language_step(nav, action == ORACLES_HOME_RIGHT ? 1 : -1);
+            if (row == ORACLES_ROW_EDITIONS && action == ORACLES_HOME_RIGHT) return activate(nav, row);
             return ORACLES_HOME_STAY;
+        }
         case ORACLES_HOME_OK: return activate(nav, row);
         case ORACLES_HOME_BACK:
+            /* From Cartridge › Editions back to Cartridge, on Editions. */
+            if (nav->editions) {
+                nav->editions = 0;
+                nav->row = ORACLES_ROW_EDITIONS;
+                nav->eu_action = 0;
+                return ORACLES_HOME_STAY;
+            }
             /* Back to the home screen, on the item that opened the page; the Save row's status goes with it. */
+            nav->language_shown = -1;
             nav->save_flow.state = ORACLES_SAVE_FLOW_NONE;
             nav->screen = ORACLES_SCREEN_HOME;
             nav->focus = 1;
@@ -459,7 +644,13 @@ OraclesHomeCommand oracles_page_act(OraclesHomeNav *nav, OraclesHomeAction actio
 
 void oracles_page_keep_row(OraclesHomeNav *nav)
 {
-    if (nav->screen != ORACLES_SCREEN_GAME || has_row(nav, nav->row)) return;
+    if (nav->screen != ORACLES_SCREEN_GAME) return;
+    /* Cartridge › Editions closes with its game's original ROM gone, on Save. */
+    if (nav->editions && !oracles_page_eu_shown(oracles_page_game_const(nav))) {
+        nav->editions = 0;
+        nav->row = ORACLES_ROW_SAVE;
+    }
+    if (has_row(nav, nav->row)) return;
     for (unsigned d = 1; d < ORACLES_GAME_ROWS; d++) {
         if (nav->row >= d && has_row(nav, nav->row - d)) { nav->row -= d; return; }
         if (nav->row + d < ORACLES_GAME_ROWS && has_row(nav, nav->row + d)) { nav->row += d; return; }
@@ -475,10 +666,12 @@ void oracles_page_hover(OraclesHomeNav *nav, unsigned row, int option)
         return;
     }
     if (!has_row(nav, row)) return;
+    if (row != nav->row) nav->language_shown = -1;
     nav->row = row;
-    /* An action of Save, or a button of European ROM with a file, under the pointer is the one OK takes. */
+    /* An action of Save, or a button of an edition with a file, under the pointer is the one OK takes. */
     if (row == ORACLES_ROW_SAVE && option >= 0) nav->save_action = option == 1;
-    if (row == ORACLES_ROW_EU_ROM && option >= 0 && oracles_page_game_const(nav)->eu != ORACLES_ROM_NONE) nav->eu_action = option == 1;
+    const int edition = oracles_page_row_edition(row);
+    if (edition >= 0 && option >= 0 && oracles_page_edition_state(oracles_page_game_const(nav), edition) != ORACLES_ROM_NONE) nav->eu_action = option == 1;
 }
 
 OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row, int option)
@@ -490,11 +683,13 @@ OraclesHomeCommand oracles_page_click(OraclesHomeNav *nav, unsigned row, int opt
         return confirm_act(nav, ORACLES_HOME_OK);
     }
     if (!has_row(nav, row)) return ORACLES_HOME_STAY;
+    if (row != nav->row) nav->language_shown = -1;
     nav->row = row;
-    /* A language clicked is chosen; the row itself only takes the highlight. */
+    /* A language clicked is chosen (a greyed one shown with its reason); the row itself only takes the highlight. */
     if (row == ORACLES_ROW_LANGUAGE) return option >= 0 ? language_set(nav, option) : ORACLES_HOME_STAY;
-    /* European ROM: Remove clicked removes the file; elsewhere on the row, the dialog opens. */
-    if (row == ORACLES_ROW_EU_ROM) nav->eu_action = option == 1 && oracles_page_game_const(nav)->eu != ORACLES_ROM_NONE;
+    /* An edition: Remove clicked removes the file; elsewhere on the row, the dialog opens. */
+    const int edition = oracles_page_row_edition(row);
+    if (edition >= 0) nav->eu_action = option == 1 && oracles_page_edition_state(oracles_page_game_const(nav), edition) != ORACLES_ROM_NONE;
     /* Save: an action clicked acts; elsewhere on the row, the one left and right chose. */
     if (row == ORACLES_ROW_SAVE && option >= 0) nav->save_action = option == 1;
     return activate(nav, row);

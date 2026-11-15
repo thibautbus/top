@@ -248,12 +248,14 @@ static void page_command(home_app *app, OraclesHomeCommand c)
         return;
     }
     if (host->file_chosen && ((c == ORACLES_HOME_CHOOSE_ROM && host->choose_rom) || (c == ORACLES_HOME_CHOOSE_PATCH && host->choose_patch)
-                              || (c == ORACLES_HOME_CHOOSE_EU_ROM && host->choose_eu_rom))) {
+                              || (c == ORACLES_HOME_CHOOSE_EU_ROM && host->choose_eu_rom)
+                              || ((c == ORACLES_HOME_CHOOSE_JP_ROM || c == ORACLES_HOME_CHOOSE_PL_ROM) && host->choose_edition))) {
         /* The dialog answers later (dialog_answered); until then the home screen draws but takes no input. */
         app->dialog_open = 1;
         if (c == ORACLES_HOME_CHOOSE_ROM) host->choose_rom(host->opaque, game, app->window);
         else if (c == ORACLES_HOME_CHOOSE_PATCH) host->choose_patch(host->opaque, game, app->window);
-        else host->choose_eu_rom(host->opaque, game, app->window);
+        else if (c == ORACLES_HOME_CHOOSE_EU_ROM) host->choose_eu_rom(host->opaque, game, app->window);
+        else host->choose_edition(host->opaque, game, c == ORACLES_HOME_CHOOSE_JP_ROM ? 1 : 2, app->window);
         return;
     }
     if ((c == ORACLES_HOME_IMPORT_SAVE || c == ORACLES_HOME_EXPORT_SAVE || c == ORACLES_HOME_EXPORT_MODS_SAVE) && host->choose_save && host->save_chosen) {

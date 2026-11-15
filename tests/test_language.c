@@ -1,10 +1,10 @@
 /* The languages without a ROM: the text decoder on constructed tables (the dictionary, its fragments nested, the
  * control codes kept, a list and a text across a bank, two bases and three), the comparison of the commands, the
- * tables of exceptions, the rules on constructed texts, the port's own texts and their syntax, the pack's file, the
- * composition into a synthetic US image (the index, the texts kept in English, the glyphs), the graphics' compression
- * both ways, their place in the pack and their headers repointed in a synthetic image, the guest's transaction on a
- * synthetic program that calls getTextAddress (a text laid out again for the compact text served and counted), and
- * English (US) composed laid out for the compact text. */
+ * tables of exceptions, the rules on constructed texts, the port's own texts and their syntax, the pack's file (the
+ * languages of its edition alone), the composition into a synthetic US image (the index, the texts kept in English, the
+ * glyphs), the graphics' compression both ways, their place in the pack and their headers repointed in a synthetic
+ * image, the guest's transaction on a synthetic program that calls getTextAddress (a text laid out again for the
+ * compact text served and counted), and English (US) composed laid out for the compact text. */
 #include "core.h"
 #include "guest.h"
 #include "language_internal.h"
@@ -575,6 +575,29 @@ static void test_pack_file(const char *dir)
     CHECK(again != NULL);
     oracles_language_pack_free(again);
     oracles_language_pack_free(pack);
+    /* A pack holds its edition's languages alone: read with its own, refused with a language of another edition (a
+     * European language in a Japanese or Polish pack, Japanese or Polish in a European one, one in the other's). */
+    static const struct { const char *source; OraclesLanguage own, foreign; } editions[] = {
+        { "596aa066ccee9fae71643576f7526baa22d26d6d", ORACLES_LANGUAGE_JAPANESE, ORACLES_LANGUAGE_FRENCH },
+        { "596aa066ccee9fae71643576f7526baa22d26d6d", ORACLES_LANGUAGE_JAPANESE, ORACLES_LANGUAGE_POLISH },
+        { "58da91d033bec3a11670dcfb07ac2d7c1b357aa6", ORACLES_LANGUAGE_POLISH, ORACLES_LANGUAGE_ENGLISH_EU },
+        { "58da91d033bec3a11670dcfb07ac2d7c1b357aa6", ORACLES_LANGUAGE_POLISH, ORACLES_LANGUAGE_JAPANESE },
+        { "9f2dff3c46406839f839a8d535353dfc1e3e8670", ORACLES_LANGUAGE_FRENCH, ORACLES_LANGUAGE_JAPANESE },
+        { "9f2dff3c46406839f839a8d535353dfc1e3e8670", ORACLES_LANGUAGE_FRENCH, ORACLES_LANGUAGE_POLISH },
+    };
+    static const uint8_t text[] = { 'a', 0 };
+    for (size_t i = 0; i < sizeof editions / sizeof editions[0]; i++) {
+        OraclesLanguagePack *edition = language_pack_new(ORACLES_GAME_AGES, editions[i].source, "880374fb978b18af4aa529e2e32f7ffb4d7dd2f4");
+        CHECK(edition && language_pack_add(edition, editions[i].own, 0x0000, ORACLES_LANGUAGE_SOURCE_SAME, text, sizeof text) == 0);
+        CHECK(edition && oracles_language_pack_write(edition, path, error, sizeof error) == 0);
+        OraclesLanguagePack *own = oracles_language_pack_read(path, error, sizeof error);
+        CHECK(own && oracles_language_pack_count(own, editions[i].own) == 1);
+        oracles_language_pack_free(own);
+        CHECK(edition && language_pack_add(edition, editions[i].foreign, 0x0000, ORACLES_LANGUAGE_SOURCE_SAME, text, sizeof text) == 0);
+        CHECK(edition && oracles_language_pack_write(edition, path, error, sizeof error) == 0);
+        CHECK(oracles_language_pack_read(path, error, sizeof error) == NULL && strstr(error, "damaged language pack"));
+        oracles_language_pack_free(edition);
+    }
     remove(path);
 }
 

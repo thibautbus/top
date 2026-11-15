@@ -80,7 +80,7 @@ OraclesUiLine pl_line_at(const OraclesUiTextStyle *style, const char *text, floa
 {
     OraclesUiLine line;
     float baseline;
-    oracles_ui_line_box(style, line_height, &line.h, &baseline);
+    oracles_ui_text_line_box(style, text, line_height, &line.h, &baseline);
     line.w = text && text[0] ? oracles_ui_text_width(style, text) : 0.0f;
     line.x = x;
     line.y = y;
@@ -297,29 +297,70 @@ void pl_button_boxes(unsigned count, const OraclesUiLine *texts, const OraclesUi
     for (unsigned i = 0; i < count; i++) boxes[i] = pl_box(texts[i].x, texts[i].y, dots[i].x + dots[i].w - texts[i].x, texts[i].h);
 }
 
-/* European ROM's buttons, EU_BUTTONS_GAP between them. */
-static float eu_buttons(const OraclesUiTextStyle *style, const OraclesUiGameTexts *t, float right, float gap, OraclesUiGameLayout *out)
+/* An edition's buttons, EU_BUTTONS_GAP between them. */
+static float edition_buttons(const OraclesUiTextStyle *style, const OraclesUiGameTexts *t, int e, float right, float gap, OraclesUiGameLayout *out)
 {
-    return pl_buttons(style, t->eu_button_labels, t->eu_buttons, right, gap, EU_BUTTONS_GAP, out->eu_buttons, out->eu_button_dots);
+    return pl_buttons(style, t->edition_button_labels[e], t->edition_buttons[e], right, gap, EU_BUTTONS_GAP, out->edition_buttons[e],
+                      out->edition_button_dots[e]);
 }
 
-/* The six languages framed from (x, y), `columns` a line, each `width` wide and as tall as its name and `frame` above
- * and under it, `min_h` at least, its name centred; the frames LANGUAGE_GAP apart.  Returns the height of their lines. */
-static float languages_at(const OraclesUiTextStyle *style, float x, float y, float width, int columns, float frame, float min_h,
-                          OraclesUiGameLayout *out)
+/* The languages shown framed from (x, y) in their order, `columns` a line, each `width` wide and as tall as its name and
+ * `frame` above and under it, `min_h` at least, a line as tall as its tallest, its name centred; the frames LANGUAGE_GAP
+ * apart.  Returns the height of their lines. */
+static float languages_at(const OraclesUiTextStyle *style, const OraclesUiGameTexts *t, float x, float y, float width, int columns, float frame,
+                          float min_h, int centred, OraclesUiGameLayout *out)
 {
-    float height = 0.0f;
-    for (int i = 0; i < ORACLES_PAGE_LANGUAGES; i++) {
-        OraclesUiOptionLayout *o = &out->languages[i];
-        memset(&o->size, 0, sizeof o->size);
-        o->name = pl_line_at(style, oracles_page_language_names[i], 0.0f, 0.0f, 0.0f);
-        height = o->name.h + 2.0f * frame < min_h ? min_h : o->name.h + 2.0f * frame;
-        const float top = y + (float)(i / columns) * (height + LANGUAGE_GAP);
-        o->box = pl_box(x + (float)(i % columns) * (width + LANGUAGE_GAP), top, width, height);
-        pl_move_line(&o->name, o->box.x + (width - o->name.w) * 0.5f, top + (height - o->name.h) * 0.5f);
+    float top = y, bottom = y;
+    for (int first = 0; first < t->language_count; first += columns) {
+        float height = min_h;
+        for (int i = first; i < t->language_count && i < first + columns; i++) {
+            OraclesUiOptionLayout *o = &out->languages[t->language_order[i]];
+            memset(&o->size, 0, sizeof o->size);
+            o->name = pl_line_at(style, oracles_page_language_names[t->language_order[i]], 0.0f, 0.0f, 0.0f);
+            height = pl_max_f(height, o->name.h + 2.0f * frame);
+        }
+        for (int i = first; i < t->language_count && i < first + columns; i++) {
+            OraclesUiOptionLayout *o = &out->languages[t->language_order[i]];
+            o->box = pl_box(x + (float)(i - first) * (width + LANGUAGE_GAP), top, width, height);
+            pl_move_line(&o->name, o->box.x + (width - o->name.w) * 0.5f, centred ? top + (height - o->name.h) * 0.5f : top + frame);
+        }
+        bottom = top + height;
+        top = bottom + LANGUAGE_GAP;
     }
-    const int lines = (ORACLES_PAGE_LANGUAGES + columns - 1) / columns;
-    return (float)lines * height + (float)(lines - 1) * LANGUAGE_GAP;
+    return bottom - y;
+}
+
+/* 16:9's row of edition `e` from `y`: its label (on lines of JOINED_LABEL_LINE where it does not hold on one), the file
+ * and the buttons centred on one line, the folder's line and the status under them, each on one line.  Returns the y
+ * after it. */
+static float edition_16_9(OraclesUiGameTexts *t, int e, float left, float value_x, float value_w, float y, OraclesUiGameLayout *out)
+{
+    const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w, inner_y = y + ROW_PAD_Y;
+    char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
+    OraclesUiWrapped *label = &out->edition_labels[e];
+    oracles_ui_wrap(&oracles_ui_row_label, oracles_page_edition_labels[e], CARTRIDGE_LABEL_W, left, y + LABEL_PAD_TOP, label);
+    if (label->count > 1) pl_wrap_lines(&oracles_ui_row_label, oracles_page_edition_labels[e], CARTRIDGE_LABEL_W, left, y + JOINED_LABEL_PAD_TOP, JOINED_LABEL_LINE, label);
+    const float room = inner_w - ROW_GAP - edition_buttons(&oracles_ui_row_button, t, e, right, BUTTON_GAP, out);
+    oracles_ui_fit(&oracles_ui_row_title, t->edition_file[e], room, fitted, sizeof t->edition_file[e]); memcpy(t->edition_file[e], fitted, sizeof t->edition_file[e]);
+    oracles_ui_fit(&oracles_ui_row_path, t->edition_folder[e], inner_w, fitted, sizeof t->edition_folder[e]); memcpy(t->edition_folder[e], fitted, sizeof t->edition_folder[e]);
+    oracles_ui_fit(&oracles_ui_row_status, t->edition_status[e], inner_w - DOT - DOT_GAP, fitted, sizeof t->edition_status[e]);
+    memcpy(t->edition_status[e], fitted, sizeof t->edition_status[e]);
+    out->edition_files[e] = pl_line_at(&oracles_ui_row_title, t->edition_file[e], inner_x, 0.0f, 0.0f);
+    const float first = pl_max_f(out->edition_files[e].h, out->edition_buttons[e][0].h);
+    pl_move_line(&out->edition_files[e], inner_x, inner_y + (first - out->edition_files[e].h) * 0.5f);
+    for (unsigned i = 0; i < t->edition_buttons[e]; i++) {
+        const float top = inner_y + (first - out->edition_buttons[e][i].h) * 0.5f;
+        pl_move_line(&out->edition_buttons[e][i], out->edition_buttons[e][i].x, top);
+        pl_move_line(&out->edition_button_dots[e][i], out->edition_button_dots[e][i].x, top);
+    }
+    pl_button_boxes(t->edition_buttons[e], out->edition_buttons[e], out->edition_button_dots[e], out->edition_button_boxes[e]);
+    out->edition_folders[e] = pl_line_at(&oracles_ui_row_path, t->edition_folder[e], inner_x, inner_y + first + FILE_GAP, EU_FOLDER_LINE);
+    const float status_y = out->edition_folders[e].y + out->edition_folders[e].h + FILE_GAP;
+    out->edition_statuses[e] = pl_line_at(&oracles_ui_row_status, t->edition_status[e], inner_x + DOT + DOT_GAP, status_y, EDITION_STATUS_LINE);
+    out->edition_dots[e] = pl_box(inner_x, status_y + (out->edition_statuses[e].h - DOT) * 0.5f, DOT, DOT);
+    const unsigned row = oracles_page_edition_row(e);
+    out->rows[row] = pl_box(value_x, y, value_w, out->edition_statuses[e].y + out->edition_statuses[e].h + ROW_PAD_Y - y);
+    return y + out->rows[row].h + GAME_ROW_GAP;
 }
 
 /* Oracles Combined's two rows from `y`, each its label on lines of JOINED_LABEL_LINE, the file on the first line with
@@ -363,12 +404,18 @@ static float joined_16_9(OraclesUiGameTexts *t, float left, float value_x, float
 
 static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
-    pl_page_head_16_9("Cartridge", t->over, t->title, t->state, &out->head);
+    pl_page_head_16_9(t->section ? t->section : "Cartridge", t->over, t->title, t->state, &out->head);
     if (t->credit) out->head.credit = pl_line_at(&oracles_ui_page_credit, t->credit, HEAD_X, out->head.state.y + out->head.state.h + CREDIT_MARGIN, 0.0f);
     const float left = PANEL_X + PANEL_BORDER + PANEL_PAD_X, width = PANEL_W - 2.0f * (PANEL_BORDER + PANEL_PAD_X);
     const float value_x = left + CARTRIDGE_LABEL_W + GRID_GAP, value_w = width - CARTRIDGE_LABEL_W - GRID_GAP;
     const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w;
     float y = PANEL_Y + PANEL_BORDER + PANEL_PAD_Y;
+    /* Cartridge › Editions: its three rows alone. */
+    if (t->editions) {
+        for (int e = 0; e < ORACLES_PAGE_EDITIONS; e++) y = edition_16_9(t, e, left, value_x, value_w, y, out);
+        out->panel = pl_box(PANEL_X, PANEL_Y, PANEL_W, y - GAME_ROW_GAP + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
+        return;
+    }
 
     float inner_y = y + ROW_PAD_Y, content;
     char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
@@ -446,35 +493,25 @@ static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
     y += out->rows[ORACLES_ROW_SAVE].h + GAME_ROW_GAP;
 
     if (t->european) {
-        /* European ROM: the file and the buttons centred on one line, the folder's line and the status under them, each
-         * on one line. */
-        out->label_eu = pl_line_at(&oracles_ui_row_label, "European ROM", left, y + LABEL_PAD_TOP, 0.0f);
-        inner_y = y + ROW_PAD_Y;
-        const float eu_room = inner_w - ROW_GAP - eu_buttons(&oracles_ui_row_button, t, right, BUTTON_GAP, out);
-        oracles_ui_fit(&oracles_ui_row_title, t->eu_file, eu_room, fitted, sizeof t->eu_file); memcpy(t->eu_file, fitted, sizeof t->eu_file);
-        oracles_ui_fit(&oracles_ui_row_path, t->eu_folder, inner_w, fitted, sizeof t->eu_folder); memcpy(t->eu_folder, fitted, sizeof t->eu_folder);
-        oracles_ui_fit(&oracles_ui_row_status, t->eu_status, inner_w - DOT - DOT_GAP, fitted, sizeof t->eu_status); memcpy(t->eu_status, fitted, sizeof t->eu_status);
-        out->eu_file = pl_line_at(&oracles_ui_row_title, t->eu_file, inner_x, 0.0f, 0.0f);
-        const float first = out->eu_file.h > out->eu_buttons[0].h ? out->eu_file.h : out->eu_buttons[0].h;
-        pl_move_line(&out->eu_file, inner_x, inner_y + (first - out->eu_file.h) * 0.5f);
-        for (unsigned i = 0; i < t->eu_buttons; i++) {
-            const float top = inner_y + (first - out->eu_buttons[i].h) * 0.5f;
-            pl_move_line(&out->eu_buttons[i], out->eu_buttons[i].x, top);
-            pl_move_line(&out->eu_button_dots[i], out->eu_button_dots[i].x, top);
-        }
-        pl_button_boxes(t->eu_buttons, out->eu_buttons, out->eu_button_dots, out->eu_button_boxes);
-        out->eu_folder = pl_line_at(&oracles_ui_row_path, t->eu_folder, inner_x, inner_y + first + FILE_GAP, EU_FOLDER_LINE);
-        const float eu_status_y = out->eu_folder.y + out->eu_folder.h + FILE_GAP;
-        out->eu_status = pl_line_at(&oracles_ui_row_status, t->eu_status, inner_x + DOT + DOT_GAP, eu_status_y, 0.0f);
-        out->eu_dot = pl_box(inner_x, eu_status_y + (out->eu_status.h - DOT) * 0.5f, DOT, DOT);
-        out->rows[ORACLES_ROW_EU_ROM] = pl_box(value_x, y, value_w, out->eu_status.y + out->eu_status.h + ROW_PAD_Y - y);
-        y += out->rows[ORACLES_ROW_EU_ROM].h + GAME_ROW_GAP;
+        /* Editions: its explanation, and at the right its summary and its arrow, both centred on the row. */
+        out->label_editions = pl_line_at(&oracles_ui_row_label, "Editions", left, y + LABEL_PAD_TOP, 0.0f);
+        inner_y = y + EDITIONS_PAD_Y;
+        out->editions_summary = pl_line_at(&oracles_ui_choice, t->editions_summary, 0.0f, 0.0f, 0.0f);
+        const float link_w = out->editions_summary.w + EDITIONS_ARROW_GAP + EDITIONS_ARROW_W;
+        oracles_ui_wrap(&oracles_ui_row_text, t->editions_explanation, inner_w - ROW_GAP - link_w, inner_x, inner_y, &out->editions_explanation);
+        const float inner_h = pl_max_f(pl_max_f(out->editions_explanation.h, out->editions_summary.h), EDITIONS_ARROW_H);
+        pl_move_wrapped(&out->editions_explanation, inner_y + (inner_h - out->editions_explanation.h) * 0.5f);
+        pl_move_line(&out->editions_summary, right - link_w, inner_y + (inner_h - out->editions_summary.h) * 0.5f);
+        out->editions_arrow = pl_box(right - EDITIONS_ARROW_W, inner_y + (inner_h - EDITIONS_ARROW_H) * 0.5f, EDITIONS_ARROW_W, EDITIONS_ARROW_H);
+        out->editions_link = pl_box(right - link_w, inner_y, link_w, inner_h);
+        out->rows[ORACLES_ROW_EDITIONS] = pl_box(value_x, y, value_w, inner_h + 2.0f * EDITIONS_PAD_Y);
+        y += out->rows[ORACLES_ROW_EDITIONS].h + GAME_ROW_GAP;
     }
     if (t->languages) {
-        /* Language: the six languages on two lines, then its explanation and its note. */
+        /* Language: the languages shown in lines, then its explanation and its note. */
         out->label_language = pl_line_at(&oracles_ui_row_label, "Language", left, y + LABEL_PAD_TOP, 0.0f);
         inner_y = y + ROW_PAD_Y;
-        const float frames = languages_at(&oracles_ui_choice, inner_x, inner_y, LANGUAGE_W, LANGUAGE_COLUMNS, BORDER + CHOICE_PAD_Y, 0.0f, out);
+        const float frames = languages_at(&oracles_ui_choice, t, inner_x, inner_y, LANGUAGE_W, t->language_columns, BORDER + CHOICE_PAD_Y, 0.0f, 0, out);
         out->language_explanation = pl_line_at(&oracles_ui_row_text, t->language_explanation, inner_x, inner_y + frames + LANGUAGE_GAP, LANGUAGE_LINE);
         out->language_note = pl_line_at(&oracles_ui_row_note, t->language_note, inner_x, out->language_explanation.y + LANGUAGE_LINE + LANGUAGE_GAP, LANGUAGE_LINE);
         out->rows[ORACLES_ROW_LANGUAGE] = pl_box(value_x, y, value_w, out->language_note.y + LANGUAGE_LINE + ROW_PAD_Y - y);
@@ -690,15 +727,60 @@ static float joined_4_3(OraclesUiGameTexts *t, float y, OraclesUiGameLayout *out
     return y;
 }
 
+/* 4:3's row of edition `e` from `y`: the European ROM's label, file and buttons on one baseline; the others' labels on
+ * lines of JOINED_LABEL_LINE_4_3 from the row's top, their file and buttons on one baseline; the folder's line and the
+ * status under them, each on one line.  Returns the y after it. */
+static float edition_4_3(OraclesUiGameTexts *t, int e, float y, OraclesUiGameLayout *out)
+{
+    char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
+    const float span = RIGHT_4_3 - GAME_VALUE_X_4_3;
+    const float room = pl_file_room_4_3(GAME_VALUE_X_4_3, edition_buttons(&oracles_ui_row_button_4_3, t, e, RIGHT_4_3, EU_BUTTON_GAP_4_3, out));
+    FIT(&oracles_ui_row_title_4_3, t->edition_file[e], room);
+    FIT(&oracles_ui_row_path_4_3, t->edition_folder[e], span);
+    FIT(&oracles_ui_row_text_4_3, t->edition_status[e], span - DOT_4_3 - DOT_GAP_4_3);
+    out->edition_files[e] = pl_line_at(&oracles_ui_row_title_4_3, t->edition_file[e], GAME_VALUE_X_4_3, 0.0f, 0.0f);
+    OraclesUiLine label = pl_line_at(&oracles_ui_row_label_4_3, oracles_page_edition_labels[e], LEFT_4_3, 0.0f, 0.0f);
+    OraclesUiLine *const lines[6] = { &out->edition_files[e], &out->edition_buttons[e][0], &out->edition_button_dots[e][0], &out->edition_buttons[e][1],
+                                      &out->edition_button_dots[e][1], &label };
+    float bottom;
+    if (e == 0) {
+        OraclesUiLine *const with_label[7] = { &label, lines[0], lines[1], lines[2], lines[3], lines[4] };
+        bottom = pl_baseline_row(with_label, 2u + 2u * t->edition_buttons[e], y + ROW_PAD_Y_4_3);
+        out->edition_labels[e].count = 1;
+        snprintf(out->edition_labels[e].text[0], sizeof out->edition_labels[e].text[0], "%s", oracles_page_edition_labels[e]);
+        out->edition_labels[e].lines[0] = label;
+        out->edition_labels[e].w = label.w;
+        out->edition_labels[e].h = label.h;
+    } else {
+        pl_wrap_lines(&oracles_ui_row_label_4_3, oracles_page_edition_labels[e], CARTRIDGE_LABEL_W_4_3, LEFT_4_3, y + ROW_PAD_Y_4_3, JOINED_LABEL_LINE_4_3,
+                      &out->edition_labels[e]);
+        bottom = pl_baseline_row(lines, 1u + 2u * t->edition_buttons[e], y + ROW_PAD_Y_4_3);
+    }
+    pl_button_boxes(t->edition_buttons[e], out->edition_buttons[e], out->edition_button_dots[e], out->edition_button_boxes[e]);
+    out->edition_folders[e] = pl_line_at(&oracles_ui_row_path_4_3, t->edition_folder[e], GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, EU_FOLDER_LINE_4_3);
+    const float status_y = out->edition_folders[e].y + out->edition_folders[e].h + GRID_ROW_GAP_4_3;
+    out->edition_statuses[e] = pl_line_at(&oracles_ui_row_text_4_3, t->edition_status[e], GAME_VALUE_X_4_3 + DOT_4_3 + DOT_GAP_4_3, status_y, EDITION_STATUS_LINE_4_3);
+    out->edition_dots[e] = pl_box(GAME_VALUE_X_4_3, status_y + (out->edition_statuses[e].h - DOT_4_3) * 0.5f, DOT_4_3, DOT_4_3);
+    bottom = status_y + out->edition_statuses[e].h;
+    const unsigned row = oracles_page_edition_row(e);
+    out->rows[row] = pl_row_4_3(y, bottom);
+    return y + out->rows[row].h + ROW_GAP_4_3;
+}
+
 static void game_4_3(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
-    pl_page_head_4_3("Cartridge", t->over, t->title, t->state, &out->head);
+    pl_page_head_4_3(t->section ? t->section : "Cartridge", t->over, t->title, t->state, &out->head);
     if (t->credit)
         out->head.credit = pl_line_at(&oracles_ui_page_credit_4_3, t->credit, HEAD_X_4_3, out->head.state.y + out->head.state.h + HEAD_GAP_4_3,
                                       CREDIT_LINE_4_3);
     char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
     const float span = RIGHT_4_3 - GAME_VALUE_X_4_3;   /* a line under the first, across the file's column and the button's */
     float y = ROWS_Y_4_3;
+    /* Cartridge › Editions: its three rows alone. */
+    if (t->editions) {
+        for (int e = 0; e < ORACLES_PAGE_EDITIONS; e++) y = edition_4_3(t, e, y, out);
+        return;
+    }
 
     float room, bottom;
     if (t->joined) {
@@ -759,41 +841,104 @@ static void game_4_3(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
     y += out->rows[ORACLES_ROW_SAVE].h + ROW_GAP_4_3;
 
     if (t->european) {
-        /* European ROM: the label, the file and the buttons on one baseline, the folder's line and the status under
-         * them, each on one line. */
-        room = pl_file_room_4_3(GAME_VALUE_X_4_3, eu_buttons(&oracles_ui_row_button_4_3, t, RIGHT_4_3, EU_BUTTON_GAP_4_3, out));
-        FIT(&oracles_ui_row_title_4_3, t->eu_file, room);
-        FIT(&oracles_ui_row_path_4_3, t->eu_folder, span);
-        FIT(&oracles_ui_row_text_4_3, t->eu_status, span - DOT_4_3 - DOT_GAP_4_3);
-        out->label_eu = pl_line_at(&oracles_ui_row_label_4_3, "European ROM", LEFT_4_3, 0.0f, 0.0f);
-        out->eu_file = pl_line_at(&oracles_ui_row_title_4_3, t->eu_file, GAME_VALUE_X_4_3, 0.0f, 0.0f);
-        OraclesUiLine *const lines[6] = { &out->label_eu, &out->eu_file, &out->eu_buttons[0], &out->eu_button_dots[0], &out->eu_buttons[1],
-                                          &out->eu_button_dots[1] };
-        bottom = pl_baseline_row(lines, 2u + 2u * t->eu_buttons, y + ROW_PAD_Y_4_3);
-        pl_button_boxes(t->eu_buttons, out->eu_buttons, out->eu_button_dots, out->eu_button_boxes);
-        out->eu_folder = pl_line_at(&oracles_ui_row_path_4_3, t->eu_folder, GAME_VALUE_X_4_3, bottom + GRID_ROW_GAP_4_3, EU_FOLDER_LINE_4_3);
-        bottom = status_4_3(t->eu_status, out->eu_folder.y + out->eu_folder.h + GRID_ROW_GAP_4_3, &out->eu_status, &out->eu_dot);
-        out->rows[ORACLES_ROW_EU_ROM] = pl_row_4_3(y, bottom);
-        y += out->rows[ORACLES_ROW_EU_ROM].h + ROW_GAP_4_3;
+        /* Editions: its label, then its summary and its arrow from the values' column, both centred on the row. */
+        out->editions_summary = pl_line_at(&oracles_ui_row_button_4_3, t->editions_summary, 0.0f, 0.0f, 0.0f);
+        const float content_h = pl_max_f(out->editions_summary.h, EDITIONS_ARROW_H_4_3);
+        out->label_editions = pl_line_at(&oracles_ui_row_label_4_3, "Editions", LEFT_4_3, 0.0f, 0.0f);
+        const float track = pl_max_f(ROW_MIN_H_4_3 - 2.0f * EDITIONS_PAD_Y_4_3, pl_max_f(out->label_editions.h, content_h));
+        out->rows[ORACLES_ROW_EDITIONS] = pl_box(ROWS_X_4_3, y, ROWS_W_4_3, track + 2.0f * EDITIONS_PAD_Y_4_3);
+        const float middle = y + EDITIONS_PAD_Y_4_3 + track * 0.5f;
+        pl_move_line(&out->label_editions, LEFT_4_3, middle - out->label_editions.h * 0.5f);
+        pl_move_line(&out->editions_summary, GAME_VALUE_X_4_3, middle - out->editions_summary.h * 0.5f);
+        out->editions_arrow = pl_box(GAME_VALUE_X_4_3 + out->editions_summary.w + EDITIONS_ARROW_GAP_4_3, middle - EDITIONS_ARROW_H_4_3 * 0.5f,
+                                     EDITIONS_ARROW_W_4_3, EDITIONS_ARROW_H_4_3);
+        out->editions_link = pl_box(GAME_VALUE_X_4_3, middle - content_h * 0.5f, out->editions_summary.w + EDITIONS_ARROW_GAP_4_3 + EDITIONS_ARROW_W_4_3,
+                                    content_h);
+        y += out->rows[ORACLES_ROW_EDITIONS].h + ROW_GAP_4_3;
     }
     if (t->languages) {
-        /* Language: its label, the six languages on one line under it, then one line across the row: the note while
+        /* Language: its label at the left of four columns of languages, then one line across the row: the note while
          * there is one, else the explanation. */
-        out->label_language = pl_line_at(&oracles_ui_row_label_4_3, "Language", LEFT_4_3, y + LANGUAGE_PAD_TOP_4_3, LANGUAGE_LINE_4_3);
-        const float top = out->label_language.y + LANGUAGE_LINE_4_3 + LANGUAGE_LINE_GAP_4_3;
-        const float frames = languages_at(&oracles_ui_language_4_3, LEFT_4_3, top, LANGUAGE_W_4_3, ORACLES_PAGE_LANGUAGES, OPTION_BORDER_4_3,
-                                          LANGUAGE_MIN_H_4_3, out);
-        const float line_y = top + frames + LANGUAGE_LINE_GAP_4_3;
+        out->label_language = pl_line_at(&oracles_ui_row_label_4_3, "Language", LEFT_4_3, y + LANGUAGE_PAD_Y_4_3 + LANGUAGE_LABEL_PAD_4_3,
+                                         LANGUAGE_LINE_4_3);
+        const float top = y + LANGUAGE_PAD_Y_4_3, columns = 4.0f;
+        const float width = (RIGHT_4_3 - GAME_VALUE_X_4_3 - (columns - 1.0f) * LANGUAGE_GAP) / columns;
+        const float frames = languages_at(&oracles_ui_language_4_3, t, GAME_VALUE_X_4_3, top, width, 4, OPTION_BORDER_4_3, LANGUAGE_MIN_H_4_3, 1, out);
+        const float line_y = top + frames + LANGUAGE_HELP_GAP_4_3;
         OraclesUiLine *const help = t->language_note[0] ? &out->language_note : &out->language_explanation;
         if (t->language_note[0]) {
             t->language_explanation = "";
             out->language_note = pl_line_at(&oracles_ui_row_note_4_3, t->language_note, LEFT_4_3, line_y, LANGUAGE_LINE_4_3);
         } else out->language_explanation = pl_line_at(&oracles_ui_row_text_4_3, t->language_explanation, LEFT_4_3, line_y, LANGUAGE_LINE_4_3);
-        out->rows[ORACLES_ROW_LANGUAGE] = pl_box(ROWS_X_4_3, y, ROWS_W_4_3, help->y + LANGUAGE_LINE_4_3 + LANGUAGE_PAD_BOTTOM_4_3 - y);
+        out->rows[ORACLES_ROW_LANGUAGE] = pl_box(ROWS_X_4_3, y, ROWS_W_4_3, help->y + LANGUAGE_LINE_4_3 + LANGUAGE_PAD_Y_4_3 - y);
         y += out->rows[ORACLES_ROW_LANGUAGE].h + ROW_GAP_4_3;
     }
 
     out->rows[ORACLES_ROW_PLAY] = pl_play_4_3_row(t->play_note, y, &out->play_note, &out->play, &out->play_dot);
+}
+
+
+void oracles_ui_game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *state, OraclesUiGameTones *tones)
+{
+    const OraclesHomeGame *game = oracles_page_game_const(nav);
+    const OraclesHomeHero hero = oracles_home_hero(nav);
+    memset(t, 0, sizeof *t);
+    oracles_home_state(nav, hero, state);
+    t->over = oracles_home_over(hero);
+    t->title = oracles_home_title(hero);
+    t->state = state;
+    t->credit = oracles_home_credit(hero);
+    t->patched = game->fan != NULL;
+    t->joined = game->fan && game->fan->joined;
+    /* A ROM row, or Oracles Combined's two. */
+    tones->rom = ORACLES_TONE_NONE;
+    if (!t->joined) {
+        snprintf(t->rom_file, sizeof t->rom_file, "%s", oracles_page_rom_file(game));
+        oracles_page_folder(nav->android, game->rom_file[0] ? game->rom_folder : "", t->rom_folder, sizeof t->rom_folder);
+        oracles_page_rom_status(game, t->rom_status, sizeof t->rom_status, &tones->rom);
+    }
+    for (int h = 0; t->joined && h < 2; h++) {
+        t->joined_labels[h] = oracles_page_joined_label(h);
+        t->joined_from[h] = nav->layout == ORACLES_UI_LAYOUT_4_3 ? "" : oracles_page_joined_from(game, h);
+        snprintf(t->joined_file[h], sizeof t->joined_file[h], "%s", oracles_page_joined_file(game, h));
+        oracles_page_joined_status(game, h, nav->layout == ORACLES_UI_LAYOUT_4_3, t->joined_status[h], sizeof t->joined_status[h], &tones->joined[h]);
+    }
+    t->image_notes = oracles_page_image_notes(game, nav->layout == ORACLES_UI_LAYOUT_4_3, t->image_note);
+    if (game->fan) {
+        snprintf(t->patch_file, sizeof t->patch_file, "%s", oracles_page_patch_file(game));
+        oracles_page_folder(nav->android, game->patch_file[0] ? game->patch_folder : "", t->patch_folder, sizeof t->patch_folder);
+        oracles_page_patch_status(game, t->patch_status, sizeof t->patch_status, &tones->patch);
+        oracles_page_image_status(game, t->image_status, sizeof t->image_status, &tones->image);
+    }
+    snprintf(t->save_file, sizeof t->save_file, "%s", oracles_page_save_file(game));
+    oracles_page_save_line(game, t->save_line, sizeof t->save_line);
+    for (int i = 0; i < ORACLES_PAGE_SAVE_ACTIONS; i++) t->save_actions[i] = oracles_page_save_action(nav, i);
+    t->save_note = oracles_page_save_note(nav, nav->layout == ORACLES_UI_LAYOUT_4_3);
+    t->save_status = oracles_page_save_status(nav, &tones->save, &t->save_status2);
+    t->rom_note = oracles_page_rom_note(nav);
+    t->rom_hotkeys_note = oracles_page_rom_hotkeys_note(nav);
+    t->play_note = oracles_page_play_note(nav);
+    t->european = oracles_page_eu_shown(game);
+    t->editions = t->european && nav->editions;
+    t->section = t->editions ? oracles_page_section(nav) : "Cartridge";
+    if (t->european) {
+        t->editions_explanation = oracles_page_editions_explanation;
+        oracles_page_editions_summary(game, t->editions_summary, sizeof t->editions_summary);
+        for (int e = 0; e < ORACLES_PAGE_EDITIONS; e++) {
+            snprintf(t->edition_file[e], sizeof t->edition_file[e], "%s", oracles_page_edition_file(game, e));
+            oracles_page_folder(nav->android, oracles_page_edition_state(game, e) != ORACLES_ROM_NONE ? oracles_page_edition_folder(game, e) : "",
+                                t->edition_folder[e], sizeof t->edition_folder[e]);
+            oracles_page_edition_status(nav, e, t->edition_status[e], sizeof t->edition_status[e], &tones->editions[e]);
+            t->edition_buttons[e] = oracles_page_edition_buttons(game, e, t->edition_button_labels[e]);
+        }
+    }
+    t->languages = !t->editions && oracles_page_language_shown(nav, game);
+    if (t->languages) {
+        t->language_count = oracles_page_languages_shown(game, t->language_order);
+        t->language_columns = oracles_page_language_count(game) > ORACLES_PAGE_EUROPEAN_LANGUAGES ? 4 : 3;
+        t->language_explanation = oracles_page_language_explanation(game);
+        oracles_page_language_note(nav, game, t->language_note, sizeof t->language_note);
+    }
 }
 
 /* ---- the layouts --------------------------------------------------------------------------------------------- */

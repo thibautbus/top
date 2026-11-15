@@ -3,8 +3,8 @@
  * (39e, 39e 640x480), with the game's list (39f, 39f 640x480), scrolled (39g, 39g 640x480); the
  * login with a keyboard (login), after a wrong password (login wrong), while it logs in (login logging), under Android's
  * keyboard (login android), with the launcher's keyboard at 640x480 (login keyboard 640x480); the toasts over a game
- * (toast unlock, toast 640x480, toast stack); the pause's list (achievements, achievements paused, achievements
- * 640x480); the eye on the password and the paste's lines (39h to 39p).  In a build with them, the home menu's entry, the pause of eight entries (pause achievements 640x480) and
+ * (toast unlock, toast 640x480, toast stack); the pause's list (achievements, achievements small pause, achievements
+ * paused, achievements 640x480); the eye on the password and the paste's lines (39h to 39p).  In a build with them, the home menu's entry, the pause of eight entries (pause achievements 640x480) and
  * Cheats' note (cheats achievements, cheats achievements 4:3) too.  And the keys: the page's, the login's (its paste, its
  * keys and its password shown included), the launcher's keyboard's, the toasts' queue and the list's scroll; and the
  * unlock's sound itself (ui_achievements_sound.h), its length, peak and ends, and its mixing.  An achievement's detail: its
@@ -698,7 +698,7 @@ static void stand_ins(void)
         { "Rupee Hoarder", "Hold 500 rupees at once.", 10, NULL, "312/500", 0.624f },
         { "Deep Water", "Reach the bottom of the sea.", 25, NULL, "", 0.0f },
         { "No Potion Needed", "Defeat a dungeon guardian without drinking a potion.", 25, NULL, "", 0.0f },
-        { "Night Walker", "Cross the whole map between two saves.", 25, NULL, "", 0.0f },
+        { "The Last Door", "Finish the game.", 50, NULL, "", 0.0f },
     };
     memset(&list, 0, sizeof list);
     list.count = 55;
@@ -758,8 +758,15 @@ static void list_16_9(void)
     CHECK(l.shown >= 8 && l.rows[0].index == 0 && !l.warning);
     layout_box(frame, "summary", &l.summary);
     layout_line(frame, "section", &l.head.section);
-    layout_near(frame, "mode", "y", l.mode.lines[0].y);
-    layout_near(frame, "mode", "h", l.mode.h);
+    /* The column shows the highlighted achievement's detail; the casual mode's note, in a pause too small for it. */
+    CHECK(oracles_achievements_detail_column(&nav));
+    nav.achievements.view_w = 800.0f;
+    CHECK(!oracles_achievements_detail_column(&nav));
+    OraclesUiAchievementsLayout small;
+    oracles_ui_layout_achievements_list(ORACLES_UI_LAYOUT_16_9, &nav, &small);
+    layout_near("achievements small pause", "mode", "y", small.mode.lines[0].y);
+    layout_near("achievements small pause", "mode", "h", small.mode.h);
+    nav.achievements.view_w = 0.0f;
     layout_line(frame, "date 0", &l.rows[0].date);
     layout_line(frame, "progress 3 text", &l.rows[3].progress);
     layout_box(frame, "progress 3", &(OraclesUiBox){ l.rows[3].bar.x, l.rows[3].progress.y, l.rows[3].progress.x + l.rows[3].progress.w - l.rows[3].bar.x,
@@ -1459,11 +1466,16 @@ static void page_item(const char *frame, const OraclesUiAchievementRow *row, int
 }
 
 /* The list under the settings, the first achievement highlighted (39f, 39f 640x480), scrolled to the last the frame draws
- * (39g, its eighth; 39g 640x480, its sixth, the page by whole achievements, the highlight's last of five). */
+ * (39g, its eighth; 39g 640x480, its sixth, the page by whole achievements, the highlight's last of five); the home
+ * page's unlocks without a date. */
 static void page_frame(const char *frame, OraclesUiLayout layout, unsigned row)
 {
     OraclesHomeNav nav;
     list_page(&nav, layout, row);
+    static OraclesAchievementsList dateless;
+    dateless = list;
+    for (unsigned i = 0; i < dateless.count; i++) dateless.items[i].date[0] = 0;
+    nav.achievements.list = &dateless;
     const int four_three = layout == ORACLES_UI_LAYOUT_4_3;
     nav.android = four_three;
     oracles_home_input(&nav, ORACLES_INPUT_GAMEPAD);
@@ -1479,6 +1491,31 @@ static void page_frame(const char *frame, OraclesUiLayout layout, unsigned row)
         layout_near(frame, "help", "y", l.page.help.y);
         layout_near(frame, "help note", "y", l.page.help_note.y);
     } else layout_box(frame, "panel", &l.page.panel);
+    /* The first achievement highlighted (39f, 39f 640x480): its texts, the date's place saying "Unlocked" in 16:9; in 4:3
+     * the help, its description, and the help's note, its state. */
+    if (row == ORACLES_ACHIEVEMENTS_ROWS) {
+        CHECK(l.rows[0].index == 0);
+        if (four_three) {
+            CHECK(!strcmp(l.help, "Leave the first forest.") && !strcmp(l.help_note, "Unlocked"));
+            const OraclesUiLine *lines[2] = { &l.page.help, &l.page.help_note };
+            const OraclesUiTextStyle *styles[2] = { &oracles_ui_help_4_3, &oracles_ui_row_note_4_3 };
+            const char *texts[2] = { l.help, l.help_note }, *probes[2] = { "help text", "help note text" };
+            for (unsigned i = 0; i < 2; i++) {
+                layout_near(frame, probes[i], "x", lines[i]->x);
+                layout_near(frame, probes[i], "w", oracles_ui_text_width(styles[i], texts[i]));
+                layout_near(frame, probes[i], "top", lines[i]->y);
+                layout_near(frame, probes[i], "h", lines[i]->h);
+                layout_near(frame, probes[i], "baseline", lines[i]->baseline);
+            }
+        } else {
+            CHECK(!strcmp(l.rows[0].date_text, "Unlocked"));
+            layout_line(frame, "title 0 text", &l.rows[0].title);
+            layout_line(frame, "desc 0 text", &l.rows[0].description);
+            layout_line(frame, "points 0 text", &l.rows[0].points);
+            layout_line(frame, "date 0 text", &l.rows[0].date);
+        }
+    }
+    hints(frame, &nav, layout, four_three ? 3u : 2u);
     CHECK(oracles_achievements_hints(&nav, (OraclesHomeHint[ORACLES_HOME_MAX_HINTS]){ { 0 } }) == (four_three ? 3u : 2u));
 }
 
@@ -2540,10 +2577,11 @@ static void cheats_note(void)
     layout_near("cheats achievements", "warning", "h", l.note2.h);
     layout_line("cheats achievements", "warning text", &l.note2.lines[0]);
     layout_near("cheats achievements", "warning text", "lines", (float)l.note2.count);
-    /* 4:3: on the line under the note (the mockup's head lacks the game's title: compared under its note). */
+    /* 4:3: on the line under the note. */
     oracles_ui_layout_cheats(ORACLES_UI_LAYOUT_4_3, &nav, &l);
     const char *frame = "cheats achievements 4:3";
-    layout_near_within(frame, "warning", "y", l.note2.lines[0].y - l.note.lines[0].y + layout_reference(frame, "note", "y"), LAYOUT_TOLERANCE);
+    layout_near(frame, "note", "y", l.note.lines[0].y);
+    layout_near(frame, "warning", "y", l.note2.lines[0].y);
     layout_near(frame, "warning text", "x", l.note2.lines[0].x);
     layout_near(frame, "warning text", "w", l.note2.lines[0].w);
     layout_near(frame, "warning text", "h", l.note2.lines[0].h);

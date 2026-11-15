@@ -10,6 +10,7 @@ set(ORACLES_UI_ASSETS
     ${ORACLES_THIRD_PARTY_DIR}/fonts/alegreya-sans/AlegreyaSans-Medium.ttf
     ${ORACLES_THIRD_PARTY_DIR}/fonts/alegreya-sans/AlegreyaSans-Italic.ttf
     ${ORACLES_THIRD_PARTY_DIR}/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf
+    ${ORACLES_THIRD_PARTY_DIR}/fonts/noto-sans-cjk/NotoSansCJKjp-Subset.otf
     ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/ages.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/seasons.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/ui/motifs/fan.svg
@@ -153,6 +154,7 @@ if(ORACLES_BUILD_LAUNCHER)
         ${ORACLES_THIRD_PARTY_DIR}/fonts/marcellus/OFL.txt Marcellus-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/fonts/alegreya-sans/OFL.txt AlegreyaSans-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/fonts/jetbrains-mono/OFL.txt JetBrainsMono-OFL.txt
+        ${ORACLES_THIRD_PARTY_DIR}/fonts/noto-sans-cjk/OFL.txt NotoSansCJK-OFL.txt
         ${ORACLES_THIRD_PARTY_DIR}/sameboy/LICENSE SameBoy-LICENSE.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/xBR-LICENSE.txt xBR-LICENSE.txt
         ${ORACLES_THIRD_PARTY_DIR}/mgba/LICENSE mGBA-LICENSE.txt
