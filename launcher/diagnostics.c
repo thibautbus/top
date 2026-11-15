@@ -101,6 +101,9 @@ static void on_event(void *opaque, const OraclesGuestEvent *e)
         case ORACLES_EVENT_TEXT_SKIP_TEST:
         case ORACLES_EVENT_TEXT_SKIP_LOOP:
             break;   /* the instant text's points */
+        case ORACLES_EVENT_NAME_TEXT_CHARACTER:
+        case ORACLES_EVENT_NAME_FILE_CHARACTER:
+            break;   /* the Japanese names' points */
         case ORACLES_EVENT_VBLANK:
             if (e->value < 4) d->vblanks[e->value]++;
             break;

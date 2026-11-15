@@ -26,7 +26,8 @@ options: extra harness flags, `-` for none (a route recorded with
 --continuous-transitions carries the option in its header, and the harness
 turns it on by itself); a --mods directory is relative to the repository; a
 row with --language and no --eu-rom gets the ROM directory as its --eu-rom,
-where the harness finds the European ROM by its SHA-1.  expect: `;`-separated `key=value` or `key<=value`
+where the harness finds the European ROM (the Japanese one for --language ja, the Polish one or Kaxus's patch for
+--language pl) by its SHA-1.  expect: `;`-separated `key=value` or `key<=value`
 over the harness summary (--summary), on top of the rules every row must
 satisfy (below); a rule prefixed with a core (`mgba:key<=value`) holds on that
 core only, a row of both holding each core's measure.  run_hash: the Enhanced run hash the row last produced, `-`
@@ -212,20 +213,33 @@ def route_header(path: Path) -> dict:
     return header
 
 
-def european_rom(game: str) -> str:
+def european_rom(game: str, table: str = "") -> str:
     """The SHA-1 of the European ROM a game's languages come from: the one its table of exceptions pins
-    (config/language_exceptions_<game>.tsv, its `rom` row), which the extraction requires of the ROM it is given."""
-    with open(REPO / "config" / f"language_exceptions_{game}.tsv", encoding="utf-8") as f:
+    (config/language_exceptions_<game>.tsv, its `rom` row), which the extraction requires of the ROM it is given; with
+    `table` "_ja", the Japanese ROM its Japanese comes from (config/language_exceptions_<game>_ja.tsv); with "_pl", the
+    Polish ROM its Polish comes from, which Kaxus's patch in the directory makes of the US ROM."""
+    with open(REPO / "config" / f"language_exceptions_{game}{table}.tsv", encoding="utf-8") as f:
         for line in f:
             if line.startswith("rom\t"):
                 return line.split("\t")[1].strip()
-    sys.exit(f"config/language_exceptions_{game}.tsv pins no European ROM")
+    sys.exit(f"config/language_exceptions_{game}{table}.tsv pins no ROM")
 
 
 # The European ROMs the rows in a language read their translations from, by the routes' folder: a fan game's routes
-# read the translations of its Oracle's European ROM.
+# read the translations of its Oracle's European ROM.  A row in Japanese (--language ja, Ages and Seasons alone) reads
+# its game's Japanese ROM, a row in Polish (--language pl) its Polish ROM, found as the image a patch of the directory
+# makes.
 EU_ROMS = {"ages": european_rom("ages"), "seasons": european_rom("seasons")}
 EU_ROMS.update({"moonrise-regalia": EU_ROMS["ages"], "gifts-of-kinomi": EU_ROMS["ages"], "temple-of-seasons": EU_ROMS["seasons"]})
+JP_ROMS = {"ages": european_rom("ages", "_ja"), "seasons": european_rom("seasons", "_ja")}
+PL_ROMS = {"ages": european_rom("ages", "_pl"), "seasons": european_rom("seasons", "_pl")}
+
+
+def language_rom(row: dict) -> str:
+    """The SHA-1 of the ROM a row in a language reads its texts from, "" when its folder has none."""
+    options, folder = row["options"], Path(row["route"]).parent.name
+    code = next((o for i, o in enumerate(options) if i and options[i - 1] == "--language"), "")
+    return {"ja": JP_ROMS, "pl": PL_ROMS}.get(code, EU_ROMS).get(folder, "")
 
 
 def joined_base(roms: dict, patch: bytes, source_crc) -> tuple:
@@ -637,12 +651,12 @@ def main() -> int:
                 or (args.only.startswith("--") and args.only in " ".join(r["options"]))]
     # A row in a language replays with the game's European ROM, which a ROM directory may not hold (the CI's never does).
     for r in rows:
-        if "--language" in r["options"] and Path(r["route"]).parent.name not in EU_ROMS:
-            sys.exit(f"{r['manifest']}:{r['line']}: a row in a language, but no European ROM is known for the routes of "
-                     f"{Path(r['route']).parent.name} (EU_ROMS)")
-    missing = [r for r in rows if "--language" in r["options"] and EU_ROMS[Path(r["route"]).parent.name] not in roms]
+        if "--language" in r["options"] and not language_rom(r):
+            sys.exit(f"{r['manifest']}:{r['line']}: a row in a language, but no European, Japanese or Polish ROM is known for the routes of "
+                     f"{Path(r['route']).parent.name} (EU_ROMS, JP_ROMS, PL_ROMS)")
+    missing = [r for r in rows if "--language" in r["options"] and language_rom(r) not in roms]
     if missing:
-        print(f"check_routes: {len(missing)} row(s) in a language skipped: no European ROM of their game in {rom_dir}")
+        print(f"check_routes: {len(missing)} row(s) in a language skipped: no European, Japanese or Polish ROM of their game in {rom_dir}")
         rows = [r for r in rows if r not in missing]
         if not rows:
             return 77

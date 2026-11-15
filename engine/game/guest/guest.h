@@ -98,6 +98,8 @@ typedef enum OraclesGuestEventType {
     ORACLES_EVENT_EDGE_TEST_RIGHT,         /* the right edge's, */
     ORACLES_EVENT_EDGE_TEST_DOWN,          /* the bottom edge's, */
     ORACLES_EVENT_EDGE_TEST_LEFT,          /* and the left edge's */
+    ORACLES_EVENT_NAME_TEXT_CHARACTER,     /* the `call setLineTextBuffers` of the text's command that prints a name, with Japanese armed: */
+    ORACLES_EVENT_NAME_FILE_CHARACTER,     /* and the file select's `call copyTextCharacterGfx`: a name's letter in capitals (the language transaction) */
     ORACLES_EVENT_HALF_SWITCH              /* entry of swapGame, in a half of an image of two games: the guest leaves the game there
                                               when it switches to the other half (oracles_guest_half_left); never sent */
 } OraclesGuestEventType;
@@ -520,6 +522,22 @@ unsigned oracles_guest_calls_done(const OraclesGuest *guest);
 int oracles_guest_arm_language(OraclesGuest *guest);
 /* The language served ("fr"), "" when none is armed. */
 const char *oracles_guest_language(const OraclesGuest *guest);
+/* A Japanese name in capitals.  The Japanese font has kana where the US one has its lower-case letters ($61-$7a), and its
+ * own capitals where the US ones are: a name typed in Latin letters, kept as it is in the save, prints its lower-case
+ * letters as capitals where the game prints a name, with Japanese armed: the text's command (\Link, \Child) and the
+ * file select (its files' names, the name being typed).  A name is Latin when it holds a Latin capital ($41-$5a), which
+ * the Japanese name entry never types; one without is in kana, left as it is (a Latin name typed all in lower case
+ * prints as hiragana).  The letters at the point (a, read from hl - 1) taken into capitals, the count of those since
+ * the attach, and of those left as kana; the capital of a character, any other unchanged; whether a name's `length`
+ * bytes hold a Latin capital. */
+unsigned oracles_guest_name_capitals(const OraclesGuest *guest);
+unsigned oracles_guest_name_kana(const OraclesGuest *guest);
+uint8_t oracles_guest_name_capital(uint8_t character);
+int oracles_guest_name_latin(const uint8_t *name, size_t length);
+/* The two points in `rom`: the call of setLineTextBuffers in the text's command that prints a name, the call of
+ * copyTextCharacterGfx in the file select's copy, each where it is once; 1 found, 0 for tables without them (a fan game,
+ * Oracles Combined), -1 when the code is not there. */
+int oracles_guest_find_name_points(const OraclesGuestTables *t, const uint8_t *rom, size_t size, uint16_t *text, uint16_t *file);
 /* The texts the game looked up since the attach: served in the language, kept in English by it, absent from it. */
 void oracles_guest_language_counts(const OraclesGuest *guest, unsigned *served, unsigned *english, unsigned *missing);
 /* Of those served, the texts laid out again for the compact text (ORACLES_LANGUAGE_LAID_OUT in their entry). */

@@ -94,11 +94,13 @@ target_include_directories(oracles_mods PUBLIC mods)
 target_link_libraries(oracles_mods PUBLIC oracles_guest oracles_data oracles_lua)
 oracles_set_warnings(oracles_mods)
 
-# The official translations, from the user's European ROM, composed into the US image.  The tables of exceptions and
-# the port's own texts are config/language_exceptions_*.tsv and config/language_own.tsv, and the corrections of the
-# official translations config/language_corrections.tsv, embedded as C strings.
+# The official translations, from the user's European or Japanese ROM, and Kaxus's Polish, from the user's Polish ROM,
+# composed into the US image.  The tables of exceptions and the port's own texts are config/language_exceptions_*.tsv,
+# config/language_own.tsv and config/language_own_ja.tsv, and the corrections of the translations
+# config/language_corrections.tsv and config/language_corrections_pl.tsv, embedded as C strings.
 set(ORACLES_LANGUAGE_CONFIG_C "/* Generated from config/language_*.tsv at configure; do not edit. */\n")
-foreach(ORACLES_LANGUAGE_CONFIG exceptions_ages exceptions_seasons own_texts corrections)
+foreach(ORACLES_LANGUAGE_CONFIG exceptions_ages exceptions_seasons exceptions_ages_ja exceptions_seasons_ja exceptions_ages_pl exceptions_seasons_pl own_texts
+        own_texts_ja corrections corrections_pl)
     string(REPLACE "own_texts" "own" ORACLES_LANGUAGE_CONFIG_FILE ${ORACLES_LANGUAGE_CONFIG})
     set(ORACLES_LANGUAGE_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../config/language_${ORACLES_LANGUAGE_CONFIG_FILE}.tsv)
     file(READ ${ORACLES_LANGUAGE_CONFIG_PATH} ORACLES_LANGUAGE_CONFIG_HEX HEX)
@@ -116,7 +118,7 @@ foreach(ORACLES_VWF_KEEP ages seasons moonrise kinomi temple)
 endforeach()
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/language_config.c "${ORACLES_LANGUAGE_CONFIG_C}")
 add_library(oracles_language STATIC language/language_rom.c language/language_pack.c language/language_table.c language/language_rules.c
-            language/language_own.c language/language_corrections.c language/language_extract.c language/language_fan.c language/language_compose.c language/language_gfx.c
+            language/language_own.c language/language_corrections.c language/language_extract.c language/language_fan.c language/language_compose.c language/language_gfx.c language/language_kana.c
             language/language_wrap.c language/language_keep.c language/language_words.c ${CMAKE_CURRENT_BINARY_DIR}/language_config.c)
 target_include_directories(oracles_language PUBLIC language)
 target_link_libraries(oracles_language PUBLIC oracles_guest oracles_data oracles_core)

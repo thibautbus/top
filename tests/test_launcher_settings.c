@@ -247,9 +247,19 @@ static void relative_paths(const char *path)
     snprintf(s.rom[ORACLES_SETTINGS_AGES], sizeof s.rom[0], "E:\\Oracles\\roms\\Oracle of Ages.gbc");
     snprintf(s.rom[ORACLES_SETTINGS_SEASONS], sizeof s.rom[0], "D:\\Games\\Oracle of Seasons.gbc");
     snprintf(s.eu_rom[ORACLES_SETTINGS_AGES], sizeof s.eu_rom[0], "e:\\oracles\\roms\\Ages (Europe).gbc");
+    snprintf(s.jp_rom[ORACLES_SETTINGS_SEASONS], sizeof s.jp_rom[0], "E:\\Oracles\\roms\\Seasons (Japan).gbc");
+    s.language[ORACLES_SETTINGS_SEASONS] = ORACLES_SETTINGS_JAPANESE;
+    s.fan_language[ORACLES_HOME_FAN_TEMPLE] = ORACLES_SETTINGS_JAPANESE;   /* not a fan game's: written back as English */
+    snprintf(s.pl_rom[ORACLES_SETTINGS_AGES], sizeof s.pl_rom[0], "E:\\Oracles\\patches\\Oracle_of_Ages_-_Spolszczenie.zip");
+    s.language[ORACLES_SETTINGS_AGES] = ORACLES_SETTINGS_POLISH;
+    s.fan_language[ORACLES_HOME_FAN_MOONRISE] = ORACLES_SETTINGS_POLISH;   /* nor Polish */
     snprintf(s.patch[ORACLES_HOME_FAN_MOONRISE], sizeof s.patch[0], "E:\\Oracles\\patches\\Moonrise Regalia.bps");
     CHECK(oracles_settings_store(&s) == 1);
     unsigned count = read_lines(path, lines, 400);
+    CHECK(line_at(lines, count, "jp_rom_seasons=roms\\Seasons (Japan).gbc") >= 0 && line_at(lines, count, "jp_rom_ages=") >= 0);
+    CHECK(line_at(lines, count, "language_seasons=ja") >= 0 && line_at(lines, count, "language_temple=en") >= 0);
+    CHECK(line_at(lines, count, "pl_rom_ages=patches\\Oracle_of_Ages_-_Spolszczenie.zip") >= 0 && line_at(lines, count, "pl_rom_seasons=") >= 0);
+    CHECK(line_at(lines, count, "language_ages=pl") >= 0 && line_at(lines, count, "language_moonrise=en") >= 0);
     CHECK(line_at(lines, count, "rom_ages=roms\\Oracle of Ages.gbc") >= 0 && line_at(lines, count, "rom_seasons=D:\\Games\\Oracle of Seasons.gbc") >= 0);
     CHECK(line_at(lines, count, "eu_rom_ages=roms\\Ages (Europe).gbc") >= 0 && line_at(lines, count, "patch_moonrise=patches\\Moonrise Regalia.bps") >= 0);
     CHECK(line_at(lines, count, "eu_rom_seasons=") >= 0 && line_at(lines, count, "patch_kinomi=") >= 0);
@@ -260,6 +270,9 @@ static void relative_paths(const char *path)
     back.paths_relative = 1;
     oracles_settings_load(&back);
     CHECK(!strcmp(back.rom[ORACLES_SETTINGS_AGES], "F:\\Oracles\\roms\\Oracle of Ages.gbc"));
+    CHECK(!strcmp(back.jp_rom[ORACLES_SETTINGS_SEASONS], "F:\\Oracles\\roms\\Seasons (Japan).gbc") && back.language[ORACLES_SETTINGS_SEASONS] == ORACLES_SETTINGS_JAPANESE);
+    CHECK(!strcmp(back.pl_rom[ORACLES_SETTINGS_AGES], "F:\\Oracles\\patches\\Oracle_of_Ages_-_Spolszczenie.zip") && back.language[ORACLES_SETTINGS_AGES] == ORACLES_SETTINGS_POLISH
+          && !back.pl_rom[ORACLES_SETTINGS_SEASONS][0] && back.fan_language[ORACLES_HOME_FAN_MOONRISE] == 0);
     CHECK(!strcmp(back.rom[ORACLES_SETTINGS_SEASONS], "D:\\Games\\Oracle of Seasons.gbc"));
     CHECK(!strcmp(back.eu_rom[ORACLES_SETTINGS_AGES], "F:\\Oracles\\roms\\Ages (Europe).gbc") && !back.eu_rom[ORACLES_SETTINGS_SEASONS][0]);
     CHECK(!strcmp(back.patch[ORACLES_HOME_FAN_MOONRISE], "F:\\Oracles\\patches\\Moonrise Regalia.bps") && !back.patch[ORACLES_HOME_FAN_KINOMI][0]);
@@ -271,7 +284,7 @@ static void relative_paths(const char *path)
     /* The games outside the folder, which stay where they are: Seasons' ROM, then Kinomi's patch too. */
     CHECK(oracles_settings_games_outside(&back, "F:\\Oracles\\") == 1);
     snprintf(back.patch[ORACLES_HOME_FAN_KINOMI], sizeof back.patch[0], "G:\\Kinomi.bps");
-    CHECK(oracles_settings_games_outside(&back, "F:\\Oracles\\") == 2 && oracles_settings_games_outside(&back, "") == 5);
+    CHECK(oracles_settings_games_outside(&back, "F:\\Oracles\\") == 2 && oracles_settings_games_outside(&back, "") == 7);   /* the Japanese ROM of Seasons and the Polish patch of Ages too */
 
     /* Turned: after a copy, settings.txt in the new folder at once, its paths as the mode writes them; after KEPT,
      * nothing. */
@@ -1247,20 +1260,24 @@ int main(int argc, char **argv)
     snprintf(mods_at.path, sizeof mods_at.path, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\settings.txt");
     oracles_settings_mods_folder(&mods_at, folder, sizeof folder);
     CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\mods"));
-    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_SEASONS, folder, sizeof folder);
+    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_SEASONS, 2, folder, sizeof folder);
     CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\language-seasons.pack"));
+    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_SEASONS, ORACLES_SETTINGS_JAPANESE, folder, sizeof folder);   /* Japanese's own */
+    CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\language-seasons-ja.pack"));
+    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_AGES, ORACLES_SETTINGS_POLISH, folder, sizeof folder);   /* Polish's own */
+    CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\language-ages-pl.pack"));
     oracles_settings_fan_language_pack(&mods_at, ORACLES_HOME_FAN_KINOMI, folder, sizeof folder);
     CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\language-kinomi.pack"));
     snprintf(mods_at.mods_path, sizeof mods_at.mods_path, "/storage/emulated/0/Android/data/org.theoraclesproject/files/mods");
     oracles_settings_mods_folder(&mods_at, folder, sizeof folder);
     CHECK(!strcmp(folder, "/storage/emulated/0/Android/data/org.theoraclesproject/files/mods"));
-    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_SEASONS, folder, sizeof folder);
+    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_SEASONS, 0, folder, sizeof folder);
     CHECK(!strcmp(folder, "C:\\Users\\sam\\AppData\\Roaming\\the-oracles-project\\language-seasons.pack"));
     mods_at.mods_path[0] = 0;
     mods_at.path[0] = 0;
     oracles_settings_mods_folder(&mods_at, folder, sizeof folder);
     CHECK(folder[0] == 0);
-    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_AGES, folder, sizeof folder);
+    oracles_settings_language_pack(&mods_at, ORACLES_SETTINGS_AGES, 0, folder, sizeof folder);
     CHECK(folder[0] == 0);
 
     /* Mods' Play gives a session the mods --mods would, in the same order, and the same save of its own; a mod no
@@ -1313,7 +1330,7 @@ int main(int argc, char **argv)
 
     /* Values it does not know leave the default; an empty ROM clears it. */
     write_text(path, "profile=widescreen\nlauncher_window=big\nrom_seasons=\ntransitions=yes\nswim_hold=1\nupdate_check=0\ntext=narrow\nitem_hotkeys_seasons=always\nwindow_scale=5\n"
-                     "eu_rom_ages=\nlanguage_ages=ja\nlanguage_seasons=de\nlanguage_temple=xx\nlanguage_kinomi=it\nlanguage_moonrise=en-us\n"
+                     "eu_rom_ages=\nlanguage_ages=jp\nlanguage_seasons=de\nlanguage_temple=ja\nlanguage_kinomi=it\nlanguage_moonrise=en-us\n"
                      "cheats_ages=ammo,speed-150\ncheats_seasons=rupees,ammo\ncheats_kinomi=speed-150,no-damage\ntext_speed=fast\n");
     oracles_settings_defaults(&read_back);
     snprintf(read_back.rom[1], sizeof read_back.rom[1], "old.gbc");

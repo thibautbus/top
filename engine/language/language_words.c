@@ -74,6 +74,7 @@ void language_wrap_write_whole(language_wrap *wrap, const uint8_t *text, size_t 
 
 void language_wrap_learn(language_wrap *wrap, const uint8_t *text, size_t length)
 {
+    if (wrap->japanese) return;
     /* The words written whole, in a language whose hyphens at a line's end are its compounds': but the parts of a word
      * broken at a line's end. */
     for (size_t at = 0; !wrap->syllables && at < length;) {

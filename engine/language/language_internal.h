@@ -10,6 +10,8 @@
 
 #define FONT_FIRST 0x10u   /* the first character a text prints; below are the control codes */
 #define FONT_GLYPHS (0x100u - FONT_FIRST)
+#define GLYPH_FIRST 0x0eu   /* the first character of the game's font (gfx_font), which a pack's glyphs may replace */
+#define GLYPHS_MAX (0x100u - GLYPH_FIRST)
 #define GLYPH_BYTES 16u
 #define LINE_CHARACTERS 16u   /* a text box's line */
 
@@ -30,7 +32,7 @@ struct OraclesLanguagePack {
     OraclesGame game;
     char source[41];
     char image[41];       /* the image whose texts the entries are, by their identifiers */
-    char fingerprint[41]; /* the code and the tables it was made with (ORACLES_LANGUAGE_PACK_REVISION) */
+    char fingerprint[41]; /* the code and the tables it was made with (ORACLES_LANGUAGE_PACK_REVISION, _JA) */
     unsigned count[ORACLES_LANGUAGE_COUNT];
     pack_text *texts[ORACLES_LANGUAGE_COUNT];   /* by increasing identifier; none for English (US) */
     unsigned graphic_count[ORACLES_LANGUAGE_COUNT];
@@ -38,8 +40,8 @@ struct OraclesLanguagePack {
     uint8_t *bytes;
     size_t size, capacity;
     unsigned glyph_count;
-    uint8_t characters[FONT_GLYPHS];
-    uint8_t bitmaps[FONT_GLYPHS * GLYPH_BYTES];
+    uint8_t characters[GLYPHS_MAX];
+    uint8_t bitmaps[GLYPHS_MAX * GLYPH_BYTES];
 };
 
 #define LANGUAGE_LAST_BANK 0x7fu   /* a language's banks end with it */
@@ -76,24 +78,63 @@ language_slot *language_slot_of(language_slot *slots, unsigned count, const uint
 /* The image of a SHA-1 as a language's target; 0, or -1 when the port knows no profile for it that binds its texts. */
 int language_target_of(const char *sha1, language_target *target);
 int language_source_european(const OraclesRom *rom, OraclesGame game, OraclesLanguage language, OraclesTextSource *source);
+/* The texts' source of the Japanese ROM of `game`: its table of groups and its bases are where its getTextAddress has
+ * them, without a table of languages; 0 or -1. */
+int language_source_japanese(const OraclesRom *rom, OraclesGame game, OraclesTextSource *source);
+/* Whether a known image is a Japanese ROM (rom.h's revisions). */
+int language_japanese(const OraclesRomInfo *info);
+/* The texts' source of the Polish ROM of `game`: its table of groups and its two bases where its getTextAddress reads
+ * them, the US format; 0 or -1. */
+int language_source_polish(const OraclesRom *rom, OraclesGame game, OraclesTextSource *source);
+/* Whether a known image is a Polish ROM (rom.h's revisions). */
+int language_polish(const OraclesRomInfo *info);
 /* A language's index in the European ROM's tables: 0 English (both Englishes), 1 French, 2 German, 3 Italian, 4 Spanish. */
 #define EUROPEAN_LANGUAGES 5u
 unsigned language_european_index(OraclesLanguage language);
 /* The physical offset of character 0 of the US font, of the European font. */
 size_t language_font_us(OraclesGame game);
 size_t language_font_european(OraclesGame game);
+size_t language_font_japanese(OraclesGame game);
+size_t language_font_polish(OraclesGame game);
 
-/* The physical offset of the graphics headers' table of the US ROM, of the European ROM (0 for another game). */
+/* The physical offset of the graphics headers' table of the US ROM, of the European ROM, of the Polish ROM (0 for
+ * another game). */
 size_t language_gfx_headers_us(OraclesGame game);
 size_t language_gfx_headers_european(OraclesGame game);
+size_t language_gfx_headers_polish(OraclesGame game);
+/* The physical offset of the Polish ROM's table of the title's sprites of PRESS START (0 for another game). */
+size_t language_press_start_polish(OraclesGame game);
+/* The physical offsets of the Japanese ROM's graphics headers' table, of its palette headers' table and of its table of
+ * the title's sprites (0 for another game). */
+size_t language_gfx_headers_japanese(OraclesGame game);
+size_t language_palette_headers_japanese(OraclesGame game);
+size_t language_title_sprites_japanese(OraclesGame game);
+/* The physical offsets of the Japanese ROM's secrets' cipher, of their 64 symbols and of the table of the names of the
+ * secrets' list, in bank 2 (0 for another game). */
+size_t language_secret_cipher_japanese(OraclesGame game);
+size_t language_secret_symbols_japanese(OraclesGame game);
+size_t language_secret_names_japanese(OraclesGame game);
+/* The physical offset of the Japanese ROM's object graphics headers' table (0 for another game). */
+size_t language_object_headers_japanese(OraclesGame game);
+/* The physical offset of the US ROM's palette headers' table, the bank of their colours in *colours (0 for another
+ * game). */
+size_t language_palette_headers_us(OraclesGame game, unsigned *colours);
 
 /* language_pack.c: the tables embedded at configure that a pack of `game` is made from, at most
  * LANGUAGE_FINGERPRINT_TABLES; the fingerprint of the code's `revision`, those `tables` (NUL-terminated) and the text
  * tables and the font `target` binds; and the fingerprint of a pack made now for `target`. */
 #define LANGUAGE_FINGERPRINT_TABLES 3u
 unsigned language_fingerprint_tables(OraclesGame game, const unsigned char *tables[LANGUAGE_FINGERPRINT_TABLES]);
+/* The same for a pack of the Japanese ROM: config/language_exceptions_<game>_ja.tsv and language_own_ja.tsv; of the
+ * Polish ROM: config/language_exceptions_<game>_pl.tsv and language_corrections_pl.tsv. */
+unsigned language_fingerprint_tables_japanese(OraclesGame game, const unsigned char *tables[LANGUAGE_FINGERPRINT_TABLES]);
+unsigned language_fingerprint_tables_polish(OraclesGame game, const unsigned char *tables[LANGUAGE_FINGERPRINT_TABLES]);
 void language_fingerprint_of(unsigned revision, const unsigned char *const *tables, unsigned count, const language_target *target, char out[41]);
-void language_fingerprint(const language_target *target, char out[41]);
+/* The edition of the ROM a pack comes from: its tables and its revision. */
+typedef enum language_edition { EDITION_EUROPEAN = 0, EDITION_JAPANESE, EDITION_POLISH } language_edition;
+/* The edition of a known ROM: Japanese, Polish, or European for any other. */
+language_edition language_edition_of(const OraclesRomInfo *info);
+void language_fingerprint(const language_target *target, language_edition edition, char out[41]);
 /* language_pack.c: an empty pack, from the European ROM `source`, for the texts of the image `image` (a target the port knows, whose
  * fingerprint it takes); an entry appended to a language (in increasing identifiers): a text of `length`
  * bytes, its terminator included, for the sources that have one, none (NULL, 0) for the others; 0 or -1.  A graphic
@@ -108,16 +149,49 @@ int language_pack_add_graphic(OraclesLanguagePack *pack, OraclesLanguage languag
 
 /* Decompresses `size` bytes in `mode` (ROM_DATA_FORMATS, section 9.1) from the physical offset `at`, reading on
  * across banks as the game does; the bytes read in *consumed.  0, or -1 when the data leaves the image or refers to a
- * byte before its start. */
+ * byte before its start.  With `out` NULL, the bytes read alone, a reference before the start allowed (the game copies
+ * its buffer's earlier bytes). */
 int language_gfx_decompress(const uint8_t *rom, size_t rom_size, size_t at, unsigned mode, uint8_t *out, size_t size, size_t *consumed);
 /* Compresses `size` bytes (a multiple of 16, 2048 at most) in the mode that makes them shortest; the length written to
  * `out` (`capacity` at least `size`: raw, mode 0, is never longer), its mode in *mode; 0 on failure. */
 size_t language_gfx_compress(const uint8_t *data, size_t size, uint8_t *out, size_t capacity, unsigned *mode);
 /* The graphics of every language of the European ROM that differ from the US ones, added to the pack; 0 or -1. */
 int language_gfx_extract(OraclesLanguagePack *pack, const OraclesRom *eu, const OraclesRom *us, char *error, size_t capacity);
+/* The graphics of the screens the Polish ROM translates that differ from the US ones, added to the pack in Polish; 0
+ * or -1. */
+int language_gfx_extract_polish(OraclesLanguagePack *pack, const OraclesRom *pl, const OraclesRom *us, char *error, size_t capacity);
+/* The graphics of the screens the Japanese ROM draws in Japanese that differ from the US ones, its title's colours and
+ * sprites with them, added to the pack in Japanese; 0 or -1. */
+int language_gfx_extract_japanese(OraclesLanguagePack *pack, const OraclesRom *jp, const OraclesRom *us, char *error, size_t capacity);
 /* A language's graphics written into the 2 MiB image and its US headers repointed to them; 0, or -1 with the reason. */
 int language_gfx_compose(const OraclesLanguagePack *pack, OraclesLanguage language, uint8_t *image, size_t size, OraclesLanguageReport *report,
                          char *error, size_t capacity);
+
+/* ---- the Japanese name entry in kana (language_kana.c) ------------------------------------------------------ */
+
+#define LANGUAGE_KANA_SITES 9u        /* the places of the US code that point to the routines */
+#define LANGUAGE_KANA_BLOCKS 8u       /* the Japanese ROM's bytes copied */
+#define LANGUAGE_KANA_TAIL_MAX 0x100u
+#define LANGUAGE_KANA_RELOCATIONS 6u
+
+typedef struct language_kana {
+    uint8_t tail[LANGUAGE_KANA_TAIL_MAX];                /* the routines, for the free tail of bank 2 */
+    size_t length;
+    unsigned site[LANGUAGE_KANA_SITES], site_bytes[LANGUAGE_KANA_SITES];   /* each site's CPU address and size */
+    uint8_t written[LANGUAGE_KANA_SITES][3];             /* and its bytes */
+    unsigned block_jp[LANGUAGE_KANA_BLOCKS], block_at[LANGUAGE_KANA_BLOCKS], block_bytes[LANGUAGE_KANA_BLOCKS];   /* each block's Japanese
+                                                                                                                 address, its tail's, its size */
+    unsigned relocated[LANGUAGE_KANA_RELOCATIONS], relocations;   /* the offsets in the tail of the addresses set to the US routines' */
+} language_kana;
+
+/* The routines of the name entry in kana for the tail at `tail` (bank 2): the Japanese ROM's blocks, as their SHA-1
+ * names them, the addresses of the Japanese routines they call set to the US ones, joined by the port's bytes, the US
+ * code's `ld a,(wFileSelect.textInputMode)` and the US bytes of the sites the routines do again in a secret's entry;
+ * the sites' new bytes.  0, or -1 when a block is not the Japanese ROM's. */
+int language_kana_make(OraclesGame game, const OraclesRom *jp, const OraclesRom *us, unsigned tail, language_kana *out);
+/* The sites written into `code`, a copy of the `size` bytes of US code from CPU address `address` of bank 2; 0, or -1
+ * when a site is outside. */
+int language_kana_patch(const language_kana *kana, unsigned address, uint8_t *code, size_t size);
 
 /* ---- the rules (language_rules.c) ----------------------------------------------------------------------------- */
 
@@ -131,6 +205,7 @@ typedef enum language_rule {
     RULE_OPTION_NUMBERS,    /* a choice that is a number takes the US text's number */
     RULE_UNSHOWN_NUMBER,    /* as it is: the US code's number is not printed */
     RULE_SYMBOLS,           /* as it is: its \sym, which print a glyph, are not the US text's */
+    RULE_ONE_DIGIT,         /* as it is: its \num1, a number the US code never sets past 9, one cell where the measure counts two */
     RULE_COUNT
 } language_rule;
 
@@ -143,14 +218,23 @@ int language_rule_apply(language_rule rule, OraclesLanguage language, const uint
                         const uint8_t *next, size_t next_length, uint8_t *out, size_t capacity, size_t *out_length);
 /* Whether an adapted text holds: the US text's commands as the US engine acts on them (the \pos past a text's start
  * does nothing there, and the rule may leave out a \num or a \sym), no line over LINE_CHARACTERS, no line break right
- * before its end. */
+ * before its end.  language_rule_check for a European language; language_rule_holds for any, Japanese leaving out the
+ * commands that only draw or pace the text (language_same_commands). */
 int language_rule_check(language_rule rule, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length);
+int language_rule_holds(language_rule rule, OraclesLanguage language, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length);
+/* Whether a text of `language` gives the text engine the US text's commands: oracles_text_same_commands; for Japanese,
+ * without the \sym, which only draw a glyph (its kanji, and the icons, which it orders otherwise in a line), and the
+ * text's speed, which the Japanese texts set where the US ones do not. */
+int language_same_commands(OraclesLanguage language, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length);
 /* Whether a text's lines fit: none over LINE_CHARACTERS, none empty at its end. */
 int language_text_fits(const uint8_t *text, size_t length);
 /* The corrections of config/language_corrections.tsv for `game`, embedded at configure, their words encoded; NULL with
- * the reason when a row is not one. */
+ * the reason when a row is not one.  The Polish ones, config/language_corrections_pl.tsv, name Polish alone. */
 typedef struct language_corrections language_corrections;
 language_corrections *language_corrections_load(OraclesGame game, char *error, size_t capacity);
+language_corrections *language_corrections_load_polish(OraclesGame game, char *error, size_t capacity);
+/* The same from a table's text, the Polish table's (`polish`) or the European languages' (the tests'). */
+language_corrections *language_corrections_parse(const char *text, int polish, OraclesGame game, char *error, size_t capacity);
 void language_corrections_free(language_corrections *corrections);
 /* The corrections for text `id` in `language`, made in `text` (`*length` bytes of `capacity`): 1 when one applied, 0
  * when none, -1 when the text would not fit `capacity`. */
@@ -178,12 +262,16 @@ typedef struct language_exception {
 typedef struct language_table language_table;
 
 /* The table of `game`, config/language_exceptions_<game>.tsv embedded at configure; NULL with the reason when a row
- * is not one, or names a text and a language twice. */
+ * is not one, names another language than the European ROM's, or names a text and a language twice.  The Japanese one,
+ * config/language_exceptions_<game>_ja.tsv, names Japanese alone, its moved texts by jp:TX_GGII; the Polish one,
+ * config/language_exceptions_<game>_pl.tsv, Polish alone, by pl:TX_GGII. */
 language_table *language_table_load(OraclesGame game, char *error, size_t capacity);
+language_table *language_table_load_japanese(OraclesGame game, char *error, size_t capacity);
+language_table *language_table_load_polish(OraclesGame game, char *error, size_t capacity);
 /* The same from a table's text (the tests'). */
 language_table *language_table_parse(const char *text, char *error, size_t capacity);
 void language_table_free(language_table *table);
-/* The SHA-1 of the European ROM the table was measured on. */
+/* The SHA-1 of the European, Japanese or Polish ROM the table was measured on. */
 const char *language_table_rom(const language_table *table);
 /* The exception for TX_`id` in `language`: 1 with it, 0 when the table names none. */
 int language_table_find(const language_table *table, OraclesLanguage language, unsigned id, language_exception *exception);
@@ -238,11 +326,22 @@ void language_keep_free(language_keep *keep);
 /* ---- the port's own texts (language_own.c) -------------------------------------------------------------------- */
 
 /* A text written in config/language_own.tsv's syntax (UTF-8 characters of the font, \n, \stop, \col(N), \\, \xNN)
- * encoded as the game reads it, its terminator added; 0, or -1 for a character or an escape the font has not. */
+ * encoded as the game reads it, its terminator added; 0, or -1 for a character or an escape the font has not.
+ * language_text_encode in the US font with the European glyphs; language_text_encode_in in the font of `language`: for
+ * Japanese, the Japanese font's (kana, full-width letters, digits and marks; an ASCII character is its full-width
+ * one, a lower-case letter none) and the kanji of the game's kanji font, which a text prints by a \sym ($06); for
+ * Polish, ASCII and the nine Polish letters of the Polish ROM's font, from $80. */
 int language_text_encode(const char *text, size_t length, uint8_t *out, size_t capacity, size_t *out_length);
+int language_text_encode_in(OraclesLanguage language, const char *text, size_t length, uint8_t *out, size_t capacity, size_t *out_length);
 /* Our text `key` in `language`, encoded; 0, or -1 when there is none or it cannot be encoded. */
 int language_own_text(const char *key, OraclesLanguage language, uint8_t *out, size_t capacity, size_t *out_length);
-/* The n-th row of config/language_own.tsv: its key, language and text (not terminated); 0, or -1 past the last. */
+/* The n-th row of config/language_own.tsv, then of config/language_own_ja.tsv: its key, language and text (not
+ * terminated); 0, or -1 past the last. */
 int language_own_nth(unsigned n, const char **key, size_t *key_length, OraclesLanguage *language, const char **text, size_t *text_length);
+/* Whether every row of a table of the port's own texts (`japanese`: language_own_ja.tsv's, else language_own.tsv's)
+ * names a language of that table: Japanese, or one of the European ROM's; and the same of both tables embedded, which
+ * an extraction requires.  0, or -1 with the row that names another. */
+int language_own_table_check(const char *table, int japanese, char *error, size_t capacity);
+int language_own_check(char *error, size_t capacity);
 
 #endif

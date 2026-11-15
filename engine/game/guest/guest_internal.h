@@ -105,6 +105,8 @@ struct OraclesGuest {
     uint16_t call_watch_sp;                          /* 0, or SP at the entry of the checkReloadStatusBarGraphics a call returns through */
     const uint8_t *language_index;                   /* the language transaction (guest_text.c): the index in the core's ROM, or NULL */
     char language[ORACLES_LANGUAGE_INDEX_CODE_BYTES];
+    unsigned name_capitals;                          /* the Japanese names' letters taken into capitals */
+    unsigned name_kana;                              /* and those left as kana, their name without a Latin capital */
     unsigned language_served, language_english, language_missing, language_laid_out;
     unsigned text_wanted;                            /* the text's transactions armed, ORACLES_GUEST_TEXT_*: armed again in each half */
     unsigned text_armed, text_lost;                  /* at the switches: those armed again, those that could not be */
@@ -198,6 +200,8 @@ void oracles_guest_call_point(OraclesGuest *guest, uint16_t sp);
 void oracles_guest_call_step(OraclesGuest *guest, uint16_t sp, uint8_t opcode);
 /* guest_text.c: at the return of getTextAddress. */
 void oracles_guest_serve_text(OraclesGuest *guest);
+/* guest_text.c: at a point of the Japanese names. */
+void oracles_guest_name_point(OraclesGuest *guest, OraclesGuestEventType type);
 /* guest.c: `listener` told of each switch of halves with the guest, once however often it asks (a feature arming its
  * points again in the half the game goes to); 0, or -1 when the guest has no room for it. */
 int oracles_guest_listen_half(OraclesGuest *guest, OraclesGuestHalfFn listener);

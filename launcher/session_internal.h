@@ -194,5 +194,8 @@ int oracles_session_load_state(session *s, char *message, size_t capacity);
 /* The pause's Load state: F7's, but a savestate taken with other Display settings that a game started again with them
  * loads changes the settings to them (stored) and asks for that (s->state_restart): 1 then too. */
 int oracles_session_load_state_or_restart(session *s, char *message, size_t capacity);
+/* Whether the compact text plays in the language of code `language` (NULL: English (US)): not in Japanese, whose words
+ * the layout cannot cut (oracles_language_compact_text), which keeps the classic text. */
+int oracles_session_compact_language(const char *language);
 
 #endif

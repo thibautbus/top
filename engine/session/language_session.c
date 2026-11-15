@@ -1,5 +1,9 @@
 #include "language_session.h"
 
+#include "bps.h"
+#include "sha1.h"
+#include "zip.h"
+
 #include <ctype.h>
 #include <dirent.h>
 #include <stdio.h>
@@ -23,16 +27,51 @@ struct OraclesLanguageSession {
     OraclesLanguageReport composed;
 };
 
-/* The image of `path` when it is the European ROM of `game` (`us` 0) or its US ROM (`us` 1); NULL otherwise, with the
- * loader's reason in `refused` when it cannot read the file (a zip it refuses), empty for another ROM. */
-static uint8_t *rom_at(const char *path, OraclesGame game, int us, size_t *size, char *refused, size_t refused_capacity)
+/* The ROM of `game` that `language` comes from as the patch at `path` (a .bps, or a zip of one) makes it of the US ROM
+ * `us` of the game: Kaxus's Polish patch, by its SHA-1, applied in memory.  NULL with the reason in `refused`: another
+ * patch (the other game's, or one damaged, cut short or not Kaxus's), or that patch not making it.  A patch found in a
+ * directory (`alone` 0) that is not Kaxus's at all gives no reason: a ROM folder holds other games' patches. */
+static uint8_t *patched_rom(const char *path, OraclesGame game, OraclesLanguage language, const uint8_t *us, size_t us_size, size_t *size, int alone,
+                            char *refused, size_t refused_capacity)
+{
+    char error[256] = "", sha1[41];
+    size_t patch_size = 0;
+    uint8_t *patch = oracles_bps_read_file(path, &patch_size, refused, refused_capacity);
+    if (!patch) return NULL;
+    oracles_sha1_hex(patch, patch_size, sha1);
+    const OraclesGame patched = oracles_language_patch_game(sha1, language);
+    if (patched != game) {
+        free(patch);
+        if (patched != ORACLES_GAME_UNKNOWN) snprintf(refused, refused_capacity, "this is Kaxus's patch of %s, not of %s", oracles_game_name(patched), oracles_game_name(game));
+        else if (alone) snprintf(refused, refused_capacity, "not Kaxus's patch of %s: damaged, cut short or another patch (SHA-1 %s)", oracles_game_name(game), sha1);
+        return NULL;
+    }
+    uint8_t *image = us ? oracles_bps_apply(us, us_size, patch, patch_size, size, error, sizeof error) : NULL;
+    free(patch);
+    OraclesRomInfo info;
+    if (image && oracles_rom_identify(image, *size, &info, error, sizeof error) == 0 && oracles_language_source_game_of(&info, language) == game) return image;
+    free(image);
+    snprintf(refused, refused_capacity, "the patch does not make the %s ROM of %s of this US ROM%s%s", language == ORACLES_LANGUAGE_POLISH ? "Polish" : oracles_language_code(language),
+             oracles_game_name(game), error[0] ? ": " : "", error);
+    return NULL;
+}
+
+/* The image of `path` when it is the ROM of `game` that `language` comes from, its European, Japanese or Polish ROM, or
+ * its US ROM (`language` English), or for Polish the patch that makes it of the US ROM `us` (patched_rom, `alone` as
+ * there); NULL otherwise, with the loader's reason in `refused` when it cannot read the file (a zip it refuses),
+ * patched_rom's for a patch, empty for another ROM. */
+static uint8_t *rom_at(const char *path, OraclesGame game, OraclesLanguage language, const uint8_t *us, size_t us_size, size_t *size, int alone,
+                       char *refused, size_t refused_capacity)
 {
     char error[128];
     refused[0] = 0;
+    if (language == ORACLES_LANGUAGE_POLISH && oracles_zip_is_patch_file(path) == 1)
+        return patched_rom(path, game, language, us, us_size, size, alone, refused, refused_capacity);
     uint8_t *data = oracles_rom_read_file(path, size, refused, refused_capacity);
     OraclesRomInfo info;
     if (data && oracles_rom_identify(data, *size, &info, error, sizeof error) == 0
-        && (us ? oracles_rom_is_original(&info) && info.game == game : oracles_language_source_game(&info) == game)) return data;
+        && (language == ORACLES_LANGUAGE_ENGLISH ? oracles_rom_is_original(&info) && info.game == game : oracles_language_source_game_of(&info, language) == game))
+        return data;
     free(data);
     return NULL;
 }
@@ -47,27 +86,37 @@ static int has_extension(const char *name, const char *extension)
     return 1;
 }
 
-/* The European ROM of `game` (or its US ROM): `path` itself, or the first file of the directory `path` that is it.
- * Without it, `refused` says why the loader refused the file, or names each file of the directory it refused, and why. */
-static uint8_t *find_rom(const char *path, OraclesGame game, int us, size_t *size, char *found, size_t capacity, char *refused,
-                         size_t refused_capacity)
+/* The ROM of `game` that `language` comes from (rom_at): `path` itself, or the first file of the directory `path` that is
+ * it, a ROM before a patch.  Without it, `refused` says why the loader refused the file, or names each file of the
+ * directory it refused with a reason, and why: a patch not Kaxus's at all is none there. */
+static uint8_t *find_rom(const char *path, OraclesGame game, OraclesLanguage language, const uint8_t *us, size_t us_size, size_t *size, char *found,
+                         size_t capacity, char *refused, size_t refused_capacity)
 {
     DIR *listing = opendir(path);
     if (!listing) {
         snprintf(found, capacity, "%s", path);
-        return rom_at(path, game, us, size, refused, refused_capacity);
+        return rom_at(path, game, language, us, us_size, size, 1, refused, refused_capacity);
     }
     uint8_t *data = NULL;
     struct dirent *entry;
     refused[0] = 0;
-    while (!data && (entry = readdir(listing))) {
-        if (!has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb") && !has_extension(entry->d_name, ".zip")) continue;
-        snprintf(found, capacity, "%s/%s", path, entry->d_name);
-        char why[256];
-        data = rom_at(found, game, us, size, why, sizeof why);
-        const size_t used = strlen(refused);
-        if (!data && why[0] && used < refused_capacity)
-            snprintf(refused + used, refused_capacity - used, "%s%s: %s", used ? "; " : "", entry->d_name, why);
+    /* A directory's ROMs first, then (for Polish) its patches: the patched ROM is the same image, read without the US
+     * ROM's work. */
+    for (int patches = 0; !data && patches <= (language == ORACLES_LANGUAGE_POLISH); patches++) {
+        rewinddir(listing);
+        while (!data && (entry = readdir(listing))) {
+            const int zip = has_extension(entry->d_name, ".zip");
+            if (patches ? !zip && !has_extension(entry->d_name, ".bps") : !zip && !has_extension(entry->d_name, ".gbc") && !has_extension(entry->d_name, ".gb"))
+                continue;
+            if ((size_t)snprintf(found, capacity, "%s/%s", path, entry->d_name) >= capacity) continue;   /* a path past its room names no file */
+            /* A zip goes with the ROMs or with the patches, as it holds one or the other. */
+            if (zip && language == ORACLES_LANGUAGE_POLISH && (oracles_zip_is_patch_file(found) == 1) != patches) continue;
+            char why[256];
+            data = rom_at(found, game, language, us, us_size, size, 0, why, sizeof why);
+            const size_t used = strlen(refused);
+            if (!data && why[0] && used < refused_capacity)
+                snprintf(refused + used, refused_capacity - used, "%s%s: %s", used ? "; " : "", entry->d_name, why);
+        }
     }
     closedir(listing);
     return data;
@@ -89,7 +138,7 @@ static uint8_t *find_us(const char *base, const char *european, OraclesGame game
         else snprintf(directory, sizeof directory, ".");
     }
     char refused[512];
-    uint8_t *data = find_rom(directory, game, 1, size, found, sizeof found, refused, sizeof refused);
+    uint8_t *data = find_rom(directory, game, ORACLES_LANGUAGE_ENGLISH, NULL, 0, size, found, sizeof found, refused, sizeof refused);
     if (!data) snprintf(error, capacity, "a fan game's language needs the US ROM of %s it is made on, with its patch (--patch) or beside its European ROM",
                         oracles_game_name(game));
     return data;
@@ -124,8 +173,10 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
 {
     *out = NULL;
     OraclesLanguage language;
-    if (oracles_language_parse(code, &language) != 0) { snprintf(error, capacity, "--language %s: not a language (en, en-eu, fr, de, it, es)", code); return -1; }
+    if (oracles_language_parse(code, &language) != 0) { snprintf(error, capacity, "--language %s: not a language (en, en-eu, fr, de, it, es, ja, pl)", code); return -1; }
     if (language == ORACLES_LANGUAGE_ENGLISH) return 0;
+    const int japanese = language == ORACLES_LANGUAGE_JAPANESE, polish = language == ORACLES_LANGUAGE_POLISH;
+    const char *edition = japanese ? "Japanese" : polish ? "Polish" : "European";
     const OraclesCompatProfile *profile = oracles_compat_find(info);
     OraclesLanguage own;
     if (oracles_language_image_own(info, &own)) {
@@ -135,6 +186,10 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
     }
     if (!oracles_compat_language_bank(profile)) {
         snprintf(error, capacity, "--language %s plays on the US ROM of Ages or Seasons, or a fan game made on it, which this ROM is not", code);
+        return -1;
+    }
+    if ((japanese || polish) && !oracles_rom_is_original(info)) {
+        snprintf(error, capacity, "--language %s plays on the US ROM of Ages or Seasons, not on a fan game", code);
         return -1;
     }
     const char *name = oracles_compat_name(profile);
@@ -152,22 +207,27 @@ int oracles_language_session_start(OraclesLanguageSession **out, const char *cod
             session->pack = NULL;
             snprintf(reason, sizeof reason, "%s is the language pack of another game", pack_path);
         }
+        if (session->pack && !oracles_language_pack_count(session->pack, language)) {
+            oracles_language_pack_free(session->pack);
+            session->pack = NULL;
+            snprintf(reason, sizeof reason, "%s holds other languages than %s", pack_path, code);
+        }
         if (session->pack) snprintf(session->origin, sizeof session->origin, "read from %s", pack_path);
         else if (!european) return refuse(session, error, capacity, reason);
     }
     if (!session->pack) {
         if (!european) {
-            snprintf(error, capacity, "--language %s needs the European ROM of %s (--eu-rom) or the language pack of %s (--language-pack)", code,
-                     oracles_game_name(info->game), name);
+            snprintf(error, capacity, "--language %s needs the %s ROM of %s%s (--eu-rom) or the language pack of %s (--language-pack)", code, edition,
+                     oracles_game_name(info->game), polish ? " or its patch" : "", name);
             return refuse(session, error, capacity, NULL);
         }
         char found[1100];
         size_t size = 0;
         char refused[512];
-        uint8_t *data = find_rom(european, info->game, 0, &size, found, sizeof found, refused, sizeof refused);
+        uint8_t *data = find_rom(european, info->game, language, rom, rom_size, &size, found, sizeof found, refused, sizeof refused);
         if (!data) {
-            snprintf(error, capacity, "--eu-rom %s: no European ROM of %s there%s%s", european, oracles_game_name(info->game), refused[0] ? ": " : "",
-                     refused);
+            snprintf(error, capacity, "--eu-rom %s: no %s ROM of %s%s there%s%s", european, edition, oracles_game_name(info->game), polish ? " nor its patch" : "",
+                     refused[0] ? ": " : "", refused);
             return refuse(session, error, capacity, NULL);
         }
         session->pack = extract(data, size, found, base_path, info, rom, rom_size, error, capacity);
@@ -282,9 +342,11 @@ void oracles_language_session_report(const OraclesLanguageSession *session, cons
     oracles_guest_language_counts(guest, &served, &english, &missing);
     const OraclesLanguageReport *c = &session->composed;
     if (session->pack)
-        fprintf(out, "%slanguage %s, from the pack of the European ROM %s, %s: %u texts composed, %u kept in English, %u it lacks, "
+        fprintf(out, "%slanguage %s, from the pack of the %s ROM %s, %s: %u texts composed, %u kept in English, %u it lacks, "
                      "%u graphics composed; the game looked up %u texts in the language, %u kept in English, %u it lacks\n",
-                prefix, oracles_language_code(session->language), oracles_language_pack_source(session->pack), session->origin,
+                prefix, oracles_language_code(session->language),
+                session->language == ORACLES_LANGUAGE_JAPANESE ? "Japanese" : session->language == ORACLES_LANGUAGE_POLISH ? "Polish" : "European",
+                oracles_language_pack_source(session->pack), session->origin,
                 c->served, c->english, c->missing, c->graphics, served, english, missing);
     if (session->layout.width)
         fprintf(out, "%s%s text: the %s texts laid out again on %u pixels a line, %u of them, %u kept by their table or a call, %u that did not "

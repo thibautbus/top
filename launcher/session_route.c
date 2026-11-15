@@ -87,7 +87,7 @@ int oracles_session_replay_route(session *s, const OraclesSessionOptions *o, cha
         fprintf(stderr, "oracles: the route was recorded with the %s text speed: the replay plays with it\n", route_instant ? "instant" : "classic");
     s->text_instant = route_instant;
     /* The compact text, a setting of every game: the route's, whatever it is (check_profile refuses it in Faithful). */
-    const int route_compact = oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_TEXT_COMPACT);
+    const int route_compact = oracles_route_has_option(&s->play.header, ORACLES_ROUTE_OPTION_TEXT_COMPACT) && oracles_session_compact_language(o->language);
     if (route_compact != s->compact_text)
         fprintf(stderr, "oracles: the route was recorded with the %s text: the replay plays with it\n", route_compact ? "compact" : "classic");
     s->compact_text = route_compact;

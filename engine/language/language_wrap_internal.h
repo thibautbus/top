@@ -13,6 +13,8 @@ struct language_wrap {
     unsigned width;
     uint8_t name_letter, digit;   /* the widest letter a name may hold, the widest digit */
     int syllables;                /* the language breaks a word by its syllables at a line's end (German, Italian) */
+    int japanese;                 /* Japanese: no hyphen ($2d is the katakana's long mark) nor Latin letter (kana take their codes) */
+    int polish;                   /* Polish: $80 to $88 are its small letters, where the US font has its accented capitals */
     unsigned learned, learned_capacity;
     uint8_t (*words)[LEARNED_BYTES];   /* the words the language writes with a hyphen inside a line, 0-padded */
     unsigned written, written_capacity;   /* a power of two */
@@ -22,6 +24,8 @@ struct language_wrap {
 static inline int is_small(uint8_t c) { return (c >= 'a' && c <= 'z') || c == 0x91u || (c >= 0xa0u && c <= 0xb0u) || (c >= 0xd0u && c <= 0xd8u); }
 static inline int is_capital(uint8_t c) { return (c >= 'A' && c <= 'Z') || (c >= 0x80u && c <= 0x90u) || (c >= 0xc0u && c <= 0xc8u); }
 static inline int is_letter(uint8_t c) { return is_small(c) || is_capital(c); }
+/* A small letter of the layout's language: the Polish letters are, the European font's capitals in their place not. */
+static inline int is_small_in(const language_wrap *wrap, uint8_t c) { return is_small(c) || (wrap->polish && c >= 0x80u && c <= 0x88u); }
 /* A control code's bytes: one for the break and the end, two from the dictionary's on. */
 static inline size_t code_bytes(uint8_t c) { return c >= ORACLES_TEXT_FIRST_CHARACTER || c <= CODE_NEWLINE ? 1u : 2u; }
 

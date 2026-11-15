@@ -2,7 +2,11 @@
  * or a phrase replaced by another in the texts and languages a row names.  Both are written in config/language_own.tsv's
  * syntax (the font's letters in UTF-8, \n, \stop, \col(N), \\, \xNN), so that a phrase may run over a line break or a
  * colour, and a correction may break a line again where the corrected words no longer fit it.  The table is read once
- * per extraction, its words encoded then. */
+ * per extraction, its words encoded then.
+ *
+ * config/language_corrections_pl.tsv corrects Kaxus's Polish the same way, its rows naming Polish alone, its words in
+ * the Polish letters of the Polish ROM's font; a Polish text is corrected before it is checked, so that a correction
+ * may mend a line the Polish ROM writes past the box. */
 #include "language_internal.h"
 
 #include <stdio.h>
@@ -10,6 +14,7 @@
 #include <string.h>
 
 extern const unsigned char oracles_language_corrections[];
+extern const unsigned char oracles_language_corrections_pl[];
 
 #define CODE_DICTIONARY 0x02u        /* codes 2 to 15 take a parameter: 2 to 5 a fragment, which a decoded text has no more */
 #define CODE_FIRST_CHARACTER 0x10u
@@ -62,11 +67,18 @@ static int parse_texts(const char *texts, size_t length, correction_row *row)
     return row->ranges ? 0 : -1;
 }
 
-static int parse_languages(const char *languages, size_t length, unsigned *mask)
+/* The languages a row names: European ones alone, a Japanese pack being made without corrections (a row naming ja
+ * would change nothing); Polish alone in the Polish table (`polish`). */
+static int parse_languages(const char *languages, size_t length, int polish, unsigned *mask)
 {
     *mask = 0;
+    if (polish) {
+        if (length != 2 || memcmp(languages, "pl", 2)) return -1;
+        *mask = 1u << ORACLES_LANGUAGE_POLISH;
+        return 0;
+    }
     if (length == 3 && !memcmp(languages, "all", 3)) {
-        for (unsigned l = ORACLES_LANGUAGE_ENGLISH_EU; l < ORACLES_LANGUAGE_COUNT; l++) *mask |= 1u << l;
+        for (unsigned l = ORACLES_LANGUAGE_ENGLISH_EU; l < ORACLES_LANGUAGE_EUROPEAN_END; l++) *mask |= 1u << l;
         return 0;
     }
     for (const char *at = languages, *end = languages + length; at < end;) {
@@ -76,7 +88,7 @@ static int parse_languages(const char *languages, size_t length, unsigned *mask)
         OraclesLanguage language;
         if (!n || n >= sizeof code) return -1;
         memcpy(code, at, n);
-        if (oracles_language_parse(code, &language) != 0 || language == ORACLES_LANGUAGE_ENGLISH) return -1;
+        if (oracles_language_parse(code, &language) != 0 || language == ORACLES_LANGUAGE_ENGLISH || language >= ORACLES_LANGUAGE_EUROPEAN_END) return -1;
         *mask |= 1u << language;
         at += n + 1u;
     }
@@ -91,18 +103,19 @@ void language_corrections_free(language_corrections *corrections)
     free(corrections);
 }
 
-language_corrections *language_corrections_load(OraclesGame game, char *error, size_t capacity)
+language_corrections *language_corrections_parse(const char *text, int polish, OraclesGame game, char *error, size_t capacity)
 {
     const char *name = game == ORACLES_GAME_AGES ? "ages" : game == ORACLES_GAME_SEASONS ? "seasons" : "";
+    const OraclesLanguage encoding = polish ? ORACLES_LANGUAGE_POLISH : ORACLES_LANGUAGE_ENGLISH_EU;
     language_corrections *c = calloc(1, sizeof *c);
     unsigned lines = 1, number = 0;
-    for (const char *t = (const char *)oracles_language_corrections; *t; t++) lines += *t == '\n';
+    for (const char *t = text; *t; t++) lines += *t == '\n';
     if (!c || !(c->rows = calloc(lines, sizeof *c->rows)) || !(c->applied = calloc(lines, sizeof *c->applied))) {
         snprintf(error, capacity, "out of memory");
         language_corrections_free(c);
         return NULL;
     }
-    for (const char *line = (const char *)oracles_language_corrections; *line;) {
+    for (const char *line = text; *line;) {
         const char *end = strchr(line, '\n');
         if (!end) end = line + strlen(line);
         const char *next = *end ? end + 1 : end;
@@ -113,10 +126,10 @@ language_corrections *language_corrections_load(OraclesGame game, char *error, s
             size_t gl, tl, ll, fl, ol, from_length = 0, to_length = 0;
             correction_row *row = &c->rows[c->count];
             if (field(&at, end, &g, &gl) != 0 || field(&at, end, &t, &tl) != 0 || field(&at, end, &l, &ll) != 0 || field(&at, end, &from, &fl) != 0
-                || field(&at, end, &to, &ol) != 0 || parse_texts(t, tl, row) != 0 || parse_languages(l, ll, &row->languages) != 0
-                || language_text_encode(from, fl, row->from, sizeof row->from, &from_length) != 0 || from_length < 2u
-                || language_text_encode(to, ol, row->to, sizeof row->to, &to_length) != 0) {
-                snprintf(error, capacity, "the corrections' row %u is not one", number);
+                || field(&at, end, &to, &ol) != 0 || parse_texts(t, tl, row) != 0 || parse_languages(l, ll, polish, &row->languages) != 0
+                || language_text_encode_in(encoding, from, fl, row->from, sizeof row->from, &from_length) != 0 || from_length < 2u
+                || language_text_encode_in(encoding, to, ol, row->to, sizeof row->to, &to_length) != 0) {
+                snprintf(error, capacity, "the %scorrections' row %u is not one", polish ? "Polish " : "", number);
                 language_corrections_free(c);
                 return NULL;
             }
@@ -129,6 +142,16 @@ language_corrections *language_corrections_load(OraclesGame game, char *error, s
         line = next;
     }
     return c;
+}
+
+language_corrections *language_corrections_load(OraclesGame game, char *error, size_t capacity)
+{
+    return language_corrections_parse((const char *)oracles_language_corrections, 0, game, error, capacity);
+}
+
+language_corrections *language_corrections_load_polish(OraclesGame game, char *error, size_t capacity)
+{
+    return language_corrections_parse((const char *)oracles_language_corrections_pl, 1, game, error, capacity);
 }
 
 unsigned language_corrections_count(const language_corrections *corrections) { return corrections->count; }

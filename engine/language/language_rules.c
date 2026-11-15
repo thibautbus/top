@@ -28,9 +28,11 @@
 #define COMMAND_OPTION 0x10u     /* \opt */
 #define COMMAND_STOP 0x18u       /* \stop */
 #define COMMAND_NUMBER2 0x30u    /* \num2 */
+#define COMMAND_SPEED 0u         /* the parameter's bits 3-7: the text's speed, */
+#define COMMAND_SLOW 7u          /* and \slow */
 
 static const char *const names[RULE_COUNT] = {
-    "lead", "end-at-pos", "us-call", "shop-price", "join-next", "number-as-more", "option-numbers", "unshown-number", "symbols",
+    "lead", "end-at-pos", "us-call", "shop-price", "join-next", "number-as-more", "option-numbers", "unshown-number", "symbols", "one-digit",
 };
 
 const char *language_rule_name(language_rule rule) { return rule < RULE_COUNT ? names[rule] : "?"; }
@@ -100,9 +102,17 @@ static size_t leading(const uint8_t *t, size_t length)
 
 typedef struct commands { uint16_t list[256]; unsigned count, middle_pos; } commands;
 
+/* Whether a command only draws a glyph or paces the text, which Japanese leaves out of the comparison
+ * (language_same_commands). */
+static int drawn_or_paced(const uint8_t *t, size_t at)
+{
+    return t[at] == CODE_SYMBOL || (t[at] == CODE_COMMAND && (t[at + 1u] >> 3 == COMMAND_SPEED || t[at + 1u] >> 3 == COMMAND_SLOW));
+}
+
 /* The commands of a text that change what the US engine does: not the colours, the hero's names, \stop or the line
- * breaks; a \pos only as the first command; up to a \jump or a cmd8.  `symbols` keeps the \sym, `numbers` the \num. */
-static void effective(const uint8_t *t, size_t length, int symbols, int numbers, commands *c)
+ * breaks; a \pos only as the first command; up to a \jump or a cmd8.  `symbols` keeps the \sym, `numbers` the \num;
+ * `japanese` leaves out what only draws or paces the text. */
+static void effective(const uint8_t *t, size_t length, int symbols, int numbers, int japanese, commands *c)
 {
     c->count = c->middle_pos = 0;
     for (size_t at = 0, n; at < length; at += n) {
@@ -110,6 +120,7 @@ static void effective(const uint8_t *t, size_t length, int symbols, int numbers,
         if (n == 1u) { if (t[at] == CODE_END) break; continue; }
         const uint8_t code = t[at], parameter = t[at + 1u];
         if (code == CODE_COLOUR || (code == CODE_NAME && parameter < 2u) || is_command(t, at, COMMAND_STOP)) continue;
+        if (japanese && drawn_or_paced(t, at)) continue;
         if (is_pos(t, at) && at) { c->middle_pos++; continue; }
         if (code == CODE_SYMBOL && !symbols) continue;
         if ((is_command(t, at, COMMAND_NUMBER) || is_command(t, at, COMMAND_NUMBER2)) && !numbers) continue;
@@ -129,14 +140,62 @@ int language_text_fits(const uint8_t *text, size_t length)
     return oracles_text_longest_line(text, length) <= LINE_CHARACTERS && !(last != (size_t)-1 && text[last] == CODE_NEWLINE);
 }
 
-int language_rule_check(language_rule rule, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length)
+/* language_text_fits, a \num1 one cell (one-digit): a number the US code never sets past 9. */
+static int fits_one_digit(const uint8_t *t, size_t length)
+{
+    unsigned line = 0, longest = 0;
+    size_t last = (size_t)-1;
+    for (size_t at = 0, n; at < body(t, length); at += n) {
+        n = unit(t, length, at);
+        last = at;
+        if (n == 1u && t[at] == CODE_NEWLINE) { line = 0; continue; }
+        if (n == 2u && (t[at] == CODE_JUMP || t[at] == CODE_END_HERE)) break;
+        line += n == 2u && is_command(t, at, COMMAND_NUMBER) ? 1u : width(t, at, n);
+        if (line > longest) longest = line;
+    }
+    return longest <= LINE_CHARACTERS && !(last != (size_t)-1 && t[last] == CODE_NEWLINE);
+}
+
+int language_rule_holds(language_rule rule, OraclesLanguage language, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length)
 {
     commands a, b;
-    const int symbols = rule != RULE_SYMBOLS;
-    effective(us, us_length, symbols, rule != RULE_UNSHOWN_NUMBER, &a);
-    effective(text, length, symbols, 1, &b);
+    const int symbols = rule != RULE_SYMBOLS, japanese = language == ORACLES_LANGUAGE_JAPANESE;
+    effective(us, us_length, symbols, rule != RULE_UNSHOWN_NUMBER, japanese, &a);
+    effective(text, length, symbols, 1, japanese, &b);
     return a.count == b.count && a.count <= sizeof a.list / sizeof a.list[0] && !memcmp(a.list, b.list, a.count * sizeof a.list[0])
-           && b.middle_pos <= a.middle_pos && language_text_fits(text, length);
+           && b.middle_pos <= a.middle_pos && (rule == RULE_ONE_DIGIT ? fits_one_digit(text, length) : language_text_fits(text, length));
+}
+
+int language_rule_check(language_rule rule, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length)
+{
+    return language_rule_holds(rule, ORACLES_LANGUAGE_FRENCH, us, us_length, text, length);
+}
+
+/* The next command of a Japanese text from *at that the comparison keeps, as oracles_text_same_commands keeps them
+ * (every \pos), the \sym and the speed left out: code << 8 | parameter; -1 at its end, or past a \jump or a cmd8. */
+static long next_japanese(const uint8_t *t, size_t length, size_t *at)
+{
+    while (*at < length) {
+        const size_t n = unit(t, length, *at), here = *at;
+        *at += n;
+        if (n == 1u) continue;
+        const uint8_t code = t[here], parameter = t[here + 1u];
+        if (code == CODE_COLOUR || (code == CODE_NAME && parameter < 2u) || is_command(t, here, COMMAND_STOP) || drawn_or_paced(t, here)) continue;
+        if (code == CODE_JUMP || code == CODE_END_HERE) *at = length;
+        return (long)code << 8 | parameter;
+    }
+    return -1;
+}
+
+int language_same_commands(OraclesLanguage language, const uint8_t *us, size_t us_length, const uint8_t *text, size_t length)
+{
+    if (language != ORACLES_LANGUAGE_JAPANESE) return oracles_text_same_commands(us, us_length, text, length);
+    size_t i = 0, k = 0;
+    for (;;) {
+        const long x = next_japanese(us, us_length, &i), y = next_japanese(text, length, &k);
+        if (x != y) return 0;
+        if (x < 0) return 1;
+    }
 }
 
 /* ---- the rules ------------------------------------------------------------------------------------------------- */
@@ -191,7 +250,7 @@ static unsigned numbers(const uint8_t *t, size_t length)
 {
     commands c;
     unsigned count = 0;
-    effective(t, length, 1, 1, &c);
+    effective(t, length, 1, 1, 0, &c);
     for (unsigned i = 0; i < c.count && i < sizeof c.list / sizeof c.list[0]; i++) count += c.list[i] == (CODE_COMMAND << 8 | COMMAND_NUMBER);
     return count;
 }
@@ -203,7 +262,7 @@ static int shop_price(const uint8_t *us, size_t us_length, const uint8_t *t, siz
 {
     const size_t n_body = body(t, length);
     commands c;
-    effective(us, us_length, 1, 1, &c);
+    effective(us, us_length, 1, 1, 0, &c);
     if (c.count > sizeof c.list / sizeof c.list[0]) return -1;   /* more commands than a text of the game has: its last is not kept */
     const int us_jumps = c.count && c.list[c.count - 1u] >> 8 == CODE_JUMP;
     int jumps = 0;
@@ -259,8 +318,9 @@ static int join_next(const uint8_t *t, size_t length, const uint8_t *next, size_
 
 /* The line breaks fitted again after a rule lengthened a line: a line over LINE_CHARACTERS breaks at its last space
  * that fits, and the words put on their own line join the next line when they end with a hyphen that splits a word
- * across the two (a lower-case letter follows). */
-static int fit(builder *b)
+ * across the two (a lower-case letter follows); never in Japanese, whose $2d is the katakana's long mark and whose kana
+ * take the Latin letters' codes. */
+static int fit(OraclesLanguage language, builder *b)
 {
     for (unsigned rounds = 0; rounds < 64u; rounds++) {
         uint8_t *t = b->out;
@@ -281,7 +341,7 @@ static int fit(builder *b)
         /* The words moved: from space + 1 to the line's end; a hyphen there joins them to the next line's word. */
         size_t end = space + 1u;
         while (end < length && !(unit(t, length, end) == 1u && t[end] == CODE_NEWLINE)) end += unit(t, length, end);
-        if (end + 1u < length && end > space + 1u && t[end - 1u] == '-' && is_lower(t[end + 1u])) {
+        if (language != ORACLES_LANGUAGE_JAPANESE && end + 1u < length && end > space + 1u && t[end - 1u] == '-' && is_lower(t[end + 1u])) {
             memmove(t + end - 1u, t + end + 1u, length - end - 1u);
             b->length -= 2u;
         }
@@ -289,18 +349,25 @@ static int fit(builder *b)
     return -1;
 }
 
-/* number-as-more: each \num1 becomes the language's word for "more", the lines fitted again. */
+/* number-as-more: each \num1 becomes the language's word for "more", the lines fitted again.  Japanese counts after its
+ * number ("\num1コまで", up to so many): the word takes the counter's place too. */
 static int number_as_more(OraclesLanguage language, const uint8_t *t, size_t length, builder *b)
 {
-    static const char *const more[ORACLES_LANGUAGE_COUNT] = { "more", "more", "plus", "mehr", "pi\xae", "m\xd2s" };
+    static const char *const more[ORACLES_LANGUAGE_COUNT] = { "more", "more", "plus", "mehr", "pi\xae", "m\xd2s", "\x20\x82\x93\x73", "wi\202cej" };
+    static const char *const counted[ORACLES_LANGUAGE_COUNT] = { "", "", "", "", "", "", "\xb9\x7e\xa4", "" };
     unsigned replaced = 0;
     for (size_t at = 0, n; at < body(t, length); at += n) {
         n = unit(t, length, at);
-        if (n == 2u && is_command(t, at, COMMAND_NUMBER)) { put(b, (const uint8_t *)more[language], strlen(more[language])); replaced++; }
-        else put(b, t + at, n);
+        if (n == 2u && is_command(t, at, COMMAND_NUMBER)) {
+            const size_t counter = strlen(counted[language]);
+            if (counter && (at + 2u + counter > body(t, length) || memcmp(t + at + 2u, counted[language], counter))) return -1;
+            put(b, (const uint8_t *)more[language], strlen(more[language]));
+            n += counter;
+            replaced++;
+        } else put(b, t + at, n);
     }
     if (!replaced || b->bad) return -1;
-    return fit(b);
+    return fit(language, b);
 }
 
 /* The digits following each \opt of a text: where they start and end, by choice. */
@@ -353,7 +420,8 @@ int language_rule_apply(language_rule rule, OraclesLanguage language, const uint
     case RULE_NUMBER_AS_MORE: status = language < ORACLES_LANGUAGE_COUNT ? number_as_more(language, text, length, &b) : -1; break;
     case RULE_OPTION_NUMBERS: status = option_numbers(us, us_length, text, length, &b); break;
     case RULE_UNSHOWN_NUMBER:
-    case RULE_SYMBOLS: put(&b, text, body(text, length)); status = 0; break;
+    case RULE_SYMBOLS:
+    case RULE_ONE_DIGIT: put(&b, text, body(text, length)); status = 0; break;
     case RULE_COUNT: break;
     }
     return status == 0 ? finish(&b, out_length) : -1;

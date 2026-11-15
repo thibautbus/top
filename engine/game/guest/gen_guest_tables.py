@@ -98,6 +98,9 @@ FUNCTIONS = [
     # The instant text: the routine that counts down to the line's next character and reads A and B to skip to the
     # line's end (textbox.s; displayNextTextCharacter is above).
     ("update_character_display_timer", "updateCharacterDisplayTimer"),
+    # A Japanese name in capitals: the text's command that prints a name (textbox.s) and the file select's routine that
+    # copies characters to the VRAM (bank2.s), where the game prints Link's name and the child's.
+    ("text_control_code_name", "handleTextControlCode@controlCodeA"), ("copy_text_characters_from_hl", "copyTextCharactersFromHl"),
 ]
 VARIABLES = [
     ("active_group", "wActiveGroup"), ("active_room", "wActiveRoom"), ("loading_room", "wLoadingRoom"),
@@ -299,6 +302,8 @@ VARIABLES = [
     ("text_address", "w7TextAddress"),   # and where the text thread reads the text (its bank in w7ActiveBank)
     # The instant text: the text's flags, whose bit 0 skips the line to its end, and the frames \slow keeps A and B unread.
     ("text_flags", "w7d0c1"), ("text_slowdown_timer", "w7TextSlowdownTimer"),
+    # A Japanese name in capitals: the two names, and the file select's copy of the files' names (WRAM bank 4, up to w4SecretBuffer).
+    ("link_name", "wLinkName"), ("kid_name", "wKidName"), ("name_buffer", "w4NameBuffer"), ("name_buffer_end", "w4SecretBuffer"),
     ("general_purpose_hram", "hFF8A"), ("general_purpose_hram_end", "hRng1"), ("tmp_cec0", "wTmpcec0"), ("tmp_cec0_end", "wRoomLayout"),
 ]
 # Defines of wram.s expressed as symbol + offset.

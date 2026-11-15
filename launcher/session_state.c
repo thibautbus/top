@@ -143,7 +143,7 @@ static void play_of(void *opaque, const oracles_settings *settings, OraclesState
     out->enhanced = profile == ORACLES_PROFILE_ENHANCED;
     if (!out->enhanced) return;
     out->transitions = o.continuous_transitions || o.continuous_swim || o.continuous_diagonal || o.continuous_steps || o.continuous_line;
-    out->compact = o.compact_text == 2 && oracles_compat_compact_text(s->profile);
+    out->compact = o.compact_text == 2 && oracles_compat_compact_text(s->profile) && oracles_session_compact_language(s->options->language);
     out->wide = o.text_box_wide == 2 && oracles_compat_host_text_box(s->profile);
     const int level = o.view ? o.view - 1 : o.zoom_out ? ORACLES_ENHANCED_FAR : ORACLES_ENHANCED_NEAR;
     if (level != ORACLES_ENHANCED_NEAR && !oracles_compat_zoom_out(s->profile)) surface = oracles_session_view_size(&o, ORACLES_ENHANCED_NEAR);

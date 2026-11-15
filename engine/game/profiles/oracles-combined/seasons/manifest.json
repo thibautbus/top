@@ -1314,7 +1314,13 @@
   "treasure_object_lists_end": {
    "bank": 21,
    "address": "0x665a"
-  }
+  },
+  "text_control_code_name": null,
+  "copy_text_characters_from_hl": null,
+  "link_name": null,
+  "kid_name": null,
+  "name_buffer": null,
+  "name_buffer_end": null
  },
  "guest_table_absent": {
   "run_room_specific_code": "an Ages symbol: Seasons' engine, which this half keeps, has none",
@@ -1326,7 +1332,13 @@
   "num_placed_slates": "a fan game's symbol: neither half has it",
   "link_raised_floor_offset": "an Ages symbol: Seasons' engine, which this half keeps, has none",
   "maku_tree_tileset_room_flags": "an Ages symbol: Seasons' engine, which this half keeps, has none",
-  "veran_room_flags": "an Ages symbol: Seasons' engine, which this half keeps, has none"
+  "veran_room_flags": "an Ages symbol: Seasons' engine, which this half keeps, has none",
+  "text_control_code_name": "Japanese names in capitals: Japanese is not served in Oracles Combined",
+  "copy_text_characters_from_hl": "Japanese names in capitals: Japanese is not served in Oracles Combined",
+  "link_name": "Japanese names in capitals: Japanese is not served in Oracles Combined",
+  "kid_name": "Japanese names in capitals: Japanese is not served in Oracles Combined",
+  "name_buffer": "Japanese names in capitals: Japanese is not served in Oracles Combined",
+  "name_buffer_end": "Japanese names in capitals: Japanese is not served in Oracles Combined"
  },
  "guest_table_sizes": {
   "global_flags_size": 16,

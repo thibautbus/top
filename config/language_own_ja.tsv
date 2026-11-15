@@ -1,0 +1,33 @@
+# The port's own Japanese texts, unofficial: the US texts the Japanese ROMs have no text of, written for the port in the
+# game's register (config/language_exceptions_*_ja.tsv says which texts take them). A row: a key, the language (ja),
+# the text, as in config/language_own.tsv: the Japanese font's characters as UTF-8 (kana; full-width letters, digits
+# and marks, an ASCII one standing for its full-width form; no lower-case letter), the kanji of the game's kanji font,
+# \n a line break, \stop the end of a box, \col(N) a colour (N hexadecimal), \\ a backslash, \xNN any other byte. A
+# line holds sixteen characters at most.
+# Ages' Goron fortune teller (TX_3142-TX_3159): an opening for the future, then each fortune, which calls it (\x0f\x42),
+# the same for the past (\x0f\x4e).
+# key	language	text
+fortune-future	ja	キミの　さだめが\n見えるゴロ・・・\stop\nゴロンの　せいれいよ\nすべてを　見せたまえ！\stop\nおおっ！！
+fortune-future-plain	ja	\x0f\x42\stop\nとおい　みらいの\nキミが　見えるゴロ\nしらない　へいげんを\nたびしているゴロ！
+fortune-future-maze	ja	\x0f\x42\stop\n時のながれを　こえて\nひろい　めいろを\nたんけんする　キミが\n見えるゴロ！
+fortune-future-dance	ja	\x0f\x42\stop\n\col(03)カリスマゴロン\col(00)と\nむちゅうで　おどる\nキミが　見えるゴロ！
+fortune-future-balls	ja	\x0f\x42\stop\nとんでくる　たまを\n\col(01)剣\col(00)で　つぎつぎ\nうちかえす　キミが\n見えるゴロ！
+fortune-future-drink	ja	\x0f\x42\stop\nとおい　みらいの\nキミが　見えるゴロ\nねむそうな　ゴロンに\nゲンキの出る　のみものを\nあげているゴロ！
+fortune-future-vase	ja	\x0f\x42\stop\nめずらしい　ものを\nさがす　ゴロンに\nふしぎな　\col(01)つぼ\col(00)を\nあげる　キミが\n見えるゴロ！
+fortune-future-food	ja	\x0f\x42\stop\nとおい　みらいの\nキミが　見えるゴロ\nおなかを　すかせた\nゴロンに　たべものを\nあげているゴロ！
+fortune-future-cart	ja	\x0f\x42\stop\nとおい　みらいの\nキミが　見えるゴロ\nふしぎな　のりものに\nのって　まわりのものを\nうちまくっているゴロ！
+fortune-future-dancing	ja	\x0f\x42\stop\nむちゅうで　おどる\nキミが　見えるゴロ！
+fortune-future-hot	ja	\x0f\x42\stop\n\col(03)カリスマゴロン\col(00)の\nともだちに　あつい\nものを　あげる　キミが\n見えるゴロ！
+fortune-future-bombs	ja	\x0f\x42\stop\nとおい　みらいの\nキミが　見えるゴロ\nまわりに　ふってくる\nバクダンを　よけているゴロ！
+fortune-past	ja	キミの　さだめが\n見えるゴロ・・・\stop\nゴロンの　せいれいよ\nすべてを　見せたまえ！\stop\nなんと！　すごいゴロ！
+fortune-past-plain	ja	\x0f\x4e\stop\nしらない　へいげんを\nたびする　キミが\n見えるゴロ！
+fortune-past-maze	ja	\x0f\x4e\stop\n時のながれを　こえて\nひろい　めいろを\nたんけんする　キミが\n見えるゴロ！
+fortune-past-dance	ja	\x0f\x4e\stop\nとおい　かこの\nキミが　見えるゴロ\n\col(03)カリスマゴロン\col(00)と\nむちゅうで　おどって\nいるゴロ！
+fortune-past-balls	ja	\x0f\x4e\stop\nとおい　かこの\nキミが　見えるゴロ\nとんでくる　たまを\n\col(01)剣\col(00)で　つぎつぎ\nうちかえしているゴロ！
+fortune-past-drink	ja	\x0f\x4e\stop\nねむそうな　ゴロンに\nゲンキの出る　のみものを\nあげる　キミが\n見えるゴロ！
+fortune-past-vase	ja	\x0f\x4e\stop\nとおい　かこの\nキミが　見えるゴロ\nめずらしい　ものを\nさがす　ゴロンに\nふしぎな　\col(01)つぼ\col(00)を\nあげているゴロ！
+fortune-past-food	ja	\x0f\x4e\stop\nおなかを　すかせた\nゴロンに　たべものを\nあげる　キミが\n見えるゴロ！
+fortune-past-cart	ja	\x0f\x4e\stop\nふしぎな　のりものに\nのって　まわりのものを\nうちまくる　キミが\n見えるゴロ！
+fortune-past-dancing	ja	\x0f\x4e\stop\nむちゅうで　おどる\nキミが　見えるゴロ！
+fortune-past-hot	ja	\x0f\x4e\stop\nとおい　かこの\nキミが　見えるゴロ\n\col(03)カリスマゴロン\col(00)の\nともだちに　あつい\nものを　あげているゴロ！
+fortune-past-bombs	ja	\x0f\x4e\stop\nまわりに　ふってくる\n\col(01)バクダン\col(00)を　よける\nキミが　見えるゴロ！

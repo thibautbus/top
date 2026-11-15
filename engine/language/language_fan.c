@@ -114,6 +114,10 @@ OraclesLanguagePack *oracles_language_pack_derive(const OraclesLanguagePack *bas
         snprintf(error, capacity, "the US ROM is not the one the language pack of %s translates", oracles_game_name(base->game));
         return NULL;
     }
+    if (base->count[ORACLES_LANGUAGE_JAPANESE] || base->count[ORACLES_LANGUAGE_POLISH]) {
+        snprintf(error, capacity, "a fan game plays in the languages of the European ROM, not in %s", base->count[ORACLES_LANGUAGE_JAPANESE] ? "Japanese" : "Polish");
+        return NULL;
+    }
     if (oracles_rom_identify(image, size, &info, error, capacity) != 0) return NULL;
     if (language_target_of(info.sha1, &target) != 0 || target.original || target.game != base->game || target.halves > 1u) {
         snprintf(error, capacity, "not a fan game made on %s whose texts the port knows (SHA-1 %s)", oracles_game_name(base->game), info.sha1);
@@ -128,7 +132,7 @@ OraclesLanguagePack *oracles_language_pack_derive(const OraclesLanguagePack *bas
         for (int index = 0; index < count; index++) {
             const unsigned id = (group - ORACLES_TEXT_DICTIONARY_GROUPS) << 8 | (unsigned)index;
             const int from = us_identifier(&f, group, (unsigned)index, id);
-            for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+            for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
                 OraclesLanguageSource source = ORACLES_LANGUAGE_SOURCE_FAN;
                 size_t translated_length = 0;
                 const uint8_t *translated = from < 0 ? NULL : oracles_language_pack_text(base, language, (unsigned)from, &translated_length);

@@ -3,8 +3,8 @@
  * a call, a secret and lines aligned with spaces left as they are; a word too wide for a line; a word broken at a hyphen
  * joined again in German and Italian, a capital after it or a word the language writes with it keeping the hyphen, and
  * broken there again when it must; a compound's hyphen kept in English, French and Spanish, but in a word they write
- * whole; a line measured with a symbol on its tile, two colours in a tile, a name and a number at their widest;
- * a text after its \jump as it is; the texts called within a line; the table of kept texts. */
+ * whole; never a hyphen in Japanese; Polish's small letters where the European font has capitals; a line measured with a symbol on its tile, two colours in a tile, a name and a
+ * number at their widest; a text after its \jump as it is; the texts called within a line; the table of kept texts. */
 #include "language_internal.h"
 
 #include <stdio.h>
@@ -136,6 +136,28 @@ static void test_compounds(void)
         CHECK(wrap && wrapped(wrap, "hot lava-\x01" "like\x01" "bb\x01" "cc", out, &n) == WRAP_DONE && same(out, n, "hot lavalike bb cc"));
         language_wrap_free(wrap);
     }
+    /* In Japanese $2d is the katakana's long mark and the kana take the Latin letters' codes: a line's end after it
+     * joins with a space, as any other, and two of them make no dash. */
+    language_wrap *japanese = language_wrap_new(&font, WIDTH, ORACLES_LANGUAGE_JAPANESE);
+    char out[ORACLES_TEXT_MAX];
+    size_t n = 0;
+    if (japanese) language_wrap_learn(japanese, (const uint8_t *)written, strlen(written) + 1u);
+    CHECK(japanese && wrapped(japanese, "\xa4\x85-\x01" "\xaa\x83\x01" "bb\x01" "cc", out, &n) == WRAP_DONE && same(out, n, "\xa4\x85- \xaa\x83 bb cc"));
+    CHECK(japanese && wrapped(japanese, "aa--\x01" "bb\x01" "cc\x01" "dd", out, &n) == WRAP_DONE && same(out, n, "aa-- bb cc dd"));
+    CHECK(japanese && wrapped(japanese, "hot lava-\x01" "like\x01" "bb\x01" "cc", out, &n) == WRAP_DONE && same(out, n, "hot lava- like bb cc"));
+    language_wrap_free(japanese);
+    /* In Polish $80 to $88 are small letters (ą to ź) where the European font has its accented capitals: a word broken
+     * before one is joined as before any small letter, its hyphen dropped; a compound it writes with one keeps it.  In
+     * French, before a capital, the hyphen stays. */
+    static const char *const broken = "a ra\x88ni-\x01" "\x83" "ci\x80!\x01" "bb\x01" "cc";
+    language_wrap *polish = language_wrap_new(&font, WIDTH, ORACLES_LANGUAGE_POLISH), *french = language_wrap_new(&font, WIDTH, ORACLES_LANGUAGE_FRENCH);
+    const char *goron = "z Goro i tance";
+    if (polish) language_wrap_learn(polish, (const uint8_t *)goron, strlen(goron) + 1u);
+    CHECK(polish && wrapped(polish, broken, out, &n) == WRAP_DONE && same(out, n, "a ra\x88ni\x83" "ci\x80! bb cc"));
+    CHECK(polish && wrapped(polish, "Goro-\x01" "tance!\x01" "bb\x01" "cc", out, &n) == WRAP_DONE && same(out, n, "Goro-tance! bb cc"));
+    CHECK(french && wrapped(french, broken, out, &n) == WRAP_DONE && same(out, n, "a ra\x88ni-\x83" "ci\x80! bb cc"));
+    language_wrap_free(polish);
+    language_wrap_free(french);
 }
 
 static void test_measure(const language_wrap *wrap)

@@ -5,9 +5,13 @@
  * language is refused, with the loader's reason for a European ROM it refuses (a zip of two ROMs, a zip cut short); a
  * pack that cannot be written serves all the same, and the session says so.  The compact text's layout: English (US)
  * composed laid out, a language's identity with the layout's, the European ROM refused.  Oracles Combined, without its
- * ROMs: a language refused, its own laid out. */
+ * ROMs: a language refused, its own laid out.  Japanese from the Japanese ROM; Polish from Kaxus's patch of the
+ * directory, applied to the US ROM, or the Polish ROM it makes, the same pack either way, every text in Polish; the
+ * patch of the other game, or one cut short or damaged, refused with the reason. */
+#include "bps.h"
 #include "language_internal.h"
 #include "language_session.h"
+#include "sha1.h"
 
 #include <dirent.h>
 #include <stdio.h>
@@ -88,7 +92,7 @@ static const char *report(const OraclesLanguageSession *session)
 {
     static char text[4096];
     text[0] = 0;
-    FILE *f = tmpfile();
+    FILE *f = session ? tmpfile() : NULL;
     if (!f) return text;
     oracles_language_session_report(session, NULL, "", f);
     rewind(f);
@@ -296,6 +300,153 @@ int main(int argc, char **argv)
     CHECK(start(&session, NULL, pack, &info, &ages, error, sizeof error) == 0 && session != NULL);
     CHECK(oracles_language_session_lay_out(&session, &fan_info, &compact, error, sizeof error) == -1 && strstr(error, "English alone"));
     oracles_language_session_stop(session);
+
+    /* Japanese, from the Japanese ROM found in the directory given beside the European one: a pack of its own; without
+     * the Japanese ROM, said; a pack of the European ROM's languages given, extracted again; a fan game, refused. */
+    rom_file ages_jp = find(dir, ORACLES_ROM_REVISION_AGES_JP);
+    if (ages_jp.data) {
+        char jp_path[1100], jp_pack[1100];
+        snprintf(jp_path, sizeof jp_path, "%s/ages-jp.gbc", eu_dir);
+        snprintf(jp_pack, sizeof jp_pack, "%s/language-session-ages-ja.pack", work);
+        remove(jp_pack);
+        CHECK(write_file(jp_path, ages_jp.data, ages_jp.size));
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "ja", empty, jp_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "no Japanese ROM of Oracle of Ages"));
+        CHECK(oracles_language_session_start(&session, "ja", NULL, jp_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "needs the Japanese ROM"));
+        CHECK(oracles_language_session_start(&session, "ja", eu_dir, jp_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session);
+        CHECK(strstr(report(session), "pack of the Japanese ROM") && strstr(report(session), "extracted from") && strstr(report(session), "ages-jp.gbc"));
+        CHECK(!strncmp(oracles_language_session_identity(session), "language-ja@", 12));
+        image = malloc(ages.size);
+        size = ages.size;
+        if (image) memcpy(image, ages.data, ages.size);
+        CHECK(image && oracles_language_session_compose(session, &image, &size, error, sizeof error) == 0);
+        CHECK(image && !memcmp(image + (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u + ORACLES_LANGUAGE_INDEX_CODE, "ja\0", 3));
+        free(image);
+        oracles_language_session_stop(session);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "ja", NULL, jp_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && strstr(report(session), "read from"));
+        oracles_language_session_stop(session);
+        session = NULL;
+        CHECK(start(&session, NULL, jp_pack, &info, &ages, error, sizeof error) == -1 && strstr(error, "holds other languages than fr"));
+        CHECK(oracles_language_session_start(&session, "ja", eu_dir, pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && strstr(report(session), "holds other languages than ja"));
+        oracles_language_session_stop(session);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "ja", eu_dir, NULL, NULL, &fan_info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "not on a fan game"));
+        remove(jp_path);
+        remove(jp_pack);
+        free(ages_jp.data);
+    } else printf("language-session: no Japanese ROM of Ages in ORACLES_ROM_DIR: the Japanese part skipped\n");
+
+    /* Polish, from Kaxus's patch found in a directory, given itself, or the Polish ROM it makes: the same pack; the
+     * patch of the other game, one cut short or damaged, or no patch, said; a fan game, refused. */
+    rom_file patch = { NULL, 0 }, seasons_patch = { NULL, 0 };
+    DIR *listing = opendir(dir);
+    for (struct dirent *entry; listing && (entry = readdir(listing));) {
+        const size_t n = strlen(entry->d_name);
+        if (n < 4 || strcmp(entry->d_name + n - 4, ".bps")) continue;
+        char path[1100], sha1[41];
+        snprintf(path, sizeof path, "%s/%s", dir, entry->d_name);
+        size_t patch_size = 0;
+        uint8_t *data = oracles_bps_read_file(path, &patch_size, error, sizeof error);
+        if (data) oracles_sha1_hex(data, patch_size, sha1);
+        const OraclesGame game = data ? oracles_language_patch_game(sha1, ORACLES_LANGUAGE_POLISH) : ORACLES_GAME_UNKNOWN;
+        if (game == ORACLES_GAME_AGES && !patch.data) patch = (rom_file){ data, patch_size };
+        else if (game == ORACLES_GAME_SEASONS && !seasons_patch.data) seasons_patch = (rom_file){ data, patch_size };
+        else free(data);
+    }
+    if (listing) closedir(listing);
+    if (patch.data && seasons_patch.data) {
+        char pl_dir[1100], pl_path[1200], pl_rom[1200], other_dir[1100], other_path[1200], kaxus_path[1200], pl_pack[1100], digest[64];
+        snprintf(pl_dir, sizeof pl_dir, "%s/language-session-pl", work);
+        snprintf(pl_path, sizeof pl_path, "%s/Oracle of Ages - Patch PL.BPS", pl_dir);
+        snprintf(pl_rom, sizeof pl_rom, "%s/ages-pl.gbc", work);
+        snprintf(other_dir, sizeof other_dir, "%s/language-session-pl-other", work);
+        snprintf(other_path, sizeof other_path, "%s/seasons.bps", other_dir);
+        snprintf(kaxus_path, sizeof kaxus_path, "%s/kaxus-seasons.bps", other_dir);
+        snprintf(pl_pack, sizeof pl_pack, "%s/language-session-ages-pl.pack", work);
+        make_dir(pl_dir);
+        make_dir(other_dir);
+        remove(pl_pack);
+        CHECK(write_file(pl_path, patch.data, patch.size) && write_file(other_path, seasons_patch.data, seasons_patch.size));
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", NULL, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "needs the Polish ROM of Oracle of Ages or its patch"));
+        CHECK(oracles_language_session_start(&session, "pl", empty, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "no Polish ROM of Oracle of Ages nor its patch"));
+        CHECK(oracles_language_session_start(&session, "pl", other_dir, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "no Polish ROM of Oracle of Ages nor its patch")
+              && strstr(error, "seasons.bps: this is Kaxus's patch of Oracle of Seasons, not of Oracle of Ages"));
+        CHECK(oracles_language_session_start(&session, "pl", other_path, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "this is Kaxus's patch of Oracle of Seasons, not of Oracle of Ages"));
+        /* The patch cut short, or a byte of it changed: not Kaxus's, said with its SHA-1 given itself; in a directory, among
+         * other games' patches, not named, Kaxus's patch of the other game alone. */
+        CHECK(write_file(other_path, patch.data, patch.size / 2u));
+        CHECK(oracles_language_session_start(&session, "pl", other_path, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "not Kaxus's patch of Oracle of Ages: damaged, cut short or another patch (SHA-1 "));
+        patch.data[patch.size / 2u] ^= 0x01u;
+        CHECK(write_file(other_path, patch.data, patch.size));
+        patch.data[patch.size / 2u] ^= 0x01u;
+        CHECK(oracles_language_session_start(&session, "pl", other_dir, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "no Polish ROM of Oracle of Ages nor its patch there") && !strstr(error, "seasons.bps"));
+        CHECK(write_file(kaxus_path, seasons_patch.data, seasons_patch.size));
+        CHECK(oracles_language_session_start(&session, "pl", other_dir, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "nor its patch there: kaxus-seasons.bps: this is Kaxus's patch of Oracle of Seasons, not of Oracle of Ages")
+              && !strstr(error, "not Kaxus's"));
+        remove(kaxus_path);
+        CHECK(oracles_language_session_start(&session, "pl", pl_dir, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session);
+        CHECK(strstr(report(session), "pack of the Polish ROM 58da91d033bec3a11670dcfb07ac2d7c1b357aa6") && strstr(report(session), "Patch PL.BPS"));
+        snprintf(digest, sizeof digest, "%s", session ? oracles_language_session_identity(session) : "");
+        CHECK(!strncmp(digest, "language-pl@", 12));
+        image = malloc(ages.size);
+        size = ages.size;
+        if (image) memcpy(image, ages.data, ages.size);
+        CHECK(image && session && oracles_language_session_compose(session, &image, &size, error, sizeof error) == 0);
+        CHECK(image && !memcmp(image + (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u + ORACLES_LANGUAGE_INDEX_CODE, "pl\0", 3));
+        /* Every text in Polish, the lines its corrections mend among them: none kept in English, none missing. */
+        CHECK(strstr(report(session), " texts composed, 0 kept in English, 0 it lacks,"));
+        free(image);
+        oracles_language_session_stop(session);
+        /* The patch itself, then the Polish ROM it makes: the same pack, extracted again each time. */
+        remove(pl_pack);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", pl_path, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && !strcmp(oracles_language_session_identity(session), digest));
+        oracles_language_session_stop(session);
+        size_t made_size = 0;
+        uint8_t *made = oracles_bps_apply(ages.data, ages.size, patch.data, patch.size, &made_size, error, sizeof error);
+        CHECK(made && write_file(pl_rom, made, made_size));
+        free(made);
+        remove(pl_pack);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", pl_rom, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && !strcmp(oracles_language_session_identity(session), digest) && strstr(report(session), "ages-pl.gbc"));
+        oracles_language_session_stop(session);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", NULL, pl_pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && strstr(report(session), "read from") && !strcmp(oracles_language_session_identity(session), digest));
+        oracles_language_session_stop(session);
+        /* The European pack holds other languages: Polish extracted again over it. */
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", pl_dir, pack, NULL, &info, ages.data, ages.size, error, sizeof error) == 0 && session
+              && strstr(report(session), "holds other languages than pl"));
+        oracles_language_session_stop(session);
+        session = NULL;
+        CHECK(oracles_language_session_start(&session, "pl", pl_dir, NULL, NULL, &fan_info, ages.data, ages.size, error, sizeof error) == -1
+              && strstr(error, "--language pl plays on the US ROM of Ages or Seasons, not on a fan game"));
+        remove(pl_path);
+        remove(pl_rom);
+        remove(pl_pack);
+        remove(other_path);
+        remove(pl_dir);
+        remove(other_dir);
+    } else printf("language-session: no Polish patches of Kaxus in ORACLES_ROM_DIR: the Polish part skipped\n");
+    free(patch.data);
+    free(seasons_patch.data);
 
     remove(pack);
     remove(eu_path);

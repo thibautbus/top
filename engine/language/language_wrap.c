@@ -71,6 +71,8 @@ language_wrap *language_wrap_new(const OraclesTextFont *font, unsigned width, Or
     wrap->font = *font;
     wrap->width = width;
     wrap->syllables = language == ORACLES_LANGUAGE_GERMAN || language == ORACLES_LANGUAGE_ITALIAN;
+    wrap->japanese = language == ORACLES_LANGUAGE_JAPANESE;
+    wrap->polish = language == ORACLES_LANGUAGE_POLISH;
     wrap->name_letter = wrap->digit = '0';
     /* A name is written on the US name screen: ASCII. */
     for (unsigned c = SPACE + 1u; c < 0x7fu; c++)
@@ -313,12 +315,12 @@ static int words_of(const language_wrap *wrap, const uint8_t *text, size_t from,
         while (at < to && text[at] != SPACE && text[at] != CODE_NEWLINE) {
             const uint8_t c = text[at];
             hyphen = 0;
-            dash = c == HYPHEN && previous == HYPHEN;
+            dash = !wrap->japanese && c == HYPHEN && previous == HYPHEN;
             if (is_letter(c)) {
                 if (!in_run) run = at;
                 in_run = 1;
             } else {
-                hyphen = c == HYPHEN && in_run;
+                hyphen = !wrap->japanese && c == HYPHEN && in_run;
                 if (hyphen) letters = run;
                 in_run = 0;
             }
@@ -351,7 +353,7 @@ static int words_of(const language_wrap *wrap, const uint8_t *text, size_t from,
                 const int own = language_wrap_learned(wrap, joined, n) || language_wrap_learned_tail(wrap, joined + tail, n - tail);
                 const int broken = wrap->syllables || (tail && language_wrap_written_whole(wrap, joined, tail - 1u, joined + tail, n - tail))
                     || (tail && n > tail && !language_wrap_written_whole(wrap, joined, tail - 1u, NULL, 0) && !language_wrap_written_whole(wrap, joined + tail, n - tail, NULL, 0));
-                p->after[w] = is_small(next) && !own && broken ? GAP_SOFT : GAP_HARD;
+                p->after[w] = is_small_in(wrap, next) && !own && broken ? GAP_SOFT : GAP_HARD;
             } else if (gap_end == at && dash) p->after[w] = GAP_HARD;   /* a dash of two hyphens: the line goes on without a space */
             line_start = 1;
             at = gap_end + 1u;

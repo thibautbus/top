@@ -136,6 +136,10 @@ typedef struct OraclesGuestTables {
     /* The host's text box: the routine that queues a line's copy to the VRAM, the vblank's function that runs a queued
      * DMA, the box's place in the VRAM's map and the frames left before the line's next column shows, where the text is read (WRAM bank 7). */
     OraclesGuestSym dma_text_gfx_buffer, vblank_dma_function, textbox_vram_pos, character_display_timer, text_address;
+    /* A Japanese name in capitals: the text's command that prints Link's name and the child's (handleTextControlCode's
+     * \Link and \Child, textbox.s), the file select's routine that copies characters to the VRAM (copyTextCharactersFromHl,
+     * bank2.s), the two names, and the file select's copy of the files' names (WRAM bank 4, up to w4SecretBuffer). */
+    OraclesGuestSym text_control_code_name, copy_text_characters_from_hl, link_name, kid_name, name_buffer, name_buffer_end;
     /* The instant text: the routine that counts down to the line's next character and reads A and B to skip to the
      * line's end (textbox.s), the text's flags (w7d0c1, bit 0 that skip) and the frames \slow keeps A and B unread. */
     OraclesGuestSym update_character_display_timer, text_flags, text_slowdown_timer;

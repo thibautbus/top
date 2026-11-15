@@ -281,6 +281,12 @@ static int failed(OraclesSessionResult *result, const char *format, ...)
     return 0;
 }
 
+int oracles_session_compact_language(const char *language)
+{
+    OraclesLanguage parsed;
+    return !language || oracles_language_parse(language, &parsed) != 0 || oracles_language_compact_text(parsed);
+}
+
 /* The compact text lays the texts out again where the language is composed, before the route's replay and the
  * profile's checks settle the option: decided here as they will settle it, from a replayed route's options (the
  * compact text and, which turn Enhanced on, the transitions'); English (US) is then composed too.  A compact text the
@@ -291,7 +297,7 @@ static int lay_out_texts(session *s, const OraclesSessionOptions *o, OraclesSess
     OraclesRoute recorded;
     char error[256];
     if (o->play_path && oracles_route_read(o->play_path, &recorded, error, sizeof error) == 0) {
-        compact = oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_TEXT_COMPACT);
+        compact = oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_TEXT_COMPACT) && oracles_session_compact_language(o->language);
         wide = oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE);
         enhanced |= oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_TRANSITIONS)
                   || oracles_route_has_option(&recorded.header, ORACLES_ROUTE_OPTION_CONTINUOUS_SWIM)
@@ -310,7 +316,7 @@ static int lay_out_texts(session *s, const OraclesSessionOptions *o, OraclesSess
  * copy and never touches the session's save; a recorded route stores a copy next to it. */
 static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionResult *result)
 {
-    char error[256];
+    char error[512];
     /* A fan game: the base ROM and its patch, the image built here at each start and never written. */
     s->rom = o->patch_path ? oracles_bps_apply_joined_files(o->rom_path, o->joined_path, o->patch_path, &s->rom_size, error, sizeof error)
                            : oracles_rom_read_file(o->rom_path, &s->rom_size, error, sizeof error);
@@ -825,6 +831,11 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
     s->pause_cheats = 0;
     s->swim_setting = s->hotkeys_game = s->window_setting = s->window_line = -1;
     s->compact_text = o->compact_text == 2;
+    /* Japanese keeps the classic text: the compact one cuts the lines at spaces, which its words have not between them. */
+    if (s->compact_text && !oracles_session_compact_language(o->language)) {
+        fprintf(stderr, "oracles: the compact text does not lay out %s; this game plays with the classic text\n", o->language);
+        s->compact_text = 0;
+    }
     s->text_box_wide = o->text_box_wide == 2;
     /* The view's level (--view, Display's View; --zoom-out is far, --enhanced alone near); its size is the options'
      * shape, the screen's, a window taking the surface's, and far fitted to the screen (docs/REFERENCE.md). */

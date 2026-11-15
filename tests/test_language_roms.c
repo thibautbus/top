@@ -9,10 +9,14 @@
  * leaves to it; each language, English (US) included, laid out for the compact text, every text laid out again
  * checked and the boxes counted; and each fan game's compact text: its routines the US ones, its English laid out
  * and checked the same way; and each image of Oracles Combined made by a patch of the directory on the European ROMs,
- * which holds its own language, its texts laid out in it a half at a time.  Exit 77 when the directory holds no game's
- * ROMs. */
+ * which holds its own language, its texts laid out in it a half at a time; Japanese from each Japanese ROM, every
+ * US text served, its font the Japanese ROM's, the graphics of the screens it draws in Japanese loaded from the composed
+ * image as the Japanese ROM loads them, its title's colours and sprites; and Polish from each Polish ROM, or from Kaxus's patch of the directory
+ * applied to the US ROM, every US text served, its corrections made, the graphics of the screens it translates loaded
+ * from the composed image as the Polish ROM loads them.  Exit 77 when the directory holds no game's ROMs. */
 #include "bps.h"
 #include "guest.h"
+#include "sha1.h"
 #include "language_internal.h"
 #include "profile.h"
 
@@ -307,7 +311,7 @@ static void check_graphics(const char *name, OraclesGame game, const OraclesLang
             if (!(x[5] & 0x80u)) break;
         }
     }
-    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
         const unsigned count = oracles_language_pack_graphic_count(pack, language);
         static char replaced[4096];
         replaced[0] = 0;
@@ -397,7 +401,7 @@ static void check_composed(const char *name, OraclesGame game, const OraclesLang
     size_t size = 0;
     OraclesLanguageReport report;
     CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_ENGLISH, us->data, us->size, NULL, &image, &size, &report, error, sizeof error) == -1 && !image);
-    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
         CHECK(oracles_language_compose(pack, language, us->data, us->size, NULL, &image, &size, &report, error, sizeof error) == 0);
         if (!image) continue;
         CHECK(size == 2u * us->size && us->size == sizeof allowed);
@@ -581,7 +585,7 @@ static void check_layout(const char *name, OraclesGame game, const OraclesLangua
     OraclesRomInfo info;
     char error[256];
     CHECK(oracles_rom_identify(us->data, us->size, &info, error, sizeof error) == 0);
-    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH; language < ORACLES_LANGUAGE_COUNT; language++) {
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
         uint8_t *image = NULL, *classic = NULL;
         size_t size = 0, classic_size = 0;
         OraclesLanguageReport report, plain;
@@ -869,7 +873,7 @@ static void check_fans(const char *dir, const char *work, const OraclesLanguageP
                 else if (source == ORACLES_LANGUAGE_SOURCE_FAN) own++;
                 else elsewhere++;
                 /* Translated, the fan game's text's commands, as the US text's are its own. */
-                for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+                for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
                     size_t translated_length = 0;
                     const unsigned id = (g - ORACLES_TEXT_DICTIONARY_GROUPS) << 8 | (unsigned)i;
                     const uint8_t *translated = oracles_language_pack_text(pack, language, id, &translated_length);
@@ -888,13 +892,13 @@ static void check_fans(const char *dir, const char *work, const OraclesLanguageP
         for (unsigned n = 0; n < oracles_language_pack_count(pack, ORACLES_LANGUAGE_FRENCH); n++) {
             unsigned id = 0, every = 1;
             oracles_language_pack_nth(pack, ORACLES_LANGUAGE_FRENCH, n, &id, NULL, NULL);
-            for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++)
+            for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++)
                 every &= oracles_language_pack_text(pack, language, id, NULL) != NULL;
             shared += every;
         }
         CHECK(oracles_language_pack_count(pack, ORACLES_LANGUAGE_FRENCH) == texts && shared == same_id + elsewhere);
         const size_t first = (size_t)oracles_compat_language_bank(profile) * 0x4000u, font = oracles_rom_offset(t->font_start.bank, t->font_start.addr);
-        for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+        for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
             unsigned counts[ORACLES_LANGUAGE_SOURCE_COUNT];
             oracles_language_pack_tally(pack, language, counts);
             const unsigned translated = counts[ORACLES_LANGUAGE_SOURCE_SAME] + counts[ORACLES_LANGUAGE_SOURCE_MOVED] + counts[ORACLES_LANGUAGE_SOURCE_ADAPTED]
@@ -1190,7 +1194,7 @@ static int check_game(const char *dir, const char *work, const expected *e)
     const OraclesRom us_rom = { us.data, us.size };
     OraclesTextSource source;
     CHECK(language_source_us(&us_rom, game, &source) == 0);
-    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_COUNT; language++) {
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) {
         const unsigned count = oracles_language_pack_count(pack, language);
         unsigned counts[ORACLES_LANGUAGE_SOURCE_COUNT], long_lines = 0, unheld = 0;
         oracles_language_pack_tally(pack, language, counts);
@@ -1262,12 +1266,933 @@ static int check_game(const char *dir, const char *work, const expected *e)
     return 1;
 }
 
+/* Japanese from the Japanese ROM of a game: every US text served (the Japanese text of its representative, a moved
+ * one, an adapted one or the port's own), each holding the US text's commands as the Japanese comparison has them and
+ * its lines (Seasons TX_1f04 as the Japanese ROM has it, its number in one digit); the texts' structure; the whole
+ * Japanese font in the pack and in the composed image, byte for byte the Japanese ROM's; the graphics of the screens
+ * the Japanese ROM draws in Japanese, its title's colours and sprites, and nothing else of the US ROM changed but the
+ * header's sums (check_japanese_graphics); the wide box keeping the game's lines, and the layout itself keeping every
+ * character; the pack's file read back.  The coverage printed. */
+typedef struct expected_japanese {
+    OraclesGame game;
+    OraclesRomRevision us, jp;
+    unsigned texts, same, moved, adapted, own;
+    const char *structure;   /* japanese_structure's */
+    const char *graphics;    /* the US graphics replaced, the title's colours and its sprites' table among them */
+    unsigned graphics_left;  /* the bytes of the screens drawn in Japanese the Japanese ROM loads otherwise from the US graphics kept */
+    unsigned colours_bank, sprites_bank, sprites_address, sprites_pointer;   /* PALH_03's colours, the title's sprites' new place, the operand naming them */
+    const char *grids;       /* the US grid made for Japanese: the secret entry's map and attributes */
+    unsigned secret_names;   /* secretTextTable, in bank 2 */
+    unsigned kana_entry, kana_tail, kana_called;   /* the US name entry's code (runTextInput), the free tail of bank 2, copyTextCharactersFromHlUntilNull */
+    unsigned objects, object_headers, symbols;   /* objectGfxHeaderTable (bank $3f), its headers and the trees' after them, the inventory symbols' */
+} expected_japanese;
+/* Ages: TX_032c, a placeholder of the Japanese ROM where the US one has a map's name; TX_1208, whose Japanese says the
+ * same of TX_1209 (the water going out and coming in). */
+static const expected_japanese japanese_expected[] = {
+    { ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US, ORACLES_ROM_REVISION_AGES_JP, 2824, 2786, 8, 6, 24, "TX_032c unserved, TX_1208 twice",
+      "00:00a1 02:46d6 02:4e2e 02:7e95 03:4ada 17:4018 29:56ac 29:5a51 29:5b5f 29:5ca9 29:5de7 29:5f33 29:6071 29:61ac 29:62ff 29:644d 29:6589 29:66cc 29:67dd "
+      "29:74ff 29:7a39 29:7bc9 29:7c4c 2a:41ed 2a:4352 2a:48a4 30:763a 30:7885 30:7b6a 30:7c7a 30:7de1 31:7163 31:7524 31:7a0a 31:7adf 32:4c88 37:7cba "
+      "37:7e5d 37:7edf 37:7f62 38:4470 38:456a 38:470d 38:48b5 38:4930 38:4e0a 38:5274 38:5426 38:55bb 38:5641 38:57cd 38:5982 38:5b12 38:5b90 "
+      "38:5d07 38:61ee 38:6260 38:627d 38:636d 38:63cf 38:648d 38:64b8 38:64c9 38:6589 38:664f 3f:7d0a", 0, 0x17, 0x3f, 0x7d0a, 0x4d92, "38:627d 38:636d", 0x4e2e,
+      0x46d6, 0x7e95, 0x410e, 0x5a8a, 0xeb, 0x70 },
+    { ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US, ORACLES_ROM_REVISION_SEASONS_JP, 1885, 1869, 11, 5, 0, "",
+      "00:00a1 02:4696 02:4dee 02:75bb 03:4ada 03:7dd7 16:4018 28:5199 28:5542 28:5646 28:57d2 28:593e 28:5a9b 28:5c23 28:5d56 28:5e99 28:5feb 28:6184 28:628f "
+      "29:42b0 30:7e3e 31:4089 31:43a2 31:44b2 31:4619 31:6801 31:6bc2 31:70a8 31:717d 32:4323 37:7bbc 37:7d5f 37:7de1 37:7e64 38:4372 38:446c 38:460f "
+      "38:47b7 38:4832 38:4d0c 38:5176 38:5328 38:54bd 38:5543 38:56d4 38:5889 38:5a19 38:5a97 38:5c0e 38:60f5 38:6167 38:6184 38:6274 38:62d6 "
+      "38:6394 38:63bf 38:63d0 38:6490 38:6556", 0, 0x16, 0x03, 0x7dd7, 0x4d92, "38:6184 38:6274", 0x4dee, 0x4696, 0x75bb, 0x40ce, 0x5afb, 0xd2, 0x55 },
+};
+
+/* Whether the Japanese ROM draws the screen of header h in Japanese: the title and the intro's end, the secrets'
+ * screens, the error, the inventory, Ages' maps, the dungeons' names, the secret for the linked game, the file select
+ * and its screens, the save menu. */
+static int japanese_screen(OraclesGame game, unsigned h)
+{
+    return h == 0x02 || h == 0x03 || h == 0x05 || h == 0x06 || h == 0x07 || h == 0x08 || h == 0x97 || h == 0x9f || h == 0xba
+        || (h >= 0x10 && h <= (game == ORACLES_GAME_AGES ? 0x1fu : 0x1bu)) || (h >= 0xa0 && h <= 0xaf)
+        || (game == ORACLES_GAME_AGES && (h == 0x0d || h == 0x0e)) || (game == ORACLES_GAME_SEASONS && h == 0x84);
+}
+
+/* The Japanese secrets and names: the cipher and the 64 symbols the Japanese ROM's (the symbols over the US ones, their
+ * terminator kept), the names of the secrets' list its own, its first the second's; the secret entry's grid, as the US
+ * code reads it (secretSymbols[tile / 2 & $3f] at the cursor's cell, $a3 + its column + 64 its row of the map), shows
+ * the 64 symbols once each, in the order of the font, the kana and then the digits, its one blank between them, each
+ * cell's attributes the US ones of the cell that showed the same; the name entry's, the Japanese ROM's, its 60 cells as
+ * the Japanese routines read them (below).  The places written marked in `allowed`. */
+static void check_japanese_secrets(const char *name, OraclesGame game, const rom_file *us, const rom_file *jp, const uint8_t *image, size_t size,
+                                   const expected_japanese *e, uint8_t *allowed)
+{
+    static gfx_load composed, original;
+    const size_t cipher = oracles_rom_offset(0x03, 0x4ada), symbols = 0xa1u, names = oracles_rom_offset(0x02, e->secret_names);
+    const size_t jp_cipher = language_secret_cipher_japanese(game), jp_symbols = language_secret_symbols_japanese(game), jp_names = language_secret_names_japanese(game);
+    CHECK(jp_cipher && jp_symbols && jp_names && size > names + 0x100u);
+    CHECK(!memcmp(image + cipher, jp->data + jp_cipher, 0x30) && memcmp(us->data + cipher, jp->data + jp_cipher, 0x30));
+    CHECK(!memcmp(image + symbols, jp->data + jp_symbols, 0x40) && image[symbols + 0x40u] == 0);
+    memset(allowed + cipher, 1, 0x30);
+    memset(allowed + symbols, 1, 0x40);
+    unsigned listed = 0, end = 0;
+    for (unsigned i = 0; i < 26u; i++) {
+        const unsigned p = image[names + 2u * i] | image[names + 2u * i + 1u] << 8, q = jp->data[jp_names + 2u * i] | jp->data[jp_names + 2u * i + 1u] << 8;
+        const char *mine = (const char *)image + oracles_rom_offset(0x02, p), *theirs = (const char *)jp->data + oracles_rom_offset(0x02, q);
+        if (i == 0) { CHECK(p == ((unsigned)image[names + 2u] | (unsigned)image[names + 3u] << 8)); continue; }
+        CHECK(p >= e->secret_names + 52u && !strcmp(mine, theirs));
+        listed += !strcmp(mine, theirs);
+        if (p + strlen(mine) + 1u - e->secret_names > end) end = (unsigned)(p + strlen(mine) + 1u - e->secret_names);
+    }
+    memset(allowed + names, 1, end);
+    /* The secret entry's grid ($ab; $ac loads the same). */
+    const size_t table = language_gfx_headers_us(game);
+    CHECK(load_header(image, size, table, 0xab, -1, &composed) == 0 && load_header(us->data, us->size, table, 0xab, -1, &original) == 0);
+    const unsigned map_dest = (unsigned)image[composed.at[2] + 3u] << 8 | image[composed.at[2] + 4u], flg_dest = (unsigned)image[composed.at[3] + 3u] << 8 | image[composed.at[3] + 4u];
+    const size_t map = (map_dest & 0xfu) * 0x6000u + (map_dest & 0xfff0u) - 0xa0u - 0x8000u, flg = (flg_dest & 0xfu) * 0x6000u + (flg_dest & 0xfff0u) - 0xa0u - 0x8000u;
+    uint16_t us_top[0x41], us_bottom[0x41];
+    for (unsigned y = 0; y < 5u; y++)
+        for (unsigned x = 0; x < 13u; x++) {
+            const size_t at = 0xa3u + (x < 8u ? x : x + 1u) + 64u * y;
+            const unsigned tile = original.value[map + at], index = tile >= 0x80u ? (tile - 0x80u) / 2u : 0x40u;
+            if (index <= 0x40u) { us_top[index] = original.value[flg + at]; us_bottom[index] = original.value[flg + at + 32u]; }
+        }
+    uint8_t shown[0x41];
+    unsigned cells = 0, blanks = 0, ordered = 1, attributes = 0, seen_digit = 0, blank_at = 0;
+    for (unsigned y = 0; y < 5u; y++)
+        for (unsigned x = 0; x < 13u; x++) {
+            const size_t at = 0xa3u + (x < 8u ? x : x + 1u) + 64u * y;
+            const unsigned tile = composed.value[map + at], index = tile >= 0x80u ? (tile - 0x80u) / 2u : 0x40u;
+            attributes += index <= 0x40u && composed.value[flg + at] == us_top[index] && composed.value[flg + at + 32u] == us_bottom[index];
+            if (index == 0x40u) { blanks++; blank_at = cells++; continue; }
+            const uint8_t symbol = image[symbols + index];
+            const unsigned rank = (symbol >= '0' && symbol <= '9') << 8 | symbol;
+            if (cells && cells - 1u != blank_at) {
+                const uint8_t before = shown[cells - 1u];
+                if ((unsigned)(((before >= '0' && before <= '9') << 8) | before) >= rank) ordered = 0;
+            }
+            if (symbol >= '0' && symbol <= '9' && !seen_digit) { seen_digit = 1; if (blank_at + 1u != cells || !blanks) ordered = 0; }
+            shown[cells++] = symbol;
+        }
+    unsigned distinct = 0;
+    for (unsigned i = 0; i < cells; i++) {
+        if (i == blank_at) continue;
+        unsigned twice = 0;
+        for (unsigned j = 0; j < i; j++) twice |= j != blank_at && shown[j] == shown[i];
+        distinct += !twice;
+    }
+    /* The name entry's grid ($a5), the Japanese ROM's, as the Japanese routines read it (index tile / 2 & $3f at the
+     * cursor's cell, $a3 + its column, the columns in groups of 5, + 64 its row): 60 cells of 59 characters, the 46 kana,
+     * the 9 small ones, ー, the space twice, ゛ and ゜. */
+    CHECK(load_header(image, size, table, 0xa5, -1, &composed) == 0);
+    const unsigned name_dest = (unsigned)image[composed.at[3] + 3u] << 8 | image[composed.at[3] + 4u];
+    const size_t name_map = (name_dest & 0xfu) * 0x6000u + (name_dest & 0xfff0u) - 0xa0u - 0x8000u;
+    unsigned kana_cells = 0, kana_distinct = 0, kana_last = 0;
+    uint8_t kana_seen[0x40] = { 0 };
+    for (unsigned y = 0; y < 5u; y++)
+        for (unsigned x = 0; x < 12u; x++) {
+            const unsigned tile = composed.value[name_map + 0xa3u + x + (x >= 10u ? 2u : x >= 5u ? 1u : 0u) + 64u * y], index = tile / 2u & 0x3fu;
+            if (tile < 0x80u || tile & 1u) continue;
+            kana_cells++;
+            kana_distinct += !kana_seen[index];
+            kana_seen[index] = 1;
+            if (index > kana_last) kana_last = index;
+        }
+    printf("%s ja secrets: the Japanese cipher and symbols, %u names of the list; the secret entry's grid: %u cells, %u blank, %u symbols, "
+           "%s, %u cells with their attributes; the name entry's grid: %u cells, %u characters, the last %02x\n",
+           name, listed, cells, blanks, distinct, ordered ? "in the font's order, the digits last" : "out of order", attributes, kana_cells, kana_distinct, kana_last);
+    CHECK(listed == 25u && cells == 65u && blanks == 1u && distinct == 64u && ordered && attributes == 65u && kana_cells == 60u && kana_distinct == 59u
+          && kana_last == 0x3au);
+}
+
+/* The name entry in kana: the US code of the name entry changed at its nine sites alone, each holding the bytes the
+ * routines' build gives; the routines in the free tail of bank 2, the rest of the tail its fill; in them, each of the
+ * Japanese ROM's blocks, byte for byte, but the addresses set to the US routines, each of those inside the US code of
+ * the name entry or copyTextCharactersFromHlUntilNull, or to the tail; the blocks' relative jumps inside their block or
+ * to the byte after it, which jumps on (a `jp`, a `ret`); their other addresses in bank 0, a routine the US code calls
+ * too, or in WRAM; the tail's other bytes, the port's, counted.  The places written marked in `allowed`. */
+static void check_japanese_kana(const char *name, OraclesGame game, const rom_file *us, const rom_file *jp, const uint8_t *image, const expected_japanese *e,
+                                uint8_t *allowed)
+{
+    static language_kana kana;
+    const OraclesRom us_rom = { us->data, us->size }, jp_rom = { jp->data, jp->size };
+    CHECK(language_kana_make(game, &jp_rom, &us_rom, e->kana_tail, &kana) == 0);
+    const size_t entry = oracles_rom_offset(0x02, e->kana_entry), tail = oracles_rom_offset(0x02, e->kana_tail), end = oracles_rom_offset(0x02, 0x8000);
+    const uint8_t fill = game == ORACLES_GAME_SEASONS ? 0x02u : 0x00u;
+    unsigned sites = 0, changed = 0, outside = 0;
+    for (size_t i = entry; i < entry + 0x374u; i++) {
+        if (image[i] == us->data[i]) continue;
+        changed++;
+        int in = 0;
+        for (unsigned k = 0; k < LANGUAGE_KANA_SITES; k++) in |= i >= oracles_rom_offset(0x02, kana.site[k]) && i < oracles_rom_offset(0x02, kana.site[k]) + kana.site_bytes[k];
+        outside += !in;
+    }
+    for (unsigned k = 0; k < LANGUAGE_KANA_SITES; k++) {
+        const size_t at = oracles_rom_offset(0x02, kana.site[k]);
+        sites += at >= entry && at + kana.site_bytes[k] <= entry + 0x374u && !memcmp(image + at, kana.written[k], kana.site_bytes[k])
+                 && memcmp(us->data + at, kana.written[k], kana.site_bytes[k]);
+        memset(allowed + at, 1, kana.site_bytes[k]);
+    }
+    unsigned filled = 1;
+    for (size_t i = tail + kana.length; i < end; i++) filled &= image[i] == fill && us->data[i] == fill;
+    for (size_t i = tail; i < tail + kana.length; i++) filled &= us->data[i] == fill;
+    CHECK(!memcmp(image + tail, kana.tail, kana.length));
+    memset(allowed + tail, 1, kana.length);
+    /* The blocks. */
+    unsigned copied = 0, same = 0, relocated = 0, jumps = 0, landing = 0, others = 0, called = 0;
+    for (unsigned b = 0; b < LANGUAGE_KANA_BLOCKS; b++) {
+        const size_t from = oracles_rom_offset(0x02, kana.block_jp[b]), at = kana.block_at[b] - e->kana_tail;
+        copied += kana.block_bytes[b];
+        for (unsigned i = 0; i < kana.block_bytes[b]; i++) {
+            int set = 0;
+            for (unsigned r = 0; r < kana.relocations; r++) set |= at + i == kana.relocated[r] || at + i == kana.relocated[r] + 1u;
+            same += set || kana.tail[at + i] == jp->data[from + i];
+        }
+        if (b >= 5u) continue;   /* the tables */
+        for (unsigned i = 0; i < kana.block_bytes[b];) {
+            const uint8_t op = kana.tail[at + i];
+            const unsigned n = instruction_bytes(op);
+            const int address = n == 3u && op != 0x01u && op != 0x11u && op != 0x31u;   /* a jump, a call, a load from or to memory, ld hl */
+            if (op == 0x18 || (op & 0xe7u) == 0x20) {
+                const int target = (int)i + 2 + (int8_t)kana.tail[at + i + 1u];
+                jumps++;
+                if (target < 0 || target > (int)kana.block_bytes[b]) landing = 99;
+                else if (target == (int)kana.block_bytes[b]) landing += kana.tail[at + kana.block_bytes[b]] != 0xc3u && kana.tail[at + kana.block_bytes[b]] != 0xc9u;
+            }
+            if (address) {
+                const unsigned operand = kana.tail[at + i + 1u] | kana.tail[at + i + 2u] << 8;
+                int set = 0;
+                for (unsigned r = 0; r < kana.relocations; r++) set |= at + i + 1u == kana.relocated[r];
+                if (set) {
+                    relocated++;
+                    called += (operand >= e->kana_entry && operand < e->kana_entry + 0x374u) || (operand >= e->kana_tail && operand < e->kana_tail + kana.length);
+                } else if (operand < 0x4000u) {
+                    int used = 0;
+                    for (size_t j = entry; j + 3u <= entry + 0x374u && !used; j++)
+                        used = (us->data[j] == 0xcdu || us->data[j] == 0xc3u) && us->data[j + 1u] == (uint8_t)operand && us->data[j + 2u] == operand >> 8;
+                    others += !used;
+                } else others += operand < 0xc000u;
+            }
+            i += n;
+        }
+    }
+    printf("%s ja kana: %u of the US code's bytes changed, %u outside its %u sites, %u sites as built; the tail 02:%04x, %zu bytes, the rest %s; "
+           "%u bytes of %u blocks of the Japanese ROM, %u as it has them or relocated; %u addresses relocated, %u to the US code or the tail; %u "
+           "relative jumps, %u landing elsewhere; %u other addresses neither in WRAM nor a routine of bank 0 the US code calls or jumps to; %zu bytes of the port's\n",
+           name, changed, outside, LANGUAGE_KANA_SITES, sites, e->kana_tail, kana.length, filled ? "its fill" : "not its fill", copied, LANGUAGE_KANA_BLOCKS,
+           same, relocated, called, jumps, landing, others, kana.length - copied);
+    CHECK(outside == 0 && sites == LANGUAGE_KANA_SITES && filled && same == copied && relocated == kana.relocations && called == relocated && jumps > 0
+          && landing == 0 && others == 0 && copied == 172u && kana.length == 223u);
+    /* The values the routines' build must give, pinned: each site's new bytes (the port's, and the tail's addresses), the
+     * relocated addresses (textInput_getOutputAddress, func_02_494a twice, textInput_loadCharacterGfx, copyTextCharacters,
+     * as the disassembly's symbols name them, and the last glyphs' table in the tail), and the SHA-1 of the whole tail. */
+    static const struct { OraclesGame game; const char *sites; unsigned relocated[LANGUAGE_KANA_RELOCATIONS]; const char *tail_sha1; } pins[] = {
+        { ORACLES_GAME_AGES, "067f c3957e c3297f 05 04 c3e67e 507f 557f c3347f", { 0x4a37, 0x494a, 0x494a, 0x49a5, 0x49cd, 0x7f6f }, "c965b438dbd7a6c7fff76c26feb635e8a584f827" },
+        { ORACLES_GAME_SEASONS, "2c76 c3bb75 c34f76 05 04 c30c76 7676 7b76 c35a76", { 0x49f7, 0x490a, 0x490a, 0x4965, 0x498d, 0x7695 }, "8a6a48a14d412997ab35b4d6ca1fb49791d216e8" },
+    };
+    char written[64] = "", tail_sha1[41];
+    size_t w = 0;
+    for (unsigned k = 0; k < LANGUAGE_KANA_SITES; k++) {
+        for (unsigned i = 0; i < kana.site_bytes[k]; i++) w += (size_t)snprintf(written + w, sizeof written - w, "%02x", kana.written[k][i]);
+        if (k + 1u < LANGUAGE_KANA_SITES) w += (size_t)snprintf(written + w, sizeof written - w, " ");
+    }
+    oracles_sha1_hex(kana.tail, kana.length, tail_sha1);
+    unsigned pinned = 0;
+    for (size_t p = 0; p < sizeof pins / sizeof pins[0]; p++) {
+        if (pins[p].game != game) continue;
+        unsigned targets = 0;
+        for (unsigned r = 0; r < kana.relocations; r++)
+            targets += (unsigned)(kana.tail[kana.relocated[r]] | kana.tail[kana.relocated[r] + 1u] << 8) == pins[p].relocated[r];
+        pinned = !strcmp(written, pins[p].sites) && targets == LANGUAGE_KANA_RELOCATIONS && kana.relocations == LANGUAGE_KANA_RELOCATIONS
+                 && !strcmp(tail_sha1, pins[p].tail_sha1);
+    }
+    printf("%s ja kana: the sites write %s; the tail's SHA-1 %s; %s\n", name, written, tail_sha1, pinned ? "as pinned" : "NOT as pinned");
+    CHECK(pinned);
+}
+
+/* The Japanese graphics: every header of a screen the Japanese ROM draws in Japanese loads, from the composed image as
+ * the US game does, what the Japanese ROM loads over every byte the replaced graphics write, the bytes left those of the
+ * US graphics kept (the secret entry's grid); every other header loads what the US ROM loads (the
+ * Japanese intro's aside); the inventory's symbols' object header loads what the Japanese ROM's loads, every other
+ * object's and tree's what the US one loads; the title's colours are the Japanese ROM's, written over the US
+ * ones, and its sprites' table the Japanese ROM's, the furigana among them, in the bank's free tail, the code's pointer
+ * set there; the name entry's code and routines (check_japanese_kana); the image changed nowhere else than the header's
+ * sums, the font, those tables, that pointer, the name entry's sites and routines and the graphics' entries and bytes. */
+static void check_japanese_graphics(const char *name, OraclesGame game, const OraclesLanguagePack *pack, const rom_file *us, const rom_file *jp,
+                                    const uint8_t *image, size_t size, const expected_japanese *e)
+{
+    static gfx_load composed, japanese, original;
+    static uint8_t allowed[0x100000];
+    char sources[2048] = "";
+    const unsigned count = oracles_language_pack_graphic_count(pack, ORACLES_LANGUAGE_JAPANESE);
+    for (unsigned n = 0; n < count; n++) {
+        OraclesLanguageGraphic g;
+        CHECK(oracles_language_pack_graphic(pack, ORACLES_LANGUAGE_JAPANESE, n, &g) == 0);
+        snprintf(sources + strlen(sources), sizeof sources - strlen(sources), "%s%02x:%04x", n ? " " : "", g.bank, g.address);
+    }
+    printf("%s ja graphics replaced: %s\n", name, sources);
+    CHECK(!strcmp(sources, e->graphics));
+    const size_t us_table = language_gfx_headers_us(game), jp_table = language_gfx_headers_japanese(game), font = language_font_us(game);
+    unsigned screens = 0, compared = 0, mismatched = 0, left = 0, others = 0, changed_others = 0, entries = 0, made = 0;
+    CHECK(size == 2u * us->size && us->size == sizeof allowed);
+    memset(allowed, 0, sizeof allowed);
+    allowed[0x148] = allowed[0x14d] = allowed[0x14e] = allowed[0x14f] = 1;
+    memset(allowed + font + GLYPH_FIRST * GLYPH_BYTES, 1, GLYPHS_MAX * GLYPH_BYTES);
+    for (unsigned h = 0; h < GFX_HEADERS; h++) {
+        if (h == 0x04) continue;
+        CHECK(load_header(image, size, us_table, h, -1, &composed) == 0);
+        CHECK(load_header(us->data, us->size, us_table, h, -1, &original) == 0);
+        for (unsigned j = 0; j < composed.count; j++) {
+            const uint8_t *x = image + composed.at[j], *y = us->data + composed.at[j];
+            CHECK(!memcmp(x + 3, y + 3, 3));   /* the destination and the size stay */
+            uint8_t data[2048], original_data[2048];
+            size_t consumed = 0;
+            const size_t bytes = 16u * ((x[5] & 0x7fu) + 1u), source = oracles_rom_offset(x[0] & 0x3fu, (unsigned)x[1] << 8 | x[2]);
+            CHECK(language_gfx_decompress(image, size, source, x[0] >> 6, data, bytes, &consumed) == 0);
+            CHECK(language_gfx_decompress(us->data, us->size, oracles_rom_offset(y[0] & 0x3fu, (unsigned)y[1] << 8 | y[2]), y[0] >> 6, original_data, bytes, NULL) == 0);
+            if (!memcmp(x, y, 3) && !memcmp(data, original_data, bytes)) continue;
+            CHECK(source + consumed <= sizeof allowed);
+            memset(allowed + composed.at[j], 1, 3);
+            if (source + consumed <= sizeof allowed) memset(allowed + source, 1, consumed);
+            entries++;
+        }
+        if (!japanese_screen(game, h)) {
+            others++;
+            unsigned changed = 0;
+            for (size_t k = 0; k < SPACE; k++) changed += composed.value[k] != original.value[k];
+            changed_others += changed != 0;
+            continue;
+        }
+        screens++;
+        CHECK(load_header(jp->data, jp->size, jp_table, h, -1, &japanese) == 0);
+        for (size_t k = 0; k < SPACE; k++) {
+            if (composed.entry[k] < 0) continue;
+            CHECK(japanese.value[k] != 0xffff);
+            const uint8_t *y = us->data + composed.at[composed.entry[k]];
+            char named[16];
+            snprintf(named, sizeof named, "%02x:%02x%02x", y[0] & 0x3fu, y[1], y[2]);
+            if (strstr(e->grids, named)) made++;
+            else if (strstr(sources, named)) { compared++; mismatched += composed.value[k] != japanese.value[k]; }
+            else left += composed.value[k] != japanese.value[k];
+        }
+    }
+    /* The title's colours (PALH_03's, at the same place in both ROMs), its sprites' table and the pointer to it. */
+    const size_t colours = oracles_rom_offset(e->colours_bank, 0x4018), sprites = oracles_rom_offset(e->sprites_bank, e->sprites_address);
+    const size_t pointer = oracles_rom_offset(0x03, e->sprites_pointer), jp_sprites = language_title_sprites_japanese(game);
+    const size_t sprites_bytes = 1u + 4u * jp->data[jp_sprites];
+    CHECK(!memcmp(image + colours, jp->data + colours, 0x80) && memcmp(us->data + colours, jp->data + colours, 0x80));
+    CHECK(jp->data[jp_sprites] == 25u && !memcmp(image + sprites, jp->data + jp_sprites, sprites_bytes));
+    CHECK(image[pointer - 1u] == 0x21u && ((unsigned)image[pointer] | (unsigned)image[pointer + 1u] << 8) == e->sprites_address);
+    memset(allowed + colours, 1, 0x80);
+    memset(allowed + sprites, 1, sprites_bytes);
+    allowed[pointer] = allowed[pointer + 1u] = 1;
+    check_japanese_secrets(name, game, us, jp, image, size, e, allowed);
+    check_japanese_kana(name, game, us, jp, image, e, allowed);
+    /* The objects' and the trees' headers: the inventory symbols' loads its 32 blocks as the Japanese ROM's of the same
+     * index loads them, the bit that chains the next header kept; every other reads the bytes the US one reads. */
+    const size_t objects = oracles_rom_offset(0x3f, e->objects), jp_objects = language_object_headers_japanese(game);
+    unsigned same_objects = 0, symbols = 0;
+    CHECK(jp_objects != 0);
+    for (unsigned i = 0; jp_objects && i < e->object_headers; i++) {
+        const uint8_t *x = image + objects + 3u * i, *y = us->data + objects + 3u * i, *j = jp->data + jp_objects + 3u * i;
+        const size_t source = oracles_rom_offset(x[0] & 0x3fu, (unsigned)(x[1] & 0x7fu) << 8 | x[2]);
+        size_t consumed = 0;
+        CHECK(language_gfx_decompress(image, size, source, x[0] >> 6, NULL, 512, &consumed) == 0 && source + consumed <= sizeof allowed);
+        if (i != e->symbols) {
+            same_objects += !memcmp(x, y, 3) && !memcmp(image + source, us->data + source, consumed);
+            continue;
+        }
+        uint8_t mine[512], theirs[512];
+        CHECK(language_gfx_decompress(image, size, source, x[0] >> 6, mine, sizeof mine, NULL) == 0);
+        CHECK(language_gfx_decompress(jp->data, jp->size, oracles_rom_offset(j[0] & 0x3fu, (unsigned)(j[1] & 0x7fu) << 8 | j[2]), j[0] >> 6, theirs, sizeof theirs, NULL) == 0);
+        symbols = !memcmp(mine, theirs, sizeof mine) && memcmp(x, y, 3) && (x[1] & 0x80u) == (y[1] & 0x80u);
+        memset(allowed + objects + 3u * i, 1, 3);
+        if (source + consumed <= sizeof allowed) memset(allowed + source, 1, consumed);
+    }
+    printf("%s ja objects: %u headers, the inventory symbols' (%02x) %s, %u others reading the US bytes\n", name, e->object_headers, e->symbols,
+           symbols ? "loading the Japanese ROM's" : "not loading the Japanese ROM's", same_objects);
+    CHECK(symbols && same_objects + 1u == e->object_headers);
+    unsigned outside = 0;
+    for (size_t i = 0; i < us->size; i++) outside += image[i] != us->data[i] && !allowed[i];
+    printf("%s ja graphics: %u replaced; %u screens drawn in Japanese, %u entries loading them, %u bytes as the Japanese ROM loads them, %u different, "
+           "%u left as the US game loads them, %u of the grids made for Japanese; %u other headers, %u loading otherwise; the title's colours and %u "
+           "sprites; %u bytes of the US ROM changed elsewhere\n",
+           name, count, screens, entries, compared, mismatched, left, made, others, changed_others, jp->data[jp_sprites], outside);
+    CHECK(compared > 0 && mismatched == 0 && left == e->graphics_left && made > 0 && changed_others == 0 && outside == 0);
+}
+
+/* The Japanese texts the pack serves, by their addresses in the two ROMs: those of the Japanese ROM no US text takes,
+ * and those served for two US texts the US ROM keeps apart, as "TX_GGII unserved" and "TX_GGII twice", the Japanese
+ * identifier.  A text shifted against another, which the comparison of commands cannot see between two texts without
+ * any, adds to both. */
+static void japanese_structure(const OraclesRom *us, const OraclesTextSource *us_source, const OraclesRom *jp, const OraclesTextSource *jp_source,
+                               const language_table *table, char *out, size_t capacity)
+{
+    enum { PAIRS = 8192 };
+    static long jp_at[PAIRS], us_at[PAIRS];
+    unsigned pairs = 0;
+    out[0] = 0;
+    const unsigned groups = oracles_text_groups(us, us_source), jp_groups = oracles_text_groups(jp, jp_source);
+    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < groups; group++) {
+        const int count = oracles_text_count(us, us_source, group);
+        for (int index = 0; index < count && pairs < PAIRS; index++) {
+            const unsigned id = (group - ORACLES_TEXT_DICTIONARY_GROUPS) << 8 | (unsigned)index;
+            const long at = oracles_text_address(us, us_source, group, (unsigned)index);
+            unsigned from = 0;   /* the representative */
+            while (from < (unsigned)index && oracles_text_address(us, us_source, group, from) != at) from++;
+            unsigned from_id = (id & ~0xffu) | from;
+            language_exception x;
+            if (language_table_find(table, ORACLES_LANGUAGE_JAPANESE, id, &x)) {
+                if (x.source == ORACLES_LANGUAGE_SOURCE_MOVED) from_id = x.id;
+                else if (x.source != ORACLES_LANGUAGE_SOURCE_ADAPTED) continue;
+            }
+            const unsigned from_group = (from_id >> 8) + ORACLES_TEXT_DICTIONARY_GROUPS;
+            if (from_group >= jp_groups || (int)(from_id & 0xffu) >= oracles_text_count(jp, jp_source, from_group)) {
+                const size_t used = strlen(out);
+                snprintf(out + used, capacity - used, "%sTX_%04x missing", used ? ", " : "", from_id);
+                continue;
+            }
+            jp_at[pairs] = oracles_text_address(jp, jp_source, from_group, from_id & 0xffu);
+            us_at[pairs++] = at;
+        }
+    }
+    for (unsigned group = ORACLES_TEXT_DICTIONARY_GROUPS; group < jp_groups && group < groups; group++) {
+        /* A group the US ROM leaves empty holds the Japanese ROM's placeholders alone. */
+        const int count = oracles_text_count(us, us_source, group) > 0 ? oracles_text_count(jp, jp_source, group) : 0;
+        for (int index = 0; index < count; index++) {
+            const long at = oracles_text_address(jp, jp_source, group, (unsigned)index);
+            unsigned served = 0, twice = 0;
+            for (unsigned p = 0; p < pairs; p++) {
+                if (jp_at[p] != at) continue;
+                if (served && us_at[p] != us_at[served - 1u]) twice = 1;
+                if (!served) served = p + 1u;
+            }
+            /* Said once, at the first identifier of the Japanese ROM with that address. */
+            int first = 1;
+            for (int i = 0; i < index && first; i++) first = oracles_text_address(jp, jp_source, group, (unsigned)i) != at;
+            if (!first || (served && !twice)) continue;
+            const size_t used = strlen(out);
+            snprintf(out + used, capacity - used, "%sTX_%04x %s", used ? ", " : "", (group - ORACLES_TEXT_DICTIONARY_GROUPS) << 8 | (unsigned)index,
+                     served ? "twice" : "unserved");
+        }
+    }
+}
+
+/* The characters a text prints, its spaces and line breaks aside, into `out`: their number. */
+static size_t printed(const uint8_t *text, size_t length, uint8_t *out)
+{
+    size_t n = 0;
+    for (size_t at = 0; at < length && text[at]; at += text[at] >= 0x10u || text[at] <= 0x01u ? 1u : 2u)
+        if (text[at] >= 0x10u && text[at] != ' ') out[n++] = text[at];
+    return n;
+}
+
+static int check_japanese(const char *dir, const char *work, const expected_japanese *e)
+{
+    const OraclesGame game = e->game;
+    rom_file us = find(dir, e->us), jp = find(dir, e->jp);
+    const char *name = game == ORACLES_GAME_AGES ? "ages" : "seasons";
+    if (!us.data || !jp.data) { printf("%s: no US and Japanese ROMs in %s: Japanese not checked\n", name, dir); free(us.data); free(jp.data); return 0; }
+    char error[256];
+    OraclesLanguagePack *pack = oracles_language_pack_extract(jp.data, jp.size, us.data, us.size, error, sizeof error);
+    CHECK(pack != NULL);
+    if (!pack) { fprintf(stderr, "%s ja: %s\n", name, error); free(us.data); free(jp.data); return 1; }
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_EUROPEAN_END; language++) CHECK(!oracles_language_pack_count(pack, language));
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_JAPANESE; language++) CHECK(!oracles_language_pack_graphic_count(pack, language));
+
+    const OraclesRom us_rom = { us.data, us.size }, jp_rom = { jp.data, jp.size };
+    OraclesTextSource source, jp_source;
+    CHECK(language_source_us(&us_rom, game, &source) == 0 && language_source_japanese(&jp_rom, game, &jp_source) == 0);
+    language_table *table = language_table_load_japanese(game, error, sizeof error);
+    CHECK(table != NULL);
+    const unsigned count = oracles_language_pack_count(pack, ORACLES_LANGUAGE_JAPANESE);
+    unsigned counts[ORACLES_LANGUAGE_SOURCE_COUNT], long_lines = 0, unheld = 0;
+    oracles_language_pack_tally(pack, ORACLES_LANGUAGE_JAPANESE, counts);
+    static char list[16384];
+    list[0] = 0;
+    for (unsigned n = 0; n < count; n++) {
+        unsigned id = 0;
+        size_t length = 0;
+        OraclesLanguageSource from;
+        const uint8_t *text = oracles_language_pack_nth(pack, ORACLES_LANGUAGE_JAPANESE, n, &id, &from, &length);
+        if (from != ORACLES_LANGUAGE_SOURCE_SAME) {
+            const size_t used = strlen(list);
+            snprintf(list + used, sizeof list - used, "%s%04x:%s", used ? " " : "", id, oracles_language_source_name(from));
+        }
+        if (!text) continue;
+        language_exception x;
+        const int one_digit = table && language_table_find(table, ORACLES_LANGUAGE_JAPANESE, id, &x) && x.source == ORACLES_LANGUAGE_SOURCE_ADAPTED
+                              && x.rule == RULE_ONE_DIGIT;
+        if (oracles_text_longest_line(text, length) > 16u + (one_digit ? 1u : 0u)) long_lines++;
+        uint8_t original[ORACLES_TEXT_MAX];
+        size_t original_length = 0;
+        CHECK(oracles_text_decode(&us_rom, &source, (id >> 8) + ORACLES_TEXT_DICTIONARY_GROUPS, id & 0xffu, original, sizeof original, &original_length) == ORACLES_OK);
+        if (from != ORACLES_LANGUAGE_SOURCE_ADAPTED && !language_same_commands(ORACLES_LANGUAGE_JAPANESE, original, original_length, text, length)) unheld++;
+    }
+    const unsigned served = counts[ORACLES_LANGUAGE_SOURCE_SAME] + counts[ORACLES_LANGUAGE_SOURCE_MOVED] + counts[ORACLES_LANGUAGE_SOURCE_ADAPTED]
+                            + counts[ORACLES_LANGUAGE_SOURCE_OWN];
+    printf("%s ja: %u texts: %u same, %u moved, %u adapted, %u own, %u kept, %u refused, %u missing: %.2f %% translated, %.2f %% official; "
+           "%u lines over 16\n  not the same: %s\n",
+           name, count, counts[ORACLES_LANGUAGE_SOURCE_SAME], counts[ORACLES_LANGUAGE_SOURCE_MOVED], counts[ORACLES_LANGUAGE_SOURCE_ADAPTED],
+           counts[ORACLES_LANGUAGE_SOURCE_OWN], counts[ORACLES_LANGUAGE_SOURCE_KEPT], counts[ORACLES_LANGUAGE_SOURCE_REFUSED],
+           counts[ORACLES_LANGUAGE_SOURCE_MISSING], 100.0 * served / (count ? count : 1u), 100.0 * (served - counts[ORACLES_LANGUAGE_SOURCE_OWN]) / (count ? count : 1u),
+           long_lines, list);
+    /* Every US text in Japanese: none refused, none missing, none kept in English. */
+    CHECK(count == e->texts && served == count && long_lines == 0 && unheld == 0);
+    CHECK(counts[ORACLES_LANGUAGE_SOURCE_SAME] == e->same && counts[ORACLES_LANGUAGE_SOURCE_MOVED] == e->moved
+          && counts[ORACLES_LANGUAGE_SOURCE_ADAPTED] == e->adapted && counts[ORACLES_LANGUAGE_SOURCE_OWN] == e->own);
+
+    /* Seasons TX_1f04, its count of golden beasts in one digit: the Japanese text as the Japanese ROM lays it out. */
+    if (game == ORACLES_GAME_SEASONS) {
+        uint8_t official[ORACLES_TEXT_MAX];
+        size_t official_length = 0, served_length = 0;
+        const uint8_t *served = oracles_language_pack_text(pack, ORACLES_LANGUAGE_JAPANESE, 0x1f04, &served_length);
+        CHECK(oracles_text_decode(&jp_rom, &jp_source, ORACLES_TEXT_DICTIONARY_GROUPS + 0x1fu, 0x04u, official, sizeof official, &official_length) == ORACLES_OK);
+        CHECK(served && served_length == official_length && !memcmp(served, official, official_length));
+    }
+
+    /* The texts' structure: each Japanese text served, each for one US text, but those pinned. */
+    if (table) {
+        static char structure[4096];
+        japanese_structure(&us_rom, &source, &jp_rom, &jp_source, table, structure, sizeof structure);
+        printf("%s ja structure: %s\n", name, structure[0] ? structure : "every Japanese text served, each for one US text");
+        CHECK(!strcmp(structure, e->structure));
+    }
+
+    /* The whole font, the Japanese ROM's gfx_font from character $0e. */
+    const uint8_t *characters, *bitmaps;
+    const unsigned glyphs = oracles_language_pack_glyphs(pack, &characters, &bitmaps);
+    const size_t jp_font = language_font_japanese(game), us_font = language_font_us(game);
+    CHECK(glyphs == GLYPHS_MAX && characters[0] == GLYPH_FIRST && !memcmp(bitmaps, jp.data + jp_font + GLYPH_FIRST * GLYPH_BYTES, GLYPHS_MAX * GLYPH_BYTES));
+
+    uint8_t *image = NULL;
+    size_t size = 0;
+    OraclesLanguageReport report;
+    CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_JAPANESE, us.data, us.size, NULL, &image, &size, &report, error, sizeof error) == 0);
+    if (image) {
+        CHECK(report.served == count && report.english == 0 && report.missing == 0);
+        CHECK(report.graphics == oracles_language_pack_graphic_count(pack, ORACLES_LANGUAGE_JAPANESE));
+        CHECK(!memcmp(image + us_font + GLYPH_FIRST * GLYPH_BYTES, jp.data + jp_font + GLYPH_FIRST * GLYPH_BYTES, GLYPHS_MAX * GLYPH_BYTES));
+        CHECK(!memcmp(image + (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u + ORACLES_LANGUAGE_INDEX_CODE, "ja", 3));
+        printf("%s ja composed: %u texts served, %u bytes; %u graphics, %u bytes\n", name, report.served, report.bytes, report.graphics, report.graphics_bytes);
+        check_japanese_graphics(name, game, pack, &us, &jp, image, size, e);
+    }
+    /* An image that no longer holds a US table the Japanese graphics replace (the title's colours and the free tail its
+     * sprites go to, the secrets' symbols and their terminator, their cipher and the names of their list, the US code of
+     * the name entry, at its start, inside and at its end, and the free tail of bank 2, inside and at its end), or the US
+     * routine the name entry's routines call (copyTextCharactersFromHlUntilNull), or whose code no longer names the US
+     * sprites' table where the pointer is, or the US objects' and trees' headers' tables where loadObjectGfx's callers
+     * name them, is refused, not written over. */
+    uint8_t *other = malloc(us.size);
+    CHECK(other != NULL);
+    const size_t places[] = { oracles_rom_offset(e->colours_bank, 0x4018), oracles_rom_offset(e->sprites_bank, e->sprites_address + 0x20u),
+                              oracles_rom_offset(0x03, e->sprites_pointer), 0xe0u, 0xe1u, oracles_rom_offset(0x03, 0x4ada),
+                              oracles_rom_offset(0x02, e->secret_names + 0x40u), oracles_rom_offset(0x3f, 0x41d5), oracles_rom_offset(0x3f, 0x42f6),
+                              oracles_rom_offset(0x3f, 0x4300), oracles_rom_offset(0x02, e->kana_entry), oracles_rom_offset(0x02, e->kana_entry + 0x200u),
+                              oracles_rom_offset(0x02, e->kana_entry + 0x373u), oracles_rom_offset(0x02, e->kana_tail + 0x100u), oracles_rom_offset(0x02, 0x7fff),
+                              oracles_rom_offset(0x02, e->kana_called), oracles_rom_offset(0x02, e->kana_called + 0x1fu) };
+    for (unsigned k = 0; other && k < sizeof places / sizeof places[0]; k++) {
+        memcpy(other, us.data, us.size);
+        other[places[k]] ^= 0x01u;
+        uint8_t *refused = NULL;
+        size_t refused_size = 0;
+        CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_JAPANESE, other, us.size, NULL, &refused, &refused_size, &report, error, sizeof error) != 0 && !refused);
+        const char *reason = k >= 15u ? "does not hold the US routine" : k >= 7u && k <= 9u ? "does not name the US object graphics headers"
+                           : k == 2u ? "does not name the US table" : "does not hold the US table";
+        CHECK(strstr(error, reason) != NULL);
+        if (!strstr(error, reason)) fprintf(stderr, "%s ja: a bit at %06zx: %s\n", name, places[k], error);
+        free(refused);
+    }
+    free(other);
+    /* A Japanese ROM whose blocks the name entry's routines copy differ, at their first byte or their last: no
+     * Japanese graphic made. */
+    uint8_t *changed_jp = malloc(jp.size);
+    CHECK(changed_jp != NULL);
+    static language_kana kana;
+    const OraclesRom us_kana = { us.data, us.size };
+    CHECK(language_kana_make(game, &jp_rom, &us_kana, e->kana_tail, &kana) == 0);
+    unsigned blocks_refused = 0;
+    for (unsigned k = 0; changed_jp && k < 2u * LANGUAGE_KANA_BLOCKS; k++) {
+        memcpy(changed_jp, jp.data, jp.size);
+        changed_jp[oracles_rom_offset(0x02, kana.block_jp[k / 2u] + (k & 1u ? kana.block_bytes[k / 2u] - 1u : 0u))] ^= 0x80u;
+        const OraclesRom changed_rom = { changed_jp, jp.size };
+        OraclesLanguagePack *none = language_pack_new(game, pack->source, pack->image);
+        CHECK(none != NULL);
+        if (!none) break;
+        blocks_refused += language_gfx_extract_japanese(none, &changed_rom, &us_rom, error, sizeof error) != 0
+                          && oracles_language_pack_graphic_count(none, ORACLES_LANGUAGE_JAPANESE) == 0;
+        oracles_language_pack_free(none);
+    }
+    printf("%s ja kana: %u of %u Japanese ROMs with a block changed refused\n", name, blocks_refused, 2u * LANGUAGE_KANA_BLOCKS);
+    CHECK(blocks_refused == 2u * LANGUAGE_KANA_BLOCKS);
+    free(changed_jp);
+    /* The wide box keeps the game's lines in Japanese: the image composed for it is the one composed without it. */
+    const OraclesLanguageLayout wide = { 192, 1, 0, NULL };
+    uint8_t *laid = NULL;
+    size_t laid_size = 0;
+    CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_JAPANESE, us.data, us.size, &wide, &laid, &laid_size, &report, error, sizeof error) == 0);
+    CHECK(laid && image && report.laid_out == 0 && laid_size == size && !memcmp(laid, image, size));
+    /* The layout itself in Japanese, on the wide box's 192 pixels in the composed font: every text laid out again
+     * prints the characters it printed, its spaces and line breaks aside, $2d being the katakana's long mark, never a
+     * hyphen dropped (Seasons TX_1409 "たいへんだよー|ぼくの"). */
+    unsigned changed = 0, wrapped = 0, long_mark = 0;
+    const OraclesRom composed = { laid, laid_size };
+    const OraclesGuestTables *t = game == ORACLES_GAME_AGES ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
+    OraclesTextFont font;
+    CHECK(laid && oracles_text_font(&composed, oracles_rom_offset(t->font_start.bank, t->font_start.addr), &font) == ORACLES_OK);
+    oracles_text_font_fixed(&font, &font);
+    language_wrap *wrap = laid ? language_wrap_new(&font, wide.width, ORACLES_LANGUAGE_JAPANESE) : NULL;
+    CHECK(wrap != NULL);
+    for (unsigned n = 0; wrap && n < count; n++) {
+        unsigned id = 0;
+        size_t length = 0, again_length = 0;
+        OraclesLanguageSource from;
+        const uint8_t *text = oracles_language_pack_nth(pack, ORACLES_LANGUAGE_JAPANESE, n, &id, &from, &length);
+        uint8_t again[ORACLES_TEXT_MAX];
+        if (!text || (id >> 8) == 0x09u || language_wrap_text(wrap, text, length, again, sizeof again, &again_length) != WRAP_DONE) continue;
+        wrapped++;
+        uint8_t before[ORACLES_TEXT_MAX], after[ORACLES_TEXT_MAX];
+        const size_t b = printed(text, length, before), a = printed(again, again_length, after);
+        if (a != b || memcmp(before, after, a)) {
+            if (changed++ < 8u) fprintf(stderr, "%s ja: TX_%04x laid out on 192 pixels prints other characters\n", name, id);
+        }
+        if (id == 0x1409) long_mark = hyphens(again, again_length) == 2u && hyphens(text, length) == 2u;
+    }
+    printf("%s ja laid out on 192 pixels (the layout alone, the wide box keeping the game's lines): %u texts laid out again, %u printing other characters\n",
+           name, wrapped, changed);
+    CHECK(wrapped > 0 && changed == 0);
+    if (game == ORACLES_GAME_SEASONS) CHECK(long_mark);
+    language_wrap_free(wrap);
+    free(laid);
+    language_table_free(table);
+
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%s-ja.pack", work, name);
+    CHECK(oracles_language_pack_write(pack, path, error, sizeof error) == 0);
+    OraclesLanguagePack *back = oracles_language_pack_read(path, error, sizeof error);
+    CHECK(back != NULL);
+    if (back && image) {
+        uint8_t *again = NULL;
+        size_t again_size = 0;
+        CHECK(oracles_language_compose(back, ORACLES_LANGUAGE_JAPANESE, us.data, us.size, NULL, &again, &again_size, &report, error, sizeof error) == 0);
+        CHECK(again && again_size == size && !memcmp(again, image, size));
+        free(again);
+    }
+    oracles_language_pack_free(back);
+    remove(path);
+    free(image);
+    oracles_language_pack_free(pack);
+    free(us.data);
+    free(jp.data);
+    return 1;
+}
+
+/* Polish from the Polish ROM of a game, or from Kaxus's patch of the directory applied to the US ROM (the same image when
+ * the directory holds both): every US text served as the Polish ROM has it, five lines of Ages corrected first, each
+ * text holding the US text's commands and lines, the same pack by the public extraction; the pack holding Polish alone,
+ * the graphics of the screens the Polish ROM translates, and the nine glyphs of the Polish letters, byte for byte the
+ * Polish ROM's; nothing else of the US ROM changed in the composed image but those glyphs, the graphics and their
+ * headers' entries, and the header's sums; the compact text laid out in Polish, a word broken at a syllable joined
+ * again; the pack's file read back.  The coverage printed. */
+typedef struct expected_polish {
+    OraclesGame game;
+    OraclesRomRevision us, pl;
+    unsigned texts, corrected;
+    expected_layout layout;
+    const char *graphics;   /* the US graphics replaced, the table of the title's sprites of PRESS START among them */
+    unsigned graphics_left; /* the bytes of the screens translated the Polish ROM loads otherwise from the US graphics kept */
+    unsigned press_start_bank, press_start_address;   /* the US table of the title's sprites of PRESS START */
+} expected_polish;
+static const expected_polish polish_expected[] = {
+    { ORACLES_GAME_AGES, ORACLES_ROM_REVISION_AGES_US, ORACLES_ROM_REVISION_AGES_PL, 2824, 5, { 1751, 19, 0, 8666, 6376, 1 },
+      "29:5b5f 29:5ca9 29:5de7 29:5f33 29:6071 29:61ac 29:62ff 29:644d 29:6589 29:66cc 30:763a 31:7524 37:7cba 37:7e5d 37:7edf "
+      "37:7f62 38:4470 38:456a 38:470d 38:48b5 38:4930 38:4e0a 38:55bb 38:57cd 38:5b12 38:5b90 38:5d07 38:664f 3f:59aa", 456, 0x3f, 0x59aa },
+    { ORACLES_GAME_SEASONS, ORACLES_ROM_REVISION_SEASONS_US, ORACLES_ROM_REVISION_SEASONS_PL, 1885, 0, { 1052, 23, 0, 5426, 4096, 0 },
+      "03:4e65 28:5542 28:5646 28:57d2 28:593e 28:5c23 28:5d56 28:5e99 28:5feb 28:6184 28:628f 30:7e3e 31:6bc2 37:7bbc 37:7d5f "
+      "37:7de1 37:7e64 38:4372 38:446c 38:460f 38:47b7 38:4832 38:4d0c 38:54bd 38:56d4 38:5a19 38:5a97 38:5c0e 38:6556", 677, 0x03, 0x4e65 },
+};
+
+/* Whether the Polish ROM translates the screen of header h: the title, the end, the secrets' screens, the error, the
+ * dungeons' names, the file select and its screens. */
+static int polish_screen(OraclesGame game, unsigned h)
+{
+    return h == 0x02 || h == 0x03 || h == 0x05 || h == 0x06 || h == 0x07 || (h >= 0x10 && h <= 0x1f) || h == 0x97 || h == 0x9f
+        || (h >= 0xa0 && h <= 0xaf) || h == 0xba || (game == ORACLES_GAME_SEASONS && h == 0x84);
+}
+
+/* The Polish graphics: every header of a screen the Polish ROM translates loads, from the composed image as the US
+ * game does, what the Polish ROM loads over every byte the replaced graphics write, the bytes left those of the US
+ * graphics kept (the HUD's, which the Polish ROM redraws without text and other screens load too); every other header
+ * loads what the US ROM loads (the Japanese intro's aside, which the US games never load); the title's sprites of PRESS
+ * START are the Polish ROM's, their table written over the US one; the image changed nowhere else than the header's
+ * sums, the font's nine glyphs, that table and the graphics' entries and bytes. */
+static void check_polish_graphics(const char *name, OraclesGame game, const OraclesLanguagePack *pack, const rom_file *us, const rom_file *pl,
+                                  const uint8_t *image, size_t size, const expected_polish *e)
+{
+    static gfx_load composed, polish, original;
+    static uint8_t allowed[0x100000];
+    char sources[1024] = "";
+    const unsigned count = oracles_language_pack_graphic_count(pack, ORACLES_LANGUAGE_POLISH);
+    for (unsigned n = 0; n < count; n++) {
+        OraclesLanguageGraphic g;
+        CHECK(oracles_language_pack_graphic(pack, ORACLES_LANGUAGE_POLISH, n, &g) == 0);
+        snprintf(sources + strlen(sources), sizeof sources - strlen(sources), "%s%02x:%04x", n ? " " : "", g.bank, g.address);
+    }
+    printf("%s pl graphics replaced: %s\n", name, sources);
+    CHECK(!strcmp(sources, e->graphics));
+    const size_t us_table = language_gfx_headers_us(game), pl_table = language_gfx_headers_polish(game), font = language_font_us(game);
+    unsigned screens = 0, compared = 0, mismatched = 0, left = 0, others = 0, changed_others = 0, entries = 0;
+    CHECK(size == 2u * us->size && us->size == sizeof allowed);
+    memset(allowed, 0, sizeof allowed);
+    allowed[0x148] = allowed[0x14d] = allowed[0x14e] = allowed[0x14f] = 1;
+    memset(allowed + font + 0x80u * GLYPH_BYTES, 1, 9u * GLYPH_BYTES);
+    for (unsigned h = 0; h < GFX_HEADERS; h++) {
+        if (h == 0x04) continue;
+        CHECK(load_header(image, size, us_table, h, -1, &composed) == 0);
+        CHECK(load_header(us->data, us->size, us_table, h, -1, &original) == 0);
+        /* The entries that load another graphic than the US one: repointed, or whose graphic was written in place. */
+        for (unsigned j = 0; j < composed.count; j++) {
+            const uint8_t *x = image + composed.at[j], *y = us->data + composed.at[j];
+            CHECK(!memcmp(x + 3, y + 3, 3));   /* the destination and the size stay */
+            uint8_t data[2048], original_data[2048];
+            size_t consumed = 0;
+            const size_t bytes = 16u * ((x[5] & 0x7fu) + 1u), source = oracles_rom_offset(x[0] & 0x3fu, (unsigned)x[1] << 8 | x[2]);
+            CHECK(language_gfx_decompress(image, size, source, x[0] >> 6, data, bytes, &consumed) == 0);
+            CHECK(language_gfx_decompress(us->data, us->size, oracles_rom_offset(y[0] & 0x3fu, (unsigned)y[1] << 8 | y[2]), y[0] >> 6, original_data, bytes, NULL) == 0);
+            if (!memcmp(x, y, 3) && !memcmp(data, original_data, bytes)) continue;
+            CHECK(source + consumed <= sizeof allowed);
+            memset(allowed + composed.at[j], 1, 3);
+            if (source + consumed <= sizeof allowed) memset(allowed + source, 1, consumed);
+            entries++;
+        }
+        if (!polish_screen(game, h)) {
+            others++;
+            unsigned changed = 0;
+            for (size_t k = 0; k < SPACE; k++) changed += composed.value[k] != original.value[k];
+            changed_others += changed != 0;
+            continue;
+        }
+        screens++;
+        CHECK(load_header(pl->data, pl->size, pl_table, h, -1, &polish) == 0);
+        for (size_t k = 0; k < SPACE; k++) {
+            if (composed.entry[k] < 0) continue;
+            CHECK(polish.value[k] != 0xffff);
+            const uint8_t *y = us->data + composed.at[composed.entry[k]];   /* the US graphic the entry named */
+            char named[16];
+            snprintf(named, sizeof named, "%02x:%02x%02x", y[0] & 0x3fu, y[1], y[2]);
+            if (strstr(sources, named)) { compared++; mismatched += composed.value[k] != polish.value[k]; }
+            else left += composed.value[k] != polish.value[k];
+        }
+    }
+    const size_t press_start = oracles_rom_offset(e->press_start_bank, e->press_start_address), pl_press_start = language_press_start_polish(game);
+    const size_t press_start_bytes = 1u + 4u * pl->data[pl_press_start];
+    CHECK(press_start_bytes <= 32u && !memcmp(image + press_start, pl->data + pl_press_start, press_start_bytes));
+    memset(allowed + press_start, 1, press_start_bytes);
+    unsigned outside = 0;
+    for (size_t i = 0; i < us->size; i++) outside += image[i] != us->data[i] && !allowed[i];
+    printf("%s pl graphics: %u replaced; %u screens translated, %u entries loading them, %u bytes as the Polish ROM loads them, %u different, "
+           "%u left as the US game loads them; %u other headers, %u loading otherwise; %u bytes of the US ROM changed elsewhere\n",
+           name, count, screens, entries, compared, mismatched, left, others, changed_others, outside);
+    CHECK(count == 29u && compared > 0 && mismatched == 0 && left == e->graphics_left && changed_others == 0 && outside == 0);
+}
+/* The texts corrected, what each holds then and no more. */
+static const correction polish_corrected[] = {
+    { AGES, ORACLES_LANGUAGE_POLISH, 0x000b, 0x000b, "a teraźniejszo-\\nścią!", "teraźniejszością" },
+    { AGES, ORACLES_LANGUAGE_POLISH, 0x240a, 0x240a, "Goronem-\\ntancerzem!", "Goronem-tancerzem" },
+    { AGES, ORACLES_LANGUAGE_POLISH, 0x242a, 0x242a, "Goronem-\\ntancerzem!", "Goronem-tancerzem" },
+    { AGES, ORACLES_LANGUAGE_POLISH, 0x3306, 0x3306, "sięgnie\\n", "sięgnie \\n" },
+    { AGES, ORACLES_LANGUAGE_POLISH, 0x5805, 0x5805, "naprawiony...", "odrestaurowany" },
+};
+
+/* The Polish ROM of `game` made by a patch of `dir` (Kaxus's, by its SHA-1) applied to the US ROM, or an empty one. */
+static rom_file polish_patched(const char *dir, OraclesGame game, const rom_file *us)
+{
+    rom_file made = { NULL, 0 };
+    DIR *listing = opendir(dir);
+    struct dirent *entry;
+    while (listing && us->data && !made.data && (entry = readdir(listing))) {
+        const size_t n = strlen(entry->d_name);
+        if (n < 4 || strcmp(entry->d_name + n - 4, ".bps")) continue;
+        char path[1024], error[256], sha1[41];
+        snprintf(path, sizeof path, "%s/%s", dir, entry->d_name);
+        size_t size = 0;
+        uint8_t *patch = oracles_bps_read_file(path, &size, error, sizeof error);
+        if (patch) oracles_sha1_hex(patch, size, sha1);
+        if (patch && oracles_language_patch_game(sha1, ORACLES_LANGUAGE_POLISH) == game)
+            made.data = oracles_bps_apply(us->data, us->size, patch, size, &made.size, error, sizeof error);
+        free(patch);
+    }
+    if (listing) closedir(listing);
+    return made;
+}
+
+static int check_polish(const char *dir, const char *work, const expected_polish *e)
+{
+    const OraclesGame game = e->game;
+    const char *name = game == ORACLES_GAME_AGES ? "ages" : "seasons";
+    rom_file us = find(dir, e->us), pl = find(dir, e->pl), patched = polish_patched(dir, game, &us);
+    if (!us.data || (!pl.data && !patched.data)) {
+        printf("%s: no US ROM and Polish ROM or patch in %s: Polish not checked\n", name, dir);
+        free(us.data); free(pl.data); free(patched.data);
+        return 0;
+    }
+    /* The patch makes the Polish ROM itself. */
+    if (pl.data && patched.data) CHECK(pl.size == patched.size && !memcmp(pl.data, patched.data, pl.size));
+    if (!pl.data) { pl = patched; patched.data = NULL; }
+    free(patched.data);
+    OraclesRomInfo info;
+    char error[256];
+    CHECK(oracles_rom_identify(pl.data, pl.size, &info, error, sizeof error) == 0 && info.revision == e->pl && language_polish(&info));
+    language_corrections *corrections = language_corrections_load_polish(game, error, sizeof error);
+    CHECK(corrections != NULL);
+    OraclesLanguagePack *pack = corrections ? language_pack_extract_with(pl.data, pl.size, us.data, us.size, corrections, error, sizeof error) : NULL;
+    CHECK(pack != NULL);
+    if (!pack) {
+        fprintf(stderr, "%s pl: %s\n", name, error);
+        language_corrections_free(corrections);
+        free(us.data); free(pl.data);
+        return 1;
+    }
+    for (OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH_EU; language < ORACLES_LANGUAGE_POLISH; language++)
+        CHECK(!oracles_language_pack_count(pack, language) && !oracles_language_pack_graphic_count(pack, language));
+    /* The public extraction loads the Polish corrections itself: the same pack. */
+    OraclesLanguagePack *public_pack = oracles_language_pack_extract(pl.data, pl.size, us.data, us.size, error, sizeof error);
+    char digest[41] = "", public_digest[41] = "";
+    oracles_language_pack_digest(pack, digest);
+    if (public_pack) oracles_language_pack_digest(public_pack, public_digest);
+    CHECK(public_pack && !strcmp(digest, public_digest));
+    oracles_language_pack_free(public_pack);
+    if (e->corrected) check_corrections_used(name, corrections);
+    else CHECK(language_corrections_count(corrections) == 0);
+
+    const OraclesRom us_rom = { us.data, us.size }, pl_rom = { pl.data, pl.size };
+    OraclesTextSource source, pl_source;
+    CHECK(language_source_us(&us_rom, game, &source) == 0 && language_source_polish(&pl_rom, game, &pl_source) == 0);
+    const unsigned count = oracles_language_pack_count(pack, ORACLES_LANGUAGE_POLISH), pl_groups = oracles_text_groups(&pl_rom, &pl_source);
+    unsigned counts[ORACLES_LANGUAGE_SOURCE_COUNT], long_lines = 0, unheld = 0, differ = 0;
+    oracles_language_pack_tally(pack, ORACLES_LANGUAGE_POLISH, counts);
+    for (unsigned n = 0; n < count; n++) {
+        unsigned id = 0;
+        size_t length = 0, original_length = 0, official_length = 0;
+        OraclesLanguageSource from;
+        const uint8_t *text = oracles_language_pack_nth(pack, ORACLES_LANGUAGE_POLISH, n, &id, &from, &length);
+        if (!text) continue;
+        if (oracles_text_longest_line(text, length) > 16u) long_lines++;
+        uint8_t original[ORACLES_TEXT_MAX], official[ORACLES_TEXT_MAX];
+        CHECK(oracles_text_decode(&us_rom, &source, (id >> 8) + ORACLES_TEXT_DICTIONARY_GROUPS, id & 0xffu, original, sizeof original, &original_length) == ORACLES_OK);
+        if (!oracles_text_same_commands(original, original_length, text, length)) unheld++;
+        /* The Polish ROM's text of the same identifier, but those corrected. */
+        CHECK(language_text_of(&pl_rom, &pl_source, pl_groups, id, official, &official_length) == 0);
+        differ += official_length != length || memcmp(official, text, length);
+    }
+    const unsigned served = counts[ORACLES_LANGUAGE_SOURCE_SAME];
+    printf("%s pl: %u texts: %u same, %u moved, %u adapted, %u own, %u kept, %u refused, %u missing: %.2f %% translated; %u corrected; "
+           "%u lines over 16\n", name, count, served, counts[ORACLES_LANGUAGE_SOURCE_MOVED], counts[ORACLES_LANGUAGE_SOURCE_ADAPTED],
+           counts[ORACLES_LANGUAGE_SOURCE_OWN], counts[ORACLES_LANGUAGE_SOURCE_KEPT], counts[ORACLES_LANGUAGE_SOURCE_REFUSED],
+           counts[ORACLES_LANGUAGE_SOURCE_MISSING], 100.0 * served / (count ? count : 1u), differ, long_lines);
+    /* Every US text in Polish, the Polish text of its identifier: none refused, none missing, none kept in English. */
+    CHECK(count == e->texts && served == count && long_lines == 0 && unheld == 0 && differ == e->corrected);
+    for (size_t c = 0; c < sizeof polish_corrected / sizeof polish_corrected[0]; c++) {
+        if (polish_corrected[c].game != game) continue;
+        uint8_t present[64], absent[64];
+        size_t present_length = 0, absent_length = 0, length = 0;
+        CHECK(language_text_encode_in(ORACLES_LANGUAGE_POLISH, polish_corrected[c].present, strlen(polish_corrected[c].present), present, sizeof present, &present_length) == 0);
+        CHECK(language_text_encode_in(ORACLES_LANGUAGE_POLISH, polish_corrected[c].absent, strlen(polish_corrected[c].absent), absent, sizeof absent, &absent_length) == 0);
+        const uint8_t *text = oracles_language_pack_text(pack, ORACLES_LANGUAGE_POLISH, polish_corrected[c].first, &length);
+        CHECK(text && holds(text, length, present, present_length - 1u) && !holds(text, length, absent, absent_length - 1u));
+    }
+
+    /* The nine glyphs of the Polish letters, the Polish ROM's, where the US font has its accented capitals. */
+    const uint8_t *characters, *bitmaps;
+    const unsigned glyphs = oracles_language_pack_glyphs(pack, &characters, &bitmaps);
+    const size_t pl_font = language_font_polish(game), us_font = language_font_us(game);
+    CHECK(glyphs == 9u);
+    for (unsigned g = 0; g < glyphs && g < 9u; g++)
+        CHECK(characters[g] == 0x80u + g && !memcmp(bitmaps + g * GLYPH_BYTES, pl.data + pl_font + (0x80u + g) * GLYPH_BYTES, GLYPH_BYTES));
+
+    uint8_t *image = NULL;
+    size_t size = 0;
+    OraclesLanguageReport report;
+    CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_POLISH, us.data, us.size, NULL, &image, &size, &report, error, sizeof error) == 0);
+    if (image) {
+        CHECK(report.served == count && report.english == 0 && report.missing == 0);
+        CHECK(report.graphics == oracles_language_pack_graphic_count(pack, ORACLES_LANGUAGE_POLISH));
+        CHECK(!memcmp(image + us_font + 0x80u * GLYPH_BYTES, pl.data + pl_font + 0x80u * GLYPH_BYTES, 9u * GLYPH_BYTES));
+        CHECK(!memcmp(image + (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u + ORACLES_LANGUAGE_INDEX_CODE, "pl", 3));
+        printf("%s pl composed: %u texts served, %u bytes; %u graphics, %u bytes\n", name, report.served, report.bytes, report.graphics, report.graphics_bytes);
+        check_polish_graphics(name, game, pack, &us, &pl, image, size, e);
+    }
+    /* An image that no longer holds the US table of the title's sprites of PRESS START, its first or its last byte, is
+     * refused, not written over. */
+    uint8_t *other = malloc(us.size);
+    CHECK(other != NULL);
+    for (unsigned k = 0; other && k < 2u; k++) {
+        memcpy(other, us.data, us.size);
+        other[oracles_rom_offset(e->press_start_bank, e->press_start_address) + (k ? 0x28u : 0u)] ^= 0x01u;
+        uint8_t *refused = NULL;
+        size_t refused_size = 0;
+        CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_POLISH, other, us.size, NULL, &refused, &refused_size, &report, error, sizeof error) != 0 && !refused);
+        CHECK(strstr(error, "does not hold the US table") != NULL);
+        free(refused);
+    }
+    free(other);
+
+    /* The compact text in Polish: every text laid out again holds, as measured; Ages TX_000b's word broken at a syllable
+     * by its correction joined again, TX_240a's compound kept whole with its hyphen. */
+    const OraclesLanguageLayout layout = { 128, 0, 0, NULL };
+    uint8_t *laid = NULL;
+    size_t laid_size = 0;
+    CHECK(oracles_language_compose(pack, ORACLES_LANGUAGE_POLISH, us.data, us.size, &layout, &laid, &laid_size, &report, error, sizeof error) == 0);
+    if (laid) {
+        const OraclesRom composed = { laid, laid_size };
+        const OraclesGuestTables *t = game == ORACLES_GAME_AGES ? &oracles_guest_tables_ages : &oracles_guest_tables_seasons;
+        OraclesTextFont font;
+        CHECK(oracles_text_font(&composed, oracles_rom_offset(t->font_start.bank, t->font_start.addr), &font) == ORACLES_OK);
+        language_wrap *wrap = language_wrap_new(&font, layout.width, ORACLES_LANGUAGE_POLISH);
+        const size_t first = (size_t)ORACLES_IMAGE_LANGUAGE_BANK * 0x4000u;
+        const layout_count n = count_layout(laid, laid_size, first, &us_rom, &source, oracles_text_groups(&us_rom, &source), pack, ORACLES_LANGUAGE_POLISH, wrap);
+        printf("%s pl laid out for the compact text: %u texts laid out again (%u in the index), %u kept by the table or a call, %u that did not hold; "
+               "%u boxes for %u; the texts of the box without a choice, a call, a secret or a jump: %u boxes for %u; %u hyphens joined\n",
+               name, report.laid_out, n.flagged, report.layout_kept, report.layout_failed, report.boxes_laid_out, report.boxes, n.boxes_laid_out, n.boxes,
+               n.joined);
+        CHECK(wrap && n.flagged == report.laid_out && n.unheld == 0);
+        CHECK(report.laid_out == e->layout.laid_out && report.layout_kept == e->layout.kept && report.layout_failed == e->layout.failed);
+        CHECK(report.boxes == e->layout.boxes && report.boxes_laid_out == e->layout.boxes_laid_out && n.joined == e->layout.joined);
+        if (game == ORACLES_GAME_AGES) {
+            size_t laid_length = 0;
+            const uint8_t *joined = laid_text(laid, laid_size, first, 0x000b, &laid_length);
+            CHECK(joined && holds_words(joined, laid_length, "tera\x88niejszo\x83" "ci\x80!"));
+        }
+        language_wrap_free(wrap);
+        free(laid);
+    }
+
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%s-pl.pack", work, name);
+    CHECK(oracles_language_pack_write(pack, path, error, sizeof error) == 0);
+    OraclesLanguagePack *back = oracles_language_pack_read(path, error, sizeof error);
+    CHECK(back != NULL);
+    if (back && image) {
+        uint8_t *again = NULL;
+        size_t again_size = 0;
+        CHECK(oracles_language_compose(back, ORACLES_LANGUAGE_POLISH, us.data, us.size, NULL, &again, &again_size, &report, error, sizeof error) == 0);
+        CHECK(again && again_size == size && !memcmp(again, image, size));
+        free(again);
+    }
+    oracles_language_pack_free(back);
+    remove(path);
+    free(image);
+    oracles_language_pack_free(pack);
+    language_corrections_free(corrections);
+    free(us.data);
+    free(pl.data);
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     const char *dir = getenv("ORACLES_ROM_DIR");
     if (!dir || !*dir) { printf("language-roms: ORACLES_ROM_DIR is not set: skipped\n"); return 77; }
     unsigned checked = 0;
     for (size_t i = 0; i < sizeof games / sizeof games[0]; i++) checked += (unsigned)check_game(dir, argc > 1 ? argv[1] : ".", &games[i]);
+    for (size_t i = 0; i < sizeof japanese_expected / sizeof japanese_expected[0]; i++)
+        checked += (unsigned)check_japanese(dir, argc > 1 ? argv[1] : ".", &japanese_expected[i]);
+    for (size_t i = 0; i < sizeof polish_expected / sizeof polish_expected[0]; i++)
+        checked += (unsigned)check_polish(dir, argc > 1 ? argv[1] : ".", &polish_expected[i]);
     const unsigned combined = check_combined(dir);
     printf("Oracles Combined: %u image(s) of its release checked\n", combined);
     checked += combined;

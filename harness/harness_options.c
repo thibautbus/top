@@ -25,7 +25,7 @@ int harness_usage(void)
                     "                       [--hud original|full|wide]   (with --enhanced-check: the gutters beside the status bar dark, or the bar's own background, or the bar laid out on it, as the launcher's hud=; original by default)\n"
                     "                       [--unvisited-rooms shown|hidden]   (with --enhanced-check: the rooms the game has never seen Link enter drawn, or kept dark, as the launcher's unvisited_rooms=; shown by default)\n"
                     "                       [--mods DIR]... [--mod-trace FILE]   (the mods the route was recorded with, and their state after every frame, to --compare with the session's ROUTE.mod.tsv)\n"
-                    "                       [--language en|en-eu|fr|de|it|es [--eu-rom FILE|DIR] [--language-pack FILE]]   (the European ROM's English or a translation, from that ROM or its pack, served at getTextAddress; a fan game's too, with --patch)\n"
+                    "                       [--language en|en-eu|fr|de|it|es|ja|pl [--eu-rom FILE|DIR] [--language-pack FILE]]   (the European ROM's English or a translation, the Japanese ROM's Japanese (ja), or Kaxus's Polish (pl) from the Polish ROM or his patch, which --eu-rom then names, from that ROM or its pack, served at getTextAddress; a fan game's too, with --patch, but for Japanese and Polish)\n"
                     "                       (--enhanced-paced holds each frame to the Game Boy's period by a busy wait: a core a replay, as in play)\n"
                     );
     fprintf(stderr,

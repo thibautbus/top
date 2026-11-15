@@ -1,0 +1,12 @@
+# The texts of Seasons whose Polish is not the Polish text of the same identifier (engine/language/language.h), from
+# Kaxus's fan translation. Every other US text takes the Polish text of its identifier, when its commands are the US
+# text's: every one does. The identifiers the Polish ROM adds past the US ones (the texts of its own items) stand for no
+# US text and are not read.
+# The first row pins the Polish ROM the table was measured on (the image Kaxus's patch makes of the US ROM), by its
+# SHA-1. A row then: the texts (TX_GGII, four hexadecimal digits each, or a range first-last, space-separated), the
+# language (pl), the source of their text, and why. A source is one of:
+#   pl:TX_GGII   the Polish text of that identifier: the Polish ROM has the text there
+#   rule:NAME    the Polish text of the same identifier, adapted to the US code by a rule (language_rules.c)
+#   english      the US English, kept
+# texts	languages	source	why
+rom	0255e2c5d4b8eb2ec192d6dbe4d0cd5bc10b5e56

@@ -31,6 +31,10 @@
 #define GROUP_TEXTS 0x100u
 #define INVENTORY_GROUP 0x09u
 #define PAGES_A_TEXT 64u   /* TX_09xx: the inventory's names and descriptions, which scroll on a line of their own */
+/* Japanese in the wide box: kept as the game breaks its lines (0); or laid out again on its width like the other
+ * languages, the lines it joins taking a (full-width) space (1).  Changing it changes the Japanese images:
+ * ORACLES_LANGUAGE_PACK_REVISION_JA goes up with it, so that no savestate taken with the other loads. */
+#define JAPANESE_LAID_OUT_WIDE 0
 
 typedef struct composition {
     uint8_t *im;                  /* the half composed: the image itself but for an image of two games */
@@ -295,6 +299,7 @@ int oracles_language_compose(const OraclesLanguagePack *pack, OraclesLanguage la
         return -1;
     }
     if (layout && layout->width && !target.original) { snprintf(error, capacity, "the compact text lays out a fan game's texts in its English alone"); return -1; }
+    if (language == ORACLES_LANGUAGE_JAPANESE && !JAPANESE_LAID_OUT_WIDE) layout = NULL;
     return compose(pack, language, &target, image, size, layout, out, out_size, report, error, capacity);
 }
 

@@ -14,7 +14,9 @@ typedef struct OraclesLanguageSession OraclesLanguageSession;
 /* The language `code` for the image `info` describes, read before any composition: the US ROM of Ages or Seasons, or a
  * fan game made on it from the US ROM at `base_path` (NULL for an original, or a fan game's image read whole: its US ROM
  * is then the one beside its European ROM).  Its pack read from `pack_path`, else
- * extracted from the European ROM `european` of the game (the file, or a directory where it is found by its SHA-1),
+ * extracted from the European ROM `european` of the game (the file, or a directory where it is found by its SHA-1), its
+ * Japanese ROM for Japanese, its Polish ROM for Polish or Kaxus's patch (a .bps, or a zip of one), which makes it of the
+ * US ROM `rom` in memory,
  * for a fan game from that game's pack and the two images (oracles_language_pack_derive), and written to `pack_path`
  * when one is given (a pack that cannot be written serves all the same: oracles_language_session_note says so).  A pack
  * read that is not this version's, of this game or whole is extracted again when the European ROM is given, refused

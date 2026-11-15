@@ -263,6 +263,9 @@ void harness_report_language(run *r, FILE *summary)
     oracles_guest_language_counts(r->guest, &served, &english, &missing);
     if (summary) fprintf(summary, "language.code=%s\nlanguage.texts_served=%u\nlanguage.texts_english=%u\nlanguage.texts_missing=%u\nlanguage.graphics=%u\n",
                          oracles_guest_language(r->guest), served, english, missing, oracles_language_session_graphics(r->language));
+    /* Japanese: the names' letters printed in capitals, and those left as kana, their name without a Latin capital. */
+    if (summary && !strcmp(oracles_guest_language(r->guest), "ja"))
+        fprintf(summary, "language.name_capitals=%u\nlanguage.name_kana=%u\n", oracles_guest_name_capitals(r->guest), oracles_guest_name_kana(r->guest));
     /* The compact text's layout of the language's texts, and those of them the game looked up. */
     const OraclesLanguageReport *c = oracles_language_session_composed(r->language);
     if (summary && c && (c->laid_out || c->layout_kept || c->layout_failed))

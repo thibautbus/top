@@ -1254,7 +1254,13 @@
     "text_slowdown_timer": {
       "bank": 7,
       "address": "0xd0d7"
-    }
+    },
+    "text_control_code_name": null,
+    "copy_text_characters_from_hl": null,
+    "link_name": null,
+    "kid_name": null,
+    "name_buffer": null,
+    "name_buffer_end": null
   },
   "guest_table_sizes": {
     "global_flags_size": 16,
@@ -1480,6 +1486,12 @@
     "parse_object_data": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "run_room_specific_code": "not bound for the fan games yet: a neighbour's objects are not run again for the story state they read",
     "slingshot_selected_seeds": "the item hotkeys not qualified for this revision",
-    "spr_extra_mags": "an Oracles Combined symbol: this game's engine has none"
+    "spr_extra_mags": "an Oracles Combined symbol: this game's engine has none",
+    "text_control_code_name": "Japanese names in capitals: a fan game does not play in Japanese",
+    "copy_text_characters_from_hl": "Japanese names in capitals: a fan game does not play in Japanese",
+    "link_name": "Japanese names in capitals: a fan game does not play in Japanese",
+    "kid_name": "Japanese names in capitals: a fan game does not play in Japanese",
+    "name_buffer": "Japanese names in capitals: a fan game does not play in Japanese",
+    "name_buffer_end": "Japanese names in capitals: a fan game does not play in Japanese"
   }
 }

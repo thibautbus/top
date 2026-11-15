@@ -1,0 +1,46 @@
+# The texts of Ages whose Japanese is not the Japanese text of their representative (engine/language/language.h): the
+# first identifier of their group whose US text lies where theirs does. Every other US text takes that text, when its
+# commands are the US text's (language_same_commands: the \sym, which only draw a glyph, and the text's speed aside).
+# The first row pins the Japanese ROM the table was measured on, by its SHA-1. A row then: the texts (TX_GGII, four
+# hexadecimal digits each, or a range first-last, space-separated), the language (ja), the source of their text, and
+# why. A source is one of:
+#   jp:TX_GGII   the Japanese text of that identifier: the Japanese ROM has the text there
+#   rule:NAME    the Japanese text of the representative, adapted to the US code by a rule (language_rules.c)
+#   own:KEY      the port's own translation, unofficial (config/language_own_ja.tsv)
+#   english      the US English, kept
+# Served as the Japanese ROM has them, its own words where the US edition wrote others: TX_0b2c (another joke),
+# TX_1209 (the Japanese says the same of the water going out and coming in), TX_3913-391d (the owl statues' padding:
+# a hoot in Japanese, a line on the mermaid in English).
+# texts	languages	source	why
+rom	596aa066ccee9fae71643576f7526baa22d26d6d
+002d 0047 0067	ja	rule:lead	the US text places its box (\pos) first, the Japanese one leaves it where it is
+05ba 05ca	ja	rule:lead	the US text places its box (\pos) in its middle, where the US engine does nothing, and the Japanese one nowhere
+0034	ja	rule:number-as-more	the Ring Box: the Japanese text shows a count of rings (\num1) the US code does not set
+032c 032d	ja	jp:TX_032d	a map's name of Holodrum the game does not show: the Japanese ROM has a placeholder there, and the name one identifier later
+302c 302d	ja	jp:TX_302d	the Japanese ROM pads the group with a copy one identifier earlier than the US one: its text is one identifier later
+302e 302f	ja	jp:TX_302f	the Japanese ROM pads the group with a copy one identifier earlier than the US one: its text is one identifier later
+5414 5415	ja	jp:TX_5415	the Japanese ROM pads the group with a copy one identifier earlier than the US one: its text is one identifier later
+3142	ja	own:fortune-future	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3143	ja	own:fortune-future-plain	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3144	ja	own:fortune-future-maze	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3145	ja	own:fortune-future-dance	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3146	ja	own:fortune-future-balls	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3147	ja	own:fortune-future-drink	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3148	ja	own:fortune-future-vase	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3149	ja	own:fortune-future-food	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314a	ja	own:fortune-future-cart	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314b	ja	own:fortune-future-dancing	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314c	ja	own:fortune-future-hot	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314d	ja	own:fortune-future-bombs	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314e	ja	own:fortune-past	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+314f	ja	own:fortune-past-plain	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3150	ja	own:fortune-past-maze	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3151	ja	own:fortune-past-dance	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3152	ja	own:fortune-past-balls	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3153	ja	own:fortune-past-drink	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3154	ja	own:fortune-past-vase	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3155	ja	own:fortune-past-food	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3156	ja	own:fortune-past-cart	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3157	ja	own:fortune-past-dancing	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3158	ja	own:fortune-past-hot	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it
+3159	ja	own:fortune-past-bombs	the Goron fortune teller, which the US edition added: the Japanese ROM has no text of it

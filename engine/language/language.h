@@ -21,7 +21,20 @@
  * European text adapted to the US code by a rule (language_rules.c), at
  * extraction, on the user's machine; the port's own, unofficial translation
  * (config/language_own.tsv); or the US English.  Every text so made is checked
- * against the US text's commands and lines; one that fails stays in English. */
+ * against the US text's commands and lines; one that fails stays in English.
+ *
+ * Japanese comes the same way from the user's Japanese ROM of a game, whose text engine is the one the US engine was
+ * made from: the same control codes, box and font format.  Its texts have the US identifiers but where the two editions
+ * pad a group differently: a US text takes the Japanese text of its representative (the first identifier of its group
+ * whose text lies where its own does), else what the game's Japanese table of exceptions names; its pack holds the
+ * whole Japanese font, kana where the US font has its lower-case and accented letters, written over the US one.
+ *
+ * Polish comes from Kaxus's fan translation, the Polish ROM his patch makes of the US ROM of a game: an image rebuilt
+ * from the disassembly, whose getTextAddress and text format are the US ones, its texts under the US identifiers.  A US
+ * text takes the Polish text of its identifier, corrected first where a line runs past the box
+ * (config/language_corrections_pl.tsv); its pack holds the nine glyphs of the Polish letters, written over the US
+ * accented capitals the English texts never print.  The player gives the Polish ROM, or the patch, which is applied to
+ * the US ROM in memory: the port holds neither. */
 #ifndef ORACLES_LANGUAGE_H
 #define ORACLES_LANGUAGE_H
 
@@ -43,15 +56,28 @@ typedef enum OraclesLanguage {
     ORACLES_LANGUAGE_GERMAN,
     ORACLES_LANGUAGE_ITALIAN,
     ORACLES_LANGUAGE_SPANISH,
+    ORACLES_LANGUAGE_JAPANESE,      /* the Japanese ROM's, a pack of its own */
+    ORACLES_LANGUAGE_POLISH,        /* the Polish ROM's, Kaxus's fan translation, a pack of its own */
     ORACLES_LANGUAGE_COUNT
 } OraclesLanguage;
+/* Past the languages of the European ROM. */
+#define ORACLES_LANGUAGE_EUROPEAN_END ORACLES_LANGUAGE_JAPANESE
 
-/* "en", "en-eu", "fr", "de", "it", "es". */
+/* "en", "en-eu", "fr", "de", "it", "es", "ja", "pl". */
 const char *oracles_language_code(OraclesLanguage language);
 /* The language of a code; 0, or -1 for a code that names none. */
 int oracles_language_parse(const char *code, OraclesLanguage *language);
 /* The game whose European ROM the image is (rom.h's revisions), ORACLES_GAME_UNKNOWN for any other. */
 OraclesGame oracles_language_source_game(const OraclesRomInfo *info);
+/* The game whose ROM of `language` the image is: its European ROM for English (EU) and the four translations, its
+ * Japanese ROM for Japanese, its Polish ROM for Polish; ORACLES_GAME_UNKNOWN for any other image or language. */
+OraclesGame oracles_language_source_game_of(const OraclesRomInfo *info, OraclesLanguage language);
+/* The game whose ROM of `language` the patch of SHA-1 `sha1` makes of the game's US ROM (Kaxus's Polish patches);
+ * ORACLES_GAME_UNKNOWN for any other patch or language. */
+OraclesGame oracles_language_patch_game(const char *sha1, OraclesLanguage language);
+/* Whether the compact text lays out the language's texts: its words are cut at spaces and hyphens, which Japanese,
+ * written without either between its words, has not; 0 for Japanese, which keeps the classic text. */
+int oracles_language_compact_text(OraclesLanguage language);
 /* Whether the image holds its texts in a language of its own, which no pack translates (Oracles Combined, an image a
  * language): 1 with it, 0 for any other image, whose texts are in English. */
 int oracles_language_image_own(const OraclesRomInfo *info, OraclesLanguage *language);
@@ -64,18 +90,23 @@ int oracles_language_image_own(const OraclesRomInfo *info, OraclesLanguage *lang
  * A pack's fingerprint is the SHA-1 of it, of the tables embedded at configure that the pack is made from
  * (config/language_exceptions_<game>.tsv, language_own.tsv, language_corrections.tsv) and of the text tables and the
  * font its image's profile binds; a pack of another fingerprint is read as one of an earlier format, made again from
- * the European ROM. */
+ * the ROM it comes from.  A Japanese pack has a revision of its own, raised with any change of what the Japanese
+ * extraction makes, and tables of its own (config/language_exceptions_<game>_ja.tsv, language_own_ja.tsv): it is made
+ * again alone, the European packs and their savestates untouched.  So is a Polish pack, by its own revision and tables
+ * (config/language_exceptions_<game>_pl.tsv, language_corrections_pl.tsv). */
 #define ORACLES_LANGUAGE_PACK_REVISION 1u
+#define ORACLES_LANGUAGE_PACK_REVISION_JA 6u
+#define ORACLES_LANGUAGE_PACK_REVISION_PL 2u
 
 /* Where a language's text for a US text comes from. */
 typedef enum OraclesLanguageSource {
-    ORACLES_LANGUAGE_SOURCE_SAME = 0,   /* the European text of the same identifier */
-    ORACLES_LANGUAGE_SOURCE_MOVED,      /* the European text of another identifier, where the European ROM moved it */
-    ORACLES_LANGUAGE_SOURCE_ADAPTED,    /* the European text adapted to the US code by a rule */
+    ORACLES_LANGUAGE_SOURCE_SAME = 0,   /* the European or Polish text of the same identifier; the Japanese text of its representative */
+    ORACLES_LANGUAGE_SOURCE_MOVED,      /* the European or Japanese text of another identifier, where that ROM moved it */
+    ORACLES_LANGUAGE_SOURCE_ADAPTED,    /* that text adapted to the US code by a rule */
     ORACLES_LANGUAGE_SOURCE_OWN,        /* the port's own translation, unofficial */
     ORACLES_LANGUAGE_SOURCE_KEPT,       /* none: the US English, as the table of exceptions says */
     ORACLES_LANGUAGE_SOURCE_REFUSED,    /* none: the translation found has not the US text's commands or lines */
-    ORACLES_LANGUAGE_SOURCE_MISSING,    /* none: the European ROM has no text there and the table names none */
+    ORACLES_LANGUAGE_SOURCE_MISSING,    /* none: the ROM it comes from has no text there and the table names none */
     ORACLES_LANGUAGE_SOURCE_FAN,        /* none: a fan game's own text, which no US text equals, in its English */
     ORACLES_LANGUAGE_SOURCE_COUNT
 } OraclesLanguageSource;
@@ -86,8 +117,9 @@ const char *oracles_language_source_name(OraclesLanguageSource source);
 typedef struct OraclesLanguagePack OraclesLanguagePack;
 
 /* The pack of a European ROM, extracted with the US ROM of its game beside it (its texts are what the translations are
- * aligned to and checked against, its font what the European glyphs are compared with).  NULL with the reason when
- * either is not the ROM it must be, or the game's table of exceptions was not measured on this European ROM. */
+ * aligned to and checked against, its font what the European glyphs are compared with), or of a Japanese or Polish ROM,
+ * which holds its language alone.  NULL with the reason when either is not the ROM it must be, or the game's table of exceptions
+ * was not measured on this ROM. */
 OraclesLanguagePack *oracles_language_pack_extract(const uint8_t *european, size_t european_size, const uint8_t *us, size_t us_size,
                                                    char *error, size_t capacity);
 /* The pack of a fan game made on the US ROM `us` of the game of `base` (that game's pack), for its image `image`: its
@@ -106,7 +138,7 @@ OraclesLanguagePack *oracles_language_pack_read(const char *path, char *error, s
 void oracles_language_pack_free(OraclesLanguagePack *pack);
 
 OraclesGame oracles_language_pack_game(const OraclesLanguagePack *pack);
-/* The SHA-1 of the European ROM the pack was extracted from. */
+/* The SHA-1 of the European, Japanese or Polish ROM the pack was extracted from. */
 const char *oracles_language_pack_source(const OraclesLanguagePack *pack);
 /* The SHA-1 of the image whose texts it translates: the US ROM of its game, or a fan game made on it. */
 const char *oracles_language_pack_image(const OraclesLanguagePack *pack);
@@ -122,7 +154,8 @@ const uint8_t *oracles_language_pack_text(const OraclesLanguagePack *pack, Oracl
 OraclesLanguageSource oracles_language_pack_source_of(const OraclesLanguagePack *pack, OraclesLanguage language, unsigned id);
 /* A language's entries by source: counts[ORACLES_LANGUAGE_SOURCE_COUNT]. */
 void oracles_language_pack_tally(const OraclesLanguagePack *pack, OraclesLanguage language, unsigned counts[ORACLES_LANGUAGE_SOURCE_COUNT]);
-/* The glyphs of the European font that differ from the US one: their characters, and 16 bytes (1 bit a pixel) each. */
+/* The glyphs of the European or Polish font that differ from the US one, or the whole Japanese font: their characters,
+ * and 16 bytes (1 bit a pixel) each. */
 unsigned oracles_language_pack_glyphs(const OraclesLanguagePack *pack, const uint8_t **characters, const uint8_t **bitmaps);
 
 /* A graphic that carries text, in a language: the US graphic it stands for, as the US graphics headers name it (bank and

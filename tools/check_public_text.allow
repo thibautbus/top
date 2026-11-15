@@ -11,6 +11,11 @@ tests/test_language.c	Grüße
 # The words of the official translations the port corrects, and the test that each correction is served.
 config/language_corrections.tsv	^(ages|seasons)\t
 tests/test_language_roms.c	^    \{ (AGES|SEASONS), (FR|DE|IT|ES), 0x
+# Kaxus's Polish letters, listed in the documents that say what the Polish ROM's font draws, and the tests of their encoding.
+docs/ROM_DATA_FORMATS.md	`\$86` ó
+docs/REFERENCE.md	\(ą ć ę ś ł ń ó ż ź\)
+config/language_corrections_pl.tsv	ą ć ę ś ł ń ó ż ź|^(ages|seasons)\t
+tests/test_language.c	"ąćęśłńóżź Z|ORACLES_LANGUAGE_POLISH, "é"|\\tcé\\t
 # A mod's text with an accented letter, the case the glyph table serves.
 tests/test_mods.c	Ô rôdeur
 # The curve's name.

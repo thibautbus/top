@@ -601,7 +601,7 @@ static int load_starting_sram(run *r, const char *route_path)
  * Returns 0, or 1 with the reason on stderr. */
 static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *rom_size_out)
 {
-    char error[256];
+    char error[512];
     size_t rom_size = 0;
     uint8_t *rom = o->patch_path ? oracles_bps_apply_joined_files(o->rom_path, o->joined_path, o->patch_path, &rom_size, error, sizeof error)
                                  : oracles_rom_read_file(o->rom_path, &rom_size, error, sizeof error);
@@ -626,6 +626,12 @@ static int open_the_run(run *r, harness_options *o, uint8_t **rom_out, size_t *r
     if (oracles_route_has_option(&r->route.header, ORACLES_ROUTE_OPTION_TEXT_BOX_WIDE) && !o->text_box_wide) {
         o->text_box_wide = 1;
         fprintf(stderr, "harness: the route was recorded with --text-box wide: the option is on\n");
+    }
+    /* Japanese keeps the classic text: the compact one cuts the lines at spaces, which its words have not between them. */
+    OraclesLanguage language = ORACLES_LANGUAGE_ENGLISH;
+    if (o->compact_text && o->language && oracles_language_parse(o->language, &language) == 0 && !oracles_language_compact_text(language)) {
+        o->compact_text = 0;
+        fprintf(stderr, "harness: the compact text does not lay out %s: the classic text\n", o->language);
     }
     if (o->compact_text && (!oracles_compat_compact_text(oracles_compat_find(&info)) || !o->enhanced_dir)) {   /* never armed in Faithful: it changes what the core draws */
         fprintf(stderr, "harness: the compact text plays in Enhanced alone (--enhanced-check), on Ages, Seasons and the fan games made on them; refusing the request and route option\n");

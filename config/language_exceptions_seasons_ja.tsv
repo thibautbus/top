@@ -1,0 +1,18 @@
+# The texts of Seasons whose Japanese is not the Japanese text of their representative (engine/language/language.h):
+# the first identifier of their group whose US text lies where theirs does. Every other US text takes that text, when
+# its commands are the US text's (language_same_commands: the \sym, which only draw a glyph, and the text's speed
+# aside). The first row pins the Japanese ROM the table was measured on, by its SHA-1. A row then: the texts (TX_GGII,
+# four hexadecimal digits each, or a range first-last, space-separated), the language (ja), the source of their text,
+# and why. A source is one of:
+#   jp:TX_GGII   the Japanese text of that identifier: the Japanese ROM has the text there
+#   rule:NAME    the Japanese text of the representative, adapted to the US code by a rule (language_rules.c)
+#   own:KEY      the port's own translation, unofficial (config/language_own_ja.tsv)
+#   english      the US English, kept
+# texts	languages	source	why
+rom	08bf49d7e225c695f64d38131cb720decb84b663
+0034	ja	rule:number-as-more	the Ring Box: the Japanese text shows a count of rings (\num1) the US code does not set
+1f04	ja	rule:one-digit	the last line shows the number of golden beasts slain (\num1), four at most: sixteen cells with its one digit, as the game lays it out, seventeen as the US measure counts a number
+0b4d 0b4e 0b50	ja	rule:lead	a sound played (\sfx) before the box is placed (\pos), where the US engine places it only as a text's first command
+2f19-2f1e	ja	jp:TX_2f1e	the Japanese ROM pads the group with copies one identifier earlier than the US one: its text is after them
+3d0b 3d0c 3d16	ja	jp:TX_3d0c	the Japanese ROM pads the group with a copy one identifier earlier than the US one: its text is one identifier later
+3f03 3f04	ja	jp:TX_3f04	the Japanese ROM pads the group with a copy one identifier earlier than the US one: its text is one identifier later

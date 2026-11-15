@@ -60,8 +60,13 @@ typedef enum OraclesQuality {
 /* Their names in settings.txt: "low", "medium", "high", "max", "custom". */
 extern const char *const oracles_settings_quality_names[5];
 /* The languages' codes in settings.txt (language.h's), in the order of Cartridge's Language row: "en", "en-eu", "fr",
- * "de", "it", "es". */
-#define ORACLES_SETTINGS_LANGUAGES 6
+ * "de", "it", "es"; then "ja", Japanese, from an Oracle's Japanese ROM (jp_rom_<game>=), and "pl", Polish, Kaxus's fan
+ * translation, from an Oracle's Polish ROM or his patch (pl_rom_<game>=), which the row does not offer yet and a fan
+ * game does not play in. */
+#define ORACLES_SETTINGS_LANGUAGES 8
+#define ORACLES_SETTINGS_EUROPEAN_LANGUAGES 6   /* English (US) and the European ROM's: the row's, and a fan game's */
+#define ORACLES_SETTINGS_JAPANESE 6
+#define ORACLES_SETTINGS_POLISH 7
 extern const char *const oracles_settings_language_names[ORACLES_SETTINGS_LANGUAGES];
 
 
@@ -106,6 +111,13 @@ typedef struct oracles_settings {
      * Oracle plays in, an index of oracles_settings_language_names (en by default), which needs that ROM recognized. */
     char eu_rom[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_PATH_LENGTH];
     int language[ORACLES_SETTINGS_GAMES];
+    /* jp_rom_ages=, jp_rom_seasons=: the Japanese ROM of each Oracle, whose Japanese the game plays in with
+     * language_<game>=ja; empty: none.  Set by hand: Cartridge has no row for it yet. */
+    char jp_rom[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_PATH_LENGTH];
+    /* pl_rom_ages=, pl_rom_seasons=: the Polish ROM of each Oracle, or Kaxus's patch that makes it of the US ROM (a .bps,
+     * or a zip of one), whose Polish the game plays in with language_<game>=pl; empty: none.  Set by hand: Cartridge has
+     * no row for it yet. */
+    char pl_rom[ORACLES_SETTINGS_GAMES][ORACLES_SETTINGS_PATH_LENGTH];
     /* language_kinomi=, language_moonrise=, language_temple=: the language each fan game plays in, its texts that are its
      * Oracle's in a language of its Oracle's European ROM (eu_rom_ages or eu_rom_seasons), its own in its
      * English; en by default.  Read and written back as they are, and applied only with the home screen's fan game
@@ -284,9 +296,11 @@ void oracles_settings_achievements_path(const oracles_settings *settings, const 
 /* The last picture of the last game played, which Display's Filter previews: last-picture.png (`title` 0) and the name of
  * its game, last-picture.txt (1), beside settings.txt; empty when there is no settings directory. */
 void oracles_settings_last_picture(const oracles_settings *settings, int title, char *out, size_t capacity);
-/* The language pack of game `g`, extracted from its European ROM at its first game in a language and read after:
- * language-ages.pack or language-seasons.pack beside settings.txt; empty when there is no settings directory. */
-void oracles_settings_language_pack(const oracles_settings *settings, OraclesSettingsGame g, char *out, size_t capacity);
+/* The language pack of game `g` for `language` (an index of oracles_settings_language_names), extracted from its
+ * European ROM at its first game in a language and read after: language-ages.pack or language-seasons.pack beside
+ * settings.txt; for Japanese, from its Japanese ROM, language-ages-ja.pack or language-seasons-ja.pack; for Polish, from
+ * its Polish ROM, language-ages-pl.pack or language-seasons-pl.pack; empty when there is no settings directory. */
+void oracles_settings_language_pack(const oracles_settings *settings, OraclesSettingsGame g, int language, char *out, size_t capacity);
 /* The language pack of fan game `f` (ORACLES_HOME_FAN_*), made at its first game in a language from its Oracle's:
  * language-kinomi.pack, language-moonrise.pack or language-temple.pack beside settings.txt; empty when there is no
  * settings directory. */

@@ -1,0 +1,14 @@
+# Mistakes of Kaxus's Polish translation, corrected when the pack is extracted, before the text is checked
+# (engine/language/language_corrections.c). A row: the game (ages, seasons), the texts (TX_GGII, four hexadecimal digits
+# each, or a range first-last, space-separated), the language (pl), a word or a phrase as the text writes it, what it
+# should be, and why. Both are written in config/language_own.tsv's syntax, in the Polish ROM's letters: ASCII and
+# ą ć ę ś ł ń ó ż ź in UTF-8, \n a line break, \stop the end of a box, \col(N) a colour, \\ a backslash, \xNN any other
+# byte; a phrase may so run over a line break or a colour, and its correction break the line again. Every occurrence is
+# replaced, a whole word where it starts or ends with a letter, the rows in their order; the text must then fit its
+# lines and keep the US text's commands, else it stays in English. Only the words and their correction: the texts
+# themselves stay in the user's Polish ROM.
+# game	texts	languages	from	to	why
+ages	000b	pl	a\nteraźniejszością!	a teraźniejszo-\nścią!	the word runs one cell past the box's sixteen, where the game prints nothing: broken at a syllable
+ages	240a 242a	pl	Goronem-tancerzem!	Goronem-\ntancerzem!	the compound runs two cells past the box's sixteen: broken at its hyphen
+ages	3306	pl	sięgnie \n	sięgnie\n	a space ends the line on a seventeenth cell, which the game writes past the line
+ages	5805	pl	odrestaurowany...	naprawiony...	the word and its dots run a cell past the box's sixteen: the item is repaired, the word Patch's other texts give his work

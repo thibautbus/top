@@ -38,7 +38,14 @@ typedef enum OraclesRomRevision {
     ORACLES_ROM_REVISION_COMBINED_1_5_FR,
     ORACLES_ROM_REVISION_COMBINED_1_5_DE,
     ORACLES_ROM_REVISION_COMBINED_1_5_ES,
-    ORACLES_ROM_REVISION_COMBINED_1_5_IT
+    ORACLES_ROM_REVISION_COMBINED_1_5_IT,
+    /* The Japanese ROMs: never played either, the source of Japanese for the US ROM of their game. */
+    ORACLES_ROM_REVISION_AGES_JP,
+    ORACLES_ROM_REVISION_SEASONS_JP,
+    /* The Polish ROMs, Kaxus's fan translation, as his patch makes them of the US ROMs: never played either, the source
+     * of Polish for the US ROM of their game. */
+    ORACLES_ROM_REVISION_AGES_PL,
+    ORACLES_ROM_REVISION_SEASONS_PL
 } OraclesRomRevision;
 
 typedef struct OraclesRomInfo {
