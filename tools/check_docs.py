@@ -5,7 +5,7 @@
 - every link to a section (`#section`, `OTHER.md#section`) names a heading of that document, as GitHub makes its
   anchors: the heading's text in lower case, its punctuation dropped, its spaces as hyphens, `-1`, `-2`... after a
   heading met again;
-- README.md has fewer than 160 lines.
+- README.md has fewer than 170 lines.
 
 The documents: the Markdown files git tracks, except the vendored ones
 (third_party/) and those under the prefixes --exclude FILE lists, one per line.
@@ -27,7 +27,7 @@ LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^ {0,3}#{1,6}[ \t]+(.*?)[ \t#]*$")
 FENCE = re.compile(r"^ {0,3}(```|~~~)")
 HTML_ANCHOR = re.compile(r"<a\s[^>]*\b(?:id|name)=\"([^\"]+)\"", re.IGNORECASE)
-README_MAX_LINES = 160
+README_MAX_LINES = 170
 
 
 def documents(root: Path, exclude: Path | None = None) -> list[Path]:

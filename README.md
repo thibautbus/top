@@ -32,15 +32,24 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 ## Featured in
 
 - [icrewplay.com - Oracle of Ages e Seasons in widescreen](https://www.icrewplay.com/zelda-oracle-ages-seasons-widescreen-fan/) (Italian)
+  > *"It's an interesting difference from those who rebuild a game entirely from scratch. Here, creativity is not just about adding new images, but about cleverly using the information that already exists in the old game. The result shows how much room there still is to experiment with retrogaming, even when a title seems known in every detail."* (translated from Italian)
+- [reddit.com - What is the best way to play every game of the series in 2026?](https://www.reddit.com/r/legendofzelda/comments/1xvtjn2/what_is_the_best_way_to_play_every_zelda_game_in)
+  > *"An incredible port of both games with a seamless overworld map with no screen transitions and instant text boxes to smooth out the gameplay. Item hotkeys are also a thing so you can assign items to specific keys/buttons making item switching way less tedious. These improvements are really a game changer for these games as no remake or even a remaster exists for them yet."*
 - [gamingworld.uk - Two widescreen ports of the Oracle games arrive](https://gamingworld.uk/news/two-widescreen-ports-of-zeldas-oracle-games-arrive-one-rebuilt-in-c-and-one-built-around-an-emulator)
 
 The project is also listed on:
 
+- [gamewave.digital](https://gamewave.digital/biblioteca/ports/community-thibautbus-top-the-oracles-project) (Spanish)
+- [decompdex.com](https://decompdex.com/port/top/)
 - [openportsgames.com](https://openportsgames.com/en/ports/the-oracles-project/)
+- [pcport.org](https://pcport.org/en/game/the-legend-of-zelda-oracle-of-ages-oracle-of-seasons-pc-port)
 - [playported.com](https://playported.com/ports/879-the-legend-of-zelda-oracle-of-ages/)
 - [quiverlauncher.com](https://quiverlauncher.com/apps/the-legend-of-zelda-oracle-of-seasons-oracle-of-ages-the-oracles-project)
+  > *"Beautiful in-app menus allow for both base games to be played, as well as multiple custom romhacks and mod management. The full screen world is a really nice touch and works great during movement. Its everything I could have wanted as a 7yo kid."* (a player's report)
 - [recomp.center](https://recomp.center/projeto/github-repository-1391290392)
 - [recomp.fyi](https://recomp.fyi/game/the-legend-of-zelda-oracle-of-ages-seasons-gbc)
+- [recomplauncher.com](https://recomplauncher.com/game/top)
+- [unbaked.games](https://unbaked.games/games/the-legend-of-zelda-oracle-of-ages/)
 
 ## Download
 

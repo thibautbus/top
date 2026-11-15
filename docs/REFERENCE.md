@@ -325,6 +325,18 @@ A change applies at once, from the pause too, the band and Link taking up or giv
 Colour correction off is the raw RGB555 conversion; on, SameBoy's "modern balanced" rendering, close to an original screen.
 
 `vsync auto` presents each frame at the display's rate when it refreshes between 59 and 61 Hz, close enough to the Game Boy's 59.7275 Hz for the audio rate control to absorb the difference; on another display, or with `off`, the host paces at 59.7275 Hz. Under vsync the host checks that the presentation waits for the display, and if it does not, turns vsync off and paces itself for the rest of the session. Vsync changed from the pause applies when the game resumes: turned on, the host checks the display again from there; turned off, it paces.
+- On a faster display, the host paces at 59.7275 Hz, and each frame waits for the display's next refresh, one refresh at most. Some frames stay on the screen a refresh longer than others: little seen at 120 Hz or 144 Hz, a stutter between 62 and 99 Hz, as at 75 Hz, where `auto` is off.
+
+  Where those waits make a second of frames more than 2 % longer than it would take without them, the Game Boy's second or the frames' own work where that is longer (frames of much work, with a renderer whose presentation blocks until the refresh), the host turns vsync off and goes on pacing; a frame of more than two frames' time (an event, a window being moved, a presentation that takes that long) is left out of that measure.
+
+  Should the next second run no faster without vsync, the slowness was not the waits' (a presentation bound by the graphics processor, a driver that keeps vsync), and the host turns vsync on again.
+
+  Either way the next pause, whatever it changes, brings vsync back and the host measures again from there: a slowness that passed does not keep vsync off.
+
+  A light frame, whose work fits in a frame, late only for those waits does not count toward the slow-game suggestion:
+  - those of the first second never do;
+  - the others count when the game ran more than half a percent slower than the Game Boy over the seconds measured, the waits not being the cause, and not when turning vsync off made the game faster;
+  - a frame that took more than two frames' time always counts.
 
 ### Continuous transitions
 
@@ -373,7 +385,11 @@ A savestate does not count it. Ages, Seasons and the three fan games qualify it.
 With the option, on foot and on Ages' sea floor, the scroll starts as his middle reaches the line itself, and he stands anywhere in a room up to it:
 
 - a tap at an edge takes him toward it and no further, the room unchanged;
-- on foot, a direction held toward the edge walks him on, but past the place the game's own scroll would have left him (its 15 or 16 pixels counted from where the game starts the scroll, not from the line, where his steps began), only as the game's walk would: out of a pixel where the two points `calculateAdjacentWallsBitset` tests on that side are free in the room entered (raised on Ages' floor, `$1e` left out as the game's own test leaves it), its walls as loaded or predicted (while they are neither, he stands at that place), the scroll's own steps undone where they would take him further, never moved back; so that he never ends in a wall of the room entered, at a corner's second scroll too (`transitions.line_wall_frames`, and the harness's `transitions.wall_arrivals`); where only one of the two points is in a wall, at a wall's corner, the game's walk would slide him along it (`@tileEdgeAdjust`), and he stands instead until the scroll ends, the game sliding him from there; a scroll the policy leaves to the game (Link holding his shield, running on Pegasus seeds, knocked back, using an item, in the air) starts at the line as well, and the game's own 15 or 16 pixels from there take him that much past its own place, untested, into a wall of the room's first columns or rows where one stands there;
+- on foot, a direction held toward the edge walks him on, but past the place the game's own scroll would have left him (its 15 or 16 pixels counted from where the game starts the scroll, not from the line, where his steps began), only as the game's walk would: out of a pixel where the two points `calculateAdjacentWallsBitset` tests on that side are free in the room entered (raised on Ages' floor, `$1e` left out as the game's own test leaves it), its walls as loaded or predicted (while they are neither, he stands at that place), the scroll's own steps undone where they would take him further, never moved back; so that he never ends in a wall of the room entered, at a corner's second scroll too (`transitions.line_wall_frames`, and the harness's `transitions.wall_arrivals`).
+
+  Where only one of the two points is in a wall, at a wall's corner, the game's walk would slide him along it (`@tileEdgeAdjust`), and he stands instead until the scroll ends, the game sliding him from there.
+
+  A scroll the policy leaves to the game (Link holding his shield, running on Pegasus seeds, knocked back, using an item, in the air) starts at the line as well, and the game's own 15 or 16 pixels from there take him that much past its own place, untested, into a wall of the room's first columns or rows where one stands there;
 - on foot, letting go during the scroll leaves him where he is, the scroll's own move undone, however few pixels past the line, standing in the pose the game gives him with nothing held (`animateLinkStanding`: his walk's first frame, set again each frame) rather than the step the scroll froze;
 - holding the way back walks him back through the scroll across the line and into the room he left, on that room's walls and holes as normal play last had them, and once the scroll is over the game takes him back into that room from where he stands, the scroll back starting at once (the transition forced, without the game putting him back on the line first);
 - a wall of that room just past the line holds him at the line itself, and the scroll back starts as he crosses it; so does the line where either room has a transition of its own (`getNextActiveRoom`'s list: Seasons' Lost Woods and Onox's castle, Ages' scrambled forest, the eye puzzles), whose scroll back may lead elsewhere than the room he left.
@@ -384,7 +400,18 @@ Outdoors, on Ages' two overworlds and Seasons' Holodrum and Subrosia, each withi
 
 At the frame that ends the scroll, past the line on that side, the scroll into the room beside starts there, from where he stands, with no frame of normal play between the two scrolls. No key toward the edge is needed at that frame: past the line, he may not stay in the room entered.
 
-Where it is not predicted (a map's edge, a room with a transition of its own on either side, a room pack of its own (but in Subrosia, whose scrolls compare no pack in the game either), a tileset the game's code chooses, a room whose own code changes its tiles after its graphics are drawn (a Gasha spot with something planted, a few others), a large room, the dungeons, in the fan games a room whose own code changes its tiles as it loads), and where one of the room entered's objects, created by its load, may leave the player without the controls in its first frame (an entry scene, a character's script that disables the menu or forces Link's state: the objects the games' sources say may do it in their first frame, drawn into `engine/gameplay/room_scenes.c`; they run that frame once the second scroll is decided, which they could no longer refuse), he goes as far as the room's own edge, where the game now lets him stand, slowing as he nears it so as to reach it as the scroll ends.
+He goes as far as the room's own edge, where the game now lets him stand, slowing as he nears it so as to reach it as the scroll ends:
+
+- where the room beside is not predicted:
+  - a map's edge;
+  - a room with a transition of its own on either side;
+  - a room pack of its own (but in Subrosia, whose scrolls compare no pack in the game either);
+  - a tileset the game's code chooses;
+  - a room whose own code changes its tiles after its graphics are drawn (a Gasha spot with something planted, a few others);
+  - a large room;
+  - the dungeons;
+  - in the fan games, a room whose own code changes its tiles as it loads;
+- where one of the room entered's objects, created by its load, may leave the player without the controls in its first frame (an entry scene, a character's script that disables the menu or forces Link's state: the objects the games' sources say may do it in their first frame, drawn into `engine/gameplay/room_scenes.c`; they run that frame once the second scroll is decided, which they could no longer refuse).
 
 If the transitions are disabled while he stands past the line, he walks back across to it during the scroll; still past it as the scroll ends, he is put back on it, as the game's own edge test would.
 
@@ -804,7 +831,11 @@ The menu's button never reaches the game, nor does Guide unless one of the game'
 
 - The mods folder is `Android/data/org.theoraclesproject/files/mods`, in the application's folder on the shared storage beside `roms` and `patches`, reachable from a computer over USB, since most file managers cannot open `Android/data` from Android 11 on (not beside `settings.txt`, which is in the application's private storage): each mod goes there in a folder of its own, as on a desktop. The Mods page shows that path, its line under it says it is reachable over USB, and Open folder makes the folder and says where it is. A game with mods plays on its own save beside the ROM, as on a desktop.
 
-  Between the list and Play, the Mods page has a Save row ("Save" in the labels' column) whose **Export save with mods…** copies the game with mods' save (`NAME.mods.sav`, never its `.mods.state` or `.mods.store`) where the document picker makes a document of that name, as Cartridge's Export save… copies the save; its note says what the copy is ("Export a copy of the game you played with mods, to play it elsewhere. The mods' own data stays here.", in the 4:3 layout on one line, "Export a copy of the game played with mods."), and the row then says "Save with mods exported.", "The copy cannot be written." or "No document picker on this system." until the page is left. It is greyed while there is no `NAME.mods.sav` beside the ROM, which the page looks for each time it opens, its note "No save with mods yet: Play with a mod on makes one.", and never acts while a game runs. A file gone meanwhile (moved over USB) opens no document picker, which would leave an empty document behind: the row is greyed instead, as Cartridge's Export save… is for a save gone. Up and down reach it as the other rows; on a desktop the page has no such row.
+  Between the list and Play, the Mods page has a Save row ("Save" in the labels' column) whose **Export save with mods…** copies the game with mods' save (`NAME.mods.sav`, never its `.mods.state` or `.mods.store`) where the document picker makes a document of that name, as Cartridge's Export save… copies the save; its note says what the copy is ("Export a copy of the game you played with mods, to play it elsewhere. The mods' own data stays here.", in the 4:3 layout on one line, "Export a copy of the game played with mods."), and the row then says "Save with mods exported.", "The copy cannot be written." or "No document picker on this system." until the page is left.
+
+  It is greyed while there is no `NAME.mods.sav` beside the ROM, which the page looks for each time it opens, its note "No save with mods yet: Play with a mod on makes one.", and never acts while a game runs.
+
+  A file gone meanwhile (moved over USB) opens no document picker, which would leave an empty document behind: the row is greyed instead, as Cartridge's Export save… is for a save gone. Up and down reach it as the other rows; on a desktop the page has no such row.
 - Android's Back button is the launcher's Escape: back in the home screen, the pause menu in a game, a capture cancelled in Controls; that is so whatever device it comes from, the system's navigation, a keyboard, or a handheld's built-in controller (a Retroid Pocket's Back opens the pause menu). A controller's select button (`back` in SDL's names) stays the game's Select.
 
   A controller that Android reports without a Select of its own (one it has no key layout for, whose select button it may report as Back) keeps its Back as the game's Select, as before: its left stick's click or its Guide opens the menu. A controller's left stick's click (`menu_pad=`) opens the pause menu, as its Guide or Home button does where Android does not keep it for itself.
