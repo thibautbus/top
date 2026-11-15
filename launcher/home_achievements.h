@@ -13,6 +13,8 @@
  * the Enter or Tab Android makes up for that text's line breaks dropped; the password hidden again whenever the
  * application goes to the background or its window loses the focus (those events left to the host). */
 int oracles_home_achievements_event(OraclesHomeNav *nav, const SDL_Event *event, OraclesHomeCommand *command);
+/* The clipboard's text into the field highlighted (a chord, the launcher's keyboard's Paste key). */
+void oracles_home_achievements_paste(OraclesHomeNav *nav);
 /* The system's text input on while a field takes typing and the launcher's keyboard is not up (Android's keyboard comes
  * up with it), of the field's kind, off otherwise (a key's character then typed as it is) and once the system put it away
  * (Android's Back), until a field is chosen again; nav->achievements.system_keyboard follows Android's keyboard. */

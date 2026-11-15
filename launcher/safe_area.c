@@ -34,6 +34,24 @@ void oracles_android_activity_text(const char *method, char *out, size_t capacit
 #endif
 }
 
+void oracles_android_secure_window(int on)
+{
+#ifdef __ANDROID__
+    JNIEnv *env = SDL_GetAndroidJNIEnv();
+    jobject activity = SDL_GetAndroidActivity();
+    if (!env || !activity) return;
+    jclass class = (*env)->GetObjectClass(env, activity);
+    jmethodID id = (*env)->GetStaticMethodID(env, class, "secureWindow", "(Z)V");
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+    if (id) (*env)->CallStaticVoidMethod(env, class, id, on ? JNI_TRUE : JNI_FALSE);
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+    (*env)->DeleteLocalRef(env, class);
+    (*env)->DeleteLocalRef(env, activity);
+#else
+    (void)on;
+#endif
+}
+
 void oracles_safe_area_edges(SDL_Window *window, int margin, OraclesTouchEdges *edges)
 {
     char text[32];

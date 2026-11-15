@@ -58,8 +58,8 @@ typedef struct OraclesUiSlowLayout {
     OraclesUiLine path;
 } OraclesUiSlowLayout;
 
-/* The newer version's notice by the version: in 16:9 after it on its line, "· 1.3.0 available", in 4:3 on its own line
- * above it, "1.3.0 available"; its frame (the highlight's border and background, `border` wide) and its text. */
+/* The newer version's notice by the version: in 16:9 after it on its line, "· 1.5.1 available", in 4:3 on its own line
+ * above it, "1.5.1 available"; its frame (the highlight's border and background, `border` wide) and its text. */
 typedef struct OraclesUiUpdateLayout {
     OraclesUiBox box;
     float border;
@@ -67,19 +67,21 @@ typedef struct OraclesUiUpdateLayout {
     OraclesUiLine text;
 } OraclesUiUpdateLayout;
 
-/* The home screen's way to About, "About · v1.2.0": About, the dot and the version on the version's line, from where the
- * version alone starts on the other screens; `line` the three as one, which the notice and the highlight are laid out
- * from (oracles_ui_layout_update, oracles_ui_layout_version_link); `hit` the pointer's target, which in 16:9 reaches the
- * scene's bottom left corner.  Where the version would come nearer the help bar than ORACLES_UI_VERSION_GAP, About
- * stays alone (`version_shown` 0), `line` and `hit` its own; where About alone would, nothing is shown and `hit` is
- * empty. */
-typedef struct OraclesUiAboutLink {
-    OraclesUiLine label, dot, version, line;
-    OraclesUiBox hit;
-    int version_shown;
-} OraclesUiAboutLink;
+/* The home screen's Settings button and the version after it, in plain text, at the bottom left (the pages and the
+ * pause keep the version alone, oracles_ui_layout_version), the newer version's notice `release` ("1.5.1"; NULL or empty:
+ * none) after the two on their line in 16:9, on its own line above them in 4:3: the button's frame (its border `border`
+ * wide) and label, the version's padded box and text, and `hit`, the button's pointer target, which in 16:9 reaches the
+ * scene's bottom left corner.  The version, then the notice, stay out where they would come nearer the help bar (its
+ * left edge `hints_x`, oracles_ui_layout_hints_left) than ORACLES_UI_VERSION_GAP (`version_shown`, `update_shown`). */
+typedef struct OraclesUiSettingsLink {
+    OraclesUiBox button, hit, version_box;
+    OraclesUiLine label, version;
+    float border;
+    int version_shown, update_shown;
+    OraclesUiUpdateLayout update;
+} OraclesUiSettingsLink;
 #define ORACLES_UI_VERSION_GAP 24.0f   /* the least room between the version and the help bar */
-extern const char oracles_ui_about_label[];   /* "About" */
+extern const char oracles_ui_settings_label[];   /* "Settings" */
 
 /* A game's tab (4:3): its box, its label, and the line along its bottom, the chosen tab's drawn in the accent. */
 typedef struct OraclesUiTabLayout {
@@ -121,6 +123,11 @@ void oracles_ui_layout_hero_left(OraclesUiLayout layout, OraclesUiTitleLayout *o
  * the state's line at its left, on its baseline, the menu starting right under that line. */
 void oracles_ui_layout_hero_credited(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, const char *credit,
                                      OraclesUiTitleLayout *out);
+/* The home screen's title over a menu of eight entries: 16:9, where it stays, a fan game's `credit` on the state's line at
+ * its left, on its baseline, clear of Start game; 4:3, at the top left, each line from the left, the credit under the
+ * state, clear of the menu. */
+void oracles_ui_layout_hero_crowded(OraclesUiLayout layout, const char *over, const char *title, const char *state, const char *credit, OraclesUiTitleLayout *out);
+#define ORACLES_UI_MENU_CROWDED 8u   /* the home menu's entries from which its title gives way */
 /* 16:9: the two other entries, stacked at the top left. */
 void oracles_ui_layout_others(const char *const over[2], const char *const title[2], const char *const state[2], OraclesUiTitleLayout out[2]);
 /* 4:3: the three entries as tabs from the top left, in their order (one row: the three fit the 1312 px a row has). */
@@ -130,20 +137,18 @@ void oracles_ui_layout_tabs(const char *const labels[ORACLES_HOME_ENTRIES], Orac
  * pause menu's line on the item hotkeys under the items, right-aligned as they are, the items a line higher. */
 void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count,
                             OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out);
+/* The home screen's menu: as oracles_ui_layout_menu lays it out, but for 4:3's items, 86 tall when there are
+ * ORACLES_UI_MENU_CROWDED, so that it starts under the longest title at the top left. */
+void oracles_ui_layout_home_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count, OraclesUiItemLayout *out);
 /* The help bar, centred at the bottom. */
 void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out);
+/* The help bar of the screen `nav` shows in `layout`: oracles_ui_layout_hints', except on the home screen in 4:3, where it
+ * is centred right of the Settings button and the version, its hints 12 apart instead of 16. */
+void oracles_ui_layout_screen_hints(OraclesUiLayout layout, const OraclesHomeNav *nav, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out);
 /* The left edge of the help bar of the screen `nav` shows, or the scene's right edge without a hint. */
 float oracles_ui_layout_hints_left(OraclesUiLayout layout, const OraclesHomeNav *nav);
 void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, OraclesUiLine *out);
-/* The notice of the newer version `release` ("1.3.0") by the `version` oracles_ui_layout_version laid out, which keeps
- * its place. */
-void oracles_ui_layout_update(OraclesUiLayout layout, const OraclesUiLine *version, const char *release, OraclesUiUpdateLayout *out);
-/* The version number's place for the highlight, the `version` laid out: padded as the notice is, the line its text, an
- * outline `*outline` wide drawn inside it, so that the number does not move. */
-void oracles_ui_layout_version_link(OraclesUiLayout layout, const OraclesUiLine *version, OraclesUiBox *box, float *outline);
-/* The home screen's About, its dot and the version `version` ("v1.2.0 (abc1234)"), the help bar's left edge at
- * `hints_x` (oracles_ui_layout_hints_left). */
-void oracles_ui_layout_about_link(OraclesUiLayout layout, const char *version, float hints_x, OraclesUiAboutLink *out);
+void oracles_ui_layout_settings_link(OraclesUiLayout layout, const char *version, const char *release, float hints_x, OraclesUiSettingsLink *out);
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out);
 /* The reminder over a game started ("L3 opens the menu"), centred, under the game's status bar, whose bottom is at
  * `bar_bottom` in the scene. */

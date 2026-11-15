@@ -77,7 +77,7 @@ typedef struct oracles_settings {
     int camera;                   /* the Enhanced camera profile: 1 or 2 */
     int link_phase;               /* link_phase=1: Link drawn in phase on a diagonal walk (a trial, written only when on) */
     int achievements;             /* achievements=on: RetroAchievements in a build that has them (written only when on) */
-    int achievements_sound;       /* achievements_sound=on|off: the unlock's sound, About › RetroAchievements' Unlock sound; on by default,
+    int achievements_sound;       /* achievements_sound=on|off: the unlock's sound, Achievements' Unlock sound; on by default,
                                    * read and written only in a build that has them (written only when off) */
     int subpixel_camera;          /* subpixel_camera=: the Enhanced camera to the 256th of a pixel (Camera's Smooth), 1 or 0 once
                                    * set either way, -1 absent: the platform's default (oracles_settings_subpixel_camera) */

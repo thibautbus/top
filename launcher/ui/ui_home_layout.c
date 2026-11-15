@@ -51,7 +51,7 @@ static const OraclesUiHomeStyles styles_4_3 = {
 const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout) { return layout == ORACLES_UI_LAYOUT_4_3 ? &styles_4_3 : &styles_16_9; }
 
 const char oracles_ui_item_dot[] = "\xc2\xb7";
-const char oracles_ui_about_label[] = "About";
+const char oracles_ui_settings_label[] = "Settings";
 const char oracles_ui_hotkeys_line_lead[] = "Item hotkeys are off \xc2\xb7 ";
 const char oracles_ui_hotkeys_line_path[] = "Controls \xe2\x80\xba Item hotkeys";
 
@@ -67,14 +67,17 @@ typedef struct metrics {
     float label_line;                    /* the items' line height, 0: normal */
     float hints_bottom, hints_gap, hint_min_height, hint_pad_x, hint_pad_y, hint_gap, key_pad_x, key_pad_y;
     float version_left, version_bottom;
-    /* The newer version's notice: above the version (4:3), `update_gap` over its line, or after it on its line (16:9),
-     * `update_gap` right of it, so that its highlight's frame stays clear of the version; its line height, padding and
+    /* The home screen's Settings button and version: their line's left and bottom, the gap between the two, their line
+     * height; the button's padding and border, the version's padding; how far the button's pointer target reaches past
+     * its frame (left, top, right, bottom), to the corner in 16:9.  The newer version's notice: above them (4:3),
+     * `update_gap` over their line, or after the version on it (16:9), `update_overlap` into the gap; its padding and
      * border. */
+    float settings_left, settings_bottom, settings_gap, settings_line, button_pad_x, button_pad_y, button_border, version_pad_x, version_pad_y;
+    float settings_hit[4];
     int update_above;
-    float update_gap, update_line, update_pad_x, update_pad_y, update_border;
-    /* About's link: between About, its dot and the version; how far its pointer's target reaches past its highlight
-     * (left, top, right, bottom), to the corner in 16:9. */
-    float about_gap, about_hit[4];
+    float update_gap, update_overlap, update_pad_x, update_pad_y, update_border;
+    /* The home screen's help bar in 4:3: centred right of `home_hints_left`, its hints `home_hints_gap` apart. */
+    float home_hints_left, home_hints_gap;
     float toast_bottom, toast_pad_x, toast_pad_y;
     float slow_left, slow_bottom, slow_max_width, slow_pad_x, slow_pad_y, slow_gap, slow_line;   /* the slow game's toast */
     float pad_toast_gap, pad_toast_pad_x, pad_toast_pad_y, pad_toast_min_h;   /* the reminder over a game, under its status bar */
@@ -91,8 +94,10 @@ static const metrics metrics_16_9 = {
     .hints_bottom = 1080.0f - 18.0f, .hints_gap = 36.0f, .hint_min_height = 0.0f, .hint_pad_x = 10.0f, .hint_pad_y = 4.0f, .hint_gap = 10.0f,
     .key_pad_x = 9.0f, .key_pad_y = 1.0f,
     .version_left = 24.0f, .version_bottom = 1080.0f - 20.0f,
-    .update_above = 0, .update_gap = 10.0f, .update_line = 28.0f, .update_pad_x = 12.0f, .update_pad_y = 4.0f, .update_border = 1.0f,
-    .about_gap = 10.0f, .about_hit = { 12.0f, 16.0f, 4.0f, 12.0f },
+    .settings_left = 12.0f, .settings_bottom = 1080.0f - 12.0f, .settings_gap = 10.0f, .settings_line = 28.0f, .button_pad_x = 12.0f,
+    .button_pad_y = 3.0f, .button_border = 1.0f, .version_pad_x = 2.0f, .version_pad_y = 4.0f, .settings_hit = { 12.0f, 16.0f, 3.0f, 13.0f },
+    .update_above = 0, .update_gap = 0.0f, .update_overlap = 12.0f, .update_pad_x = 12.0f, .update_pad_y = 4.0f, .update_border = 1.0f,
+    .home_hints_left = 0.0f, .home_hints_gap = 36.0f,
     .toast_bottom = 1080.0f - 78.0f, .toast_pad_x = 26.0f, .toast_pad_y = 14.0f,
     .slow_left = 96.0f, .slow_bottom = 1080.0f - 96.0f, .slow_max_width = 760.0f, .slow_pad_x = 26.0f, .slow_pad_y = 16.0f, .slow_gap = 6.0f,
     .slow_line = 24.0f * 1.35f,
@@ -111,8 +116,10 @@ static const metrics metrics_4_3 = {
     .hints_bottom = 1080.0f - 8.0f, .hints_gap = 16.0f, .hint_min_height = 90.0f, .hint_pad_x = 20.0f, .hint_pad_y = 0.0f, .hint_gap = 12.0f,
     .key_pad_x = 10.0f, .key_pad_y = 0.0f,
     .version_left = 28.0f, .version_bottom = 1080.0f - 38.0f,
-    .update_above = 1, .update_gap = 9.0f, .update_line = 34.0f, .update_pad_x = 14.0f, .update_pad_y = 5.0f, .update_border = 2.0f,
-    .about_gap = 12.0f, .about_hit = { 0.0f, 0.0f, 0.0f, 0.0f },
+    .settings_left = 14.0f, .settings_bottom = 1080.0f - 28.0f, .settings_gap = 12.0f, .settings_line = 34.0f, .button_pad_x = 14.0f,
+    .button_pad_y = 3.0f, .button_border = 2.0f, .version_pad_x = 2.0f, .version_pad_y = 5.0f, .settings_hit = { 0.0f, 0.0f, 0.0f, 0.0f },
+    .update_above = 1, .update_gap = 4.0f, .update_overlap = 0.0f, .update_pad_x = 14.0f, .update_pad_y = 5.0f, .update_border = 2.0f,
+    .home_hints_left = 250.0f, .home_hints_gap = 12.0f,
     .toast_bottom = 1080.0f - 120.0f, .toast_pad_x = 28.0f, .toast_pad_y = 16.0f,
     .slow_left = 64.0f, .slow_bottom = 1080.0f - 120.0f, .slow_max_width = 640.0f, .slow_pad_x = 28.0f, .slow_pad_y = 18.0f, .slow_gap = 6.0f,
     .slow_line = 30.0f * 1.3f,
@@ -140,6 +147,8 @@ static const metrics *metrics_of(OraclesUiLayout layout) { return layout == ORAC
 #define TOAST_BORDER 1.0f
 #define CREDIT_MARGIN 10.0f        /* 16:9: the credit under the state */
 #define CREDIT_GAP_4_3 40.0f       /* 4:3: the credit before the state, on its line */
+#define CREDIT_UNDER_4_3 6.0f      /* 4:3 under eight entries' title: the credit under the state */
+#define CROWDED_ITEM_4_3 86.0f     /* 4:3: an item of the home menu of eight entries */
 
 /* A line of `text` whose box starts at (x, y), in a block of `line_height` (0: normal). */
 static OraclesUiLine line_at(const OraclesUiTextStyle *style, const char *text, float x, float y, float line_height)
@@ -218,6 +227,30 @@ void oracles_ui_layout_hero_left(OraclesUiLayout layout, OraclesUiTitleLayout *o
     out->box.x = left;
 }
 
+void oracles_ui_layout_hero_crowded(OraclesUiLayout layout, const char *over, const char *title, const char *state, const char *credit, OraclesUiTitleLayout *out)
+{
+    const int credited = credit && credit[0];
+    oracles_ui_layout_hero_credited(layout, 0, over, title, state, NULL, out);
+    if (layout == ORACLES_UI_LAYOUT_4_3) {
+        oracles_ui_layout_hero_left(layout, out);
+        if (!credited) return;
+        out->credit = line_at(&oracles_ui_hero_credit_4_3, credit, out->state.x, out->state.y + out->state.h + CREDIT_UNDER_4_3, 0.0f);
+        out->box.h = out->credit.y + out->credit.h - out->box.y;
+        return;
+    }
+    if (!credited) return;
+    /* Before the state, on its baseline. */
+    out->credit = line_at(&oracles_ui_hero_credit, credit, 0.0f, 0.0f, 0.0f);
+    const float ascent = out->credit.baseline;
+    out->credit.x = out->state.x - CREDIT_GAP_4_3 - out->credit.w;
+    out->credit.baseline = out->state.baseline;
+    out->credit.y = out->credit.baseline - ascent;
+    if (out->credit.x < out->box.x) {
+        out->box.w += out->box.x - out->credit.x;
+        out->box.x = out->credit.x;
+    }
+}
+
 void oracles_ui_layout_others(const char *const over[2], const char *const title[2], const char *const state[2], OraclesUiTitleLayout out[2])
 {
     float y = metrics_16_9.top;
@@ -259,8 +292,9 @@ void oracles_ui_layout_tabs(const char *const labels[ORACLES_HOME_ENTRIES], Orac
     }
 }
 
-void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count,
-                            OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out)
+/* The menu, its items `least` tall at least. */
+static void menu_at(OraclesUiLayout layout, float least, const char *const *notes, const int *reasons, const char *const *labels, unsigned count,
+                    OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out)
 {
     const metrics *m = metrics_of(layout);
     const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout);
@@ -268,7 +302,7 @@ void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, co
     oracles_ui_line_box(st->item_label, m->label_line, &label_height, &baseline);
     /* The serif's line is the tallest of the row; 4:3's rows are 90 tall at least. */
     float height = m->item_pad_y * 2.0f + label_height;
-    if (height < m->item_min_height) height = m->item_min_height;
+    if (height < least) height = least;
     float bottom = m->menu_bottom;
     if (line) {
         /* The last of the column, its text on one line ending where the items' padding begins. */
@@ -310,7 +344,20 @@ void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, co
     }
 }
 
-void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out)
+void oracles_ui_layout_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count,
+                            OraclesUiMenuLineLayout *line, OraclesUiItemLayout *out)
+{
+    menu_at(layout, metrics_of(layout)->item_min_height, notes, reasons, labels, count, line, out);
+}
+
+void oracles_ui_layout_home_menu(OraclesUiLayout layout, const char *const *notes, const int *reasons, const char *const *labels, unsigned count, OraclesUiItemLayout *out)
+{
+    const int crowded = layout == ORACLES_UI_LAYOUT_4_3 && count >= ORACLES_UI_MENU_CROWDED;
+    menu_at(layout, crowded ? CROWDED_ITEM_4_3 : metrics_of(layout)->item_min_height, notes, reasons, labels, count, NULL, out);
+}
+
+/* The hints centred between `left` and the scene's right edge, `gap` apart. */
+static void hints_at(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, float left, float gap, OraclesUiHintLayout *out)
 {
     const metrics *m = metrics_of(layout);
     const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout);
@@ -328,9 +375,9 @@ void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hint
         h->box.w = m->hint_pad_x + h->key_box.w + m->hint_gap + h->label.w + m->hint_pad_x;
         h->box.h = m->hint_pad_y * 2.0f + inner;
         if (h->box.h < m->hint_min_height) h->box.h = m->hint_min_height;
-        total += h->box.w + (i ? m->hints_gap : 0.0f);
+        total += h->box.w + (i ? gap : 0.0f);
     }
-    float x = (m->scene_w - total) * 0.5f;
+    float x = left + (m->scene_w - left - total) * 0.5f;
     for (unsigned i = 0; i < count; i++) {
         OraclesUiHintLayout *h = &out[i];
         h->box.x = x;
@@ -345,8 +392,21 @@ void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hint
         h->label.x = h->key_box.x + h->key_box.w + m->hint_gap;
         h->label.y = middle - h->label.h * 0.5f;
         h->label.baseline = h->label.y + label_baseline;
-        x += h->box.w + m->hints_gap;
+        x += h->box.w + gap;
     }
+}
+
+void oracles_ui_layout_hints(OraclesUiLayout layout, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out)
+{
+    hints_at(layout, hints, count, 0.0f, metrics_of(layout)->hints_gap, out);
+}
+
+void oracles_ui_layout_screen_hints(OraclesUiLayout layout, const OraclesHomeNav *nav, const OraclesHomeHint *hints, unsigned count, OraclesUiHintLayout *out)
+{
+    const metrics *m = metrics_of(layout);
+    if (layout == ORACLES_UI_LAYOUT_4_3 && nav->screen == ORACLES_SCREEN_HOME && !nav->in_game)
+        hints_at(layout, hints, count, m->home_hints_left, m->home_hints_gap, out);
+    else oracles_ui_layout_hints(layout, hints, count, out);
 }
 
 float oracles_ui_layout_hints_left(OraclesUiLayout layout, const OraclesHomeNav *nav)
@@ -354,7 +414,7 @@ float oracles_ui_layout_hints_left(OraclesUiLayout layout, const OraclesHomeNav 
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     const unsigned count = oracles_home_hints(nav, hints);
     OraclesUiHintLayout l[ORACLES_HOME_MAX_HINTS];
-    oracles_ui_layout_hints(layout, hints, count, l);
+    oracles_ui_layout_screen_hints(layout, nav, hints, count, l);
     return count ? l[0].box.x : metrics_of(layout)->scene_w;
 }
 
@@ -366,61 +426,53 @@ void oracles_ui_layout_version(OraclesUiLayout layout, const char *text, Oracles
     out->baseline += out->y;
 }
 
-void oracles_ui_layout_update(OraclesUiLayout layout, const OraclesUiLine *version, const char *release, OraclesUiUpdateLayout *out)
+/* A box `pad_x` by `pad_y` around a line of `text` in the version's style and the settings' line height, its border
+ * `border` wide, from `x`, centred on `middle`; the line into `line`. */
+static OraclesUiBox padded(OraclesUiLayout layout, const char *text, float x, float middle, float pad_x, float pad_y, float border, OraclesUiLine *line)
 {
     const metrics *m = metrics_of(layout);
-    snprintf(out->label, sizeof out->label, "%s%s available", m->update_above ? "" : "\xc2\xb7 ", release);
-    out->text = line_at(oracles_ui_home_styles(layout)->version, out->label, 0.0f, 0.0f, m->update_line);
-    const float inset_x = m->update_border + m->update_pad_x, inset_y = m->update_border + m->update_pad_y, offset = out->text.baseline;
-    out->border = m->update_border;
-    out->box.w = out->text.w + 2.0f * inset_x;
-    out->box.h = out->text.h + 2.0f * inset_y;
-    /* Above, its frame as far left as the version's would be with the same padding; after it, its frame `update_gap` from
-     * the version's end and its text on the version's baseline. */
-    out->box.x = m->update_above ? version->x - m->update_pad_x : version->x + version->w + m->update_gap;
-    out->box.y = m->update_above ? version->y - m->update_gap - out->box.h : version->baseline - offset - inset_y;
-    out->text.x = out->box.x + inset_x;
-    out->text.y = out->box.y + inset_y;
-    out->text.baseline = out->text.y + offset;
+    *line = line_at(oracles_ui_home_styles(layout)->version, text, 0.0f, 0.0f, m->settings_line);
+    const float offset = line->baseline;
+    const OraclesUiBox box = { x, 0.0f, line->w + 2.0f * (pad_x + border), line->h + 2.0f * (pad_y + border) };
+    OraclesUiBox b = box;
+    b.y = middle - b.h * 0.5f;
+    line->x = x + border + pad_x;
+    line->y = b.y + border + pad_y;
+    line->baseline = line->y + offset;
+    return b;
 }
 
-void oracles_ui_layout_version_link(OraclesUiLayout layout, const OraclesUiLine *version, OraclesUiBox *box, float *outline)
+void oracles_ui_layout_settings_link(OraclesUiLayout layout, const char *version, const char *release, float hints_x, OraclesUiSettingsLink *out)
 {
     const metrics *m = metrics_of(layout);
-    const OraclesUiLine line = line_at(oracles_ui_home_styles(layout)->version, "", 0.0f, 0.0f, m->update_line);
-    box->x = version->x - m->update_pad_x;
-    box->y = version->baseline - line.baseline - m->update_pad_y;
-    box->w = version->w + 2.0f * m->update_pad_x;
-    box->h = line.h + 2.0f * m->update_pad_y;
-    *outline = m->update_border;
-}
-
-void oracles_ui_layout_about_link(OraclesUiLayout layout, const char *version, float hints_x, OraclesUiAboutLink *out)
-{
-    const metrics *m = metrics_of(layout);
-    const OraclesUiTextStyle *style = oracles_ui_home_styles(layout)->version;
-    /* About where the version alone is, the dot and the version after it on its baseline. */
-    oracles_ui_layout_version(layout, oracles_ui_about_label, &out->label);
-    out->dot = out->label;
-    out->dot.x = out->label.x + out->label.w + m->about_gap;
-    out->dot.w = oracles_ui_text_width(style, oracles_ui_item_dot);
-    out->version = out->label;
-    out->version.x = out->dot.x + out->dot.w + m->about_gap;
-    out->version.w = version && version[0] ? oracles_ui_text_width(style, version) : 0.0f;
-    out->line = out->label;
-    out->line.w = out->version.x + out->version.w - out->label.x;
-    out->version_shown = out->line.x + out->line.w + ORACLES_UI_VERSION_GAP <= hints_x;
-    if (!out->version_shown) out->line.w = out->label.w;
-    if (out->line.x + out->line.w + ORACLES_UI_VERSION_GAP > hints_x) {
-        out->hit = (OraclesUiBox){ out->line.x, out->line.y, 0.0f, 0.0f };
-        return;
-    }
-    float outline;
-    oracles_ui_layout_version_link(layout, &out->line, &out->hit, &outline);
-    out->hit.x -= m->about_hit[0];
-    out->hit.y -= m->about_hit[1];
-    out->hit.w += m->about_hit[0] + m->about_hit[2];
-    out->hit.h += m->about_hit[1] + m->about_hit[3];
+    memset(out, 0, sizeof *out);
+    const int update = release && release[0];
+    out->border = m->button_border;
+    /* One line, its items centred on it: the button, the version, and in 16:9 the notice, whose frame is the tallest. */
+    OraclesUiLine probe = line_at(oracles_ui_home_styles(layout)->version, "", 0.0f, 0.0f, m->settings_line);
+    const float button_h = probe.h + 2.0f * (m->button_pad_y + m->button_border), version_h = probe.h + 2.0f * m->version_pad_y;
+    const float update_h = probe.h + 2.0f * (m->update_pad_y + m->update_border);
+    float line_h = button_h > version_h ? button_h : version_h;
+    if (update && !m->update_above && update_h > line_h) line_h = update_h;
+    const float middle = m->settings_bottom - line_h * 0.5f;
+    out->button = padded(layout, oracles_ui_settings_label, m->settings_left, middle, m->button_pad_x, m->button_pad_y, m->button_border, &out->label);
+    out->version_box = padded(layout, version, out->button.x + out->button.w + m->settings_gap, middle, m->version_pad_x, m->version_pad_y, 0.0f, &out->version);
+    out->version_shown = version && version[0] && out->version_box.x + out->version_box.w + ORACLES_UI_VERSION_GAP <= hints_x;
+    out->hit = out->button;
+    out->hit.x -= m->settings_hit[0];
+    out->hit.y -= m->settings_hit[1];
+    out->hit.w += m->settings_hit[0] + m->settings_hit[2];
+    out->hit.h += m->settings_hit[1] + m->settings_hit[3];
+    if (!update) return;
+    /* The notice: after the version, its frame `update_overlap` into the gap (16:9); above the line, from its left (4:3). */
+    OraclesUiUpdateLayout *u = &out->update;
+    snprintf(u->label, sizeof u->label, "%s%s available", m->update_above ? "" : "\xc2\xb7 ", release);
+    u->border = m->update_border;
+    const float after = (out->version_shown ? out->version_box.x + out->version_box.w : out->button.x + out->button.w) + m->settings_gap - m->update_overlap;
+    const float top = middle - line_h * 0.5f;
+    u->box = padded(layout, u->label, m->update_above ? m->settings_left : after, m->update_above ? top - m->update_gap - update_h * 0.5f : middle,
+                    m->update_pad_x, m->update_pad_y, m->update_border, &u->text);
+    out->update_shown = u->box.x + u->box.w + ORACLES_UI_VERSION_GAP <= hints_x;
 }
 
 void oracles_ui_layout_toast(OraclesUiLayout layout, const char *text, OraclesUiToastLayout *out)

@@ -6,49 +6,25 @@
 
 #define MIDDLE_DOT "\xc2\xb7"
 #define ELLIPSIS "\xe2\x80\xa6"
+#define BADGES_LAST_LOOK_MS 3000.0   /* past the draw's two seconds between two looks at a file */
 
 const char oracles_achievements_mod_reason[] = "Achievements are paused until the game starts again: a mod changed the game.";
 static const char cheat_suspension[] = "Achievements suspended: a cheat is on";
 static const char page_note[] = "Casual mode: every launcher feature stays, savestates included.";
-static const char *const row_labels[ORACLES_ACHIEVEMENTS_ROWS] = { "RetroAchievements", "Account", "Privacy", "Unlock sound" };
+static const char *const row_labels[ORACLES_ACHIEVEMENTS_ROWS] = { "Account", "RetroAchievements", "Privacy", "Unlock sound" };
 static const char *const choices[2] = { "Off", "On" };
 static const char *const sound_choices[2] = { "On", "Off" };
 static const char explanation_on[] = "Unlocks the achievements players wrote for Ages and Seasons, as you play.";
 static const char explanation_privacy[] = "Sends your user name, the game you play and your unlocks to retroachievements.org.";
-static const char explanation_sound[] = "A short sound with each unlock's toast, over the game's own.";
+static const char explanation_sound[] = "A short sound plays with each unlock; the toast shows either way.";
 static const char *const helps[ORACLES_ACHIEVEMENTS_ROWS][2] = {
-    { "On: achievements for Ages and Seasons, casual mode.", "Nothing is sent while it is off or before you log in." },
     { "One account for every game.", "Only the token the server returns is kept, never the password." },
+    { "On: achievements for Ages and Seasons, casual mode.", "Nothing is sent while it is off or before you log in." },
     { "Sends your user name, game and unlocks to retroachievements.org.", "Player's guide: the full text, in your browser." },
-    { "On: a short sound with each unlock's toast.", "Off: the toast alone." },
+    { "On: a short sound with each unlock.", "The toast shows either way." },
 };
-static const char link_help[] = "Achievements for Ages and Seasons, casual mode.";
 
 const char *oracles_achievements_row_label(unsigned row) { return row < ORACLES_ACHIEVEMENTS_ROWS ? row_labels[row] : ""; }
-
-void oracles_achievements_summary(const OraclesHomeNav *nav, char *out, size_t capacity)
-{
-    const OraclesHomeAchievements *a = &nav->achievements;
-    if (!a->on) snprintf(out, capacity, "Off");
-    else if (a->user[0]) snprintf(out, capacity, "On " MIDDLE_DOT " %s", a->user);
-    else snprintf(out, capacity, "On " MIDDLE_DOT " not logged in");
-}
-
-void oracles_achievements_about_row(const OraclesHomeNav *nav, OraclesUiListPage *page, unsigned row)
-{
-    static char summary[ORACLES_HOME_ACCOUNT_LENGTH + 16];
-    oracles_achievements_summary(nav, summary, sizeof summary);
-    page->labels[row] = row_labels[ORACLES_ACHIEVEMENTS_ROW_ON];
-    page->kinds[row] = ORACLES_UI_LIST_LINK;
-    page->summaries[row] = summary;
-    snprintf(page->explanations[row], sizeof page->explanations[row], "%s", link_help);
-}
-
-void oracles_achievements_about_help(const char **help, const char **note)
-{
-    *help = link_help;
-    *note = helps[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT][0];
-}
 
 const char *oracles_achievements_cheats_note(const OraclesHomeNav *nav)
 {
@@ -66,7 +42,168 @@ const char *oracles_achievements_cheats_note(const OraclesHomeNav *nav)
 void oracles_achievements_open(OraclesHomeNav *nav)
 {
     nav->screen = ORACLES_SCREEN_ACHIEVEMENTS;
-    nav->row = ORACLES_ACHIEVEMENTS_ROW_ON;
+    nav->row = ORACLES_ACHIEVEMENTS_ROW_ACCOUNT;
+    nav->achievements.page_scroll = 0.0f;
+    nav->achievements.detail = 0;
+}
+
+int oracles_achievements_page_list(const OraclesHomeNav *nav)
+{
+    const OraclesHomeAchievements *a = &nav->achievements;
+    return a->on && a->user[0] && a->list_state == ORACLES_ACHIEVEMENTS_LIST_READY && a->list;
+}
+
+int oracles_achievements_page_list_on(const OraclesHomeNav *nav)
+{
+    return nav->screen == ORACLES_SCREEN_ACHIEVEMENTS && !nav->achievements.login && oracles_achievements_page_list(nav);
+}
+
+const char *oracles_achievements_page_line(const OraclesHomeNav *nav)
+{
+    const OraclesHomeAchievements *a = &nav->achievements;
+    if (!a->user[0]) return "Log in to see this game\xe2\x80\x99s achievements.";
+    if (!a->on) return "Turn RetroAchievements on to see this game\xe2\x80\x99s achievements.";
+    switch ((OraclesAchievementsListState)a->list_state) {
+        case ORACLES_ACHIEVEMENTS_LIST_READY: return a->list ? NULL : "This game\xe2\x80\x99s achievements could not be read.";
+        case ORACLES_ACHIEVEMENTS_LIST_UNREACHABLE: return "retroachievements.org cannot be reached: this game\xe2\x80\x99s achievements show when it can.";
+        case ORACLES_ACHIEVEMENTS_LIST_FAILED: return "This game\xe2\x80\x99s achievements could not be read.";
+        case ORACLES_ACHIEVEMENTS_LIST_LOADING: return "Loading this game\xe2\x80\x99s achievements" ELLIPSIS;
+        default: return NULL;   /* none wanted: this game has none now */
+    }
+}
+
+void oracles_achievements_page_hover(OraclesHomeNav *nav, unsigned row)
+{
+    if (!oracles_achievements_page_list_on(nav)) nav->row = row;
+}
+
+/* The highlight moved to `row`, from the page as it shows, which follows it as little as brings it in sight. */
+static void page_to(OraclesHomeNav *nav, unsigned row)
+{
+    nav->achievements.page_scroll = oracles_ui_achievements_page_view(nav);
+    nav->row = row;
+    nav->achievements.page_scroll = oracles_ui_achievements_page_follow(nav);
+}
+
+static void page_step(OraclesHomeNav *nav, int steps, int first)
+{
+    const int last = (int)oracles_achievements_page_places(nav) - 1;
+    int row = (int)nav->row + steps;
+    if (row < first) row = first;
+    if (row > last) row = last;
+    page_to(nav, (unsigned)row);
+}
+
+void oracles_achievements_page_scroll(OraclesHomeNav *nav, int steps)
+{
+    /* The detail's panel shows the next achievement, the list following it behind. */
+    if (oracles_achievements_detail_open(nav)) { page_step(nav, steps, ORACLES_ACHIEVEMENTS_ROWS); return; }
+    unsigned place;
+    nav->achievements.page_scroll = oracles_ui_achievements_page_moved(nav, steps, &place);
+    nav->row = place;
+}
+
+void oracles_achievements_drag_start(OraclesAchievementsDrag *drag) { memset(drag, 0, sizeof *drag); }
+
+int oracles_achievements_drag_move(OraclesAchievementsDrag *drag, float dx, float dy, float row)
+{
+    drag->travel += (dx < 0.0f ? -dx : dx) + (dy < 0.0f ? -dy : dy);
+    if (drag->travel >= row * 0.25f) drag->dragged = 1;
+    drag->y += dy;
+    int steps = 0;
+    while (drag->y <= -row) { drag->y += row; steps++; }
+    while (drag->y >= row) { drag->y -= row; steps--; }
+    return steps;
+}
+
+int oracles_achievements_drag_steps(const OraclesHomeNav *nav, OraclesAchievementsDrag *drag, float dx, float dy, float row)
+{
+    const int steps = oracles_achievements_drag_move(drag, dx, dy, row);
+    return oracles_achievements_detail_open(nav) ? 0 : steps;
+}
+
+int oracles_achievements_drag_end(OraclesAchievementsDrag *drag)
+{
+    const int dragged = drag->dragged;
+    drag->dragged = 0;
+    return dragged;
+}
+
+int oracles_achievements_badges_redraw(int busy, int waiting, double now_ms, double *until_ms)
+{
+    if (busy) *until_ms = now_ms + BADGES_LAST_LOOK_MS;
+    return waiting && now_ms < *until_ms;
+}
+
+unsigned oracles_achievements_page_places(const OraclesHomeNav *nav)
+{
+    return ORACLES_ACHIEVEMENTS_ROWS + (oracles_achievements_page_list(nav) ? nav->achievements.list->count : 0u);
+}
+
+const OraclesAchievementsItem *oracles_achievements_page_item(const OraclesHomeNav *nav)
+{
+    if (nav->row < ORACLES_ACHIEVEMENTS_ROWS || nav->row >= oracles_achievements_page_places(nav)) return NULL;
+    return &nav->achievements.list->items[nav->row - ORACLES_ACHIEVEMENTS_ROWS];
+}
+
+const OraclesAchievementsItem *oracles_achievements_detail_item(const OraclesHomeNav *nav)
+{
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) {
+        const OraclesAchievementsList *l = nav->achievements.list;
+        return l && nav->achievements.list_focus < l->count ? &l->items[nav->achievements.list_focus] : NULL;
+    }
+    return nav->screen == ORACLES_SCREEN_ACHIEVEMENTS && !nav->achievements.login ? oracles_achievements_page_item(nav) : NULL;
+}
+
+int oracles_achievements_detail_panel(const OraclesHomeNav *nav) { return nav->layout == ORACLES_UI_LAYOUT_4_3 || nav->achievements.view_w > 0.0f; }
+
+int oracles_achievements_detail_column(const OraclesHomeNav *nav)
+{
+    return !oracles_achievements_detail_panel(nav) && oracles_achievements_detail_item(nav);
+}
+
+int oracles_achievements_detail_open(const OraclesHomeNav *nav)
+{
+    return nav->achievements.detail && oracles_achievements_detail_panel(nav) && oracles_achievements_detail_item(nav);
+}
+
+/* What the column needs of the 16:9 scene, centred: from its left, 96, to the panel's foot, 1004 (40 left as a margin). */
+#define COLUMN_VIEW_W 1728.0f
+#define COLUMN_VIEW_H 1000.0f
+
+void oracles_achievements_detail_view(OraclesHomeNav *nav, int width, int height)
+{
+    OraclesHomeAchievements *a = &nav->achievements;
+    const float view_w = (float)width / ORACLES_UI_NARROW_MIN_SCALE, view_h = (float)height / ORACLES_UI_NARROW_MIN_SCALE;
+    const int cut = oracles_ui_layout_narrow(nav->layout, width) && (view_w < COLUMN_VIEW_W || view_h < COLUMN_VIEW_H);
+    a->view_w = cut ? view_w : 0.0f;
+    a->view_h = cut ? view_h : 0.0f;
+}
+
+void oracles_achievements_detail_follow(OraclesHomeNav *nav)
+{
+    if (!oracles_achievements_detail_open(nav)) nav->achievements.detail = 0;
+}
+
+void oracles_achievements_rarity_text(float rarity, char *out, size_t capacity)
+{
+    if (rarity >= 0.05f && rarity < 99.95f) snprintf(out, capacity, "%.1f%% of players", (double)rarity);
+    else if (capacity) out[0] = 0;
+}
+
+const char *oracles_achievements_tag_text(unsigned tag)
+{
+    switch ((OraclesAchievementTag)tag) {
+        case ORACLES_ACHIEVEMENT_TAG_MISSABLE: return "Missable";
+        case ORACLES_ACHIEVEMENT_TAG_PROGRESSION: return "Progression";
+        case ORACLES_ACHIEVEMENT_TAG_WIN: return "Win";
+        default: return NULL;
+    }
+}
+
+void oracles_achievements_state_text(const OraclesAchievementsItem *item, char *out, size_t capacity)
+{
+    snprintf(out, capacity, "%s%s%s", item->unlocked ? "Unlocked" : "Locked", item->unlocked && item->date[0] ? " " : "", item->unlocked ? item->date : "");
 }
 
 void oracles_achievements_help(const OraclesHomeNav *nav, const char **help, const char **note)
@@ -97,17 +234,18 @@ void oracles_ui_layout_achievements(OraclesUiLayout layout, const OraclesHomeNav
 {
     static char status[96];
     const OraclesHomeAchievements *a = &nav->achievements;
-    const int four_three = layout == ORACLES_UI_LAYOUT_4_3;
+    const OraclesHomeHero hero = oracles_home_hero(nav);
     OraclesTone dot, tone;
     OraclesUiListPage page;
     memset(&page, 0, sizeof page);
-    page.section = "About \xe2\x80\xba RetroAchievements";
-    page.over = four_three ? NULL : "The Oracles";
-    page.title = four_three ? "The Oracles Project" : "Project";
+    page.section = "Achievements";
+    page.over = oracles_home_over(hero);
+    page.title = oracles_home_title(hero);
     page.note = page_note;
     page.rows = ORACLES_ACHIEVEMENTS_ROWS;
     oracles_achievements_help(nav, &page.help, &page.help_note);
     page.status = oracles_achievements_account_status(nav, status, sizeof status, &dot, &tone);
+    page.below = oracles_achievements_page_line(nav);
     page.extras_row = ORACLES_ACHIEVEMENTS_ROW_ACCOUNT;
     page.centred = 1;
     for (unsigned r = 0; r < ORACLES_ACHIEVEMENTS_ROWS; r++) page.labels[r] = row_labels[r];
@@ -169,11 +307,27 @@ OraclesHomeCommand oracles_achievements_act(OraclesHomeNav *nav, OraclesHomeActi
 {
     /* The login takes its own keys (oracles_achievements_login_key); Back, its hint's click, cancels it. */
     if (nav->achievements.login) return action == ORACLES_HOME_BACK ? cancel(nav) : ORACLES_HOME_STAY;
-    if (nav->row >= ORACLES_ACHIEVEMENTS_ROWS) nav->row = 0;
+    oracles_achievements_detail_follow(nav);
+    const unsigned places = oracles_achievements_page_places(nav);
+    if (nav->row >= places) nav->row = 0;
     const unsigned row = nav->row;
+    /* The detail's panel takes up, down and Back; up and down stop at the list's ends. */
+    if (oracles_achievements_detail_open(nav)) {
+        if (action == ORACLES_HOME_BACK) nav->achievements.detail = 0;
+        else if (action == ORACLES_HOME_UP || action == ORACLES_HOME_DOWN) page_step(nav, action == ORACLES_HOME_UP ? -1 : 1, ORACLES_ACHIEVEMENTS_ROWS);
+        return ORACLES_HOME_STAY;
+    }
+    if (row >= ORACLES_ACHIEVEMENTS_ROWS && action == ORACLES_HOME_OK && oracles_achievements_detail_panel(nav)) {
+        nav->achievements.detail = 1;
+        return ORACLES_HOME_STAY;
+    }
+    /* The list's achievements are only read: up, down and Back. */
+    if (row >= ORACLES_ACHIEVEMENTS_ROWS && action != ORACLES_HOME_UP && action != ORACLES_HOME_DOWN && action != ORACLES_HOME_BACK) return ORACLES_HOME_STAY;
     switch (action) {
-        case ORACLES_HOME_UP: nav->row = (row + ORACLES_ACHIEVEMENTS_ROWS - 1u) % ORACLES_ACHIEVEMENTS_ROWS; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_DOWN: nav->row = (row + 1u) % ORACLES_ACHIEVEMENTS_ROWS; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_UP:
+        case ORACLES_HOME_DOWN:
+            page_to(nav, action == ORACLES_HOME_UP ? (row + places - 1u) % places : (row + 1u) % places);
+            return ORACLES_HOME_STAY;
         case ORACLES_HOME_LEFT:
         case ORACLES_HOME_RIGHT:
             if (row == ORACLES_ACHIEVEMENTS_ROW_SOUND) return set_sound(nav, !nav->achievements.sound);
@@ -183,9 +337,10 @@ OraclesHomeCommand oracles_achievements_act(OraclesHomeNav *nav, OraclesHomeActi
             if (row == ORACLES_ACHIEVEMENTS_ROW_SOUND) return set_sound(nav, !nav->achievements.sound);
             return row == ORACLES_ACHIEVEMENTS_ROW_ACCOUNT ? account(nav) : ORACLES_HOME_ACHIEVEMENTS_GUIDE;
         case ORACLES_HOME_BACK:
-            /* Back to About, on its link: its last row. */
-            nav->screen = ORACLES_SCREEN_ABOUT;
-            nav->row = oracles_about_rows(nav) - 1u;
+            /* Back to the home screen, on Achievements. */
+            nav->screen = ORACLES_SCREEN_HOME;
+            nav->achievements.detail = 0;
+            oracles_home_focus_item(nav, ORACLES_HOME_ITEM_ACHIEVEMENTS);
             return ORACLES_HOME_STAY;
     }
     return ORACLES_HOME_STAY;
@@ -193,8 +348,14 @@ OraclesHomeCommand oracles_achievements_act(OraclesHomeNav *nav, OraclesHomeActi
 
 OraclesHomeCommand oracles_achievements_click(OraclesHomeNav *nav, unsigned row, int option)
 {
-    if (nav->achievements.login || row >= ORACLES_ACHIEVEMENTS_ROWS) return ORACLES_HOME_STAY;
+    if (nav->achievements.login || row >= oracles_achievements_page_places(nav)) return ORACLES_HOME_STAY;
+    /* The page stays as it shows: the row is under the pointer already. */
+    nav->achievements.page_scroll = oracles_ui_achievements_page_view(nav);
     nav->row = row;
+    if (row >= ORACLES_ACHIEVEMENTS_ROWS) {
+        nav->achievements.detail = oracles_achievements_detail_panel(nav);
+        return ORACLES_HOME_STAY;
+    }
     if (row == ORACLES_ACHIEVEMENTS_ROW_ON) return option == 0 || option == 1 ? set_on(nav, option) : ORACLES_HOME_STAY;
     if (row == ORACLES_ACHIEVEMENTS_ROW_SOUND) return option == 0 || option == 1 ? set_sound(nav, option == 0) : ORACLES_HOME_STAY;
     if (option != 2) return ORACLES_HOME_STAY;
@@ -221,6 +382,7 @@ void oracles_achievements_login_open(OraclesHomeNav *nav, int by_on)
     a->field = ORACLES_LOGIN_NAME;
     a->opened_by_on = by_on;
     a->password_shown = 0;
+    a->paste_refused = 0;
     wipe(a->name, sizeof a->name);
     wipe(a->password, sizeof a->password);
     a->keyboard_page = a->keyboard_shift = 0;
@@ -274,9 +436,9 @@ unsigned oracles_achievements_keyboard_keys(const OraclesHomeNav *nav, unsigned 
     const OraclesHomeAchievements *a = &nav->achievements;
     if (row >= ORACLES_KEYBOARD_ROWS) return 0;
     if (row == ORACLES_KEYBOARD_ROWS - 1u) {
-        static const char *const last[5] = { "Shift", "#+=", "Space", ERASER, "Done" };
-        for (unsigned i = 0; i < 5; i++) snprintf(keys[i], 8, "%s", i == 1 && a->keyboard_page ? "abc" : last[i]);
-        return 5;
+        static const char *const last[6] = { "Shift", "#+=", "Space", "Paste", ERASER, "Done" };
+        for (unsigned i = 0; i < 6; i++) snprintf(keys[i], 8, "%s", i == 1 && a->keyboard_page ? "abc" : last[i]);
+        return 6;
     }
     const char *chars = (a->keyboard_page ? symbols : letters)[row];
     unsigned n = 0;
@@ -298,6 +460,7 @@ static char *field_text(OraclesHomeAchievements *a, size_t *capacity)
 /* An edit clears an error shown. */
 static void edited(OraclesHomeAchievements *a)
 {
+    a->paste_refused = 0;
     if (a->login == ORACLES_LOGIN_WRONG || a->login == ORACLES_LOGIN_UNREACHABLE) a->login = ORACLES_LOGIN_TYPING;
 }
 
@@ -402,7 +565,7 @@ static OraclesLoginPaste paste_into(OraclesHomeNav *nav, const char *text)
     if (done == ORACLES_LOGIN_PASTE_DONE) {
         a->text_dismissed = 0;
         edited(a);
-    }
+    } else if (done != ORACLES_LOGIN_PASTE_EMPTY) a->paste_refused = (int)done;
     return done;
 }
 
@@ -465,6 +628,7 @@ static OraclesHomeCommand submit(OraclesHomeNav *nav)
         return ORACLES_HOME_STAY;
     }
     a->login = ORACLES_LOGIN_LOGGING;
+    a->paste_refused = 0;
     return ORACLES_HOME_ACHIEVEMENTS_LOGIN;
 }
 
@@ -480,6 +644,7 @@ static OraclesHomeCommand press(OraclesHomeNav *nav, unsigned row, unsigned colu
     if (!strcmp(k, "#+=") || !strcmp(k, "abc")) { a->keyboard_page = !a->keyboard_page; return ORACLES_HOME_STAY; }
     if (!strcmp(k, "Done")) { a->field = a->field == ORACLES_LOGIN_NAME ? ORACLES_LOGIN_PASSWORD : ORACLES_LOGIN_OK; return ORACLES_HOME_STAY; }
     if (!strcmp(k, ERASER)) { erase(a); return ORACLES_HOME_STAY; }
+    if (!strcmp(k, "Paste")) return ORACLES_HOME_ACHIEVEMENTS_PASTE;
     oracles_achievements_login_text(nav, !strcmp(k, "Space") ? " " : k);
     a->keyboard_shift = 0;
     return ORACLES_HOME_STAY;
@@ -511,11 +676,28 @@ static OraclesHomeCommand keyboard_key(OraclesHomeNav *nav, OraclesLoginKey key)
             else erase(a);
             return ORACLES_HOME_STAY;
         }
+        case ORACLES_LOGIN_PAD_X: oracles_achievements_password_toggle(nav); return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_PAD_Y: a->keyboard_shift = !a->keyboard_shift; return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_PAD_SHOULDER: a->keyboard_page = !a->keyboard_page; return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_PAD_START: a->field = a->field == ORACLES_LOGIN_NAME ? ORACLES_LOGIN_PASSWORD : ORACLES_LOGIN_OK; return ORACLES_HOME_STAY;
         default: return ORACLES_HOME_STAY;
     }
+}
+
+/* The next field a keyboard reaches, `step` 1 or back: the eye a Tab stop once there is a password to show. */
+static int tab_field(const OraclesHomeAchievements *a, int step)
+{
+    int field = (a->field + step + ORACLES_LOGIN_FIELDS) % ORACLES_LOGIN_FIELDS;
+    if (field == ORACLES_LOGIN_EYE && !a->password[0]) field = (field + step + ORACLES_LOGIN_FIELDS) % ORACLES_LOGIN_FIELDS;
+    return field;
+}
+
+/* The next field a controller's D-pad reaches: the order stays name, password, Log in, Cancel, X toggling the eye. */
+static int pad_field(int field, int step)
+{
+    int next = field + step;
+    if (next == ORACLES_LOGIN_EYE) next += step;
+    return next < 0 || next >= ORACLES_LOGIN_FIELDS ? field : next;
 }
 
 OraclesHomeCommand oracles_achievements_login_key(OraclesHomeNav *nav, OraclesLoginKey key)
@@ -534,24 +716,30 @@ OraclesHomeCommand oracles_achievements_login_key(OraclesHomeNav *nav, OraclesLo
         case ORACLES_LOGIN_KEY_ENTER:
             if (a->field == ORACLES_LOGIN_CANCEL) { oracles_achievements_login_close(nav); return ORACLES_HOME_STAY; }
             if (a->field == ORACLES_LOGIN_NAME) { a->field = ORACLES_LOGIN_PASSWORD; return ORACLES_HOME_STAY; }
+            if (a->field == ORACLES_LOGIN_EYE) { oracles_achievements_password_toggle(nav); return ORACLES_HOME_STAY; }
             return submit(nav);
+        case ORACLES_LOGIN_KEY_SPACE:
+            if (a->field == ORACLES_LOGIN_EYE) oracles_achievements_password_toggle(nav);
+            return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_KEY_TAB:
-        case ORACLES_LOGIN_KEY_DOWN: a->field = (a->field + 1) % ORACLES_LOGIN_FIELDS; return ORACLES_HOME_STAY;
+        case ORACLES_LOGIN_KEY_DOWN: a->field = tab_field(a, 1); return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_KEY_BACKTAB:
-        case ORACLES_LOGIN_KEY_UP: a->field = (a->field + ORACLES_LOGIN_FIELDS - 1) % ORACLES_LOGIN_FIELDS; return ORACLES_HOME_STAY;
+        case ORACLES_LOGIN_KEY_UP: a->field = tab_field(a, -1); return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_KEY_BACKSPACE: if (in_field) erase(a); return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_KEY_LEFT:
         case ORACLES_LOGIN_KEY_RIGHT:
         case ORACLES_LOGIN_PAD_LEFT:
         case ORACLES_LOGIN_PAD_RIGHT:
-            if (!in_field) a->field = a->field == ORACLES_LOGIN_OK ? ORACLES_LOGIN_CANCEL : ORACLES_LOGIN_OK;
+            if (!in_field && a->field != ORACLES_LOGIN_EYE) a->field = a->field == ORACLES_LOGIN_OK ? ORACLES_LOGIN_CANCEL : ORACLES_LOGIN_OK;
             return ORACLES_HOME_STAY;
-        case ORACLES_LOGIN_PAD_UP: if (a->field > 0) a->field--; return ORACLES_HOME_STAY;
-        case ORACLES_LOGIN_PAD_DOWN: if (a->field + 1 < ORACLES_LOGIN_FIELDS) a->field++; return ORACLES_HOME_STAY;
+        case ORACLES_LOGIN_PAD_UP: a->field = pad_field(a->field, -1); return ORACLES_HOME_STAY;
+        case ORACLES_LOGIN_PAD_DOWN: a->field = pad_field(a->field, 1); return ORACLES_HOME_STAY;
+        case ORACLES_LOGIN_PAD_X: oracles_achievements_password_toggle(nav); return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_PAD_A:
             if (a->field == ORACLES_LOGIN_OK) return submit(nav);
             if (a->field == ORACLES_LOGIN_CANCEL) { oracles_achievements_login_close(nav); return ORACLES_HOME_STAY; }
-            a->field++;
+            if (a->field == ORACLES_LOGIN_EYE) { oracles_achievements_password_toggle(nav); return ORACLES_HOME_STAY; }
+            a->field = pad_field(a->field, 1);
             return ORACLES_HOME_STAY;
         case ORACLES_LOGIN_PAD_START: return submit(nav);
         default: return ORACLES_HOME_STAY;
@@ -569,6 +757,7 @@ OraclesHomeCommand oracles_achievements_login_click(OraclesHomeNav *nav, int tar
         a->text_dismissed = a->text_for = 0;
         return ORACLES_HOME_STAY;
     }
+    if (target == ORACLES_LOGIN_EYE) { oracles_achievements_password_toggle(nav); return ORACLES_HOME_STAY; }
     if (target == ORACLES_LOGIN_OK) { a->field = target; return submit(nav); }
     if (target == ORACLES_LOGIN_CANCEL) { oracles_achievements_login_close(nav); return ORACLES_HOME_STAY; }
     const int key = target - ORACLES_LOGIN_FIELDS;
@@ -597,6 +786,11 @@ void oracles_achievements_login_answered(OraclesHomeNav *nav, int ok, const char
 
 const char *oracles_achievements_login_state_text(const OraclesHomeNav *nav, OraclesTone *tone)
 {
+    /* The paste refused, the last thing done: said over an error shown. */
+    if (nav->achievements.paste_refused && nav->achievements.login != ORACLES_LOGIN_LOGGING) {
+        *tone = ORACLES_TONE_WARN;
+        return nav->achievements.paste_refused == ORACLES_LOGIN_PASTE_TOO_LONG ? "Not pasted: too long" : "Not pasted: more than one line";
+    }
     switch ((OraclesAchievementsLoginState)nav->achievements.login) {
         case ORACLES_LOGIN_LOGGING: *tone = ORACLES_TONE_NONE; return "Logging in" ELLIPSIS;
         case ORACLES_LOGIN_WRONG: *tone = ORACLES_TONE_ERROR; return "Wrong user name or password.";
@@ -608,23 +802,35 @@ const char *oracles_achievements_login_state_text(const OraclesHomeNav *nav, Ora
 /* ---- hints ---------------------------------------------------------------------------------------------- */
 
 #define UP_DOWN "\xe2\x86\x91\xe2\x86\x93"
-#define LEFT_RIGHT "\xe2\x86\x90\xe2\x86\x92"
+#ifdef __APPLE__
+#define PASTE_KEY "Cmd+V"
+#else
+#define PASTE_KEY "Ctrl+V"
+#endif
 
 unsigned oracles_achievements_hints(const OraclesHomeNav *nav, OraclesHomeHint *hints)
 {
-    /* The login's keys, each framed for five characters: the launcher's keyboard's, a controller's, the keyboard's. */
+    /* The login's keys, each framed for five characters (the keyboard's for six): the launcher's keyboard's, a
+     * controller's, the keyboard's; none under Android's keyboard, which covers them. */
     if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS && nav->achievements.login) {
-        static const OraclesHomeHint keyboard[5] = { { "A", "Type", 0, 5 }, { "B", "Erase", 0, 5 }, { "Y", "Shift", 0, 5 }, { "LB RB", "Symbols", 0, 5 },
-                                                     { "Start", "Done", 0, 5 } };
-        static const OraclesHomeHint pad[3] = { { "D-pad", "Move", 0, 5 }, { "A", "Select", 0, 5 }, { "B", "Cancel", 1, 5 } };
-        static const OraclesHomeHint keys[3] = { { "Tab", "Next field", 0, 5 }, { "Enter", "Log in", 0, 5 }, { "Esc", "Cancel", 1, 5 } };
+        const char *const eye = nav->achievements.password_shown ? "Hide" : "Show";
+        const OraclesHomeHint keyboard[5] = { { "A", "Type", 0, 5 }, { "B", "Erase", 0, 5 }, { "X", eye, 0, 5 }, { "Y", "Shift", 0, 5 }, { "Start", "Done", 0, 5 } };
+        const OraclesHomeHint pad[4] = { { "D-pad", "Move", 0, 5 }, { "A", "Select", 0, 5 }, { "X", eye, 0, 5 }, { "B", "Cancel", 1, 5 } };
+        const OraclesHomeHint keys[4] = { { "Tab", "Next field", 0, 6 }, { "Enter", "Log in", 0, 6 }, { PASTE_KEY, "Paste", 0, 6 }, { "Esc", "Cancel", 1, 6 } };
+        const OraclesHomeHint on_eye[3] = { { "Tab", "Next field", 0, 6 }, { "Enter", eye, 0, 6 }, { "Esc", "Cancel", 1, 6 } };
         if (oracles_achievements_keyboard_shown(nav)) { memcpy(hints, keyboard, sizeof keyboard); return 5; }
-        if (nav->device == ORACLES_INPUT_GAMEPAD) { memcpy(hints, pad, sizeof pad); return 3; }
+        if (nav->device == ORACLES_INPUT_GAMEPAD) { memcpy(hints, pad, sizeof pad); return 4; }
+        if (nav->android && nav->device == ORACLES_INPUT_POINTER) return 0;
+        if (nav->achievements.field == ORACLES_LOGIN_EYE) { memcpy(hints, on_eye, sizeof on_eye); return 3; }
         memcpy(hints, keys, sizeof keys);
-        return 3;
+        return 4;
     }
-    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) {
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST || oracles_achievements_page_item(nav)) {
         static const OraclesHomeHint list[2] = { { UP_DOWN, "Scroll", 0, 0 }, { "Esc / B", "Back", 1, 0 } };
+        static const OraclesHomeHint details[3] = { { UP_DOWN, "Scroll", 0, 0 }, { "Enter / A", "Details", 0, 0 }, { "Esc / B", "Back", 1, 0 } };
+        static const OraclesHomeHint panel[2] = { { UP_DOWN, "Next", 0, 0 }, { "Esc / B", "Close", 1, 0 } };
+        if (oracles_achievements_detail_open(nav)) { memcpy(hints, panel, sizeof panel); return 2; }
+        if (oracles_achievements_detail_panel(nav) && oracles_achievements_detail_item(nav)) { memcpy(hints, details, sizeof details); return 3; }
         memcpy(hints, list, sizeof list);
         return 2;
     }
@@ -720,23 +926,74 @@ void oracles_achievements_list_open(OraclesHomeNav *nav)
 {
     nav->screen = ORACLES_SCREEN_ACHIEVEMENTS_LIST;
     nav->achievements.list_focus = 0;
+    nav->achievements.list_first = 0;
+    nav->achievements.detail = 0;
 }
 
 static unsigned list_count(const OraclesHomeNav *nav) { return nav->achievements.list ? nav->achievements.list->count : 0u; }
 
+/* The highlight moved to `focus`, from the list as it shows, which follows it as little as brings it wholly in sight. */
+static void list_to(OraclesHomeNav *nav, unsigned focus)
+{
+    OraclesHomeAchievements *a = &nav->achievements;
+    const unsigned count = list_count(nav), fit = oracles_achievements_list_fit(nav), last_first = count > fit ? count - fit : 0u;
+    unsigned first = oracles_achievements_list_first(nav);
+    a->list_focus = focus;
+    if (focus < first) first = focus;
+    else if (focus >= first + fit) first = focus + 1u - fit;
+    a->list_first = first < last_first ? first : last_first;
+}
+
 OraclesHomeCommand oracles_achievements_list_act(OraclesHomeNav *nav, OraclesHomeAction action)
 {
+    oracles_achievements_detail_follow(nav);
     const unsigned count = list_count(nav);
     unsigned *focus = &nav->achievements.list_focus;
     switch (action) {
-        case ORACLES_HOME_UP: if (*focus > 0) (*focus)--; return ORACLES_HOME_STAY;
-        case ORACLES_HOME_DOWN: if (*focus + 1u < count) (*focus)++; return ORACLES_HOME_STAY;
+        case ORACLES_HOME_UP:
+        case ORACLES_HOME_DOWN:
+            if (action == ORACLES_HOME_UP && *focus > 0) list_to(nav, *focus - 1u);
+            else if (action == ORACLES_HOME_DOWN && *focus + 1u < count) list_to(nav, *focus + 1u);
+            return ORACLES_HOME_STAY;
+        case ORACLES_HOME_OK: nav->achievements.detail = oracles_achievements_detail_panel(nav) && count; return ORACLES_HOME_STAY;
         case ORACLES_HOME_BACK:
+            if (oracles_achievements_detail_open(nav)) { nav->achievements.detail = 0; return ORACLES_HOME_STAY; }
             nav->screen = ORACLES_SCREEN_PAUSE;
             oracles_home_focus_item(nav, ORACLES_HOME_ITEM_ACHIEVEMENTS);
             return ORACLES_HOME_STAY;
         default: return ORACLES_HOME_STAY;
     }
+}
+
+void oracles_achievements_list_click(OraclesHomeNav *nav, unsigned index)
+{
+    if (index >= list_count(nav)) return;
+    nav->achievements.list_first = oracles_achievements_list_first(nav);
+    nav->achievements.list_focus = index;
+    nav->achievements.detail = oracles_achievements_detail_panel(nav);
+}
+
+void oracles_achievements_list_scroll(OraclesHomeNav *nav, int steps)
+{
+    OraclesHomeAchievements *a = &nav->achievements;
+    const unsigned count = list_count(nav);
+    if (!count) return;
+    int to;
+    /* The detail's panel shows the next achievement, the list following it behind. */
+    if (oracles_achievements_detail_open(nav)) {
+        to = (int)a->list_focus + steps;
+        list_to(nav, to < 0 ? 0u : (unsigned)to >= count ? count - 1u : (unsigned)to);
+        return;
+    }
+    const unsigned fit = oracles_achievements_list_fit(nav), last_first = count > fit ? count - fit : 0u;
+    const unsigned shown = oracles_achievements_list_first(nav);
+    to = (int)shown + steps;
+    a->list_first = to < 0 ? 0u : (unsigned)to > last_first ? last_first : (unsigned)to;
+    if (a->list_first == shown) return;
+    /* The highlight left out of sight by the scroll: the row nearest it that is in. */
+    if (a->list_focus < a->list_first) a->list_focus = a->list_first;
+    else if (a->list_focus >= a->list_first + fit) a->list_focus = a->list_first + fit - 1u;
+    if (a->list_focus >= count) a->list_focus = count - 1u;
 }
 
 void oracles_achievements_list_summary(const OraclesHomeNav *nav, char *out, size_t capacity, int *warning)

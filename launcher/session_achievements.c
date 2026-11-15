@@ -30,6 +30,7 @@
 #include "achievements_account.h"
 #include "achievements_badges.h"
 #include "achievements_files.h"
+#include "achievements_load.h"
 #include "achievements_pending.h"
 #include "achievements_transport.h"
 #include "home_games.h"
@@ -371,6 +372,28 @@ int oracles_session_achievements_login_poll(OraclesSessionLogin *l, char *user, 
 }
 
 void oracles_session_achievements_login_end(OraclesSessionLogin *l) { oracles_achievements_home_login_end(l); }
+
+/* ---- the home screen's list (session.h) --------------------------------------------------------------------- */
+
+OraclesAchievementsLoad *oracles_session_achievements_load_begin(oracles_settings *settings, const char *rom_path, const char *offline)
+{
+    account a;
+    if (offline) { snprintf(a.user, sizeof a.user, "offline"); snprintf(a.token, sizeof a.token, "offline"); }
+    else read_account(settings, &a);
+    char hash[33], path[ORACLES_SETTINGS_PATH_LENGTH] = "", badges[ORACLES_SETTINGS_PATH_LENGTH], user_agent[160];
+    if (!a.user[0] || !a.token[0] || !oracles_achievements_load_hash(rom_path, hash)) return NULL;
+    if (offline) snprintf(badges, sizeof badges, "%s/achievement-badges", offline);
+    else {
+        account_path(settings, path, sizeof path);
+        oracles_settings_achievements_path(settings, "achievement-badges", badges, sizeof badges);
+    }
+    if (!SDL_CreateDirectory(badges)) { fprintf(stderr, "oracles: achievements: %s cannot be made: %s\n", badges, SDL_GetError()); badges[0] = 0; }
+    oracles_achievements_user_agent(ORACLES_PRODUCT_VERSION, PLATFORM, NULL, user_agent, sizeof user_agent);
+    /* The page's client: leaving the page never waits for a request under way. */
+    OraclesAchievementsTransport transport;
+    if (offline ? !oracles_achievements_offline_transport(offline, &transport) : !oracles_achievements_page_transport(&transport)) return NULL;
+    return oracles_achievements_load_begin(&transport, user_agent, &a, path, hash, badges, (double)SDL_GetTicks());
+}
 
 #else
 

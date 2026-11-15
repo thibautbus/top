@@ -506,7 +506,7 @@ static void copy_text(char *out, size_t capacity, const char *text)
 
 /* The length of the next piece of `p` a line may end after: up to a space, or through a dash the browser breaks after,
  * an en dash, or a hyphen not before a digit, with more of the word after it. */
-static size_t piece_length(const char *p)
+size_t oracles_ui_wrap_piece(const char *p)
 {
     size_t n = 0;
     while (p[n] && p[n] != ' ') {
@@ -527,7 +527,7 @@ void oracles_ui_wrap(const OraclesUiTextStyle *style, const char *text, float wi
     int spaced = 0;   /* a space between the line and the next piece */
     while (*p && out->count < ORACLES_UI_WRAP_LINES) {
         /* The next piece, and the line with it if it fits; a line takes one piece at least. */
-        const size_t piece = piece_length(p);
+        const size_t piece = oracles_ui_wrap_piece(p);
         char candidate[ORACLES_UI_WRAP_LENGTH * 2];
         snprintf(candidate, sizeof candidate, "%s%s%.*s", line, line[0] && spaced ? " " : "", (int)piece, p);
         const int last = out->count == ORACLES_UI_WRAP_LINES - 1;

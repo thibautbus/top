@@ -18,6 +18,7 @@ typedef struct OraclesAchievementsHttpOptions {
     OraclesHttpFetch fetch;   /* NULL: oracles_http_request */
     int timeout_ms;           /* 0: ORACLES_ACHIEVEMENTS_HTTP_TIMEOUT_MS */
     int loopback_http;        /* the tests' local server (OraclesHttpRequest) */
+    int leave_at_stop;        /* the end does not wait for a request under way (the thread finishes it on its own): an interface's */
 } OraclesAchievementsHttpOptions;
 
 /* The transport, its thread started: 1, or 0 when it cannot start.  `options` NULL: the platform's client. */

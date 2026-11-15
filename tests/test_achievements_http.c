@@ -72,11 +72,46 @@ static void poll_until(OraclesAchievementsTransport *t, const got *g)
     for (int i = 0; i < 2000 && !g->calls; i++) { SDL_Delay(10); t->poll(t->opaque); }
 }
 
+/* A request that takes its time, as a client without cancelling does. */
+static SDL_AtomicInt slow_started;
+
+static int slow_fetch(const OraclesHttpRequest *request, char **body, size_t *length, int *status, char *error, size_t capacity)
+{
+    (void)request; (void)body; (void)length; (void)error; (void)capacity;
+    SDL_SetAtomicInt(&slow_started, 1);
+    SDL_Delay(1200);
+    *status = 0;
+    return 1;
+}
+
+/* The page's transport leaves a request under way at its end, the thread finishing it on its own: the interface does not
+ * wait for it; a session's waits, as it did. */
+static void test_leave_at_stop(void)
+{
+    for (int leave = 0; leave < 2; leave++) {
+        OraclesAchievementsHttpOptions options = { slow_fetch, 5000, 0, leave };
+        OraclesAchievementsTransport t;
+        got g;
+        memset(&g, 0, sizeof g);
+        SDL_SetAtomicInt(&slow_started, 0);
+        CHECK(oracles_achievements_http_transport(&t, &options));
+        t.send(t.opaque, "https://example.invalid/slow", "r=startsession", "application/x-www-form-urlencoded", "agent", answer, &g);
+        while (!SDL_GetAtomicInt(&slow_started)) SDL_Delay(1);
+        const Uint64 before = SDL_GetTicks();
+        t.destroy(t.opaque);
+        const Uint64 waited = SDL_GetTicks() - before;
+        /* The request under way: given up as the end waited for it, dropped with the thread when it did not. */
+        CHECK(leave ? g.calls == 0 : g.calls == 1 && g.status == -1);
+        CHECK(leave ? waited < 300u : waited >= 300u);
+    }
+    SDL_Delay(1300);   /* the thread left behind gone before the next test */
+}
+
 static void test_queue(const char *folder)
 {
     order_lock = SDL_CreateMutex();
     first_held = SDL_CreateSemaphore(0);
-    const OraclesAchievementsHttpOptions options = { fake_fetch, 5000, 0 };
+    const OraclesAchievementsHttpOptions options = { fake_fetch, 5000, 0, 0 };
     OraclesAchievementsTransport t;
     CHECK(oracles_achievements_http_transport(&t, &options));
     got first = { 0 }, image = { 0 }, post = { 0 }, none = { 0 };
@@ -230,7 +265,7 @@ static void test_local_server(void)
     char base[64], url[128];
     snprintf(base, sizeof base, "http://127.0.0.1:%d", port);
 
-    const OraclesAchievementsHttpOptions options = { NULL, 5000, 1 }, hasty = { NULL, 500, 1 };
+    const OraclesAchievementsHttpOptions options = { NULL, 5000, 1, 0 }, hasty = { NULL, 500, 1, 0 };
     OraclesAchievementsTransport t, quick;
     CHECK(oracles_achievements_http_transport(&t, &options));
     got post = { 0 }, image = { 0 }, slow = { 0 }, busy = { 0 };
@@ -260,7 +295,7 @@ static void test_local_server(void)
     t.destroy(t.opaque);
 
     /* http:// without the tests' flag: refused before anything is sent. */
-    const OraclesAchievementsHttpOptions strict = { NULL, 5000, 0 };
+    const OraclesAchievementsHttpOptions strict = { NULL, 5000, 0, 0 };
     CHECK(oracles_achievements_http_transport(&t, &strict));
     got refused = { 0 };
     snprintf(url, sizeof url, "%s/dorequest.php", base);
@@ -302,6 +337,7 @@ static void test_local_server(void)
 int main(int argc, char **argv)
 {
     test_queue(argc > 1 ? argv[1] : ".");
+    test_leave_at_stop();
 #if defined(__linux__) && !defined(__ANDROID__)
     test_local_server();
 #endif

@@ -26,5 +26,8 @@ typedef struct OraclesAchievementsBadges {
  * (the transport looks, off the game's thread); each answered with a PNG is written there.  `badges` holds the requests until their answers: it outlives `a`'s
  * transport. */
 void oracles_achievements_fetch_badges(OraclesAchievements *a, const char *directory, OraclesAchievementsBadges *badges);
+/* The same for one achievement, its images' addresses known, with no game loaded in `a`. */
+void oracles_achievements_fetch_badge(OraclesAchievements *a, const char *directory, OraclesAchievementsBadges *badges, const char *name, const char *unlocked_url,
+                                      const char *locked_url);
 
 #endif

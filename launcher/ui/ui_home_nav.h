@@ -14,7 +14,8 @@
  * Oracle's European ROM and language; Play), with the language beside it when
  * it is not English, Display the profile and the window's choices, the same for every
  * game, Controls the keys and buttons, Mods the mods of an Oracle (ui_page_nav.h),
- * greyed for a fan game, and Cheats the game's cheats, which the menu of a game whose profile has none (an unrecognised
+ * greyed for a fan game, Achievements, in a build with RetroAchievements, their page (ui_achievements.h), greyed but on
+ * an Oracle's original ROM, and Cheats the game's cheats, which the menu of a game whose profile has none (an unrecognised
  * ROM) does not have. */
 #ifndef ORACLES_UI_HOME_NAV_H
 #define ORACLES_UI_HOME_NAV_H
@@ -59,7 +60,7 @@ typedef enum OraclesHomeItemId {
     ORACLES_HOME_ITEM_RESUME,
     ORACLES_HOME_ITEM_SAVE_STATE,
     ORACLES_HOME_ITEM_LOAD_STATE,
-    ORACLES_HOME_ITEM_ACHIEVEMENTS,   /* a build with RetroAchievements: the session's achievements (ui_achievements.h) */
+    ORACLES_HOME_ITEM_ACHIEVEMENTS,   /* a build with RetroAchievements: their page, in the pause the session's list (ui_achievements.h) */
     ORACLES_HOME_ITEM_QUIT_GAME
 } OraclesHomeItemId;
 
@@ -95,13 +96,16 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_REPLACE_SAVE,   /* its confirmation's Replace (Import without a save): the save imported, the one it replaces kept as a backup */
     ORACLES_HOME_EXPORT_SAVE,    /* Android: the document picker for a copy of the save */
     ORACLES_HOME_EXPORT_MODS_SAVE,   /* Android, Mods: the document picker for a copy of the game with mods' save */
-    ORACLES_HOME_PORTABLE,       /* About's Portable mode: turned to nav->portable_wanted, the launcher's data copied (portable.h) */
+    ORACLES_HOME_PORTABLE,       /* Settings' Portable mode: turned to nav->portable_wanted, the launcher's data copied (portable.h) */
+    ORACLES_HOME_OPEN_LICENCES,  /* Settings' Licences: the list of the licences in the system's browser, the launcher staying */
     /* A build with RetroAchievements (ui_achievements.h): the login's name and password sent, the account forgotten, the
-     * player's guide in the system's browser, the login sent given up (its answer dropped). */
+     * player's guide in the system's browser, the login sent given up (its answer dropped), the clipboard pasted from the
+     * launcher's keyboard. */
     ORACLES_HOME_ACHIEVEMENTS_LOGIN,
     ORACLES_HOME_ACHIEVEMENTS_LOGOUT,
     ORACLES_HOME_ACHIEVEMENTS_GUIDE,
     ORACLES_HOME_ACHIEVEMENTS_CANCEL,
+    ORACLES_HOME_ACHIEVEMENTS_PASTE,
     /* The pause menu's. */
     ORACLES_HOME_RESUME,
     ORACLES_HOME_SAVE_STATE,
@@ -117,8 +121,8 @@ typedef enum OraclesScreen {
     ORACLES_SCREEN_MODS,
     ORACLES_SCREEN_CHEATS,
     ORACLES_SCREEN_PAUSE,        /* the menu over a paused game */
-    ORACLES_SCREEN_ABOUT,        /* the home screen's version number opened */
-    ORACLES_SCREEN_ACHIEVEMENTS, /* a build with RetroAchievements: About's page of theirs (ui_achievements.h) */
+    ORACLES_SCREEN_ABOUT,        /* Settings, the home screen's Settings button opened (ui_page_nav.h) */
+    ORACLES_SCREEN_ACHIEVEMENTS, /* a build with RetroAchievements: the home menu's page of theirs (ui_achievements.h) */
     ORACLES_SCREEN_ACHIEVEMENTS_LIST   /* and the pause's list of the game's achievements */
 } OraclesScreen;
 
@@ -393,7 +397,7 @@ typedef struct OraclesHomeSaveFlow {
 #define ORACLES_HOME_ACCOUNT_LENGTH 64
 typedef struct OraclesAchievementsList OraclesAchievementsList;
 typedef struct OraclesHomeAchievements {
-    int shown;                  /* the build has them: About's link to their page */
+    int shown;                  /* the build has them: the home menu's Achievements */
     int on;                     /* settings.txt's achievements=on */
     int sound;                  /* its achievements_sound=: the unlock's sound (Unlock sound), on by default */
     char user[ORACLES_HOME_ACCOUNT_LENGTH];   /* the account logged in, as the server spells it; empty: none */
@@ -410,11 +414,24 @@ typedef struct OraclesHomeAchievements {
     int system_keyboard;
     int text_for, text_dismissed;
     int password_shown;         /* the password in letters, not dots: off until asked, again whenever the login closes */
+    int paste_refused;          /* the last paste refused (OraclesLoginPaste), said in the state line until the next edit; 0 none */
     /* In a game: they run for it (the pause's Achievements, Cheats' note), why they stopped for the session
-     * (OraclesAchievementsSuspension), the achievements the list shows and its highlight. */
+     * (OraclesAchievementsSuspension), the achievements the list shows and its highlight.  On the home screen's page: the
+     * same list, loaded by the host while the page is open (OraclesAchievementsListState), and whether its client still
+     * works (the login's answer, the game's list, the badges' images).  The detail's panel asked for
+     * (oracles_achievements_detail_open), and what a pause too small for the detail's column shows of the scene, 0 for it
+     * all (oracles_achievements_detail_view). */
     int active, suspended;
     const OraclesAchievementsList *list;
     unsigned list_focus;
+    /* Where the lists are scrolled, apart from their highlight: the home page by `page_scroll` points of the scene, the
+     * pause's list from its row `list_first`.  The keys bring the highlight in sight, a click leaves them, the wheel and
+     * a drag move them (oracles_ui_achievements_page_view, oracles_achievements_list_first). */
+    float page_scroll;
+    unsigned list_first;
+    int list_state, list_busy;
+    int detail;
+    float view_w, view_h;
 } OraclesHomeAchievements;
 
 typedef struct OraclesHomeNav {
@@ -462,19 +479,19 @@ typedef struct OraclesHomeNav {
     int slow;
     /* The device used last (oracles_home_input), and whether a key was ever pressed, which shows Controls' keys in game
      * (oracles_controls_keys_shown); `android`, the platform's: always fullscreen, no F11, and its Back opens the menu
-     * too; `windows`, the platform's: About names Program Files as a folder that cannot be written in, /opt elsewhere. */
+     * too; `windows`, the platform's: Settings names Program Files as a folder that cannot be written in, /opt elsewhere. */
     OraclesInputDevice device;
     int keyboard_used;
     int android, windows;
     /* The newer version the update check found (update_check.h), "1.3.0", empty while there is none: the home screen
      * alone shows it by the version, a place after the menu's last item for the highlight (oracles_home_update_shown),
-     * while the update check is on (`update_check`, settings.txt's update_check=, About's row). */
+     * while the update check is on (`update_check`, settings.txt's update_check=, Settings' row). */
     char update[ORACLES_HOME_NAME_LENGTH];
     int update_check;
-    /* About's Portable mode (launcher/portable.h), where the launcher's folder can keep its data (Windows, Linux's
+    /* Settings' Portable mode (launcher/portable.h), where the launcher's folder can keep its data (Windows, Linux's
      * archive; not with ORACLES_SETTINGS_DIR): `portable_shown`; `portable`, its switch (portable.txt beside the
      * executable), which the next launch follows; while it turns, `portable_wanted` and the status
-     * ORACLES_PORTABLE_STATUS_COPYING, the page taking no input; then the switch's result until About closes
+     * ORACLES_PORTABLE_STATUS_COPYING, the page taking no input; then the switch's result until Settings closes
      * (OraclesHomePortableStatus).  `games_outside`: the ROMs, European ROMs and patches outside the launcher's folder,
      * which stay where they are with their saves. */
     int portable_shown, portable, portable_wanted, portable_status;
@@ -505,16 +522,16 @@ void oracles_home_pause(OraclesHomeNav *nav, int game, OraclesProfile playing, i
 OraclesHomeHero oracles_home_hero(const OraclesHomeNav *nav);
 /* The menu of what the right half shows; returns the number of items. */
 unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS]);
-/* The highlighted item, within the menu; past it, the newer version's notice or the version number while they have the
+/* The highlighted item, within the menu; past it, the newer version's notice or the Settings button while they have the
  * highlight (the menu's count, and the next). */
 unsigned oracles_home_focus(const OraclesHomeNav *nav);
 /* A page closed: the highlight on its item in the menu shown now, or on the first (Resume) when that menu has lost it
  * (the pause's, made narrow while the page was open). */
 void oracles_home_focus_item(OraclesHomeNav *nav, OraclesHomeItemId id);
 /* The newer version's notice is shown (on the home screen, nav->update set, the update check on), and highlighted: down
- * from the menu's last item; OK opens its page.  The version number, on the home screen alone, is the place after it
+ * from the menu's last item; OK opens its page.  The Settings button, on the home screen alone, is the place after it
  * (after the menu's last item without the notice), up from the menu's first, the menu no longer wrapping from one to the
- * other: OK opens About, which Back leaves for it. */
+ * other: OK opens Settings, which Back leaves for it. */
 int oracles_home_update_shown(const OraclesHomeNav *nav);
 int oracles_home_update_focused(const OraclesHomeNav *nav);
 int oracles_home_version_focused(const OraclesHomeNav *nav);
@@ -543,7 +560,7 @@ OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction actio
 /* The game of what the right half shows (ORACLES_HOME_GAME_*), or -1 for the list of fan games. */
 int oracles_home_game(const OraclesHomeNav *nav);
 /* Whether the host carries out `command` for the game of what the right half shows (a file, a folder, a save), which
- * it then ignores without one; ORACLES_HOME_STORE writes settings that are not a game's, About's from the list of fan
+ * it then ignores without one; ORACLES_HOME_STORE writes settings that are not a game's, Settings' from the list of fan
  * games too. */
 int oracles_home_command_needs_game(OraclesHomeCommand command);
 /* Whether the profile of that game does not qualify `feature` (ORACLES_HOME_REFUSES_*); 0 for the list of fan games. */
@@ -559,7 +576,7 @@ int oracles_home_slow_text(const OraclesHomeNav *nav, char *text, size_t capacit
 void oracles_home_slow_open(OraclesHomeNav *nav);
 
 /* The pointer: an entry of the left stack clicked, an item hovered or clicked; the newer version's notice is the item
- * after the menu's last, the version number the one after (the notice's place when it is not shown). */
+ * after the menu's last, the Settings button the one after (the notice's place when it is not shown). */
 void oracles_home_select(OraclesHomeNav *nav, OraclesHomeEntry entry);
 void oracles_home_hover(OraclesHomeNav *nav, unsigned item);
 OraclesHomeCommand oracles_home_click(OraclesHomeNav *nav, unsigned item);

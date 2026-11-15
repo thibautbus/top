@@ -60,12 +60,12 @@ endif()
 # ORACLES_RETROACHIEVEMENTS, and for the tests whatever it says.
 if(ORACLES_RETROACHIEVEMENTS OR BUILD_TESTING)
     add_library(oracles_achievements STATIC achievements.c achievements_transport.c achievements_pending.c achievements_badges.c achievements_files.c
-                                            achievements_account.c)
+                                            achievements_account.c achievements_catalogue.c)
     target_include_directories(oracles_achievements PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(oracles_achievements PUBLIC oracles_core PRIVATE rcheevos)
     oracles_set_warnings(oracles_achievements)
     # What the player sees of a session's achievements (achievements_screens.h), on the screens' own library.
-    add_library(oracles_achievements_screens STATIC achievements_screens.c)
+    add_library(oracles_achievements_screens STATIC achievements_screens.c achievements_load.c)
     if(ORACLES_RETROACHIEVEMENTS)
         target_link_libraries(oracles_achievements_screens PUBLIC oracles_achievements oracles_ui)
     else()
@@ -82,7 +82,8 @@ if(ORACLES_BUILD_LAUNCHER)
         target_sources(oracles_ui_sdl PRIVATE ui/ui_achievements_draw.c)
     endif()
     target_link_libraries(oracles_ui_sdl PUBLIC oracles_ui ${ORACLES_SDL_TARGET})
-    target_compile_definitions(oracles_ui_sdl PUBLIC "ORACLES_VERSION=\"${ORACLES_VERSION}\"" "ORACLES_BUILD=\"${ORACLES_BUILD}\"")
+    target_compile_definitions(oracles_ui_sdl PUBLIC "ORACLES_VERSION=\"${ORACLES_VERSION}\"" "ORACLES_BUILD=\"${ORACLES_BUILD}\""
+                               "ORACLES_REPOSITORY=\"${ORACLES_UPDATE_REPOSITORY}\"")
     oracles_set_warnings(oracles_ui_sdl)
     # The update check (update_check.h), with each platform's HTTP client: WinHTTP, NSURLSession, the system's libcurl
     # loaded at run time (nothing linked), Android's through the activity.

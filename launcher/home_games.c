@@ -15,6 +15,7 @@
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
 #ifdef ORACLES_RETROACHIEVEMENTS
+#include "achievements_load.h"
 #include "ui_achievements.h"
 #endif
 
@@ -418,7 +419,7 @@ static void read_mods(void *opaque, OraclesHomeNav *nav)
     }
 }
 
-/* About's Portable mode: shown where the launcher's folder can keep its data and ORACLES_SETTINGS_DIR does not name
+/* Settings' Portable mode: shown where the launcher's folder can keep its data and ORACLES_SETTINGS_DIR does not name
  * another (oracles_home_portable_shown); its switch, portable.txt; the games outside the folder, which stay where they
  * are. */
 static void portable_state(const OraclesHomeGames *games, OraclesHomeNav *nav)
@@ -486,6 +487,25 @@ static void achievements_cancel(void *opaque)
     oracles_session_achievements_login_end(games->achievements_login);   /* its client and transport: no answer comes after */
     games->achievements_login = NULL;
     fprintf(stderr, "oracles: achievements: login given up\n");
+}
+
+/* The page opening on `game`: what the account's row shows read again, the list asked for. */
+static OraclesAchievementsLoad *achievements_list_begin(void *opaque, OraclesHomeNav *nav, int game)
+{
+    OraclesHomeGames *games = opaque;
+    achievements_state(games, nav);
+    return oracles_session_achievements_load_begin(games->settings, games->settings->rom[rom_setting(game)], games->options ? games->options->achievements_offline : NULL);
+}
+
+/* The page's list (achievements_load.h). */
+static int achievements_list(void *opaque, OraclesHomeNav *nav)
+{
+    OraclesHomeGames *games = opaque;
+    const int moved = oracles_achievements_page_load(&games->achievements_load, &games->achievements_load_game, nav, achievements_list_begin, games, (double)SDL_GetTicks());
+    /* A token the server refused is forgotten: the account's row says so. */
+    if (moved && (nav->achievements.list_state == ORACLES_ACHIEVEMENTS_LIST_UNREACHABLE || nav->achievements.list_state == ORACLES_ACHIEVEMENTS_LIST_FAILED))
+        achievements_state(games, nav);
+    return moved;
 }
 
 static void achievements_logout(void *opaque, OraclesHomeNav *nav)
@@ -558,7 +578,7 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     oracles_home_store_cheats(nav, prefs);   /* the page's, never --cheats' */
     oracles_home_store_controls(&nav->controls, prefs);
     oracles_home_store_display(&nav->display, nav->in_game, prefs);
-    prefs->update_check = nav->update_check;   /* About's: the next launch asks, or not */
+    prefs->update_check = nav->update_check;   /* Settings': the next launch asks, or not */
 #ifdef ORACLES_RETROACHIEVEMENTS
     /* RetroAchievements', On only once an account is in; with the offline answers, kept in memory alone. */
     oracles_achievements_store(nav, achievements_offline(games), &prefs->achievements, &games->achievements_on);
@@ -1029,6 +1049,7 @@ void oracles_home_games_host(OraclesHomeGames *games, OraclesHomeHost *host)
     host->achievements_answer = achievements_answer;
     host->achievements_cancel = achievements_cancel;
     host->achievements_logout = achievements_logout;
+    host->achievements_list = achievements_list;
 #endif
     host->start = start;
     oracles_home_save_host(games, host);

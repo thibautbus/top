@@ -560,10 +560,10 @@ static void windows_refused(void)
     }
 }
 
-/* The newer version's notice and the version number (turn 32): without the notice, down from Exit reaches the number,
- * down again Start game, and up from Start game the number; with it, down from Exit reaches the notice, then the number,
- * then Start game.  OK, a click or a tap opens the notice's page, the launcher staying, or About from the number, whose
- * Back comes back to it; Select's hint says Open on both.  About's Update check off hides the notice.  On the home screen
+/* The newer version's notice and the Settings button (turns 32 and 39): without the notice, down from Exit reaches the button,
+ * down again Start game, and up from Start game the button; with it, down from Exit reaches the notice, then the button,
+ * then Start game.  OK, a click or a tap opens the notice's page, the launcher staying, or Settings from its button, whose
+ * Back comes back to it; Select's hint says Open on both.  Settings' Update check off hides the notice.  On the home screen
  * only: not in the pause, not on a page. */
 static void update_notice(void)
 {
@@ -581,7 +581,7 @@ static void update_notice(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 6);
     oracles_home_hover(&nav, 8);
     CHECK(oracles_home_focus(&nav) == 6 && oracles_home_click(&nav, 8) == ORACLES_HOME_STAY);
-    /* The number opens About, on its row; Back returns to the number. */
+    /* The button opens Settings, on its first row; Back returns to the button. */
     CHECK(oracles_home_click(&nav, 7) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT && nav.row == 0);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && oracles_home_version_focused(&nav));
 
@@ -620,24 +620,20 @@ static void update_notice(void)
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_OPEN_UPDATE && oracles_home_hero(&nav) == ORACLES_HOME_HERO_FAN);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_focus(&nav) == 6 && oracles_home_version_focused(&nav));
 
-    /* About's Update check: left, right and OK turn it off and on, kept at once; off, the notice goes, the number
+    /* Settings' Update check: left, right and OK turn it off and on, kept at once; off, the notice goes, the button
      * taking its place; a click on On or Off sets it. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT);
-    char note[64];
-    oracles_about_note(&nav, "v1.2.0 (abc1234)", note, sizeof note);
-    CHECK(!strcmp(note, "v1.2.0 (abc1234) \xc2\xb7 1.3.0 available"));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == 1 && nav.update_check);   /* Licences */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == 0 && nav.update_check);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && !nav.update_check);
     /* No game chosen in the list: the host writes the change all the same, unlike a game's file or folder. */
     CHECK(oracles_home_game(&nav) < 0 && !oracles_home_command_needs_game(ORACLES_HOME_STORE));
     CHECK(oracles_home_command_needs_game(ORACLES_HOME_CHOOSE_ROM) && oracles_home_command_needs_game(ORACLES_HOME_OPEN_FOLDER)
           && oracles_home_command_needs_game(ORACLES_HOME_IMPORT_SAVE) && !oracles_home_command_needs_game(ORACLES_HOME_PORTABLE));
-    oracles_about_note(&nav, "v1.2.0 (abc1234)", note, sizeof note);
-    CHECK(!strcmp(note, "v1.2.0 (abc1234)"));
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STORE && nav.update_check);
     CHECK(oracles_about_click(&nav, 0, 1) == ORACLES_HOME_STORE && !nav.update_check);
     CHECK(oracles_about_click(&nav, 0, 1) == ORACLES_HOME_STAY && oracles_about_click(&nav, 0, -1) == ORACLES_HOME_STAY && !nav.update_check);
-    CHECK(oracles_about_click(&nav, 1, 1) == ORACLES_HOME_STAY && nav.row == 0);   /* no Portable mode here */
+    CHECK(oracles_about_click(&nav, 1, 1) == ORACLES_HOME_STAY && nav.row == 1 && !nav.update_check);   /* no Portable mode here: Licences */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && !oracles_home_update_shown(&nav)
           && oracles_home_focus(&nav) == 5 && oracles_home_version_focused(&nav));
     CHECK(oracles_about_click(&nav, 0, 0) == ORACLES_HOME_STORE && nav.update_check && oracles_home_update_shown(&nav));
@@ -657,7 +653,7 @@ static void update_notice(void)
     CHECK(oracles_home_click(&nav, 7) == ORACLES_HOME_STAY && oracles_home_hints(&nav, hints) == 3 && !strcmp(hints[1].label, "Select"));
 }
 
-/* About's Portable mode, where it can be: under Update check, down from it; OK, left, right and a click turn it, the
+/* Settings' Portable mode, where it can be: under Update check, down from it; OK, left, right and a click turn it, the
  * host copying (ORACLES_HOME_PORTABLE), the page taking no input meanwhile, Back included, "Copying…" in its status;
  * then the result's message, in its tone, until About closes; the hint under it while On with games outside the
  * launcher's folder. */
@@ -668,10 +664,11 @@ static void portable_row(void)
     nav.games[0].usable = 1;
     OraclesTone tone;
     nav.focus = 7;
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT && oracles_about_rows(&nav) == 1);
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == 0 && !oracles_about_portable_status(&nav, &tone));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT && oracles_about_rows(&nav) == 2);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == 1 && !oracles_about_portable_status(&nav, &tone));
+    CHECK(oracles_about_row_kind(&nav, 1) == ORACLES_ABOUT_ROW_LICENCES && oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == 0);
     nav.portable_shown = 1;
-    CHECK(oracles_about_rows(&nav) == 2 && !oracles_about_portable_status(&nav, &tone) && !oracles_about_portable_hint_shown(&nav));
+    CHECK(oracles_about_rows(&nav) == 3 && !oracles_about_portable_status(&nav, &tone) && !oracles_about_portable_hint_shown(&nav));
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ABOUT_ROW_PORTABLE);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_PORTABLE && nav.portable_wanted == 1 && !nav.portable);
     CHECK(!strcmp(oracles_about_portable_status(&nav, &tone), "Copying\xe2\x80\xa6") && tone == ORACLES_TONE_NONE);
@@ -705,9 +702,11 @@ static void portable_row(void)
     CHECK(!strncmp(oracles_about_portable_status(&nav, &tone), "The launcher's folder cannot be written in", 42) && tone == ORACLES_TONE_ERROR);
     nav.portable_status = ORACLES_PORTABLE_STATUS_FAILED;
     CHECK(!strcmp(oracles_about_portable_status(&nav, &tone), "The settings could not be copied: nothing changed.") && tone == ORACLES_TONE_ERROR);
-    /* Up and down wrap between the two rows; Update check's keys are its own. */
+    /* Up and down wrap between the two rows and Licences; Update check's keys are its own. */
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_about_row_kind(&nav, nav.row) == ORACLES_ABOUT_ROW_LICENCES);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ABOUT_ROW_UPDATE);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_STORE && !nav.update_check && !nav.portable);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == 2);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == ORACLES_ABOUT_ROW_PORTABLE);
     /* Back: the message goes with the page. */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && oracles_home_version_focused(&nav));

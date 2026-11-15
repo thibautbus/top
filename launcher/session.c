@@ -425,7 +425,7 @@ static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
     frame.fill = s->sdl.fill && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
     const int keep = oracles_pause_overlay(s->pause, renderer, &frame);
 #ifdef ORACLES_RETROACHIEVEMENTS
-    /* An unlock's toast showing: its sound with it, About › RetroAchievements' Unlock sound read now. */
+    /* An unlock's toast showing: its sound with it, Achievements' Unlock sound read now. */
     if (oracles_pause_unlock_sound(s->pause) && s->settings->achievements_sound) oracles_sdl_backend_unlock_sound(&s->backend);
 #endif
     return keep;

@@ -31,5 +31,8 @@ int oracles_safe_area_event(struct SDL_Window *window, const char *who, const un
 void oracles_safe_area_edges(struct SDL_Window *window, int margin, OraclesTouchEdges *edges);
 /* Android: the text a static method of the activity returns ("()Ljava/lang/String;"), else an empty one. */
 void oracles_android_activity_text(const char *method, char *out, size_t capacity);
+/* Android: the window kept out of screenshots and of the recent applications' thumbnails (FLAG_SECURE), or back; elsewhere
+ * nothing. */
+void oracles_android_secure_window(int on);
 
 #endif

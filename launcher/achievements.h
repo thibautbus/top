@@ -15,6 +15,9 @@
 /* The product's part of the User-Agent every request carries, before the core's and rcheevos' own: the application
  * and its version, nothing of the player or the machine. */
 #define ORACLES_ACHIEVEMENTS_PRODUCT "the-oracles-project"
+/* From this id up, an entry of the game's set is the server's warning to a client it does not know, not an achievement
+ * (rcheevos' RC_CLIENT_ACHIEVEMENT_WARNING_ID): it says hardcore cannot be earned here, and this launcher is casual. */
+#define ORACLES_ACHIEVEMENTS_WARNING_ID 101000001u
 
 /* A transport's answer to one request: the HTTP status and the body (`length` bytes, not terminated), or status 0 and
  * no body when no server answered (offline, a refused connection, a timeout), or -1 when the transport gave the
@@ -128,16 +131,22 @@ typedef void (*OraclesAchievementsBadge)(void *opaque, const char *name, const c
 void oracles_achievements_badges(OraclesAchievements *a, OraclesAchievementsBadge badge, void *opaque);
 /* The tests' server ("http://127.0.0.1:PORT") in place of RetroAchievements'. */
 void oracles_achievements_set_host(OraclesAchievements *a, const char *host);
+/* That server, NULL for RetroAchievements'. */
+const char *oracles_achievements_host(const OraclesAchievements *a);
+/* A request of the caller's through the client's transport, answered as the transport's, for what rc_client does not ask. */
+void oracles_achievements_send(OraclesAchievements *a, const char *url, const char *post_data, const char *content_type, OraclesAchievementsAnswer answer, void *answer_opaque);
 /* A badge's image at `url` kept as `path` (the transport's save, else written here), its status to `answer`. */
 void oracles_achievements_save(OraclesAchievements *a, const char *url, const char *path, OraclesAchievementsAnswer answer, void *answer_opaque);
 /* An achievement of the game loaded, as the pause's list shows it: its title, description and badge's name, its points,
- * whether it is unlocked and when, its progress ("3/10", empty without) and its fraction. */
+ * whether it is unlocked and when, its progress ("3/10", empty without) and its fraction, the share of players who have it
+ * in casual mode (as rcheevos reads it: 100 when the server gave none) and its type (RC_ACHIEVEMENT_TYPE_*). */
 typedef struct OraclesAchievementsEntry {
     const char *title, *description, *badge, *progress;
     unsigned id, points;
     int unlocked;
     int64_t unlock_time;
-    float percent;
+    float percent, rarity;
+    unsigned type;
 } OraclesAchievementsEntry;
 typedef void (*OraclesAchievementsEach)(void *opaque, const OraclesAchievementsEntry *entry);
 /* Each achievement of the game's core set: the unlocked first (those of the last minutes first, then in the set's order),

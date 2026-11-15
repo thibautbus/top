@@ -58,7 +58,7 @@ typedef struct OraclesHomeHost {
      * folder in the system's file manager, made when it is not there. */
     void (*read_mods)(void *opaque, OraclesHomeNav *nav);
     void (*open_mods)(void *opaque, char *message, size_t capacity);
-    /* About's Portable mode turned `on` or off by oracles_portable_switch (portable.h), which gave `result` (an
+    /* Settings' Portable mode turned `on` or off by oracles_portable_switch (portable.h), which gave `result` (an
      * OraclesPortableResult) and `next_dir`, the folder of the next launches: the settings follow it
      * (oracles_settings_portable_turned), and nav's row shows the switch and how it went.  The refresh reads the row's
      * switch, and the games outside the launcher's folder. */
@@ -77,6 +77,9 @@ typedef struct OraclesHomeHost {
     int (*achievements_answer)(void *opaque, char *user, size_t capacity);
     void (*achievements_cancel)(void *opaque);
     void (*achievements_logout)(void *opaque, OraclesHomeNav *nav);
+    /* Their page's list, called by the home screen's loop: loaded while the page is open (nav->achievements), never
+     * waited for; 1 when what the page shows changed. */
+    int (*achievements_list)(void *opaque, OraclesHomeNav *nav);
 } OraclesHomeHost;
 
 /* Runs the home screen until Exit or the window is closed.  *width and *height

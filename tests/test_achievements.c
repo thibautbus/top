@@ -9,6 +9,7 @@
 #include "achievements.h"
 #include "achievements_account.h"
 #include "achievements_badges.h"
+#include "achievements_load.h"
 #include "achievements_pending.h"
 #include "achievements_screens.h"
 #include "achievements_transport.h"
@@ -95,6 +96,7 @@ typedef struct server {
     char agents[REQUESTS][160];
     unsigned count;
     const char *login, *game, *session, *award;   /* award: a format of the achievement's id and those left */
+    const char *unlocks, *hardcore_unlocks;       /* the unlocks' answers, casual and hardcore */
     unsigned award_left, awarded;
     int images;   /* the badges' images answered */
     unsigned images_asked;
@@ -140,6 +142,7 @@ static void serve(void *opaque, const char *url, const char *post_data, const ch
                       : field_is(post_data, "r", "login2") ? s->login
                       : field_is(post_data, "r", "achievementsets") ? s->game
                       : field_is(post_data, "r", "startsession") ? s->session
+                      : field_is(post_data, "r", "unlocks") ? (field_is(post_data, "h", "1") ? s->hardcore_unlocks : s->unlocks)
                       : field_is(post_data, "r", "awardachievement") ? s->award : NULL;
     if (!reply) { answer(answer_opaque, 0, NULL, 0); return; }
     char awarded[256];
@@ -213,7 +216,9 @@ static void make_game_reply(void)
              "{\"ID\":9001,\"Title\":\"First essence\",\"Description\":\"Take the first essence\",\"Flags\":3,\"Points\":10,"
              "\"MemAddr\":\"0xM%x=1_d0xM%x=0\",\"Author\":\"test\",\"BadgeName\":\"00001\",\"Created\":1,\"Modified\":1},"
              "{\"ID\":9002,\"Title\":\"A room\",\"Description\":\"Enter room 0x8a of the present\",\"Flags\":3,\"Points\":5,"
-             "\"MemAddr\":\"0xH%x=0_0xH%x=138_d0xH%x!=138\",\"Author\":\"test\",\"BadgeName\":\"00002\",\"Created\":1,\"Modified\":1}"
+             "\"MemAddr\":\"0xH%x=0_0xH%x=138_d0xH%x!=138\",\"Author\":\"test\",\"BadgeName\":\"00002\",\"Created\":1,\"Modified\":1},"
+             "{\"ID\":101000001,\"Title\":\"Warning: Unknown Emulator\",\"Description\":\"Hardcore unlocks cannot be earned\",\"Flags\":3,\"Points\":0,"
+             "\"MemAddr\":\"1=1\",\"Author\":\"\",\"BadgeName\":\"00003\",\"Created\":1,\"Modified\":1}"
              "],\"Leaderboards\":[]}]}",
              essences, essences, group, room, room);
 }
@@ -310,6 +315,7 @@ static void start_server(server *s, int award)
     s->session = "{\"Success\":true,\"Unlocks\":[],\"HardcoreUnlocks\":[],\"ServerNow\":1700000000}";
     if (award) s->award = "{\"Success\":true,\"Score\":0,\"SoftcoreScore\":10,\"AchievementID\":%s,\"AchievementsRemaining\":%u}";
     s->award_left = 2;
+    s->unlocks = s->hardcore_unlocks = "{\"Success\":true,\"UserUnlocks\":[],\"GameID\":710,\"HardcoreMode\":false}";
 }
 
 static OraclesAchievements *playing(server *s)
@@ -441,7 +447,8 @@ static void test_badges(const char *folder)
 
 /* ---- the pause's list, the toasts, the home screen's login ---------------------------------------------------- */
 
-/* make_game_reply's two and a third measured on HRAM's first byte (rcheevos' $FF80), five to reach. */
+/* make_game_reply's two, an older answer's with neither type nor rarity, and a third measured on HRAM's first byte (rcheevos'
+ * $FF80), five to reach, missable, its casual and hardcore rarities apart. */
 static char list_reply[2560];
 
 static void make_list_reply(void)
@@ -449,12 +456,24 @@ static void make_list_reply(void)
     make_game_reply();
     char *end = strstr(game_reply, "],\"Leaderboards\"");
     if (!end) { snprintf(list_reply, sizeof list_reply, "%s", game_reply); return; }
-    snprintf(list_reply, sizeof list_reply, "%.*s,{\"ID\":9003,\"Title\":\"Five\",\"Description\":\"Reach five\",\"Flags\":3,\"Points\":20,"
-             "\"MemAddr\":\"M:0xHff80>=5\",\"Author\":\"test\",\"BadgeName\":\"00003\",\"Created\":1,\"Modified\":1}%s",
+    snprintf(list_reply, sizeof list_reply, "%.*s,{\"ID\":9003,\"Title\":\"Five\",\"Description\":\"Reach\\nfive\",\"Flags\":3,\"Points\":20,"
+             "\"MemAddr\":\"M:0xHff80>=5\",\"Author\":\"test\",\"BadgeName\":\"00003\",\"Created\":1,\"Modified\":1,"
+             "\"Type\":\"missable\",\"Rarity\":12.4,\"RarityHardcore\":3.1}%s",
              (int)(end - game_reply), game_reply, end);
 }
 
 static void date_of(int64_t when, char *out, size_t capacity) { snprintf(out, capacity, "at %lld", (long long)when); }
+
+/* The rarity and the tag as the list keeps them: the casual figure, not the hardcore's; none said for an answer without them. */
+static void check_details(const OraclesAchievementsItem *with, const OraclesAchievementsItem *without)
+{
+    char text[32];
+    oracles_achievements_rarity_text(with->rarity, text, sizeof text);
+    CHECK(!strcmp(with->title, "Five") && !strcmp(text, "12.4% of players") && with->tag == ORACLES_ACHIEVEMENT_TAG_MISSABLE);
+    CHECK(!strcmp(with->description, "Reach five"));   /* its line break a space */
+    oracles_achievements_rarity_text(without->rarity, text, sizeof text);
+    CHECK(!text[0] && without->tag == ORACLES_ACHIEVEMENT_TAG_NONE);
+}
 
 /* The list: the unlocked first, then those in progress, then the locked; how many, their points; and an unlock no
  * server acknowledges: OFFLINE. */
@@ -485,6 +504,7 @@ static void test_list(void)
     CHECK(!strcmp(list.items[1].title, "Five") && !list.items[1].unlocked && !strcmp(list.items[1].progress, "2/5") && list.items[1].percent > 0.39f
           && list.items[1].percent < 0.41f);
     CHECK(!strcmp(list.items[2].title, "First essence") && !list.items[2].unlocked && !list.items[2].progress[0] && !list.items[2].date[0]);
+    check_details(&list.items[1], &list.items[2]);
     oracles_achievements_destroy(a);
     /* Before the set is loaded: none. */
     server none;
@@ -492,6 +512,270 @@ static void test_list(void)
     a = client(&none);
     CHECK(!oracles_achievements_list_make(a, "badges", date_of, &list) && list.count == 0 && list.generation == 2);
     oracles_achievements_destroy(a);
+}
+
+/* ---- the home page's list --------------------------------------------------------------------------------- */
+
+static void write_answer(const char *folder, const char *name, const char *body);
+static const char login_answer[] = "{\"Success\":true,\"User\":\"Player\",\"Token\":\"TOKEN123\",\"Score\":0,\"SoftcoreScore\":0,\"Messages\":0}";
+
+static OraclesAchievementsTransport canned_transport(server *s)
+{
+    const OraclesAchievementsTransport t = { serve, NULL, NULL, s, NULL };
+    return t;
+}
+
+static const OraclesAchievementsAccount the_account = { "Player", "TOKEN123" };
+
+/* The whole of a file, NUL ended; empty when it is not there. */
+static void read_all(const char *path, char *out, size_t capacity)
+{
+    FILE *f = fopen(path, "rb");
+    size_t n = f ? fread(out, 1, capacity - 1, f) : 0;
+    out[n] = 0;
+    if (f) fclose(f);
+}
+
+/* The list loaded with no game: its state, the list, the unlocked first with no date, either kind of unlock counting, the
+ * client gone once it is in; no session on the server: neither startsession nor ping nor award, whatever waits; the
+ * unlocks waiting not touched, only a game's session does that; a refused token forgotten, a changed one kept; no
+ * server, no answer. */
+static void test_load(const char *folder)
+{
+    char account[1024], pending[1024], before[1024], after[1024];
+    snprintf(account, sizeof account, "%s/achievements.txt", folder);
+    snprintf(pending, sizeof pending, "%s/achievements-pending.txt", folder);
+    remove(pending);
+    /* An unlock kept offline, beside the account, as a session leaves it. */
+    OraclesAchievementsEvent earned;
+    memset(&earned, 0, sizeof earned);
+    earned.kind = ORACLES_ACHIEVEMENTS_UNLOCKED;
+    earned.id = 9001;
+    oracles_achievements_pending_follow(pending, "Player", "0123456789abcdef0123456789abcdef", &earned, 1000);
+    read_all(pending, before, sizeof before);
+    CHECK(before[0]);
+    CHECK(oracles_achievements_account_write(account, &the_account));
+
+    make_list_reply();
+    server s;
+    start_server(&s, 1);
+    s.game = list_reply;
+    s.unlocks = "{\"Success\":true,\"UserUnlocks\":[9002],\"GameID\":710,\"HardcoreMode\":false}";
+    s.hardcore_unlocks = "{\"Success\":true,\"UserUnlocks\":[9001,9002],\"GameID\":710,\"HardcoreMode\":true}";
+    OraclesAchievementsTransport t = canned_transport(&s);
+    OraclesAchievementsLoad *l = oracles_achievements_load_begin(&t, "ua", &the_account, account, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    CHECK(l != NULL);
+    const OraclesAchievementsList *list = NULL;
+    int busy = 1;
+    CHECK(oracles_achievements_load_poll(l, 1100.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_READY);
+    CHECK(list && list->count == 3 && list->points == 35 && !busy);   /* no badge to wait for: the client is gone */
+    CHECK(list && list->unlocked == 2 && list->points_unlocked == 15 && list->items[0].unlocked && list->items[1].unlocked && !list->items[2].unlocked);
+    CHECK(list && !list->items[0].date[0] && !list->items[2].progress[0]);
+    if (list) check_details(&list->items[2], &list->items[0]);
+    CHECK(find_request(&s, "login2") && find_request(&s, "achievementsets") && find_request(&s, "unlocks"));
+    CHECK(!find_request(&s, "startsession") && !find_request(&s, "ping") && !find_request(&s, "awardachievement"));
+    const unsigned requests = s.count;
+    CHECK(oracles_achievements_load_poll(l, 1200.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_READY && list && !busy && s.count == requests);
+    oracles_achievements_load_end(l);
+    read_all(pending, after, sizeof after);
+    CHECK(!strcmp(before, after));
+
+    /* A token changed by the server is kept. */
+    server renewed;
+    start_server(&renewed, 0);
+    renewed.game = list_reply;
+    renewed.login = "{\"Success\":true,\"User\":\"Player\",\"Token\":\"NEWTOKEN\",\"Score\":0,\"SoftcoreScore\":0,\"Messages\":0}";
+    t = canned_transport(&renewed);
+    l = oracles_achievements_load_begin(&t, "ua", &the_account, account, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    oracles_achievements_load_poll(l, 1100.0, &list, &busy);
+    oracles_achievements_load_end(l);
+    OraclesAchievementsAccount kept;
+    oracles_achievements_account_read(account, &kept);
+    CHECK(!strcmp(kept.token, "NEWTOKEN"));
+
+    /* The token refused: failed, not unreachable, and forgotten; the list never there. */
+    server refused;
+    start_server(&refused, 0);
+    refused.login = "{\"Success\":false,\"Error\":\"Invalid User/Token combination.\",\"Status\":401,\"Code\":\"invalid_credentials\"}";
+    t = canned_transport(&refused);
+    l = oracles_achievements_load_begin(&t, "ua", &kept, account, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    CHECK(oracles_achievements_load_poll(l, 1100.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_FAILED && !list && !busy);
+    oracles_achievements_load_end(l);
+    oracles_achievements_account_read(account, &kept);
+    CHECK(!strcmp(kept.user, "Player") && !kept.token[0]);
+
+    /* No account path (the offline answers): nothing written; no server: unreachable. */
+    server none;
+    memset(&none, 0, sizeof none);
+    t = canned_transport(&none);
+    l = oracles_achievements_load_begin(&t, "ua", &the_account, NULL, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    CHECK(oracles_achievements_load_poll(l, 1100.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_UNREACHABLE && !list && !busy);
+    oracles_achievements_load_end(l);
+    remove(account);
+    remove(pending);
+}
+
+/* The whole path on the offline transport, every answer there, startsession's and ping's too: its log holds each request
+ * sent, in order. */
+static void test_load_log(const char *folder)
+{
+    static const char *const answers[5] = { "achievementsets", "unlocks", "startsession", "ping", "awardachievement" };
+    char log[1024], before[1024];
+    snprintf(log, sizeof log, "%s/requests.log", folder);
+    remove(log);
+    make_list_reply();
+    write_answer(folder, "login2", login_answer);
+    write_answer(folder, answers[0], list_reply);
+    write_answer(folder, answers[1], "{\"Success\":true,\"UserUnlocks\":[9002],\"GameID\":710,\"HardcoreMode\":false}");
+    write_answer(folder, answers[2], "{\"Success\":true,\"Unlocks\":[],\"HardcoreUnlocks\":[],\"ServerNow\":1700000000}");
+    write_answer(folder, answers[3], "{\"Success\":true}");
+    write_answer(folder, answers[4], "{\"Success\":true,\"Score\":0,\"SoftcoreScore\":10,\"AchievementID\":9001,\"AchievementsRemaining\":2}");
+    OraclesAchievementsTransport t;
+    CHECK(oracles_achievements_offline_transport(folder, &t));
+    OraclesAchievementsLoad *l = oracles_achievements_load_begin(&t, "ua", &the_account, NULL, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    const OraclesAchievementsList *list = NULL;
+    int busy = 1;
+    /* The page left open for ten minutes: a session's pings would be due. */
+    CHECK(oracles_achievements_load_poll(l, 1100.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_READY && list && list->unlocked == 1);
+    for (double now = 1200.0; now < 600000.0; now += 30000.0) oracles_achievements_load_poll(l, now, &list, &busy);
+    oracles_achievements_load_end(l);
+    read_all(log, before, sizeof before);
+    CHECK(!strcmp(before, "login2\nachievementsets\nunlocks\nunlocks\n"));
+    remove(log);
+    char path[1024];
+    for (unsigned i = 0; i < 5; i++) { snprintf(path, sizeof path, "%s/%s.json", folder, answers[i]); remove(path); }
+    snprintf(path, sizeof path, "%s/login2.json", folder);
+    remove(path);
+}
+
+/* A ROM in a zip: the same identity as the ROM alone, as a session reads it. */
+static void test_load_hash(const char *folder)
+{
+    static const uint8_t rom[64] = "not a whole ROM, a few bytes to hash";
+    uint32_t crc = 0xffffffffu;
+    for (size_t i = 0; i < sizeof rom; i++) {
+        crc ^= rom[i];
+        for (int b = 0; b < 8; b++) crc = (crc >> 1) ^ (0xedb88320u & (0u - (crc & 1u)));
+    }
+    crc = ~crc;
+    uint8_t zip[256];
+    size_t n = 0;
+#define PUT16(v) do { zip[n++] = (uint8_t)((v) & 0xffu); zip[n++] = (uint8_t)(((v) >> 8) & 0xffu); } while (0)
+#define PUT32(v) do { PUT16((v) & 0xffffu); PUT16(((uint32_t)(v) >> 16) & 0xffffu); } while (0)
+    static const char name[] = "game.gbc";
+    const uint32_t size = sizeof rom, name_size = sizeof name - 1;
+    PUT32(0x04034b50u); PUT16(20); PUT16(0); PUT16(0); PUT16(0); PUT16(0); PUT32(crc); PUT32(size); PUT32(size); PUT16(name_size); PUT16(0);
+    memcpy(zip + n, name, name_size); n += name_size;
+    memcpy(zip + n, rom, size); n += size;
+    const uint32_t directory = (uint32_t)n;
+    PUT32(0x02014b50u); PUT16(20); PUT16(20); PUT16(0); PUT16(0); PUT16(0); PUT16(0); PUT32(crc); PUT32(size); PUT32(size); PUT16(name_size);
+    PUT16(0); PUT16(0); PUT16(0); PUT16(0); PUT32(0); PUT32(0);
+    memcpy(zip + n, name, name_size); n += name_size;
+    const uint32_t directory_size = (uint32_t)n - directory;
+    PUT32(0x06054b50u); PUT16(0); PUT16(0); PUT16(1); PUT16(1); PUT32(directory_size); PUT32(directory); PUT16(0);
+    char path[1024], plain[1024], hash[33], wanted[33], from_plain[33];
+    snprintf(path, sizeof path, "%s/test_achievements_rom.zip", folder);
+    snprintf(plain, sizeof plain, "%s/test_achievements_rom.gbc", folder);
+    FILE *f = fopen(path, "wb");
+    CHECK(f && fwrite(zip, 1, n, f) == n);
+    if (f) fclose(f);
+    f = fopen(plain, "wb");
+    CHECK(f && fwrite(rom, 1, sizeof rom, f) == sizeof rom);
+    if (f) fclose(f);
+    oracles_achievements_hash(rom, sizeof rom, wanted);
+    CHECK(oracles_achievements_load_hash(plain, from_plain) && !strcmp(from_plain, wanted));
+    CHECK(oracles_achievements_load_hash(path, hash) && !strcmp(hash, wanted));
+    CHECK(!oracles_achievements_load_hash("no such file.gbc", hash));
+    remove(path);
+    remove(plain);
+}
+
+/* The page's load, as the home screen's loop calls it: nothing before the page opens; begun once, then its list; let go
+ * with nav's list as the game changes or the page closes, or Off, or logged out; a load that cannot start stays failed
+ * until the page opens again; the login open over the page holds it. */
+typedef struct page_host {
+    server *s;
+    unsigned begun;
+    int last_game, fail;
+    OraclesAchievementsAccount account;
+} page_host;
+
+static OraclesAchievementsLoad *page_begin(void *opaque, OraclesHomeNav *nav, int game)
+{
+    page_host *h = opaque;
+    (void)nav;
+    h->begun++;
+    h->last_game = game;
+    if (h->fail) return NULL;
+    const OraclesAchievementsTransport t = canned_transport(h->s);
+    return oracles_achievements_load_begin(&t, "ua", &h->account, NULL, "0123456789abcdef0123456789abcdef", "", 1000.0);
+}
+
+static void test_page_load(void)
+{
+    make_list_reply();
+    server s;
+    start_server(&s, 0);
+    s.game = list_reply;
+    page_host host = { &s, 0, -1, 0, the_account };
+    static OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[ORACLES_HOME_GAME_AGES].rom = nav.games[ORACLES_HOME_GAME_SEASONS].rom = ORACLES_ROM_ORIGINAL;
+    OraclesHomeAchievements *a = &nav.achievements;
+    a->shown = a->on = 1;
+    snprintf(a->user, sizeof a->user, "Player");
+    OraclesAchievementsLoad *load = NULL;
+    int game = -1;
+#define STEP() oracles_achievements_page_load(&load, &game, &nav, page_begin, &host, 1100.0)
+    /* On the home menu: nothing. */
+    CHECK(!STEP() && !load && host.begun == 0 && a->list_state == ORACLES_ACHIEVEMENTS_LIST_NONE);
+    oracles_achievements_open(&nav);
+    CHECK(STEP() && load && host.begun == 1 && host.last_game == ORACLES_HOME_GAME_AGES && a->list_state == ORACLES_ACHIEVEMENTS_LIST_LOADING && a->list_busy);
+    CHECK(STEP() && a->list_state == ORACLES_ACHIEVEMENTS_LIST_READY && a->list && a->list->count == 3 && !a->list_busy);
+    CHECK(oracles_achievements_page_list(&nav) && oracles_achievements_page_places(&nav) == ORACLES_ACHIEVEMENTS_ROWS + 3u);
+    CHECK(!STEP() && host.begun == 1);
+    /* Another game under the page, the detail's panel open: the list goes at once, the panel with it, then the other's. */
+    a->detail = 1;
+    nav.entry = ORACLES_HOME_SEASONS;
+    CHECK(STEP() && !load && !a->list && a->list_state == ORACLES_ACHIEVEMENTS_LIST_NONE && !a->detail);
+    CHECK(STEP() && load && host.begun == 2 && host.last_game == ORACLES_HOME_GAME_SEASONS);
+    /* Off, then logged out, then Back: the same. */
+    STEP();
+    a->on = 0;
+    CHECK(STEP() && !load && !a->list && !a->list_busy);
+    a->on = 1;
+    STEP();
+    CHECK(load && host.begun == 3);
+    a->user[0] = 0;
+    CHECK(STEP() && !load && !a->list);
+    snprintf(a->user, sizeof a->user, "Player");
+    STEP();
+    a->login = ORACLES_LOGIN_TYPING;
+    CHECK(STEP() && !load);
+    a->login = ORACLES_LOGIN_CLOSED;
+    STEP();
+    nav.screen = ORACLES_SCREEN_HOME;
+    CHECK(STEP() && !load && !a->list && a->list_state == ORACLES_ACHIEVEMENTS_LIST_NONE);
+    /* A load that cannot start: failed, not asked again until the page opens again. */
+    const unsigned begun = host.begun;
+    host.fail = 1;
+    nav.screen = ORACLES_SCREEN_ACHIEVEMENTS;
+    CHECK(STEP() && !load && a->list_state == ORACLES_ACHIEVEMENTS_LIST_FAILED && !a->list_busy);
+    CHECK(!STEP() && host.begun == begun + 1u);
+    nav.screen = ORACLES_SCREEN_HOME;
+    STEP();
+    host.fail = 0;
+    nav.screen = ORACLES_SCREEN_ACHIEVEMENTS;
+    CHECK(STEP() && load);
+    nav.screen = ORACLES_SCREEN_HOME;
+    STEP();
+    CHECK(!load);
+    /* A game without achievements: nothing asked, the page saying nothing. */
+    nav.games[ORACLES_HOME_GAME_SEASONS].rom = ORACLES_ROM_UNRECOGNISED;
+    nav.screen = ORACLES_SCREEN_ACHIEVEMENTS;
+    const unsigned asked = host.begun;
+    CHECK(!STEP() && !load && host.begun == asked && !oracles_achievements_page_line(&nav));
+#undef STEP
 }
 
 /* A session's toasts, as its client's events tell them. */
@@ -577,7 +861,6 @@ static void remove_answers(const char *folder)
     for (unsigned i = 0; i < 3; i++) { snprintf(path, sizeof path, "%s/%s.json", folder, names[i]); remove(path); }
 }
 
-static const char login_answer[] = "{\"Success\":true,\"User\":\"Player\",\"Token\":\"TOKEN123\",\"Score\":0,\"SoftcoreScore\":0,\"Messages\":0}";
 
 /* The server unreachable as the game starts, the developer's offline answers missing: the login's, else the game's; told
  * once, the game going on without achievements. */
@@ -627,6 +910,28 @@ static void silent_destroy(void *opaque)
 
 /* The home screen's login on the developer's offline answers: in, the account kept where it is given (nothing kept
  * without); the password refused; no answer; none in 30 s, and given up before. */
+/* No answer: the page keeps loading, then says the server cannot be reached, its client gone; left before, gone too. */
+static void test_load_silent(void)
+{
+    silent q;
+    memset(&q, 0, sizeof q);
+    OraclesAchievementsTransport t;
+    memset(&t, 0, sizeof t);
+    t.send = silent_send;
+    t.destroy = silent_destroy;
+    t.opaque = &q;
+    OraclesAchievementsLoad *l = oracles_achievements_load_begin(&t, "ua", &the_account, NULL, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    const OraclesAchievementsList *list;
+    int busy;
+    CHECK(oracles_achievements_load_poll(l, 2000.0, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_LOADING && busy && !list && !q.destroyed);
+    CHECK(oracles_achievements_load_poll(l, 1000.0 + ORACLES_ACHIEVEMENTS_LOAD_WAIT_MS, &list, &busy) == ORACLES_ACHIEVEMENTS_LIST_UNREACHABLE && !busy && q.destroyed);
+    oracles_achievements_load_end(l);
+    memset(&q, 0, sizeof q);
+    l = oracles_achievements_load_begin(&t, "ua", &the_account, NULL, "0123456789abcdef0123456789abcdef", "", 1000.0);
+    oracles_achievements_load_end(l);
+    CHECK(q.destroyed);
+}
+
 static void test_home_login(const char *folder)
 {
     char path[1024], user[64];
@@ -757,6 +1062,11 @@ int main(int argc, char **argv)
     test_tell();
     test_unreachable(folder);
     test_home_login(folder);
+    test_load(folder);
+    test_load_log(folder);
+    test_load_hash(folder);
+    test_page_load();
+    test_load_silent();
     if (failures) return 1;
     puts("test_achievements: ok");
     return 0;

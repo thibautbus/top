@@ -6,7 +6,7 @@ The command line, every key of `settings.txt`, and the options in detail, with w
 - [settings.txt](#settingstxt)
 - [Options in detail](#options-in-detail): [the Enhanced view](#the-enhanced-view), [the view's sizes](#the-views-sizes), [the camera](#the-camera), [colour correction and vsync](#colour-correction-and-vsync), [continuous transitions](#continuous-transitions), [the swim's hold](#the-swims-hold), [cheats](#cheats), [the compact text](#the-compact-text), [the wide text box](#the-wide-text-box), [text size](#text-size), [text speed](#text-speed), [unvisited rooms](#unvisited-rooms), [item hotkeys](#item-hotkeys)
 - [Files, saves and savestates](#files-saves-and-savestates)
-- [The launcher in detail](#the-launcher-in-detail): [the home screen](#the-home-screen), [Display](#display), [Controls](#controls), [the pause menu](#the-pause-menu), [Android](#android), [About](#about)
+- [The launcher in detail](#the-launcher-in-detail): [the home screen](#the-home-screen), [Display](#display), [Controls](#controls), [the pause menu](#the-pause-menu), [Android](#android), [Settings](#settings)
 - [Log lines](#log-lines)
 - [Languages in detail](#languages-in-detail)
 
@@ -170,7 +170,7 @@ On Windows, Linux and a macOS build run outside an application bundle, a file `p
 - `portable.txt` is ignored in a macOS application (an executable inside a `.app`), in the AppImage (its executable inside the folder `APPDIR` names while `APPIMAGE` is set: its image, mounted read only; a program started from another AppImage, which inherits both, is not one) and on Android. One beside the `.app` or the `.AppImage` file is not looked for; one beside the executable itself, inside the bundle's `Contents/Resources` or the image, is ignored with a line in the log (`portable.txt is ignored here: the settings are in the user's folder`). The release archives never hold it.
 - In the portable mode, `rom_<game>=`, `eu_rom_<game>=` and `patch_<fan game>=` are written relative to the executable's folder when the file is inside it (`roms\Oracle of Ages.gbc`), a Windows path's case and separators aside, and as full paths elsewhere. Below a Windows folder the comparison ignores the case and takes `\` and `/` alike; elsewhere `\` is a character of a name. A path reached through a link, or a Windows short name (`E:\ORACLE~1\`), is not recognised as inside the folder and stays a full path. A relative path is read against the executable's folder, in either mode, so that the folder may move or its drive change letter; where there is no executable's folder to read it against (the macOS application, the AppImage, Android), it is read as it is, and a `settings.txt` with relative paths copied there by hand finds no ROM. A full path is read as it is.
 - Putting `portable.txt` there or removing it by hand copies nothing between the two folders: each keeps its own `settings.txt`, mods and packs. Saves and savestates are beside the ROM in either mode.
-- **About › Portable mode**, shown on Windows and Linux where `portable.txt` would be read and `ORACLES_SETTINGS_DIR` is not set (never on macOS), writes or removes it, and copies the launcher's data (`settings.txt`, the mods folder, the language packs, never a ROM or a save) into the folder the next launch uses when that folder has no `settings.txt`, on a thread of its own, the page taking no input meanwhile. Its status says what happened: copied, nothing to copy, the other folder's own settings kept for the next launch, the launcher's folder not writable, or the copy failed (nothing changed in the last two). The log says it too (`portable mode turned on: copied`).
+- **Settings › Portable mode**, shown on Windows and Linux where `portable.txt` would be read and `ORACLES_SETTINGS_DIR` is not set (never on macOS), writes or removes it, and copies the launcher's data (`settings.txt`, the mods folder, the language packs, never a ROM or a save) into the folder the next launch uses when that folder has no `settings.txt`, on a thread of its own, the page taking no input meanwhile. Its status says what happened: copied, nothing to copy, the other folder's own settings kept for the next launch, the launcher's folder not writable, or the copy failed (nothing changed in the last two). The log says it too (`portable mode turned on: copied`).
 
 ### Every key
 
@@ -218,7 +218,7 @@ On Windows, Linux and a macOS build run outside an application bundle, a file `p
 | `key_hotkey_bind_b`, `key_hotkey_bind_a` | an SDL key name | `Left Shift`, `Left Ctrl` | Controls › Hotkeys, Bind to B, Bind to A | at once, from the pause too |
 | `pad_hotkey1` to `pad_hotkey4` | an SDL controller button name | `x`, `y`, `leftshoulder`, `rightshoulder` | Controls › Hotkeys, Slot 1 to Slot 4, Gamepad | at once, from the pause too |
 | `hotkey_ages_1` to `hotkey_ages_4`, `hotkey_seasons_1` to `hotkey_seasons_4`, `hotkey_combined_1` to `hotkey_combined_4` | `-` for an empty slot, else `<b or a>:<item>:<variant or -->` in hexadecimal, the ROM's own identifiers (`b:0a:--`) | `-` | the slots, filled in game | written by the launcher |
-| `update_check` | `on`, `off` | `on` | About › Update check | `off` at once; `on` at the next launch |
+| `update_check` | `on`, `off` | `on` | Settings › Update check | `off` at once; `on` at the next launch |
 | `launcher_window` | `WIDTHxHEIGHT` | `1280x720` | none: the home screen's window as it was left | at the next launch |
 
 ### The keys in detail
@@ -252,7 +252,7 @@ A key's name and its value may have spaces around them and capitals, as in `upda
 
 A newer one appears on the home screen when the answer comes, or when a game the answer came during returns to it, fading in by the version, nothing else moving: "· 1.3.0 available" after it in the 16:9 layout, "1.3.0 available" on its own line above it in the 4:3 layout.
 
-Down from Exit highlights it, down again the version number, then Start game, and up from Start game reaches the number, then the notice; Enter, A, a click or a tap opens its release page in the system's browser, the launcher staying open, and the key hint Select says Open while it is highlighted; where no browser takes it (some Android consoles have none), a message gives the page's address instead.
+Down from Exit highlights it, down again the Settings button, then Start game, and up from Start game reaches the button, then the notice; Enter, A, a click or a tap opens its release page in the system's browser, the launcher staying open, and the key hint Select says Open while it is highlighted; where no browser takes it (some Android consoles have none), a message gives the page's address instead.
 
 It shows on the home screen only: not in the pause menu, not on the other pages. The standard error names it as well (`update check: version 1.3.0 available`), without the address asked or the page's.
 
@@ -884,11 +884,11 @@ The menu's button never reaches the game, nor does Guide unless one of the game'
 - A savestate taken in far at another size: as [Savestates](#savestates) says.
 - The application declares fragile user data: at uninstall, Android offers to keep its data, ROMs, patches, saves and mods included.
 
-### About
+### Settings
 
-**About.** The version number at the bottom left of the home screen opens About ([About and privacy](PLAYING.md#about-and-privacy)); while it is highlighted an outline frames it, the number staying in place, and the key hint Select says Open. It reacts on the home screen only.
+**Settings.** The Settings button at the bottom left of the home screen, beside the version, opens Settings ([Settings and privacy](PLAYING.md#settings-and-privacy)); while it is highlighted its frame takes the accent, and the key hint Select says Open. It is on the home screen only; the pause and the pages show the version alone. The button takes the place the version had among the highlight's places: after the menu's last item, after the newer version's notice when there is one. In 4:3 the help bar starts right of the button and the version, its hints 12 px apart; a version that would come within 24 px of the bar's first hint (a development build's, with its commit) is left out there.
 
-About is laid out as Cheats: "The Oracles Project" for its title, the version and the notice ("v1.3.0 · 1.4.0 available") under it, and one row, Update check, On or Off (`update_check=`, above), "On: the launcher asks GitHub once at launch whether a newer version is out. Off: no network request." (in the 4:3 layout "On: one request to GitHub at launch." and "Off: no network request." under the row). Off hides the notice at once and is written at once; On asks at the next launch. Escape or B returns to the home screen, on the version number.
+Settings is laid out as Cheats: "The Oracles Project" for its title, no note, the row Update check, On or Off (`update_check=`, above), "On: the launcher asks GitHub once at launch whether a newer version is out. Off: no update check." (in the 4:3 layout "On: one request to GitHub at launch." and "Off: no update check." under the row), Portable mode where it can be, then an About block: "The Oracles Project" and the version, the source's address, "Accurate core: SameBoy, by Lior Halphon. Fast core: mGBA, by Jeffrey Pfau.", and Licences, "The full list: launcher, cores, libraries and fonts.", the last place of the highlight, which OK, right or a click on its line opens in the browser: [`THIRD_PARTY.md`](THIRD_PARTY.md) on the public repository's GitHub page (without a browser, its address in a toast). Off hides the notice at once and is written at once; On asks at the next launch. Escape or B returns to the home screen, on the Settings button.
 
 ## Log lines
 

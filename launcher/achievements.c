@@ -390,6 +390,13 @@ void oracles_achievements_set_host(OraclesAchievements *a, const char *host)
     rc_client_set_host(a->client, host);
 }
 
+const char *oracles_achievements_host(const OraclesAchievements *a) { return a->host[0] ? a->host : NULL; }
+
+void oracles_achievements_send(OraclesAchievements *a, const char *url, const char *post_data, const char *content_type, OraclesAchievementsAnswer answer, void *answer_opaque)
+{
+    a->transport.send(a->transport.opaque, url, post_data, content_type, a->user_agent, answer, answer_opaque);
+}
+
 void oracles_achievements_badges(OraclesAchievements *a, OraclesAchievementsBadge badge, void *opaque)
 {
     rc_client_achievement_list_t *list = rc_client_create_achievement_list(a->client, RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL,
@@ -399,7 +406,7 @@ void oracles_achievements_badges(OraclesAchievements *a, OraclesAchievementsBadg
         for (uint32_t i = 0; i < list->buckets[b].num_achievements; i++) {
             const rc_client_achievement_t *achievement = list->buckets[b].achievements[i];
             char unlocked[256], locked[256];
-            if (!achievement->badge_name[0]
+            if (achievement->id >= ORACLES_ACHIEVEMENTS_WARNING_ID || !achievement->badge_name[0]
                 || rc_client_achievement_get_image_url(achievement, RC_CLIENT_ACHIEVEMENT_STATE_UNLOCKED, unlocked, sizeof unlocked) != RC_OK
                 || rc_client_achievement_get_image_url(achievement, RC_CLIENT_ACHIEVEMENT_STATE_ACTIVE, locked, sizeof locked) != RC_OK) continue;
             badge(opaque, achievement->badge_name, unlocked, locked);
@@ -461,7 +468,7 @@ void oracles_achievements_each(OraclesAchievements *a, OraclesAchievementsEach e
         for (uint32_t b = 0; b < list->num_buckets; b++)
             for (uint32_t i = 0; i < list->buckets[b].num_achievements; i++) {
                 const rc_client_achievement_t *c = list->buckets[b].achievements[i];
-                if (list_group(c) != group) continue;
+                if (c->id >= ORACLES_ACHIEVEMENTS_WARNING_ID || list_group(c) != group) continue;
                 OraclesAchievementsEntry e;
                 e.title = c->title ? c->title : "";
                 e.description = c->description ? c->description : "";
@@ -472,6 +479,8 @@ void oracles_achievements_each(OraclesAchievements *a, OraclesAchievementsEach e
                 e.unlocked = (c->unlocked & RC_CLIENT_ACHIEVEMENT_UNLOCKED_SOFTCORE) != 0;
                 e.unlock_time = (int64_t)c->unlock_time;
                 e.percent = c->measured_percent / 100.0f;
+                e.rarity = c->rarity;
+                e.type = c->type;
                 each(opaque, &e);
             }
     }

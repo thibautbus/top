@@ -190,8 +190,8 @@ static void poll_answers(void *opaque)
 }
 
 /* The end: the request being sent cancelled (where the client allows it) and waited for, at most STOP_WAIT_MS, so that
- * no request is left inside the client when the process exits; every request not answered yet answered as given up
- * (-1), which lets rc_client free what it kept for it. */
+ * no request is left inside the client when the process exits (with leave_at_stop not waited for: the thread goes when it
+ * is done); every request not answered yet answered as given up (-1), which lets rc_client free what it kept for it. */
 static void stop(void *opaque)
 {
     http *h = opaque;
@@ -203,7 +203,7 @@ static void stop(void *opaque)
         while (*queue) { job *j = *queue; *queue = j->next; j->next = left; left = j; }
     SDL_SignalCondition(h->wake);
     SDL_SetAtomicInt(&h->cancel, 1);
-    const Uint64 until = SDL_GetTicks() + STOP_WAIT_MS;
+    const Uint64 until = SDL_GetTicks() + (h->options.leave_at_stop ? 0u : STOP_WAIT_MS);
     while (!h->exited && SDL_GetTicks() < until) SDL_WaitConditionTimeout(h->exited_signal, h->lock, 100);
     const int exited = h->exited;
     while (h->done) { job *j = h->done; h->done = j->next; j->next = left; left = j; }
@@ -245,4 +245,10 @@ int oracles_achievements_http_transport(OraclesAchievementsTransport *transport,
 int oracles_achievements_platform_transport(OraclesAchievementsTransport *transport)
 {
     return oracles_achievements_http_transport(transport, NULL);
+}
+
+int oracles_achievements_page_transport(OraclesAchievementsTransport *transport)
+{
+    const OraclesAchievementsHttpOptions options = { .leave_at_stop = 1 };
+    return oracles_achievements_http_transport(transport, &options);
 }

@@ -32,7 +32,6 @@
 /* The 4:3 pages over the game (Display, Controls) have no panels: a second layer takes the image nearly to black. */
 #define PAGE_SHADE 0x09080cu
 #define PAGE_SHADE_ALPHA 0.86f
-#define NARROW_MIN_SCALE 0.5f   /* the reduced menu's smallest scale: 27 px labels, a menu 360 px wide */
 #define PAD_TOAST_SHOWN_MS 4000.0   /* the reminder over a game, whatever the player presses, then its fade */
 #define PAD_TOAST_FADE_MS 600.0
 #define STATUS_BAR_LINES 16.0f   /* the status bar's, at the top of the game's image */
@@ -82,7 +81,7 @@ static void glyph_text(char *out, size_t capacity)
 
 /* The pause's scale floor: the reduced menu keeps its text readable in a small window; the 4:3 layout, taken from
  * about 640x480 only (oracles_ui_layout_pause), fits. */
-static float min_scale(int narrow) { return narrow ? NARROW_MIN_SCALE : 0.0f; }
+static float min_scale(int narrow) { return narrow ? ORACLES_UI_NARROW_MIN_SCALE : 0.0f; }
 
 OraclesPause *oracles_pause_create(OraclesUiDraw *draw, const OraclesHomeHost *host, int game, OraclesProfile playing, int aspect, int margin,
                                    const OraclesHomeNav *input)
@@ -164,9 +163,12 @@ unsigned oracles_pause_late_glyphs(const OraclesPause *pause) { return pause ? p
 static double now_ms(void) { return (double)SDL_GetPerformanceCounter() * 1000.0 / (double)SDL_GetPerformanceFrequency(); }
 
 /* The styles of the pause menu, of Controls and Display, of the help and the toast, in `layout` (Controls' tabs
- * NULL in 16:9: left out). */
-static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
+ * NULL in 16:9: left out); `narrow`, the reduced menu's, the achievements' panel in 4:3's sizes too. */
+static int styles(OraclesUiLayout layout, int narrow, const OraclesUiTextStyle **out)
 {
+#ifndef ORACLES_RETROACHIEVEMENTS
+    (void)narrow;
+#endif
     const OraclesUiHomeStyles *home = oracles_ui_home_styles(layout);
     const OraclesUiPageStyles *page = oracles_ui_page_styles(layout);
     const OraclesUiControlsStyles *controls = oracles_ui_controls_styles(layout);
@@ -183,6 +185,15 @@ static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
         oracles_ui_achievements_style(layout, ORACLES_UI_ACH_SUMMARY), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_TITLE),
         oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DESCRIPTION), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_POINTS),
         oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DATE), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_PROGRESS),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TITLE), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_POINTS),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_RARITY), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TAG),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TEXT), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_PROGRESS),
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_TITLE) : NULL,
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_POINTS) : NULL,
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_RARITY) : NULL,
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_TAG) : NULL,
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_TEXT) : NULL,
+        narrow ? oracles_ui_achievements_style(ORACLES_UI_LAYOUT_4_3, ORACLES_UI_ACH_DETAIL_PROGRESS) : NULL,
 #endif
     };
     int count = 0;
@@ -203,7 +214,7 @@ static void prepare(OraclesPause *pause, int width, int height, const char *when
     const OraclesTouchBox safe = band(pause, width, height);
     const OraclesUiLayout layout = oracles_ui_layout_pause(width, height, pause->aspect);
     const OraclesUiTextStyle *list[64];
-    const int count = styles(layout, list);
+    const int count = styles(layout, oracles_ui_layout_narrow(layout, width), list);
     static char text[1024];
     glyph_text(text, sizeof text);
     const double started = now_ms();
@@ -403,7 +414,7 @@ typedef struct pause_loop {
     unsigned glyphs_before;   /* the glyphs rasterised when the pause began, those the margin's change prepared added */
     OraclesPauseResult result;
 #ifdef ORACLES_RETROACHIEVEMENTS
-    float drag;               /* the list's drag since the last row it moved, in the window's points */
+    OraclesAchievementsDrag drag;   /* a press held over the list of achievements, in the window's points */
     int drag_row;             /* a row's height there */
 #endif
 } pause_loop;
@@ -496,6 +507,9 @@ static void act(pause_loop *p, OraclesHomeAction action)
 
 static void pointer(pause_loop *p, float x, float y, int click)
 {
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (!click && p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) return;   /* a hover changes nothing there, its rows and panel measuring text */
+#endif
     int window_w, window_h, output_w, output_h;
     SDL_GetWindowSize(p->window, &window_w, &window_h);
     SDL_GetRenderOutputSize(p->renderer, &output_w, &output_h);
@@ -511,6 +525,14 @@ static void pointer(pause_loop *p, float x, float y, int click)
             hit = oracles_ui_home_hit(&p->nav, sx, sy);
             if (hit.kind != ORACLES_UI_HIT_BACK) hit.kind = ORACLES_UI_HIT_NONE;
         }
+#ifdef ORACLES_RETROACHIEVEMENTS
+    } else if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) {
+        /* The hints keep to the foot of what a small window shows, the list and its panel to its middle. */
+        oracles_ui_draw_to_scene_anchored(p->pause->draw, px, py, 0.5f, 1.0f, &sx, &sy);
+        if (oracles_ui_home_back_hint(&p->nav, sx, sy)) { if (click) act(p, ORACLES_HOME_BACK); return; }
+        oracles_ui_draw_to_scene_anchored(p->pause->draw, px, py, 0.5f, 0.5f, &sx, &sy);
+        hit = oracles_ui_home_hit(&p->nav, sx, sy);
+#endif
     } else {
         oracles_ui_draw_to_scene(p->pause->draw, px, py, &sx, &sy);
         hit = oracles_ui_home_hit(&p->nav, sx, sy);
@@ -528,6 +550,11 @@ static void pointer(pause_loop *p, float x, float y, int click)
     } else if (hit.kind == ORACLES_UI_HIT_BACK) {
         if (click) act(p, ORACLES_HOME_BACK);
         return;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    } else if (hit.kind == ORACLES_UI_HIT_ACHIEVEMENT) {
+        if (click) { oracles_achievements_list_click(&p->nav, hit.index); changed(p); }
+        return;
+#endif
     } else {
         return;
     }
@@ -561,20 +588,26 @@ static void handle(pause_loop *p, const SDL_Event *e)
 #ifdef ORACLES_RETROACHIEVEMENTS
             /* The list of achievements follows a drag (a finger's too), a row at a time. */
             if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && (e->motion.state & SDL_BUTTON_LMASK)) {
-                p->drag += e->motion.yrel;
-                const float row = (float)p->drag_row;
-                while (p->drag <= -row) { p->drag += row; act(p, ORACLES_HOME_DOWN); }
-                while (p->drag >= row) { p->drag -= row; act(p, ORACLES_HOME_UP); }
+                const int steps = oracles_achievements_drag_steps(&p->nav, &p->drag, e->motion.xrel, e->motion.yrel, (float)p->drag_row);
+                if (steps) { oracles_achievements_list_scroll(&p->nav, steps); changed(p); }
                 break;
             }
 #endif
             pointer(p, e->motion.x, e->motion.y, 0);
             break;
-        case SDL_EVENT_MOUSE_BUTTON_UP: if (e->button.button == SDL_BUTTON_LEFT) pointer(p, e->button.x, e->button.y, 1); break;
+        case SDL_EVENT_MOUSE_BUTTON_UP:
 #ifdef ORACLES_RETROACHIEVEMENTS
-        case SDL_EVENT_MOUSE_BUTTON_DOWN: p->drag = 0.0f; break;
+            if (oracles_achievements_drag_end(&p->drag)) break;   /* the end of a drag clicks nothing */
+#endif
+            if (e->button.button == SDL_BUTTON_LEFT) pointer(p, e->button.x, e->button.y, 1);
+            break;
+#ifdef ORACLES_RETROACHIEVEMENTS
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: oracles_achievements_drag_start(&p->drag); break;
         case SDL_EVENT_MOUSE_WHEEL:
-            if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && e->wheel.y != 0.0f) act(p, e->wheel.y > 0.0f ? ORACLES_HOME_UP : ORACLES_HOME_DOWN);
+            if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && e->wheel.y != 0.0f) {
+                oracles_achievements_list_scroll(&p->nav, e->wheel.y > 0.0f ? -1 : 1);
+                changed(p);
+            }
             break;
 #endif
         default:   /* a drop is not taken in the pause */
@@ -656,7 +689,13 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
             p.nav.narrow = oracles_ui_layout_narrow(p.nav.layout, out_w);
             /* Fill as the session presents it (oracles_sdl_presentation): Scaling, which Display changes here, in fullscreen. */
             const int fill = p.nav.display.scaling && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
-            band(pause, out_w, out_h);
+            const OraclesTouchBox shown = band(pause, out_w, out_h);
+#ifdef ORACLES_RETROACHIEVEMENTS
+            oracles_achievements_detail_view(&p.nav, out_w, (int)shown.h);
+            oracles_achievements_detail_follow(&p.nav);
+#else
+            (void)shown;
+#endif
             p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, fill, out_w, out_h, &p.view, &p.nav, now, session);
             SDL_RenderPresent(renderer);
             presented = now;

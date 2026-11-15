@@ -205,8 +205,11 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
         snprintf(items[4].text, sizeof items[4].text, "%u active", active);
         items[4].note = items[4].text;
     }
-    /* Cheats, for a game whose profile has them: an unrecognised ROM's menu keeps its six entries. */
+    /* Achievements above Cheats, in a build with RetroAchievements: greyed but on an Oracle's original ROM. */
     unsigned n = 5;
+    if (nav->achievements.shown)
+        items[n++] = item(ORACLES_HOME_ITEM_ACHIEVEMENTS, "Achievements", NULL, fan || game->rom != ORACLES_ROM_ORIGINAL, "Original Ages and Seasons ROMs only");
+    /* Cheats, for a game whose profile has them: an unrecognised ROM's menu has none. */
     if (!(game->refuses & ORACLES_HOME_REFUSES_CHEATS) && game->rom != ORACLES_ROM_UNRECOGNISED) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
     items[n++] = item(ORACLES_HOME_ITEM_EXIT, "Exit", NULL, 0, NULL);
     return n;
@@ -217,7 +220,7 @@ int oracles_home_update_shown(const OraclesHomeNav *nav)
     return nav->update[0] && nav->update_check && nav->screen == ORACLES_SCREEN_HOME && !nav->in_game;
 }
 
-/* The places after the menu's items: the newer version's notice when shown, then the version number, on the home
+/* The places after the menu's items: the newer version's notice when shown, then the Settings button, on the home
  * screen alone. */
 static unsigned extra_places(const OraclesHomeNav *nav)
 {
@@ -252,7 +255,7 @@ int oracles_home_version_focused(const OraclesHomeNav *nav)
     return extra_places(nav) && nav->focus == oracles_home_items(nav, items) + extra_places(nav) - 1u;
 }
 
-/* About opened from the version number. */
+/* Settings opened from its button. */
 static OraclesHomeCommand open_about(OraclesHomeNav *nav)
 {
     nav->screen = ORACLES_SCREEN_ABOUT;
@@ -276,7 +279,7 @@ static unsigned hints_of(const OraclesHomeNav *nav, OraclesHomeHint hints[ORACLE
 {
 #ifdef ORACLES_RETROACHIEVEMENTS
     const unsigned achievements = oracles_achievements_hints(nav, hints);
-    if (achievements) return achievements;
+    if (achievements || (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS && nav->achievements.login)) return achievements;
 #endif
     if (nav->screen == ORACLES_SCREEN_PAUSE) {
         static const OraclesHomeHint pause[3] = {
@@ -326,7 +329,7 @@ static unsigned hints_of(const OraclesHomeNav *nav, OraclesHomeHint hints[ORACLE
         { "Esc / B", "Fan games", 1, 0 },
     };
     memcpy(hints, base, sizeof base);
-    if (oracles_home_update_focused(nav) || oracles_home_version_focused(nav)) hints[2].label = "Open";   /* the newer version's page, About */
+    if (oracles_home_update_focused(nav) || oracles_home_version_focused(nav)) hints[2].label = "Open";   /* the newer version's page, Settings */
     return nav->entry != ORACLES_HOME_FAN || nav->fan_pick == ORACLES_HOME_HERO_FAN ? 3 : 4;
 }
 
@@ -440,7 +443,10 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
         case ORACLES_HOME_ITEM_LOAD_STATE: return ORACLES_HOME_LOAD_STATE;
         case ORACLES_HOME_ITEM_QUIT_GAME: return ORACLES_HOME_QUIT_GAME;
 #ifdef ORACLES_RETROACHIEVEMENTS
-        case ORACLES_HOME_ITEM_ACHIEVEMENTS: oracles_achievements_list_open(nav); return ORACLES_HOME_STAY;
+        case ORACLES_HOME_ITEM_ACHIEVEMENTS:
+            if (nav->screen == ORACLES_SCREEN_PAUSE) oracles_achievements_list_open(nav);
+            else oracles_achievements_open(nav);
+            return ORACLES_HOME_STAY;
 #endif
         default:
             for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++)
@@ -510,7 +516,7 @@ OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction actio
 #endif
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const unsigned count = oracles_home_items(nav, items), focus = oracles_home_focus(nav);
-    /* The newer version's notice, when shown, and the version number are places after the last item. */
+    /* The newer version's notice, when shown, and the Settings button are places after the last item. */
     const unsigned places = count + extra_places(nav);
     if (nav->screen == ORACLES_SCREEN_PAUSE && (action == ORACLES_HOME_LEFT || action == ORACLES_HOME_RIGHT)) return ORACLES_HOME_STAY;
     if (nav->screen == ORACLES_SCREEN_PAUSE && action == ORACLES_HOME_BACK) return ORACLES_HOME_RESUME;   /* Escape, B, the menu button or Guide resumes */

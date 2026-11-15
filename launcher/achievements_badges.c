@@ -54,3 +54,10 @@ void oracles_achievements_fetch_badges(OraclesAchievements *a, const char *direc
     oracles_achievements_badges(a, badge, &w);
     if (badges->count > before) fprintf(stderr, "oracles: achievements: %u badge images looked for in %s\n", badges->count - before, directory);
 }
+
+void oracles_achievements_fetch_badge(OraclesAchievements *a, const char *directory, OraclesAchievementsBadges *badges, const char *name, const char *unlocked_url,
+                                      const char *locked_url)
+{
+    walk w = { a, directory, badges };
+    badge(&w, name, unlocked_url, locked_url);
+}

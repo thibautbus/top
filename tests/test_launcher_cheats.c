@@ -5,8 +5,8 @@
  * 1440x1080, and 22j (Rupees never run out highlighted too, at 640x480 on
  * Android with a controller); a text is compared by its left, its width, its
  * line box and its baseline, an element by its box.  And the page's keys and
- * pointer, from the home screen and from the pause.  About, laid out as Cheats:
- * turn 32's 32g about in 16:9 and 32g about 4:3, 1.2.0 with 1.3.0 announced; and its Portable mode, with its hint and
+ * pointer, from the home screen and from the pause.  Settings, laid out as Cheats, its About block under the rows:
+ * turn 39's 39q in 16:9 and 39q 4:3, and its Licences' keys; and its Portable mode, with its hint and
  * its status, in 16:9 (portable on, portable copying, portable off kept, portable read only) and in 4:3 (portable 4:3,
  * portable 4:3 kept). */
 #include "home_fixture.h"
@@ -248,53 +248,75 @@ static void fan_games(void)
     CHECK(nav.games[ORACLES_HOME_GAME_KINOMI].cheats == 0 && nav.cheats_changed == 1u << ORACLES_HOME_GAME_MOONRISE);
 }
 
-/* About from the version number of 1.2.0, 1.3.0 announced: "The Oracles" over "Project" (16:9) or the whole name on the
- * title's line (4:3), the version and the notice as the note, the row Update check, On chosen, always highlighted. */
-static void about(OraclesUiLayout layout, const char *frame)
+/* Settings (turn 39) from its button beside the version, on Windows: "The Oracles" over "Project" (16:9) or the whole
+ * name on the title's line (4:3), no note, its rows Update check and Portable mode, then the About block: its label, the
+ * version, the source, the cores' credits and Licences with its line; in 16:9 Update check highlighted after a key (39q),
+ * in 4:3 Licences, two places down, its help under the rows (39q 4:3). */
+static void settings(OraclesUiLayout layout, const char *frame)
 {
     OraclesHomeNav nav;
     oracles_home_init(&nav);
     nav.layout = layout;
+    nav.windows = 1;
+    nav.portable_shown = 1;
     nav.games[0].usable = 1;
-    snprintf(nav.update, sizeof nav.update, "1.3.0");
-    nav.focus = 8;
-    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT);
-    char note[ORACLES_HOME_TEXT_LENGTH];
+    OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
+    nav.focus = oracles_home_items(&nav, items);
+    CHECK(oracles_home_version_focused(&nav));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT && nav.row == 0);
+    CHECK(oracles_about_rows(&nav) == 3 && oracles_about_row_kind(&nav, 2) == ORACLES_ABOUT_ROW_LICENCES);
+    oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
+    if (layout == ORACLES_UI_LAYOUT_4_3) {
+        CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY);
+        CHECK(nav.row == 2);
+    }
     OraclesUiCheatsLayout l;
-    oracles_ui_layout_about(layout, &nav, "v1.2.0 (abc1234)", note, sizeof note, &l);
-    CHECK(!strcmp(note, "v1.2.0 (abc1234) \xc2\xb7 1.3.0 available"));
+    oracles_ui_layout_about(layout, &nav, "v1.5.0", "thibautbus/top", &l);
+    const struct OraclesUiAboutBlock *b = &l.about;
     layout_line(frame, "section", &l.head.section);
     layout_line(frame, "title", &l.head.title.lines[0]);
-    layout_line(frame, "note", &l.note.lines[0]);
-    layout_near(frame, "note box", "y", l.note.lines[0].y);
+    CHECK(l.note.count <= 1u && l.note.w == 0.0f);
     layout_line(frame, "update label", &l.labels[0]);
     layout_box(frame, "update on", &l.choices[0][0].box);
     layout_box(frame, "update off", &l.choices[0][1].box);
-    layout_line(frame, "update on text", &l.choices[0][0].name);
-    layout_line(frame, "update off text", &l.choices[0][1].name);
-    CHECK(l.rows[1].w == 0.0f && l.rows[2].w == 0.0f);
+    layout_line(frame, "portable label", &l.labels[1]);
+    CHECK(l.rows[2].w == 0.0f && b->shown);
+    CHECK(!strcmp(b->title_text, "The Oracles Project v1.5.0"));
+    layout_near(frame, "about", "y", b->rule.y);
+    layout_near(frame, "about", "x", b->rule.x);
+    layout_near(frame, "about", "w", b->rule.w);
+    layout_box(frame, "about row", &b->row);
+    layout_line(frame, "about label text", &b->label);
+    layout_line(frame, "about title text", &b->title);
+    layout_line(frame, "source text", &b->source);
+    layout_line(frame, "credits text", &b->credits);
+    layout_line(frame, "licences text", &b->licences);
+    layout_line(frame, "licences line text", &b->list);
+    layout_near(frame, "licences", "y", b->link.y);
+    layout_near(frame, "licences", "h", b->link.h);
+    layout_near(frame, "licences", "x", b->link.x);
+    CHECK(b->dot.x > b->licences.x + b->licences.w && b->list.x > b->dot.x + b->dot.w);
     if (layout == ORACLES_UI_LAYOUT_4_3) {
         CHECK(l.head.over.h == 0.0f && !strcmp(l.head.title.text[0], "The Oracles Project"));
-        layout_near(frame, "head", "h", l.note.lines[0].y + l.note.lines[0].h - l.head.section.y);
         layout_box(frame, "update", &l.rows[0]);
+        layout_box(frame, "portable", &l.rows[1]);
         layout_near(frame, "panel", "y", l.rows[0].y);
-        layout_near(frame, "panel", "h", l.help_note.y + l.help_note.h - l.rows[0].y);
+        layout_near(frame, "panel", "h", b->row.y + b->row.h - l.rows[0].y);
+        layout_near(frame, "about", "h", b->row.h);
         layout_line(frame, "help text", &l.help);
         layout_line(frame, "help note text", &l.help_note);
+        CHECK(!strcmp(l.help_text, oracles_about_licences_help) && !strcmp(l.help_note_text, oracles_about_licences_help_note));
         return;
     }
+    layout_near(frame, "about", "h", b->row.y + b->row.h - b->rule.y);
     layout_line(frame, "over", &l.head.over);
     layout_box(frame, "panel", &l.panel);
     layout_box(frame, "update row", &l.rows[0]);
-    layout_near(frame, "update", "y", l.rows[0].y);
-    layout_near(frame, "update", "h", l.rows[0].h);
+    layout_box(frame, "portable row", &l.rows[1]);
     layout_line(frame, "update explanation", &l.explanations[0].lines[0]);
-    layout_near(frame, "update explanation", "lines", (float)l.explanations[0].count);
-    layout_near(frame, "update explanation", "width", l.explanations[0].w);
     CHECK(l.help.h == 0.0f);
     OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS];
     OraclesUiHintLayout h[ORACLES_HOME_MAX_HINTS];
-    oracles_home_input(&nav, ORACLES_INPUT_KEYBOARD);
     CHECK(oracles_home_hints(&nav, hints) == 4);
     oracles_ui_layout_hints(layout, hints, 4, h);
     for (unsigned i = 0; i < 4u; i++) {
@@ -302,6 +324,24 @@ static void about(OraclesUiLayout layout, const char *frame)
         snprintf(name, sizeof name, "hint %u", i); layout_box(frame, name, &h[i].box);
         snprintf(name, sizeof name, "hint %u label", i); layout_line(frame, name, &h[i].label);
     }
+}
+
+/* Settings' keys and pointer: Licences, its last place, opened by OK, right and a click on its line, not by left or a
+ * click elsewhere in the block; Back to the home screen, on the Settings button. */
+static void licences(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[0].usable = 1;
+    nav.screen = ORACLES_SCREEN_ABOUT;
+    CHECK(oracles_about_rows(&nav) == 2 && oracles_about_row_kind(&nav, 1) == ORACLES_ABOUT_ROW_LICENCES);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_UP) == ORACLES_HOME_STAY && nav.row == 1);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_OPEN_LICENCES && oracles_home_act(&nav, ORACLES_HOME_RIGHT) == ORACLES_HOME_OPEN_LICENCES);
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_LEFT) == ORACLES_HOME_STAY && nav.update_check);
+    CHECK(oracles_about_click(&nav, 1, -1) == ORACLES_HOME_STAY && oracles_about_click(&nav, 1, 2) == ORACLES_HOME_OPEN_LICENCES);
+    CHECK(oracles_about_click(&nav, 0, 2) == ORACLES_HOME_STAY && nav.update_check);
+    CHECK(!oracles_home_command_needs_game(ORACLES_HOME_OPEN_LICENCES));
+    CHECK(oracles_home_act(&nav, ORACLES_HOME_BACK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_HOME && oracles_home_version_focused(&nav));
 }
 
 /* About's Portable mode, on Windows or Linux's archive, highlighted under Update check: On with a game outside the
@@ -318,16 +358,15 @@ static void portable(OraclesUiLayout layout, const char *frame, int on, int stat
     nav.windows = 1;   /* the prototype's wording */
     nav.games[0].usable = 1;
     nav.portable_shown = 1;
-    nav.focus = 7;
+    nav.focus = 7;   /* the Settings button */
     CHECK(oracles_home_act(&nav, ORACLES_HOME_OK) == ORACLES_HOME_STAY && nav.screen == ORACLES_SCREEN_ABOUT);
     oracles_home_input(&nav, device);
     CHECK(oracles_home_act(&nav, ORACLES_HOME_DOWN) == ORACLES_HOME_STAY && nav.row == ORACLES_ABOUT_ROW_PORTABLE);
     nav.portable = on;
     nav.portable_status = status;
     nav.games_outside = outside;
-    char note[ORACLES_HOME_TEXT_LENGTH];
     OraclesUiCheatsLayout l;
-    oracles_ui_layout_about(layout, &nav, "v0.1.0", note, sizeof note, &l);
+    oracles_ui_layout_about(layout, &nav, "v0.1.0", "thibautbus/top", &l);
     layout_line(frame, "update label", &l.labels[0]);
     layout_line(frame, "portable label", &l.labels[1]);
     layout_box(frame, "portable off", &l.choices[1][0].box);
@@ -359,7 +398,10 @@ static void portable(OraclesUiLayout layout, const char *frame, int on, int stat
         layout_line(frame, "help note text", &l.help_note);
         return;
     }
-    layout_box(frame, "panel", &l.panel);
+    /* The panel as 1.4.0 drew it, to its rows: Settings' About block starts 20 under them (settings, 39q). */
+    OraclesUiBox rows_panel = l.panel;
+    rows_panel.h = l.about.rule.y - 20.0f + 24.0f + 1.0f - l.panel.y;
+    layout_box(frame, "panel", &rows_panel);
     layout_box(frame, "update row", &l.rows[0]);
     layout_box(frame, "portable row", &l.rows[1]);
     layout_near(frame, "update", "y", l.rows[0].y);
@@ -387,7 +429,6 @@ static void read_only_linux(void)
 {
     for (int layout = ORACLES_UI_LAYOUT_16_9; layout <= ORACLES_UI_LAYOUT_4_3; layout++) {
         OraclesUiCheatsLayout l[2];
-        char note[ORACLES_HOME_TEXT_LENGTH];
         for (int windows = 0; windows < 2; windows++) {
             OraclesHomeNav nav;
             oracles_home_init(&nav);
@@ -398,7 +439,7 @@ static void read_only_linux(void)
             nav.screen = ORACLES_SCREEN_ABOUT;
             OraclesTone tone;
             CHECK(strstr(oracles_about_portable_status(&nav, &tone), windows ? "(such as Program Files)" : "(such as /opt)") != NULL);
-            oracles_ui_layout_about((OraclesUiLayout)layout, &nav, "v0.1.0", note, sizeof note, &l[windows]);
+            oracles_ui_layout_about((OraclesUiLayout)layout, &nav, "v0.1.0", "thibautbus/top", &l[windows]);
         }
         CHECK(l[0].status.count == l[1].status.count && l[0].status.h == l[1].status.h);
     }
@@ -415,8 +456,9 @@ int main(int argc, char **argv)
     keys();
     refused();
     fan_games();
-    about(ORACLES_UI_LAYOUT_16_9, "32g about");
-    about(ORACLES_UI_LAYOUT_4_3, "32g about 4:3");
+    settings(ORACLES_UI_LAYOUT_16_9, "39q");
+    settings(ORACLES_UI_LAYOUT_4_3, "39q 4:3");
+    licences();
     portable(ORACLES_UI_LAYOUT_16_9, "portable on", 1, ORACLES_PORTABLE_STATUS_NONE, 2, ORACLES_INPUT_GAMEPAD);
     portable(ORACLES_UI_LAYOUT_16_9, "portable copying", 0, ORACLES_PORTABLE_STATUS_COPYING, 2, ORACLES_INPUT_GAMEPAD);
     portable(ORACLES_UI_LAYOUT_16_9, "portable off kept", 0, ORACLES_PORTABLE_STATUS_KEPT, 2, ORACLES_INPUT_GAMEPAD);

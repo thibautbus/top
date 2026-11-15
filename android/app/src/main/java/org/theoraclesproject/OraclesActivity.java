@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -283,6 +284,19 @@ public class OraclesActivity extends SDLActivity {
         final View decor = window.getDecorView();
         decor.removeCallbacks(giveTouchTick);
         decor.post(giveTouchTick);
+    }
+
+    /* RetroAchievements' login: its window out of screenshots and of the recent applications' thumbnail, which Android
+     * takes before the launcher hides the password; on the activity's thread, which alone may change the window. */
+    public static void secureWindow(boolean on) {
+        final Activity activity = (Activity) getContext();
+        if (activity == null) return;
+        activity.runOnUiThread(() -> {
+            final Window window = activity.getWindow();
+            if (window == null) return;
+            if (on) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        });
     }
 
     /* The display cutout's safe insets at the window's top and bottom, "top bottom" in pixels, a curved edge's included:

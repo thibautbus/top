@@ -30,6 +30,7 @@ static int button_of(const OraclesHomeNav *nav, int button, OraclesLoginKey *out
         case SDL_GAMEPAD_BUTTON_SOUTH: *out = ORACLES_LOGIN_PAD_A; return 1;
         case SDL_GAMEPAD_BUTTON_EAST: *out = ORACLES_LOGIN_PAD_B; return 1;
         case SDL_GAMEPAD_BUTTON_NORTH: *out = ORACLES_LOGIN_PAD_Y; return 1;
+        case SDL_GAMEPAD_BUTTON_WEST: *out = ORACLES_LOGIN_PAD_X; return 1;
         case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
         case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: *out = ORACLES_LOGIN_PAD_SHOULDER; return 1;
         case SDL_GAMEPAD_BUTTON_START: *out = ORACLES_LOGIN_PAD_START; return 1;
@@ -79,7 +80,7 @@ static OraclesLoginWindow window_change(Uint32 type)
 
 /* The clipboard's text into the field highlighted, SDL's copy of it wiped before it is freed: the launcher keeps no
  * other copy (SDL and the system may have had their own) and writes it nowhere. */
-static void paste(OraclesHomeNav *nav)
+void oracles_home_achievements_paste(OraclesHomeNav *nav)
 {
     if (!oracles_achievements_login_typing(nav) || !SDL_HasClipboardText()) return;
     char *text = SDL_GetClipboardText();
@@ -104,13 +105,14 @@ int oracles_home_achievements_event(OraclesHomeNav *nav, const SDL_Event *event,
             const OraclesLoginRawKey raw = raw_key(event->key.key);
             const int chord = oracles_login_paste_chord(raw, raw_mods(event->key.mod), event->key.repeat, APPLE);
             if (chord) {
-                if (chord > 0) paste(nav);
+                if (chord > 0) oracles_home_achievements_paste(nav);
                 return 1;
             }
             /* Android's Enter or Tab made up for a line break or a tab of the text its keyboard commits, sent before it. */
             const int text_waiting = SDL_TextInputActive(SDL_GetKeyboardFocus()) && SDL_HasEvent(SDL_EVENT_TEXT_INPUT);
             if (oracles_login_made_up_key(raw, event->key.which, event->key.raw, text_waiting)) return 1;
-            if (key_of(event->key.key, event->key.mod, &key)) *command = oracles_achievements_login_key(nav, key);
+            if (event->key.key == SDLK_SPACE && nav->achievements.field == ORACLES_LOGIN_EYE) *command = oracles_achievements_login_key(nav, ORACLES_LOGIN_KEY_SPACE);
+            else if (key_of(event->key.key, event->key.mod, &key)) *command = oracles_achievements_login_key(nav, key);
             else if (!SDL_TextInputActive(SDL_GetKeyboardFocus()) && !(event->key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI))) {
                 /* A key while the system's text input is off (the first over the launcher's keyboard, or after Android's
                  * keyboard was put away): its character as the keyboard's layout and its modifiers make it; the

@@ -51,7 +51,8 @@ typedef enum OraclesUiHomeHitKind {
     ORACLES_UI_HIT_ROW,        /* a row of a page: `index`, and one of its options: `option`, or -1 */
     ORACLES_UI_HIT_CELL,       /* a place of Controls: `column`, `row`, and the Item hotkeys' Off or On: `option`, or -1 */
     ORACLES_UI_HIT_SLOW,       /* the slow game's toast, which opens Display (oracles_home_slow_open) */
-    ORACLES_UI_HIT_LOGIN       /* RetroAchievements' login: a field, a button or a key, `index` (oracles_achievements_login_click) */
+    ORACLES_UI_HIT_LOGIN,      /* RetroAchievements' login: a field, a button or a key, `index` (oracles_achievements_login_click) */
+    ORACLES_UI_HIT_ACHIEVEMENT /* an achievement of the pause's list: `index` (oracles_achievements_list_click) */
 } OraclesUiHomeHitKind;
 
 typedef struct OraclesUiHomeHit {
@@ -62,6 +63,8 @@ typedef struct OraclesUiHomeHit {
     int column, row;
 } OraclesUiHomeHit;
 
+/* The help bar's hint that goes back is under a point of the scene. */
+int oracles_ui_home_back_hint(const OraclesHomeNav *nav, float x, float y);
 /* What lies under a point of the scene of oracles_ui_home_scene. */
 OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y);
 

@@ -452,7 +452,7 @@ if(BUILD_TESTING)
         set_tests_properties(oracles-launcher-screenshot-update-draw PROPERTIES FIXTURES_SETUP launcher_update TIMEOUT 30
             ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
         add_test(NAME oracles-launcher-screenshot-update
-            COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_update_open.ppm 640 480 ${ORACLES_LAYOUT_REFERENCE} 24d "update text")
+            COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_update_open.ppm 640 480 ${ORACLES_LAYOUT_REFERENCE} "39r 640x480" "update text")
         set_tests_properties(oracles-launcher-screenshot-update PROPERTIES FIXTURES_REQUIRED launcher_update)
         add_test(NAME oracles-launcher-update-check-off
             COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_update_off.ppm --launcher-size 640x480
@@ -499,6 +499,14 @@ if(BUILD_TESTING)
         endforeach()
         file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generated/launcher_styles.h "${ORACLES_STYLES_HEADER}\n")
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ORACLES_UI_SOURCES})
+        # An achievement's detail drawn offscreen, with RetroAchievements: no display, no ROM.
+        if(ORACLES_RETROACHIEVEMENTS)
+            add_executable(oracles-test-launcher-achievements-draw test_launcher_achievements_draw.c)
+            target_link_libraries(oracles-test-launcher-achievements-draw PRIVATE oracles_ui_sdl)
+            oracles_set_warnings(oracles-test-launcher-achievements-draw)
+            file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-achievements-draw)
+            add_test(NAME oracles-launcher-achievements-draw COMMAND oracles-test-launcher-achievements-draw ${CMAKE_CURRENT_BINARY_DIR}/launcher-test-achievements-draw)
+        endif()
         add_executable(oracles-test-launcher-atlases test_launcher_atlases.c)
         target_include_directories(oracles-test-launcher-atlases PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
         target_link_libraries(oracles-test-launcher-atlases PRIVATE oracles_ui_sdl)
@@ -543,8 +551,13 @@ if(BUILD_TESTING)
                 COMMAND oracles --launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm --launcher-size ${size})
             set_tests_properties(oracles-launcher-screenshot-${size}-draw PROPERTIES FIXTURES_SETUP launcher_${size}
                 ENVIRONMENT "ORACLES_SETTINGS_DIR=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-home")
+            # With RetroAchievements a menu of eight entries: in 4:3, the title at the top left.
+            set(title_frame "")
+            if(ORACLES_RETROACHIEVEMENTS AND size MATCHES "^(1000x700|640x480)$")
+                set(title_frame 39b "hero title")
+            endif()
             add_test(NAME oracles-launcher-screenshot-${size}
-                COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm ${width} ${height} ${ORACLES_LAYOUT_REFERENCE})
+                COMMAND oracles-test-launcher-screenshot ${CMAKE_CURRENT_BINARY_DIR}/launcher_${size}.ppm ${width} ${height} ${ORACLES_LAYOUT_REFERENCE} ${title_frame})
             set_tests_properties(oracles-launcher-screenshot-${size} PROPERTIES FIXTURES_REQUIRED launcher_${size})
         endforeach()
         # Controls in 4:3 at a handheld's 640x480, on its Hotkeys tab (the layout reference's frame 10j).

@@ -22,6 +22,7 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 - **Easier to play**: item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped, continuous transitions (Link keeps walking as the screen scrolls), and cheats if you want them (no damage, ammo and rupees that never run out).
 - **Easier to read**: a compact text whose letters take their own width, a wider text box, a larger text for small screens, and instant text.
 - **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
+- **[RetroAchievements](docs/PLAYING.md#retroachievements)**, if you want them: log in with your account for achievements on Ages and Seasons' original ROMs, in casual mode, savestates included.
 - **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.
 - **Lua mods**: houses, characters who talk and minigames, which act on the game through the game's own routines and replay exactly.
 - **Fan games** from their BPS patch, applied in memory to your ROM: Gifts of Kinomi and Moonrise Regalia on Oracle of Ages, Temple of Seasons on Oracle of Seasons, and Oracles Combined, both Oracles in one, on their two European ROMs.
@@ -135,7 +136,7 @@ This repository was developed with AI assistance. Every change, whoever writes i
 
 ## Licence
 
-The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries:
+The port is under the MIT licence ([`LICENSE`](LICENSE)). It vendors or embeds, each under its own licence, shipped with the binaries (the full list, with each licence's file, is [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md)):
 
 - [SameBoy](third_party/sameboy/) (Expat/MIT), the emulator core;
 - [mGBA](third_party/mgba/)'s Game Boy core (Mozilla Public License 2.0), with one patch, and the [inih](third_party/mgba/core/src/third-party/inih/) it uses (BSD 3-Clause), the lighter emulator core;

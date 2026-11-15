@@ -37,7 +37,7 @@
 #define ANDROID_REDRAWS 0
 #endif
 
-/* About's Portable mode turning, on a thread of its own: its copy may take seconds on a slow USB stick, during which the
+/* Settings' Portable mode turning, on a thread of its own: its copy may take seconds on a slow USB stick, during which the
  * home screen draws "Copying…" and its page takes no input, nor a file dropped on the window.  `done`, set as the thread
  * ends: the loop looks at it too, should the event the thread pushes be lost. */
 typedef struct portable_job {
@@ -75,6 +75,11 @@ typedef struct home_app {
     double presented_ms;
     portable_job portable;
     int achievements_waiting;   /* RetroAchievements' login sent, its answer looked for */
+    int secure;                 /* Android: the window kept out of screenshots and the recents while the login is open */
+#ifdef ORACLES_RETROACHIEVEMENTS
+    OraclesAchievementsDrag drag;   /* a press held over their page's list */
+    double badges_until_ms;         /* their page's last badges looked for until then */
+#endif
 } home_app;
 
 /* The event the portable mode's thread pushes as it ends, and how often the loop looks for its end meanwhile. */
@@ -210,7 +215,7 @@ static void start(home_app *app, OraclesHomeCommand game)
 }
 
 /* The game's page asks the host for a file, a folder, or to keep a choice; a choice is kept without a game too
- * (About's from the list of fan games). */
+ * (Settings' from the list of fan games). */
 static void page_command(home_app *app, OraclesHomeCommand c)
 {
     const OraclesHomeHost *host = app->host;
@@ -294,7 +299,7 @@ static int portable_run(void *data)
     return 0;
 }
 
-/* The switch done: the settings and About's row follow it. */
+/* The switch done: the settings and Settings' row follow it. */
 static void portable_done(home_app *app)
 {
     portable_job *job = &app->portable;
@@ -330,7 +335,9 @@ static void portable_start(home_app *app)
  * player's guide in the browser, the launcher staying (without one, its address in a toast). */
 static void achievements_command(home_app *app, OraclesHomeCommand c)
 {
-    if (c == ORACLES_HOME_ACHIEVEMENTS_CANCEL) {
+    if (c == ORACLES_HOME_ACHIEVEMENTS_PASTE) {
+        oracles_home_achievements_paste(&app->nav);
+    } else if (c == ORACLES_HOME_ACHIEVEMENTS_CANCEL) {
         if (app->achievements_waiting && app->host->achievements_cancel) app->host->achievements_cancel(app->host->opaque);
         app->achievements_waiting = 0;
     } else if (c == ORACLES_HOME_ACHIEVEMENTS_LOGIN) {
@@ -365,11 +372,25 @@ static void achievements_answer(home_app *app)
 }
 #endif
 
+/* Settings' Licences: docs/THIRD_PARTY.md of the public repository in the browser, the launcher staying (without one,
+ * its address in a toast). */
+static void open_licences(home_app *app)
+{
+    char url[256], message[320];
+    snprintf(url, sizeof url, "https://github.com/%s/blob/main/docs/THIRD_PARTY.md", oracles_update_repository());
+    if (SDL_OpenURL(url)) { fprintf(stderr, "oracles: the licences opened\n"); return; }
+    fprintf(stderr, "oracles: the licences cannot be opened: %s\n", SDL_GetError());
+    snprintf(message, sizeof message, "No browser opened the licences: %s", url + 8);
+    oracles_ui_home_toast(&app->view, message, now_ms());
+    changed(app);
+}
+
 static void command(home_app *app, OraclesHomeCommand c)
 {
     char message[256];
 #ifdef ORACLES_RETROACHIEVEMENTS
-    if (c == ORACLES_HOME_ACHIEVEMENTS_LOGIN || c == ORACLES_HOME_ACHIEVEMENTS_LOGOUT || c == ORACLES_HOME_ACHIEVEMENTS_GUIDE || c == ORACLES_HOME_ACHIEVEMENTS_CANCEL) {
+    if (c == ORACLES_HOME_ACHIEVEMENTS_LOGIN || c == ORACLES_HOME_ACHIEVEMENTS_LOGOUT || c == ORACLES_HOME_ACHIEVEMENTS_GUIDE || c == ORACLES_HOME_ACHIEVEMENTS_CANCEL
+        || c == ORACLES_HOME_ACHIEVEMENTS_PASTE) {
         achievements_command(app, c);
         return;
     }
@@ -379,6 +400,7 @@ static void command(home_app *app, OraclesHomeCommand c)
         if (!oracles_update_check_open(message, sizeof message) && message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
     }
     else if (c == ORACLES_HOME_PORTABLE) portable_start(app);
+    else if (c == ORACLES_HOME_OPEN_LICENCES) open_licences(app);
     else if (c == ORACLES_HOME_START_AGES || c == ORACLES_HOME_START_SEASONS || c == ORACLES_HOME_START_AGES_MODS || c == ORACLES_HOME_START_SEASONS_MODS
              || oracles_home_fan_game_started(c)) start(app, c);
     else if (c != ORACLES_HOME_STAY) page_command(app, c);
@@ -404,6 +426,9 @@ static void window_to_scene(const home_app *app, float x, float y, float *scene_
 static void pointer(home_app *app, float x, float y, int click)
 {
     float sx, sy;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (!click && oracles_achievements_detail_open(&app->nav)) return;   /* a hover changes nothing, and the panel's layout measures its text */
+#endif
     window_to_scene(app, x, y, &sx, &sy);
     const OraclesUiHomeHit hit = oracles_ui_home_hit(&app->nav, sx, sy);
     if (hit.kind == ORACLES_UI_HIT_CELL) {
@@ -420,6 +445,9 @@ static void pointer(home_app *app, float x, float y, int click)
             const unsigned row = app->nav.row;
             const int save_action = app->nav.save_action, eu_action = app->nav.eu_action, choice = app->nav.save_flow.choice;
             if (app->nav.screen == ORACLES_SCREEN_GAME) oracles_page_hover(&app->nav, hit.index, hit.option);
+#ifdef ORACLES_RETROACHIEVEMENTS
+            else if (app->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS) oracles_achievements_page_hover(&app->nav, hit.index);
+#endif
             else app->nav.row = hit.index;
             if (app->nav.row != row || app->nav.save_action != save_action || app->nav.eu_action != eu_action || app->nav.save_flow.choice != choice)
                 changed(app);
@@ -568,8 +596,33 @@ static void handle(home_app *app, const SDL_Event *e)
         case SDL_EVENT_GAMEPAD_REMOVED:
             oracles_sdl_pads_event(&app->pads, e);
             break;
-        case SDL_EVENT_MOUSE_MOTION: pointer(app, e->motion.x, e->motion.y, 0); break;
+        case SDL_EVENT_MOUSE_MOTION:
+#ifdef ORACLES_RETROACHIEVEMENTS
+            /* The page's list follows a drag (a finger's too), a row at a time. */
+            if (oracles_achievements_page_list_on(&app->nav) && (e->motion.state & SDL_BUTTON_LMASK)) {
+                int window_h = 0;
+                SDL_GetWindowSize(app->window, NULL, &window_h);
+                const float row = window_h > 0 ? (float)window_h / 10.0f : 48.0f;
+                const int steps = oracles_achievements_drag_steps(&app->nav, &app->drag, e->motion.xrel, e->motion.yrel, row);
+                if (steps) { oracles_achievements_page_scroll(&app->nav, steps); changed(app); }
+                break;
+            }
+#endif
+            pointer(app, e->motion.x, e->motion.y, 0);
+            break;
+#ifdef ORACLES_RETROACHIEVEMENTS
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: oracles_achievements_drag_start(&app->drag); break;
+        case SDL_EVENT_MOUSE_WHEEL:
+            if (oracles_achievements_page_list_on(&app->nav) && e->wheel.y != 0.0f) {
+                oracles_achievements_page_scroll(&app->nav, e->wheel.y > 0.0f ? -1 : 1);
+                changed(app);
+            }
+            break;
+#endif
         case SDL_EVENT_MOUSE_BUTTON_UP:
+#ifdef ORACLES_RETROACHIEVEMENTS
+            if (oracles_achievements_drag_end(&app->drag)) break;   /* the end of a drag clicks nothing */
+#endif
             if (e->button.button == SDL_BUTTON_LEFT) pointer(app, e->button.x, e->button.y, 1);
             break;
         case SDL_EVENT_DROP_FILE:   /* SDL frees its copy */
@@ -598,6 +651,9 @@ static int render(home_app *app, double now)
     /* The layout of the window's shape, chosen again at each frame: a resize across the middle of 4:3 and 16:9
      * changes it, and the pointer is then looked for in the new one. */
     app->nav.layout = oracles_ui_layout_choose(w, h, app->nav.display.aspect);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    oracles_achievements_detail_follow(&app->nav);
+#endif
     oracles_ui_draw_layout(app->draw, oracles_ui_home_scene(&app->nav));
     const OraclesTouchBox safe = oracles_touch_band(w, h, &app->edges);
     oracles_ui_draw_band(app->draw, (int)safe.y, (int)safe.h);
@@ -642,7 +698,12 @@ static int event_wait_ms(const home_app *app, double now)
 static int wait_ms(const home_app *app, double now)
 {
     const int wait = event_wait_ms(app, now);
-    return (app->portable.thread || app->achievements_waiting) && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    const int polled = app->portable.thread || app->achievements_waiting || app->nav.achievements.list_busy || now < app->badges_until_ms;
+#else
+    const int polled = app->portable.thread || app->achievements_waiting;
+#endif
+    return polled && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
 }
 
 static int open_window(home_app *app)
@@ -705,6 +766,12 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
 #ifdef ORACLES_RETROACHIEVEMENTS
             if (app.achievements_waiting) achievements_answer(&app);
             oracles_home_achievements_text_input(app.window, &app.nav);
+            if (app.host && app.host->achievements_list && app.host->achievements_list(app.host->opaque, &app.nav)) app.dirty = 1;
+            /* The badges of the page's list, come one by one. */
+            if (oracles_achievements_badges_redraw(app.nav.achievements.list_busy, oracles_ui_achievements_list_waiting(), now_ms(), &app.badges_until_ms)) app.dirty = 1;
+            /* Android's recents take their thumbnail before the window hides: nothing of the login in it. */
+            const int secure = app.nav.achievements.login != 0;
+            if (secure != app.secure) oracles_android_secure_window(app.secure = secure);
 #endif
             const double now = now_ms();
             if (app.watch_until_ms > 0.0 && now >= app.watch_next_ms) {
@@ -731,6 +798,11 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
         }
     }
     portable_done(&app);   /* a switch the window was closed during ends, and its settings are written */
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* The page's list let go with the window. */
+    app.nav.screen = ORACLES_SCREEN_HOME;
+    if (app.host && app.host->achievements_list) app.host->achievements_list(app.host->opaque, &app.nav);
+#endif
     *width = app.width;
     *height = app.height;
     oracles_ui_draw_destroy(app.draw);

@@ -451,24 +451,22 @@ OraclesHomeCommand oracles_cheats_act(OraclesHomeNav *nav, OraclesHomeAction act
 /* A click on a row, or on its Off (0) or On (1): `option` -1 for the row itself. */
 OraclesHomeCommand oracles_cheats_click(OraclesHomeNav *nav, unsigned row, int option);
 
-/* ---- About -----------------------------------------------------------------------
+/* ---- Settings (About) -----------------------------------------------------------
  *
- * About, opened by the home screen's link "About · v1.5.0", laid out as
- * Cheats: "The Oracles Project" for its title, the version and, when the home
- * screen shows one, the newer version's notice for its note ("v1.2.0
- * (abc1234) · 1.3.0 available"), and its rows: Update check, On or Off
- * (settings.txt's update_check=): Off hides the notice at once, and the next
- * launch asks nothing; Portable mode, Off or On, where it can be.  Up and down
- * move between them; left, right and OK turn the highlighted one, a click on a
- * choice sets it; each change is kept at once.  Back returns to the home
- * screen, on the link. */
+ * Settings, the launcher's own settings, opened by the home screen's Settings button beside the version, laid out as
+ * Cheats: "The Oracles Project" for its title, no note, its rows Update check, On or Off (settings.txt's update_check=):
+ * Off hides the notice at once, and the next launch asks nothing; Portable mode, Off or On, where it can be; then an
+ * About block: the version, the source, the two cores credited by name, and Licences, which opens the full list of the
+ * licences (docs/THIRD_PARTY.md) in the system's browser.  Up and down move between the rows and Licences; left, right
+ * and OK turn the highlighted row, OK and right open the licences; a click on a choice sets it; each change is kept at
+ * once.  Back returns to the home screen, on the Settings button.  The screen and its functions keep About's name, the
+ * page's before 1.5.0. */
 
-/* About's second row, where the portable mode can be (nav->portable_shown): Portable mode, Off or On; under it, while
+/* Settings' second row, where the portable mode can be (nav->portable_shown): Portable mode, Off or On; under it, while
  * On with games outside the launcher's folder, the hint that they stay there, and the status of the last switch,
- * "Copying…" while it runs, the page then taking no input, Back included. */
-enum { ORACLES_ABOUT_ROW_UPDATE, ORACLES_ABOUT_ROW_PORTABLE, ORACLES_ABOUT_ROW_ACHIEVEMENTS, ORACLES_ABOUT_ROWS };
-/* What About's `row` is: ORACLES_ABOUT_ROW_UPDATE, _PORTABLE where it can be, and last, in a build with RetroAchievements
- * (nav->achievements.shown), _ACHIEVEMENTS, the link to their page (ui_achievements.h). */
+ * "Copying…" while it runs, the page then taking no input, Back included.  The About block's Licences comes last. */
+enum { ORACLES_ABOUT_ROW_UPDATE, ORACLES_ABOUT_ROW_PORTABLE, ORACLES_ABOUT_ROW_LICENCES, ORACLES_ABOUT_ROWS };
+/* What Settings' `row` is: ORACLES_ABOUT_ROW_UPDATE, _PORTABLE where it can be, and last _LICENCES. */
 unsigned oracles_about_row_kind(const OraclesHomeNav *nav, unsigned row);
 typedef enum OraclesHomePortableStatus {
     ORACLES_PORTABLE_STATUS_NONE,
@@ -484,7 +482,7 @@ extern const char *const oracles_about_portable_choices[2];      /* "Off", "On" 
 extern const char oracles_about_portable_explanation[];         /* 16:9's, beside the choices */
 extern const char oracles_about_portable_help[], oracles_about_portable_help_note[];   /* 4:3's, under the rows */
 extern const char oracles_about_portable_hint[];
-/* The rows About has: Update check, Portable mode where it can be, RetroAchievements where the build has them. */
+/* The places of Settings' highlight: Update check, Portable mode where it can be, Licences. */
 unsigned oracles_about_rows(const OraclesHomeNav *nav);
 /* The hint under Portable mode, NULL when none: On, with games outside the launcher's folder. */
 const char *oracles_about_portable_hint_shown(const OraclesHomeNav *nav);
@@ -495,12 +493,14 @@ extern const char oracles_about_label[];          /* "Update check" */
 extern const char *const oracles_about_choices[2];  /* "On", "Off" */
 extern const char oracles_about_explanation[];    /* 16:9's, beside the choices */
 extern const char oracles_about_help[], oracles_about_help_note[];   /* 4:3's, under the row */
-/* The note under the title: `version` ("v1.2.0 (abc1234)"), and " · 1.3.0 available" while the home screen shows a newer
- * one. */
-void oracles_about_note(const OraclesHomeNav *nav, const char *version, char *out, size_t capacity);
+/* The About block: its label, the product's name before the version, the source's line before the repository
+ * ("thibautbus/top"), the cores' credits, Licences and the line after it, and its help in 4:3. */
+extern const char oracles_about_block_label[], oracles_about_product[], oracles_about_source[], oracles_about_credits[];
+extern const char oracles_about_licences_label[], oracles_about_licences_line[];
+extern const char oracles_about_licences_help[], oracles_about_licences_help_note[];
 OraclesHomeCommand oracles_about_act(OraclesHomeNav *nav, OraclesHomeAction action);
-/* A click on a row, or on its first (0) or second (1) choice: Update check's On, Off; Portable mode's Off, On; `option`
- * -1 for the row itself. */
+/* A click on a row, or on its first (0) or second (1) choice: Update check's On, Off; Portable mode's Off, On; Licences'
+ * line (2), which opens the licences; `option` -1 for the row itself. */
 OraclesHomeCommand oracles_about_click(OraclesHomeNav *nav, unsigned row, int option);
 
 #endif

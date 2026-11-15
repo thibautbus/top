@@ -79,6 +79,9 @@ typedef struct OraclesHomeGames {
     /* RetroAchievements' login on its way, and with the developer's offline answers (--achievements-offline) the account
      * logged in and their On or Off, kept in memory alone (settings.txt's achievements= at first). */
     struct OraclesAchievementsHomeLogin *achievements_login;
+    /* The list of the game the page shows, while it is open. */
+    struct OraclesAchievementsLoad *achievements_load;
+    int achievements_load_game;
     char achievements_user[ORACLES_HOME_ACCOUNT_LENGTH];
     int achievements_on;
 #endif

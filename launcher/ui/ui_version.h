@@ -10,5 +10,9 @@
 #ifndef ORACLES_BUILD
 #define ORACLES_BUILD ORACLES_VERSION
 #endif
+/* The public repository, config/version.json's, which Settings names as the source. */
+#ifndef ORACLES_REPOSITORY
+#define ORACLES_REPOSITORY "thibautbus/top"
+#endif
 
 #endif

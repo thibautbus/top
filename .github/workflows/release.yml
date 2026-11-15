@@ -14,7 +14,8 @@ name: Release
 #
 # and the notes of .github/release-notes.md, followed by the version's section of CHANGELOG.md.  Run by hand (workflow_dispatch), it builds the same files from the
 # chosen branch and keeps them as artifacts for seven days, without any Release: a rehearsal.  The tests are the CI's,
-# which ran on the same commit: here the products are built, in Release with warnings as errors.
+# which ran on the same commit: here the products are built, in Release with warnings as errors, RetroAchievements in
+# every one of them.
 #
 # The release key lives in the repository's secrets, never in the code: ORACLES_KEYSTORE_BASE64 (the keystore file,
 # base64) and ORACLES_KEYSTORE_PASSWORD; ORACLES_KEY_ALIAS and ORACLES_KEY_PASSWORD when they differ from "oracles"
@@ -78,7 +79,7 @@ jobs:
         run: echo "ORACLES_GIT_DESCRIBE=$(git describe --tags --always --long --match 'v[0-9]*')" >> "$GITHUB_ENV"
       - name: Build with the MSYS2 UCRT64 toolchain (the pinned SDL 3 from source)
         shell: cmd
-        run: C:\msys64\usr\bin\bash.exe -lc "./tools/build_windows.sh"
+        run: C:\msys64\usr\bin\bash.exe -lc "ORACLES_RETROACHIEVEMENTS=ON ./tools/build_windows.sh"
       - name: Zip the folder, without the harness and the tests
         shell: bash
         run: |
@@ -87,7 +88,7 @@ jobs:
           cp build-windows/the-oracles-project.exe build-windows/SDL3.dll build-windows/libwinpthread-1.dll \
             build-windows/*-OFL.txt build-windows/SameBoy-LICENSE.txt build-windows/mGBA-LICENSE.txt \
             build-windows/mGBA-NOTICE.txt build-windows/mGBA-boot-rom.patch build-windows/inih-LICENSE.txt build-windows/Lua-LICENSE.txt \
-            build-windows/SDL3-LICENSE.txt build-windows/libwinpthread-COPYING.txt "dist/$name/"
+            build-windows/SDL3-LICENSE.txt build-windows/libwinpthread-COPYING.txt build-windows/rcheevos-LICENSE.txt "dist/$name/"
           sed -e "s/X\.Y\.Z/${VERSION}/" -e "s/PLATFORM/Windows/" .github/release-readme.txt > "dist/$name/README.txt"
           (cd dist && python -m zipfile -c "$name.zip" "$name")
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -112,7 +113,7 @@ jobs:
       - name: Configure a universal build
         run: >-
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON
-          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DORACLES_RETROACHIEVEMENTS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
       - name: Build the launcher
         run: cmake --build build --parallel 3 --target oracles
       - name: Assemble the application and zip it
@@ -163,7 +164,9 @@ jobs:
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev libusb-1.0-0-dev
           libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev patchelf appstream
       - name: Configure with the SDL 3 pinned in config/sdl3.json
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON
+        run: >-
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON
+          -DORACLES_RETROACHIEVEMENTS=ON
       - name: Build the launcher
         run: cmake --build build --parallel 4 --target oracles
       - name: Make the archive
@@ -206,7 +209,7 @@ jobs:
           ORACLES_KEY_ALIAS: ${{ secrets.ORACLES_KEY_ALIAS }}
           ORACLES_KEY_PASSWORD: ${{ secrets.ORACLES_KEY_PASSWORD }}
         run: |
-          ORACLES_KEYSTORE="$RUNNER_TEMP/oracles-release.jks" ./android/build_apk.sh release
+          ORACLES_RETROACHIEVEMENTS=ON ORACLES_KEYSTORE="$RUNNER_TEMP/oracles-release.jks" ./android/build_apk.sh release
           # An unsigned APK is no release: the build names it so when the key did not reach it.
           test -f android/build-apk/the-oracles-project-release.apk
           mkdir -p dist

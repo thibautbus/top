@@ -55,6 +55,11 @@ static void offline_send(void *opaque, const char *url, const char *post_data, c
     field(post_data, "r", name, sizeof name);
     said(post_data, shown, sizeof shown);
     fprintf(stderr, "oracles: achievements (offline): POST %s [%s] %s\n", url, user_agent, shown);
+    /* Each request's name, in order, for what the tests say was never sent. */
+    char log_path[sizeof o->directory + 16];
+    snprintf(log_path, sizeof log_path, "%s/requests.log", o->directory);
+    FILE *log = fopen(log_path, "ab");
+    if (log) { fprintf(log, "%s\n", name); fclose(log); }
     for (const char *c = name; *c; c++) if (!((*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9'))) name[0] = 0;
     char path[sizeof o->directory + 80];
     snprintf(path, sizeof path, "%s/%s.json", o->directory, name[0] ? name : "unnamed");

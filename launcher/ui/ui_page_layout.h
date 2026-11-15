@@ -126,7 +126,7 @@ extern const OraclesUiTextStyle oracles_ui_diagram_label_4_3, oracles_ui_help_4_
 extern const OraclesUiTextStyle oracles_ui_language_4_3;
 /* Cartridge's credit line, a fan game's, under the state. */
 extern const OraclesUiTextStyle oracles_ui_page_credit, oracles_ui_page_credit_4_3;
-/* About's Portable mode: its hint and its status under the row. */
+/* Settings' Portable mode: its hint and its status under the row. */
 extern const OraclesUiTextStyle oracles_ui_about_status, oracles_ui_about_status_4_3;
 /* Display's 4:3 title, on its section's line. */
 extern const OraclesUiTextStyle oracles_ui_display_title_4_3;
@@ -385,12 +385,13 @@ extern const OraclesUiTextStyle oracles_ui_mod_games;
 
 void oracles_ui_layout_mods(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiModsLayout *out);
 
-/* Cheats (ui_page_cheats.c), and About as it: the head and the note on the save under the title (16:9: in the head's column, wrapped;
+/* Cheats (ui_page_cheats.c), and Settings as it: the head and the note on the save under the title (16:9: in the head's column, wrapped;
  * 4:3: one line), a second note under it in the warning's tone (zero when none), each row's label and its two choices,
- * or an action, or a link; 16:9 has the panel, each row's explanation beside its choices (or action, or link) and each
- * row's highlight the value's cell, 4:3 the whole row and the highlighted row's explanation and note under the rows
- * (`help`, `help_note`).  Under a row (About's Portable mode, the RetroAchievements account), its hint and its status
- * beside its dot, across the row (zero when none).  Four rows at most (RetroAchievements' page). */
+ * or an action; 16:9 has the panel, each row's explanation beside its choices (or action) and each row's highlight the
+ * value's cell, 4:3 the whole row and the highlighted row's explanation and note under the rows (`help`, `help_note`).
+ * Under a row (Settings' Portable mode, the RetroAchievements account), its hint and its status beside its dot, across the
+ * row (zero when none).  Under the rows, a line under a rule (Achievements' page; zero when none).  Four rows at most
+ * (RetroAchievements' page). */
 #define ORACLES_UI_LIST_ROWS 4
 typedef struct OraclesUiCheatsLayout {
     OraclesUiPageHead head;
@@ -400,23 +401,29 @@ typedef struct OraclesUiCheatsLayout {
     OraclesUiBox rows[ORACLES_UI_LIST_ROWS];
     OraclesUiWrapped explanations[ORACLES_UI_LIST_ROWS];
     OraclesUiOptionLayout choices[ORACLES_UI_LIST_ROWS][2];
-    /* An action row's button and its dot (the pointer's target), after its value in 4:3; a link row's summary and its
-     * arrow, the link the target. */
+    /* An action row's button and its dot (the pointer's target), after its value in 4:3. */
     OraclesUiLine actions[ORACLES_UI_LIST_ROWS], action_dots[ORACLES_UI_LIST_ROWS], values[ORACLES_UI_LIST_ROWS];
     OraclesUiBox action_boxes[ORACLES_UI_LIST_ROWS];
-    OraclesUiLine summaries[ORACLES_UI_LIST_ROWS];
-    OraclesUiBox arrows[ORACLES_UI_LIST_ROWS], link_boxes[ORACLES_UI_LIST_ROWS];
     OraclesUiLine help, help_note;
     const char *help_text, *help_note_text;   /* the page's help, its note */
     OraclesUiWrapped hint, status;
     OraclesUiBox status_dot;
+    OraclesUiBox below_rule;
+    OraclesUiLine below;
+    /* Settings' About block (`about.shown`), under its rows. */
+    struct OraclesUiAboutBlock {
+        int shown;
+        OraclesUiBox rule, row, link;   /* the line along its top, the highlight, Licences' pointer target */
+        OraclesUiLine label, title, source, credits, licences, dot, list;
+        char title_text[ORACLES_HOME_TEXT_LENGTH], source_text[ORACLES_HOME_TEXT_LENGTH];
+    } about;
 } OraclesUiCheatsLayout;
 
 /* A page of rows laid out as Cheats: its head, its notes, and each row's label, explanation (16:9's) and its two
- * choices, its action (and 4:3's value before it) or its link; 4:3's help, the highlighted row's explanation and note;
- * under row `extras_row`, its hint and its status, NULL for none.  `centred`: an explanation shorter than its two lines
- * centred in them, else at their top. */
-typedef enum OraclesUiListRowKind { ORACLES_UI_LIST_CHOICES, ORACLES_UI_LIST_ACTION, ORACLES_UI_LIST_LINK } OraclesUiListRowKind;
+ * choices, or its action (and 4:3's value before it); 4:3's help, the highlighted row's explanation and note; under row
+ * `extras_row`, its hint and its status, NULL for none; under the rows, `below` under a rule, NULL for none.  `centred`: an
+ * explanation shorter than its two lines centred in them, else at their top. */
+typedef enum OraclesUiListRowKind { ORACLES_UI_LIST_CHOICES, ORACLES_UI_LIST_ACTION } OraclesUiListRowKind;
 typedef struct OraclesUiListPage {
     const char *section, *over, *title, *note, *note2;
     unsigned rows;
@@ -425,23 +432,27 @@ typedef struct OraclesUiListPage {
     const OraclesUiTextStyle *explanation_styles[ORACLES_UI_LIST_ROWS];   /* NULL: the rows' text's */
     OraclesUiListRowKind kinds[ORACLES_UI_LIST_ROWS];
     const char *const *choices[ORACLES_UI_LIST_ROWS];
-    const char *actions[ORACLES_UI_LIST_ROWS], *values[ORACLES_UI_LIST_ROWS], *summaries[ORACLES_UI_LIST_ROWS];
+    const char *actions[ORACLES_UI_LIST_ROWS], *values[ORACLES_UI_LIST_ROWS];
     const char *help, *help_note;
-    const char *hint, *status;
+    const char *hint, *status, *below;
     unsigned extras_row;
     int centred;
 } OraclesUiListPage;
 void oracles_ui_layout_list(OraclesUiLayout layout, const OraclesUiListPage *page, OraclesUiCheatsLayout *out);
 
 void oracles_ui_layout_cheats(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiCheatsLayout *out);
-/* About (ui_page_nav.h), laid out as Cheats with its rows, its note (oracles_about_note, made in `note` for `version`)
- * under the title. */
-void oracles_ui_layout_about(OraclesUiLayout layout, const OraclesHomeNav *nav, const char *version, char *note, size_t capacity, OraclesUiCheatsLayout *out);
+/* Settings (ui_page_nav.h), laid out as Cheats with its rows and no note, then its About block: in 16:9 in the panel, 20
+ * under the rows, its label in the labels' column and the rest in a highlight beside it; in 4:3 under the help, 16
+ * under it, the whole block the highlight.  `version` ("v1.5.0") after the product's name, `repository` ("thibautbus/top")
+ * after the source's line. */
+void oracles_ui_layout_about(OraclesUiLayout layout, const OraclesHomeNav *nav, const char *version, const char *repository, OraclesUiCheatsLayout *out);
 
 /* `text` broken into lines of at most `width`, the first at (x, y). */
 void oracles_ui_wrap(const OraclesUiTextStyle *style, const char *text, float width, float x, float y, OraclesUiWrapped *out);
 /* The same, as text-wrap: pretty breaks it in the browser: a last line of a single word takes the word before it. */
 void oracles_ui_wrap_pretty(const OraclesUiTextStyle *style, const char *text, float width, float x, float y, OraclesUiWrapped *out);
+/* The length of the next piece of `text` a line may end after. */
+size_t oracles_ui_wrap_piece(const char *text);
 
 /* `text` into `out`, shortened in its middle with an ellipsis when wider than `width` or longer than `out`, so that its
  * end, a path's last folder, stays.  Each text is elided once: the last few are kept. */

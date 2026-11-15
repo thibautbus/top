@@ -10,6 +10,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 - [Controls](#controls)
 - [Gameplay options](#gameplay-options): [Continuous transitions](#continuous-transitions), [Hold to swim](#hold-to-swim), [Item hotkeys](#item-hotkeys)
 - [Cheats](#cheats)
+- [RetroAchievements](#retroachievements)
 - [Languages](#languages)
 - [Mods](#mods)
 - [Fan games](#fan-games)
@@ -19,7 +20,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 - [Android](#android)
 - [Troubleshooting](#troubleshooting)
 - [Reporting a problem](#reporting-a-problem)
-- [About and privacy](#about-and-privacy)
+- [Settings and privacy](#settings-and-privacy)
 
 ## What you need
 
@@ -47,13 +48,13 @@ The game starts in Enhanced, the wide view, in fullscreen; [Display](#display) c
 
 The home screen has three entries: **Oracle of Ages**, **Oracle of Seasons** and **Fan games**. The chosen entry shows its title, its state and its menu. The state is **Ready** (with the date of the last session), **ROM not found**, or for a fan game whose Oracle's ROM is chosen, **Patch not found**, or **Patch refused** when its patch is there but refused (not a BPS patch, or another fan game's); Oracles Combined says **ROM refused** when a ROM chosen for it is not the European ROM of its game.
 
-A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia, Oracles Combined and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods greyed. A greyed entry says why when it is highlighted.
+A game's menu has **Start game**, **Cartridge**, **Controls**, **Display**, **Mods**, [**Achievements**](#retroachievements), **Cheats** (not for an unrecognised ROM) and **Exit**. Cartridge names the language beside it when it is not English (US), Display the profile the game plays in, and Mods how many mods are on. **Fan games** lists Gifts of Kinomi, Moonrise Regalia, Oracles Combined and Temple of Seasons, each with its state; a fan game picked has the same menu, with Mods and Achievements greyed. A greyed entry says why when it is highlighted.
 
 Move with the arrows, Enter and Escape on the keyboard; with the d-pad, A and B on a controller, where the menu's button and Guide act as Escape; or with the mouse, or by touch. **F11** switches fullscreen on and off. The key hints at the bottom of each page, the pause menu's included, show the keys of the device you used last.
 
 The launcher opens in a 16:9 window of 1280x720 the first time. The window can be resized, and its size is remembered. A window or a screen nearer 4:3 than 16:9, such as a 640x480 handheld or a 1024x768 monitor, takes the 4:3 layout: the three entries become tabs along the top, each page lays its rows in one column, and Controls splits into three tabs, **Buttons**, **Hotkeys** and **In game**.
 
-The home screen's bottom left reads **About · v1.5.0**, which opens [About](#about-and-privacy). When a newer version is out, the home screen says so beside it ("· 1.5.1 available"). Down from **Exit** reaches the notice, then About; the notice opens the release page in your browser.
+The home screen's bottom left has a **Settings** button, beside the version (**v1.5.0**), which opens [Settings](#settings-and-privacy). When a newer version is out, the home screen says so after them ("· 1.5.1 available"). Down from **Exit** reaches the notice, then Settings; the notice opens the release page in your browser.
 
 ## Cartridge
 
@@ -274,7 +275,74 @@ The Cheats page is in the menu of Ages, Seasons and the fan games, after Mods; e
 - **Ammo never runs out**: a seed, a bomb or a Bombchu used is not taken from its count. With none left there is still none.
 - **Rupees never run out**: a price is free, as long as the wallet holds it, which the game checks first. A mod's prices still apply.
 
-The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in the fan games, in both halves of Oracles Combined. In Temple of Seasons, **Ammo never runs out** keeps its seeds as it keeps its bombs, and **Rupees never run out** makes every purchase free. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
+The cheats change nothing else in the game: what they leave, such as rupees kept, items bought or ammunition kept, is in your usual save. They play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in the fan games, in both halves of Oracles Combined. In Temple of Seasons, **Ammo never runs out** keeps its seeds as it keeps its bombs, and **Rupees never run out** makes every purchase free. From the pause, **Cheats** changes the cheats of the game running, from when it resumes. A cheat turned on suspends [achievements](#retroachievements) until the game starts again. In Faithful, the first cheat turned on from the pause makes the game a little heavier to run until it ends, which a small device may feel.
+
+## RetroAchievements
+
+Ages and Seasons on their original ROMs have achievements from [RetroAchievements](https://retroachievements.org): written by players and unlocked as you play, in Faithful and Enhanced. They need an account on retroachievements.org, made on its site, and stay off until you log in. A fan game has none, and neither has a ROM the launcher does not recognise as an original: **Achievements** is greyed for them ("Original Ages and Seasons ROMs only").
+
+**Achievements**, on a game's menu above **Cheats**, opens their page:
+
+| Row | Choices | What it does |
+| --- | --- | --- |
+| **Account** | Log in…, Log out | Your account, one for every game. |
+| **RetroAchievements** | Off, On | On unlocks achievements as you play. Off, the default, sends nothing. On without an account opens the login. |
+| **Privacy** | Player's guide | Opens this section in your browser. |
+| **Unlock sound** | On, Off | A short sound with each unlock. The toast shows either way. |
+
+### Logging in
+
+**Log in…** asks for your **User name** and **Password**, as on retroachievements.org. Once you are in, the account is kept and **RetroAchievements** turns On. A line under the fields says when the server refuses them ("Wrong user name or password.") or cannot be reached. Should the server refuse the saved login later, the page says so ("retroachievements.org refused the saved login: log in again.").
+
+Type with a keyboard, with Android's keyboard for a touch, or with a controller on the launcher's own keyboard, on a computer too. To take a password from a password manager, **Ctrl+V** (**Cmd+V** on a Mac), **Shift+Insert**, a keyboard's Paste key or the launcher's keyboard's **Paste** paste the clipboard into the field highlighted, without the spaces or the line break around it; on Android, the system keyboard's own paste works too. A text of several lines, or one longer than the field holds, is not pasted at all, and the line under the fields says so.
+
+The eye at the right end of the password shows it in letters until the login closes or the window goes away: **X** on a controller, Tab to the eye then Enter or Space on a keyboard, or a click or a touch. On Android, the window stays out of screenshots and of the recent applications' thumbnail while the login is open.
+
+### Seeing your achievements
+
+Logged in and On, the page lists the achievements of the game chosen under its rows: those you unlocked, then those remaining, in the order of the game's set. The arrows and the d-pad go through them, the list following the highlight; the wheel or a drag scroll the list, and a click or a tap highlights the achievement under it without moving the list. The server gives this list no dates, so it says "Unlocked" alone; the pause menu gives the date.
+
+In a game, toasts at the top left of the picture say your progress as the game starts, each unlock with its badge, and anything that stops the achievements. **Achievements** in the pause menu lists the game's achievements with your points: unlocked, with their dates, then in progress, then locked.
+
+A row cuts its description after one line, so each achievement has its detail, on the page and in the pause menu alike: its badge in large, in colour once unlocked, its title, points, the share of players who have it in casual mode ("12.4% of players") when the server gives one, its **Missable**, **Progression** or **Win** tag when it has one, its whole description and its state. In the 16:9 layout the left column shows it for the achievement highlighted, with no key to press, and the game's name comes back on a row of settings. In the 4:3 layout, Android's large menus and a pause in a window too small for that column, **Enter**, **A**, a click or a tap on an achievement opens a panel over the list: up and down go to the next one without closing it, and **Esc**, **B** or a tap outside closes it on the same achievement. Dragging the list never opens a row. The page's detail says "Unlocked" alone, the pause menu's "Unlocked 7 Nov 2026". Reading it asks nothing of the server.
+
+### Casual mode
+
+The launcher plays RetroAchievements in casual mode alone: it has no hardcore mode and no leaderboards, and every launcher feature stays, savestates included.
+
+- **A savestate loaded** starts the achievements' progress again: an achievement whose conditions already hold in it waits for them to fail once before it can unlock.
+- **A cheat** suspends them until the game starts again, whether it was on from the start or turned on from the pause. The Cheats page warns you, a toast tells you, and the pause's list says "Suspended for this session". To have them back, turn the cheat off and start the game again.
+- **A mod** plays along with them until it first changes the game: an item given or taken, rupees charged, a flag set. They are then suspended until the game starts again ("Achievements are paused until the game starts again: a mod changed the game.").
+
+### Sessions and playing offline
+
+A session counts on the server when you start Ages or Seasons with **RetroAchievements** On and an account logged in, and lasts as long as the game. Opening the **Achievements** page is never a session: it reads the game's list and your unlocks, and sends no unlock and no sign of playing. A route replayed or recorded has no achievements.
+
+- **No connection as the game starts**: a toast says "RetroAchievements unreachable: achievements are off for this game.". The game plays on, without achievements until it next starts.
+- **The connection lost during a game**: unlocks still show, and a toast says "Offline: unlocks will be sent later". The launcher keeps trying while the game runs, and keeps each unlock until the server acknowledges it. What is left goes the next time you start Ages or Seasons with that account, with the time since you earned it. The launcher keeps the latest 256.
+- **On the page**: the **Account** row says how many are waiting ("2 unlocks waiting to be sent"), and the list, which comes from the server, shows them locked until they are sent. Opening the page does not send them.
+- **The page without a connection**: no list is kept for offline, so it says "retroachievements.org cannot be reached: this game's achievements show when it can.". Open the page again once you are connected. On Linux, the requests go through the system's libcurl, as the update check does; without it, the server cannot be reached.
+
+### What is sent and what is kept
+
+Nothing is sent while **RetroAchievements** is Off, before you log in, or for a fan game. Otherwise the launcher talks to retroachievements.org over HTTPS:
+
+- **At login**: your user name and your password, once. The password is never written anywhere; the launcher keeps the token the server answers.
+- **On the page**: your user name, your token and which game it is (the MD5 hash of your ROM), to read the game's achievements and your unlocks. It also downloads the badges' images of that game.
+- **While you play**: your user name and your token, the game (the same hash), the achievements you unlock and their badges' images, and, about every two minutes while the game runs, a short line the game's set makes up to say what you are doing in it.
+- **Each request** carries a User-Agent naming the application, its version, the platform (Windows, macOS, Linux or Android), the emulator core during a game and the version of rcheevos, and no more about your machine.
+
+What retroachievements.org keeps is up to its own privacy policy.
+
+The launcher keeps these beside `settings.txt`: in `%APPDATA%\the-oracles-project\` on Windows, `~/.local/share/the-oracles-project/` on Linux, `~/Library/Application Support/the-oracles-project/` on macOS, in the application's private storage on Android, and in `user-data` in [portable mode](#portable-mode):
+
+- `achievements.txt`: your user name and your token, never your password. On Linux, macOS and Android, only your own user can read it. The token logs in as you, so never share this file.
+- `achievements-pending.txt`: the unlocks waiting, each with your user name, the game's hash, the achievement and when you earned it.
+- `achievement-badges`: a folder of the badges' images.
+
+Portable mode does not copy them: each folder has its own account, so log in again after turning it on or off. Unlocks waiting stay in the folder they were earned in.
+
+**Logging out.** **Log out** on the **Account** row forgets the account at once: it deletes `achievements.txt`, which you can also do yourself with the launcher closed, and asks nothing of the server. **RetroAchievements** stays as it was, and nothing is sent without an account. The unlocks waiting stay until that account next plays, and the badges stay too.
 
 ## Languages
 
@@ -358,8 +426,7 @@ It plays in Faithful and in Enhanced, in both games it joins: from the Ages it s
 - **Cheats**, its own, apart from those of Ages and Seasons;
 - savestates, F5 and F7, in either game.
 
-At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the item hotkeys (Controls says that fan games refuse them), the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
-At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the continuous transitions while swimming (a scroll in the water stays the game's own), the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
+At Vasu's door the game goes black as it always does while it changes games: the view keeps its last picture, framed, until the other game's first room shows, then the world around comes back. Not there yet: the mods and [achievements](#retroachievements), and a language chosen in Cartridge (the language is the patch's).
 
 Any other version of Oracles Combined, such as the image its author's web page builds with the options you pick there (the status bar at the bottom of the screen among them, which Enhanced does not lay out), plays too, in Faithful only: through the same page, its image "not recognized", or as an image you built yourself, chosen as **Oracle of Ages**' ROM or dropped on the home screen, where the Cartridge page says "Oracles Combined image, Faithful only; see Fan games". Chosen under Oracle of Seasons, such an image is refused: "an image of both games, which plays under Oracle of Ages". An image of Crossworld, the hack it continues, is not a patch of the European ROMs: it plays in Faithful only as an image chosen as **Oracle of Ages**' ROM, where the page says the same. Only the release's patches are recognised: they alone have the Enhanced view.
 
@@ -367,7 +434,7 @@ Any other version of Oracles Combined, such as the image its author's web page b
 
 ### The pause menu
 
-Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or greyed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs and the fan games, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
+Escape pauses a game the home screen started, as the controller's menu button and Guide do; on Android, Back does too. The menu lies over the game's last image, darkened: **Resume**, **Save state**, **Load state** (with the time of the savestate, or greyed with "No savestate yet"), **Controls**, **Display**, **Cheats** for Ages and Seasons on their original ROMs and the fan games, [**Achievements**](#retroachievements) once the game's achievements are loaded, and **Quit to launcher**, which writes the save and goes back to the home screen. In a 16:9 window under 960 pixels wide, Controls, Display and Cheats are left out; the 4:3 layout keeps them at every size. Escape, B, the menu's button or Guide resumes.
 
 From the pause, a row applies at once, or when the game resumes, or not at all: the tables above say which. The rows a running game keeps are greyed, each saying "Change it from the home screen.", and a note under Display's title says it once. The window changes while the menu shows; the sizes that would leave the pause too narrow change from the home screen only ("Smaller windows change from the home screen.").
 
@@ -417,7 +484,7 @@ A game's save is the `.sav` beside its ROM, under the same name, or for a fan ga
 
 ## Portable mode
 
-On Windows, and on Linux with the `.tar.gz`, the launcher can keep everything it writes in its own folder rather than in your user folder: to play from a USB stick, or to keep several copies side by side, each with its own settings. **About › Portable mode** turns it on and off:
+On Windows, and on Linux with the `.tar.gz`, the launcher can keep everything it writes in its own folder rather than in your user folder: to play from a USB stick, or to keep several copies side by side, each with its own settings. **Settings › Portable mode** turns it on and off:
 
 - **On**: your settings, your mods and your language files are copied into a folder `user-data` beside the executable, which the launcher uses from the next launch. Your user folder keeps its own copy.
 - **Off**: they are copied back into your user folder, which the launcher uses from the next launch; `user-data` stays as it is.
@@ -453,7 +520,7 @@ The Android application is the same launcher, in landscape and fullscreen: F11 a
 
   A key or a controller hides them; the launcher and the pause menu are touched as they are clicked.
 - **A screen whose edges hide the picture**: see [Troubleshooting](#troubleshooting).
-- **Network**: the application asks for the network for the update check alone ([About and privacy](#about-and-privacy)). `settings.txt` is in the application's private storage, so About's **Update check** is the way to change it there.
+- **Network**: the application asks for the network for the update check ([Settings and privacy](#settings-and-privacy)) and for [RetroAchievements](#retroachievements), once you log in. `settings.txt` is in the application's private storage, so Settings' **Update check** is the way to change it there.
 - **Uninstalling**: Android offers to keep the application's data, your ROMs, patches, saves and mods included.
 
 ## Troubleshooting
@@ -477,11 +544,11 @@ Open an [issue](https://github.com/thibautbus/top/issues/new/choose) with your s
 
 Never attach a ROM, or a file made from one.
 
-## About and privacy
+## Settings and privacy
 
-**About · v1.5.0** at the bottom left of the home screen opens **About**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on it works too, in the 16:9 layout down to the screen's corner. About shows the version, the newer version's notice when there is one, the row **Update check**, and on Windows and on Linux with the `.tar.gz` the row **Portable mode** ([Portable mode](#portable-mode)). **Update check**:
+The **Settings** button at the bottom left of the home screen opens **Settings**: down from **Exit**, after the newer version's notice when there is one, or up from **Start game**, then Enter or A; a click or a touch on it works too, in the 16:9 layout down to the screen's corner. The version beside it is plain text. Settings has the row **Update check**, on Windows and on Linux with the `.tar.gz` the row **Portable mode** ([Portable mode](#portable-mode)), then **About**: the version, where the source and this guide are, the two emulator cores and their authors, and **Licences**, which opens the list of every licence the launcher ships with ([`THIRD_PARTY.md`](THIRD_PARTY.md)) in your browser. **Update check**:
 
 - **On**, the default: the launcher asks GitHub once at launch whether a newer version is out.
-- **Off**: no network request. Off hides the notice at once; On asks again at the next launch.
+- **Off**: no request to GitHub. Off hides the notice at once; On asks again at the next launch.
 
-Escape or B goes back to the home screen. The update check is the only request the launcher makes: one anonymous request to GitHub (`api.github.com`), with nothing sent but the request. On Linux it goes through the system's libcurl; without it, nothing is asked. A game started from the command line never asks.
+Escape or B goes back to the home screen. Apart from [RetroAchievements](#retroachievements), which send nothing until you log in, the update check is the only request the launcher makes: one anonymous request to GitHub (`api.github.com`), with nothing sent but the request. On Linux it goes through the system's libcurl; without it, nothing is asked. A game started from the command line never asks GitHub.

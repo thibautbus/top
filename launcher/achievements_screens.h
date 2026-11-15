@@ -4,6 +4,7 @@
 #define ORACLES_LAUNCHER_ACHIEVEMENTS_SCREENS_H
 
 #include "achievements.h"
+#include "achievements_catalogue.h"
 #include "ui_achievements.h"
 
 #include <stdint.h>
@@ -29,5 +30,7 @@ typedef void (*OraclesAchievementsDate)(int64_t when, char *out, size_t capacity
 /* The list the pause shows, made now: each achievement of the set (oracles_achievements_each) with its date and its
  * progress, the badges in `badges`; 0, the list left empty, before the set is loaded. */
 int oracles_achievements_list_make(OraclesAchievements *a, const char *badges, OraclesAchievementsDate date, OraclesAchievementsList *list);
+/* The same from what a game's list read with no session holds (achievements_catalogue.h): no date, no progress. */
+void oracles_achievements_catalogue_list(const OraclesAchievementsCatalogue *catalogue, const char *badges, OraclesAchievementsList *list);
 
 #endif

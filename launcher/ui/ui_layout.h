@@ -25,6 +25,7 @@ float oracles_ui_motif_x(OraclesUiLayout layout);
 /* Whether the pause menu in a window `width` pixels wide keeps only the session's own entries: under 960 in 16:9,
  * never in 4:3, whose scene is sized for 640x480 already. */
 int oracles_ui_layout_narrow(OraclesUiLayout layout, int width);
+#define ORACLES_UI_NARROW_MIN_SCALE 0.5f   /* the reduced menu's smallest scale: 27 px labels, a menu 360 px wide */
 /* The pause menu's layout over a game window of `width` x `height`: the 4:3 one only from about 640x480, the size its
  * scene is drawn for (a scale of 0.44, Near 4:3's 639x480 at 3x included); a smaller 4:3 window (Faithful at 2x and
  * 3x, Near 4:3 at 2x) takes the 16:9 one and its narrow menu, whose scale floor keeps the text readable. */

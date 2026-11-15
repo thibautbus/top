@@ -766,16 +766,6 @@ static void second_note(OraclesUiDraw *draw, OraclesUiLayout layout, const Oracl
 }
 
 #ifdef ORACLES_RETROACHIEVEMENTS
-/* A link's summary and its arrow, in the accent while its row is highlighted. */
-static void list_link(OraclesUiDraw *draw, OraclesUiLayout layout, const OraclesUiLine *summary, const OraclesUiBox *arrow, const char *text_, int focused,
-                 OraclesUiColor accent)
-{
-    const OraclesUiColor color = focused ? accent : oracles_ui_rgb(LABEL);
-    text(draw, layout == ORACLES_UI_LAYOUT_4_3 ? &oracles_ui_row_button_4_3 : &oracles_ui_choice, summary, text_, color);
-    const float points[6] = { arrow->x, arrow->y, arrow->x + arrow->w, arrow->y + arrow->h * 0.5f, arrow->x, arrow->y + arrow->h };
-    oracles_ui_fill_polygon(draw, points, 3, color);
-}
-
 /* An action and its dot, in the accent while its row is highlighted. */
 static void action(OraclesUiDraw *draw, const OraclesUiPageStyles *st, const OraclesUiLine *label, const OraclesUiLine *dot_line, const char *text_,
                    int focused, OraclesUiColor accent)
@@ -827,39 +817,48 @@ int oracles_ui_cheats_hit(const OraclesHomeNav *nav, float x, float y, int *opti
     return -1;
 }
 
-/* ---- About ----------------------------------------------------------------------- */
+/* ---- Settings (About) ------------------------------------------------------------ */
+
+#define ABOUT_RULE 0xffffffu
+#define ABOUT_RULE_OPACITY 0.08f
+
+/* Settings' About block: its rule, its highlight, its label, the version, the source and the cores' credits, and
+ * Licences, its dot and its line, Licences in the accent while highlighted. */
+static void about_block(OraclesUiDraw *draw, const OraclesUiPageStyles *st, const look *lk, OraclesUiLayout layout, const struct OraclesUiAboutBlock *b,
+                        int focused, OraclesUiColor accent)
+{
+    const int four_three = layout == ORACLES_UI_LAYOUT_4_3;
+    oracles_ui_fill_rect(draw, b->rule.x, b->rule.y, b->rule.w, b->rule.h, oracles_ui_rgba(ABOUT_RULE, ABOUT_RULE_OPACITY));
+    highlight(draw, lk, &b->row, focused);
+    text(draw, st->row_label, &b->label, oracles_about_block_label, oracles_ui_rgb(LABEL));
+    text(draw, st->row_title, &b->title, b->title_text, oracles_ui_rgb(TEXT));
+    const OraclesUiTextStyle *lines = four_three ? &oracles_ui_row_text_4_3 : st->row_text;
+    text(draw, lines, &b->source, b->source_text, oracles_ui_rgb(NOTE));
+    text(draw, lines, &b->credits, oracles_about_credits, oracles_ui_rgb(NOTE));
+    const OraclesUiColor link = focused ? accent : oracles_ui_rgb(BUTTON);
+    text(draw, st->row_button, &b->licences, oracles_about_licences_label, link);
+    text(draw, st->row_button, &b->dot, oracles_ui_item_dot, link);
+    text(draw, lines, &b->list, oracles_about_licences_line, oracles_ui_rgb(NOTE));
+}
 
 void oracles_ui_about_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
     const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
     const look *lk = look_of(nav->layout);
-    char note[ORACLES_HOME_TEXT_LENGTH];
     OraclesUiCheatsLayout l;
-    oracles_ui_layout_about(nav->layout, nav, ORACLES_VERSION, note, sizeof note, &l);
-    head(draw, st, &l.head, "About", nav->layout == ORACLES_UI_LAYOUT_4_3 ? NULL : "The Oracles", NULL, accent);
-    wrapped(draw, nav->layout == ORACLES_UI_LAYOUT_4_3 ? st->page_note : st->row_text, &l.note,
-            oracles_ui_rgb(nav->layout == ORACLES_UI_LAYOUT_4_3 ? NOTE_ITALIC : NOTE));
+    oracles_ui_layout_about(nav->layout, nav, ORACLES_VERSION, ORACLES_REPOSITORY, &l);
+    head(draw, st, &l.head, "Settings", nav->layout == ORACLES_UI_LAYOUT_4_3 ? NULL : "The Oracles", NULL, accent);
     panel(draw, &l.panel);
-    /* Update check, Portable mode where it can be, its choices faded while it copies, and the RetroAchievements link where
-     * the build has them; the highlighted row's help under them in 4:3. */
-    const unsigned rows = oracles_about_rows(nav), row = nav->row < rows ? nav->row : 0u;
+    /* Update check, Portable mode where it can be, its choices faded while it copies; the highlighted row's help under
+     * them in 4:3; the About block. */
+    const unsigned places = oracles_about_rows(nav), row = nav->row < places ? nav->row : 0u;
     OraclesTone tone;
     const char *status = oracles_about_portable_status(nav, &tone);
     const int copying = nav->portable_status == ORACLES_PORTABLE_STATUS_COPYING;
-    for (unsigned r = 0; r < rows; r++) {
-        const unsigned kind = oracles_about_row_kind(nav, r);
+    for (unsigned r = 0; r + 1u < places; r++) {
         highlight(draw, lk, &l.rows[r], r == row);
         wrapped(draw, st->row_text, &l.explanations[r], oracles_ui_rgb(NOTE));
-        if (kind == ORACLES_ABOUT_ROW_ACHIEVEMENTS) {
-#ifdef ORACLES_RETROACHIEVEMENTS
-            char summary[ORACLES_HOME_ACCOUNT_LENGTH + 16];
-            oracles_achievements_summary(nav, summary, sizeof summary);
-            text(draw, st->row_label, &l.labels[r], oracles_achievements_row_label(ORACLES_ACHIEVEMENTS_ROW_ON), oracles_ui_rgb(LABEL));
-            list_link(draw, nav->layout, &l.summaries[r], &l.arrows[r], summary, r == row, accent);
-#endif
-            continue;
-        }
-        const int portable = kind == ORACLES_ABOUT_ROW_PORTABLE;
+        const int portable = oracles_about_row_kind(nav, r) == ORACLES_ABOUT_ROW_PORTABLE;
         const int chosen = portable ? nav->portable != 0 : nav->update_check == 0;   /* the index of the choice on */
         text(draw, st->row_label, &l.labels[r], portable ? oracles_about_portable_label : oracles_about_label, oracles_ui_rgb(LABEL));
         for (int c = 0; c < 2; c++)
@@ -874,81 +873,85 @@ void oracles_ui_about_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracl
     }
     text(draw, st->help, &l.help, l.help_text, oracles_ui_rgb(HELP));
     text(draw, st->help_note, &l.help_note, l.help_note_text, oracles_ui_rgb(NOTE_ITALIC));
+    about_block(draw, st, lk, nav->layout, &l.about, row + 1u == places, accent);
 }
 
 int oracles_ui_about_hit(const OraclesHomeNav *nav, float x, float y, int *option)
 {
-    char note[ORACLES_HOME_TEXT_LENGTH];
     OraclesUiCheatsLayout l;
-    oracles_ui_layout_about(nav->layout, nav, ORACLES_VERSION, note, sizeof note, &l);
+    oracles_ui_layout_about(nav->layout, nav, ORACLES_VERSION, ORACLES_REPOSITORY, &l);
     *option = -1;
     if (nav->portable_status == ORACLES_PORTABLE_STATUS_COPYING) return -1;   /* the page takes no input meanwhile */
-    const int rows = (int)oracles_about_rows(nav);
-    for (int r = 0; r < rows; r++) {
-        if (oracles_about_row_kind(nav, (unsigned)r) == ORACLES_ABOUT_ROW_ACHIEVEMENTS) continue;
+    const int places = (int)oracles_about_rows(nav);
+    for (int r = 0; r + 1 < places; r++)
         for (int c = 0; c < 2; c++) if (inside(&l.choices[r][c].box, x, y)) { *option = c; return r; }
-    }
-    for (int r = 0; r < rows; r++) if (inside(&l.rows[r], x, y)) return r;
+    for (int r = 0; r + 1 < places; r++) if (inside(&l.rows[r], x, y)) return r;
+    if (inside(&l.about.link, x, y)) { *option = 2; return places - 1; }
+    if (inside(&l.about.row, x, y)) return places - 1;
     return -1;
 }
 
 #ifdef ORACLES_RETROACHIEVEMENTS
-/* ---- About › RetroAchievements ------------------------------------------------------------------------------ */
+/* ---- Achievements' page ------------------------------------------------------------------------------------ */
 
-void oracles_ui_achievements_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
+void oracles_ui_achievements_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent, double now_ms)
 {
     const OraclesUiPageStyles *st = oracles_ui_page_styles(nav->layout);
     const look *lk = look_of(nav->layout);
     const int four_three = nav->layout == ORACLES_UI_LAYOUT_4_3;
     const OraclesHomeAchievements *a = &nav->achievements;
-    OraclesUiCheatsLayout l;
-    oracles_ui_layout_achievements(nav->layout, nav, &l);
-    head(draw, st, &l.head, "About \xe2\x80\xba RetroAchievements", four_three ? NULL : "The Oracles", NULL, accent);
-    wrapped(draw, four_three ? st->page_note : st->row_text, &l.note, oracles_ui_rgb(four_three ? NOTE_ITALIC : NOTE));
-    panel(draw, &l.panel);
-    const unsigned row = nav->row < ORACLES_ACHIEVEMENTS_ROWS ? nav->row : 0u;
+    static OraclesUiAchievementsPageLayout page;
+    oracles_ui_layout_achievements_page(nav->layout, nav, &page);
+    const OraclesUiCheatsLayout *l = &page.page;
+    /* 16:9: the column shows the highlighted achievement's detail under the page's name. */
+    if (oracles_achievements_detail_column(nav)) text(draw, st->section, &l->head.section, "Achievements", accent);
+    else {
+        head(draw, st, &l->head, "Achievements", oracles_home_over(oracles_home_hero(nav)), NULL, accent);
+        wrapped(draw, four_three ? st->page_note : st->row_text, &l->note, oracles_ui_rgb(four_three ? NOTE_ITALIC : NOTE));
+    }
+    panel(draw, &l->panel);
+    int saved;
+    SDL_Rect clip;
+    oracles_ui_draw_clip_rect(draw, &saved, &clip);
+    if (page.list) oracles_ui_draw_clip(draw, page.clip.x, page.clip.y, page.clip.w, page.clip.h);
+    const unsigned row = nav->row;
     for (unsigned r = 0; r < ORACLES_ACHIEVEMENTS_ROWS; r++) {
-        highlight(draw, lk, &l.rows[r], r == row);
-        text(draw, st->row_label, &l.labels[r], oracles_achievements_row_label(r), oracles_ui_rgb(LABEL));
+        highlight(draw, lk, &l->rows[r], r == row);
+        text(draw, st->row_label, &l->labels[r], oracles_achievements_row_label(r), oracles_ui_rgb(LABEL));
     }
     const int focused_on = row == ORACLES_ACHIEVEMENTS_ROW_ON;
-    wrapped(draw, st->row_text, &l.explanations[ORACLES_ACHIEVEMENTS_ROW_ON], oracles_ui_rgb(NOTE));
+    wrapped(draw, st->row_text, &l->explanations[ORACLES_ACHIEVEMENTS_ROW_ON], oracles_ui_rgb(NOTE));
     for (int c = 0; c < 2; c++)
-        option(draw, st, lk, &l.choices[ORACLES_ACHIEVEMENTS_ROW_ON][c], 0, c ? "On" : "Off", NULL, c == (a->on != 0), focused_on, accent, CHOICE_OFF, 1.0f);
+        option(draw, st, lk, &l->choices[ORACLES_ACHIEVEMENTS_ROW_ON][c], 0, c ? "On" : "Off", NULL, c == (a->on != 0), focused_on, accent, CHOICE_OFF, 1.0f);
     /* The account: its name as the server spells it, brighter, or "Not logged in"; its action. */
     const OraclesUiColor account = oracles_ui_rgb(a->user[0] ? TEXT : NOTE);
-    wrapped(draw, a->user[0] ? st->row_title : st->row_text, &l.explanations[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], account);
-    text(draw, &oracles_ui_row_title_4_3, &l.values[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], a->user[0] ? a->user : "Not logged in", account);
-    action(draw, st, &l.actions[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], &l.action_dots[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], a->user[0] ? "Log out" : "Log in\xe2\x80\xa6",
+    wrapped(draw, a->user[0] ? st->row_title : st->row_text, &l->explanations[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], account);
+    text(draw, &oracles_ui_row_title_4_3, &l->values[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], a->user[0] ? a->user : "Not logged in", account);
+    action(draw, st, &l->actions[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], &l->action_dots[ORACLES_ACHIEVEMENTS_ROW_ACCOUNT], a->user[0] ? "Log out" : "Log in\xe2\x80\xa6",
            row == ORACLES_ACHIEVEMENTS_ROW_ACCOUNT, accent);
-    wrapped(draw, st->row_text, &l.explanations[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], oracles_ui_rgb(NOTE));
-    action(draw, st, &l.actions[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], &l.action_dots[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], "Player's guide",
+    wrapped(draw, st->row_text, &l->explanations[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], oracles_ui_rgb(NOTE));
+    action(draw, st, &l->actions[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], &l->action_dots[ORACLES_ACHIEVEMENTS_ROW_PRIVACY], "Player's guide",
            row == ORACLES_ACHIEVEMENTS_ROW_PRIVACY, accent);
-    wrapped(draw, st->row_text, &l.explanations[ORACLES_ACHIEVEMENTS_ROW_SOUND], oracles_ui_rgb(NOTE));
+    wrapped(draw, st->row_text, &l->explanations[ORACLES_ACHIEVEMENTS_ROW_SOUND], oracles_ui_rgb(NOTE));
     for (int c = 0; c < 2; c++)
-        option(draw, st, lk, &l.choices[ORACLES_ACHIEVEMENTS_ROW_SOUND][c], 0, c ? "Off" : "On", NULL, c == (a->sound == 0), row == ORACLES_ACHIEVEMENTS_ROW_SOUND,
+        option(draw, st, lk, &l->choices[ORACLES_ACHIEVEMENTS_ROW_SOUND][c], 0, c ? "Off" : "On", NULL, c == (a->sound == 0), row == ORACLES_ACHIEVEMENTS_ROW_SOUND,
                accent, CHOICE_OFF, 1.0f);
+    if (l->below.h > 0.0f) {
+        oracles_ui_fill_rect(draw, l->below_rule.x, l->below_rule.y, l->below_rule.w, l->below_rule.h, oracles_ui_rgba(ABOUT_RULE, ABOUT_RULE_OPACITY));
+        text(draw, four_three ? &oracles_ui_row_text_4_3 : st->row_text, &l->below, oracles_achievements_page_line(nav), oracles_ui_rgb(NOTE));
+    }
     char status[96];
     OraclesTone dot_tone, tone;
     if (oracles_achievements_account_status(nav, status, sizeof status, &dot_tone, &tone)) {
-        dot(draw, &l.status_dot, dot_tone);
-        wrapped(draw, four_three ? &oracles_ui_about_status_4_3 : &oracles_ui_about_status, &l.status, oracles_ui_rgb(tone_texts[tone]));
+        dot(draw, &l->status_dot, dot_tone);
+        wrapped(draw, four_three ? &oracles_ui_about_status_4_3 : &oracles_ui_about_status, &l->status, oracles_ui_rgb(tone_texts[tone]));
     }
+    if (page.list) oracles_ui_achievements_page_list_draw(draw, nav, &page, accent, now_ms);
+    oracles_ui_draw_restore_clip(draw, saved, &clip);
     const char *help, *note;
     oracles_achievements_help(nav, &help, &note);
-    text(draw, st->help, &l.help, help, oracles_ui_rgb(HELP));
-    text(draw, st->help_note, &l.help_note, note, oracles_ui_rgb(NOTE_ITALIC));
-}
-
-int oracles_ui_achievements_page_hit(const OraclesHomeNav *nav, float x, float y, int *option)
-{
-    OraclesUiCheatsLayout l;
-    oracles_ui_layout_achievements(nav->layout, nav, &l);
-    *option = -1;
-    for (int c = 0; c < 2; c++) if (inside(&l.choices[ORACLES_ACHIEVEMENTS_ROW_ON][c].box, x, y)) { *option = c; return ORACLES_ACHIEVEMENTS_ROW_ON; }
-    for (int c = 0; c < 2; c++) if (inside(&l.choices[ORACLES_ACHIEVEMENTS_ROW_SOUND][c].box, x, y)) { *option = c; return ORACLES_ACHIEVEMENTS_ROW_SOUND; }
-    for (int r = ORACLES_ACHIEVEMENTS_ROW_ACCOUNT; r <= ORACLES_ACHIEVEMENTS_ROW_PRIVACY; r++) if (inside(&l.action_boxes[r], x, y)) { *option = 2; return r; }
-    for (int r = 0; r < ORACLES_ACHIEVEMENTS_ROWS; r++) if (inside(&l.rows[r], x, y)) return r;
-    return -1;
+    text(draw, st->help, &l->help, page.help[0] ? page.help : help, oracles_ui_rgb(HELP));
+    text(draw, st->help_note, &l->help_note, page.help[0] ? page.help_note : note, oracles_ui_rgb(NOTE_ITALIC));
+    oracles_ui_achievements_detail_draw(draw, nav, accent, now_ms);
 }
 #endif

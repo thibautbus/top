@@ -2,6 +2,7 @@
  * images, the toasts over a game. */
 #include "ui_achievements_draw.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -17,6 +18,11 @@
 #define PLACEHOLDER 0x5d5a66u
 #define BUTTON 0xdcd9e1u
 #define BUSY_OPACITY 0.45f
+#define EYE_FOCUSED_FIELD 0xd6d3dcu
+#define EYE_STROKE 1.7f           /* in the glyph's 24 by 24 */
+#define EYE_SLASH_STROKE 1.9f
+#define EYE_CURVE_STEPS 10
+#define EYE_CIRCLE_STEPS 20
 #define KEYBOARD 0x15141au
 #define KEY_FILL_OPACITY 0.06f
 #define KEY_BORDER_OPACITY 0.1f
@@ -40,6 +46,17 @@
 #define PLACEHOLDER_BORDER_OPACITY 0.22f
 #define SCROLL_TRACK_OPACITY 0.06f
 #define SCROLL_THUMB_OPACITY 0.3f
+#define DETAIL_DIM_OPACITY 0.55f
+#define DETAIL_PANEL 0x0e0d12u
+#define DETAIL_PANEL_OPACITY 0.98f
+#define DETAIL_PANEL_BORDER_OPACITY 0.14f
+#define DETAIL_PANEL_RADIUS 12.0f
+#define DETAIL_PANEL_STROKE 2.0f
+#define DETAIL_TITLE 0xf3f1f5u
+#define DETAIL_TEXT 0xc9c6cfu
+#define DETAIL_RARITY 0xa19eaau
+#define DETAIL_UNLOCKED 0xd6d3dcu
+#define DETAIL_LOCKED 0xa19eaau
 #define HEAD_OVER 0xd6d3dcu
 #define HEAD_TITLE 0xf3f1f5u
 #define MODE 0xa19eaau
@@ -114,6 +131,45 @@ SDL_Texture *oracles_ui_achievements_badge(OraclesUiDraw *draw, const char *fold
 
 /* ---- the login -------------------------------------------------------------------------------------------- */
 
+/* A stroke between two points of the eye's 24 by 24, `scale` scene pixels each from (x, y). */
+static void eye_stroke(OraclesUiDraw *draw, float x, float y, float scale, float ax, float ay, float bx, float by, float width, OraclesUiColor color)
+{
+    const float dx = bx - ax, dy = by - ay, length = sqrtf(dx * dx + dy * dy);
+    if (length <= 0.0f) return;
+    const float over = 0.5f * width / length, nx = -dy * over, ny = dx * over, ex = dx * over * 0.5f, ey = dy * over * 0.5f;
+    const float quad[8] = { x + (ax - ex + nx) * scale, y + (ay - ey + ny) * scale, x + (bx + ex + nx) * scale, y + (by + ey + ny) * scale,
+                            x + (bx + ex - nx) * scale, y + (by + ey - ny) * scale, x + (ax - ex - nx) * scale, y + (ay - ey - ny) * scale };
+    oracles_ui_fill_polygon(draw, quad, 4, color);
+}
+
+/* The eye's outline, its iris, and over them the slash of the crossed eye: the mockup's glyph, stroked. */
+static void draw_eye(OraclesUiDraw *draw, const OraclesUiBox *b, float size, int crossed, OraclesUiColor color)
+{
+    static const float curves[4][8] = { { 2.0f, 12.0f, 5.0f, 6.6f, 8.4f, 4.6f, 12.0f, 4.6f }, { 12.0f, 4.6f, 15.6f, 4.6f, 19.0f, 6.6f, 22.0f, 12.0f },
+                                        { 22.0f, 12.0f, 19.0f, 17.4f, 15.6f, 19.4f, 12.0f, 19.4f }, { 12.0f, 19.4f, 8.4f, 19.4f, 5.0f, 17.4f, 2.0f, 12.0f } };
+    const float x = b->x + (b->w - size) * 0.5f, y = b->y + (b->h - size) * 0.5f, scale = size / 24.0f;
+    for (int c = 0; c < 4; c++) {
+        const float *p = curves[c];
+        float last_x = p[0], last_y = p[1];
+        for (int i = 1; i <= EYE_CURVE_STEPS; i++) {
+            const float t = (float)i / EYE_CURVE_STEPS, u = 1.0f - t;
+            const float a = u * u * u, e = 3.0f * u * u * t, f = 3.0f * u * t * t, g = t * t * t;
+            const float px = a * p[0] + e * p[2] + f * p[4] + g * p[6], py = a * p[1] + e * p[3] + f * p[5] + g * p[7];
+            eye_stroke(draw, x, y, scale, last_x, last_y, px, py, EYE_STROKE, color);
+            last_x = px;
+            last_y = py;
+        }
+    }
+    float last_x = 15.4f, last_y = 12.0f;
+    for (int i = 1; i <= EYE_CIRCLE_STEPS; i++) {
+        const float angle = 6.2831853f * (float)i / EYE_CIRCLE_STEPS, px = 12.0f + 3.4f * cosf(angle), py = 12.0f + 3.4f * sinf(angle);
+        eye_stroke(draw, x, y, scale, last_x, last_y, px, py, EYE_STROKE, color);
+        last_x = px;
+        last_y = py;
+    }
+    if (crossed) eye_stroke(draw, x, y, scale, 4.0f, 20.0f, 20.0f, 4.0f, EYE_SLASH_STROKE, color);
+}
+
 void oracles_ui_achievements_login_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent)
 {
     const OraclesHomeAchievements *a = &nav->achievements;
@@ -131,20 +187,28 @@ void oracles_ui_achievements_login_draw(OraclesUiDraw *draw, const OraclesHomeNa
     static const char *const labels[2] = { "User name", "Password" };
     for (int f = 0; f < 2; f++) {
         const OraclesUiLoginField *field = &l.fields[f];
-        const int focused = a->field == f;
+        const int eye_focused = f == ORACLES_LOGIN_PASSWORD && a->field == ORACLES_LOGIN_EYE, focused = a->field == f || eye_focused;
         text(draw, oracles_ui_login_style(layout, ORACLES_UI_LOGIN_LABEL), &field->label, labels[f], oracles_ui_rgb(LABEL));
         fill(draw, &field->frame, 6.0f, oracles_ui_rgba(0xffffffu, FIELD_FILL_OPACITY));
         stroke(draw, &field->frame, 6.0f, focused ? (four_three ? 3.0f : 2.0f) : 1.0f, focused ? accent : oracles_ui_rgba(0xffffffu, FIELD_BORDER_OPACITY));
         OraclesUiTextStyle value = *oracles_ui_login_style(layout, ORACLES_UI_LOGIN_VALUE);
-        if (f) value.tracking = 0.12f;
+        if (f && !l.shown) value.tracking = 0.12f;
         int saved;
         SDL_Rect clip;
         oracles_ui_draw_clip_rect(draw, &saved, &clip);
         oracles_ui_draw_clip(draw, field->clip.x, field->clip.y, field->clip.w, field->clip.h);
-        text(draw, &value, &field->value, f ? l.masked : a->name, oracles_ui_rgb(TEXT));
+        text(draw, &value, &field->value, !f ? a->name : l.shown ? a->password : l.masked, oracles_ui_rgb(TEXT));
         text(draw, oracles_ui_login_style(layout, ORACLES_UI_LOGIN_VALUE), &field->placeholder, "As on retroachievements.org", oracles_ui_rgb(PLACEHOLDER));
         fill(draw, &field->caret, 0.0f, accent);
         oracles_ui_draw_restore_clip(draw, saved, &clip);
+        if (field->eye_shown) {
+            /* Brighter with the password highlighted, in the accent and framed once it has the highlight; faded and inert
+             * while it logs in. */
+            const OraclesUiColor color = eye_focused ? accent : oracles_ui_rgb(a->field == f ? EYE_FOCUSED_FIELD : LABEL);
+            const float opacity = busy ? BUSY_OPACITY : 1.0f;
+            if (eye_focused) stroke(draw, &field->eye, 6.0f, 2.0f, accent);
+            draw_eye(draw, &field->eye, field->eye_size, l.shown, oracles_ui_fade(color, opacity));
+        }
     }
     text(draw, oracles_ui_login_style(layout, ORACLES_UI_LOGIN_NOTE), &l.note, "Sent once over HTTPS; only the token the server returns is kept.",
          oracles_ui_rgb(LABEL));
@@ -184,6 +248,7 @@ int oracles_ui_achievements_login_hit(const OraclesHomeNav *nav, float x, float 
 {
     OraclesUiLoginLayout l;
     oracles_ui_layout_login(nav->layout, nav, &l);
+    if (l.fields[ORACLES_LOGIN_PASSWORD].eye_shown && inside(&l.fields[ORACLES_LOGIN_PASSWORD].eye, x, y)) return ORACLES_LOGIN_EYE;
     for (int f = 0; f < 2; f++) if (inside(&l.fields[f].box, x, y)) return f;
     for (int b = 0; b < 2; b++) if (inside(&l.buttons[b], x, y)) return ORACLES_LOGIN_OK + b;
     for (unsigned r = 0; r < ORACLES_KEYBOARD_ROWS; r++)
@@ -193,16 +258,97 @@ int oracles_ui_achievements_login_hit(const OraclesHomeNav *nav, float x, float 
 
 /* ---- the list ------------------------------------------------------------------------------------------- */
 
+static int badges_waiting;
+
+/* An achievement's row: its highlight, its badge, its texts, its progress bar in 16:9. */
+static void draw_row(OraclesUiDraw *draw, OraclesUiLayout layout, const OraclesAchievementsList *list, const OraclesUiAchievementRow *row, int focused,
+                     OraclesUiColor accent, double now_ms)
+{
+    const int four_three = layout == ORACLES_UI_LAYOUT_4_3;
+    const float radius = four_three ? 8.0f : 6.0f, badge_radius = four_three ? 7.0f : 6.0f;
+    const OraclesAchievementsItem *item = &list->items[row->index];
+    if (focused) fill(draw, &row->row, radius, oracles_ui_rgba(0xffffffu, ROW_HIGHLIGHT_OPACITY));
+    /* The badge: in colour once unlocked, its locked image otherwise, a dashed frame until it is downloaded. */
+    SDL_Texture *badge = oracles_ui_achievements_badge(draw, list->badges, item->badge, !item->unlocked, now_ms);
+    if (!badge && item->badge[0]) badges_waiting = 1;
+    if (badge) oracles_ui_draw_texture(draw, badge, row->badge.x, row->badge.y, row->badge.w, row->badge.h, 1.0f);
+    else oracles_ui_stroke_dashed_rect(draw, row->badge.x, row->badge.y, row->badge.w, row->badge.h, badge_radius, 2.0f,
+                                       oracles_ui_rgba(0xffffffu, PLACEHOLDER_BORDER_OPACITY));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_TITLE), &row->title, row->title_text, oracles_ui_rgb(item->unlocked ? TITLE_UNLOCKED : TITLE_LOCKED));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DESCRIPTION), &row->description, row->description_text, oracles_ui_rgb(DESCRIPTION));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_POINTS), &row->points, row->points_text, oracles_ui_rgb(item->unlocked ? POINTS_UNLOCKED : POINTS_LOCKED));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DATE), &row->date, row->date_text, oracles_ui_rgb(DATE));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_PROGRESS), &row->progress, row->date_text, oracles_ui_rgb(four_three ? DATE : PROGRESS_TEXT));
+    if (row->bar.w > 0.0f) {
+        fill(draw, &row->bar, row->bar.h * 0.5f, oracles_ui_rgba(0xffffffu, BAR_TRACK_OPACITY));
+        const OraclesUiBox done = { row->bar.x, row->bar.y, row->bar.w * (item->percent < 1.0f ? item->percent : 1.0f), row->bar.h };
+        oracles_ui_fill_rect(draw, done.x, done.y, done.w, done.h, accent);
+    }
+}
+
+void oracles_ui_achievements_page_list_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, const OraclesUiAchievementsPageLayout *page, OraclesUiColor accent, double now_ms)
+{
+    const OraclesUiLayout layout = nav->layout;
+    fill(draw, &page->rule, 0.0f, oracles_ui_rgba(0xffffffu, SUMMARY_RULE_OPACITY));
+    fill(draw, &page->summary_dot, page->summary_dot.w * 0.5f, oracles_ui_rgb(tone_dots[page->warning ? ORACLES_TONE_WARN : ORACLES_TONE_OK]));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_SUMMARY), &page->summary_text, page->summary_line,
+         oracles_ui_rgb(page->warning ? tone_texts[ORACLES_TONE_WARN] : TEXT));
+    badges_waiting = 0;
+    const unsigned focus = nav->row >= ORACLES_ACHIEVEMENTS_ROWS ? nav->row - ORACLES_ACHIEVEMENTS_ROWS : ORACLES_ACHIEVEMENTS_MAX;
+    for (unsigned i = 0; i < page->shown; i++) draw_row(draw, layout, nav->achievements.list, &page->rows[i], page->rows[i].index == focus, accent, now_ms);
+}
+
+void oracles_ui_achievements_detail_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, OraclesUiColor accent, double now_ms)
+{
+    /* The panel in 4:3's sizes, whatever the layout under it. */
+    const int four_three = oracles_achievements_detail_panel(nav);
+    const OraclesUiLayout layout = four_three ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9;
+    if (four_three ? !oracles_achievements_detail_open(nav) : !oracles_achievements_detail_column(nav)) return;
+    const OraclesAchievementsItem *item = oracles_achievements_detail_item(nav);
+    static OraclesUiAchievementDetail d;
+    oracles_ui_achievement_detail_of(nav, &d);
+    if (four_three) {
+        oracles_ui_fill_rect(draw, -4000.0f, -4000.0f, 10000.0f, 10000.0f, oracles_ui_rgba(DIM, DETAIL_DIM_OPACITY));
+        fill(draw, &d.panel, DETAIL_PANEL_RADIUS, oracles_ui_rgba(DETAIL_PANEL, DETAIL_PANEL_OPACITY));
+        stroke(draw, &d.panel, DETAIL_PANEL_RADIUS, DETAIL_PANEL_STROKE, oracles_ui_rgba(0xffffffu, DETAIL_PANEL_BORDER_OPACITY));
+    }
+    /* In colour once unlocked, its locked image otherwise, a dashed frame until it is downloaded. */
+    const float badge_radius = four_three ? 12.0f : 10.0f;
+    SDL_Texture *badge = oracles_ui_achievements_badge(draw, nav->achievements.list->badges, item->badge, !item->unlocked, now_ms);
+    if (badge) oracles_ui_draw_texture(draw, badge, d.badge.x, d.badge.y, d.badge.w, d.badge.h, 1.0f);
+    else oracles_ui_stroke_dashed_rect(draw, d.badge.x, d.badge.y, d.badge.w, d.badge.h, badge_radius, 3.0f, oracles_ui_rgba(0xffffffu, PLACEHOLDER_BORDER_OPACITY));
+    const OraclesUiTextStyle *detail_text = oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TEXT);
+    const OraclesUiColor state = oracles_ui_rgb(item->unlocked ? DETAIL_UNLOCKED : DETAIL_LOCKED);
+    for (unsigned i = 0; i < d.title_lines; i++) text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TITLE), &d.title[i], d.title_text[i], oracles_ui_rgb(DETAIL_TITLE));
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_POINTS), &d.points, d.points_text, state);
+    text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_RARITY), &d.rarity, d.rarity_text, oracles_ui_rgb(DETAIL_RARITY));
+    const char *tag = oracles_achievements_tag_text(item->tag);
+    if (tag) {
+        const OraclesUiColor tone = oracles_ui_rgb(item->tag == ORACLES_ACHIEVEMENT_TAG_MISSABLE ? tone_texts[ORACLES_TONE_WARN] : DETAIL_TEXT);
+        stroke(draw, &d.tag, four_three ? 6.0f : 5.0f, four_three ? 2.0f : 1.0f, tone);
+        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_TAG), &d.tag_name, tag, tone);
+    }
+    for (unsigned i = 0; i < d.description_lines; i++) text(draw, detail_text, &d.description[i], d.description_text[i], oracles_ui_rgb(DETAIL_TEXT));
+    fill(draw, &d.state_dot, d.state_dot.w * 0.5f, oracles_ui_rgb(tone_dots[item->unlocked ? ORACLES_TONE_OK : ORACLES_TONE_NONE]));
+    text(draw, detail_text, &d.state, d.state_text, state);
+    if (d.bar.w > 0.0f) {
+        fill(draw, &d.bar, d.bar.h * 0.5f, oracles_ui_rgba(0xffffffu, BAR_TRACK_OPACITY));
+        const OraclesUiBox done = { d.bar.x, d.bar.y, d.bar.w * (item->percent < 1.0f ? item->percent : 1.0f), d.bar.h };
+        oracles_ui_fill_rect(draw, done.x, done.y, done.w, done.h, accent);
+        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DETAIL_PROGRESS), &d.progress, item->progress, oracles_ui_rgb(DETAIL_TEXT));
+    }
+}
+
 /* The list laid out again only when what it shows changes: its texts cut to their rows once. */
 typedef struct list_key {
     OraclesUiLayout layout;
     const OraclesAchievementsList *list;
-    unsigned generation, focus;
+    unsigned generation, focus, first;
     int suspended, hero;
 } list_key;
 static list_key laid_key;
 static OraclesUiAchievementsLayout laid;
-static int laid_once, badges_waiting;
+static int laid_once;
 
 int oracles_ui_achievements_list_waiting(void) { return badges_waiting; }
 
@@ -217,6 +363,7 @@ void oracles_ui_achievements_list_draw(OraclesUiDraw *draw, const OraclesHomeNav
     key.list = nav->achievements.list;
     key.generation = key.list ? key.list->generation : 0u;
     key.focus = nav->achievements.list_focus;
+    key.first = nav->achievements.list_first;
     key.suspended = nav->achievements.suspended;
     key.hero = (int)oracles_home_hero(nav);
     if (!laid_once || memcmp(&key, &laid_key, sizeof key) != 0) {
@@ -227,9 +374,12 @@ void oracles_ui_achievements_list_draw(OraclesUiDraw *draw, const OraclesHomeNav
     const OraclesUiAchievementsLayout *l = &laid;
     const OraclesHomeHero hero = oracles_home_hero(nav);
     text(draw, st->section, &l->head.section, "Achievements", accent);
-    if (!four_three) text(draw, st->over, &l->head.over, oracles_home_over(hero), oracles_ui_rgb(HEAD_OVER));
-    for (unsigned i = 0; i < l->head.title.count; i++) text(draw, st->title, &l->head.title.lines[i], l->head.title.text[i], oracles_ui_rgb(HEAD_TITLE));
-    for (unsigned i = 0; i < l->mode.count; i++) text(draw, &oracles_ui_row_text, &l->mode.lines[i], l->mode.text[i], oracles_ui_rgb(MODE));
+    /* 16:9: the column shows the detail in their place. */
+    if (!oracles_achievements_detail_column(nav)) {
+        if (!four_three) text(draw, st->over, &l->head.over, oracles_home_over(hero), oracles_ui_rgb(HEAD_OVER));
+        for (unsigned i = 0; i < l->head.title.count; i++) text(draw, st->title, &l->head.title.lines[i], l->head.title.text[i], oracles_ui_rgb(HEAD_TITLE));
+        for (unsigned i = 0; i < l->mode.count; i++) text(draw, &oracles_ui_row_text, &l->mode.lines[i], l->mode.text[i], oracles_ui_rgb(MODE));
+    }
     if (!four_three) {
         fill(draw, &l->panel, 10.0f, oracles_ui_rgba(PANEL, PANEL_OPACITY));
         stroke(draw, &l->panel, 10.0f, 1.0f, oracles_ui_rgba(0xffffffu, PANEL_BORDER_OPACITY));
@@ -243,33 +393,13 @@ void oracles_ui_achievements_list_draw(OraclesUiDraw *draw, const OraclesHomeNav
     SDL_Rect clip;
     oracles_ui_draw_clip_rect(draw, &saved, &clip);
     oracles_ui_draw_clip(draw, l->list.x, l->list.y, l->list.w, l->list.h);
-    const float radius = four_three ? 8.0f : 6.0f, badge_radius = four_three ? 7.0f : 6.0f;
     badges_waiting = 0;
-    for (unsigned i = 0; i < l->shown && list; i++) {
-        const OraclesUiAchievementRow *row = &l->rows[i];
-        const OraclesAchievementsItem *item = &list->items[row->index];
-        if (row->index == nav->achievements.list_focus) fill(draw, &row->row, radius, oracles_ui_rgba(0xffffffu, ROW_HIGHLIGHT_OPACITY));
-        /* The badge: in colour once unlocked, its locked image otherwise, a dashed frame until it is downloaded. */
-        SDL_Texture *badge = oracles_ui_achievements_badge(draw, list->badges, item->badge, !item->unlocked, now_ms);
-        if (!badge && item->badge[0]) badges_waiting = 1;
-        if (badge) oracles_ui_draw_texture(draw, badge, row->badge.x, row->badge.y, row->badge.w, row->badge.h, 1.0f);
-        else oracles_ui_stroke_dashed_rect(draw, row->badge.x, row->badge.y, row->badge.w, row->badge.h, badge_radius, 2.0f,
-                                           oracles_ui_rgba(0xffffffu, PLACEHOLDER_BORDER_OPACITY));
-        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_TITLE), &row->title, row->title_text, oracles_ui_rgb(item->unlocked ? TITLE_UNLOCKED : TITLE_LOCKED));
-        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DESCRIPTION), &row->description, row->description_text, oracles_ui_rgb(DESCRIPTION));
-        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_POINTS), &row->points, row->points_text, oracles_ui_rgb(item->unlocked ? POINTS_UNLOCKED : POINTS_LOCKED));
-        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DATE), &row->date, row->date_text, oracles_ui_rgb(DATE));
-        text(draw, oracles_ui_achievements_style(layout, ORACLES_UI_ACH_PROGRESS), &row->progress, row->date_text,
-             oracles_ui_rgb(four_three ? DATE : PROGRESS_TEXT));
-        if (row->bar.w > 0.0f) {
-            fill(draw, &row->bar, row->bar.h * 0.5f, oracles_ui_rgba(0xffffffu, BAR_TRACK_OPACITY));
-            const OraclesUiBox done = { row->bar.x, row->bar.y, row->bar.w * (item->percent < 1.0f ? item->percent : 1.0f), row->bar.h };
-            oracles_ui_fill_rect(draw, done.x, done.y, done.w, done.h, accent);
-        }
-    }
+    for (unsigned i = 0; i < l->shown && list; i++)
+        draw_row(draw, layout, list, &l->rows[i], l->rows[i].index == nav->achievements.list_focus, accent, now_ms);
     oracles_ui_draw_restore_clip(draw, saved, &clip);
     fill(draw, &l->track, l->track.w * 0.5f, oracles_ui_rgba(0xffffffu, SCROLL_TRACK_OPACITY));
     fill(draw, &l->thumb, l->thumb.w * 0.5f, oracles_ui_rgba(0xffffffu, SCROLL_THUMB_OPACITY));
+    oracles_ui_achievements_detail_draw(draw, nav, accent, now_ms);
 }
 
 /* ---- the toasts ------------------------------------------------------------------------------------------ */

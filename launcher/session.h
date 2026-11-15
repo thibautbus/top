@@ -207,6 +207,12 @@ typedef struct OraclesAchievementsHomeLogin OraclesSessionLogin;   /* achievemen
 OraclesSessionLogin *oracles_session_achievements_login_begin(oracles_settings *settings, const char *user, const char *password, const char *offline);
 int oracles_session_achievements_login_poll(OraclesSessionLogin *login, char *user, size_t capacity);
 void oracles_session_achievements_login_end(OraclesSessionLogin *login);
+/* The list of the game of the ROM at `rom_path` for the home screen's page, no game running (achievements_load.h): its
+ * client on the network's thread with the account kept, from `offline`'s files where it is given.  It reads, and opens no
+ * session on the server: a session counts when the game starts.  Only a game's session sends startsession, pings and the
+ * unlocks kept offline: this path sends none and leaves achievements-pending.txt as it is.  NULL when it cannot start. */
+typedef struct OraclesAchievementsLoad OraclesAchievementsLoad;
+OraclesAchievementsLoad *oracles_session_achievements_load_begin(oracles_settings *settings, const char *rom_path, const char *offline);
 #endif
 
 /* The save file of a ROM: its path with the extension .sav. */
