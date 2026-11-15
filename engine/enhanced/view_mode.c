@@ -187,7 +187,8 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking)
     const int loading = (room_load
         && !(lcd_on && ev_on_grid(v) && v->observer.ref_group == ob->group && v->observer.ref_room == ob->room))
         || ob->cell_pending   /* a dungeon room not yet placed on its floor's map */
-        || ev_maku_pending(v);
+        || ev_maku_pending(v)
+        || ev_curtain_closed_white(v);   /* the screen back on, still the load's white */
     const int menus = framed_frame_menus(v);
     v->have_wave = ob->playing && !loading && !menus && line_scroll_shifts(v, v->line_shift, v->line_shift_y);
     v->shake_history = (v->shake_history << 1) | (unsigned)shaking(v);
@@ -201,15 +202,16 @@ OraclesEnhancedMode ev_choose_mode(OraclesEnhancedView *v, int tracking)
     return ORACLES_ENHANCED_WORLD;
 }
 
-/* A room's load under the HUD band the world frames draw (the status bar, its gutters as hud= paints them, the
- * hotbar), so that the bar neither moves nor changes at a door: below it the game area alone, where the world shows
- * it, the rest black as the world band leaves what no source covers.  Its place: the last world frame's while the
- * image still shows the room left; after the load's blank, the camera's for a large room, which it frames from the
- * room itself, else centred, where the camera frames an interior of one room (its observation of Link held outside
- * the room until the walk in ends, the camera says nothing of the room entered before).  The blank itself (the LCD
- * off, a full fade: one colour over the whole image) stays framed whole, as the game shows it; after a frame the large
- * menus enlarge (a picture's fade to white, a scene's room, the map) it is that screen's blank, and keeps their scale
- * until the room shows, or it would shrink in place.  Any other framed frame lets the room left go. */
+/* A room's load under the HUD band the world frames draw (the status bar, its gutters as hud= paints them, the hotbar),
+ * so that the bar neither moves nor changes at a door: below it the game area alone, where the world shows it, the rest
+ * black as the world band leaves what no source covers.  Its place: the last world frame's while the image still shows
+ * the room left; after the load's blank, the camera's for a large room, which it frames from the room itself, else
+ * centred in the world band, where the camera frames an interior of one room (its observation of Link held outside the
+ * room until the walk in ends, the camera says nothing of the room entered before): under the HUD band, or on the whole
+ * surface with the bar floating, so that play takes the room where the load showed it.  The blank itself (the LCD off,
+ * a full fade: one colour over the whole image) stays framed whole, as the game shows it; after a frame the large menus
+ * enlarge (a picture's fade to white, a scene's room, the map) it is that screen's blank, and keeps their scale until
+ * the room shows, or it would shrink in place.  Any other framed frame lets the room left go. */
 int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int tracking, int32_t camera_x, int32_t camera_y)
 {
     const OraclesEnhancedObservation *ob = &v->observation;
@@ -223,7 +225,7 @@ int ev_load_band(OraclesEnhancedView *v, OraclesEnhancedCompose *in, int trackin
     } else if (!v->framed_load) { v->load_area_held = 0; return 0; }
     else if (!v->load_area_held) {
         v->load_area_left = (int32_t)oracles_enhanced_hud_x(v->size);
-        v->load_area_top = (int32_t)((v->size.height - ORACLES_PPU_HEIGHT) / 2u + ORACLES_ENHANCED_HUD_HEIGHT);
+        v->load_area_top = (int32_t)(v->band_top + (v->band_height - ORACLES_ENHANCED_AREA_HEIGHT) / 2u);
     }
     const uint32_t *image = ev_scroll_window(v);
     size_t i = 1;

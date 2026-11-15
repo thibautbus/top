@@ -578,6 +578,7 @@ static void check_pixels_and_row(OraclesEnhancedCheck *c, const OraclesEnhancedO
     } else memset(box, 0, sizeof box);
     if (mode == ORACLES_ENHANCED_WORLD && surface && !oracles_enhanced_view_blurb_drawn(c->view)) ec_check_window_lines(c, ob, surface, camera_x, camera_y, box, frame);
     if (mode == ORACLES_ENHANCED_WORLD && surface) ec_check_curtain(c, ob, surface, camera_x, camera_y, frame);
+    ec_check_curtain_white(c, mode, surface, frame);
     const unsigned waves = oracles_enhanced_view_wave_frames(c->view);
     const int rippled = waves != c->last_wave_frames;
     c->last_wave_frames = waves;

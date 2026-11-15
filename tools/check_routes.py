@@ -120,14 +120,19 @@ ALWAYS = {
                  # on the frames after the scroll
                  "enhanced.large_entry_people_off=0", "enhanced.large_entry_edge_object_wrong=0", "enhanced.large_entry_edge_background_wrong=0", "enhanced.large_scroll_people_missing=0",
                  # the rooms a dungeon's room opens onto, those of its own floor, a fall's or a staircase's fade included
-                 "enhanced.dungeon_neighbours_off_floor=0"] + POSES + UNVISITED,
+                 "enhanced.dungeon_neighbours_off_floor=0",
+                 # the curtain of a warp over the band in the colour the game's window shows in the columns it has not drawn,
+                 # closed before its first column; while the window is still the game's white, the load's blank framed where the
+                 # load frames it, never composed as the world nor the white across the band
+                 "enhanced.curtain_frames_wrong=0", "enhanced.curtain_white_frames=0", "enhanced.curtain_white_band_frames=0", "enhanced.curtain_white_misplaced=0"] + POSES + UNVISITED,
     "enhanced-threaded": ["result=ok", "enhanced.camera_jumps=0", "enhanced.window_misplaced=0", "enhanced.terrains_different=0",
                           "enhanced.live_diff_max=0", "enhanced.plain_shown_frames=0", "enhanced.text_box_frames_at_origin=0",
                           "enhanced.blurb_frames_in_window=0",
                           "enhanced.transitions_other_room=0",   # never a room drawn that way other than the one entered
                           "enhanced.scroll_animation_landed_off=0", "enhanced.scroll_animation_gaps=0", "enhanced.scroll_animation_gap_max=0", "enhanced.scroll_animation_tiles_off=0",
                           "enhanced.large_entry_people_off=0", "enhanced.large_entry_edge_object_wrong=0", "enhanced.large_entry_edge_background_wrong=0", "enhanced.large_scroll_people_missing=0",
-                          "enhanced.dungeon_neighbours_off_floor=0"] + POSES + UNVISITED,
+                          "enhanced.dungeon_neighbours_off_floor=0",
+                          "enhanced.curtain_frames_wrong=0", "enhanced.curtain_white_frames=0", "enhanced.curtain_white_band_frames=0", "enhanced.curtain_white_misplaced=0"] + POSES + UNVISITED,
 }
 # The band must fill at least once: the black is counted from its first full frame, and a route whose band never fills
 # would count none and pass any ceiling.

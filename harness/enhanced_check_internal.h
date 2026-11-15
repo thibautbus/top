@@ -259,7 +259,13 @@ struct OraclesEnhancedCheck {
     unsigned transitions_other_room;  /* entered while another room was shown that way: a wrong neighbour, never allowed */
     char other_room_list[256];        /* "from>to=shown" */
     unsigned curtain_frames, curtain_closed_frames, curtain_frames_wrong, curtain_frames_unchecked, curtain_pixels_wrong;
-    int curtain_after_large;          /* the last world frame without a curtain was in a large room */
+    unsigned curtain_white_frames;         /* closed curtain frames whose window is the game's white, composed as the world */
+    unsigned curtain_white_band_frames;    /* closed curtain frames with the game's white in the band outside the window */
+    unsigned curtain_white_framed;         /* closed curtain frames whose window is the game's white, composed as the load */
+    unsigned curtain_white_misplaced;      /* of those, the frames whose core image is not where the load shows it, or whose game area moved since the first of their run */
+    int curtain_white_run;                 /* the frame before was one of those: its run's first frame's game area in curtain_white_area */
+    uint32_t curtain_white_last;
+    int32_t curtain_white_area[2];
     unsigned text_box_frames_in_place;     /* frames the box's own place in the window still shows the box */
     unsigned curtain_window_frames_wrong;  /* curtain frames whose window, in the band, is not the core's image */
     unsigned text_box_frames, text_box_frames_wrong, text_box_pixels_wrong;
@@ -468,6 +474,7 @@ void ec_check_text_box(OraclesEnhancedCheck *c, const OraclesEnhancedObservation
 void ec_check_window_lines(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y,
                            uint8_t box[ORACLES_ENHANCED_AREA_HEIGHT][ORACLES_ENHANCED_CORE_WIDTH], uint32_t frame);
 void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame);
+void ec_check_curtain_white(OraclesEnhancedCheck *c, OraclesEnhancedMode view_mode, const uint32_t *surface, uint32_t frame);
 void ec_measure_alone_rows(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, int32_t camera_y);
 /* The game's window and the ring of the band around it, compared in luminance on a world frame. */
 void ec_measure_whole_room(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, OraclesEnhancedMode mode, const uint32_t *surface,

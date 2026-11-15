@@ -175,6 +175,8 @@ void ev_find_area_blurb(OraclesEnhancedView *v);
 void ev_overlay_area_blurb(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
 /* The columns of its map the game has not redrawn yet after a warp, over the whole band. */
 void ev_overlay_warp_curtain(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
+/* The curtain of a warp closed, the game's window still its white (oracles_enhanced_window_white): a frame of the load. */
+int ev_curtain_closed_white(OraclesEnhancedView *v);
 /* A dialogue's text box, drawn again at the middle of the band (view_textbox.c): the core's, or the host's wide box. */
 void ev_overlay_text_box(OraclesEnhancedView *v, int32_t camera_x, int32_t camera_y);
 void ev_black_outside_shown(OraclesEnhancedView *v);

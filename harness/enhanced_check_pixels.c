@@ -157,10 +157,14 @@ void ec_check_window_lines(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
  * pixel outside the game's window whose
  * column has not been drawn must hold the curtain's colour, the one the
  * core itself shows in an undrawn column of its window; the frames where
- * the window has none left are counted apart, their colour unchecked.  Out of a
- * large room (the last world frame without a curtain in one), the frames
- * before the first column whose window is the blank alone are the curtain
- * closed, every column of the band its colour (counted apart too). */
+ * the window has none left are counted apart, their colour unchecked.  The
+ * frames before the first column whose window is the blank alone are the
+ * curtain closed, every column of the band its colour (counted apart too).
+ * While the window is the game's white (the screen just switched back on),
+ * the frame is the load's blank still and is not composed as the world: a
+ * world frame of the closed curtain with the window white is counted
+ * (enhanced.curtain_white_frames), and one with the game's white in the band
+ * too (enhanced.curtain_white_band_frames). */
 void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame)
 {
     const OraclesGuestTables *t = oracles_guest_tables(c->guest);
@@ -168,9 +172,9 @@ void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation 
     const uint8_t state = oracles_guest_read8(c->guest, t->screen_transition_state);
     const uint8_t substate = oracles_guest_read8(c->guest, t->screen_transition_substate);
     const uint32_t *core_pixels = oracles_core_pixels(c->core);
-    /* Out of a large room, before the first column, with the window blank: closed, no column drawn. */
-    const int closed = mode == CURTAIN_SCROLL_MODE && c->curtain_after_large && oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(core_pixels);
-    if (!closed && (mode != CURTAIN_SCROLL_MODE || state != CURTAIN_TRANSITION_STATE || substate != CURTAIN_SUBSTATE)) { c->curtain_after_large = ob->large; return; }
+    /* Before the first column, with the window blank: closed, no column drawn. */
+    const int closed = mode == CURTAIN_SCROLL_MODE && oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(core_pixels);
+    if (!closed && (mode != CURTAIN_SCROLL_MODE || state != CURTAIN_TRANSITION_STATE || substate != CURTAIN_SUBSTATE)) return;
     const uint8_t scx = (uint8_t)(ob->drawn_camera_x + ob->drawn_offset_x);
     const unsigned next_left = oracles_guest_read8(c->guest, t->screen_scroll_row) & 31u;
     const unsigned next_right = oracles_guest_read8(c->guest, t->screen_scroll_column_right) & 31u;
@@ -185,8 +189,10 @@ void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation 
     int sample = -1;
     for (int gx = 4; gx < (int)ORACLES_ENHANCED_CORE_WIDTH; gx += 8) if (gx < left || gx >= right) { sample = gx; break; }
     if (sample < 0 || !core_pixels) { c->curtain_frames_unchecked++; return; }
+    const uint32_t white = oracles_core_convert_rgb555(c->core, 0x7fffu);
+    if (closed && oracles_enhanced_window_white(c->core)) c->curtain_white_frames++;
     const uint32_t colour = core_pixels[(ORACLES_ENHANCED_HUD_HEIGHT + ORACLES_ENHANCED_AREA_HEIGHT / 2u) * ORACLES_ENHANCED_CORE_WIDTH + (unsigned)sample];
-    unsigned wrong = 0, window_wrong = 0, shown_w = 0, shown_h = 0;
+    unsigned wrong = 0, window_wrong = 0, band_white = 0, shown_w = 0, shown_h = 0;
     oracles_enhanced_view_shown(c->view, &shown_w, &shown_h);   /* the curtain over the part of the band shown, black around it */
     const unsigned W = c->width, shown_x = (W - shown_w) / 2u, shown_y = (c->band_height - shown_h) / 2u;
     for (unsigned x = shown_x; x < shown_x + shown_w; x++) {
@@ -208,14 +214,58 @@ void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation 
             if (window_x >= 0 && window_x < (int)ORACLES_ENHANCED_CORE_WIDTH && window_y >= 0 && window_y < (int)ORACLES_ENHANCED_AREA_HEIGHT) continue;
             if (ec_under_panel(c, x, c->band_top + y)) continue;   /* the status bar floating over the curtain */
             if (surface[(c->band_top + y) * W + x] != colour) wrong++;
+            if (surface[(c->band_top + y) * W + x] == white) band_white++;
         }
     }
     if (window_wrong) c->curtain_window_frames_wrong++;
+    if (closed && band_white) c->curtain_white_band_frames++;
     if (wrong) {
         c->curtain_frames_wrong++;
         c->curtain_pixels_wrong += wrong;
         const size_t used = strlen(c->curtain_list);
         if (used + 16 < sizeof c->curtain_list) snprintf(c->curtain_list + used, sizeof c->curtain_list - used, "%s%u:%u", used ? " " : "", frame, wrong);
+    }
+}
+
+/* The curtain closed with the game's window still its white, judged from
+ * the game's variables: a frame of the load's blank, composed as the load
+ * frames before it, the core's image where the load shows it (framed whole,
+ * centred in the border; or its game area under the HUD band where the load
+ * band holds it), never somewhere else in the band, and its game area where
+ * the first frame of their run, the load's blank, showed it: the white never
+ * jumps between the load's frames and the screen back on, whatever place the
+ * view declares (enhanced.curtain_white_framed,
+ * enhanced.curtain_white_misplaced). */
+void ec_check_curtain_white(OraclesEnhancedCheck *c, OraclesEnhancedMode view_mode, const uint32_t *surface, uint32_t frame)
+{
+    if (view_mode == ORACLES_ENHANCED_WORLD || !surface) return;
+    const OraclesGuestTables *t = oracles_guest_tables(c->guest);
+    if (oracles_guest_read8(c->guest, t->scroll_mode) != CURTAIN_SCROLL_MODE
+        || !oracles_enhanced_curtain_closed(oracles_guest_read8(c->guest, t->screen_transition_state), oracles_guest_read8(c->guest, t->screen_transition_substate))
+        || !oracles_enhanced_window_white(c->core)) return;
+    const uint32_t *core = oracles_core_pixels(c->core);
+    const unsigned W = c->width, H = c->band_top + c->band_height;
+    int32_t left = 0, top = 0;
+    unsigned first = 0;   /* the core's first line drawn there */
+    if (oracles_enhanced_view_load_band(c->view, &left, &top)) first = ORACLES_ENHANCED_HUD_HEIGHT;
+    else { left = (int32_t)((W - ORACLES_ENHANCED_CORE_WIDTH) / 2u); top = (int32_t)((H - (ORACLES_ENHANCED_HUD_HEIGHT + ORACLES_ENHANCED_AREA_HEIGHT)) / 2u); }
+    c->curtain_white_framed++;
+    unsigned wrong = 0;
+    for (unsigned y = first; y < (ORACLES_ENHANCED_HUD_HEIGHT + ORACLES_ENHANCED_AREA_HEIGHT); y++)
+        for (unsigned x = 0; x < ORACLES_ENHANCED_CORE_WIDTH; x++) {
+            const int32_t sx = left + (int32_t)x, sy = top + (int32_t)(y - first);
+            if (sx < 0 || sy < 0 || sx >= (int32_t)W || sy >= (int32_t)H || surface[(unsigned)sy * W + (unsigned)sx] != core[y * ORACLES_ENHANCED_CORE_WIDTH + x]) wrong++;
+        }
+    const int32_t area[2] = { left, top + (int32_t)(ORACLES_ENHANCED_HUD_HEIGHT - first) };
+    if (c->curtain_white_run && frame == c->curtain_white_last + 1u) {
+        if (area[0] != c->curtain_white_area[0] || area[1] != c->curtain_white_area[1]) wrong++;
+    } else memcpy(c->curtain_white_area, area, sizeof area);
+    c->curtain_white_run = 1;
+    c->curtain_white_last = frame;
+    if (wrong) {
+        c->curtain_white_misplaced++;
+        const size_t used = strlen(c->curtain_list);
+        if (used + 16 < sizeof c->curtain_list) snprintf(c->curtain_list + used, sizeof c->curtain_list - used, "%sw%u:%u", used ? " " : "", frame, wrong);
     }
 }
 

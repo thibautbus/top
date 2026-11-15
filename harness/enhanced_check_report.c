@@ -121,6 +121,8 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
             c->transitions_seen, c->transition_frames_total, c->transition_frozen_total, c->transition_arrivals_solid, c->window_checked, c->window_misplaced, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_world_off_camera_frames(c->view), oracles_enhanced_view_wave_frames(c->view), oracles_enhanced_view_shake_frames(c->view), c->window_lines_checked, c->window_lines_wrong);
     fprintf(out, "enhanced.curtain_frames=%u\nenhanced.curtain_closed_frames=%u\nenhanced.curtain_frames_wrong=%u\nenhanced.curtain_frames_unchecked=%u\nenhanced.curtain_pixels_wrong=%u\n",
             c->curtain_frames, c->curtain_closed_frames, c->curtain_frames_wrong, c->curtain_frames_unchecked, c->curtain_pixels_wrong);
+    fprintf(out, "enhanced.curtain_white_frames=%u\nenhanced.curtain_white_band_frames=%u\nenhanced.curtain_white_framed=%u\nenhanced.curtain_white_misplaced=%u\n",
+            c->curtain_white_frames, c->curtain_white_band_frames, c->curtain_white_framed, c->curtain_white_misplaced);
     fprintf(out, "enhanced.text_box_frames_in_place=%u\nenhanced.curtain_window_frames_wrong=%u\n", c->text_box_frames_in_place, c->curtain_window_frames_wrong);
     fprintf(out, "enhanced.blurb_frames=%u\nenhanced.blurb_frames_in_window=%u\n", c->blurb_frames, c->blurb_frames_in_window);
     fprintf(out, "enhanced.neighbour_waiting_frames=%u\n", oracles_enhanced_view_waiting_frames(c->view));
@@ -376,8 +378,8 @@ static void report_the_band(OraclesEnhancedCheck *c, FILE *out)
             c->window_checked, c->window_misplaced, c->window_misplaced ? ": frame:dx,dy " : "", c->window_misplaced_list, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_world_off_camera_frames(c->view), oracles_enhanced_view_shake_frames(c->view));
     fprintf(out, "  text box in the middle of the band: %u world frames, %u with the wrong pixels (%u pixels), %u showing it where the game drew it%s%s\n",
             c->text_box_frames, c->text_box_frames_wrong, c->text_box_pixels_wrong, c->text_box_frames_at_origin, c->text_box_frames_wrong ? ": frame:pixels " : "", c->text_box_list);
-    fprintf(out, "  curtain of a warp over the band: %u world frames, %u with the wrong pixels (%u pixels), %u with the window fully drawn (colour unchecked)%s%s\n",
-            c->curtain_frames, c->curtain_frames_wrong, c->curtain_pixels_wrong, c->curtain_frames_unchecked, c->curtain_frames_wrong ? ": frame:pixels " : "", c->curtain_list);
+    fprintf(out, "  curtain of a warp over the band: %u world frames (%u closed, %u with the window the game's white, %u closed with that white in the band; %u white framed as the load, %u of them misplaced), %u with the wrong pixels (%u pixels), %u with the window fully drawn (colour unchecked)%s%s\n",
+            c->curtain_frames, c->curtain_closed_frames, c->curtain_white_frames, c->curtain_white_band_frames, c->curtain_white_framed, c->curtain_white_misplaced, c->curtain_frames_wrong, c->curtain_pixels_wrong, c->curtain_frames_unchecked, (c->curtain_frames_wrong || c->curtain_white_misplaced) ? ": frame:pixels (w: white misplaced) " : "", c->curtain_list);
     fprintf(out, "  area blurb taken out of the window: %u world frames showing it, %u left in the window%s%s\n",
             c->blurb_frames, c->blurb_frames_in_window, c->blurb_frames_in_window ? ": frames " : "", c->blurb_list);
     fprintf(out, "  coverage: world frames with pixels no source covered %u (%" PRIu64 " pixels, %u at most in a frame)%s%s\n",

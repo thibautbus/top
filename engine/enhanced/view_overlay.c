@@ -519,14 +519,14 @@ static int curtain_open_range(OraclesEnhancedView *v, uint8_t scx, int *left, in
     if (oracles_guest_read8(v->guest, t->scroll_mode) != CURTAIN_SCROLL_MODE) return 0;
     const uint8_t state = oracles_guest_read8(v->guest, t->screen_transition_state);
     const uint8_t substate = oracles_guest_read8(v->guest, t->screen_transition_substate);
-    /* Out of a large room (a dungeon's door), before the first column (the
-     * room entered from scratch in state 0, the substates of state 1 that wait
-     * for the fade and set the edges), the window holds the blank tile alone,
-     * where the large room's camera left it until resetCamera: the curtain is
-     * closed over the band too, or the rooms around showed for those frames
-     * with the blank window off its place, to be covered again as it starts
-     * opening. */
-    if (v->curtain_after_large && oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(oracles_core_pixels(v->core))) {
+    /* Before the first column (the room entered from scratch in state 0, the
+     * substates of state 1 that wait for the fade and set the edges), the
+     * window holds the blank tile alone, where the load cleared the map: the
+     * curtain is closed over the band too, or the rooms around showed for
+     * those frames around the blank window, to be covered again as it starts
+     * opening.  At a house's or a cave's door, a dungeon's, a file's first
+     * room alike. */
+    if (oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(oracles_core_pixels(v->core))) {
         *left = *right = 0;
         return 1;
     }
@@ -557,6 +557,25 @@ int oracles_enhanced_window_blank(const uint32_t *core)
     const uint32_t *area = core + ORACLES_ENHANCED_HUD_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH;
     for (size_t i = 1; i < (size_t)ORACLES_ENHANCED_CORE_WIDTH * ORACLES_ENHANCED_AREA_HEIGHT; i++) if (area[i] != area[0]) return 0;
     return 1;
+}
+
+/* The curtain closed while the game's window is still its white, the screen
+ * just switched back on (or the file's first room fading in from white):
+ * nothing of the room yet, and the frame is the load's blank still, framed as
+ * the load framed the frames before (ev_choose_mode). */
+int ev_curtain_closed_white(OraclesEnhancedView *v)
+{
+    const OraclesGuestTables *t = oracles_guest_tables(v->guest);
+    return oracles_guest_read8(v->guest, t->scroll_mode) == CURTAIN_SCROLL_MODE
+        && oracles_enhanced_curtain_closed(oracles_guest_read8(v->guest, t->screen_transition_state), oracles_guest_read8(v->guest, t->screen_transition_substate))
+        && oracles_enhanced_window_white(v->core);
+}
+
+int oracles_enhanced_window_white(const OraclesCore *core)
+{
+    const uint32_t *pixels = oracles_core_pixels(core);
+    return oracles_enhanced_window_blank(pixels)
+        && pixels[ORACLES_ENHANCED_HUD_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH] == oracles_core_convert_rgb555(core, 0x7fffu);
 }
 
 /* The curtain's colour, taken from the core's own image rather than computed:
@@ -592,7 +611,7 @@ void ev_overlay_warp_curtain(OraclesEnhancedView *v, int32_t camera_x, int32_t c
     const OraclesEnhancedObservation *ob = &v->observation;
     const uint8_t scx = (uint8_t)(ob->drawn_camera_x + ob->drawn_offset_x);
     int left = 0, right = 0;
-    if (!curtain_open_range(v, scx, &left, &right)) { v->curtain_after_large = ob->large; return; }
+    if (!curtain_open_range(v, scx, &left, &right)) return;
     v->curtain_frames++;
     const uint32_t colour = curtain_colour(v, left, right, scx);
     for (unsigned x = 0; x < v->size.width; x++) {

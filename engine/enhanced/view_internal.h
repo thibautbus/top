@@ -603,7 +603,6 @@ struct OraclesEnhancedView {
     uint32_t box_fixed_last[4];
     uint32_t curtain_colour;          /* its colour, read in the core's image while the window still shows it */
     int curtain_colour_valid;
-    int curtain_after_large;          /* the last world frame without a curtain was in a large room */
     uint8_t animated_tileset_gfx;    /* the tileset the counts above were seen under */
     unsigned tiles_settling;         /* frames of play left after a load, where a change is the room's graphics and not an animation */
     /* The game's palette fade as displayed: the live palettes against the

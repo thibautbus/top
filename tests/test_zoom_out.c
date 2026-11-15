@@ -721,11 +721,14 @@ static void isolated_room_edges(void)
 /* The Maku tree's screen (Ages 0:38, Link low in it) reached by a loaded game: six frames of the room loaded under
  * the closed curtain (scroll mode 2, transition state 0), the tree's interaction still at its state 0, which its first
  * update, on the sixth, leaves (the tree itself), deletes (Ages' present while it is gone) or turns into a scene's
- * (another subid); then the opening, the screen opening from its middle (transition state 1, 40 frames); then normal
- * play.  Until that update the frames are the load's (framed); from it the room stands alone exactly when the tree
- * stays, the first world frame showing the game's window where the last frame of the wait did, and from the first
- * world frame the camera does not move, through the opening and normal play (it glided back to Link when the room
- * was isolated on the tree not yet updated, and jumped when isolated later in the world). */
+ * (another subid); then five frames of the curtain still closed (transition state 1, substate 0), the window still
+ * the game's white (the rig's image, white until its eleventh frame), the last two of them framed by the closed
+ * curtain's white alone, the load's own rule letting them go; then the opening, the screen opening from its middle
+ * (substate 2, 35 frames); then normal play.  Until that update the frames are the load's (framed); the five white
+ * frames are framed as the load framed the wait, the very same picture; from the update the room stands alone exactly
+ * when the tree stays, the first world frame showing the game's window where the last frame of the wait did, and from
+ * the first world frame the camera does not move, through the opening and normal play (it glided back to Link when
+ * the room was isolated on the tree not yet updated, and jumped when isolated later in the world). */
 enum { MAKU_TREE_STAYS, MAKU_TREE_DELETED, MAKU_TREE_SCENE };
 typedef struct maku_rig { rig r; OraclesEnhancedView *view; uint8_t *w0, *link, *tree; } maku_rig;
 static int maku_start(maku_rig *m, unsigned size)
@@ -747,14 +750,26 @@ static void maku_stop(maku_rig *m)
     rig_stop(&m->r);
 }
 #define MW0(m, sym) (m)->w0[(sym).addr - 0xc000u]
+/* The game's camera, in the HRAM, at the room's corner: the rig's boot ROM uses those bytes too, from its eleventh
+ * frame on. */
+static void maku_camera(maku_rig *m)
+{
+    const OraclesGuestTables *t = &oracles_guest_tables_ages;
+    size_t size = 0;
+    uint16_t bank = 0;
+    uint8_t *hram = oracles_core_memory(m->r.core, ORACLES_CORE_HRAM, &size, &bank);
+    CHECK(hram != NULL && t->camera_x.addr >= 0xff80u && t->camera_y.addr >= 0xff80u);
+    if (!hram) return;
+    memset(hram + (t->camera_x.addr - 0xff80u), 0, 2u);
+    memset(hram + (t->camera_y.addr - 0xff80u), 0, 2u);
+}
 static void maku_set(maku_rig *m, uint8_t group, uint8_t room, uint8_t scroll_mode, uint8_t transition_state)
 {
     const OraclesGuestTables *t = &oracles_guest_tables_ages;
     MW0(m, t->game_state) = 2; MW0(m, t->cutscene_index) = 1; MW0(m, t->scroll_mode) = scroll_mode; MW0(m, t->screen_transition_state) = transition_state;
     MW0(m, t->active_group) = group; MW0(m, t->active_room) = room; MW0(m, t->room_is_large) = 0;
-    m->w0[t->camera_x.addr - 0xc000u] = 0; m->w0[t->camera_x.addr + 1u - 0xc000u] = 0;
-    m->w0[t->camera_y.addr - 0xc000u] = 0; m->w0[t->camera_y.addr + 1u - 0xc000u] = 0;
     MW0(m, t->screen_offset_x) = 0; MW0(m, t->screen_offset_y) = 0;
+    maku_camera(m);
 }
 /* Where the frame shows the game's window: in the world, at its place in the band; framed, where the load draws it
  * (its band held at the last world frame's place, or centred under the HUD). */
@@ -763,7 +778,7 @@ static void maku_window_place(const maku_rig *m, OraclesEnhancedMode mode, int32
     const OraclesEnhancedView *v = m->view;
     if (mode == ORACLES_ENHANCED_WORLD) {
         *x = v->observation.window_left - cam;
-        *y = (int32_t)ORACLES_ENHANCED_HUD_HEIGHT + v->observation.window_top - cam_y;
+        *y = (int32_t)v->band_top + v->observation.window_top - cam_y;
     } else if (v->load_area_held) {
         *x = v->load_area_left; *y = v->load_area_top;
     } else {
@@ -788,17 +803,33 @@ static void maku_tree_arrival(void)
             maku_tree_place(&m);
             OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
             int32_t cam = 0, cam_y = 0, first_x = 0, first_y = 0, worst = 0, waited_x = 0, waited_y = 0, shown_x = 0, shown_y = 0;
-            unsigned pending_framed = 0, as_decided = 0, world = 0;
-            for (unsigned i = 0; i < 86u; i++) {
+            unsigned pending_framed = 0, as_decided = 0, world = 0, white_framed = 0, white_same = 0, white_placed = 0;
+            const size_t pixels = (size_t)oracles_enhanced_view_width(m.view) * oracles_enhanced_view_height(m.view);
+            uint32_t *waited = malloc(pixels * sizeof *waited);
+            CHECK(waited != NULL);
+            for (unsigned i = 0; waited && i < 86u; i++) {
                 if (i == 5u) {
                     if (fate == MAKU_TREE_DELETED) memset(m.tree, 0, ORACLES_OBJECT_SIZE);
                     else { m.tree[ORACLES_OBJ_ENABLED] = 0x81; m.tree[ORACLES_OBJ_STATE] = 1; if (fate == MAKU_TREE_SCENE) m.tree[ORACLES_OBJ_SUBID] = 1; }
                 }
-                if (i == 6u) maku_set(&m, 0, 0x38, 2, 1);
+                if (i == 6u) { maku_set(&m, 0, 0x38, 2, 1); MW0(&m, oracles_guest_tables_ages.screen_transition_substate) = 0; }
+                if (i == 11u) MW0(&m, oracles_guest_tables_ages.screen_transition_substate) = 2;
                 if (i == 46u) maku_set(&m, 0, 0x38, 1, 2);
-                frames(&m.r, m.view, 1, &mode, &cam, &cam_y);
+                oracles_core_run_frame(m.r.core);
+                maku_camera(&m);
+                oracles_enhanced_view_compose(m.view, &mode, &cam, &cam_y);
                 if (i < 5u && mode == ORACLES_ENHANCED_FRAMED) pending_framed++;
-                if (i == 4u) maku_window_place(&m, mode, cam, cam_y, &waited_x, &waited_y);
+                if (i == 4u) {
+                    maku_window_place(&m, mode, cam, cam_y, &waited_x, &waited_y);
+                    memcpy(waited, oracles_enhanced_view_surface(m.view), pixels * sizeof *waited);
+                }
+                if (i >= 6u && i < 11u) {   /* the closed curtain's white */
+                    int32_t x = 0, y = 0;
+                    maku_window_place(&m, mode, cam, cam_y, &x, &y);
+                    white_framed += mode == ORACLES_ENHANCED_FRAMED;
+                    white_placed += x == waited_x && y == waited_y;
+                    white_same += memcmp(waited, oracles_enhanced_view_surface(m.view), pixels * sizeof *waited) == 0;
+                }
                 if (oracles_enhanced_view_isolated(m.view) == (fate == MAKU_TREE_STAYS && i >= 5u)) as_decided++;
                 if (mode != ORACLES_ENHANCED_WORLD) continue;
                 if (!world++) { first_x = cam; first_y = cam_y; maku_window_place(&m, mode, cam, cam_y, &shown_x, &shown_y); }
@@ -806,8 +837,12 @@ static void maku_tree_arrival(void)
                 if (d > worst) worst = d;
             }
             CHECK(pending_framed == 5u && as_decided == 86u);
+            if (white_framed != 5u || white_placed != 5u || white_same != 5u)
+                fprintf(stderr, "maku white (size %u, fate %u): framed %u, placed %u, same %u\n", size, fate, white_framed, white_placed, white_same);
+            CHECK(white_framed == 5u && white_placed == 5u && white_same == 5u);
             CHECK(world >= 40u + 30u && worst == 0);
             CHECK(fate != MAKU_TREE_STAYS || (shown_x == waited_x && shown_y == waited_y));
+            free(waited);
             maku_stop(&m);
         }
     }
@@ -879,6 +914,46 @@ static void maku_tree_other_arrivals(void)
         CHECK(alone == 0 && mode == ORACLES_ENHANCED_WORLD && !oracles_enhanced_view_isolated(m.view));
         maku_stop(&m);
     }
+}
+/* A room's load framed after its blank, centred where the camera frames an interior of one room (the Maku tree's
+ * screen, alone): play takes the room where the load showed it, under the HUD band as with the bar floating, in each
+ * level and shape. */
+static void load_band_centred(void)
+{
+    static const OraclesEnhancedHud huds[] = { ORACLES_ENHANCED_HUD_ORIGINAL, ORACLES_ENHANCED_HUD_WIDE, ORACLES_ENHANCED_HUD_FLOATING };
+    for (unsigned h = 0; h < sizeof huds / sizeof *huds; h++)
+        for (unsigned level = 0; level < ORACLES_ENHANCED_LEVELS; level++)
+            for (unsigned aspect = 0; aspect < ORACLES_ENHANCED_ASPECTS; aspect++) {
+                maku_rig m;
+                if (!maku_start(&m, 0)) return;
+                oracles_enhanced_view_set_size(m.view, oracles_enhanced_view_size((OraclesEnhancedLevel)level, (OraclesEnhancedAspect)aspect));
+                oracles_enhanced_view_set_hud(m.view, (int)huds[h]);
+                maku_set(&m, 0, 0x38, 1, 2);
+                m.link[ORACLES_OBJ_ENABLED] = 1; m.link[ORACLES_OBJ_STATE] = 1; m.link[ORACLES_OBJ_XH] = 80; m.link[ORACLES_OBJ_YH] = 101;
+                maku_tree_place(&m);
+                m.tree[ORACLES_OBJ_ENABLED] = 0x81; m.tree[ORACLES_OBJ_STATE] = 1;
+                OraclesEnhancedMode mode = ORACLES_ENHANCED_FRAMED;
+                int32_t cam = 0, cam_y = 0, x = 0, y = 0, left = 0, top = 0;
+                for (unsigned i = 0; i < 40u; i++) {
+                    oracles_core_run_frame(m.r.core);
+                    maku_camera(&m);
+                    oracles_enhanced_view_compose(m.view, &mode, &cam, &cam_y);
+                }
+                CHECK(mode == ORACLES_ENHANCED_WORLD && oracles_enhanced_view_isolated(m.view));
+                CHECK(m.view->band_top == (huds[h] == ORACLES_ENHANCED_HUD_FLOATING ? 0u : ORACLES_ENHANCED_HUD_HEIGHT));
+                maku_window_place(&m, mode, cam, cam_y, &x, &y);
+                OraclesEnhancedCompose in;
+                memset(&in, 0, sizeof in);
+                in.mode = ORACLES_ENHANCED_FRAMED;
+                m.view->framed_load = 1; m.view->load_area_held = 0;
+                CHECK(ev_load_band(m.view, &in, 0, cam, cam_y) == 1 && in.mode == ORACLES_ENHANCED_WORLD);
+                CHECK(oracles_enhanced_view_load_band(m.view, &left, &top) == 1);
+                if (left != x || top != y)
+                    fprintf(stderr, "load band (hud %u, level %u, aspect %u): at %d,%d, play at %d,%d\n", (unsigned)huds[h], level, aspect, (int)left, (int)top, (int)x, (int)y);
+                CHECK(left == x && top == y);
+                CHECK(in.window_world_left == x && in.window_world_top == y - (int32_t)m.view->band_top);
+                maku_stop(&m);
+            }
 }
 #undef MW0
 
@@ -2494,6 +2569,7 @@ int main(void)
     maku_tree_arrival();
     maku_tree_wait_held();
     maku_tree_other_arrivals();
+    load_band_centred();
     dungeon_diagonal_band();
     dungeon_diagonal_band_4_3();
     state_across_viewports();

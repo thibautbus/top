@@ -43,6 +43,7 @@ extern "C" {
 
 typedef struct OraclesEnhancedView OraclesEnhancedView;
 
+
 /* Pure: whether this frame still holds a dialogue's text box.  The game
  * clears wTextIsActive one frame before it restores the room's cells under
  * the box, and the frame on screen still holds it: the view (and what the
@@ -779,6 +780,10 @@ void oracles_enhanced_view_floating_blurb_counts(const OraclesEnhancedView *view
  * game area (below the status bar) is one colour, the blank tile the load left where it cleared the map. */
 int oracles_enhanced_curtain_closed(uint8_t state, uint8_t substate);
 int oracles_enhanced_window_blank(const uint32_t *core);
+/* That area one colour and the game's white (RGB555 7fff through the core's colours): the screen just switched back on
+ * after a load's blank, before the blank tile shows.  The view frames those frames of a closed curtain as the load's
+ * blank, centred in the border, rather than as the world. */
+int oracles_enhanced_window_white(const OraclesCore *core);
 /* Scroll frames where Link is to be drawn (his object visible) and nothing of him is on the screen nor drawn past its
  * edge: Link missing from the view; and those he was drawn from his fields, past the edge where the game writes none
  * of his sprites. */
