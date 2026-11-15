@@ -209,6 +209,15 @@ void oracles_ui_layout_hero_credited(OraclesUiLayout layout, int paused, const c
     out->box.h = bottom - top;
 }
 
+void oracles_ui_layout_hero_left(OraclesUiLayout layout, OraclesUiTitleLayout *out)
+{
+    const metrics *m = metrics_of(layout);
+    const float left = oracles_ui_scene_width(layout) - m->hero_right;   /* as far from the left as from the right */
+    OraclesUiLine *lines[4] = { &out->over, &out->title, &out->state, &out->credit };
+    for (int i = 0; i < 4; i++) lines[i]->x = left;
+    out->box.x = left;
+}
+
 void oracles_ui_layout_others(const char *const over[2], const char *const title[2], const char *const state[2], OraclesUiTitleLayout out[2])
 {
     float y = metrics_16_9.top;

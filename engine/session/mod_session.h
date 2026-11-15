@@ -34,6 +34,8 @@ void oracles_mod_session_configure(OraclesModSession *session, oracles_host_run_
 int oracles_mod_session_trace(OraclesModSession *session, const char *path);
 void oracles_mod_session_frame_end(OraclesModSession *session, uint32_t frame);
 int oracles_mod_session_busy(const OraclesModSession *session);
+/* A mod has asked the game for a change since the session started (oracles_mod_changed_game). */
+int oracles_mod_session_changed_game(const OraclesModSession *session);
 /* The last frame as the player saw it: `pixels` with the mods' last drawing over it (a screenshot). */
 const uint32_t *oracles_mod_session_screen(OraclesModSession *session, const uint32_t *pixels, uint32_t width, uint32_t height);
 void oracles_mod_session_reset(OraclesModSession *session);

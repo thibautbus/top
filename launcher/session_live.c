@@ -45,6 +45,7 @@ void oracles_session_change_cheats(session *s, uint32_t frame, unsigned cheats)
     fprintf(stderr, "oracles: cheats from frame %u: %s\n", frame, cheats ? oracles_cheats_format(cheats, NULL, names, sizeof names) : "none");
     s->cheats = cheats;
     s->cheats_used |= cheats;
+    if (cheats) oracles_session_achievements_cheats(s);
 }
 
 /* The swim's hold from `frame` on, before it runs, as the cheats: its tests armed the first time it is on, and kept. */

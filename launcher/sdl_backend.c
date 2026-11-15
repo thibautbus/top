@@ -7,6 +7,9 @@
  * the pause menu of a game the home screen started, and do nothing with --rom, which has none.
  * Both are rebindable through oracles_sdl_options. */
 #include "sdl_backend_internal.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements_sound.h"
+#endif
 
 #include "portable.h"
 
@@ -93,6 +96,38 @@ void sb_present_as(sdl_backend *backend, int logical_w, int logical_h)
     backend->logical_h = logical_h;
 }
 
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* The unlock's sound at the stream's rate, once; none without the memory for it. */
+static void unlock_render(sdl_backend *backend)
+{
+    const size_t frames = oracles_sound_frames(&oracles_unlock_sound, backend->sample_rate_hz);
+    backend->unlock = malloc(frames * sizeof *backend->unlock);
+    backend->unlock_frames = backend->unlock ? oracles_sound_render(&oracles_unlock_sound, backend->sample_rate_hz, backend->unlock, frames) : 0;
+    backend->unlock_cursor = backend->unlock_frames;
+}
+
+/* The chunk as it is queued: the core's, or while the unlock's sound plays a copy with the sound mixed on top. */
+static const int16_t *unlock_mix(sdl_backend *backend, const oracles_host_audio_chunk *chunk)
+{
+    if (backend->unlock_cursor >= backend->unlock_frames) return chunk->samples;
+    if (chunk->sample_count > backend->unlock_mixed_capacity) {
+        int16_t *grown = realloc(backend->unlock_mixed, chunk->sample_count * sizeof *grown);
+        if (!grown) { backend->unlock_cursor = backend->unlock_frames; return chunk->samples; }
+        backend->unlock_mixed = grown;
+        backend->unlock_mixed_capacity = chunk->sample_count;
+    }
+    memcpy(backend->unlock_mixed, chunk->samples, chunk->sample_count * sizeof *backend->unlock_mixed);
+    oracles_sound_mix_s16(backend->unlock, backend->unlock_frames, &backend->unlock_cursor, backend->unlock_mixed, chunk->sample_count / 2u, 2u);
+    return backend->unlock_mixed;
+}
+
+void oracles_sdl_backend_unlock_sound(const oracles_host_backend *backend)
+{
+    sdl_backend *state = backend->opaque;
+    if (state && state->audio) state->unlock_cursor = 0;
+}
+#endif
+
 static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sample_rate_hz, int audio_enabled)
 {
     sdl_backend *backend = opaque;
@@ -149,6 +184,9 @@ static int sdl_start(void *opaque, uint32_t width, uint32_t height, uint32_t sam
     backend->audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &wanted, NULL, NULL);
     if (!backend->audio) return 0;
     backend->sample_rate_hz = sample_rate_hz;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    unlock_render(backend);
+#endif
     /* Paused until the prebuffer is queued, as SDL opens it; see sdl_queue_audio. */
     return 1;
 }
@@ -276,7 +314,11 @@ static int sdl_queue_audio(void *opaque, const oracles_host_audio_chunk *chunk)
     }
     if (queued > audio_bytes_for_ms(backend, AUDIO_QUEUE_LIMIT_MS)) { backend->audio_drops++; return 1; }
     if (chunk->sample_count > INT_MAX / sizeof(int16_t)) return 0;
-    if (!SDL_PutAudioStreamData(backend->audio, chunk->samples, (int)(chunk->sample_count * sizeof(int16_t)))) return 0;
+    const int16_t *samples = chunk->samples;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    samples = unlock_mix(backend, chunk);
+#endif
+    if (!SDL_PutAudioStreamData(backend->audio, samples, (int)(chunk->sample_count * sizeof(int16_t)))) return 0;
     backend->last_chunk_ns = now;
     backend->last_chunk_queued_bytes = queued_bytes(backend);
     if (!backend->audio_started && queued_bytes(backend) >= audio_bytes_for_ms(backend, AUDIO_PREBUFFER_MS)) {
@@ -380,6 +422,12 @@ static void sdl_stop(void *opaque)
 {
     sdl_backend *backend = opaque;
     if (backend->audio) { SDL_DestroyAudioStream(backend->audio); backend->audio = NULL; }   /* its device closes with it */
+#ifdef ORACLES_RETROACHIEVEMENTS
+    free(backend->unlock);
+    free(backend->unlock_mixed);
+    backend->unlock = NULL; backend->unlock_mixed = NULL;
+    backend->unlock_frames = backend->unlock_cursor = backend->unlock_mixed_capacity = 0;
+#endif
     oracles_sdl_pads_close(&backend->pads);
     if (backend->texture) SDL_DestroyTexture(backend->texture);
     backend->texture = NULL;
@@ -528,6 +576,10 @@ void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend)
     sdl_backend *state = backend->opaque;
     if (!state->audio) return;
     SDL_PauseAudioStreamDevice(state->audio);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* The unlock's sound in what the queue drops: again from its start if none of it was heard yet, else none of it. */
+    state->unlock_cursor = oracles_sound_cursor_cleared(state->unlock_cursor, state->unlock_frames, queued_bytes(state) / (2u * sizeof(int16_t)));
+#endif
     SDL_ClearAudioStream(state->audio);
     state->audio_started = 0;   /* sdl_queue_audio starts it again once its prebuffer is queued */
 }

@@ -14,6 +14,9 @@
 #include "save_transfer.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements.h"
+#endif
 
 #include <SDL3/SDL.h>
 #include <sys/stat.h>
@@ -360,6 +363,65 @@ static void portable_turned(void *opaque, OraclesHomeNav *nav, int on, int resul
     portable_state(games, nav);
 }
 
+#ifdef ORACLES_RETROACHIEVEMENTS
+static int achievements_offline(const OraclesHomeGames *games) { return games->options && games->options->achievements_offline; }
+
+/* RetroAchievements: their setting and the account kept (achievements.txt); with the offline answers, both in memory. */
+static void achievements_state(const OraclesHomeGames *games, OraclesHomeNav *nav)
+{
+    OraclesHomeAchievements *a = &nav->achievements;
+    a->shown = 1;
+    a->on = (achievements_offline(games) ? games->achievements_on : games->settings->achievements) || (a->login && a->opened_by_on);
+    a->sound = games->settings->achievements_sound;
+    if (achievements_offline(games)) {
+        snprintf(a->user, sizeof a->user, "%s", games->achievements_user);
+        a->refused = 0;
+        a->pending = 0;
+    } else {
+        oracles_session_achievements_account(games->settings, a->user, sizeof a->user, &a->refused, &a->pending);
+    }
+}
+
+static int achievements_login(void *opaque, const char *user, const char *password)
+{
+    OraclesHomeGames *games = opaque;
+    if (games->achievements_login) return 1;
+    games->achievements_login = oracles_session_achievements_login_begin(games->settings, user, password,
+                                                                         games->options ? games->options->achievements_offline : NULL);
+    return games->achievements_login != NULL;
+}
+
+static int achievements_answer(void *opaque, char *user, size_t capacity)
+{
+    OraclesHomeGames *games = opaque;
+    if (!games->achievements_login) return -1;
+    const int answer = oracles_session_achievements_login_poll(games->achievements_login, user, capacity);
+    if (answer == -2) return answer;
+    oracles_session_achievements_login_end(games->achievements_login);
+    games->achievements_login = NULL;
+    if (answer == 1 && achievements_offline(games)) snprintf(games->achievements_user, sizeof games->achievements_user, "%s", user);
+    fprintf(stderr, "oracles: achievements: login %s\n", answer == 1 ? "accepted" : answer == 0 ? "refused" : "unanswered");
+    return answer;
+}
+
+static void achievements_cancel(void *opaque)
+{
+    OraclesHomeGames *games = opaque;
+    if (!games->achievements_login) return;
+    oracles_session_achievements_login_end(games->achievements_login);   /* its client and transport: no answer comes after */
+    games->achievements_login = NULL;
+    fprintf(stderr, "oracles: achievements: login given up\n");
+}
+
+static void achievements_logout(void *opaque, OraclesHomeNav *nav)
+{
+    OraclesHomeGames *games = opaque;
+    if (!achievements_offline(games)) oracles_session_achievements_logout(games->settings);
+    games->achievements_user[0] = 0;
+    achievements_state(games, nav);
+}
+#endif
+
 static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window)
 {
     OraclesHomeGames *games = opaque;
@@ -386,6 +448,9 @@ static void refresh(void *opaque, OraclesHomeNav *nav, struct SDL_Window *window
     nav->cheats_fixed = games->options && games->options->cheats_given;   /* --cheats', for every game it starts */
     nav->update_check = games->settings->update_check;
     portable_state(games, nav);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    achievements_state(games, nav);
+#endif
     nav->cheats_changed = 0;
     oracles_home_inspect_controls(games->settings, &nav->controls);
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
@@ -418,6 +483,11 @@ static void store(void *opaque, const OraclesHomeNav *nav)
     oracles_home_store_controls(&nav->controls, prefs);
     oracles_home_store_display(&nav->display, nav->in_game, prefs);
     prefs->update_check = nav->update_check;   /* About's: the next launch asks, or not */
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* RetroAchievements', On only once an account is in; with the offline answers, kept in memory alone. */
+    oracles_achievements_store(nav, achievements_offline(games), &prefs->achievements, &games->achievements_on);
+    prefs->achievements_sound = nav->achievements.sound;   /* the next unlock's toast, in the game the home screen starts */
+#endif
     /* Each Oracle's active mods, those its Mods page switched on. */
     for (int g = 0; g < ORACLES_SETTINGS_GAMES; g++) {
         prefs->mods[g][0] = 0;
@@ -844,6 +914,12 @@ void oracles_home_games_host(OraclesHomeGames *games, OraclesHomeHost *host)
     host->read_mods = read_mods;
     host->open_mods = open_mods;
     host->portable_turned = portable_turned;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    host->achievements_login = achievements_login;
+    host->achievements_answer = achievements_answer;
+    host->achievements_cancel = achievements_cancel;
+    host->achievements_logout = achievements_logout;
+#endif
     host->start = start;
     oracles_home_save_host(games, host);
 }

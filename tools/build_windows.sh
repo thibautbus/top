@@ -4,11 +4,16 @@
 #
 #   MSYS2 UCRT64 terminal:   ./tools/build_windows.sh
 #   CI (windows-latest):     C:\msys64\usr\bin\bash.exe -lc "cd <repo> && ./tools/build_windows.sh"
+#   RetroAchievements:       ORACLES_RETROACHIEVEMENTS=ON ./tools/build_windows.sh   (OFF by default; their licence
+#                            rcheevos-LICENSE.txt then goes with the others)
 #
 # A repository opened from WSL (a //wsl.localhost/... path) is first copied to
 # a local temporary directory, because the toolchain does not build reliably
 # on a network path; the outputs are copied back to build-windows/.
 set -euo pipefail
+
+achievements="${ORACLES_RETROACHIEVEMENTS:-OFF}"
+case "$achievements" in ON|OFF) ;; *) echo "ORACLES_RETROACHIEVEMENTS is ON or OFF" >&2; exit 2 ;; esac
 
 if [ "${MSYSTEM:-}" != "UCRT64" ]; then
     echo "run this from an MSYS2 UCRT64 shell (MSYSTEM=UCRT64)" >&2
@@ -58,7 +63,7 @@ fi
 # SDL 3 is the release pinned in config/sdl3.json, built here into SDL3.dll beside the-oracles-project.exe with its licence
 # (SDL3-LICENSE.txt): MSYS2's own SDL3.dll would bring libiconv-2.dll and its licence with it.
 cmake -G Ninja -S "$source_dir" -B "$work_dir" -DBUILD_TESTING=ON -DORACLES_WARNINGS_AS_ERRORS=ON -DORACLES_SDL3_FROM_SOURCE=ON \
-    ${ORACLES_GIT_DESCRIBE:+"-DORACLES_GIT_DESCRIBE=$ORACLES_GIT_DESCRIBE"}
+    "-DORACLES_RETROACHIEVEMENTS=$achievements" ${ORACLES_GIT_DESCRIBE:+"-DORACLES_GIT_DESCRIBE=$ORACLES_GIT_DESCRIBE"}
 cmake --build "$work_dir" --parallel
 ctest --test-dir "$work_dir" --no-tests=error --output-on-failure
 # The other library the binaries load: winpthread for the threads of the ghost instance, whose licence asks that its
@@ -73,6 +78,7 @@ if [ "$copied" = 1 ]; then
         "$work_dir"/SDL3-LICENSE.txt "$work_dir"/libwinpthread-COPYING.txt "$work_dir"/*-OFL.txt "$work_dir"/SameBoy-LICENSE.txt \
         "$work_dir"/mGBA-LICENSE.txt "$work_dir"/mGBA-NOTICE.txt "$work_dir"/mGBA-boot-rom.patch "$work_dir"/inih-LICENSE.txt \
         "$work_dir"/Lua-LICENSE.txt "$here/build-windows/"
+    if [ "$achievements" = ON ]; then cp "$work_dir"/rcheevos-LICENSE.txt "$here/build-windows/"; fi
 fi
 echo "the-oracles-project.exe, SDL3.dll, libwinpthread-1.dll and the licences (*-OFL.txt, SameBoy-LICENSE.txt, mGBA-LICENSE.txt, mGBA-NOTICE.txt, mGBA-boot-rom.patch, inih-LICENSE.txt, Lua-LICENSE.txt, SDL3-LICENSE.txt, libwinpthread-COPYING.txt) are in $here/build-windows/"
 echo "(built in $work_dir)"

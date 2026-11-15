@@ -1,0 +1,9 @@
+# rcheevos, vendored
+
+`include/` and `src/` are the part of rcheevos, the RetroAchievements client library, that the launcher builds when `ORACLES_RETROACHIEVEMENTS` is on, taken unmodified from the release pinned in `config/rcheevos.json` (version, tag, commit, URL and SHA-256 of the archive, SHA-256 of each vendored tree). `LICENSE` is the MIT licence of that release; it goes beside every binary built with the option.
+
+What is kept, at the upstream paths: `rc_client` (the session, its requests and the achievements' runtime), the condition runtime of `src/rcheevos/`, the request builders and response parsers of `src/rapi/` for the user, the runtime and the game's information, and the hashing of `src/rhash/` for cartridges (`hash.c`, `hash_rom.c`, `md5.c`), with the headers those include. What is left out: the hashing of discs, of encrypted images and of zip archives (built with `RC_HASH_NO_DISC`, `RC_HASH_NO_ENCRYPTED` and `RC_HASH_NO_ZIP`), the editor's requests (`rc_api_editor`), the condition validator, the external client and RAIntegration (Windows' development DLL), the libretro helpers, the Visual Studio visualisers, the tests and the validator tool. `rc_client` is built without `RC_CLIENT_SUPPORTS_HASH`: the launcher hashes the image itself, before a mod or a language changes it, and loads the game by that hash.
+
+Nothing in `include/` or `src/` is edited: `tools/audit_tracked_files.py` recomputes both tree hashes and fails when either differs from `config/rcheevos.json`.
+
+To update: change the version, the tag, the commit, the archive's URL and SHA-256 in `config/rcheevos.json`, replace each file of `include/` and `src/` and `LICENSE` by the new archive's (adding the files a kept source now includes or calls, which the link of the launcher with `-DORACLES_RETROACHIEVEMENTS=ON` reveals), and write the two tree hashes the audit prints into `config/rcheevos.json`; `tests/test_achievements.c` runs with the other tests without ROM.

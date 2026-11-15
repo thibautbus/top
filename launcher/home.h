@@ -70,6 +70,13 @@ typedef struct OraclesHomeHost {
      * 1 when the game ran slowly and the home screen suggests something lighter (nav->slow). */
     int (*start)(void *opaque, OraclesHomeCommand game, OraclesHomeNav *nav, struct SDL_Window *window, struct SDL_Renderer *renderer,
                  OraclesUiDraw *draw, char *message, size_t capacity, int *slow);
+    /* A build with RetroAchievements (ui_achievements.h), NULL otherwise: the login's name and password sent (1, 0 when
+     * no client starts), its answer looked for (1 in with the account's name in `user`, 0 the name or the password
+     * refused, -1 no answer, -2 not yet) or given up (no answer kept), the account forgotten (nav's account read again). */
+    int (*achievements_login)(void *opaque, const char *user, const char *password);
+    int (*achievements_answer)(void *opaque, char *user, size_t capacity);
+    void (*achievements_cancel)(void *opaque);
+    void (*achievements_logout)(void *opaque, OraclesHomeNav *nav);
 } OraclesHomeHost;
 
 /* Runs the home screen until Exit or the window is closed.  *width and *height

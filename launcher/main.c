@@ -155,6 +155,7 @@ typedef struct launcher_options {
     const char *screenshot, *inputs, *frame;
     int width, height;
     const char *update_source;       /* --update-check-url: the update check's answer read from a file, or asked of another address */
+    const char *achievements_login;  /* --achievements-login: the RetroAchievements account to log in, for the developer */
 } launcher_options;
 
 /* Returns 0 when the arguments are understood. */
@@ -267,6 +268,9 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
         else if (!strcmp(argv[i], "--launcher-input") && more) l->inputs = argv[++i];
         else if (!strcmp(argv[i], "--launcher-frame") && more) l->frame = argv[++i];
         else if (!strcmp(argv[i], "--update-check-url") && more) l->update_source = argv[++i];   /* for the tests: not in the usage */
+        /* RetroAchievements, for the developer until the launcher has their pages: not in the usage. */
+        else if (!strcmp(argv[i], "--achievements-login") && more) l->achievements_login = argv[++i];
+        else if (!strcmp(argv[i], "--achievements-offline") && more) o->achievements_offline = argv[++i];
         else return 1;
     }
     if (o->sdl.scale == 0 || o->sdl.scale > 16) return 1;
@@ -281,6 +285,7 @@ static int parse(int argc, char **argv, OraclesSessionOptions *o, launcher_optio
     if (!o->rom_path && (o->no_window || o->save_path || o->play_path || o->frames || o->screenshot || o->patch_path)) return 1;
     /* The update check is the home screen's: a game --rom starts asks nothing. */
     if (o->rom_path && l->update_source) return 1;
+    if (l->achievements_login && (o->rom_path || o->no_window || l->screenshot)) return 1;
     return 0;
 }
 
@@ -334,7 +339,7 @@ int main(int argc, char **argv)
 #endif
     OraclesSessionOptions options;
     oracles_session_defaults(&options);
-    launcher_options launcher = { 0, NULL, NULL, NULL, SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT, NULL };
+    launcher_options launcher = { 0, NULL, NULL, NULL, SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT, NULL, NULL };
     if (parse(argc, argv, &options, &launcher) != 0) return usage();
 
     /* The settings are allocated: they hold a path per game. */
@@ -344,11 +349,15 @@ int main(int argc, char **argv)
     static OraclesHomeGames games;   /* with a refused path per game: kept off the stack */
     games.settings = prefs;
     games.options = &options;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    games.achievements_on = prefs->achievements;
+#endif
     games.window_from_command_line = launcher.window_given;
     OraclesHomeHost host;
     oracles_home_games_host(&games, &host);
     int status;
-    if (launcher.screenshot) {
+    if (launcher.achievements_login) status = oracles_session_achievements_login(prefs, launcher.achievements_login, options.achievements_offline);
+    else if (launcher.screenshot) {
         /* A capture reads the settings (the games' ROMs) and never writes them, and asks for no update but the answer
          * --update-check-url gives, waited for so that the capture shows it. */
         if (launcher.update_source && prefs->update_check) {

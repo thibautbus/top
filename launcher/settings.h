@@ -75,6 +75,9 @@ typedef struct oracles_settings {
     char vsync[8];                /* auto, on, off */
     int camera;                   /* the Enhanced camera profile: 1 or 2 */
     int link_phase;               /* link_phase=1: Link drawn in phase on a diagonal walk (a trial, written only when on) */
+    int achievements;             /* achievements=on: RetroAchievements in a build that has them (written only when on) */
+    int achievements_sound;       /* achievements_sound=on|off: the unlock's sound, About › RetroAchievements' Unlock sound; on by default,
+                                   * read and written only in a build that has them (written only when off) */
     int subpixel_camera;          /* subpixel_camera=: the Enhanced camera to the 256th of a pixel (Camera's Smooth), 1 or 0 once
                                    * set either way, -1 absent: the platform's default (oracles_settings_subpixel_camera) */
     char key_names[ORACLES_BINDINGS][ORACLES_SETTINGS_NAME_LENGTH];
@@ -266,6 +269,10 @@ void oracles_settings_portable_turned(oracles_settings *settings, int on, Oracle
 /* The mods folder, one folder per mod: mods_path when set, else mods beside settings.txt; empty when there is no
  * settings directory. */
 void oracles_settings_mods_folder(const oracles_settings *settings, char *out, size_t capacity);
+/* RetroAchievements' files beside settings.txt: `name` is achievements.txt (the account's name and token, never a
+ * password), achievements-pending.txt (the unlocks not yet acknowledged) or achievement-badges (the badges' images);
+ * empty when there is no settings directory. */
+void oracles_settings_achievements_path(const oracles_settings *settings, const char *name, char *out, size_t capacity);
 /* The language pack of game `g`, extracted from its European ROM at its first game in a language and read after:
  * language-ages.pack or language-seasons.pack beside settings.txt; empty when there is no settings directory. */
 void oracles_settings_language_pack(const oracles_settings *settings, OraclesSettingsGame g, char *out, size_t capacity);

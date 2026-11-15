@@ -30,5 +30,7 @@ linux_release_files() {
     patchelf --set-rpath '$ORIGIN' "$dir/the-oracles-project"
     cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
         "$build/Lua-LICENSE.txt" "$build/SDL3-LICENSE.txt" "$dir/"
+    # RetroAchievements' licence where the build has them (ORACLES_RETROACHIEVEMENTS).
+    if grep -q '^ORACLES_RETROACHIEVEMENTS:BOOL=ON' "$build/CMakeCache.txt" 2>/dev/null; then cp "$build/rcheevos-LICENSE.txt" "$dir/"; fi
     sed -e "s/X\.Y\.Z/${version}/" -e "s/PLATFORM/Linux/" "$linux_release_root/.github/release-readme.txt" > "$dir/README.txt"
 }

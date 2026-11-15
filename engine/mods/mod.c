@@ -121,6 +121,7 @@ unsigned oracles_mod_npc_count(const OraclesMod *mod) { return mod ? mod->npc_co
 const char *oracles_mod_description(const OraclesMod *mod) { return mod ? mod->description : ""; }
 const char *oracles_mod_error(const OraclesMod *mod) { return mod && mod->faulted ? mod->error : NULL; }
 int oracles_mod_busy(const OraclesMod *mod) { return mod && mod->conversation != NULL; }
+int oracles_mod_changed_game(const OraclesMod *mod) { return mod && mod->changed_game; }
 
 void mod_attach(OraclesMod *mod, OraclesGuest *guest) { mod->guest = guest; }
 

@@ -71,6 +71,13 @@ typedef struct OraclesHomeGames {
     int state_restart;
     char state_notice[192];
     OraclesStateDisplay state_previous;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* RetroAchievements' login on its way, and with the developer's offline answers (--achievements-offline) the account
+     * logged in and their On or Off, kept in memory alone (settings.txt's achievements= at first). */
+    struct OraclesAchievementsHomeLogin *achievements_login;
+    char achievements_user[ORACLES_HOME_ACCOUNT_LENGTH];
+    int achievements_on;
+#endif
 } OraclesHomeGames;
 
 /* The host of the home screen for these games. */

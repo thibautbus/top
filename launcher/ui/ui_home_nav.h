@@ -57,6 +57,7 @@ typedef enum OraclesHomeItemId {
     ORACLES_HOME_ITEM_RESUME,
     ORACLES_HOME_ITEM_SAVE_STATE,
     ORACLES_HOME_ITEM_LOAD_STATE,
+    ORACLES_HOME_ITEM_ACHIEVEMENTS,   /* a build with RetroAchievements: the session's achievements (ui_achievements.h) */
     ORACLES_HOME_ITEM_QUIT_GAME
 } OraclesHomeItemId;
 
@@ -92,6 +93,12 @@ typedef enum OraclesHomeCommand {
     ORACLES_HOME_EXPORT_SAVE,    /* Android: the document picker for a copy of the save */
     ORACLES_HOME_EXPORT_MODS_SAVE,   /* Android, Mods: the document picker for a copy of the game with mods' save */
     ORACLES_HOME_PORTABLE,       /* About's Portable mode: turned to nav->portable_wanted, the launcher's data copied (portable.h) */
+    /* A build with RetroAchievements (ui_achievements.h): the login's name and password sent, the account forgotten, the
+     * player's guide in the system's browser, the login sent given up (its answer dropped). */
+    ORACLES_HOME_ACHIEVEMENTS_LOGIN,
+    ORACLES_HOME_ACHIEVEMENTS_LOGOUT,
+    ORACLES_HOME_ACHIEVEMENTS_GUIDE,
+    ORACLES_HOME_ACHIEVEMENTS_CANCEL,
     /* The pause menu's. */
     ORACLES_HOME_RESUME,
     ORACLES_HOME_SAVE_STATE,
@@ -107,7 +114,9 @@ typedef enum OraclesScreen {
     ORACLES_SCREEN_MODS,
     ORACLES_SCREEN_CHEATS,
     ORACLES_SCREEN_PAUSE,        /* the menu over a paused game */
-    ORACLES_SCREEN_ABOUT         /* the home screen's version number opened */
+    ORACLES_SCREEN_ABOUT,        /* the home screen's version number opened */
+    ORACLES_SCREEN_ACHIEVEMENTS, /* a build with RetroAchievements: About's page of theirs (ui_achievements.h) */
+    ORACLES_SCREEN_ACHIEVEMENTS_LIST   /* and the pause's list of the game's achievements */
 } OraclesScreen;
 
 /* What the launcher found at a game's ROM path (the statuses of the design, screen 2). */
@@ -128,8 +137,8 @@ typedef enum OraclesProfile {
 } OraclesProfile;
 
 
-#define ORACLES_HOME_MAX_ITEMS 7
-#define ORACLES_HOME_MAX_HINTS 4
+#define ORACLES_HOME_MAX_ITEMS 8
+#define ORACLES_HOME_MAX_HINTS 5
 #define ORACLES_HOME_STATE_LENGTH 64
 
 #define ORACLES_HOME_TEXT_LENGTH 256
@@ -353,6 +362,34 @@ typedef struct OraclesHomeSaveFlow {
     char text2[ORACLES_HOME_TEXT_LENGTH];        /* and a line under it, empty without one */
 } OraclesHomeSaveFlow;
 
+/* RetroAchievements, in a build that has them (ui_achievements.h); zero otherwise. */
+#define ORACLES_HOME_ACCOUNT_LENGTH 64
+typedef struct OraclesAchievementsList OraclesAchievementsList;
+typedef struct OraclesHomeAchievements {
+    int shown;                  /* the build has them: About's link to their page */
+    int on;                     /* settings.txt's achievements=on */
+    int sound;                  /* its achievements_sound=: the unlock's sound (Unlock sound), on by default */
+    char user[ORACLES_HOME_ACCOUNT_LENGTH];   /* the account logged in, as the server spells it; empty: none */
+    int refused;                /* the server refused the token kept: log in again */
+    unsigned pending;           /* the account's unlocks waiting to be sent */
+    /* The login over the page (OraclesAchievementsLoginState, 0 closed): the field or button highlighted, what is typed,
+     * whether On was chosen to open it (Cancel then turns it Off); the launcher's keyboard while it is up, its page,
+     * Shift and its key highlighted; Android's own keyboard up.  The system's text input: the field it was started for
+     * (its number + 1, 0 none), and the field whose input the system put away (Android's Back), not started again until
+     * a field is chosen or typed into. */
+    int login, field, opened_by_on;
+    char name[128], password[128];
+    int keyboard, keyboard_page, keyboard_shift, key_row, key_column;
+    int system_keyboard;
+    int text_for, text_dismissed;
+    int password_shown;         /* the password in letters, not dots: off until asked, again whenever the login closes */
+    /* In a game: they run for it (the pause's Achievements, Cheats' note), why they stopped for the session
+     * (OraclesAchievementsSuspension), the achievements the list shows and its highlight. */
+    int active, suspended;
+    const OraclesAchievementsList *list;
+    unsigned list_focus;
+} OraclesHomeAchievements;
+
 typedef struct OraclesHomeNav {
     OraclesScreen screen;
     OraclesUiLayout layout;            /* the window's (oracles_ui_layout_choose), which its owner sets before each frame */
@@ -415,6 +452,7 @@ typedef struct OraclesHomeNav {
      * which stay where they are with their saves. */
     int portable_shown, portable, portable_wanted, portable_status;
     unsigned games_outside;
+    OraclesHomeAchievements achievements;
 } OraclesHomeNav;
 
 typedef struct OraclesHomeItem {

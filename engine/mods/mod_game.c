@@ -77,6 +77,7 @@ static int queue(lua_State *L, const char *what, OraclesGuestRoutine routine, in
     }
     if (oracles_guest_queue_call(guest, &call, serial) != 0) { mod->calls_refused++; return 0; }
     mod->calls_queued++;
+    if (routine != ORACLES_ROUTINE_PLAY_SOUND) mod->changed_game = 1;
     return 1;
 }
 

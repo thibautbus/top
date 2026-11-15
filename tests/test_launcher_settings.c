@@ -106,6 +106,46 @@ static void unknown_keys(const char *path)
     CHECK(s.unknown[0] == 0);
 }
 
+/* RetroAchievements' Unlock sound, achievements_sound=: on by default and then not written, off written and read back,
+ * spaces and capitals as meant; a build without them keeps the line as it was, a key it does not know. */
+static void achievements_sound_line(const char *path)
+{
+    oracles_settings s;
+    oracles_settings_defaults(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    CHECK(s.achievements_sound == 1);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    CHECK(oracles_settings_store(&s) == 1);
+    char lines[400][256];
+    unsigned count = read_lines(path, lines, 400);
+    int named = 0;
+    for (unsigned i = 0; i < count; i++) named += !strncmp(lines[i], "achievements_sound", 18);
+    CHECK(named == 0);
+    s.achievements_sound = 0;
+    CHECK(oracles_settings_store(&s) == 1);
+    CHECK(file_has_line(path, "achievements_sound=off\n"));
+    oracles_settings_defaults(&s);
+    snprintf(s.path, sizeof s.path, "%s", path);
+    oracles_settings_load(&s);
+    CHECK(s.achievements_sound == 0 && s.unknown[0] == 0);
+    write_text(path, "achievements_sound = On\n");
+    oracles_settings_load(&s);
+    CHECK(s.achievements_sound == 1);
+    write_text(path, "achievements_sound = OFF\n");
+    oracles_settings_load(&s);
+    CHECK(s.achievements_sound == 0);
+    s.achievements_sound = 1;
+    CHECK(oracles_settings_store(&s) == 1);
+    CHECK(!file_has_line(path, "achievements_sound=off\n"));
+#else
+    write_text(path, "achievements_sound=off\n");
+    oracles_settings_load(&s);
+    CHECK(s.achievements_sound == 1);
+    CHECK(oracles_settings_store(&s) == 1);
+    CHECK(file_has_line(path, "achievements_sound=off\n"));
+#endif
+}
+
 /* The portable mode's paths: a ROM or a patch below the executable's folder written relative to it, a Windows one
  * whatever its case and separators, one elsewhere or beside a folder of a longer name as it is; read back against
  * the folder where the executable is now (a USB stick under another drive letter), an absolute one as it is; outside
@@ -813,6 +853,7 @@ int main(int argc, char **argv)
     fan_cheats();
     portable_row();
     profile_refusals();
+    achievements_sound_line(path);
 
     oracles_settings_defaults(&written);
     CHECK(written.rom[ORACLES_SETTINGS_AGES][0] == 0 && written.rom[ORACLES_SETTINGS_SEASONS][0] == 0);

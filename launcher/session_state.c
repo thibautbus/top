@@ -296,6 +296,7 @@ static int load_state(session *s, char *message, size_t capacity, int restart)
         if (s->playing) fprintf(stderr, "oracles: route replay stopped by the state load\n");
         oracles_session_stop_recording(s, "stopped by the state load");
         oracles_session_replay_over(s);   /* the guest's reset has stopped the route's exchanges and emptied the policy */
+        oracles_session_achievements_reset(s);
         ok = 1;
     } else {
         fprintf(stderr, "oracles: %s\n", error);

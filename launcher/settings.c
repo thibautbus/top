@@ -305,6 +305,11 @@ void oracles_settings_mods_folder(const oracles_settings *s, char *out, size_t c
     else beside(s, "mods", out, capacity);
 }
 
+void oracles_settings_achievements_path(const oracles_settings *s, const char *name, char *out, size_t capacity)
+{
+    beside(s, name, out, capacity);
+}
+
 void oracles_settings_language_pack(const oracles_settings *s, OraclesSettingsGame g, char *out, size_t capacity)
 {
     char name[32];
@@ -370,6 +375,7 @@ void oracles_settings_defaults(oracles_settings *s)
     /* No core chosen: the build's default plays, and is not written, so that a build with another default (an update
      * of the application, a build on the other core) plays its own. */
     s->core = -1;
+    s->achievements_sound = 1;
     s->subpixel_camera = -1;   /* not chosen: the platform's default, not written, so that another default can come */
     for (unsigned g = 0; g < ORACLES_SETTINGS_GAMES; g++) s->item_hotkeys[g] = ORACLES_HOTKEYS_OFF;
     s->launcher_width = LAUNCHER_WIDTH;
@@ -605,6 +611,10 @@ void oracles_settings_load(oracles_settings *s)
         else if (!strcmp(name, "vsync")) { if (!strcmp(word, "on") || !strcmp(word, "off") || !strcmp(word, "auto")) snprintf(s->vsync, sizeof s->vsync, "%.4s", word); }
         else if (!strcmp(name, "camera")) s->camera = atoi(word) == 1 ? 1 : 2;
         else if (!strcmp(name, "link_phase")) s->link_phase = atoi(word) != 0;
+        else if (!strcmp(name, "achievements")) s->achievements = !strcmp(word, "on");
+#ifdef ORACLES_RETROACHIEVEMENTS
+        else if (!strcmp(name, "achievements_sound")) s->achievements_sound = strcmp(word, "off") != 0;
+#endif
         else if (!strcmp(name, "subpixel_camera")) s->subpixel_camera = atoi(word) != 0;   /* set either way */
         else if (load_launcher(s, name, value, word)) {}
         else if (load_name(name, value, "key_hotkey_bind_", "b", s->hotkey_bind_b) || load_name(name, value, "key_hotkey_bind_", "a", s->hotkey_bind_a)) {}
@@ -695,6 +705,10 @@ int oracles_settings_store(const oracles_settings *s)
     put(&w, "vsync=%s\n", s->vsync);
     put(&w, "camera=%d\n", s->camera);
     if (s->link_phase) put(&w, "link_phase=1\n");
+    if (s->achievements) put(&w, "achievements=on\n");
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (!s->achievements_sound) put(&w, "achievements_sound=off\n");
+#endif
     if (s->subpixel_camera >= 0) put(&w, "subpixel_camera=%d\n", s->subpixel_camera != 0);
     put(&w, "# The home screen: each game's ROM (Cartridge's Choose ROM, or a file dropped on the window) and its item hotkeys\n"
                "# (off|use, Controls' Off or On, for the games the home screen starts; equip as --item-hotkeys=equip), and the\n"

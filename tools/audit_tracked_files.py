@@ -13,7 +13,7 @@ refuses:
 - a file larger than 4 MiB, except the vendored SameBoy sources;
 - a top-level entry outside the repository's roots, among the files not left
   out by --exclude FILE (prefixes, one per line; none without the option);
-- a vendored tree (SameBoy's Core, Lua's src, mGBA's core) whose hash is not the one pinned in config/.
+- a vendored tree (SameBoy's Core, Lua's src, mGBA's core, rcheevos' include and src) whose hash is not the one pinned in config/.
 
 usage: audit_tracked_files.py [--root DIR] [--exclude FILE] [--json]     exit status 1 on any violation
 """
@@ -99,11 +99,14 @@ def core_tree_hash(core: Path) -> str:
 
 
 # The vendored trees and the files that pin them: each tree is the unmodified
-# upstream one (third_party/sameboy/VERSION.md, third_party/lua/VERSION.md), or, for mGBA's, the upstream one with
-# its one patch applied (third_party/mgba/VERSION.md).
+# upstream one (third_party/sameboy/VERSION.md, third_party/lua/VERSION.md), or the upstream files the engine builds
+# (third_party/rcheevos/VERSION.md), or, for mGBA's, the upstream one with its one patch applied
+# (third_party/mgba/VERSION.md).
 PINNED_TREES = [("config/sameboy.json", "third_party/sameboy/Core", "core_tree_sha256"),
                 ("config/lua.json", "third_party/lua/src", "src_tree_sha256"),
-                ("config/mgba.json", "third_party/mgba/core", "core_tree_sha256")]
+                ("config/mgba.json", "third_party/mgba/core", "core_tree_sha256"),
+                ("config/rcheevos.json", "third_party/rcheevos/include", "include_tree_sha256"),
+                ("config/rcheevos.json", "third_party/rcheevos/src", "src_tree_sha256")]
 
 
 def pinned_core_violations(root: Path) -> list[dict[str, str]]:

@@ -32,6 +32,9 @@ set(CMAKE_C_EXTENSIONS ON)
 
 option(ORACLES_WARNINGS_AS_ERRORS "Treat warnings in the engine's own code as errors" OFF)
 option(ORACLES_BUILD_LAUNCHER "Build the SDL 3 launcher" ON)
+# RetroAchievements in casual mode (launcher/achievements.h, third_party/rcheevos): the launcher has them with this
+# option alone; the library is built for the tests too.
+option(ORACLES_RETROACHIEVEMENTS "Build RetroAchievements (casual mode) into the launcher" OFF)
 # The core the launcher's games run on until the player chooses one in Display: sameboy (accurate) on the desktops, mgba
 # (lighter) on Android, whose devices go down to small handhelds.
 if(ANDROID)
@@ -145,11 +148,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(ORACLES_SESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/engine/session)
 set(ORACLES_HOST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/engine/host)
 
+# BUILD_TESTING (CTest's) is known before the libraries: rcheevos is built for the tests too.
+include(CTest)
 add_subdirectory(third_party)
 add_subdirectory(engine)
 add_subdirectory(harness)
 add_subdirectory(launcher)
 
 # ---- tests without ROM --------------------------------------------------------
-include(CTest)
 add_subdirectory(tests)

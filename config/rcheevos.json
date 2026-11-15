@@ -1,0 +1,10 @@
+{
+  "version": "12.5.0",
+  "tag": "v12.5.0",
+  "commit": "1433173220a7eaede6a9ed7a18e94117be1821e0",
+  "archive_url": "https://github.com/RetroAchievements/rcheevos/archive/refs/tags/v12.5.0.tar.gz",
+  "archive_sha256": "e6df83de4e18f0a19206e711e1e589624dcfcf6bf529c14f6dd2bb2d1ced983f",
+  "license": "MIT",
+  "include_tree_sha256": "e4bab120fb1639a391744f89c56cee8c9be62ec48a5e5af4f0ce8a2d96dd2d28",
+  "src_tree_sha256": "b7b1604a58a5e284c1f82990b0919ba0ba33f66051c36764cb64cf49ed136334"
+}

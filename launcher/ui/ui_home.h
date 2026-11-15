@@ -50,7 +50,8 @@ typedef enum OraclesUiHomeHitKind {
     ORACLES_UI_HIT_BACK,       /* the help bar's hint that goes back */
     ORACLES_UI_HIT_ROW,        /* a row of a page: `index`, and one of its options: `option`, or -1 */
     ORACLES_UI_HIT_CELL,       /* a place of Controls: `column`, `row`, and the Item hotkeys' Off or On: `option`, or -1 */
-    ORACLES_UI_HIT_SLOW        /* the slow game's toast, which opens Display (oracles_home_slow_open) */
+    ORACLES_UI_HIT_SLOW,       /* the slow game's toast, which opens Display (oracles_home_slow_open) */
+    ORACLES_UI_HIT_LOGIN       /* RetroAchievements' login: a field, a button or a key, `index` (oracles_achievements_login_click) */
 } OraclesUiHomeHitKind;
 
 typedef struct OraclesUiHomeHit {

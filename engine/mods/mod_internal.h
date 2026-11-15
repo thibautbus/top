@@ -97,6 +97,7 @@ struct OraclesMod {
     int faulted;
     unsigned fault_frames;                         /* frames left of the notice that the mod stopped */
     unsigned conversations, frames_held, calls_queued, calls_refused, lua_errors;
+    int changed_game;                              /* a call queued that changes the game (all but play_sound): not in the fingerprint */
     int storage_ref;                               /* mod.storage, the live table of the file loaded */
     char *stored[MOD_SLOTS];                       /* each file's mod.storage, encoded (mod_store.c); NULL for an empty one */
     size_t stored_size[MOD_SLOTS];

@@ -115,6 +115,8 @@ typedef struct session {
     int state_restart;          /* the pause's Load state asked for the game again with the savestate's Display */
     char state_notice[192];     /* what that changed */
     OraclesStateDisplay state_previous;   /* the choices of Display it changed, as they were */
+    struct OraclesSessionAchievements *achievements;   /* RetroAchievements watching the game (session_achievements.c), or NULL */
+    char achievements_hash[33];                 /* the game's identity for them, taken before a mod or a language changed the image */
 } session;
 
 /* Writes a file through a temporary name (1 when done); reads a whole file into a buffer the caller frees (1, or 0
@@ -158,6 +160,27 @@ int oracles_session_present_waits_now(void *opaque);
 uint32_t oracles_session_late_frames(const oracles_host_run_report *report);
 void oracles_session_report_frames(const session *s, const oracles_host_run_report *report);
 void oracles_session_finish(session *s, const OraclesSessionOptions *o);
+/* session_achievements.c: the game's identity taken from the image as read, where the session may have achievements;
+ * the client started once the core exists, logged in with the account kept and asking for the game; the frame's
+ * evaluation, after the frame; the pause's idle; a state loaded; a cheat turned on, which suspends them for the
+ * session; the reason they are suspended (NULL while they run) and the account's unlocks not yet acknowledged, for
+ * the interface; the end. */
+typedef struct OraclesSessionAchievements OraclesSessionAchievements;
+void oracles_session_achievements_hash(session *s, const OraclesSessionOptions *o);
+void oracles_session_achievements_start(session *s, const OraclesSessionOptions *o);
+void oracles_session_achievements_frame(session *s);
+void oracles_session_achievements_idle(void *opaque);
+void oracles_session_achievements_reset(session *s);
+void oracles_session_achievements_cheats(session *s);
+const char *oracles_session_achievements_suspension(const session *s);
+unsigned oracles_session_achievements_pending(const session *s);
+void oracles_session_achievements_stop(session *s);
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* The game's achievements for the pause's list, made now (NULL before its set is loaded); why they stopped for the
+ * session (OraclesAchievementsSuspension). */
+const OraclesAchievementsList *oracles_session_achievements_list(session *s);
+int oracles_session_achievements_suspended(const session *s);
+#endif
 /* F5 and F7: 1 when done; otherwise 0, and *message says why, shortly (the pause menu shows it). */
 int oracles_session_save_state(session *s, char *message, size_t capacity);
 int oracles_session_load_state(session *s, char *message, size_t capacity);

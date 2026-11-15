@@ -266,9 +266,19 @@ static struct {
     char source[2048], version[24];
 } check;
 
+const char *oracles_update_repository(void) { return ORACLES_UPDATE_REPOSITORY; }
+
 const char *oracles_update_default_url(void)
 {
     return "https://api.github.com/repos/" ORACLES_UPDATE_REPOSITORY "/releases/latest";
+}
+
+/* The GET of GitHub's API: its Accept header, a User-Agent without the version. */
+static int fetch(const char *url, char **body, size_t *length, int *status, char *error, size_t capacity)
+{
+    const OraclesHttpRequest request = { url, NULL, 0, NULL, ORACLES_UPDATE_ACCEPT, ORACLES_UPDATE_USER_AGENT, ORACLES_UPDATE_TIMEOUT_MS,
+                                         ORACLES_UPDATE_MAX_BODY, &check.cancel, 0 };
+    return oracles_http_request(&request, body, length, status, error, capacity);
 }
 
 static int run(void *opaque)
@@ -278,7 +288,7 @@ static int run(void *opaque)
     size_t length = 0;
     int http_status = 0;
     if (!strncmp(check.source, "https://", 8)) {
-        if (!oracles_update_fetch(check.source, ORACLES_UPDATE_TIMEOUT_MS, &check.cancel, &body, &length, &http_status, error, sizeof error))
+        if (!fetch(check.source, &body, &length, &http_status, error, sizeof error))
             http_status = 0;
     } else {
         /* --update-check-url's file, as GitHub would answer. */

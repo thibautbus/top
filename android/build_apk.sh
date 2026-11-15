@@ -16,6 +16,7 @@
 #
 # The application's default core is mGBA, the lighter (Display's Core lets the player choose SameBoy);
 # ORACLES_DEFAULT_CORE=sameboy builds one on SameBoy, to measure it, its version code one less, its file named -sameboy.
+# ORACLES_RETROACHIEVEMENTS=ON builds RetroAchievements in (OFF by default).
 #
 # The Android Gradle plugin installs the NDK and CMake the build names when the
 # SDK lacks them.
@@ -33,6 +34,8 @@ repository="$(cd "$here/.." && pwd)"
 describe="$(git -C "$repository" describe --tags --always --long --match "v[0-9]*" 2>/dev/null || true)"
 output="$here/build-apk"
 core="${ORACLES_DEFAULT_CORE:-mgba}"
+achievements="${ORACLES_RETROACHIEVEMENTS:-OFF}"
+case "$achievements" in ON|OFF) ;; *) echo "ORACLES_RETROACHIEVEMENTS is ON or OFF" >&2; exit 2 ;; esac
 case "$core" in sameboy) suffix="-sameboy" ;; mgba) suffix="" ;; *) echo "ORACLES_DEFAULT_CORE is sameboy or mgba" >&2; exit 2 ;; esac
 mkdir -p "$output"
 
@@ -52,8 +55,8 @@ if [ -z "${ANDROID_HOME:-}" ] && grep -qi microsoft /proc/version 2>/dev/null; t
         "$repository/" "$stage/"
     # The commands go through a batch file: quotes passed from WSL to cmd.exe would reach it escaped.  The release's key
     # goes through the environment (WSLENV, the keystore's path translated), never into the file.
-    printf '@echo off\r\nset "JAVA_HOME=%s"\r\nset "ANDROID_HOME=%s\\Android\\Sdk"\r\ncd /d "%s\\android"\r\ncall gradlew.bat --no-daemon %s "-PoraclesGitDescribe=%s" "-PoraclesDefaultCore=%s"\r\n' \
-        "$studio" "$local_app_data" "$stage_windows" "$task" "$describe" "$core" > "$stage/build.bat"
+    printf '@echo off\r\nset "JAVA_HOME=%s"\r\nset "ANDROID_HOME=%s\\Android\\Sdk"\r\ncd /d "%s\\android"\r\ncall gradlew.bat --no-daemon %s "-PoraclesGitDescribe=%s" "-PoraclesDefaultCore=%s" "-PoraclesRetroachievements=%s"\r\n' \
+        "$studio" "$local_app_data" "$stage_windows" "$task" "$describe" "$core" "$achievements" > "$stage/build.bat"
     export WSLENV="${WSLENV:+$WSLENV:}ORACLES_KEYSTORE/p:ORACLES_KEYSTORE_PASSWORD:ORACLES_KEY_ALIAS:ORACLES_KEY_PASSWORD"
     built="$stage/android/app/build/outputs/apk/$variant"
     rm -f "$built"/*.apk   # a signed APK of an earlier build must not pass for this one
@@ -61,7 +64,7 @@ if [ -z "${ANDROID_HOME:-}" ] && grep -qi microsoft /proc/version 2>/dev/null; t
 else
     built="$here/app/build/outputs/apk/$variant"
     rm -f "$built"/*.apk
-    (cd "$here" && ./gradlew "$task" "-PoraclesGitDescribe=$describe" "-PoraclesDefaultCore=$core")
+    (cd "$here" && ./gradlew "$task" "-PoraclesGitDescribe=$describe" "-PoraclesDefaultCore=$core" "-PoraclesRetroachievements=$achievements")
 fi
 if [ "$variant" = debug ]; then
     apk="$output/the-oracles-project-debug$suffix.apk"

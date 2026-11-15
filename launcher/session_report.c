@@ -136,6 +136,7 @@ void oracles_session_finish(session *s, const OraclesSessionOptions *o)
         oracles_guest_compact_counts(s->guest, &c);
         fprintf(stderr, "oracles: %s text: %u lines, %u characters in %u tile columns\n", s->compact_text ? "compact" : "classic", c.lines, c.characters, c.columns);
     }
+    oracles_session_achievements_stop(s);
     oracles_mod_session_stop(s->mod, NULL);
     if (s->ran) oracles_language_session_report(s->language, s->guest, "oracles: ", stderr);
     oracles_language_session_stop(s->language);

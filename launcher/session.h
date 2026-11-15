@@ -67,6 +67,7 @@ typedef struct OraclesSessionOptions {
     int neighbour_objects;           /* Enhanced shows a neighbour's objects */
     int camera_profile;              /* 0: the settings' camera; 1 or 2: this one for the session, not stored */
     int pretend_slow;                /* --pretend-slow: the game counts as one that ran slowly, to try the home screen's suggestion */
+    const char *achievements_offline;   /* --achievements-offline: RetroAchievements' answers read from this directory, no server asked */
     /* The window: its scale and fullscreen state, and the launcher's own window when the home screen lends it. */
     oracles_sdl_options sdl;
     /* A game the home screen started: Escape opens this pause menu (pause.h) rather than ending the session. */
@@ -188,6 +189,23 @@ unsigned oracles_session_windows_refused(const unsigned scales[3], int surface_w
  * game's box plays, the wide box turned off), in Enhanced alone.  1 with the line's `width` and whether it is laid out
  * at the game's `fixed` advance; 0: the game's own layout. */
 int oracles_session_text_layout(int profile_compact, int profile_host_box, int enhanced, int compact, int wide, unsigned *width, int *fixed);
+
+/* --achievements-login: the password of RetroAchievements' account `user` read from the standard input and sent once,
+ * the token the server answers kept in achievements.txt beside the settings, and achievements=on; answered from
+ * `offline`'s files where it is given (OraclesSessionOptions).  Returns 0 when logged in, 1 otherwise. */
+int oracles_session_achievements_login(oracles_settings *settings, const char *user, const char *offline);
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* The home screen's account (a build with RetroAchievements): its name, empty when none is logged in, *refused when the
+ * server refused the token kept, and its unlocks waiting; logged out, its file removed; a login with a password on the
+ * client's own thread, its answer polled from the home screen's loop (1: in, the account kept unless `offline`; 0: the
+ * name or the password refused; -1: no answer, in 30 s at most; -2: not yet). */
+void oracles_session_achievements_account(const oracles_settings *settings, char *user, size_t capacity, int *refused, unsigned *pending);
+void oracles_session_achievements_logout(const oracles_settings *settings);
+typedef struct OraclesAchievementsHomeLogin OraclesSessionLogin;   /* achievements_account.h */
+OraclesSessionLogin *oracles_session_achievements_login_begin(oracles_settings *settings, const char *user, const char *password, const char *offline);
+int oracles_session_achievements_login_poll(OraclesSessionLogin *login, char *user, size_t capacity);
+void oracles_session_achievements_login_end(OraclesSessionLogin *login);
+#endif
 
 /* The save file of a ROM: its path with the extension .sav. */
 void oracles_session_default_save_path(const char *rom_path, char *out, size_t capacity);

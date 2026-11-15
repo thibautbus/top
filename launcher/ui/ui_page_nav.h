@@ -453,7 +453,10 @@ OraclesHomeCommand oracles_cheats_click(OraclesHomeNav *nav, unsigned row, int o
 /* About's second row, where the portable mode can be (nav->portable_shown): Portable mode, Off or On; under it, while
  * On with games outside the launcher's folder, the hint that they stay there, and the status of the last switch,
  * "Copying…" while it runs, the page then taking no input, Back included. */
-enum { ORACLES_ABOUT_ROW_UPDATE, ORACLES_ABOUT_ROW_PORTABLE, ORACLES_ABOUT_ROWS };
+enum { ORACLES_ABOUT_ROW_UPDATE, ORACLES_ABOUT_ROW_PORTABLE, ORACLES_ABOUT_ROW_ACHIEVEMENTS, ORACLES_ABOUT_ROWS };
+/* What About's `row` is: ORACLES_ABOUT_ROW_UPDATE, _PORTABLE where it can be, and last, in a build with RetroAchievements
+ * (nav->achievements.shown), _ACHIEVEMENTS, the link to their page (ui_achievements.h). */
+unsigned oracles_about_row_kind(const OraclesHomeNav *nav, unsigned row);
 typedef enum OraclesHomePortableStatus {
     ORACLES_PORTABLE_STATUS_NONE,
     ORACLES_PORTABLE_STATUS_COPYING,
@@ -468,7 +471,7 @@ extern const char *const oracles_about_portable_choices[2];      /* "Off", "On" 
 extern const char oracles_about_portable_explanation[];         /* 16:9's, beside the choices */
 extern const char oracles_about_portable_help[], oracles_about_portable_help_note[];   /* 4:3's, under the rows */
 extern const char oracles_about_portable_hint[];
-/* The rows About has: Update check, and Portable mode where it can be. */
+/* The rows About has: Update check, Portable mode where it can be, RetroAchievements where the build has them. */
 unsigned oracles_about_rows(const OraclesHomeNav *nav);
 /* The hint under Portable mode, NULL when none: On, with games outside the launcher's folder. */
 const char *oracles_about_portable_hint_shown(const OraclesHomeNav *nav);

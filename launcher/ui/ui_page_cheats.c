@@ -1,6 +1,9 @@
 /* Cheats and About (ui_page_nav.h): their rows, their keys and pointer, and their layout (ui_page_layout.h). */
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements.h"
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -94,7 +97,7 @@ void oracles_about_note(const OraclesHomeNav *nav, const char *version, char *ou
     else snprintf(out, capacity, "%s", version);
 }
 
-unsigned oracles_about_rows(const OraclesHomeNav *nav) { return nav->portable_shown ? ORACLES_ABOUT_ROWS : 1u; }
+unsigned oracles_about_rows(const OraclesHomeNav *nav) { return 1u + (nav->portable_shown != 0) + (nav->achievements.shown != 0); }
 
 const char *oracles_about_portable_hint_shown(const OraclesHomeNav *nav)
 {
@@ -149,13 +152,19 @@ OraclesHomeCommand oracles_about_act(OraclesHomeNav *nav, OraclesHomeAction acti
     const unsigned rows = oracles_about_rows(nav);
     if (nav->row >= rows) nav->row = 0;
     if (portable_copying(nav)) return ORACLES_HOME_STAY;   /* until the copy ends, Back included */
-    const int portable = nav->row == ORACLES_ABOUT_ROW_PORTABLE;
+    const unsigned kind = oracles_about_row_kind(nav, nav->row);
     switch (action) {
         case ORACLES_HOME_UP: nav->row = (nav->row + rows - 1u) % rows; return ORACLES_HOME_STAY;
         case ORACLES_HOME_DOWN: nav->row = (nav->row + 1u) % rows; return ORACLES_HOME_STAY;
         case ORACLES_HOME_LEFT:
         case ORACLES_HOME_RIGHT:
-        case ORACLES_HOME_OK: return portable ? set_portable(nav, !nav->portable) : set_update_check(nav, !nav->update_check);
+        case ORACLES_HOME_OK:
+            if (kind == ORACLES_ABOUT_ROW_PORTABLE) return set_portable(nav, !nav->portable);
+            if (kind == ORACLES_ABOUT_ROW_UPDATE) return set_update_check(nav, !nav->update_check);
+#ifdef ORACLES_RETROACHIEVEMENTS
+            if (action != ORACLES_HOME_LEFT) oracles_achievements_open(nav);   /* a link: right and OK open its page */
+#endif
+            return ORACLES_HOME_STAY;
         case ORACLES_HOME_BACK: {
             /* Back to the home screen, on About's link; the switch's status goes with the page. */
             OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
@@ -172,8 +181,15 @@ OraclesHomeCommand oracles_about_click(OraclesHomeNav *nav, unsigned row, int op
 {
     if (portable_copying(nav) || row >= oracles_about_rows(nav)) return ORACLES_HOME_STAY;
     nav->row = row;
+    const unsigned kind = oracles_about_row_kind(nav, row);
+    if (kind == ORACLES_ABOUT_ROW_ACHIEVEMENTS) {
+#ifdef ORACLES_RETROACHIEVEMENTS
+        oracles_achievements_open(nav);   /* the row is a link, clicked anywhere */
+#endif
+        return ORACLES_HOME_STAY;
+    }
     if (option < 0) return ORACLES_HOME_STAY;
-    return row == ORACLES_ABOUT_ROW_PORTABLE ? set_portable(nav, option == 1) : set_update_check(nav, option == 0);
+    return kind == ORACLES_ABOUT_ROW_PORTABLE ? set_portable(nav, option == 1) : set_update_check(nav, option == 0);
 }
 
 /* ---- the layout ------------------------------------------------------------------------------------------------ */
@@ -238,6 +254,20 @@ OraclesHomeCommand oracles_about_click(OraclesHomeNav *nav, unsigned row, int op
 #define STATUS_DOT 12.0f
 #define STATUS_DOT_GAP 12.0f
 #define EXTRA_LINE_4_3 38.0f
+/* A second note under the first, 12 under it (4:3: 4).  An action, a row's button and its dot 14 apart (4:3: 12), its
+ * explanation's value before it in 4:3, 16 and 12 from it; a link, its summary and its arrow 14 apart (4:3: 20), the arrow
+ * 9 by 12 (4:3: 13 by 18). */
+#define NOTE2_GAP 12.0f
+#define ACTION_DOT_GAP 14.0f
+#define ACTION_DOT_GAP_4_3 12.0f
+#define VALUE_MARGIN_4_3 16.0f
+#define VALUE_GAP_4_3 12.0f
+#define LINK_GAP 14.0f
+#define LINK_ARROW_W 9.0f
+#define LINK_ARROW_H 12.0f
+#define LINK_GAP_4_3 20.0f
+#define LINK_ARROW_W_4_3 13.0f
+#define LINK_ARROW_H_4_3 18.0f
 #define STATUS_DOT_4_3 14.0f
 
 const OraclesUiTextStyle oracles_ui_about_status = { ORACLES_UI_FONT_SANS, 25.0f, 0.0f, 0 };
@@ -294,23 +324,9 @@ static void choices_16_9(const char *const *names, float right, float top, Oracl
     }
 }
 
-/* A page of rows laid out as Cheats: its head, the note under it, and each row's label, explanation (16:9's) and two
- * choices; 4:3's help, the highlighted row's explanation and note; under the last row its hint and its status, NULL for
- * none. */
-typedef struct list_page {
-    const char *section, *over, *title, *note;
-    unsigned rows;
-    const char *labels[ORACLES_CHEATS_ROWS];
-    char explanations[ORACLES_CHEATS_ROWS][ORACLES_HOME_TEXT_LENGTH];
-    const char *const *choices[ORACLES_CHEATS_ROWS];
-    const char *help, *help_note;
-    const char *hint, *status;
-    int centred;   /* an explanation shorter than its two lines centred in them (About's), else at their top */
-} list_page;
-
-/* The last row's hint and status from `y`, across `width` from `x`, each `gap` under what comes before; returns their
- * bottom. */
-static float row_extras(const list_page *page, OraclesUiCheatsLayout *out, const OraclesUiTextStyle *hint_style, const OraclesUiTextStyle *status_style,
+/* The hint and the status under row `extras_row`, from `y`, across `width` from `x`, each `gap` under what comes before;
+ * returns their bottom. */
+static float row_extras(const OraclesUiListPage *page, OraclesUiCheatsLayout *out, const OraclesUiTextStyle *hint_style, const OraclesUiTextStyle *status_style,
                         float hint_line, float status_line, float dot, float x, float width, float y, float gap)
 {
     if (page->hint) {
@@ -326,11 +342,23 @@ static float row_extras(const list_page *page, OraclesUiCheatsLayout *out, const
     return y;
 }
 
-static void list_16_9(const list_page *page, OraclesUiCheatsLayout *out)
+/* An action ("Log in…") and its dot, from `x`, `gap` between them, vertically centred on `middle`. */
+static float action_at(const OraclesUiTextStyle *style, const char *label, float x, float middle, float gap, OraclesUiLine *line, OraclesUiLine *dot,
+                       OraclesUiBox *hit)
+{
+    *line = line_at(style, label, x, 0.0f, 0.0f);
+    move_line(line, x, middle - line->h * 0.5f);
+    *dot = line_at(style, oracles_ui_item_dot, x + line->w + gap, line->y, 0.0f);
+    *hit = box(x, line->y, line->w + gap + dot->w, line->h);
+    return hit->w;
+}
+
+static void list_16_9(const OraclesUiListPage *page, OraclesUiCheatsLayout *out)
 {
     oracles_ui_layout_page_head(ORACLES_UI_LAYOUT_16_9, page->section, page->over, page->title, NULL, &out->head);
     const float note_y = out->head.title.lines[0].y + out->head.title.h + NOTE_GAP;
     wrap_lines(&oracles_ui_row_text, page->note, HEAD_W, HEAD_X, note_y, NOTE_LINE, &out->note);
+    if (page->note2) wrap_lines(&oracles_ui_row_text, page->note2, HEAD_W, HEAD_X, out->note.lines[0].y + out->note.h + NOTE2_GAP, NOTE_LINE, &out->note2);
 
     const float left = PANEL_X + PANEL_BORDER + PANEL_PAD_X, width = PANEL_W - 2.0f * (PANEL_BORDER + PANEL_PAD_X);
     const float value_x = left + LABEL_W + GRID_GAP, value_w = width - LABEL_W - GRID_GAP;
@@ -338,30 +366,57 @@ static void list_16_9(const list_page *page, OraclesUiCheatsLayout *out)
     float y = PANEL_Y + PANEL_BORDER + PANEL_PAD_Y;
     for (unsigned r = 0; r < page->rows; r++) {
         out->labels[r] = line_at(&oracles_ui_row_label, page->labels[r], left, y + LABEL_PAD_TOP, 0.0f);
-        /* The explanation beside the two choices, two lines kept, the two centred on the row. */
-        OraclesUiOptionLayout *o = out->choices[r];
-        choices_16_9(page->choices[r], right, 0.0f, o);
-        wrap_lines(&oracles_ui_row_text, page->explanations[r], o[0].box.x - TEXT_GAP - inner_x, inner_x, 0.0f, TEXT_LINE, &out->explanations[r]);
-        const float text_h = max_f(out->explanations[r].h, TEXT_H), inner_h = max_f(text_h, o[0].box.h);
         const float inner_y = y + ROW_PAD_Y;
+        const OraclesUiTextStyle *text_style = page->explanation_styles[r] ? page->explanation_styles[r] : &oracles_ui_row_text;
+        /* The explanation beside the two choices, or beside an action or a link (an empty frame of choices and two gaps
+         * between them), two lines kept, the two centred on the row. */
+        OraclesUiOptionLayout *o = out->choices[r];
+        float text_right, side_h;
+        if (page->kinds[r] == ORACLES_UI_LIST_CHOICES) {
+            choices_16_9(page->choices[r], right, 0.0f, o);
+            text_right = o[0].box.x - TEXT_GAP;
+            side_h = o[0].box.h;
+        } else if (page->kinds[r] == ORACLES_UI_LIST_ACTION) {
+            const float w = oracles_ui_text_width(&oracles_ui_row_button, page->actions[r]) + ACTION_DOT_GAP + oracles_ui_text_width(&oracles_ui_row_button, oracles_ui_item_dot);
+            side_h = line_at(&oracles_ui_row_button, page->actions[r], 0.0f, 0.0f, 0.0f).h;
+            text_right = right - w - 2.0f * TEXT_GAP;
+        } else {
+            const float w = oracles_ui_text_width(&oracles_ui_choice, page->summaries[r]) + LINK_GAP + LINK_ARROW_W;
+            side_h = line_at(&oracles_ui_choice, page->summaries[r], 0.0f, 0.0f, 0.0f).h;
+            text_right = right - w - 2.0f * TEXT_GAP;
+        }
+        wrap_lines(text_style, page->explanations[r], text_right - inner_x, inner_x, 0.0f, TEXT_LINE, &out->explanations[r]);
+        const float text_h = max_f(out->explanations[r].h, TEXT_H), inner_h = max_f(text_h, side_h);
         const float top = inner_y + (inner_h - text_h) * 0.5f + (page->centred ? (text_h - out->explanations[r].h) * 0.5f : 0.0f);
         for (unsigned i = 0; i < out->explanations[r].count; i++) move_line(&out->explanations[r].lines[i], inner_x, top + (float)i * TEXT_LINE);
-        for (int c = 0; c < 2; c++) {
-            const float dy = inner_y + (inner_h - o[c].box.h) * 0.5f;
-            o[c].box.y += dy;
-            move_line(&o[c].name, o[c].name.x, o[c].name.y + dy);
+        const float middle = inner_y + inner_h * 0.5f;
+        if (page->kinds[r] == ORACLES_UI_LIST_CHOICES) {
+            for (int c = 0; c < 2; c++) {
+                const float dy = inner_y + (inner_h - o[c].box.h) * 0.5f;
+                o[c].box.y += dy;
+                move_line(&o[c].name, o[c].name.x, o[c].name.y + dy);
+            }
+        } else if (page->kinds[r] == ORACLES_UI_LIST_ACTION) {
+            const float w = oracles_ui_text_width(&oracles_ui_row_button, page->actions[r]) + ACTION_DOT_GAP + oracles_ui_text_width(&oracles_ui_row_button, oracles_ui_item_dot);
+            action_at(&oracles_ui_row_button, page->actions[r], right - w, middle, ACTION_DOT_GAP, &out->actions[r], &out->action_dots[r], &out->action_boxes[r]);
+        } else {
+            out->summaries[r] = line_at(&oracles_ui_choice, page->summaries[r], 0.0f, 0.0f, 0.0f);
+            const float x = right - out->summaries[r].w - LINK_GAP - LINK_ARROW_W;
+            move_line(&out->summaries[r], x, middle - out->summaries[r].h * 0.5f);
+            out->arrows[r] = box(x + out->summaries[r].w + LINK_GAP, middle - LINK_ARROW_H * 0.5f, LINK_ARROW_W, LINK_ARROW_H);
+            out->link_boxes[r] = box(x, out->summaries[r].y, right - x, out->summaries[r].h);
         }
         out->rows[r] = box(value_x, y, value_w, inner_h + 2.0f * ROW_PAD_Y);
         y += max_f(LABEL_PAD_TOP + out->labels[r].h, out->rows[r].h);
-        if (r + 1u == page->rows)
+        if (r == page->extras_row)
             y = row_extras(page, out, &oracles_ui_row_text, &oracles_ui_about_status, HINT_LINE, STATUS_LINE, STATUS_DOT, left + ROW_PAD_X,
                            width - 2.0f * ROW_PAD_X, y, EXTRA_GAP);
-        else y += ROW_GAP;
+        if (r + 1u < page->rows) y += ROW_GAP;
     }
     out->panel = box(PANEL_X, PANEL_Y, PANEL_W, y + PANEL_PAD_Y + PANEL_BORDER - PANEL_Y);
 }
 
-static void list_4_3(const list_page *page, OraclesUiCheatsLayout *out)
+static void list_4_3(const OraclesUiListPage *page, OraclesUiCheatsLayout *out)
 {
     oracles_ui_layout_page_head(ORACLES_UI_LAYOUT_4_3, page->section, page->over, page->title, NULL, &out->head);
     out->note.count = 1;
@@ -369,71 +424,143 @@ static void list_4_3(const list_page *page, OraclesUiCheatsLayout *out)
     out->note.lines[0] = line_at(&oracles_ui_page_note_4_3, page->note, HEAD_X_4_3, out->head.title.lines[0].y + out->head.title.h + HEAD_GAP_4_3, 0.0f);
     out->note.w = out->note.lines[0].w;
     out->note.h = out->note.lines[0].h;
+    if (page->note2) {
+        out->note2.count = 1;
+        snprintf(out->note2.text[0], sizeof out->note2.text[0], "%s", page->note2);
+        out->note2.lines[0] = line_at(&oracles_ui_page_credit_4_3, page->note2, HEAD_X_4_3, out->note.lines[0].y + out->note.h + HEAD_GAP_4_3, 0.0f);
+        out->note2.w = out->note2.lines[0].w;
+        out->note2.h = out->note2.lines[0].h;
+    }
 
     const float left = ROWS_X_4_3 + ROW_PAD_X_4_3, value_x = left + LABEL_W_4_3 + GRID_GAP_4_3;
     float y = ROWS_Y_4_3;
     for (unsigned r = 0; r < page->rows; r++) {
-        /* The two choices framed from the values' column, the label and they centred on the row. */
+        /* The two choices framed from the values' column, or the value and the action, or the link; the label and they
+         * centred on the row. */
         OraclesUiOptionLayout *o = out->choices[r];
         float x = value_x, options_h = 0.0f;
-        for (int c = 0; c < 2; c++) {
-            memset(&o[c].size, 0, sizeof o[c].size);
-            o[c].name = line_at(&oracles_ui_row_button_4_3, page->choices[r][c], 0.0f, 0.0f, OPTION_NAME_LINE_4_3);
-            o[c].box = box(x, 0.0f, max_f(OPTION_MIN_W_4_3, o[c].name.w + 2.0f * (OPTION_PAD_X_4_3 + OPTION_BORDER_4_3)),
-                           max_f(OPTION_MIN_H_4_3, o[c].name.h + 2.0f * (OPTION_PAD_Y_4_3 + OPTION_BORDER_4_3)));
-            x += o[c].box.w + OPTION_GAP_4_3;
-            options_h = max_f(options_h, o[c].box.h);
+        if (page->kinds[r] == ORACLES_UI_LIST_CHOICES) {
+            for (int c = 0; c < 2; c++) {
+                memset(&o[c].size, 0, sizeof o[c].size);
+                o[c].name = line_at(&oracles_ui_row_button_4_3, page->choices[r][c], 0.0f, 0.0f, OPTION_NAME_LINE_4_3);
+                o[c].box = box(x, 0.0f, max_f(OPTION_MIN_W_4_3, o[c].name.w + 2.0f * (OPTION_PAD_X_4_3 + OPTION_BORDER_4_3)),
+                               max_f(OPTION_MIN_H_4_3, o[c].name.h + 2.0f * (OPTION_PAD_Y_4_3 + OPTION_BORDER_4_3)));
+                x += o[c].box.w + OPTION_GAP_4_3;
+                options_h = max_f(options_h, o[c].box.h);
+            }
+        } else {
+            options_h = OPTION_MIN_H_4_3;
         }
         out->labels[r] = line_at(&oracles_ui_row_label_4_3, page->labels[r], left, 0.0f, 0.0f);
         const float track = max_f(ROW_MIN_H_4_3 - 2.0f * ROW_PAD_Y_4_3, max_f(out->labels[r].h, options_h));
         out->rows[r] = box(ROWS_X_4_3, y, ROWS_W_4_3, track + 2.0f * ROW_PAD_Y_4_3);
         move_line(&out->labels[r], left, y + ROW_PAD_Y_4_3 + (track - out->labels[r].h) * 0.5f);
-        for (int c = 0; c < 2; c++) {
-            o[c].box.y = y + ROW_PAD_Y_4_3 + (track - o[c].box.h) * 0.5f;
-            move_line(&o[c].name, o[c].box.x + (o[c].box.w - o[c].name.w) * 0.5f, o[c].box.y + (o[c].box.h - o[c].name.h) * 0.5f);
+        const float middle = y + ROW_PAD_Y_4_3 + track * 0.5f;
+        if (page->kinds[r] == ORACLES_UI_LIST_CHOICES) {
+            for (int c = 0; c < 2; c++) {
+                o[c].box.y = y + ROW_PAD_Y_4_3 + (track - o[c].box.h) * 0.5f;
+                move_line(&o[c].name, o[c].box.x + (o[c].box.w - o[c].name.w) * 0.5f, o[c].box.y + (o[c].box.h - o[c].name.h) * 0.5f);
+            }
+        } else if (page->kinds[r] == ORACLES_UI_LIST_ACTION) {
+            if (page->values[r]) {
+                out->values[r] = line_at(&oracles_ui_row_title_4_3, page->values[r], x, 0.0f, 0.0f);
+                move_line(&out->values[r], x, middle - out->values[r].h * 0.5f);
+                x += out->values[r].w + VALUE_MARGIN_4_3 + VALUE_GAP_4_3;
+            }
+            action_at(&oracles_ui_row_button_4_3, page->actions[r], x, middle, ACTION_DOT_GAP_4_3, &out->actions[r], &out->action_dots[r], &out->action_boxes[r]);
+        } else {
+            out->summaries[r] = line_at(&oracles_ui_row_button_4_3, page->summaries[r], x, 0.0f, 0.0f);
+            move_line(&out->summaries[r], x, middle - out->summaries[r].h * 0.5f);
+            out->arrows[r] = box(x + out->summaries[r].w + LINK_GAP_4_3, middle - LINK_ARROW_H_4_3 * 0.5f, LINK_ARROW_W_4_3, LINK_ARROW_H_4_3);
+            out->link_boxes[r] = box(x, middle - OPTION_MIN_H_4_3 * 0.5f, out->summaries[r].w + LINK_GAP_4_3 + LINK_ARROW_W_4_3, OPTION_MIN_H_4_3);
         }
         y += out->rows[r].h + ROW_GAP_4_3;
+        if (r == page->extras_row && (page->hint || page->status))
+            y = row_extras(page, out, &oracles_ui_row_text_4_3, &oracles_ui_about_status_4_3, EXTRA_LINE_4_3, EXTRA_LINE_4_3, STATUS_DOT_4_3, left,
+                           ROWS_W_4_3 - 2.0f * ROW_PAD_X_4_3, y - ROW_GAP_4_3, ROW_GAP_4_3) + ROW_GAP_4_3;
     }
-    if (page->hint || page->status)
-        y = row_extras(page, out, &oracles_ui_row_text_4_3, &oracles_ui_about_status_4_3, EXTRA_LINE_4_3, EXTRA_LINE_4_3, STATUS_DOT_4_3, left,
-                       ROWS_W_4_3 - 2.0f * ROW_PAD_X_4_3, y - ROW_GAP_4_3, ROW_GAP_4_3) + ROW_GAP_4_3;
     /* Under the rows, the highlighted row's explanation on one line, and its note on the next, kept when empty. */
     out->help = line_at(&oracles_ui_help_4_3, page->help, left, y + HELP_MARGIN_4_3, HELP_LINE_4_3);
     out->help_note = line_at(&oracles_ui_row_note_4_3, page->help_note, left, out->help.y + out->help.h + HELP_NOTE_GAP_4_3, HELP_NOTE_LINE_4_3);
 }
 
-static void list_layout(OraclesUiLayout layout, const list_page *page, OraclesUiCheatsLayout *out)
+void oracles_ui_layout_list(OraclesUiLayout layout, const OraclesUiListPage *page, OraclesUiCheatsLayout *out)
 {
     memset(out, 0, sizeof *out);
     if (layout == ORACLES_UI_LAYOUT_4_3) list_4_3(page, out);
     else list_16_9(page, out);
+    out->help_text = page->help;
+    out->help_note_text = page->help_note;
 }
 
 void oracles_ui_layout_cheats(OraclesUiLayout layout, const OraclesHomeNav *nav, OraclesUiCheatsLayout *out)
 {
     const OraclesHomeHero hero = oracles_home_hero(nav);
     const unsigned row = nav->row < ORACLES_CHEATS_ROWS ? nav->row : 0u;
-    list_page page = { "Cheats", oracles_home_over(hero), oracles_home_title(hero), oracles_cheats_note, ORACLES_CHEATS_ROWS, { NULL }, { "" },
-                       { NULL }, oracles_cheats_texts[row], oracles_cheats_row_note(nav, row), NULL, NULL, 0 };
+    OraclesUiListPage page;
+    memset(&page, 0, sizeof page);
+    page.section = "Cheats";
+    page.over = oracles_home_over(hero);
+    page.title = oracles_home_title(hero);
+    page.note = oracles_cheats_note;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    page.note2 = oracles_achievements_cheats_note(nav);
+#endif
+    page.rows = ORACLES_CHEATS_ROWS;
+    page.help = oracles_cheats_texts[row];
+    page.help_note = oracles_cheats_row_note(nav, row);
+    page.extras_row = ORACLES_CHEATS_ROWS - 1u;
     for (unsigned r = 0; r < ORACLES_CHEATS_ROWS; r++) {
         page.labels[r] = oracles_cheats_labels[r];
         page.choices[r] = choice_names;
         oracles_cheats_explanation(nav, r, page.explanations[r], sizeof page.explanations[r]);
     }
-    list_layout(layout, &page, out);
+    oracles_ui_layout_list(layout, &page, out);
+}
+
+unsigned oracles_about_row_kind(const OraclesHomeNav *nav, unsigned row)
+{
+    if (row == ORACLES_ABOUT_ROW_PORTABLE && nav->portable_shown) return ORACLES_ABOUT_ROW_PORTABLE;
+    return row == 0u ? ORACLES_ABOUT_ROW_UPDATE : ORACLES_ABOUT_ROW_ACHIEVEMENTS;
 }
 
 void oracles_ui_layout_about(OraclesUiLayout layout, const OraclesHomeNav *nav, const char *version, char *note, size_t capacity, OraclesUiCheatsLayout *out)
 {
     /* 16:9: "The Oracles" over the title "Project"; 4:3: the whole name on the title's line. */
     oracles_about_note(nav, version, note, capacity);
-    const int four_three = layout == ORACLES_UI_LAYOUT_4_3, portable = nav->row == ORACLES_ABOUT_ROW_PORTABLE && nav->portable_shown;
+    const int four_three = layout == ORACLES_UI_LAYOUT_4_3;
+    const unsigned rows = oracles_about_rows(nav), highlighted = oracles_about_row_kind(nav, nav->row < rows ? nav->row : 0u);
     OraclesTone tone;
-    list_page page = { "About", four_three ? NULL : "The Oracles", four_three ? "The Oracles Project" : "Project", note, oracles_about_rows(nav),
-                       { oracles_about_label, oracles_about_portable_label }, { "" }, { oracles_about_choices, oracles_about_portable_choices },
-                       portable ? oracles_about_portable_help : oracles_about_help, portable ? oracles_about_portable_help_note : oracles_about_help_note,
-                       oracles_about_portable_hint_shown(nav), oracles_about_portable_status(nav, &tone), 1 };
-    snprintf(page.explanations[0], sizeof page.explanations[0], "%s", oracles_about_explanation);
-    snprintf(page.explanations[1], sizeof page.explanations[1], "%s", oracles_about_portable_explanation);
-    list_layout(layout, &page, out);
+    OraclesUiListPage page;
+    memset(&page, 0, sizeof page);
+    page.section = "About";
+    page.over = four_three ? NULL : "The Oracles";
+    page.title = four_three ? "The Oracles Project" : "Project";
+    page.note = note;
+    page.rows = rows;
+    page.help = highlighted == ORACLES_ABOUT_ROW_PORTABLE ? oracles_about_portable_help : oracles_about_help;
+    page.help_note = highlighted == ORACLES_ABOUT_ROW_PORTABLE ? oracles_about_portable_help_note : oracles_about_help_note;
+    page.hint = oracles_about_portable_hint_shown(nav);
+    page.status = oracles_about_portable_status(nav, &tone);
+    page.extras_row = ORACLES_ABOUT_ROW_PORTABLE;
+    page.centred = 1;
+    for (unsigned r = 0; r < rows; r++) {
+        const unsigned kind = oracles_about_row_kind(nav, r);
+        if (kind == ORACLES_ABOUT_ROW_UPDATE) {
+            page.labels[r] = oracles_about_label;
+            page.choices[r] = oracles_about_choices;
+            snprintf(page.explanations[r], sizeof page.explanations[r], "%s", oracles_about_explanation);
+        } else if (kind == ORACLES_ABOUT_ROW_PORTABLE) {
+            page.labels[r] = oracles_about_portable_label;
+            page.choices[r] = oracles_about_portable_choices;
+            snprintf(page.explanations[r], sizeof page.explanations[r], "%s", oracles_about_portable_explanation);
+        }
+#ifdef ORACLES_RETROACHIEVEMENTS
+        else {
+            oracles_achievements_about_row(nav, &page, r);
+            if (highlighted == ORACLES_ABOUT_ROW_ACHIEVEMENTS) oracles_achievements_about_help(&page.help, &page.help_note);
+        }
+#endif
+    }
+    oracles_ui_layout_list(layout, &page, out);
 }

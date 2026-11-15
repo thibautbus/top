@@ -192,6 +192,12 @@ const uint32_t *oracles_mod_set_present(OraclesModSet *set, const uint32_t *pixe
     return pixels;
 }
 
+int oracles_mod_set_changed_game(const OraclesModSet *set)
+{
+    for (size_t i = 0; set && i < set->count; i++) if (oracles_mod_changed_game(set->mods[i])) return 1;
+    return 0;
+}
+
 int oracles_mod_set_busy(const OraclesModSet *set)
 {
     for (size_t i = 0; set && i < set->count; i++) if (oracles_mod_busy(set->mods[i])) return 1;

@@ -180,6 +180,7 @@ static void frame_begin(void *opaque, uint32_t frame)
 static void frame_end(void *opaque, uint32_t frame)
 {
     session *s = opaque;
+    oracles_session_achievements_frame(s);
     if (s->fingerprints && s->recording) oracles_guest_write_fingerprint(s->guest, s->core, frame, s->fingerprints);
     if (s->recording) oracles_mod_session_frame_end(s->mod, frame);
     if (!s->playing) oracles_mod_session_storage_sync(s->mod);   /* a game saved this frame: its mods' storage beside it */
@@ -317,6 +318,7 @@ static int load_game(session *s, const OraclesSessionOptions *o, OraclesSessionR
     s->profile = oracles_compat_find(&s->info);
     fprintf(stderr, "oracles: %s, %s ROM (%s)\n", oracles_game_name(s->info.game),
             s->profile ? oracles_compat_name(s->profile) : s->info.known ? "authenticated image" : "unknown, header accepted", s->info.sha1);
+    oracles_session_achievements_hash(s, o);   /* the image as read, before a mod or a language changes it */
     /* A language's pack comes from the US ROM as read; the language is composed after the mods' houses. */
     if (o->language && oracles_language_session_start(&s->language, o->language, o->eu_rom_path, o->language_pack, o->patch_path ? o->rom_path : NULL, &s->info, s->rom, s->rom_size, error, sizeof error) != 0)
         return failed(result, "%s", error);
@@ -407,7 +409,8 @@ static int bar_in_play(session *s)
 
 /* The backend's overlay: the pause's reminder over the frame about to be presented, once the status bar has been in play
  * for two seconds of frames in a row (a flash of it before a cutscene does not start it), the device of the last input
- * in the game naming its key, under the bar of the image as the session presents it. */
+ * in the game naming its key, under the bar of the image as the session presents it; RetroAchievements' toasts too, an
+ * unlock's with its sound. */
 static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
 {
     session *s = opaque;
@@ -417,7 +420,12 @@ static int reminder_overlay(void *opaque, SDL_Renderer *renderer)
     oracles_sdl_backend_pause_size(&s->backend, &frame.width, &frame.height);
     SDL_Window *window = SDL_GetRenderWindow(renderer);
     frame.fill = s->sdl.fill && window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
-    return oracles_pause_overlay(s->pause, renderer, &frame);
+    const int keep = oracles_pause_overlay(s->pause, renderer, &frame);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* An unlock's toast showing: its sound with it, About › RetroAchievements' Unlock sound read now. */
+    if (oracles_pause_unlock_sound(s->pause) && s->settings->achievements_sound) oracles_sdl_backend_unlock_sound(&s->backend);
+#endif
+    return keep;
 }
 
 /* The window's options from the settings: vsync (unless --vsync gave it), keys, buttons, and the hotkeys' when they are on. */
@@ -737,7 +745,7 @@ static void configure(session *s, const OraclesSessionOptions *o, oracles_host_r
     if (s->hotkeys || s->hotkeys_game >= 0) { config->input_filter = input_filter; config->input_filter_opaque = s; }
     /* A game whose pause may change its settings, or whose replayed route does, has the frames' callbacks before it has
      * a guest. */
-    if (s->guest || s->sdl.pause_menu || s->play.setting_count) { config->on_frame_begin = frame_begin; config->on_frame_end = frame_end; config->frame_opaque = s; }
+    if (s->guest || s->sdl.pause_menu || s->play.setting_count || s->achievements) { config->on_frame_begin = frame_begin; config->on_frame_end = frame_end; config->frame_opaque = s; }
     if (s->check) { config->frame_source = native_frame; config->frame_source_opaque = s->check; }
     if (s->sdl.pause_menu) {
         config->on_started = oracles_session_started;
@@ -837,6 +845,7 @@ int oracles_session_run(const OraclesSessionOptions *o, oracles_settings *settin
         if (!s->backend_ready) ok = failed(result, "out of memory");
     }
     ok = ok && attach(s, o, result);
+    if (ok) oracles_session_achievements_start(s, o);
     if (ok) {
         oracles_host_run_config config;
         configure(s, o, &config);

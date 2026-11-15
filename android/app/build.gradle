@@ -42,6 +42,12 @@ def defaultCore = project.findProperty("oraclesDefaultCore") ?: "mgba"
 if (!(defaultCore in ["sameboy", "mgba"])) {
     throw new GradleException("oraclesDefaultCore is sameboy or mgba, not ${defaultCore}")
 }
+// -PoraclesRetroachievements=ON builds RetroAchievements in (ORACLES_RETROACHIEVEMENTS, OFF by default), their licence among
+// the others.
+def retroachievements = project.findProperty("oraclesRetroachievements") ?: "OFF"
+if (!(retroachievements in ["ON", "OFF"])) {
+    throw new GradleException("oraclesRetroachievements is ON or OFF, not ${retroachievements}")
+}
 def describe = project.findProperty("oraclesGitDescribe")
 if (!describe) {
     try {
@@ -77,6 +83,7 @@ def copyLicences = tasks.register("copyLicences", Copy) {
     from(new File(repository, "third_party/mgba/core/src/third-party/inih/LICENSE.txt")) { rename { "inih-LICENSE.txt" } }
     from(new File(repository, "third_party/lua/LICENSE")) { rename { "Lua-LICENSE.txt" } }
     from(new File(sdlSource, "LICENSE.txt")) { rename { "SDL3-LICENSE.txt" } }
+    if (retroachievements == "ON") from(new File(repository, "third_party/rcheevos/LICENSE")) { rename { "rcheevos-LICENSE.txt" } }
     into new File(licenceFolder, "licences")
 }
 
@@ -102,7 +109,8 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DFETCHCONTENT_SOURCE_DIR_SDL3=${sdlSource}", "-DBUILD_TESTING=OFF",
-                          "-DORACLES_GIT_DESCRIBE=${describe}", "-DORACLES_DEFAULT_CORE=${defaultCore}"
+                          "-DORACLES_GIT_DESCRIBE=${describe}", "-DORACLES_DEFAULT_CORE=${defaultCore}",
+                          "-DORACLES_RETROACHIEVEMENTS=${retroachievements}"
                 // The engine optimised in every variant, as CMake's Release builds it on a desktop: the debug variant, whose
                 // CMAKE_BUILD_TYPE the plugin sets to Debug whatever it is given, would build it at -O0, several times
                 // slower, which no measure of a frame's cost may be taken on.

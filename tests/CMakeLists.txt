@@ -30,6 +30,13 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-save)
     add_test(NAME oracles-save COMMAND oracles-test-save)
 
+    # RetroAchievements against canned replies, no server; `oracles-test-achievements --bench` times a frame's
+    # evaluation of a set the size of Ages'.
+    add_executable(oracles-test-achievements test_achievements.c)
+    target_link_libraries(oracles-test-achievements PRIVATE oracles_achievements oracles_achievements_screens oracles_guest)
+    oracles_set_warnings(oracles-test-achievements)
+    add_test(NAME oracles-achievements COMMAND oracles-test-achievements ${CMAKE_CURRENT_BINARY_DIR})
+
     add_executable(oracles-test-compat test_compat.c)
     target_link_libraries(oracles-test-compat PRIVATE oracles_guest)
     oracles_set_warnings(oracles-test-compat)
@@ -284,6 +291,16 @@ if(BUILD_TESTING)
     oracles_set_warnings(oracles-test-launcher-cheats)
     add_test(NAME oracles-launcher-cheats COMMAND oracles-test-launcher-cheats ${ORACLES_LAYOUT_REFERENCE})
 
+    # RetroAchievements' screens: in the interface with ORACLES_RETROACHIEVEMENTS, else from their library of their own.
+    add_executable(oracles-test-launcher-achievements test_launcher_achievements.c layout_reference.c)
+    if(ORACLES_RETROACHIEVEMENTS)
+        target_link_libraries(oracles-test-launcher-achievements PRIVATE oracles_ui)
+    else()
+        target_link_libraries(oracles-test-launcher-achievements PRIVATE oracles_ui_achievements)
+    endif()
+    oracles_set_warnings(oracles-test-launcher-achievements)
+    add_test(NAME oracles-launcher-achievements COMMAND oracles-test-launcher-achievements ${ORACLES_LAYOUT_REFERENCE})
+
     add_executable(oracles-test-launcher-controls test_launcher_controls.c layout_reference.c)
     target_link_libraries(oracles-test-launcher-controls PRIVATE oracles_ui)
     oracles_set_warnings(oracles-test-launcher-controls)
@@ -345,6 +362,19 @@ if(BUILD_TESTING)
         target_link_libraries(oracles-test-update-check PRIVATE oracles_update)
         oracles_set_warnings(oracles-test-update-check)
         add_test(NAME oracles-update-check COMMAND oracles-test-update-check ${ORACLES_UPDATE_RELEASE} ${CMAKE_CURRENT_BINARY_DIR}/test_update_check.tmp)
+        # RetroAchievements' transport on the update check's clients: no server of the network asked, a local one on Linux.
+        add_executable(oracles-test-achievements-http test_achievements_http.c ${ORACLES_LAUNCHER_DIR}/achievements_http.c)
+        target_link_libraries(oracles-test-achievements-http PRIVATE oracles_achievements oracles_update ${ORACLES_SDL_TARGET})
+        oracles_set_warnings(oracles-test-achievements-http)
+        add_test(NAME oracles-achievements-http COMMAND oracles-test-achievements-http ${CMAKE_CURRENT_BINARY_DIR})
+        if(ORACLES_RETROACHIEVEMENTS)
+            # The developer's offline answers never touch the player's files; with the user's Ages, a mod's payment suspends
+            # the achievements.
+            add_test(NAME oracles-launcher-achievements-offline
+                COMMAND ${CMAKE_COMMAND} -D LAUNCHER=$<TARGET_FILE:oracles> -D WORK=${CMAKE_CURRENT_BINARY_DIR}/launcher-test-achievements
+                        -D SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/.. -P ${CMAKE_CURRENT_SOURCE_DIR}/achievements_offline.cmake)
+            set_tests_properties(oracles-launcher-achievements-offline PROPERTIES TIMEOUT 300)
+        endif()
         # The launcher's --update-check-url, for a capture: a release newer than any (v99.0.0) said on the standard error;
         # update_check=off asks nothing, the file given or not; and refused with --rom, whose game asks nothing.
         file(READ ${ORACLES_UPDATE_RELEASE} update_release)

@@ -139,6 +139,7 @@ const uint32_t *oracles_mod_session_screen(OraclesModSession *session, const uin
 }
 
 int oracles_mod_session_busy(const OraclesModSession *session) { return session && oracles_mod_set_busy(session->set); }
+int oracles_mod_session_changed_game(const OraclesModSession *session) { return session && oracles_mod_set_changed_game(session->set); }
 void oracles_mod_session_reset(OraclesModSession *session) { if (session) oracles_mod_set_reset(session->set); }
 
 void oracles_mod_session_stop(OraclesModSession *session, FILE *summary)

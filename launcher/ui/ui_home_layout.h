@@ -114,6 +114,9 @@ const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout);
 /* The chosen entry, right-aligned at the top right; `paused`, the pause menu's title, higher in 4:3 without tabs.  4:3
  * has no words above the title (`over` an empty line): the tab names the game. */
 void oracles_ui_layout_hero(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, OraclesUiTitleLayout *out);
+/* The pause's title where its menu would reach it (4:3's of eight entries, RetroAchievements' with Cheats): at the top
+ * left, each line from the left, as far from it as from the right. */
+void oracles_ui_layout_hero_left(OraclesUiLayout layout, OraclesUiTitleLayout *out);
 /* The same with a fan game's `credit` (NULL: none): 16:9, under the state, so that the state stays where it is; 4:3, on
  * the state's line at its left, on its baseline, the menu starting right under that line. */
 void oracles_ui_layout_hero_credited(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, const char *credit,

@@ -92,6 +92,15 @@ void oracles_ui_fill_polygon(OraclesUiDraw *draw, const float *points, int count
  * picture's pixel it covers, those astride two blending them; the nearest pixel's on a renderer without that sampling,
  * SDL's software one).  One picture is kept in a texture, uploaded again only when its pixels change. */
 void oracles_ui_draw_picture(OraclesUiDraw *draw, const uint32_t *pixels, int w, int h, const float *rect, const float *clip);
+/* The renderer drawn on, for the textures drawn with oracles_ui_draw_texture. */
+SDL_Renderer *oracles_ui_draw_renderer(const OraclesUiDraw *draw);
+/* A texture over the box (x, y, w, h) of the scene, smoothly scaled, at `opacity`. */
+void oracles_ui_draw_texture(OraclesUiDraw *draw, SDL_Texture *texture, float x, float y, float w, float h, float opacity);
+/* What is drawn from now on kept to the box (x, y, w, h) of the scene, within the clip already set; the clip set
+ * read before, and set back. */
+void oracles_ui_draw_clip(OraclesUiDraw *draw, float x, float y, float w, float h);
+void oracles_ui_draw_clip_rect(OraclesUiDraw *draw, int *saved, SDL_Rect *rect);
+void oracles_ui_draw_restore_clip(OraclesUiDraw *draw, int saved, const SDL_Rect *rect);
 /* One line of text starting at `x` with its baseline at `baseline`. */
 void oracles_ui_draw_text(OraclesUiDraw *draw, const OraclesUiTextStyle *style, float x, float baseline, const char *utf8, OraclesUiColor color);
 /* A motif over the whole scene, slid by `shift` scene pixels (negative: left). */

@@ -94,3 +94,29 @@ if(WIN32)
 else()
     target_link_libraries(mgba PUBLIC m)
 endif()
+
+# ---- rcheevos, vendored and unmodified (third_party/rcheevos/VERSION.md) --
+# The client, the runtime, the requests and the cartridges' hashes; the hashes of discs, encrypted images and archives
+# left out, as their files are.
+# Built for the launcher with ORACLES_RETROACHIEVEMENTS, and for the tests.
+if(ORACLES_RETROACHIEVEMENTS OR BUILD_TESTING)
+    set(RCHEEVOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rcheevos)
+    add_library(rcheevos STATIC
+        ${RCHEEVOS_DIR}/src/rc_client.c ${RCHEEVOS_DIR}/src/rc_compat.c ${RCHEEVOS_DIR}/src/rc_util.c ${RCHEEVOS_DIR}/src/rc_version.c
+        ${RCHEEVOS_DIR}/src/rapi/rc_api_common.c ${RCHEEVOS_DIR}/src/rapi/rc_api_info.c ${RCHEEVOS_DIR}/src/rapi/rc_api_runtime.c
+        ${RCHEEVOS_DIR}/src/rapi/rc_api_user.c
+        ${RCHEEVOS_DIR}/src/rcheevos/alloc.c ${RCHEEVOS_DIR}/src/rcheevos/condition.c ${RCHEEVOS_DIR}/src/rcheevos/condset.c
+        ${RCHEEVOS_DIR}/src/rcheevos/consoleinfo.c ${RCHEEVOS_DIR}/src/rcheevos/format.c ${RCHEEVOS_DIR}/src/rcheevos/lboard.c
+        ${RCHEEVOS_DIR}/src/rcheevos/memref.c ${RCHEEVOS_DIR}/src/rcheevos/operand.c ${RCHEEVOS_DIR}/src/rcheevos/richpresence.c
+        ${RCHEEVOS_DIR}/src/rcheevos/runtime.c ${RCHEEVOS_DIR}/src/rcheevos/runtime_progress.c ${RCHEEVOS_DIR}/src/rcheevos/trigger.c
+        ${RCHEEVOS_DIR}/src/rcheevos/value.c
+        ${RCHEEVOS_DIR}/src/rhash/hash.c ${RCHEEVOS_DIR}/src/rhash/hash_rom.c ${RCHEEVOS_DIR}/src/rhash/md5.c)
+    target_include_directories(rcheevos SYSTEM PUBLIC ${RCHEEVOS_DIR}/include)
+    target_compile_definitions(rcheevos PRIVATE RC_HASH_NO_DISC RC_HASH_NO_ENCRYPTED RC_HASH_NO_ZIP)
+    if(NOT MSVC)
+        target_compile_options(rcheevos PRIVATE -w)
+    endif()
+    if(NOT WIN32)
+        target_link_libraries(rcheevos PUBLIC m)   # fmod, in its values
+    endif()
+endif()

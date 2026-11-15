@@ -207,6 +207,12 @@ oracles_sdl_menu_source oracles_sdl_backend_last_input(const oracles_host_backen
 unsigned oracles_sdl_backend_touch_ticks(const oracles_host_backend *backend);
 /* The sound stops and its queue empties; it starts again with the next frames, from its prebuffer. */
 void oracles_sdl_backend_suspend_audio(const oracles_host_backend *backend);
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* An achievement's unlock heard (launcher/ui/ui_achievements_sound.h), from its start, mixed on top of the game's sound in
+ * the chunks queued from now on, the core's own left as they are; nothing where the sound is not open (--mute, no
+ * window). */
+void oracles_sdl_backend_unlock_sound(const oracles_host_backend *backend);
+#endif
 /* The pause menu holds the session from a call with 1 to a call with 0, at its resume: that time is no
  * presentation's, and the rate of oracles_sdl_backend_present_report leaves it out; a suspension seen during it (Android's
  * background) brings no second pause; the screen margin's band is read again at the resume, for a safe area or a display

@@ -74,6 +74,9 @@ const uint32_t *oracles_mod_present(OraclesMod *mod, const uint32_t *pixels, uin
 
 /* A conversation runs: its Lua state cannot be saved, so a savestate is refused meanwhile. */
 int oracles_mod_busy(const OraclesMod *mod);
+/* The mod has asked the game for a change since it started (game.give, give_treasure, lose_treasure, pay, set_flag,
+ * unset_flag; not play_sound): kept through a savestate's load. */
+int oracles_mod_changed_game(const OraclesMod *mod);
 /* After a savestate is loaded: no conversation, no key kept, nothing armed. */
 void oracles_mod_reset(OraclesMod *mod);
 
@@ -113,6 +116,7 @@ int oracles_mod_set_attach(OraclesModSet *set, OraclesGuest *guest, char *error,
 unsigned oracles_mod_set_frame(OraclesModSet *set, uint32_t frame, unsigned keys);
 const uint32_t *oracles_mod_set_present(OraclesModSet *set, const uint32_t *pixels, uint32_t width, uint32_t height);
 int oracles_mod_set_busy(const OraclesModSet *set);
+int oracles_mod_set_changed_game(const OraclesModSet *set);   /* one of the mods has (oracles_mod_changed_game) */
 void oracles_mod_set_reset(OraclesModSet *set);
 uint64_t oracles_mod_set_fingerprint(const OraclesModSet *set);
 /* mod.storage (a table per mod and per file of the game, saved when the game saves) as the host keeps it: a text, the

@@ -87,6 +87,8 @@ plutil -lint "$plist" >/dev/null
 cp "$root/launcher/icon/the-oracles-project.icns" "$contents/Resources/"
 cp "$build"/*-OFL.txt "$build/SameBoy-LICENSE.txt" "$build/mGBA-LICENSE.txt" "$build/mGBA-NOTICE.txt" "$build/mGBA-boot-rom.patch" "$build/inih-LICENSE.txt" \
     "$build/Lua-LICENSE.txt" "$contents/Resources/"
+# RetroAchievements' licence where the build has them (ORACLES_RETROACHIEVEMENTS).
+if grep -q '^ORACLES_RETROACHIEVEMENTS:BOOL=ON' "$build/CMakeCache.txt" 2>/dev/null; then cp "$build/rcheevos-LICENSE.txt" "$contents/Resources/"; fi
 if [ -f "$build/SDL3-LICENSE.txt" ]; then
     cp "$build/SDL3-LICENSE.txt" "$contents/Resources/"
 else

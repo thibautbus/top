@@ -9,6 +9,12 @@
 #include "ui_home.h"
 #include "ui_page_nav.h"
 #include "update_check.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements.h"
+#define ORACLES_SCREENSHOT_MORE_INPUTS ", offline, achievements"
+#else
+#define ORACLES_SCREENSHOT_MORE_INPUTS ""
+#endif
 
 #include <SDL3/SDL.h>
 
@@ -99,7 +105,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
      * with mods having a save, a savestate and mods' data of its own, which the import puts in Backups too, and which
      * Mods' Save row (`android`) exports; `reminder`,
      * over a game's frame, the game in play with the reminder over it that names the menu's key, in place of the pause. */
-    int mods = 0;
+    int mods = 0, offline = 0;
     for (const char *p = inputs; p && *p;) {
         const size_t length = strcspn(p, ",");
         OraclesHomeAction action;
@@ -110,6 +116,10 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         else if (length == 8 && !strncmp(p, "moonrise", 8) && frame) pause(&nav, ORACLES_HOME_GAME_MOONRISE, width);
         else if (length == 4 && !strncmp(p, "mods", 4)) mods = nav.games[ORACLES_HOME_GAME_AGES].mods_save = nav.games[ORACLES_HOME_GAME_SEASONS].mods_save = 1;
         else if (length == 8 && !strncmp(p, "reminder", 8) && frame) reminder = 1;
+#ifdef ORACLES_RETROACHIEVEMENTS
+        else if (length == 7 && !strncmp(p, "offline", 7) && frame) offline = 1;   /* RetroAchievements' offline toast over the game */
+        else if (length == 12 && !strncmp(p, "achievements", 12) && frame) nav.achievements.active = 1;   /* the pause's Achievements */
+#endif
         else if (length == 6 && !strncmp(p, "import", 6) && nav.screen == ORACLES_SCREEN_GAME) {
             const OraclesHomeGame *game = oracles_page_game_const(&nav);
             nav.save_flow.state = ORACLES_SAVE_FLOW_CONFIRM;
@@ -128,8 +138,8 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
                                      nav.save_flow.text, nav.save_flow.text2);
         }
         else if (!parse_action(p, length, &action)) {
-            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, mods, import, imported, reminder)",
-                     (int)length, p);
+            snprintf(error, capacity, "unknown input '%.*s' (up, down, left, right, ok, back, slow, key, pad, android, moonrise, mods, import, imported, reminder%s)",
+                     (int)length, p, ORACLES_SCREENSHOT_MORE_INPUTS);
             return 1;
         }
         else oracles_home_act(&nav, action);
@@ -145,7 +155,7 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         snprintf(error, capacity, "cannot draw offscreen: %s", SDL_GetError());
     } else if (frame && !image) {
         snprintf(error, capacity, "cannot read the game's image %s (a binary PPM, as --screenshot writes)", frame);
-    } else if (frame && reminder) {
+    } else if (frame && (reminder || offline)) {
         /* The game's image at its whole scale, centred, as a game in play shows it, and the reminder over it. */
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -155,7 +165,10 @@ int oracles_home_screenshot(const OraclesHomeHost *host, const char *path, int w
         OraclesPause *over = oracles_pause_create(draw, NULL, ORACLES_HOME_GAME_AGES, ORACLES_PROFILE_ENHANCED, nav.display.aspect, 0, &nav);
         const OraclesPauseFrame shown = { 1, -1, frame_width, frame_height, 0 };
         if (over) {
-            oracles_pause_reminder(over, nav.controls.menu_pad);
+            if (reminder) oracles_pause_reminder(over, nav.controls.menu_pad);
+#ifdef ORACLES_RETROACHIEVEMENTS
+            if (offline) oracles_achievements_toast_offline(oracles_pause_achievements(over, ""));
+#endif
             oracles_pause_overlay(over, renderer, &shown);
         }
         oracles_pause_destroy(over);

@@ -53,6 +53,8 @@ int oracles_update_compare(const unsigned a[3], const unsigned b[3]);
 OraclesUpdateState oracles_update_evaluate(const char *running, int http_status, const char *error, const char *body, size_t length,
                                            OraclesUpdateStatus *status, char *reason, size_t capacity);
 
+/* The project's repository on GitHub, OWNER/NAME (config/version.json's). */
+const char *oracles_update_repository(void);
 /* The address asked by default: https://api.github.com/repos/<repository>/releases/latest. */
 const char *oracles_update_default_url(void);
 /* Starts the check in a thread of its own, once a run: `source` an https:// address or a file to read (an answer as

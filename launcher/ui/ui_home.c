@@ -1,4 +1,7 @@
 #include "ui_home.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements_draw.h"
+#endif
 
 #include "ui_controls.h"
 #include "ui_home_layout.h"
@@ -180,10 +183,24 @@ static void draw_others(OraclesUiDraw *draw, const OraclesHomeNav *nav)
     }
 }
 
+static unsigned menu_layout(const OraclesHomeNav *nav, OraclesHomeItem *items, const char **notes, const char **labels, OraclesUiItemLayout *layout,
+                            OraclesUiMenuLineLayout *line, int *shown);
+
 static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const OraclesHomeNav *nav, OraclesUiLayout scene, double now_ms)
 {
     const OraclesUiHomeStyles *st = oracles_ui_home_styles(scene);
     int moving = 0;
+    /* A pause menu that reaches the title's lines (4:3's of eight entries, 16:9's with its line on the item hotkeys too):
+     * the title goes to the top left. */
+    float menu_top = ORACLES_UI_SCENE_HEIGHT;
+    if (nav->screen == ORACLES_SCREEN_PAUSE) {
+        OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
+        const char *notes[ORACLES_HOME_MAX_ITEMS], *labels[ORACLES_HOME_MAX_ITEMS];
+        OraclesUiItemLayout menu[ORACLES_HOME_MAX_ITEMS];
+        OraclesUiMenuLineLayout line;
+        int shown;
+        if (menu_layout(nav, items, notes, labels, menu, &line, &shown)) menu_top = menu[0].box.y;
+    }
     for (int h = 0; h < ORACLES_HOME_HEROES; h++) {
         moving |= oracles_ui_tween_running(&home->hero_opacity[h], now_ms) || oracles_ui_tween_running(&home->hero_shift[h], now_ms);
         const float opacity = oracles_ui_tween_value(&home->hero_opacity[h], now_ms);
@@ -196,6 +213,7 @@ static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const Ora
         OraclesUiTitleLayout l;
         oracles_ui_layout_hero_credited(scene, nav->screen == ORACLES_SCREEN_PAUSE, oracles_home_over((OraclesHomeHero)h), oracles_home_title((OraclesHomeHero)h),
                                         state, credit, &l);
+        if (l.box.y + l.box.h > menu_top) oracles_ui_layout_hero_left(scene, &l);
         if (l.over.h > 0.0f) draw_line(draw, st->hero_over, &l.over, oracles_home_over((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_OVER, opacity));
         draw_line(draw, st->hero_title, &l.title, oracles_home_title((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_TITLE, opacity));
         draw_line(draw, st->hero_state, &l.state, state, shift, oracles_ui_rgba(nav->in_game ? PAUSED_STATE : HERO_STATE, opacity));
@@ -398,6 +416,12 @@ int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const Oracles
         oracles_ui_cheats_draw(draw, nav, accent);
     } else if (nav->screen == ORACLES_SCREEN_ABOUT) {
         oracles_ui_about_draw(draw, nav, accent);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    } else if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS) {
+        oracles_ui_achievements_page_draw(draw, nav, accent);
+    } else if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) {
+        oracles_ui_achievements_list_draw(draw, nav, accent, now_ms);
+#endif
     } else {
         oracles_ui_display_draw(draw, nav, accent);
     }
@@ -436,6 +460,11 @@ int oracles_ui_home_draw(OraclesUiDraw *draw, OraclesUiHome *home, const Oracles
     }
     /* The notice, where it does not meet the help bar either: above the version in 4:3, after it in 16:9. */
     moving |= draw_update(draw, home, nav, scene, &link.line, hints_x, accent, now_ms);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* RetroAchievements' login over the page dimmed, its version too; its own hints over it. */
+    oracles_ui_draw_anchor(draw, 0.5f, 0.5f);
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS) oracles_ui_achievements_login_draw(draw, nav, accent);
+#endif
     oracles_ui_draw_anchor(draw, 0.5f, 1.0f);
     draw_hints(draw, nav, scene);
     oracles_ui_draw_anchor(draw, 0.0f, 1.0f);
@@ -482,6 +511,19 @@ OraclesUiHomeHit oracles_ui_home_hit(const OraclesHomeNav *nav, float x, float y
         if (shown && inside(&update.box, x, y)) { hit.kind = ORACLES_UI_HIT_ITEM; hit.index = count; return hit; }
         if (inside(&link.hit, x, y)) { hit.kind = ORACLES_UI_HIT_ITEM; hit.index = count + shown; return hit; }
     }
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS && nav->achievements.login) {
+        const int target = oracles_ui_achievements_login_hit(nav, x, y);
+        if (target >= 0) { hit.kind = ORACLES_UI_HIT_LOGIN; hit.index = (unsigned)target; }
+        return hit;
+    }
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS) {
+        const int row = oracles_ui_achievements_page_hit(nav, x, y, &hit.option);
+        if (row >= 0) { hit.kind = ORACLES_UI_HIT_ROW; hit.index = (unsigned)row; }
+        return hit;
+    }
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) return hit;
+#endif
     if (nav->screen == ORACLES_SCREEN_CONTROLS) {
         if (oracles_ui_controls_hit(nav, x, y, &hit.column, &hit.row, &hit.option)) hit.kind = ORACLES_UI_HIT_CELL;
         return hit;

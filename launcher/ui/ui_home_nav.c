@@ -1,4 +1,7 @@
 #include "ui_home_nav.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements.h"
+#endif
 
 #include "ui_controls_nav.h"
 #include "ui_page_nav.h"
@@ -142,6 +145,10 @@ unsigned oracles_home_items(const OraclesHomeNav *nav, OraclesHomeItem items[ORA
             /* Cheats where they apply: not for a game whose profile has none. */
             if (!oracles_home_refuses(nav, ORACLES_HOME_REFUSES_CHEATS) && !nav->cheats_refused) items[n++] = item(ORACLES_HOME_ITEM_CHEATS, "Cheats", NULL, 0, NULL);
         }
+#ifdef ORACLES_RETROACHIEVEMENTS
+        /* The session's own: the reduced menu keeps it too. */
+        if (nav->achievements.active) items[n++] = item(ORACLES_HOME_ITEM_ACHIEVEMENTS, "Achievements", NULL, 0, NULL);
+#endif
         items[n++] = item(ORACLES_HOME_ITEM_QUIT_GAME, "Quit to launcher", NULL, 0, NULL);
         return n;
     }
@@ -246,6 +253,10 @@ void oracles_home_others(const OraclesHomeNav *nav, OraclesHomeEntry others[2])
 /* The hints of the screen, their keys both devices'. */
 static unsigned hints_of(const OraclesHomeNav *nav, OraclesHomeHint hints[ORACLES_HOME_MAX_HINTS])
 {
+#ifdef ORACLES_RETROACHIEVEMENTS
+    const unsigned achievements = oracles_achievements_hints(nav, hints);
+    if (achievements) return achievements;
+#endif
     if (nav->screen == ORACLES_SCREEN_PAUSE) {
         static const OraclesHomeHint pause[3] = {
             { UP_DOWN, "Menu", 0, 0 },
@@ -326,7 +337,8 @@ unsigned oracles_home_hints(const OraclesHomeNav *nav, OraclesHomeHint hints[ORA
     for (unsigned i = 0; i < count; i++) {
         /* The keyboard's keys are never wider than both devices': the frame holds the controller's too. */
         const int both = characters(hints[i].key), gamepad = characters(device_key(nav, hints[i].key, ORACLES_INPUT_GAMEPAD));
-        hints[i].chars = both > gamepad ? both : gamepad;
+        const int widest = both > gamepad ? both : gamepad;
+        if (widest > hints[i].chars) hints[i].chars = widest;   /* a hint may ask for a wider frame */
         hints[i].key = device_key(nav, hints[i].key, nav->device);
     }
     return count;
@@ -406,6 +418,9 @@ static OraclesHomeCommand activate(OraclesHomeNav *nav, const OraclesHomeItem *i
         case ORACLES_HOME_ITEM_SAVE_STATE: return ORACLES_HOME_SAVE_STATE;
         case ORACLES_HOME_ITEM_LOAD_STATE: return ORACLES_HOME_LOAD_STATE;
         case ORACLES_HOME_ITEM_QUIT_GAME: return ORACLES_HOME_QUIT_GAME;
+#ifdef ORACLES_RETROACHIEVEMENTS
+        case ORACLES_HOME_ITEM_ACHIEVEMENTS: oracles_achievements_list_open(nav); return ORACLES_HOME_STAY;
+#endif
         default:
             for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++)
                 if (oracles_home_fan_games[f].item == it->id) { nav->fan_pick = oracles_home_fan_games[f].hero; nav->focus = 0; }
@@ -468,6 +483,10 @@ OraclesHomeCommand oracles_home_act(OraclesHomeNav *nav, OraclesHomeAction actio
     if (nav->screen == ORACLES_SCREEN_MODS) return oracles_mods_act(nav, action);
     if (nav->screen == ORACLES_SCREEN_CHEATS) return oracles_cheats_act(nav, action);
     if (nav->screen == ORACLES_SCREEN_ABOUT) return oracles_about_act(nav, action);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS) return oracles_achievements_act(nav, action);
+    if (nav->screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST) return oracles_achievements_list_act(nav, action);
+#endif
     OraclesHomeItem items[ORACLES_HOME_MAX_ITEMS];
     const unsigned count = oracles_home_items(nav, items), focus = oracles_home_focus(nav);
     /* The newer version's notice, when shown, and the version number are places after the last item. */

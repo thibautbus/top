@@ -42,11 +42,45 @@ endif()
 if(NOT WIN32)
     target_link_libraries(oracles_ui PUBLIC m)
 endif()
+# RetroAchievements' screens (ui/ui_achievements.h) and their unlock's sound (ui/ui_achievements_sound.h), without SDL: in
+# the interface with ORACLES_RETROACHIEVEMENTS, which its shared screens and the SDL backend then call; otherwise a
+# library of their own for the tests, the launcher having none of them.
+set(ORACLES_UI_ACHIEVEMENTS_SOURCES ui/ui_achievements.c ui/ui_achievements_layout.c ui/ui_achievements_sound.c)
+if(ORACLES_RETROACHIEVEMENTS)
+    target_sources(oracles_ui PRIVATE ${ORACLES_UI_ACHIEVEMENTS_SOURCES})
+    target_compile_definitions(oracles_ui PUBLIC ORACLES_RETROACHIEVEMENTS)
+elseif(BUILD_TESTING)
+    add_library(oracles_ui_achievements STATIC ${ORACLES_UI_ACHIEVEMENTS_SOURCES})
+    target_link_libraries(oracles_ui_achievements PUBLIC oracles_ui)
+    oracles_set_warnings(oracles_ui_achievements)
+endif()
+
+# ---- RetroAchievements ---------------------------------------------------------
+# rcheevos' client over the core's memory and a transport (achievements.h), without SDL: built for the launcher with
+# ORACLES_RETROACHIEVEMENTS, and for the tests whatever it says.
+if(ORACLES_RETROACHIEVEMENTS OR BUILD_TESTING)
+    add_library(oracles_achievements STATIC achievements.c achievements_transport.c achievements_pending.c achievements_badges.c achievements_files.c
+                                            achievements_account.c)
+    target_include_directories(oracles_achievements PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(oracles_achievements PUBLIC oracles_core PRIVATE rcheevos)
+    oracles_set_warnings(oracles_achievements)
+    # What the player sees of a session's achievements (achievements_screens.h), on the screens' own library.
+    add_library(oracles_achievements_screens STATIC achievements_screens.c)
+    if(ORACLES_RETROACHIEVEMENTS)
+        target_link_libraries(oracles_achievements_screens PUBLIC oracles_achievements oracles_ui)
+    else()
+        target_link_libraries(oracles_achievements_screens PUBLIC oracles_achievements oracles_ui_achievements)
+    endif()
+    oracles_set_warnings(oracles_achievements_screens)
+endif()
 
 # ---- launcher ---------------------------------------------------------------
 if(ORACLES_BUILD_LAUNCHER)
     # The launcher's drawing on SDL's renderer.
     add_library(oracles_ui_sdl STATIC ui/ui_draw.c ui/ui_home.c ui/ui_page.c ui/ui_controls.c)
+    if(ORACLES_RETROACHIEVEMENTS)
+        target_sources(oracles_ui_sdl PRIVATE ui/ui_achievements_draw.c)
+    endif()
     target_link_libraries(oracles_ui_sdl PUBLIC oracles_ui ${ORACLES_SDL_TARGET})
     target_compile_definitions(oracles_ui_sdl PUBLIC "ORACLES_VERSION=\"${ORACLES_VERSION}\"" "ORACLES_BUILD=\"${ORACLES_BUILD}\"")
     oracles_set_warnings(oracles_ui_sdl)
@@ -68,7 +102,7 @@ if(ORACLES_BUILD_LAUNCHER)
     target_compile_definitions(oracles_update PUBLIC "ORACLES_PRODUCT_VERSION=\"${ORACLES_PRODUCT_VERSION}\""
                                PRIVATE "ORACLES_UPDATE_REPOSITORY=\"${ORACLES_UPDATE_REPOSITORY}\"")
     oracles_set_warnings(oracles_update)
-    set(ORACLES_LAUNCHER_SOURCES main.c session.c session_options.c session_route.c file_folder.c session_live.c session_pause.c session_report.c home.c home_input.c pause.c home_games.c home_files.c home_save.c save_transfer.c home_choices.c home_screenshot.c file_dialog.c portable.c sdl_backend.c sdl_window.c sdl_input.c sdl_present.c safe_area.c ${ORACLES_HOST_DIR}/null_backend.c ${ORACLES_SESSION_DIR}/route.c diagnostics.c settings.c ${ORACLES_SESSION_DIR}/hotkey_lines.c hotkeys_session.c ${ORACLES_SESSION_DIR}/route_effects.c ${ORACLES_SESSION_DIR}/hotbar_model.c ${ORACLES_SESSION_DIR}/state_refusal.c session_state.c state_display.c ${ORACLES_SESSION_DIR}/mod_session.c ${ORACLES_SESSION_DIR}/mod_folder.c ${ORACLES_SESSION_DIR}/language_session.c touch_controls.c touch_sdl.c)
+    set(ORACLES_LAUNCHER_SOURCES main.c session.c session_options.c session_route.c file_folder.c session_live.c session_pause.c session_report.c home.c home_input.c pause.c home_games.c home_files.c home_save.c save_transfer.c home_choices.c home_screenshot.c session_achievements.c file_dialog.c portable.c sdl_backend.c sdl_window.c sdl_input.c sdl_present.c safe_area.c ${ORACLES_HOST_DIR}/null_backend.c ${ORACLES_SESSION_DIR}/route.c diagnostics.c settings.c ${ORACLES_SESSION_DIR}/hotkey_lines.c hotkeys_session.c ${ORACLES_SESSION_DIR}/route_effects.c ${ORACLES_SESSION_DIR}/hotbar_model.c ${ORACLES_SESSION_DIR}/state_refusal.c session_state.c state_display.c ${ORACLES_SESSION_DIR}/mod_session.c ${ORACLES_SESSION_DIR}/mod_folder.c ${ORACLES_SESSION_DIR}/language_session.c touch_controls.c touch_sdl.c)
     if(ANDROID)
         # Android runs no executable: SDL's activity (android) loads libmain.so and calls its main, SDL_main.
         add_library(oracles SHARED ${ORACLES_LAUNCHER_SOURCES})
@@ -86,6 +120,11 @@ if(ORACLES_BUILD_LAUNCHER)
     endif()
     target_link_libraries(oracles PRIVATE oracles_host oracles_guest oracles_render oracles_enhanced oracles_gameplay oracles_mods oracles_language oracles_ui_sdl oracles_update ${ORACLES_SDL_TARGET})
     oracles_set_warnings(oracles)
+    if(ORACLES_RETROACHIEVEMENTS)
+        target_sources(oracles PRIVATE achievements_http.c home_achievements.c)   # the platform's transport, on the update check's clients; the login's input
+        target_link_libraries(oracles PRIVATE oracles_achievements oracles_achievements_screens)
+        target_compile_definitions(oracles PRIVATE ORACLES_RETROACHIEVEMENTS)
+    endif()
     if(WIN32)
         # The UTF-8 code page (launcher/windows/oracles.manifest): paths outside ASCII open as they are kept.
         set(ORACLES_MANIFEST ${CMAKE_CURRENT_SOURCE_DIR}/windows/oracles.manifest)
@@ -118,6 +157,9 @@ if(ORACLES_BUILD_LAUNCHER)
         ${ORACLES_THIRD_PARTY_DIR}/lua/LICENSE Lua-LICENSE.txt)
     if(ORACLES_SDL3_BUILT)
         list(APPEND ORACLES_LICENCES ${sdl3_SOURCE_DIR}/LICENSE.txt SDL3-LICENSE.txt)   # the library built here goes with it
+    endif()
+    if(ORACLES_RETROACHIEVEMENTS)
+        list(APPEND ORACLES_LICENCES ${ORACLES_THIRD_PARTY_DIR}/rcheevos/LICENSE rcheevos-LICENSE.txt)   # MIT, as Lua's
     endif()
     while(ORACLES_LICENCES)
         list(POP_FRONT ORACLES_LICENCES licence_source licence_name)

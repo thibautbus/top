@@ -598,6 +598,35 @@ void oracles_ui_draw_picture(OraclesUiDraw *draw, const uint32_t *pixels, int w,
     SDL_RenderTexture(draw->renderer, draw->picture, &source, &target);
 }
 
+SDL_Renderer *oracles_ui_draw_renderer(const OraclesUiDraw *draw) { return draw->renderer; }
+
+void oracles_ui_draw_texture(OraclesUiDraw *draw, SDL_Texture *texture, float x, float y, float w, float h, float opacity)
+{
+    if (!texture) return;
+    const float s = draw->scale;
+    const SDL_FRect target = { roundf(draw->origin_x + x * s), roundf(draw->origin_y + y * s), roundf(w * s), roundf(h * s) };
+    SDL_SetTextureAlphaModFloat(texture, opacity);
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    SDL_RenderTexture(draw->renderer, texture, NULL, &target);
+}
+
+void oracles_ui_draw_clip(OraclesUiDraw *draw, float x, float y, float w, float h)
+{
+    SDL_Rect current, box = { (int)lroundf(draw->origin_x + x * draw->scale), (int)lroundf(draw->origin_y + y * draw->scale),
+                              (int)lroundf(w * draw->scale), (int)lroundf(h * draw->scale) };
+    if (SDL_RenderClipEnabled(draw->renderer) && SDL_GetRenderClipRect(draw->renderer, &current)) SDL_GetRectIntersection(&current, &box, &box);
+    SDL_SetRenderClipRect(draw->renderer, &box);
+}
+
+void oracles_ui_draw_clip_rect(OraclesUiDraw *draw, int *saved, SDL_Rect *rect)
+{
+    *saved = SDL_RenderClipEnabled(draw->renderer);
+    if (!*saved || !SDL_GetRenderClipRect(draw->renderer, rect)) *saved = 0;
+}
+
+void oracles_ui_draw_restore_clip(OraclesUiDraw *draw, int saved, const SDL_Rect *rect) { SDL_SetRenderClipRect(draw->renderer, saved ? rect : NULL); }
+
 /* ---- text -------------------------------------------------------------------- */
 
 static atlas *atlas_for(OraclesUiDraw *draw, OraclesUiFont font, float size)

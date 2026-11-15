@@ -54,6 +54,12 @@ typedef struct OraclesPauseSession {
      * change here), or the whole frame; NULL: the frame's. */
     void (*game_size)(void *opaque, int *width, int *height);
     int by_key;   /* the player opened it by its key (Escape, the controller's, the touch controls' pause, Android's Back) */
+    /* Called about once a second while the pause is open (the achievements' answers and their server's pings); NULL: none. */
+    void (*idle)(void *opaque);
+    /* A build with RetroAchievements: they run for the game (the menu's Achievements), why they stopped for the session
+     * (OraclesAchievementsSuspension), the list the menu's Achievements shows. */
+    int achievements, achievements_suspended;
+    const OraclesAchievementsList *achievements_list;
 } OraclesPauseSession;
 
 typedef enum OraclesPauseResult {
@@ -108,6 +114,14 @@ typedef struct OraclesPauseFrame {
 /* Draws the reminder over that frame (the SDL backend's overlay, through the session): 1 while it waits or shows, 0 once
  * it is gone. */
 int oracles_pause_overlay(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame);
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* RetroAchievements' toasts over this game (ui_achievements.h), their badges' images in `badges`: the queue the session
+ * puts them in; the overlay draws them at the image's top left, under its status bar (under the reminder while it shows),
+ * and stays on for them. */
+struct OraclesAchievementsToasts *oracles_pause_achievements(OraclesPause *pause, const char *badges);
+/* 1 once after the overlay drew an unlock's toast for the first time: its sound is due now, as the toast shows. */
+int oracles_pause_unlock_sound(OraclesPause *pause);
+#endif
 /* Glyphs rasterised during the session's pauses (none when prepared beforehand), for the session's report. */
 unsigned oracles_pause_late_glyphs(const OraclesPause *pause);
 

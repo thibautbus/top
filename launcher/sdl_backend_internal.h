@@ -80,6 +80,14 @@ typedef struct sdl_backend {
     unsigned stepped_presents;
     oracles_sdl_underrun underrun_log[ORACLES_SDL_UNDERRUNS_LOGGED];
     Uint32 audio_peak_bytes;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* The unlock's sound, rendered at the sound's opening, and how far it played (unlock_frames: it does not); the chunk
+     * it is mixed into while it plays, a copy of the core's. */
+    float *unlock;
+    size_t unlock_frames, unlock_cursor;
+    int16_t *unlock_mixed;
+    size_t unlock_mixed_capacity;   /* in samples */
+#endif
     uint64_t audio_queued_sum_bytes;
     uint64_t audio_queued_samples_count;
     unsigned scale;

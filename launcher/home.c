@@ -10,6 +10,10 @@
 #include "ui_home.h"
 #include "ui_page_nav.h"
 #include "update_check.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "home_achievements.h"
+#include "ui_achievements_draw.h"
+#endif
 
 #include <SDL3/SDL.h>
 
@@ -70,6 +74,7 @@ typedef struct home_app {
     unsigned watch_type_count[6];
     double presented_ms;
     portable_job portable;
+    int achievements_waiting;   /* RetroAchievements' login sent, its answer looked for */
 } home_app;
 
 /* The event the portable mode's thread pushes as it ends, and how often the loop looks for its end meanwhile. */
@@ -320,9 +325,55 @@ static void portable_start(home_app *app)
     changed(app);
 }
 
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* RetroAchievements' commands: the login sent, its answer awaited by the loop, or given up; the account forgotten; the
+ * player's guide in the browser, the launcher staying (without one, its address in a toast). */
+static void achievements_command(home_app *app, OraclesHomeCommand c)
+{
+    if (c == ORACLES_HOME_ACHIEVEMENTS_CANCEL) {
+        if (app->achievements_waiting && app->host->achievements_cancel) app->host->achievements_cancel(app->host->opaque);
+        app->achievements_waiting = 0;
+    } else if (c == ORACLES_HOME_ACHIEVEMENTS_LOGIN) {
+        if (app->host && app->host->achievements_login
+            && app->host->achievements_login(app->host->opaque, app->nav.achievements.name, app->nav.achievements.password))
+            app->achievements_waiting = 1;
+        else oracles_achievements_login_answered(&app->nav, -1, NULL);
+    } else if (c == ORACLES_HOME_ACHIEVEMENTS_LOGOUT) {
+        if (app->host && app->host->achievements_logout) app->host->achievements_logout(app->host->opaque, &app->nav);
+    } else if (c == ORACLES_HOME_ACHIEVEMENTS_GUIDE) {
+        char url[256], message[320];
+        snprintf(url, sizeof url, "https://github.com/%s/blob/main/docs/PLAYING.md#retroachievements", oracles_update_repository());
+        if (SDL_OpenURL(url)) { fprintf(stderr, "oracles: achievements: the player's guide opened\n"); return; }
+        fprintf(stderr, "oracles: achievements: the player's guide cannot be opened: %s\n", SDL_GetError());
+        snprintf(message, sizeof message, "No browser opened the player's guide: %s", url + 8);
+        oracles_ui_home_toast(&app->view, message, now_ms());
+    }
+    changed(app);
+}
+
+/* The login's answer, looked for while it is awaited: in, the settings and the account's row follow. */
+static void achievements_answer(home_app *app)
+{
+    char user[ORACLES_HOME_ACCOUNT_LENGTH];
+    const int answer = app->host->achievements_answer(app->host->opaque, user, sizeof user);
+    if (answer == -2) return;
+    app->achievements_waiting = 0;
+    oracles_achievements_login_answered(&app->nav, answer, user);
+    if (answer == 1 && app->host->store) app->host->store(app->host->opaque, &app->nav);
+    if (answer == 1) refresh(app);
+    changed(app);
+}
+#endif
+
 static void command(home_app *app, OraclesHomeCommand c)
 {
     char message[256];
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (c == ORACLES_HOME_ACHIEVEMENTS_LOGIN || c == ORACLES_HOME_ACHIEVEMENTS_LOGOUT || c == ORACLES_HOME_ACHIEVEMENTS_GUIDE || c == ORACLES_HOME_ACHIEVEMENTS_CANCEL) {
+        achievements_command(app, c);
+        return;
+    }
+#endif
     if (c == ORACLES_HOME_EXIT) app->running = 0;
     else if (c == ORACLES_HOME_OPEN_UPDATE) {   /* the browser opens, the launcher staying; without one, the page's address */
         if (!oracles_update_check_open(message, sizeof message) && message[0]) oracles_ui_home_toast(&app->view, message, now_ms());
@@ -374,6 +425,9 @@ static void pointer(home_app *app, float x, float y, int click)
                 changed(app);
             return;
         }
+#ifdef ORACLES_RETROACHIEVEMENTS
+        if (app->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS) { const OraclesHomeCommand c = oracles_achievements_click(&app->nav, hit.index, hit.option); changed(app); command(app, c); return; }
+#endif
         const OraclesHomeCommand c = app->nav.screen == ORACLES_SCREEN_GAME ? oracles_page_click(&app->nav, hit.index, hit.option)
                                      : app->nav.screen == ORACLES_SCREEN_MODS ? oracles_mods_click(&app->nav, hit.index)
                                      : app->nav.screen == ORACLES_SCREEN_CHEATS ? oracles_cheats_click(&app->nav, hit.index, hit.option)
@@ -387,6 +441,9 @@ static void pointer(home_app *app, float x, float y, int click)
         if (hit.kind == ORACLES_UI_HIT_ITEM && hit.index != oracles_home_focus(&app->nav)) { oracles_home_hover(&app->nav, hit.index); changed(app); }
         return;
     }
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (hit.kind == ORACLES_UI_HIT_LOGIN) { const OraclesHomeCommand c = oracles_achievements_login_click(&app->nav, (int)hit.index); changed(app); command(app, c); return; }
+#endif
     if (hit.kind == ORACLES_UI_HIT_SLOW) { oracles_home_slow_open(&app->nav); changed(app); }
     else if (hit.kind == ORACLES_UI_HIT_ITEM) { const OraclesHomeCommand c = oracles_home_click(&app->nav, hit.index); changed(app); command(app, c); }
     else if (hit.kind == ORACLES_UI_HIT_ENTRY) { oracles_home_select(&app->nav, hit.entry); changed(app); }
@@ -412,6 +469,27 @@ static void toggle_fullscreen(home_app *app)
     SDL_SetWindowFullscreen(app->window, app->fullscreen != 0);
 }
 
+/* A press on a key of RetroAchievements' keyboard, a controller's: the keyboard stays up for the click that types it. */
+static int on_launcher_keyboard(const home_app *app, const SDL_Event *e)
+{
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (!oracles_achievements_keyboard_shown(&app->nav) || (e->type != SDL_EVENT_MOUSE_BUTTON_DOWN && e->type != SDL_EVENT_FINGER_DOWN)) return 0;
+    float x = e->button.x, y = e->button.y, sx, sy;
+    if (e->type == SDL_EVENT_FINGER_DOWN) {
+        int w = 0, h = 0;
+        SDL_GetWindowSize(app->window, &w, &h);
+        x = e->tfinger.x * (float)w;
+        y = e->tfinger.y * (float)h;
+    }
+    window_to_scene(app, x, y, &sx, &sy);
+    return oracles_ui_achievements_login_hit(&app->nav, sx, sy) >= ORACLES_LOGIN_FIELDS;
+#else
+    (void)app;
+    (void)e;
+    return 0;
+#endif
+}
+
 static void handle(home_app *app, const SDL_Event *e)
 {
     OraclesHomeAction action;
@@ -427,7 +505,7 @@ static void handle(home_app *app, const SDL_Event *e)
     if (app->dialog_open && e->type == SDL_EVENT_QUIT) { app->quit_after_dialog = 1; return; }   /* after its answer */
     if (app->dialog_open && input(e)) return;
     OraclesInputDevice device;
-    if (oracles_home_input_device(e, &device) && oracles_home_input(&app->nav, device)) app->dirty = 1;
+    if (oracles_home_input_device(e, &device) && !on_launcher_keyboard(app, e) && oracles_home_input(&app->nav, device)) app->dirty = 1;
     /* A cell of Controls that waits takes the next key or button, Escape included (it cancels). */
     if (oracles_home_capture(&app->nav, e, &captured)) {
         /* A trigger taken for the menu is held still: it counts once let go. */
@@ -436,6 +514,16 @@ static void handle(home_app *app, const SDL_Event *e)
         command(app, captured);
         return;
     }
+#ifdef ORACLES_RETROACHIEVEMENTS
+    /* RetroAchievements' login takes the keys, the text typed and the controller's buttons while it is open. */
+    OraclesHomeCommand typed;
+    if (oracles_home_achievements_event(&app->nav, e, &typed)) {
+        changed(app);
+        command(app, typed);
+        return;
+    }
+    if (e->type == SDL_EVENT_SCREEN_KEYBOARD_SHOWN || e->type == SDL_EVENT_SCREEN_KEYBOARD_HIDDEN) app->dirty = 1;
+#endif
     /* After a game, the first inputs the home screen gets, and its window's focus and screen changes: what a session
      * report needs to tell input that stopped from input that went elsewhere. */
     if (app->inputs_reported < 3 && (e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e->type == SDL_EVENT_FINGER_DOWN)) {
@@ -554,7 +642,7 @@ static int event_wait_ms(const home_app *app, double now)
 static int wait_ms(const home_app *app, double now)
 {
     const int wait = event_wait_ms(app, now);
-    return app->portable.thread && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
+    return (app->portable.thread || app->achievements_waiting) && (wait < 0 || wait > PORTABLE_POLL_MS) ? PORTABLE_POLL_MS : wait;
 }
 
 static int open_window(home_app *app)
@@ -614,6 +702,10 @@ int oracles_home_run(const OraclesHomeHost *host, int *width, int *height)
             }
             if (!app.running) break;
             if (app.portable.thread && SDL_GetAtomicInt(&app.portable.done)) portable_done(&app);
+#ifdef ORACLES_RETROACHIEVEMENTS
+            if (app.achievements_waiting) achievements_answer(&app);
+            oracles_home_achievements_text_input(app.window, &app.nav);
+#endif
             const double now = now_ms();
             if (app.watch_until_ms > 0.0 && now >= app.watch_next_ms) {
                 const SDL_WindowFlags flags = SDL_GetWindowFlags(app.window);

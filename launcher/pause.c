@@ -8,6 +8,9 @@
 #include "ui_home_layout.h"
 #include "ui_page_layout.h"
 #include "ui_page_nav.h"
+#ifdef ORACLES_RETROACHIEVEMENTS
+#include "ui_achievements_draw.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +18,7 @@
 
 /* While something moves, a frame at most this often: the in-game darkening, left to right. */
 #define FRAME_MS 16.0
+#define IDLE_MS 1000.0   /* the session's idle, while the pause is open */
 #ifdef __ANDROID__
 /* Android shows a window's surface some frames after it is ready: the single frame drawn at the return from the
  * background can be lost and leave the menu black until an input (home.c does the same). */
@@ -52,6 +56,12 @@ struct OraclesPause {
     OraclesInputDevice device;  /* used last, from the home screen to the session's last pause; a key pressed there */
     int keyboard_used;
     int android;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    int achievements;           /* RetroAchievements' toasts may come: the overlay stays */
+    OraclesAchievementsToasts toasts;
+    char badges[4096];
+    int unlock_sound;           /* an unlock's toast showed its first frame: its sound is due (oracles_pause_unlock_sound) */
+#endif
 };
 
 /* Every glyph a screen of the pause may draw: the printable ASCII and the launcher's signs, and each character after an
@@ -97,7 +107,30 @@ void oracles_pause_input(const OraclesPause *pause, OraclesHomeNav *nav)
     nav->keyboard_used = pause->keyboard_used;
 }
 
-void oracles_pause_destroy(OraclesPause *pause) { free(pause); }
+void oracles_pause_destroy(OraclesPause *pause)
+{
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (pause && pause->achievements) oracles_ui_achievements_forget_badges();
+#endif
+    free(pause);
+}
+
+#ifdef ORACLES_RETROACHIEVEMENTS
+OraclesAchievementsToasts *oracles_pause_achievements(OraclesPause *pause, const char *badges)
+{
+    if (!pause) return NULL;
+    pause->achievements = 1;
+    snprintf(pause->badges, sizeof pause->badges, "%s", badges ? badges : "");
+    return &pause->toasts;
+}
+
+int oracles_pause_unlock_sound(OraclesPause *pause)
+{
+    const int due = pause && pause->unlock_sound;
+    if (pause) pause->unlock_sound = 0;
+    return due;
+}
+#endif
 
 void oracles_pause_reminder(OraclesPause *pause, const char *menu_pad)
 {
@@ -116,7 +149,13 @@ void oracles_pause_notice(OraclesPause *pause, const char *text)
 
 int oracles_pause_reminder_pending(const OraclesPause *pause) { return pause && pause->reminder; }
 
-int oracles_pause_overlay_pending(const OraclesPause *pause) { return pause && (pause->reminder || pause->notice[0]); }
+int oracles_pause_overlay_pending(const OraclesPause *pause)
+{
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (pause && pause->achievements) return 1;
+#endif
+    return pause && (pause->reminder || pause->notice[0]);
+}
 
 int oracles_pause_reminder_drawn(const OraclesPause *pause) { return pause && pause->reminder_drawn; }
 
@@ -139,6 +178,12 @@ static int styles(OraclesUiLayout layout, const OraclesUiTextStyle **out)
         controls->title, controls->prompt, controls->heading, controls->name, controls->cell, controls->cell_locked, controls->cell_waiting,
         controls->item, controls->item_empty, controls->slots_note, controls->shortcut_key, controls->shortcut_label, controls->tab,
         controls->menu_cell, controls->menu_cell_waiting,
+#ifdef ORACLES_RETROACHIEVEMENTS
+        oracles_ui_toast_style(layout, 0), oracles_ui_toast_style(layout, 1),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_SUMMARY), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_TITLE),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DESCRIPTION), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_POINTS),
+        oracles_ui_achievements_style(layout, ORACLES_UI_ACH_DATE), oracles_ui_achievements_style(layout, ORACLES_UI_ACH_PROGRESS),
+#endif
     };
     int count = 0;
     for (size_t i = 0; i < sizeof all / sizeof all[0]; i++) if (all[i]) out[count++] = all[i];
@@ -230,6 +275,10 @@ static float toast_opacity(double since, double now)
 }
 
 static int draw_toast(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame, const char *text, int notice, float opacity, double now);
+#ifdef ORACLES_RETROACHIEVEMENTS
+static void draw_achievement_toast(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame, OraclesAchievementsToast *toast,
+                                   int reminder, float opacity, double now);
+#endif
 
 int oracles_pause_overlay(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame)
 {
@@ -241,17 +290,35 @@ int oracles_pause_overlay(OraclesPause *pause, SDL_Renderer *renderer, const Ora
         if (opacity >= 0.0f) { draw_toast(pause, renderer, frame, pause->notice, 1, opacity, now); return 1; }
         pause->notice[0] = 0;
     }
-    if (!pause->reminder) return 0;
-    if (pause->reminder_since_ms <= 0.0) {
-        if (!frame->in_play) return 1;   /* a title, a menu, a cutscene: it waits for the status bar */
-        pause->reminder_since_ms = now;
+    int keep = 0, reminder_shown = 0;
+    if (pause->reminder) {
+        if (pause->reminder_since_ms <= 0.0 && frame->in_play) pause->reminder_since_ms = now;
+        if (pause->reminder_since_ms <= 0.0) {
+            keep = 1;   /* a title, a menu, a cutscene: it waits for the status bar */
+        } else {
+            const float opacity = toast_opacity(pause->reminder_since_ms, now);
+            if (opacity < 0.0f) {
+                pause->reminder = 0;
+            } else {
+                char text[ORACLES_HOME_NAME_LENGTH + 32];
+                oracles_controls_menu_tip(frame->device >= 0 ? frame->device : (int)pause->device, pause->android, pause->menu_pad, text, sizeof text);
+                if (draw_toast(pause, renderer, frame, text, 0, opacity, now)) pause->reminder_drawn = 1;
+                keep = reminder_shown = 1;
+            }
+        }
     }
-    const float opacity = toast_opacity(pause->reminder_since_ms, now);
-    if (opacity < 0.0f) { pause->reminder = 0; return 0; }
-    char text[ORACLES_HOME_NAME_LENGTH + 32];
-    oracles_controls_menu_tip(frame->device >= 0 ? frame->device : (int)pause->device, pause->android, pause->menu_pad, text, sizeof text);
-    if (draw_toast(pause, renderer, frame, text, 0, opacity, now)) pause->reminder_drawn = 1;
-    return 1;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    if (pause->achievements) {
+        keep = 1;
+        float opacity;
+        OraclesAchievementsToast *toast = oracles_achievements_toast_now(&pause->toasts, now, &opacity);
+        if (toast && oracles_achievements_toast_sound(toast)) pause->unlock_sound = 1;
+        if (toast) draw_achievement_toast(pause, renderer, frame, toast, reminder_shown, opacity, now);
+    }
+#else
+    (void)reminder_shown;
+#endif
+    return keep;
 }
 
 /* The reminder's line, or a notice's lines, under the status bar of the image as the session presents it; 1 when drawn. */
@@ -290,6 +357,39 @@ static int draw_toast(OraclesPause *pause, SDL_Renderer *renderer, const Oracles
     return drawn;
 }
 
+#ifdef ORACLES_RETROACHIEVEMENTS
+/* A RetroAchievements toast at the top left of the image as the session presents it, under its status bar. */
+static void draw_achievement_toast(OraclesPause *pause, SDL_Renderer *renderer, const OraclesPauseFrame *frame, OraclesAchievementsToast *toast,
+                                   int reminder, float opacity, double now)
+{
+    int logical_w = 0, logical_h = 0, w = 0, h = 0;
+    SDL_RendererLogicalPresentation presentation = SDL_LOGICAL_PRESENTATION_DISABLED;
+    SDL_GetRenderLogicalPresentation(renderer, &logical_w, &logical_h, &presentation);
+    SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+    SDL_GetRenderOutputSize(renderer, &w, &h);
+    const OraclesUiLayout layout = oracles_ui_layout_pause(w, h, pause->aspect);
+    band(pause, w, h);
+    oracles_ui_draw_layout(pause->draw, layout);
+    if (oracles_ui_draw_begin_over(pause->draw, w, h, min_scale(oracles_ui_layout_narrow(layout, w)), now)) {
+        oracles_ui_draw_anchor(pause->draw, 0.0f, 0.0f);
+        int band_top = 0, band_height = h;
+        oracles_ui_draw_band_of(pause->draw, h, &band_top, &band_height);
+        float left = 0.0f, bar_bottom = 0.0f;
+        if (frame->width > 0 && frame->height > 0) {
+            const OraclesTouchBox image = oracles_touch_frame(w, band_height, frame->width, frame->height, frame->fill);
+            oracles_ui_draw_to_scene_anchored(pause->draw, image.x, (float)band_top + image.y + image.h * STATUS_BAR_LINES / (float)frame->height,
+                                              0.0f, 0.0f, &left, &bar_bottom);
+        }
+        oracles_ui_achievements_toast_draw(pause->draw, layout, toast, pause->badges, left, bar_bottom, reminder, opacity, now);
+        oracles_ui_draw_end(pause->draw);
+    }
+    SDL_SetRenderClipRect(renderer, NULL);
+    SDL_SetRenderLogicalPresentation(renderer, logical_w, logical_h, presentation);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+}
+#endif
+
 typedef struct pause_loop {
     OraclesPause *pause;
     SDL_Window *window;
@@ -302,6 +402,10 @@ typedef struct pause_loop {
     int trigger_held;   /* the menu's trigger, when menu_pad= names one (oracles_home_button_action) */
     unsigned glyphs_before;   /* the glyphs rasterised when the pause began, those the margin's change prepared added */
     OraclesPauseResult result;
+#ifdef ORACLES_RETROACHIEVEMENTS
+    float drag;               /* the list's drag since the last row it moved, in the window's points */
+    int drag_row;             /* a row's height there */
+#endif
 } pause_loop;
 
 static void changed(pause_loop *p)
@@ -453,8 +557,26 @@ static void handle(pause_loop *p, const SDL_Event *e)
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             if (oracles_home_button_action(&p->nav, e, &p->trigger_held, &action)) act(p, action);
             break;
-        case SDL_EVENT_MOUSE_MOTION: pointer(p, e->motion.x, e->motion.y, 0); break;
+        case SDL_EVENT_MOUSE_MOTION:
+#ifdef ORACLES_RETROACHIEVEMENTS
+            /* The list of achievements follows a drag (a finger's too), a row at a time. */
+            if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && (e->motion.state & SDL_BUTTON_LMASK)) {
+                p->drag += e->motion.yrel;
+                const float row = (float)p->drag_row;
+                while (p->drag <= -row) { p->drag += row; act(p, ORACLES_HOME_DOWN); }
+                while (p->drag >= row) { p->drag -= row; act(p, ORACLES_HOME_UP); }
+                break;
+            }
+#endif
+            pointer(p, e->motion.x, e->motion.y, 0);
+            break;
         case SDL_EVENT_MOUSE_BUTTON_UP: if (e->button.button == SDL_BUTTON_LEFT) pointer(p, e->button.x, e->button.y, 1); break;
+#ifdef ORACLES_RETROACHIEVEMENTS
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: p->drag = 0.0f; break;
+        case SDL_EVENT_MOUSE_WHEEL:
+            if (p->nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && e->wheel.y != 0.0f) act(p, e->wheel.y > 0.0f ? ORACLES_HOME_UP : ORACLES_HOME_DOWN);
+            break;
+#endif
         default:   /* a drop is not taken in the pause */
             if (e->type == SDL_EVENT_WINDOW_SAFE_AREA_CHANGED || e->type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
                 oracles_safe_area_edges(p->window, p->pause->edges.margin, &p->pause->edges);
@@ -496,6 +618,10 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     p.nav.cheats_fixed = 0;
     p.nav.cheats_refused = !session->has_cheats;
     p.nav.text_speed_refused = !session->has_text_instant;
+    /* RetroAchievements: the menu's Achievements while they run for the game, its list, why they stopped. */
+    p.nav.achievements.active = session->achievements;
+    p.nav.achievements.suspended = session->achievements_suspended;
+    p.nav.achievements.list = session->achievements_list;
     /* The session's own refusals (an unrecognised ROM) where the game's profile has them; a profile that refuses them (a
      * fan game's) says so itself (OraclesHomeGame's refuses). */
     if (!oracles_home_refuses(&p.nav, ORACLES_HOME_REFUSES_SWIM_HOLD)) p.nav.swim_refused = !session->has_swim;
@@ -512,9 +638,16 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
     load_note(&p);
     tips(&p, session->by_key);
     p.trigger_held = oracles_home_trigger_held(&p.nav);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    {
+        int window_w = 0, window_h = 0;
+        SDL_GetWindowSize(window, &window_w, &window_h);
+        p.drag_row = window_h > 0 ? window_h / 10 : 48;
+    }
+#endif
     oracles_ui_home_start(&p.view, &p.nav);
     p.dirty = 1;
-    double presented = 0.0;
+    double presented = 0.0, idled = now_ms();
     while (!p.done) {
         const double now = now_ms();
         if (p.dirty || ((p.moving || p.redraws > 0) && now - presented >= FRAME_MS) || (oracles_ui_home_due_ms(&p.view) >= 0.0 && now >= oracles_ui_home_due_ms(&p.view))) {
@@ -534,6 +667,17 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
         const double due = oracles_ui_home_due_ms(&p.view);
         if (p.moving || p.redraws > 0) wait = (int)FRAME_MS;
         if (due >= 0.0) { const int until = due > now ? (int)(due - now) + 1 : 0; if (wait < 0 || until < wait) wait = until; }
+        if (session->idle) {
+            if (now - idled >= IDLE_MS) {
+                session->idle(session->opaque);
+                idled = now;
+#ifdef ORACLES_RETROACHIEVEMENTS
+                /* A badge the list waits for, downloaded meanwhile: shown without a key pressed. */
+                if (p.nav.screen == ORACLES_SCREEN_ACHIEVEMENTS_LIST && oracles_ui_achievements_list_waiting()) p.dirty = 1;
+#endif
+            }
+            if (wait < 0 || wait > (int)IDLE_MS) wait = (int)IDLE_MS;
+        }
         SDL_Event e;
         if (wait < 0 ? SDL_WaitEvent(&e) : SDL_WaitEventTimeout(&e, wait)) {
             handle(&p, &e);

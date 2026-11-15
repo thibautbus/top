@@ -242,11 +242,20 @@ oracles_host_pause_result oracles_session_pause(void *opaque)
     /* F11 and --fullscreen change the window without the settings: the pause's Window shows the window the game has. */
     int window_w, window_h;
     const int window_shown = window_now(s, window, &window_w, &window_h);
+#ifdef ORACLES_RETROACHIEVEMENTS
+    const OraclesAchievementsList *achievements = oracles_session_achievements_list(s);   /* NULL before the game's set is loaded */
+#endif
     const OraclesPauseSession services = { s, pause_save, pause_load, pause_state_time, pause_settings_changed, pause_cheats_changed,
                                            pause_window_chosen, (int)oracles_core_kind(s->core), s->ghosts, device, pause_cheats(s),
                                            s->pause_cheats, pause_game_image, s->swim_setting >= 0, s->hotkeys_game >= 0, window_shown, window_w,
                                            window_h, windows_refused(s, window), s->text_speed_setting >= 0, pause_game_size,
-                                           oracles_home_menu_by_key((int)source) };
+                                           oracles_home_menu_by_key((int)source), s->achievements ? oracles_session_achievements_idle : NULL
+#ifdef ORACLES_RETROACHIEVEMENTS
+                                           , achievements != NULL, oracles_session_achievements_suspended(s), achievements
+#else
+                                           , 0, 0, NULL
+#endif
+                                         };
     OraclesPauseResult result = oracles_pause_run(s->pause, window, renderer, frame, width, height, &services);
     if (result == ORACLES_PAUSE_RESUME && s->state_restart) result = ORACLES_PAUSE_QUIT;   /* the game starts again for its savestate */
     if (result == ORACLES_PAUSE_RESUME) oracles_sdl_backend_hold(&s->backend, 0);   /* a pause that ends the session is past the last present */

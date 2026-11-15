@@ -25,6 +25,7 @@ import android.view.WindowInsetsController;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -316,32 +317,46 @@ public class OraclesActivity extends SDLActivity {
             || (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK;
     }
 
-    /* The update check's request (launcher/update_fetch.c), on its thread: a GET of an https:// address, the system's
-     * TLS checking the certificate, with an Accept header and a User-Agent without the version, a redirection followed
-     * to https:// only.  "STATUS\nBODY", the body cut at a megabyte, or "0\nREASON". */
-    public static String httpGet(String address, int timeoutMs) {
+    /* A request of launcher/update_fetch.c (the update check's, RetroAchievements'), on its thread: a GET, or a POST of
+     * `body` as `contentType`, of an https:// address (or the tests' http://127.0.0.1 with `loopbackHttp`), the system's
+     * TLS checking the certificate, with an Accept header when one is given and `userAgent`, a redirection followed to
+     * https:// only.  "STATUS\n" and the body's bytes, the body cut past `maxBody` bytes, or "0\nREASON". */
+    public static byte[] httpRequest(String address, byte[] body, String contentType, String accept, String userAgent, int timeoutMs,
+                                     int maxBody, boolean loopbackHttp) {
         HttpURLConnection connection = null;
         try {
             final URL url = new URL(address);
-            if (!"https".equals(url.getProtocol())) return "0\nnot an https:// address";
+            final boolean loopback = loopbackHttp && "http".equals(url.getProtocol()) && "127.0.0.1".equals(url.getHost());
+            if (!"https".equals(url.getProtocol()) && !loopback) return "0\nnot an https:// address".getBytes(StandardCharsets.UTF_8);
             connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(timeoutMs);
             connection.setReadTimeout(timeoutMs);
             connection.setUseCaches(false);
-            connection.setRequestProperty("Accept", "application/vnd.github+json");
-            connection.setRequestProperty("User-Agent", "the-oracles-project");
+            if (accept != null) connection.setRequestProperty("Accept", accept);
+            connection.setRequestProperty("User-Agent", userAgent);
+            if (body != null) {
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                if (contentType != null) connection.setRequestProperty("Content-Type", contentType);
+                connection.setFixedLengthStreamingMode(body.length);
+                try (OutputStream out = connection.getOutputStream()) {
+                    out.write(body);
+                }
+            }
             final int status = connection.getResponseCode();
             final InputStream in = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-            final ByteArrayOutputStream body = new ByteArrayOutputStream();
+            final ByteArrayOutputStream answer = new ByteArrayOutputStream();
+            answer.write((status + "\n").getBytes(StandardCharsets.UTF_8));
+            final int head = answer.size();
             if (in != null) {
                 try (InputStream stream = in) {
                     final byte[] chunk = new byte[16384];
-                    for (int read; (read = stream.read(chunk)) > 0 && body.size() <= 1024 * 1024;) body.write(chunk, 0, read);
+                    for (int read; (read = stream.read(chunk)) > 0 && answer.size() - head <= maxBody;) answer.write(chunk, 0, read);
                 }
             }
-            return status + "\n" + new String(body.toByteArray(), StandardCharsets.UTF_8);
+            return answer.toByteArray();
         } catch (Exception e) {
-            return "0\n" + e.getClass().getSimpleName();
+            return ("0\n" + e.getClass().getSimpleName()).getBytes(StandardCharsets.UTF_8);
         } finally {
             if (connection != null) connection.disconnect();
         }
