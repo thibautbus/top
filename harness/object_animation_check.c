@@ -53,11 +53,17 @@ int oac_shown(const OraclesGuestTables *t, const OraclesObjectRecord *r)
     return oracles_object_animation_resolved(t, r->kind);
 }
 
+/* The first updates the rule asks of an object, as the capture's probe does: one more when the first set again the
+ * animation it plays. */
+static unsigned first_updates(const track *tr) { return ORACLES_GHOST_PROBE_UPDATES + (unsigned)tr->first_restarted; }
+
+static int first_animated(const track *tr) { return tr->first_one_step == first_updates(tr); }
+
 /* A followed object's figures, added to those of its kind and place once it is no longer followed. */
 static void end_track(OraclesObjectAnimationCheck *c, unsigned kind, track *tr)
 {
-    if (tr->active && tr->rule == RULE_UNCAPTURED && tr->first_judged == ORACLES_GHOST_PROBE_UPDATES && !tr->first_near) {
-        tr->rule = (kind == ORACLES_OBJECT_KIND_INTERACTION - 1u || kind == ORACLES_OBJECT_KIND_PART - 1u) && tr->first_one_step == ORACLES_GHOST_PROBE_UPDATES
+    if (tr->active && tr->rule == RULE_UNCAPTURED && tr->first_judged == first_updates(tr) && !tr->first_near) {
+        tr->rule = (kind == ORACLES_OBJECT_KIND_INTERACTION - 1u || kind == ORACLES_OBJECT_KIND_PART - 1u) && first_animated(tr)
                  ? RULE_ANIMATED : RULE_FROZEN;
         c->decided_live++;
     }
@@ -116,7 +122,7 @@ static void against_probe(OraclesObjectAnimationCheck *c, const track *tr)
     if (!tr->captured || tr->link_near) return;
     const captured_object *o = &c->captured[tr->captured - 1u];
     if (o->pose_count < 2u || (o->record.kind != ORACLES_OBJECT_KIND_INTERACTION && o->record.kind != ORACLES_OBJECT_KIND_PART)) return;
-    const int live = tr->first_one_step == ORACLES_GHOST_PROBE_UPDATES, probe = tr->rule == RULE_ANIMATED;
+    const int live = first_animated(tr), probe = tr->rule == RULE_ANIMATED;
     if (live == probe) c->probe_agree++;
     else if (probe) c->probe_animated_live_not++;
     else c->probe_frozen_live_animated++;
@@ -145,10 +151,12 @@ static void judge(OraclesObjectAnimationCheck *c, track *tr, const OraclesObject
     if (changed) y->live++;
     if (changed && !y->changed_live) y->changed_live = 1;
     const int one_step = oac_same_state(&once, now);
-    if (tr->first_judged < ORACLES_GHOST_PROBE_UPDATES) {
+    if (tr->first_judged < first_updates(tr)) {
+        const int restarted = !tr->first_judged && !one_step && oracles_object_animation_restarted(&tr->last, now, t, c->rom, c->rom_size);
+        tr->first_restarted |= restarted;
         tr->first_judged++;
-        tr->first_one_step += (unsigned)one_step;
-        if (tr->first_judged == ORACLES_GHOST_PROBE_UPDATES) { tr->first_near = tr->link_near; against_probe(c, tr); }
+        tr->first_one_step += (unsigned)(one_step || restarted);
+        if (tr->first_judged == first_updates(tr)) { tr->first_near = tr->link_near; against_probe(c, tr); }
     }
     if (one_step) {
         y->step_equal++;

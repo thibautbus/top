@@ -390,7 +390,7 @@ With the option, Link is also held back from a wall leftward and upward, and wal
 
 With the option, on foot, a diagonal held toward the edge goes on as the game walks it, at its own speed along each axis, across the axis onto tiles of the room entered without collision; a wall there holds him as the game would, and the carry never leaves him, when the scroll ends, against a wall or over a hole, water or lava where walking straight would not.
 
-Swimming (with `--continuous-swim`, flippers or Ages' mermaid suit) and on Ages' sea floor, his motion goes on at its own angle and speed, which the game freezes through the scroll and takes up again after it, across the axis only into water swimming.
+Swimming (with `--continuous-swim`, flippers or Ages' mermaid suit) and on Ages' sea floor, his motion goes on at its own angle and speed, which the game freezes through the scroll and takes up again after it, across the axis too. Swimming, the carry never leaves him on a tile worse than swimming straight would, in this order: water he can swim in, then land, then a hole, a warp hole, lava or, in Ages without the mermaid suit, the sea; where the straight path stays in the water he keeps to it, and where it ends on land he goes no further than land. On the sea floor, as on foot.
 
 While the room entered loads, its walls are read from the game's own tables, as the load will make them, so that the carry goes on through it in Ages, Seasons, Oracles Combined and the fan games, the rooms whose own code changes their tiles included in the Oracles and in both halves of Oracles Combined, which keep their routines (the one each half adds, Vasu's shop, is entered by its door, never by a scroll); in the rooms whose own code changes their tiles in the fan games, nothing carries him across until the walls are known, and what those frames held back is caught up then, at his own ratio across and along, never faster than a pixel a frame across on foot.
 
@@ -451,7 +451,7 @@ Swimming at the surface (with the swim through them), the edges are the line's a
 
 Through the scroll he swims as the game's own swim routines move him in the middle of a room, a frame at a time: `updateLinkDirectionFromAngle`, then the mermaid suit's `linkUpdateVelocity` (where the game's swimming states call it once the suit is obtained: Ages, Gifts of Kinomi and both halves of Oracles Combined) or the flippers' `linkUpdateFlippersSpeed` and `func_5933` (their speed and its cap, the counter and period of its steps, the stroke's state and frames), the swim's hold's strokes included, his move that frame read from `objectSpeedTable` on both axes, the scroll's own move undone and nothing added.
 
-His walls and his own tile hold him as the game's would (no wall at the points `calculateAdjacentWallsBitset` tests on the side he goes, his tile in water he can swim in), and his swim's state is written back, so that the game takes it up after the scroll as it stood.
+His walls and his own tile hold him as the game's would (no wall at the points `calculateAdjacentWallsBitset` tests on the side he goes, his own tile no worse than where he was, by the order of the carry: water he can swim in, then land, then a hole, a warp hole, lava or Ages' sea without the mermaid suit), and his swim's state is written back, so that the game takes it up after the scroll as it stood.
 
 That bottom line is his wherever the line's tests take him past it: carried across into the room below, put back on it, or swimming back down into the room left.
 

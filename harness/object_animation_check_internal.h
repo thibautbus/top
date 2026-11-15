@@ -34,7 +34,8 @@ enum { CAUSE_NOT_ANIMATED, CAUSE_SEVERAL_CALLS, CAUSE_POSE_ADVANCED, CAUSE_ANIMA
 enum { PLACE_FIXED, PLACE_MOVING, PLACES };
 /* What a neighbour does with it, by the rule (oracles_object_animation_animated) on its capture: animated or kept in
  * its captured pose.  An object no capture paired (a room entered otherwise than by a scroll) is judged by the same
- * rule on the game itself, its first ORACLES_GHOST_PROBE_UPDATES updates, Link away; undecided otherwise. */
+ * rule on the game itself, its first ORACLES_GHOST_PROBE_UPDATES updates (one more after a restart of its animation),
+ * Link away; undecided otherwise. */
 enum { RULE_ANIMATED, RULE_FROZEN, RULE_UNCAPTURED };
 
 typedef struct tally {
@@ -51,6 +52,7 @@ typedef struct track {
     int rule;                     /* RULE_*: the animated ones' figures are the step's against the game, the others apart */
     int link_near;                /* Link has come within LINK_NEAR of it since it was followed: its code may answer him */
     unsigned first_judged, first_one_step;   /* its first ORACLES_GHOST_PROBE_UPDATES updates judged, and those that were one call of the step */
+    int first_restarted;          /* the first set again the animation it plays: one update more judged */
     int first_near;               /* Link was near it by then */
     OraclesObjectAnimation last;
     unsigned captured;            /* its capture's index + 1, 0 none */

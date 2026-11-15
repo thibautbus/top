@@ -220,7 +220,7 @@ int main(void)
     if (!types_rom) return 1;
     const size_t types = 5u * 0x4000u;
     types_rom[types + 0] = 0x10; types_rom[types + 1] = 0x40;          /* list 0 at $4010 */
-    const uint8_t list[] = { 0xfd, 0x07, 0xf3, 0x01, 0xfc, 0x17, 0x40, 0x13, 0xe9, 0x18, 0x00 };   /* water, hole, sea, a current, a whirlpool */
+    const uint8_t list[] = { 0xfd, 0x07, 0xf3, 0x01, 0xfc, 0x17, 0x40, 0x13, 0xe9, 0x18, 0x7b, 0x10, 0x00 };   /* water, hole, sea, a current, a whirlpool, lava */
     memcpy(types_rom + types + 0x10, list, sizeof list);
     uint8_t layout[176];
     memset(collisions, 0, sizeof collisions);
@@ -287,6 +287,21 @@ int main(void)
         CHECK(!oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));
         collisions[1 * 16 + 2] = 0; layout[1 * 16 + 2] = 0x01;
         CHECK(oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));    /* the straight path's on land too */
+        /* With the straight path on land, the carry may not end him over a hole, lava or the sea without the suit: the
+         * game would drop him in or drown him there, and make it his respawn. */
+        collisions[1 * 16 + 3] = 0x10; layout[1 * 16 + 3] = 0xf3;
+        CHECK(!oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));   /* a hole */
+        layout[1 * 16 + 3] = 0x7b;
+        CHECK(!oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));   /* lava */
+        layout[1 * 16 + 3] = 0xfc;
+        CHECK(!oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));   /* the sea */
+        w.link_var2f = 0x40; CHECK(oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));   /* the suit */
+        w.link_var2f = 0;
+        w.game = ORACLES_GAME_SEASONS; w.ages_water = 0;
+        CHECK(oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));    /* Seasons' engine: no sea, land as the straight path's */
+        w.game = ORACLES_GAME_AGES; w.ages_water = 1;
+        collisions[1 * 16 + 2] = 0x10; layout[1 * 16 + 2] = 0xf3;
+        CHECK(oracles_room_transition_across_swimmable(types_rom, rom_size, &w, 1, 0x80, 0, 0, 18 << 8));    /* the straight path's over a hole too */
     }
     free(types_rom);
 

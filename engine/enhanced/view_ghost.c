@@ -169,7 +169,7 @@ static void accept_result(OraclesEnhancedView *v, entry *e, const OraclesGhostRe
     e->accepted_at = v->frame;
     e->render_wanted_at = 0;
     ev_poses_deliver(v, e);
-    if (r->probe_frames) { v->poses.probes++; v->poses.probe_frames += r->probe_frames; }
+    if (r->probe_frames) { v->poses.probes++; v->poses.probe_frames += r->probe_frames; v->poses.probe_restarts += r->probe_restarts; }
     v->completed++;
 }
 

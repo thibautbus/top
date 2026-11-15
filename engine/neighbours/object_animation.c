@@ -148,6 +148,21 @@ int oracles_object_animation_one_step(const OraclesObjectAnimation *last, const 
     return once.counter == now->counter && once.pointer == now->pointer && once.oam_data_address == now->oam_data_address;
 }
 
+int oracles_object_animation_restarted(const OraclesObjectAnimation *last, const OraclesObjectAnimation *now, const OraclesGuestTables *t,
+                                       const uint8_t *rom, size_t rom_size)
+{
+    if (!last || !now || last->kind != now->kind || last->id != now->id || !oracles_object_animation_is_set(now, now->pointer, t, rom, rom_size)) return 0;
+    /* The entries of the loop `last` plays, each read once at most. */
+    OraclesObjectAnimation s = *last;
+    for (unsigned reads = 0; reads < ORACLES_OBJECT_ANIMATION_POSES; reads++) {
+        int rc;
+        do rc = oracles_object_animation_step(&s, t, rom, rom_size); while (rc == 0);
+        if (rc < 0) return 0;
+        if (s.pointer == now->pointer && s.oam_data_address == now->oam_data_address) return 1;
+    }
+    return 0;
+}
+
 int oracles_object_animation_probed(unsigned kind) { return kind == ORACLES_OBJECT_KIND_INTERACTION || kind == ORACLES_OBJECT_KIND_PART; }
 
 int oracles_object_animation_animated(const OraclesGuestTables *t, const OraclesObjectRecord *r)

@@ -229,6 +229,13 @@ void ev_lift_parent_marks(OraclesEnhancedView *v)
     }
 }
 
+int oracles_enhanced_tags_draw_objects(const OraclesSpriteTag *tags, unsigned count)
+{
+    for (unsigned j = 0; j < count; j++)
+        if (tags[j].kind && tags[j].count) return 1;
+    return 0;
+}
+
 int oracles_enhanced_objects_refresh_may_start(int story, unsigned live_quiet)
 {
     return live_quiet >= (story ? OBJECT_REFRESH_QUIET : 1u);
@@ -281,7 +288,7 @@ void ev_refresh_failed(OraclesEnhancedView *v, entry *e)
 void ev_invalidate_by_reads(OraclesEnhancedView *v)
 {
     invalidate_by_coarse_list(v);
-    int stale_shown = 0, terrain_stale_shown = 0;
+    int stale_shown = 0, stale_any_shown = 0, terrain_stale_shown = 0;
     for (unsigned i = 0; i < v->slot_count; i++) {
         entry *e = &v->slots[i];
         if (!e->used || !e->valid || e->read_count > ENTRY_READS) continue;
@@ -391,9 +398,16 @@ void ev_invalidate_by_reads(OraclesEnhancedView *v)
                 if (other_side) v->objects_side_refreshes++; else v->objects_story_refreshes++;
             }
         }
-        if (objects_stale && e->object_count && e->group == v->observer.ref_group && e->room != v->observer.ref_room && ev_room_in_view(v, e->room, 0)) stale_shown = 1;
+        /* Met when it draws one of them: an object without sprites (Seasons'
+         * 0:97, whose carnival music reads 0:98's flags) shows nothing out of
+         * date.  The raw count keeps those that set tiles instead. */
+        if (objects_stale && e->object_count && e->group == v->observer.ref_group && e->room != v->observer.ref_room && ev_room_in_view(v, e->room, 0)) {
+            stale_any_shown = 1;
+            if (oracles_enhanced_tags_draw_objects(e->tags, e->tag_count) || oracles_enhanced_tags_draw_objects(e->tags_before, e->tag_count_before)) stale_shown = 1;
+        }
     }
     if (stale_shown) v->objects_stale_frames++;
+    if (stale_any_shown) v->objects_stale_any_frames++;
     if (terrain_stale_shown) v->terrain_stale_frames++;
 }
 

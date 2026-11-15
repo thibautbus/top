@@ -190,13 +190,20 @@ void oracles_objects_latch_remaining(OraclesObjects *o)
         }
 }
 
+OraclesObjectRecord oracles_objects_keyed(const OraclesObjectRecord *latched, const uint8_t key[3])
+{
+    OraclesObjectRecord r = *latched;
+    if (key[0]) { r.created_id = key[0]; r.created_subid = key[1]; r.created_var03 = key[2]; }
+    return r;
+}
+
 unsigned oracles_objects_latched(const OraclesObjects *o, OraclesObjectRecord out[], unsigned max)
 {
     if (!o || !out) return 0;
     unsigned count = 0;
     for (unsigned kind = 0; kind < KINDS; kind++)
         for (unsigned slot = 0; slot < SLOTS && count < max; slot++)
-            if (o->have_latched[kind][slot]) out[count++] = o->latched[kind][slot];
+            if (o->have_latched[kind][slot]) out[count++] = oracles_objects_keyed(&o->latched[kind][slot], o->created_key[kind][slot]);
     return count;
 }
 

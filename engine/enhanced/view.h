@@ -410,6 +410,10 @@ typedef struct OraclesEnhancedPoseCounts {
     unsigned lines_wrong;         /* with the check: lines of a render of some lines that differ from a render of the whole area */
     unsigned lag_max;             /* the most frames in a row a neighbour shown drew a pose behind its step */
     unsigned probes, probe_frames;   /* captures delivered after their probe, and the guest frames those probes ran */
+    /* Their probes' objects found animated after a first update that set again the animation they play
+     * (OraclesGhostResult.probe_restarts): every interaction and part of the capture, shown or not, of one pose or
+     * several, counted again at each capture of the room; how many of those the neighbours animate is in `animated`. */
+    unsigned probe_restarts;
 } OraclesEnhancedPoseCounts;
 void oracles_enhanced_view_pose_counts(const OraclesEnhancedView *view, OraclesEnhancedPoseCounts *out);
 /* The lines of the renders made that were not drawn again, their tiles unchanged since the last render (ev_neighbour_pixels). */
@@ -596,8 +600,13 @@ unsigned oracles_enhanced_view_objects_outdated(const OraclesEnhancedView *view)
 unsigned oracles_enhanced_view_objects_story_refreshes(const OraclesEnhancedView *view);
 unsigned oracles_enhanced_view_objects_story_dropped(const OraclesEnhancedView *view);
 /* The frames the band met a neighbour drawn with such objects, before its
- * run again delivered (the room in play aside). */
+ * run again delivered (the room in play aside): one that draws a sprite of
+ * them (oracles_enhanced_tags_draw_objects). */
 unsigned oracles_enhanced_view_objects_stale_frames(const OraclesEnhancedView *view);
+/* The same frames whether the capture draws a sprite of them or not: an
+ * object without sprites that sets the room's tiles from a flag (Seasons'
+ * miscPuzzles.s, jewelHelper.s) shows them out of date all the same. */
+unsigned oracles_enhanced_view_objects_stale_any_frames(const OraclesEnhancedView *view);
 /* Cached rooms run again because their objects read the side they were
  * entered by, and they were run from another side than the one the game
  * would enter them by from the room in play, beside it. */
@@ -798,6 +807,10 @@ int oracles_enhanced_parent_mark_lifts(int marked_apart, int beside_ref);
  * live game not in play as it comes back.  A run interrupted or blank is a
  * failure. */
 int oracles_enhanced_objects_refresh_put_off(int live_in_play);
+struct OraclesSpriteTag;
+/* Whether a capture's sprite tags draw an object of its room, kind 1 to 3
+ * (Link, the companion and the items are kind 0). */
+int oracles_enhanced_tags_draw_objects(const struct OraclesSpriteTag *tags, unsigned count);
 /* After a state's load, until the band has been filled in play once, a run from the live state closes its text box;
  * the window closes at a frame in play with no run in flight (`filled`), or after
  * ORACLES_ENHANCED_LOAD_WINDOW_FRAMES whatever, so that a ghost always busy cannot hold it open. */

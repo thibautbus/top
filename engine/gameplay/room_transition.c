@@ -40,7 +40,10 @@
 #define SPECIALCOLLISION_STAIRS 0x18u   /* the stairs that slow Link down */
 #define SPECIALCOLLISION_HORIZONTAL_BRIDGE 0x19u /* $19 to $1b: a bridge crossed left and right, and its two ends */
 #define SPECIALCOLLISION_HORIZONTAL_BRIDGE_RIGHT 0x1bu
-#define TILETYPE_WATER 0x07u            /* tileTypes.s */
+#define TILETYPE_HOLE 0x01u             /* tileTypes.s */
+#define TILETYPE_WARPHOLE 0x02u
+#define TILETYPE_WATER 0x07u
+#define TILETYPE_LAVA 0x10u
 #define TILETYPE_UPCURRENT 0x12u        /* the four currents, $12 to $15 */
 #define TILETYPE_LEFTCURRENT 0x15u
 #define TILETYPE_SEAWATER 0x17u         /* Ages: drowns Link without the mermaid suit (checkSwimmingOverSeawater) */
@@ -868,21 +871,33 @@ static int point_wall(const OraclesGuestTransitionState *s, const tile_rule *r, 
     return index < 0 || collisions_wall(collisions, px, py);
 }
 
-/* What the game would not leave Link on at the point: on foot a hole, water or lava ($10); swimming anything but
- * water he can swim in, land too, where linkApplyTileTypes takes him out of the water. */
+/* Swimming, how bad a tile is to be left on: water he can swim in 0; land 1, where linkApplyTileTypes takes him out
+ * of the water; 2 a hole or a warp hole, where he falls, and Ages' sea without the mermaid suit, where he drowns
+ * (checkSwimmingOverSeawater), both respawning him on the spot finishScrollingTransition has just made his own; 2 too
+ * lava, which he may not be left on, though linkApplyTileTypes leaves a swimmer on it as he is. */
+static int swim_danger(const OraclesGuestTransitionState *s, const tile_rule *r, unsigned index)
+{
+    if (tile_allowed(s, r, index)) return 0;
+    const int type = s->room_layout ? oracles_room_transition_tile_type(r->rom, r->rom_size, s, s->room_layout[index]) : -1;
+    return type == (int)TILETYPE_HOLE || type == (int)TILETYPE_WARPHOLE || type == (int)TILETYPE_LAVA
+        || (s->ages_water && type == (int)TILETYPE_SEAWATER) ? 2 : 1;
+}
+
+/* What the game would not leave Link on at the point, ranked: on foot a hole, water or lava ($10), 2; swimming
+ * swim_danger's rank.  A carried point may be no worse than the straight path's. */
 static int point_hazard(const OraclesGuestTransitionState *s, const tile_rule *r, int w, int h, int px, int py)
 {
     const uint8_t *collisions = NULL;
     const int index = point_tile(s, r, w, h, &px, &py, &collisions);
     if (index == BORDER) return 0;
-    if (index < 0) return 1;
+    if (index < 0) return 2;
     if (r->swimming && collisions == r->beside && r->beside_layout) {
         OraclesGuestTransitionState beside = *s;
         beside.room_layout = r->beside_layout;
         beside.active_collisions = r->beside_active;
-        return !tile_allowed(&beside, r, (unsigned)index);
+        return swim_danger(&beside, r, (unsigned)index);
     }
-    return r->swimming ? !tile_allowed(s, r, (unsigned)index) : collisions[index] == SPECIALCOLLISION_HOLE;
+    return r->swimming ? swim_danger(s, r, (unsigned)index) : collisions[index] == SPECIALCOLLISION_HOLE ? 2 : 0;
 }
 
 /* Link's 8.8 coordinates in whole pixels of the room left, signed (leftward and upward his coordinate along the axis
@@ -900,10 +915,10 @@ static void room_pixel(unsigned dir, int w, int h, int x, int y, int *px, int *p
 
 /* Link at (cx, cy), 8.8 in the room left's coordinates, carried `offset` (8.8, signed along x or y) off the straight
  * path across the axis, from there to `rest` further along it, a pixel at a time: every point
- * calculateAdjacentWallsBitset tests, and the tile the game takes as his own, clear on the straight path stay clear
- * carried, on the room entered's collisions, and past the line across on those of the room beside where `r` names it.
- * The game resumes its wall tests and its tile's effects (a fall, a drowning) wherever the scroll leaves him, and
- * finishScrollingTransition makes that place his respawn. */
+ * calculateAdjacentWallsBitset tests clear on the straight path stay clear carried, and the tile the game takes as his
+ * own no worse carried than straight (point_hazard), on the room entered's collisions, and past the line across on
+ * those of the room beside where `r` names it.  The game resumes its wall tests and its tile's effects (a fall, a
+ * drowning) wherever the scroll leaves him, and finishScrollingTransition makes that place his respawn. */
 static int carry_keeps_clear(const OraclesGuestTransitionState *s, const tile_rule *r, int cx, int cy, int offset, int rest)
 {
     const unsigned dir = s->transition_direction;
@@ -920,7 +935,7 @@ static int carry_keeps_clear(const OraclesGuestTransitionState *s, const tile_ru
                 const int ox = WALL_POINTS[side][i][0], oy = WALL_POINTS[side][i][1];
                 if (point_wall(s, r, w, h, px + ox, py + oy) && !point_wall(s, r, w, h, qx + ox, qy + oy)) return 0;
             }
-        if (point_hazard(s, r, w, h, px, py + HAZARD_DY) && !point_hazard(s, r, w, h, qx, qy + HAZARD_DY)) return 0;
+        if (point_hazard(s, r, w, h, px, py + HAZARD_DY) > point_hazard(s, r, w, h, qx, qy + HAZARD_DY)) return 0;
     }
     return 1;
 }
@@ -1608,7 +1623,7 @@ static void policy(void *opaque, const OraclesGuestTransitionState *s, OraclesGu
 
 /* --continuous-line, swimming in a scroll: whether Link moved from (fx, fy) to (x, y) (8.8, the room left's coordinates)
  * swims there in the room entered as the game would move him: the two points calculateAdjacentWallsBitset tests on the
- * side he goes (`side`) in no wall they were not in, and his own tile (y+5) water he can swim in where it was; a point
+ * side he goes (`side`) in no wall they were not in, and his own tile (y+5) no worse than it was (point_hazard); a point
  * still in the room left along the axis reads the room entered's first row or column, one past its edge across the
  * collision buffer's border (the line's).  On the sea floor his tile is only no hole, as on foot. */
 static int swim_free(const OraclesRoomTransition *tr, const OraclesGuestTransitionState *c, unsigned side, int fx, int fy, int x, int y, int beside)
@@ -1624,7 +1639,7 @@ static int swim_free(const OraclesRoomTransition *tr, const OraclesGuestTransiti
         const int ox = WALL_POINTS[side][i][0], oy = WALL_POINTS[side][i][1];
         if (point_wall(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, px + ox, py + oy) && !point_wall(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, qx + ox, qy + oy)) return 0;
     }
-    return !(point_hazard(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, px, py + HAZARD_DY) && !point_hazard(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, qx, qy + HAZARD_DY));
+    return point_hazard(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, px, py + HAZARD_DY) <= point_hazard(c, &r, SMALL_ROOM_W, SMALL_ROOM_H, qx, qy + HAZARD_DY);
 }
 
 /* --continuous-line, in the water: whether Link at (x, y) (8.8, the room left's coordinates in a scroll), back past the

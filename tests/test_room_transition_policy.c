@@ -82,6 +82,8 @@ static int disable_at;             /* the frame of the transition from which wDi
 static uint16_t animation_table;   /* specialObjectAnimationTable in bank 6, 0: none */
 static uint8_t raised_floor;       /* wLinkRaisedFloorOffset (Ages), 0: none */
 static uint8_t shield;             /* Link holds his shield through the whole play: the policy leaves its scroll to the game */
+static int swim_var2f = -1;        /* Link swims at the surface through the whole play, down and right held, the tile types of
+                                    * bank 7 his room's, with this var2f (the mermaid suit's bit 6 or not); -1 on foot */
 static int last_pose = -1;         /* the base frame the last animation written gave Link, -1 none */             /* the direction turned the other way from that frame of the transition on (0: never) */
 
 static OraclesRoomTransition *policy_under_test;
@@ -145,6 +147,11 @@ static void play(const run *r, int *out_x, int *out_y)
     if (r->sea_floor) { s.tileset_flags = ORACLES_TILESETFLAG_UNDERWATER; s.link_var2f = 0xc0; s.link_speed = r->speed ? r->speed : 0x28; }
     if (room_objects) s.load.objects = room_objects;
     if (room_game) s.game = room_game;
+    if (swim_var2f >= 0) {
+        s.link_swimming_state = ORACLES_SWIMMING_NORMAL; s.link_anim_mode = ORACLES_LINK_ANIM_MODE_SWIM; s.link_var2f = (uint8_t)swim_var2f;
+        s.link_speed = s.link_speed_tmp = 0x19; s.link_speed_period = 3; s.link_stroke = 1; s.link_counter1 = 0x0c;
+        s.game_keys_pressed = 0x90; s.tile_types_bank = 7; s.tile_types_table = 0x4000;
+    }
     s.load.scene_wait_rules = (uint8_t)room_rules;
     int x = r->x, y = r->y;
     const int horizontal = r->dir & 1u, rows = horizontal ? 20 : 16, step = horizontal ? 0x60 : 0x80;
@@ -1259,6 +1266,37 @@ int main(void)
             CHECK(after.swim_model_mismatched == before.swim_model_mismatched + (suit ? 0u : 1u));
         }
         g.suit_swims = 0; g.link_var2f = 0; g.swim_hold = 0;
+        /* With the line, swimming down from y=121 at x=80, a pixel a frame each way, into a room of land whose columns from
+         * 6 on (x 96) are the sea or holes: the straight path ends on land, so the carry may take his own tile (y+5) no
+         * further than land, to x 95, never over a hole or, without the mermaid suit, the sea, where the game would drop
+         * him in or drown him and make that place his respawn; with the suit the sea is water he swims in, and he goes on
+         * into it.  objectSpeedTable gives $100 a frame on each axis at every speed and angle. */
+        for (unsigned k = 0; k < 0x200u; k++) {
+            rom[3u * 0x4000u + (0x409bu - 0x4000u) - 0x50u + 2u * k] = 0x00;
+            rom[3u * 0x4000u + (0x409bu - 0x4000u) - 0x50u + 2u * k + 1u] = 0x01;
+        }
+        static const uint8_t swim_types[] = { 0x10, 0x40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xfc, 0x17, 0xf3, 0x01, 0x00 };
+        memcpy(rom + 7u * 0x4000u, swim_types, sizeof swim_types);
+        static const struct { uint8_t tile, var2f; int crosses; } beside_land[] = { { 0xfc, 0x00, 0 }, { 0xf3, 0x40, 0 }, { 0xfc, 0x40, 1 } };
+        uint8_t shore[176];
+        memset(collisions, 0, sizeof collisions);
+        for (unsigned c = 0; c < sizeof beside_land / sizeof beside_land[0]; c++) {
+            for (unsigned i = 0; i < 176u; i++) shore[i] = (i % 16u) >= 6u ? beside_land[c].tile : 0x01;
+            oracles_room_transition_stop(tr);
+            tr = oracles_room_transition_start((OraclesGuest *)rom, rom, rom_size, 1);
+            CHECK(tr != NULL && oracles_room_transition_set_diagonal(tr, 1) && oracles_room_transition_set_steps(tr, 1) && oracles_room_transition_set_line(tr, 1));
+            if (!tr) return 1;
+            policy_under_test = tr;
+            swim_var2f = beside_land[c].var2f;
+            OraclesRoomTransitionStats before, after;
+            oracles_room_transition_stats(tr, &before);
+            r = (run){ 2u, 0x0cu, 80 << 8, 121 << 8, 12, 2, collisions, 0, -1, 0, 0, 0, 0, 0, shore, 0, 0, 0, 0, 0, 0, 0 };
+            play(&r, &x, &y);
+            oracles_room_transition_stats(tr, &after);
+            CHECK(after.swim_line_frames > before.swim_line_frames && y > 128 << 8);
+            CHECK(beside_land[c].crosses ? x >= 100 << 8 : x >= 90 << 8 && x < 96 << 8 && after.swim_held_frames > before.swim_held_frames);
+        }
+        swim_var2f = -1;
         predict_tables = NULL;
     }
 

@@ -77,11 +77,18 @@ int oracles_object_animation_is_set(const OraclesObjectAnimation *a, uint16_t po
 int oracles_object_animation_one_step(const OraclesObjectAnimation *last, const OraclesObjectAnimation *now, const OraclesGuestTables *t,
                                       const uint8_t *rom, size_t rom_size);
 
+/* Whether, from `last`, the object's code set again the animation it plays
+ * (`now` stands just past an entry of that loop, its pose the entry's): a
+ * water-carrying Subrosian does so on its first update, choosing again the
+ * animation it was created with, and only then animates it. */
+int oracles_object_animation_restarted(const OraclesObjectAnimation *last, const OraclesObjectAnimation *now, const OraclesGuestTables *t,
+                                       const uint8_t *rom, size_t rom_size);
+
 /* Whether a neighbour animates the object: an interaction or a part, of a
  * kind whose tables are known, whose own code advanced its animation by one
- * call of the step at each update of its capture's probe (the ghost lets the
- * room's objects run a little after the capture: ghost.h,
- * ORACLES_GHOST_PROBE_UPDATES).  Every other object stays in its captured
+ * call of the step at each update of its capture's probe, the first of which
+ * may set again the animation it plays (the ghost lets the room's objects run
+ * a little after the capture: ghost.h, ORACLES_GHOST_PROBE_UPDATES).  Every other object stays in its captured
  * pose: one its code holds or resets (Vasu's snakes), never animates (Tingle's
  * balloon, a seed shooter, a platform), animates in another state than the
  * one captured (a springbloom flower, still until Link touches it), turns or

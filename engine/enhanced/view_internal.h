@@ -344,6 +344,7 @@ struct OraclesEnhancedView {
     unsigned objects_story_refreshes;   /* cached rooms run again for their objects: a byte of the key they read changed in the live game */
     unsigned objects_story_dropped;     /* of those, the rooms whose objects were dropped after two failed runs, their terrain kept */
     unsigned objects_stale_frames;      /* frames the band met a neighbour whose objects no longer held for the story, until run again */
+    unsigned objects_stale_any_frames;  /* the same, its capture drawing a sprite of them or not */
     unsigned terrain_refreshes;         /* cached rooms run again, still drawn, for a byte of the key their terrain read */
     unsigned terrain_stale_frames;      /* frames the band met such a room before its run again delivered (the room in play aside) */
     unsigned left_stale_frames;         /* frames the room a scroll left was drawn from an entry run again for its terrain, over its image */

@@ -2161,6 +2161,21 @@ static void entry_side(void)
     CHECK(!oracles_enhanced_entry_side_holds(1, ORACLES_DIR_RIGHT, ORACLES_DIR_UP));   /* run from the left, drawn above: run again */
 }
 
+/* A neighbour out of date for its objects is met only where it draws one of
+ * them: Seasons' 0:97 holds an object without sprites, its carnival music. */
+static void tags_draw_objects(void)
+{
+    OraclesSpriteTag tags[3];
+    memset(tags, 0, sizeof tags);
+    CHECK(!oracles_enhanced_tags_draw_objects(tags, 0));
+    tags[0].count = 4;                           /* Link (kind 0) */
+    tags[1].kind = ORACLES_OBJECT_KIND_INTERACTION;   /* an interaction that wrote no entry */
+    CHECK(!oracles_enhanced_tags_draw_objects(tags, 2));
+    tags[2].kind = ORACLES_OBJECT_KIND_ENEMY;
+    tags[2].count = 2;
+    CHECK(oracles_enhanced_tags_draw_objects(tags, 3));
+}
+
 /* The room a scroll left is drawn from its entry only when its objects did not
  * read the side, or its run entered it the way the game did; else from the
  * image of it the game last drew (Ages' 0:39 run from the Maku Tree's room,
@@ -2504,6 +2519,7 @@ int main(void)
     beside_reads();
     object_reads();
     entry_side();
+    tags_draw_objects();
     left_entry_side();
     objects_refresh_pace();
     parent_marks();

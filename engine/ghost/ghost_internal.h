@@ -45,6 +45,7 @@ struct OraclesGhost {
     unsigned probe_updates;
     OraclesObjectAnimation probe_last[ORACLES_OBJECT_RECORDS];
     uint8_t probe_ok[ORACLES_OBJECT_RECORDS];
+    uint8_t probe_restarted[ORACLES_OBJECT_RECORDS];   /* its first update set again the animation it plays */
     size_t state_size;
     /* the run in progress */
     int active;

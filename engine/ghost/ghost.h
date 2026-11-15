@@ -93,6 +93,7 @@ typedef struct OraclesGhostResult {
     unsigned prerun_frames;
     int settled_primeable;                        /* the settled state kept is in normal play (oracles_ghost_primeable): a run from it primes at once */
     unsigned probe_frames;                        /* the capture's probe: the frames it ran after the settled state */
+    unsigned probe_restarts;                      /* its records animated_by_code whose first update set again the animation they play, every interaction and part probed, shown by a neighbour or not */
     uint8_t from_group, from_room;                /* the room the ghost primed in (after a pre-run, the room the load reached) */
     /* The objects of the room entered, as they stand when the run settles, with
      * the number each received at the room's initialisation: what a
@@ -194,10 +195,14 @@ typedef struct OraclesGhost OraclesGhost;
  * animated_by_code says whether the object's own code advanced its animation
  * by one call of the step at each (oracles_object_animation_one_step): what
  * the game does with it in the state captured, which a neighbour animates or
- * keeps still by (oracles_object_animation_animated).  The frames run after
+ * keeps still by (oracles_object_animation_animated).  An object whose code
+ * set again, at the first update, the animation it plays
+ * (oracles_object_animation_restarted) is asked one update more,
+ * ORACLES_GHOST_PROBE_RESTART_FRAMES frames more at most.  The frames run after
  * the run's result and its settled state, which they leave as they were. */
 #define ORACLES_GHOST_PROBE_UPDATES 2u
 #define ORACLES_GHOST_PROBE_FRAMES 4u
+#define ORACLES_GHOST_PROBE_RESTART_FRAMES 2u
 void oracles_ghost_set_capture(OraclesGhost *ghost, int enabled);
 /* The capture's probe, on by default; off, a capture runs no frame after its settled state and its records' animated_by_code
  * stay 0: for a view that keeps its neighbours' objects in their captured poses. */

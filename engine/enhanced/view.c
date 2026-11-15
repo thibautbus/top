@@ -978,6 +978,7 @@ unsigned oracles_enhanced_view_objects_outdated(const OraclesEnhancedView *v) { 
 unsigned oracles_enhanced_view_objects_story_refreshes(const OraclesEnhancedView *v) { return v->objects_story_refreshes; }
 unsigned oracles_enhanced_view_objects_story_dropped(const OraclesEnhancedView *v) { return v->objects_story_dropped; }
 unsigned oracles_enhanced_view_objects_stale_frames(const OraclesEnhancedView *v) { return v->objects_stale_frames; }
+unsigned oracles_enhanced_view_objects_stale_any_frames(const OraclesEnhancedView *v) { return v->objects_stale_any_frames; }
 unsigned oracles_enhanced_view_objects_side_refreshes(const OraclesEnhancedView *v) { return v->objects_side_refreshes; }
 unsigned oracles_enhanced_view_terrain_refreshes(const OraclesEnhancedView *v) { return v->terrain_refreshes; }
 unsigned oracles_enhanced_view_terrain_stale_frames(const OraclesEnhancedView *v) { return v->terrain_stale_frames; }

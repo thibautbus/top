@@ -192,8 +192,9 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
                 "enhanced.large_entry_edge_object_pixels=%u\nenhanced.large_entry_edge_object_wrong=%u\nenhanced.large_entry_edge_background_wrong=%u\n",
                 scroll_frames, scroll_missing, edge_sprites, edge_pixels, edge_wrong, edge_background_wrong);
         fprintf(out, "enhanced.neighbour_objects_outdated=%u\nenhanced.refresh_given_up=%u\nenhanced.parents_run_for_kills=%u\n", oracles_enhanced_view_objects_outdated(c->view), oracles_enhanced_view_refresh_given_up(c->view), oracles_enhanced_view_parents_run_for_kills(c->view));
-        fprintf(out, "enhanced.objects_story_refreshes=%u\nenhanced.objects_story_dropped=%u\nenhanced.objects_stale_frames=%u\n", oracles_enhanced_view_objects_story_refreshes(c->view),
-                oracles_enhanced_view_objects_story_dropped(c->view), oracles_enhanced_view_objects_stale_frames(c->view));
+        fprintf(out, "enhanced.objects_story_refreshes=%u\nenhanced.objects_story_dropped=%u\nenhanced.objects_stale_frames=%u\nenhanced.objects_stale_any_frames=%u\n",
+                oracles_enhanced_view_objects_story_refreshes(c->view), oracles_enhanced_view_objects_story_dropped(c->view), oracles_enhanced_view_objects_stale_frames(c->view),
+                oracles_enhanced_view_objects_stale_any_frames(c->view));
         fprintf(out, "enhanced.objects_side_refreshes=%u\nenhanced.objects_refresh_put_off=%u\n", oracles_enhanced_view_objects_side_refreshes(c->view),
                 oracles_enhanced_view_objects_refresh_put_off(c->view));
     }
@@ -249,9 +250,9 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.poses_animated=%u\nenhanced.poses_frozen_code=%u\nenhanced.poses_frozen_enemies=%u\nenhanced.poses_frozen_low=%u\nenhanced.poses_frozen_unplaced=%u\n"
                      "enhanced.poses_frozen_unreadable=%u\nenhanced.pose_steps=%u\nenhanced.pose_changes=%u\nenhanced.pose_changes_drawn=%u\nenhanced.pose_renders=%u\n"
                      "enhanced.pose_lines=%u\nenhanced.pose_resets=%u\nenhanced.poses_drawn_wrong=%u\nenhanced.pose_lines_wrong=%u\nenhanced.pose_lag_max=%u\n"
-                     "enhanced.pose_probes=%u\nenhanced.pose_probe_frames=%u\n",
+                     "enhanced.pose_probes=%u\nenhanced.pose_probe_frames=%u\nenhanced.pose_probe_restarts=%u\n",
                 p.animated, p.frozen_code, p.frozen_enemies, p.frozen_low, p.frozen_unplaced, p.frozen_unreadable, p.steps, p.changes, p.changes_drawn,
-                p.renders, p.lines, p.resets, p.drawn_wrong, p.lines_wrong, p.lag_max, p.probes, p.probe_frames);
+                p.renders, p.lines, p.resets, p.drawn_wrong, p.lines_wrong, p.lag_max, p.probes, p.probe_frames, p.probe_restarts);
     }
     if (c->reload_at)
         fprintf(out, "enhanced.reload=%s\nenhanced.reload_settled_after=%u\nenhanced.reload_camera_delta=%" PRId32 "\nenhanced.reload_camera_frozen=%u\nenhanced.reload_transition_frames=%u\nenhanced.reload_transition_differing=%u\n",

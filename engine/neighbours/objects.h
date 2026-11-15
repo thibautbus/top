@@ -89,6 +89,13 @@ void oracles_objects_latch(OraclesObjects *o);
  * being missing on one side. */
 void oracles_objects_latch_remaining(OraclesObjects *o);
 unsigned oracles_objects_latched(const OraclesObjects *o, OraclesObjectRecord out[], unsigned max);
+/* A kept object with the key its room's initialisation gave it, as a snapshot
+ * reads it.  One created in the room's first update (Seasons' troupe, which an
+ * object of 0:98 creates there; Nayru and the animals of Ages' 0:39) may be
+ * kept once its own code has run, before that update returns and its key is
+ * read, when the update spans two frames; the key read since is the one the
+ * live room pairs by.  A key not read yet (0) leaves the record's. */
+OraclesObjectRecord oracles_objects_keyed(const OraclesObjectRecord *latched, const uint8_t key[3]);
 
 /* Whether the object was created by the random-placement opcode of the room's
  * list (obj_RandomEnemy, objectDataOp6): its position depends on the RNG and
