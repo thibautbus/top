@@ -19,9 +19,9 @@ typedef struct OraclesUiBox {
     float x, y, w, h;
 } OraclesUiBox;
 
-/* A title with the words above it and its state below. */
+/* A title with the words above it and its state below; a fan game's credit line (zero when none). */
 typedef struct OraclesUiTitleLayout {
-    OraclesUiLine over, title, state;
+    OraclesUiLine over, title, state, credit;
     OraclesUiBox box;
 } OraclesUiTitleLayout;
 
@@ -78,7 +78,7 @@ extern const OraclesUiTextStyle oracles_ui_hero_over, oracles_ui_hero_title, ora
 extern const OraclesUiTextStyle oracles_ui_other_over, oracles_ui_other_title, oracles_ui_other_state;
 extern const OraclesUiTextStyle oracles_ui_item_note, oracles_ui_item_label;
 extern const OraclesUiTextStyle oracles_ui_hint_key, oracles_ui_hint_label;
-extern const OraclesUiTextStyle oracles_ui_version, oracles_ui_toast;
+extern const OraclesUiTextStyle oracles_ui_version, oracles_ui_toast, oracles_ui_hero_credit, oracles_ui_hero_credit_4_3;
 extern const OraclesUiTextStyle oracles_ui_tab_4_3, oracles_ui_hero_over_4_3, oracles_ui_hero_title_4_3, oracles_ui_hero_state_4_3;
 extern const OraclesUiTextStyle oracles_ui_item_note_4_3, oracles_ui_item_label_4_3, oracles_ui_hint_key_4_3, oracles_ui_hint_label_4_3;
 extern const OraclesUiTextStyle oracles_ui_version_4_3, oracles_ui_toast_4_3, oracles_ui_pad_toast_4_3;
@@ -100,6 +100,10 @@ const OraclesUiHomeStyles *oracles_ui_home_styles(OraclesUiLayout layout);
 /* The chosen entry, right-aligned at the top right; `paused`, the pause menu's title, higher in 4:3 without tabs.  4:3
  * has no words above the title (`over` an empty line): the tab names the game. */
 void oracles_ui_layout_hero(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, OraclesUiTitleLayout *out);
+/* The same with a fan game's `credit` (NULL: none): 16:9, under the state, so that the state stays where it is; 4:3, on
+ * the state's line at its left, on its baseline, the menu starting right under that line. */
+void oracles_ui_layout_hero_credited(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, const char *credit,
+                                     OraclesUiTitleLayout *out);
 /* 16:9: the two other entries, stacked at the top left. */
 void oracles_ui_layout_others(const char *const over[2], const char *const title[2], const char *const state[2], OraclesUiTitleLayout out[2]);
 /* 4:3: the three entries as tabs from the top left, in their order (one row: the three fit the 1312 px a row has). */

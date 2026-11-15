@@ -30,6 +30,7 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define HEAD_SECTION_GAP 28.0f
 #define HEAD_TITLE_LINE 104.0f
 #define HEAD_STATE_MARGIN 20.0f
+#define CREDIT_MARGIN 14.0f         /* Cartridge's credit under the state */
 #define PANEL_X 656.0f
 #define PANEL_Y 56.0f
 #define PANEL_W 1208.0f
@@ -112,6 +113,7 @@ void pl_page_head_4_3(const char *section, const char *over, const char *title, 
 #define HEAD_Y_4_3 28.0f
 #define HEAD_W_4_3 860.0f
 #define HEAD_GAP_4_3 4.0f
+#define CREDIT_LINE_4_3 30.0f
 #define HEAD_TITLE_LINE_4_3 63.0f         /* 60 px at 1.05 */
 #define ROWS_X_4_3 64.0f
 #define ROWS_Y_4_3 208.0f

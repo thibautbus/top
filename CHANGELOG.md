@@ -2,6 +2,7 @@
 
 What changed in each version of The Oracles Project, the newest first. The release page of each version on GitHub carries the same text, under the installation notes.
 
+- **The fan games' authors.** Gifts of Kinomi, Moonrise Regalia and Temple of Seasons now name their authors, as their release pages do, on their **Cartridge** page and under their name on the home screen.
 ## 1.4.0 (2026-11-05)
 
 ### New

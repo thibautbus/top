@@ -10,7 +10,8 @@
  * controller's button, at home (21a to 21d), in the pause menu (21e, 21f, its entries naming no key: 21y) and on
  * Display (21g, 21h); Cheats in the menus, 22g, 22k, 22q and 22r, and a fan game's menu without it as the mockup draws it, 23g; the newer
  * version's notice by the version, 24a to 24d, and the version alone, 24e; the version number highlighted, 32g and
- * 32g 4:3: a text is
+ * 32g 4:3; a fan game's credit under its state in 16:9 (1d, 1m, 1p), on its line in 4:3 (credit home 640x480 kinomi
+ * and temple): a text is
  * compared by its left edge, its width, the top and height of its line box,
  * and its baseline; an element by its box.  And the choice of the layout by the
  * window's shape. */
@@ -198,10 +199,12 @@ static void frame_1d(void)
     char state[ORACLES_HOME_STATE_LENGTH];
     oracles_home_state(&nav, ORACLES_HOME_HERO_MOONRISE, state);
     OraclesUiTitleLayout hero;
-    oracles_ui_layout_hero(ORACLES_UI_LAYOUT_16_9, 0, oracles_home_over(ORACLES_HOME_HERO_MOONRISE), oracles_home_title(ORACLES_HOME_HERO_MOONRISE), state, &hero);
+    oracles_ui_layout_hero_credited(ORACLES_UI_LAYOUT_16_9, 0, oracles_home_over(ORACLES_HOME_HERO_MOONRISE), oracles_home_title(ORACLES_HOME_HERO_MOONRISE),
+                                    state, oracles_home_credit(ORACLES_HOME_HERO_MOONRISE), &hero);
     layout_line("1d", "hero over", &hero.over);
     layout_line("1d", "hero title", &hero.title);
     layout_line("1d", "hero state", &hero.state);
+    layout_line("1d", "credit text", &hero.credit);
     layout_box("1d", "hero", &hero.box);
     /* The menu of a game, its profile beside Display. */
     OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
@@ -240,10 +243,12 @@ static void frame_fan_pick(const char *frame, int game, OraclesHomeHero hero_id,
     char state[ORACLES_HOME_STATE_LENGTH];
     oracles_home_state(&nav, hero_id, state);
     OraclesUiTitleLayout hero;
-    oracles_ui_layout_hero(ORACLES_UI_LAYOUT_16_9, 0, oracles_home_over(hero_id), oracles_home_title(hero_id), state, &hero);
+    oracles_ui_layout_hero_credited(ORACLES_UI_LAYOUT_16_9, 0, oracles_home_over(hero_id), oracles_home_title(hero_id), state, oracles_home_credit(hero_id),
+                                    &hero);
     layout_line(frame, "hero over", &hero.over);
     layout_line(frame, "hero title", &hero.title);
     layout_line(frame, "hero state", &hero.state);
+    layout_line(frame, "credit text", &hero.credit);
     layout_box(frame, "hero", &hero.box);
     OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
     g->refuses = MOCKUP_FAN_REFUSES;
@@ -583,6 +588,51 @@ static void frame_10a(void)
     OraclesUiLine version;
     oracles_ui_layout_version(ORACLES_UI_LAYOUT_4_3, "v1.0.0", &version);
     layout_line("10a", "version", &version);
+}
+
+/* A fan game picked in the list at 640x480 on Android, its credit on the state's line, at its left: the title and the
+ * state where they are without it, the menu under them. */
+static void credit_4_3(const char *frame, int game, OraclesHomeHero hero_id, const char *date)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    fan_profiles(&nav);
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    nav.android = 1;
+    nav.entry = ORACLES_HOME_FAN;
+    nav.fan_pick = hero_id;
+    OraclesHomeGame *g = &nav.games[game];
+    g->usable = 1;
+    g->fan = oracles_home_fan_game(game);
+    g->rom = g->patch = g->image = ORACLES_ROM_ORIGINAL;
+    snprintf(g->last_session, sizeof g->last_session, "%s", date);
+    char state[ORACLES_HOME_STATE_LENGTH];
+    oracles_home_state(&nav, hero_id, state);
+    OraclesUiTitleLayout hero, alone;
+    oracles_ui_layout_hero_credited(ORACLES_UI_LAYOUT_4_3, 0, oracles_home_over(hero_id), oracles_home_title(hero_id), state, oracles_home_credit(hero_id),
+                                    &hero);
+    oracles_ui_layout_hero(ORACLES_UI_LAYOUT_4_3, 0, oracles_home_over(hero_id), oracles_home_title(hero_id), state, &alone);
+    layout_line(frame, "hero state", &hero.state);
+    layout_line(frame, "credit text", &hero.credit);
+    layout_box(frame, "hero", &hero.box);
+    CHECK(hero.state.y == alone.state.y && hero.state.x == alone.state.x && hero.title.y == alone.title.y && hero.credit.baseline == hero.state.baseline);
+    /* The prototype's menu of six entries, drawn before the fan games' cheats; with them, seven, under the line. */
+    OraclesUiItemLayout items[ORACLES_HOME_MAX_ITEMS];
+    g->refuses = MOCKUP_FAN_REFUSES;
+    CHECK(menu(&nav, items) == 6);
+    layout_box(frame, "item 0", &items[0].box);
+    g->refuses = FAN_REFUSES;
+    CHECK(menu(&nav, items) == 7 && items[0].box.y >= hero.box.y + hero.box.h);
+}
+
+/* Ages and Seasons have no credit, nor the list of fan games. */
+static void credits(void)
+{
+    CHECK(!oracles_home_credit(ORACLES_HOME_HERO_AGES) && !oracles_home_credit(ORACLES_HOME_HERO_SEASONS) && !oracles_home_credit(ORACLES_HOME_HERO_FAN));
+    CHECK(!strcmp(oracles_home_credit(ORACLES_HOME_HERO_TEMPLE), "By Jay (like the bird, not the letter) and Ralfaro"));
+    OraclesUiTitleLayout hero;
+    oracles_ui_layout_hero_credited(ORACLES_UI_LAYOUT_16_9, 0, "Oracle of", "Ages", "Ready", oracles_home_credit(ORACLES_HOME_HERO_AGES), &hero);
+    CHECK(hero.credit.w == 0.0f && hero.credit.h == 0.0f);
 }
 
 static void frame_10b(void)
@@ -974,6 +1024,9 @@ int main(int argc, char **argv)
     frame_10a();
     frame_10b();
     frame_10c();
+    credit_4_3("credit home 640x480 kinomi", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI, "27 Sep 2026");
+    credit_4_3("credit home 640x480 temple", ORACLES_HOME_GAME_TEMPLE, ORACLES_HOME_HERO_TEMPLE, "27 Sep 2026");
+    credits();
     pause_4_3("10n", 1440, 1080);
     pause_4_3("10t", 640, 480);
     slow_toast("11f", 1440, 1080, 2);

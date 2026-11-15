@@ -12,11 +12,12 @@ static const char *const titles[ORACLES_HOME_HEROES] = { "Ages", "Seasons", "Fan
 
 const OraclesHomeFanGame oracles_home_fan_games[ORACLES_HOME_FAN_GAMES] = {
     [ORACLES_HOME_FAN_KINOMI] = { "kinomi", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI, ORACLES_HOME_ITEM_KINOMI, ORACLES_HOME_START_KINOMI,
-      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Gifts of Kinomi 1.1.2", "In Gifts of Kinomi" },
+      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Gifts of Kinomi 1.1.2", "In Gifts of Kinomi", "By ZerotoKoops, Stewmath, Gamma and Ralfaro" },
     [ORACLES_HOME_FAN_MOONRISE] = { "moonrise", ORACLES_HOME_GAME_MOONRISE, ORACLES_HOME_HERO_MOONRISE, ORACLES_HOME_ITEM_MOONRISE, ORACLES_HOME_START_MOONRISE,
-      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Moonrise Regalia 1.0.6", "In Moonrise Regalia" },
+      ORACLES_HOME_GAME_AGES, "Oracle of Ages (USA)", "Moonrise Regalia 1.0.6", "In Moonrise Regalia", "By PontiusStone" },
     [ORACLES_HOME_FAN_TEMPLE] = { "temple", ORACLES_HOME_GAME_TEMPLE, ORACLES_HOME_HERO_TEMPLE, ORACLES_HOME_ITEM_TEMPLE, ORACLES_HOME_START_TEMPLE,
-      ORACLES_HOME_GAME_SEASONS, "Oracle of Seasons (USA)", "Temple of Seasons 1.073", "In Temple of Seasons" },
+      ORACLES_HOME_GAME_SEASONS, "Oracle of Seasons (USA)", "Temple of Seasons 1.073", "In Temple of Seasons",
+      "By Jay (like the bird, not the letter) and Ralfaro" },
 };
 
 const OraclesHomeFanGame *oracles_home_fan_game_started(OraclesHomeCommand command)
@@ -78,6 +79,12 @@ OraclesHomeHero oracles_home_hero(const OraclesHomeNav *nav)
 
 const char *oracles_home_over(OraclesHomeHero hero) { return overs[hero]; }
 const char *oracles_home_title(OraclesHomeHero hero) { return titles[hero]; }
+
+const char *oracles_home_credit(OraclesHomeHero hero)
+{
+    for (unsigned f = 0; f < ORACLES_HOME_FAN_GAMES; f++) if (oracles_home_fan_games[f].hero == hero) return oracles_home_fan_games[f].credit;
+    return NULL;
+}
 
 /* The game a hero shows, or -1 for the list of fan games. */
 static int hero_game(OraclesHomeHero hero)

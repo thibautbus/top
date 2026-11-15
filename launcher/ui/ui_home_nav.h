@@ -162,6 +162,7 @@ typedef struct OraclesHomeFanGame {
     const char *base_name;       /* "Oracle of Ages (USA)" */
     const char *image_name;      /* the image its patch makes: "Moonrise Regalia 1.0.6" */
     const char *item_heading;    /* Controls' item column: "In Moonrise Regalia" */
+    const char *credit;          /* its authors' handles as its release page gives them: "By PontiusStone" */
 } OraclesHomeFanGame;
 
 /* The fan games, in the order of the list, each at its ORACLES_HOME_FAN_* place: the one table of them. */
@@ -448,6 +449,9 @@ OraclesHomeHero oracles_home_entry_hero(OraclesHomeEntry entry);
 /* The words above a title, the title, and the state below it. */
 const char *oracles_home_over(OraclesHomeHero hero);
 const char *oracles_home_title(OraclesHomeHero hero);
+/* A fan game's credit line (OraclesHomeFanGame's), on its Cartridge and under its name on the home screen; NULL for an
+ * Oracle and the list of fan games. */
+const char *oracles_home_credit(OraclesHomeHero hero);
 void oracles_home_state(const OraclesHomeNav *nav, OraclesHomeHero hero, char out[ORACLES_HOME_STATE_LENGTH]);
 /* The help bar's hints, their keys the device's used last (nav->device): a controller's D-pad, A and B, and the menu's
  * button for Escape alone (Guide without one); the keyboard's Enter and Esc; both devices' after a click or a touch.

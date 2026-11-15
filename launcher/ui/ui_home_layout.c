@@ -20,6 +20,7 @@ const OraclesUiTextStyle oracles_ui_version = { ORACLES_UI_FONT_SERIF, 22.0f, 0.
 const OraclesUiTextStyle oracles_ui_toast = { ORACLES_UI_FONT_SANS, 24.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_slow_path = { ORACLES_UI_FONT_SERIF, 22.0f, 0.14f, 1 };
 const OraclesUiTextStyle oracles_ui_menu_line = { ORACLES_UI_FONT_SANS, 22.0f, 0.0f, 0 };
+const OraclesUiTextStyle oracles_ui_hero_credit = { ORACLES_UI_FONT_SANS, 24.0f, 0.0f, 0 };
 /* 4:3's, larger for a 640x480 screen. */
 const OraclesUiTextStyle oracles_ui_tab_4_3 = { ORACLES_UI_FONT_SERIF, 36.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_hero_over_4_3 = { ORACLES_UI_FONT_SERIF, 40.0f, 0.0f, 0 };
@@ -34,6 +35,7 @@ const OraclesUiTextStyle oracles_ui_toast_4_3 = { ORACLES_UI_FONT_SANS, 30.0f, 0
 const OraclesUiTextStyle oracles_ui_pad_toast_4_3 = { ORACLES_UI_FONT_SANS, 36.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_slow_path_4_3 = { ORACLES_UI_FONT_SERIF, 27.0f, 0.14f, 1 };
 const OraclesUiTextStyle oracles_ui_menu_line_4_3 = { ORACLES_UI_FONT_SANS, 30.0f, 0.0f, 0 };
+const OraclesUiTextStyle oracles_ui_hero_credit_4_3 = { ORACLES_UI_FONT_SANS, 27.0f, 0.0f, 0 };
 
 static const OraclesUiHomeStyles styles_16_9 = {
     &oracles_ui_hero_over, &oracles_ui_hero_title, &oracles_ui_hero_state, &oracles_ui_item_note, &oracles_ui_item_label,
@@ -130,6 +132,8 @@ static const metrics *metrics_of(OraclesUiLayout layout) { return layout == ORAC
 #define REASON_PAD_Y 2.0f
 #define KEY_BORDER 1.0f
 #define TOAST_BORDER 1.0f
+#define CREDIT_MARGIN 10.0f        /* 16:9: the credit under the state */
+#define CREDIT_GAP_4_3 40.0f       /* 4:3: the credit before the state, on its line */
 
 /* A line of `text` whose box starts at (x, y), in a block of `line_height` (0: normal). */
 static OraclesUiLine line_at(const OraclesUiTextStyle *style, const char *text, float x, float y, float line_height)
@@ -158,6 +162,12 @@ static OraclesUiLine line_centred(const OraclesUiTextStyle *style, const char *t
 
 void oracles_ui_layout_hero(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, OraclesUiTitleLayout *out)
 {
+    oracles_ui_layout_hero_credited(layout, paused, over, title, state, NULL, out);
+}
+
+void oracles_ui_layout_hero_credited(OraclesUiLayout layout, int paused, const char *over, const char *title, const char *state, const char *credit,
+                                     OraclesUiTitleLayout *out)
+{
     const metrics *m = metrics_of(layout);
     const OraclesUiHomeStyles *st = oracles_ui_home_styles(layout);
     const float top = paused ? m->paused_top : m->top;
@@ -167,16 +177,30 @@ void oracles_ui_layout_hero(OraclesUiLayout layout, int paused, const char *over
     if (!m->hero_over) out->over.h = 0.0f;
     out->title = line_at(st->hero_title, title, 0.0f, out->over.y + out->over.h + m->hero_title_margin, m->hero_title_line);
     out->state = line_at(st->hero_state, state, 0.0f, out->title.y + out->title.h + m->hero_state_margin, 0.0f);
-    OraclesUiLine *lines[3] = { &out->over, &out->title, &out->state };
-    float width = 0.0f;
-    for (int i = 0; i < 3; i++) {
+    memset(&out->credit, 0, sizeof out->credit);
+    const int credited = credit && credit[0], four_three = layout == ORACLES_UI_LAYOUT_4_3;
+    if (credited && !four_three) out->credit = line_at(&oracles_ui_hero_credit, credit, 0.0f, out->state.y + out->state.h + CREDIT_MARGIN, 0.0f);
+    OraclesUiLine *lines[4] = { &out->over, &out->title, &out->state, &out->credit };
+    float left = m->hero_right, bottom = out->state.y + out->state.h;
+    for (int i = 0; i < 4; i++) {
+        if (i == 3 && !credited) continue;
         lines[i]->x = m->hero_right - lines[i]->w;
-        if (lines[i]->w > width) width = lines[i]->w;
+        if (lines[i]->x < left) left = lines[i]->x;
     }
-    out->box.x = m->hero_right - width;
+    if (credited && four_three) {
+        /* On the state's line, its baseline the state's: the state's taller line keeps the line's height. */
+        out->credit = line_at(&oracles_ui_hero_credit_4_3, credit, 0.0f, 0.0f, 0.0f);
+        const float ascent = out->credit.baseline;
+        out->credit.x = out->state.x - CREDIT_GAP_4_3 - out->credit.w;
+        out->credit.baseline = out->state.baseline;
+        out->credit.y = out->credit.baseline - ascent;
+        if (out->credit.x < left) left = out->credit.x;
+    }
+    if (credited && out->credit.y + out->credit.h > bottom) bottom = out->credit.y + out->credit.h;
+    out->box.x = left;
     out->box.y = top;
-    out->box.w = width;
-    out->box.h = out->state.y + out->state.h - top;
+    out->box.w = m->hero_right - left;
+    out->box.h = bottom - top;
 }
 
 void oracles_ui_layout_others(const char *const over[2], const char *const title[2], const char *const state[2], OraclesUiTitleLayout out[2])

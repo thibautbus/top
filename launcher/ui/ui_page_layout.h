@@ -38,12 +38,14 @@ typedef struct OraclesUiWrapped {
 typedef struct OraclesUiPageHead {
     OraclesUiLine section, over, state;
     OraclesUiWrapped title;
+    OraclesUiLine credit;      /* Cartridge's: a fan game's credit under the state, zero for none */
 } OraclesUiPageHead;
 
 /* The texts of Cartridge, some shortened to their room by the layout.  A fan game made as a patch (`patched`) has
  * its base ROM in the rom_ texts, without a folder, then its patch, the patch's folder and the image's line. */
 typedef struct OraclesUiGameTexts {
     const char *over, *title, *state;
+    const char *credit;        /* a fan game's credit line (oracles_home_credit), NULL for none */
     int patched;
     char rom_file[ORACLES_HOME_TEXT_LENGTH], rom_folder[ORACLES_HOME_TEXT_LENGTH * 4], rom_status[ORACLES_HOME_TEXT_LENGTH];
     char patch_file[ORACLES_HOME_TEXT_LENGTH], patch_folder[ORACLES_HOME_TEXT_LENGTH * 4], patch_status[ORACLES_HOME_TEXT_LENGTH];
@@ -106,6 +108,8 @@ extern const OraclesUiTextStyle oracles_ui_row_label_4_3, oracles_ui_row_title_4
 extern const OraclesUiTextStyle oracles_ui_row_note_4_3, oracles_ui_row_button_4_3, oracles_ui_play_4_3, oracles_ui_option_size_4_3;
 extern const OraclesUiTextStyle oracles_ui_diagram_label_4_3, oracles_ui_help_4_3, oracles_ui_mod_games_4_3, oracles_ui_quality_sets_4_3;
 extern const OraclesUiTextStyle oracles_ui_language_4_3;
+/* Cartridge's credit line, a fan game's, under the state. */
+extern const OraclesUiTextStyle oracles_ui_page_credit, oracles_ui_page_credit_4_3;
 /* Display's 4:3 title, on its section's line. */
 extern const OraclesUiTextStyle oracles_ui_display_title_4_3;
 

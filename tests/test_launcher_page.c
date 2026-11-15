@@ -5,8 +5,9 @@
  * (unrecognised, Enhanced chosen), 1j (refused), 2a and 7c (Enhanced at 4x,
  * reduced to 3x to fit), 2b and 7d (Faithful, fullscreen) and 2q (an
  * unrecognised ROM, Enhanced chosen), and Moonrise Regalia's pages, 1k (its
- * base ROM, its patch), 1l (no patch) and 2m (its Display, the title on two
- * lines), at 1920x1080 with the vendored fonts; and in the 4:3 layout, at
+ * base ROM, its patch, its credit), 1l (no patch) and 2m (its Display, the title on two
+ * lines), at 1920x1080 with the vendored fonts; Gifts of Kinomi's Cartridge at 640x480, its credit (credit cartridge
+ * 640x480); and in the 4:3 layout, at
  * 1440x1080, Cartridge (10d, and Moonrise Regalia's, 10e), Display (10f, 10g
  * with View highlighted, 10o from the pause menu, 10s on a 640x480 screen,
  * where the Window row comes to one size) and its Advanced rows (10h, 10p).
@@ -72,6 +73,7 @@ static void texts_of(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *sta
     t->over = oracles_home_over(oracles_home_hero(nav));
     t->title = oracles_home_title(oracles_home_hero(nav));
     t->state = state;
+    t->credit = oracles_home_credit(oracles_home_hero(nav));
     t->patched = g->fan != NULL;
     if (g->fan) {
         snprintf(t->patch_file, sizeof t->patch_file, "%s", oracles_page_patch_file(g));
@@ -249,6 +251,7 @@ static void layout_1k_1l(void)
     layout_near("1k", "title box", "h", l.head.title.h);
     layout_near("1k", "title box", "y", l.head.title.lines[1].y - 104.0f);
     layout_text("1k", "state", &l.head.state);
+    layout_text("1k", "credit text", &l.head.credit);
     /* Base ROM: the Ages ROM, without its folder; Patch, its folder and the image under the row. */
     layout_text("1k", "Base ROM", &l.label_rom);
     layout_text("1k", "Patch", &l.label_patch);
@@ -446,6 +449,32 @@ static const fan_frames temple_frames = { "1n", "1o", "2n", ORACLES_HOME_GAME_TE
 static const fan_frames kinomi_frames = { "1q", "1r", "2o", ORACLES_HOME_GAME_KINOMI, ORACLES_HOME_HERO_KINOMI,
     "Oracle of Ages (USA).gbc", "Oracle of Ages (USA)", "Gifts of Kinomi 1.1.2",
     "27 Sep 2026, 18:30", { "Gifts of", "Kinomi" } };
+
+static void game_fan(OraclesHomeNav *nav, const fan_frames *f);
+
+/* Gifts of Kinomi's Cartridge at 640x480 on Android, its credit under the state in the header, above the rows; an
+ * Oracle's Cartridge has none. */
+static void credit_4_3(void)
+{
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    game_fan(&nav, &kinomi_frames);
+    nav.layout = ORACLES_UI_LAYOUT_4_3;
+    nav.android = 1;
+    char state[ORACLES_HOME_STATE_LENGTH];
+    OraclesUiGameTexts t;
+    OraclesUiGameLayout l;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_4_3, &t, &l);
+    layout_text("credit cartridge 640x480", "state", &l.head.state);
+    layout_text("credit cartridge 640x480", "credit text", &l.head.credit);
+    CHECK(l.head.credit.y + l.head.credit.h <= l.rows[ORACLES_ROW_ROM].y);
+    oracles_home_init(&nav);
+    nav.screen = ORACLES_SCREEN_GAME;
+    texts_of(&nav, &t, state);
+    oracles_ui_layout_game(ORACLES_UI_LAYOUT_16_9, &t, &l);
+    CHECK(!t.credit && l.head.credit.h == 0.0f);
+}
 
 /* The fan game as the reference's frame holds it: its Oracle's ROM for its base, its patch, the image recognised. */
 static void game_fan(OraclesHomeNav *nav, const fan_frames *f)
@@ -962,6 +991,7 @@ static void layout_fan_page(const fan_frames *f)
     layout_text(p, "title", &l.head.title.lines[0]);
     layout_near(p, "title box", "h", l.head.title.h);
     layout_text(p, "state", &l.head.state);
+    layout_text(p, "credit text", &l.head.credit);
     snprintf(expected, sizeof expected, "Original ROM, %s", f->base_name);
     CHECK(!strcmp(t.rom_status, expected));
     layout_text(p, "base file", &l.rom_file);
@@ -2870,6 +2900,7 @@ int main(int argc, char **argv)
     layout_1k_1l();
     layout_fan_page(&temple_frames);
     layout_fan_page(&kinomi_frames);
+    credit_4_3();
     navigation();
     layout_turn_14();
     layout_turn_15();

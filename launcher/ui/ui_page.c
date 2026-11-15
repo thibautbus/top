@@ -68,6 +68,7 @@ static void game_texts(const OraclesHomeNav *nav, OraclesUiGameTexts *t, char *s
     t->over = oracles_home_over(hero);
     t->title = oracles_home_title(hero);
     t->state = state;
+    t->credit = oracles_home_credit(hero);
     snprintf(t->rom_file, sizeof t->rom_file, "%s", oracles_page_rom_file(game));
     oracles_page_folder(nav->android, game->rom_file[0] ? game->rom_folder : "", t->rom_folder, sizeof t->rom_folder);
     oracles_page_rom_status(game, t->rom_status, sizeof t->rom_status, &tones->rom);
@@ -177,6 +178,7 @@ void oracles_ui_page_draw(OraclesUiDraw *draw, const OraclesHomeNav *nav, Oracle
     const unsigned row = nav->row;
 
     head(draw, st, &l.head, "Cartridge", t.over, t.state, accent);
+    text(draw, nav->layout == ORACLES_UI_LAYOUT_4_3 ? &oracles_ui_page_credit_4_3 : &oracles_ui_page_credit, &l.head.credit, t.credit, oracles_ui_rgb(STATE));
     panel(draw, &l.panel);
     /* Language is dimmed, label and all, while English (US) alone is there. */
     const float language_opacity = oracles_page_language_available(game, 1) ? 1.0f : ROW_NOT_APPLIED;

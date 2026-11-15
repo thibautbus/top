@@ -10,6 +10,7 @@ const OraclesUiTextStyle oracles_ui_page_section = { ORACLES_UI_FONT_SERIF, 26.0
 const OraclesUiTextStyle oracles_ui_page_over = { ORACLES_UI_FONT_SERIF, 44.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_page_title = { ORACLES_UI_FONT_SERIF, 104.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_page_state = { ORACLES_UI_FONT_SANS, 24.0f, 0.16f, 1 };
+const OraclesUiTextStyle oracles_ui_page_credit = { ORACLES_UI_FONT_SANS, 24.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_row_label = { ORACLES_UI_FONT_SERIF, 22.0f, 0.18f, 1 };
 const OraclesUiTextStyle oracles_ui_row_title = { ORACLES_UI_FONT_SANS_MEDIUM, 28.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_row_path = { ORACLES_UI_FONT_MONO, 21.0f, 0.0f, 0 };
@@ -29,6 +30,7 @@ const OraclesUiTextStyle oracles_ui_mod_games = { ORACLES_UI_FONT_SANS, 22.0f, 0
 const OraclesUiTextStyle oracles_ui_page_section_4_3 = { ORACLES_UI_FONT_SERIF, 30.0f, 0.18f, 1 };
 const OraclesUiTextStyle oracles_ui_page_title_4_3 = { ORACLES_UI_FONT_SERIF, 60.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_page_state_4_3 = { ORACLES_UI_FONT_SANS, 27.0f, 0.14f, 1 };
+const OraclesUiTextStyle oracles_ui_page_credit_4_3 = { ORACLES_UI_FONT_SANS, 27.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_page_note_4_3 = { ORACLES_UI_FONT_SANS_ITALIC, 27.0f, 0.0f, 0 };
 const OraclesUiTextStyle oracles_ui_row_label_4_3 = { ORACLES_UI_FONT_SERIF, 30.0f, 0.14f, 1 };
 const OraclesUiTextStyle oracles_ui_row_title_4_3 = { ORACLES_UI_FONT_SANS_MEDIUM, 36.0f, 0.0f, 0 };
@@ -323,6 +325,7 @@ static float languages_at(const OraclesUiTextStyle *style, float x, float y, flo
 static void game_16_9(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
     pl_page_head_16_9("Cartridge", t->over, t->title, t->state, &out->head);
+    if (t->credit) out->head.credit = pl_line_at(&oracles_ui_page_credit, t->credit, HEAD_X, out->head.state.y + out->head.state.h + CREDIT_MARGIN, 0.0f);
     const float left = PANEL_X + PANEL_BORDER + PANEL_PAD_X, width = PANEL_W - 2.0f * (PANEL_BORDER + PANEL_PAD_X);
     const float value_x = left + CARTRIDGE_LABEL_W + GRID_GAP, value_w = width - CARTRIDGE_LABEL_W - GRID_GAP;
     const float inner_x = value_x + ROW_PAD_X, inner_w = value_w - 2.0f * ROW_PAD_X, right = inner_x + inner_w;
@@ -614,6 +617,9 @@ OraclesUiBox pl_play_4_3_row(const char *note, float y, OraclesUiLine *note_out,
 static void game_4_3(OraclesUiGameTexts *t, OraclesUiGameLayout *out)
 {
     pl_page_head_4_3("Cartridge", t->over, t->title, t->state, &out->head);
+    if (t->credit)
+        out->head.credit = pl_line_at(&oracles_ui_page_credit_4_3, t->credit, HEAD_X_4_3, out->head.state.y + out->head.state.h + HEAD_GAP_4_3,
+                                      CREDIT_LINE_4_3);
     char fitted[ORACLES_HOME_TEXT_LENGTH * 4];
     const float span = RIGHT_4_3 - GAME_VALUE_X_4_3;   /* a line under the first, across the file's column and the button's */
     float y = ROWS_Y_4_3;

@@ -191,11 +191,17 @@ static int draw_heroes(OraclesUiDraw *draw, const OraclesUiHome *home, const Ora
         const float shift = oracles_ui_tween_value(&home->hero_shift[h], now_ms);
         char state[ORACLES_HOME_STATE_LENGTH];
         oracles_home_state(nav, (OraclesHomeHero)h, state);
+        /* A fan game's credit on the home screen, not in the pause. */
+        const char *credit = nav->screen == ORACLES_SCREEN_HOME ? oracles_home_credit((OraclesHomeHero)h) : NULL;
         OraclesUiTitleLayout l;
-        oracles_ui_layout_hero(scene, nav->screen == ORACLES_SCREEN_PAUSE, oracles_home_over((OraclesHomeHero)h), oracles_home_title((OraclesHomeHero)h), state, &l);
+        oracles_ui_layout_hero_credited(scene, nav->screen == ORACLES_SCREEN_PAUSE, oracles_home_over((OraclesHomeHero)h), oracles_home_title((OraclesHomeHero)h),
+                                        state, credit, &l);
         if (l.over.h > 0.0f) draw_line(draw, st->hero_over, &l.over, oracles_home_over((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_OVER, opacity));
         draw_line(draw, st->hero_title, &l.title, oracles_home_title((OraclesHomeHero)h), shift, oracles_ui_rgba(HERO_TITLE, opacity));
         draw_line(draw, st->hero_state, &l.state, state, shift, oracles_ui_rgba(nav->in_game ? PAUSED_STATE : HERO_STATE, opacity));
+        if (credit)
+            draw_line(draw, scene == ORACLES_UI_LAYOUT_4_3 ? &oracles_ui_hero_credit_4_3 : &oracles_ui_hero_credit, &l.credit, credit, shift,
+                      oracles_ui_rgba(HERO_STATE, opacity));
     }
     return moving;
 }
