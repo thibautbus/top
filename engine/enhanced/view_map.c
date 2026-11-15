@@ -355,6 +355,22 @@ static int edge_connected(const uint8_t *a, const uint8_t *b, OraclesGhostDirect
     }
 }
 
+/* Whether a scroll is entering a room: the room the game loads beyond the
+ * edge, or the room in play again where a large room's scroll loops back into
+ * it, while the game drives a scroll (wScrollMode at its decision or its
+ * transition).  At a dungeon's entrance the game decides a scroll at the
+ * room's edge and turns it into a warp out (findScreenEdgeWarpSource): state 3
+ * of the transition goes on with wScrollMode at 0 and the active room still
+ * the room in play, and no room is entered. */
+int ev_scroll_enters_room(const OraclesEnhancedView *v)
+{
+    const OraclesEnhancedObservation *ob = &v->observation;
+    if (!ob->in_scroll) return 0;
+    if (ob->group != v->observer.ref_group || ob->room != v->observer.ref_room) return 1;
+    const uint8_t mode = oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->scroll_mode) & 0x7fu;
+    return mode == ORACLES_SCROLL_MODE_DECIDED || mode == ORACLES_SCROLL_MODE_TRANSITION;
+}
+
 /* On the overworld every cached room of the group is at its place; in an
  * interior only a room the reference room opens onto. */
 int ev_entry_connected(const OraclesEnhancedView *v, const entry *e, OraclesGhostDirection *dir_out)
@@ -363,7 +379,7 @@ int ev_entry_connected(const OraclesEnhancedView *v, const entry *e, OraclesGhos
      * except the room a scroll is entering, whole, as the game's window
      * slides into it: the game's own transition, the room extended. */
     if (v->observation.large_grid) {
-        if (!v->observation.in_scroll || e->room != v->observation.room || e->group != v->observation.group) return 0;
+        if (!ev_scroll_enters_room(v) || e->room != v->observation.room || e->group != v->observation.group) return 0;
         if (dir_out) *dir_out = (OraclesGhostDirection)(v->observation.scroll_direction & 3u);
         return 1;
     }

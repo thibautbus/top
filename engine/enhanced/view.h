@@ -629,6 +629,10 @@ unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *view
  * side than the one the game would enter it by from there (its old image kept
  * until its run again comes). */
 unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *view);
+/* The frames the band drew a dungeon's room in play beside itself as the room a scroll enters while the game drove no
+ * scroll (wScrollMode neither at its decision nor at its transition): none, the scroll a door at its edge turns into a
+ * warp out of the dungeon entering no room. */
+unsigned oracles_enhanced_view_self_beside_frames(const OraclesEnhancedView *view);
 /* The frames the room a scroll left was drawn from its image, out of a transition, in place of an entry the cache
  * could draw (its terrain or its side out of date, waiting for its run again), and the longest run of them. */
 void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *view, unsigned *frames, unsigned *longest);
@@ -687,6 +691,11 @@ void oracles_enhanced_view_scroll_animation_counts(const OraclesEnhancedView *vi
 void oracles_enhanced_view_stream_counts(const OraclesEnhancedView *view, unsigned *matched, unsigned *followed);
 /* Whether the area blurb was taken out of the window and drawn apart this frame (its pixels are repainted). */
 int oracles_enhanced_view_blurb_drawn(const OraclesEnhancedView *view);
+/* The curtain of a warp before its first column: the game's screen transition in state 0 or in the substates of state 1
+ * before the one that draws a column a frame (wScreenTransitionState, wScreenTransitionState2), and whether the core's
+ * game area (below the status bar) is one colour, the blank tile the load left where it cleared the map. */
+int oracles_enhanced_curtain_closed(uint8_t state, uint8_t substate);
+int oracles_enhanced_window_blank(const uint32_t *core);
 /* Scroll frames where Link is to be drawn (his object visible) and nothing of him is on the screen nor drawn past its
  * edge: Link missing from the view; and those he was drawn from his fields, past the edge where the game writes none
  * of his sprites. */

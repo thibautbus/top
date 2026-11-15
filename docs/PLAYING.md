@@ -106,7 +106,7 @@ The rooms nearest Link come first; in the drawn-back views, the far corners of t
 
 Their people and objects stand where the game puts them, and in Ages and Seasons follow the story: when an event changes who is in a room, the room around shows it as the game now would, its old picture staying until the new one is ready. Those that move in place, such as villagers, flowers and fountains, move there too, while enemies keep their pose, and at the Low quality everything there stays still.
 
-A dungeon's large room shows whole, and an interior of one room is centered. The game's menus, map, cutscenes and file screen show framed in the middle, at the view's scale or larger with **Display › Picture › Menus & scenes**. **F3** switches between the wide view and the game's own screen, framed.
+A dungeon's large room shows whole, with nothing past the door that leads out of the dungeon, and an interior of one room is centered. Coming out of a dungeon, the view stays blank, as the game's screen does, until it opens from the middle, across the whole view. The game's menus, map, cutscenes and file screen show framed in the middle, at the view's scale or larger with **Display › Picture › Menus & scenes**. **F3** switches between the wide view and the game's own screen, framed.
 
 An unrecognized ROM plays in Faithful whatever the profile chosen, and Display says so.
 

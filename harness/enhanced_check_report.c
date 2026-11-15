@@ -119,8 +119,8 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
     fprintf(out, "enhanced.scrolls_diagonal=%u\nenhanced.scroll_across_stalled=%u\n", c->scrolls_diagonal, c->scroll_across_stalled);
     fprintf(out, "enhanced.scrolls=%u\nenhanced.scroll_frames=%u\nenhanced.scroll_frozen_frames=%u\nenhanced.scroll_solid_arrivals=%u\nenhanced.window_checked=%u\nenhanced.window_misplaced=%u\nenhanced.off_camera_frames=%u\nenhanced.world_off_camera_frames=%u\nenhanced.wave_frames=%u\nenhanced.shake_frames=%u\nenhanced.window_lines_checked=%u\nenhanced.window_lines_wrong=%u\n",
             c->transitions_seen, c->transition_frames_total, c->transition_frozen_total, c->transition_arrivals_solid, c->window_checked, c->window_misplaced, oracles_enhanced_view_off_camera_frames(c->view), oracles_enhanced_view_world_off_camera_frames(c->view), oracles_enhanced_view_wave_frames(c->view), oracles_enhanced_view_shake_frames(c->view), c->window_lines_checked, c->window_lines_wrong);
-    fprintf(out, "enhanced.curtain_frames=%u\nenhanced.curtain_frames_wrong=%u\nenhanced.curtain_frames_unchecked=%u\nenhanced.curtain_pixels_wrong=%u\n",
-            c->curtain_frames, c->curtain_frames_wrong, c->curtain_frames_unchecked, c->curtain_pixels_wrong);
+    fprintf(out, "enhanced.curtain_frames=%u\nenhanced.curtain_closed_frames=%u\nenhanced.curtain_frames_wrong=%u\nenhanced.curtain_frames_unchecked=%u\nenhanced.curtain_pixels_wrong=%u\n",
+            c->curtain_frames, c->curtain_closed_frames, c->curtain_frames_wrong, c->curtain_frames_unchecked, c->curtain_pixels_wrong);
     fprintf(out, "enhanced.text_box_frames_in_place=%u\nenhanced.curtain_window_frames_wrong=%u\n", c->text_box_frames_in_place, c->curtain_window_frames_wrong);
     fprintf(out, "enhanced.blurb_frames=%u\nenhanced.blurb_frames_in_window=%u\n", c->blurb_frames, c->blurb_frames_in_window);
     fprintf(out, "enhanced.neighbour_waiting_frames=%u\n", oracles_enhanced_view_waiting_frames(c->view));
@@ -238,6 +238,7 @@ static void summary_of_what_was_shown(OraclesEnhancedCheck *c, FILE *out)
         fprintf(out, "enhanced.side_stale_frames=%u\nenhanced.left_image_frames=%u\nenhanced.left_image_longest=%u\n", oracles_enhanced_view_side_stale_frames(c->view),
                 image_frames, image_longest);   /* a room drawn with the people of another side's entry; the room left drawn from its frozen image */
     }
+    fprintf(out, "enhanced.self_beside_frames=%u\n", oracles_enhanced_view_self_beside_frames(c->view));   /* a dungeon's room drawn beside itself */
     fprintf(out, "enhanced.sea_runs=%u\n", oracles_enhanced_view_sea_runs(c->view));   /* runs across the sea's surface, ahead of a dive or a return (Ages) */
     fprintf(out, "enhanced.uncovered_frames=%u\nenhanced.uncovered_max=%u\nenhanced.live_diff_max=%u\nenhanced.plain_renders=%u\nenhanced.stale_results=%u\nenhanced.season_rejected=%u\nenhanced.coarse_drops=%u\n",
             c->uncovered_frames, c->uncovered_max, oracles_enhanced_view_live_diff_max(c->view), oracles_enhanced_view_plain_renders(c->view), oracles_enhanced_view_stale_results(c->view), oracles_enhanced_view_season_rejected(c->view),

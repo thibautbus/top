@@ -349,6 +349,7 @@ struct OraclesEnhancedView {
     unsigned terrain_stale_frames;      /* frames the band met such a room before its run again delivered (the room in play aside) */
     unsigned left_stale_frames;         /* frames the room a scroll left was drawn from an entry run again for its terrain, over its image */
     unsigned side_stale_frames;         /* frames the band drew a room's people as the game creates them for Link coming from another side */
+    unsigned self_beside_frames;        /* frames the band drew a large room's room in play beside itself while the game drove no scroll */
     unsigned left_image_frames, left_image_run, left_image_longest;   /* frames the room left was drawn from its image out of a transition in place of an entry the cache could draw; the run under way, the longest */
     unsigned terrain_given_up;          /* of those, rooms dropped to black, their terrain kept out of date for TERRAIN_STALE_FRAMES */
     unsigned objects_side_refreshes;    /* cached rooms run again for their objects: entered by another side than the room in play would */
@@ -589,6 +590,7 @@ struct OraclesEnhancedView {
     uint32_t box_fixed_last[4];
     uint32_t curtain_colour;          /* its colour, read in the core's image while the window still shows it */
     int curtain_colour_valid;
+    int curtain_after_large;          /* the last world frame without a curtain was in a large room */
     uint8_t animated_tileset_gfx;    /* the tileset the counts above were seen under */
     unsigned tiles_settling;         /* frames of play left after a load, where a change is the room's graphics and not an animation */
     /* The game's palette fade as displayed: the live palettes against the

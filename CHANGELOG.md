@@ -36,6 +36,8 @@ What changed in each version of The Oracles Project, the newest first. The relea
 - **People fading out as Link walks in.** In Enhanced, when Link walked into a room whose people are brought in by the room itself as it loads, such as the troupe's dancers at the start of Seasons or the crowd around Nayru at the start of Ages, the people already shown in the room beside him could turn see-through and fade back in as the screen scrolled. They now stay as they were.
 - **A black line at the edge of the far view.** In Enhanced, in the **Far** view at the edge of a map, as in Subrosia, a room already shown beside the screen's edge could turn black along that edge and stay so until Link left the area. It now stays drawn.
 - **People standing still beside Link's room.** In Enhanced, a few people and animals, such as the Subrosians who carry two buckets of water or a cat in Horon Village, now move in the rooms shown beside Link's, as the others around them do, instead of standing still until Link walks into their room.
+- **A room past a dungeon's door.** In Enhanced, walking out of a dungeon by its entrance no longer shows the room Link leaves a second time below itself, as if another room lay past the door.
+- **Coming out of a dungeon.** In Enhanced, coming out of a dungeon, the place outside no longer shows for a moment around a blank rectangle, then disappears as the screen starts opening from the middle: the whole view stays blank, as the game's own screen does, until it opens.
 
 ### Notes
 

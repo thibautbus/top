@@ -503,9 +503,21 @@ void ev_overlay_area_blurb(OraclesEnhancedView *v, int32_t camera_x, int32_t cam
 static int curtain_open_range(OraclesEnhancedView *v, uint8_t scx, int *left, int *right)
 {
     const OraclesGuestTables *t = oracles_guest_tables(v->guest);
-    if (oracles_guest_read8(v->guest, t->scroll_mode) != CURTAIN_SCROLL_MODE
-        || oracles_guest_read8(v->guest, t->screen_transition_state) != CURTAIN_TRANSITION_STATE
-        || oracles_guest_read8(v->guest, t->screen_transition_substate) != CURTAIN_SUBSTATE) return 0;
+    if (oracles_guest_read8(v->guest, t->scroll_mode) != CURTAIN_SCROLL_MODE) return 0;
+    const uint8_t state = oracles_guest_read8(v->guest, t->screen_transition_state);
+    const uint8_t substate = oracles_guest_read8(v->guest, t->screen_transition_substate);
+    /* Out of a large room (a dungeon's door), before the first column (the
+     * room entered from scratch in state 0, the substates of state 1 that wait
+     * for the fade and set the edges), the window holds the blank tile alone,
+     * where the large room's camera left it until resetCamera: the curtain is
+     * closed over the band too, or the rooms around showed for those frames
+     * with the blank window off its place, to be covered again as it starts
+     * opening. */
+    if (v->curtain_after_large && oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(oracles_core_pixels(v->core))) {
+        *left = *right = 0;
+        return 1;
+    }
+    if (state != CURTAIN_TRANSITION_STATE || substate != CURTAIN_SUBSTATE) return 0;
     /* The game starts from the column of the middle of its window and walks
      * outward, so the columns drawn run from the one left of the middle to
      * the one the right edge has reached; counted in columns rather than
@@ -518,6 +530,19 @@ static int curtain_open_range(OraclesEnhancedView *v, uint8_t scx, int *left, in
     const int middle_px = (int)(((middle * 8u) - scx) & 0xffu);   /* the middle column's left edge, in the window */
     *left = middle_px - (int)drawn_left * 8;
     *right = middle_px + (int)drawn_right * 8;
+    return 1;
+}
+
+int oracles_enhanced_curtain_closed(uint8_t state, uint8_t substate)
+{
+    return state == 0u || (state == CURTAIN_TRANSITION_STATE && substate < CURTAIN_SUBSTATE);
+}
+
+int oracles_enhanced_window_blank(const uint32_t *core)
+{
+    if (!core) return 0;
+    const uint32_t *area = core + ORACLES_ENHANCED_HUD_HEIGHT * ORACLES_ENHANCED_CORE_WIDTH;
+    for (size_t i = 1; i < (size_t)ORACLES_ENHANCED_CORE_WIDTH * ORACLES_ENHANCED_AREA_HEIGHT; i++) if (area[i] != area[0]) return 0;
     return 1;
 }
 
@@ -554,7 +579,7 @@ void ev_overlay_warp_curtain(OraclesEnhancedView *v, int32_t camera_x, int32_t c
     const OraclesEnhancedObservation *ob = &v->observation;
     const uint8_t scx = (uint8_t)(ob->drawn_camera_x + ob->drawn_offset_x);
     int left = 0, right = 0;
-    if (!curtain_open_range(v, scx, &left, &right)) return;
+    if (!curtain_open_range(v, scx, &left, &right)) { v->curtain_after_large = ob->large; return; }
     v->curtain_frames++;
     const uint32_t colour = curtain_colour(v, left, right, scx);
     for (unsigned x = 0; x < v->size.width; x++) {

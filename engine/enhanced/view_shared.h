@@ -57,6 +57,7 @@ int ev_routed_beyond_shown(const OraclesEnhancedView *v, uint8_t room, OraclesGh
 void ev_routed_place(uint8_t ref, OraclesGhostDirection dir, int32_t *left, int32_t *top);
 void ev_routed_run_order(const OraclesEnhancedView *v, uint8_t ref, unsigned out[4]);
 int ev_on_overworld(const OraclesEnhancedView *v);
+int ev_scroll_enters_room(const OraclesEnhancedView *v);
 int ev_entry_connected(const OraclesEnhancedView *v, const entry *e, OraclesGhostDirection *dir_out);
 void ev_update_reference_edges(OraclesEnhancedView *v);
 void ev_update_neighbours(OraclesEnhancedView *v);

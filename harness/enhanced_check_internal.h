@@ -257,7 +257,8 @@ struct OraclesEnhancedCheck {
     unsigned shown_unvisited;              /* rooms drawn in clear, frame by frame of play, whose flags the game says never visited, the room in play aside, and rooms kept dark shown in clear past their edge */
     unsigned transitions_other_room;  /* entered while another room was shown that way: a wrong neighbour, never allowed */
     char other_room_list[256];        /* "from>to=shown" */
-    unsigned curtain_frames, curtain_frames_wrong, curtain_frames_unchecked, curtain_pixels_wrong;
+    unsigned curtain_frames, curtain_closed_frames, curtain_frames_wrong, curtain_frames_unchecked, curtain_pixels_wrong;
+    int curtain_after_large;          /* the last world frame without a curtain was in a large room */
     unsigned text_box_frames_in_place;     /* frames the box's own place in the window still shows the box */
     unsigned curtain_window_frames_wrong;  /* curtain frames whose window, in the band, is not the core's image */
     unsigned text_box_frames, text_box_frames_wrong, text_box_pixels_wrong;

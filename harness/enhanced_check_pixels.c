@@ -156,24 +156,31 @@ void ec_check_window_lines(OraclesEnhancedCheck *c, const OraclesEnhancedObserva
  * pixel outside the game's window whose
  * column has not been drawn must hold the curtain's colour, the one the
  * core itself shows in an undrawn column of its window; the frames where
- * the window has none left are counted apart, their colour unchecked. */
+ * the window has none left are counted apart, their colour unchecked.  Out of a
+ * large room (the last world frame without a curtain in one), the frames
+ * before the first column whose window is the blank alone are the curtain
+ * closed, every column of the band its colour (counted apart too). */
 void ec_check_curtain(OraclesEnhancedCheck *c, const OraclesEnhancedObservation *ob, const uint32_t *surface, int32_t camera_x, int32_t camera_y, uint32_t frame)
 {
     const OraclesGuestTables *t = oracles_guest_tables(c->guest);
-    if (oracles_guest_read8(c->guest, t->scroll_mode) != CURTAIN_SCROLL_MODE
-        || oracles_guest_read8(c->guest, t->screen_transition_state) != CURTAIN_TRANSITION_STATE
-        || oracles_guest_read8(c->guest, t->screen_transition_substate) != CURTAIN_SUBSTATE) return;
+    const uint8_t mode = oracles_guest_read8(c->guest, t->scroll_mode);
+    const uint8_t state = oracles_guest_read8(c->guest, t->screen_transition_state);
+    const uint8_t substate = oracles_guest_read8(c->guest, t->screen_transition_substate);
+    const uint32_t *core_pixels = oracles_core_pixels(c->core);
+    /* Out of a large room, before the first column, with the window blank: closed, no column drawn. */
+    const int closed = mode == CURTAIN_SCROLL_MODE && c->curtain_after_large && oracles_enhanced_curtain_closed(state, substate) && oracles_enhanced_window_blank(core_pixels);
+    if (!closed && (mode != CURTAIN_SCROLL_MODE || state != CURTAIN_TRANSITION_STATE || substate != CURTAIN_SUBSTATE)) { c->curtain_after_large = ob->large; return; }
     const uint8_t scx = (uint8_t)(ob->drawn_camera_x + ob->drawn_offset_x);
     const unsigned next_left = oracles_guest_read8(c->guest, t->screen_scroll_row) & 31u;
     const unsigned next_right = oracles_guest_read8(c->guest, t->screen_scroll_column_right) & 31u;
     const unsigned middle = (((unsigned)scx + ORACLES_ENHANCED_CORE_WIDTH / 2u) >> 3) & 31u;
     const int middle_px = (int)(((middle * 8u) - scx) & 0xffu);
-    const int left = middle_px - (int)((middle - 1u - next_left) & 31u) * 8;
-    const int right = middle_px + (int)((next_right - middle) & 31u) * 8;
+    const int left = closed ? 0 : middle_px - (int)((middle - 1u - next_left) & 31u) * 8;
+    const int right = closed ? 0 : middle_px + (int)((next_right - middle) & 31u) * 8;
     c->curtain_frames++;
+    if (closed) c->curtain_closed_frames++;
     /* The colour, read in the core's image: the middle line of the first
      * column of the window the game has not drawn. */
-    const uint32_t *core_pixels = oracles_core_pixels(c->core);
     int sample = -1;
     for (int gx = 4; gx < (int)ORACLES_ENHANCED_CORE_WIDTH; gx += 8) if (gx < left || gx >= right) { sample = gx; break; }
     if (sample < 0 || !core_pixels) { c->curtain_frames_unchecked++; return; }

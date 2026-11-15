@@ -438,7 +438,7 @@ static void note_vram_background(OraclesEnhancedView *v, unsigned n, const uint8
 static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbour *nbs, unsigned count, int32_t camera_x, int32_t camera_y)
 {
     const int32_t reach = wave_reach(v);
-    int plain_shown = 0, side_stale_shown = 0, left_entry_held = 0;   /* the room left's entry, drawable, given way to its image */
+    int plain_shown = 0, side_stale_shown = 0, left_entry_held = 0, self_beside = 0;   /* the room left's entry, drawable, given way to its image */
     memset(v->drawn_places, 0, sizeof v->drawn_places);
     ev_hidden_begin(v);
     /* The image of the room left, drawn where no capture of that room is
@@ -494,6 +494,10 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
         if (!ev_shown_meets(v, camera_x, camera_y, left, top, w, h, reach)) continue;
         const uint32_t *pixels = ev_neighbour_pixels(v, e);
         if (other_side) side_stale_shown = 1;
+        if (v->observation.large_grid && !e->routed && e->room == v->observer.ref_room) {
+            const uint8_t mode = oracles_guest_read8(v->guest, oracles_guest_tables(v->guest)->scroll_mode) & 0x7fu;
+            if (mode != ORACLES_SCROLL_MODE_DECIDED && mode != ORACLES_SCROLL_MODE_TRANSITION) self_beside = 1;
+        }
         note_entry_background(v, count, e, pixels);
         add_source(&nbs[count++], left, top, pixels, (unsigned)w, (unsigned)h, 1);
         nbs[count - 1u].veil = ev_room_veil(v, e->room);
@@ -503,6 +507,7 @@ static unsigned add_grid_sources(OraclesEnhancedView *v, OraclesEnhancedNeighbou
     }
     if (plain_shown) v->plain_shown_frames++;
     if (side_stale_shown) v->side_stale_frames++;
+    if (self_beside) v->self_beside_frames++;
     for (unsigned d = 0; d < 4; d++)
         if (v->shown_slot[d] < SLOTS && !ev_room_hidden(v, v->slots[v->shown_slot[d]].group, v->slots[v->shown_slot[d]].room)) v->shown[d] = 1;
     const entry *captured = ev_on_map(v) && v->source_valid ? ev_find_entry(v, v->source_group, v->source_room) : NULL;
@@ -823,10 +828,11 @@ const uint32_t *oracles_enhanced_view_compose(OraclesEnhancedView *v, OraclesEnh
              * there is waiting; around them it is decided (no neighbours shown). */
             const OraclesEnhancedObservation *ob = &v->observation;
             const unsigned d = ob->scroll_direction & 3u;
-            in.counted_left = ob->world.origin_x - (ob->in_scroll && d == 3u ? (int32_t)LARGE_ROOM_W : 0);
-            in.counted_top = ob->world.origin_y - (ob->in_scroll && d == 0u ? (int32_t)LARGE_ROOM_H : 0);
-            in.counted_width = LARGE_ROOM_W * (ob->in_scroll && (d & 1u) ? 2u : 1u);
-            in.counted_height = LARGE_ROOM_H * (ob->in_scroll && !(d & 1u) ? 2u : 1u);
+            const int entering = ev_scroll_enters_room(v);
+            in.counted_left = ob->world.origin_x - (entering && d == 3u ? (int32_t)LARGE_ROOM_W : 0);
+            in.counted_top = ob->world.origin_y - (entering && d == 0u ? (int32_t)LARGE_ROOM_H : 0);
+            in.counted_width = LARGE_ROOM_W * (entering && (d & 1u) ? 2u : 1u);
+            in.counted_height = LARGE_ROOM_H * (entering && !(d & 1u) ? 2u : 1u);
         }
     } else v->large_was_in_scroll = 0;
     const int load_band = ev_load_band(v, &in, tracking, camera_x, camera_y);
@@ -985,6 +991,7 @@ unsigned oracles_enhanced_view_terrain_stale_frames(const OraclesEnhancedView *v
 unsigned oracles_enhanced_view_terrain_given_up(const OraclesEnhancedView *v) { return v->terrain_given_up; }
 unsigned oracles_enhanced_view_left_stale_frames(const OraclesEnhancedView *v) { return v->left_stale_frames; }
 unsigned oracles_enhanced_view_side_stale_frames(const OraclesEnhancedView *v) { return v->side_stale_frames; }
+unsigned oracles_enhanced_view_self_beside_frames(const OraclesEnhancedView *v) { return v->self_beside_frames; }
 void oracles_enhanced_view_left_image_counts(const OraclesEnhancedView *v, unsigned *frames, unsigned *longest) { *frames = v->left_image_frames; *longest = v->left_image_longest; }
 unsigned oracles_enhanced_view_objects_refresh_put_off(const OraclesEnhancedView *v) { return v->objects_refresh_put_off; }
 unsigned oracles_enhanced_view_refresh_given_up(const OraclesEnhancedView *v) { return v->refresh_given_up; }
