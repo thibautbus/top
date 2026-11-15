@@ -798,10 +798,25 @@ OraclesPauseResult oracles_pause_run(OraclesPause *pause, SDL_Window *window, SD
                 p.nav.display.picture_scale = fminf(at.w / (float)shown_w, at.h / (float)shown_h);
             }
             p.moving = oracles_pause_paint(pause->draw, renderer, frame, width, height, fill, out_w, out_h, &p.view, &p.nav, now, session);
-            SDL_RenderPresent(renderer);
+            const unsigned recoveries = oracles_sdl_renderer_recoveries();
+            SDL_Renderer *presenting = oracles_sdl_renderer_present(renderer);
+            const int remade = oracles_sdl_renderer_recoveries() != recoveries;
+            if (remade) {
+                /* Made again for a lost surface: the menu draws in the window's pixels on it too; without any renderer
+                 * left, the game cannot go on. */
+                p.renderer = renderer = presenting;
+                if (!renderer) {
+                    fprintf(stderr, "oracles: no renderer after the window's surface was lost: back to the home screen\n");
+                    p.result = ORACLES_PAUSE_QUIT;
+                    p.done = 1;
+                    break;
+                }
+                SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+            }
             presented = now;
-            p.dirty = 0;
+            p.dirty = remade;   /* the menu drawn again on the renderer made again */
             if (p.redraws > 0) p.redraws--;
+            if (remade) p.redraws = ANDROID_REDRAWS;
         }
         int wait = -1;
         const double due = oracles_ui_home_due_ms(&p.view);

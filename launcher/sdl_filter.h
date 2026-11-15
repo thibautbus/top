@@ -38,6 +38,19 @@ void oracles_sdl_renderer_unlisten(void *opaque);
 
 /* The GPU renderer for `window`, or an offscreen one for NULL; NULL when it cannot be made, SDL_GetError saying why. */
 SDL_Renderer *oracles_sdl_gpu_renderer(SDL_Window *window, int vsync);
+/* SDL_RenderPresent, then, when it left the GPU renderer's window surface lost (a Vulkan surface Android took away, which
+ * SDL does not make again), the renderer made again as a swap does, its users hearing NULL then the new one, with the
+ * same filter and vsync; the usual renderer instead once three made again in a row lose it still.  The usual renderer
+ * made instead because the app went to the background meanwhile, the GPU one is made again at a later present.  On
+ * Android, the GPU renderer's swapchain is made again first after the window's size changed.  Returns the renderer now
+ * in use, NULL when none could be made (SDL_GetError saying why). */
+SDL_Renderer *oracles_sdl_renderer_present(SDL_Renderer *renderer);
+/* What oracles_sdl_renderer_present presents with, SDL_RenderPresent for NULL (a test's present that loses the surface). */
+void oracles_sdl_renderer_present_with(bool (SDLCALL *present)(SDL_Renderer *renderer));
+/* 1 when SDL's error says the window's Vulkan surface is lost. */
+int oracles_sdl_surface_lost(const char *error);
+/* The renderers made again for a lost surface since the start. */
+unsigned oracles_sdl_renderer_recoveries(void);
 /* 1 while `window` has no surface to draw to because the app is in the background (Android): a GPU renderer that could
  * not be made then says nothing of the device. */
 int oracles_sdl_window_away(SDL_Window *window);
@@ -51,7 +64,8 @@ int oracles_sdl_filters_runnable(void);
 void oracles_sdl_filters_refused(void);
 unsigned oracles_sdl_filters_refused_codes(void);
 
-/* The GPU device the GPU renderers share, released at the end, after the last of them. */
+/* The GPU device the GPU renderers share, released at the end, after the last of them; whether the filters run and the
+ * lost surfaces counted go with it, asked again by a window made after. */
 void oracles_sdl_gpu_device_release(void);
 
 /* ORACLES_SDL_LOG: SDL's own log on the standard error. */

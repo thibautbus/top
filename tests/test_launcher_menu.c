@@ -636,6 +636,76 @@ static void filters_refused(void)
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
+typedef struct LostHeard {
+    int gone, made;
+    SDL_Renderer *renderer;
+} LostHeard;
+
+static void lost_heard(void *opaque, SDL_Renderer *renderer)
+{
+    LostHeard *heard = opaque;
+    if (renderer) heard->made++;
+    else heard->gone++;
+    heard->renderer = renderer;
+}
+
+/* A present that leaves the surface lost, as SDL's does when it made the swapchain again on the surface Android took away. */
+static bool SDLCALL lost_present(SDL_Renderer *renderer)
+{
+    SDL_RenderPresent(renderer);
+    return SDL_SetError("vkGetPhysicalDeviceSurfaceCapabilitiesKHR VK_ERROR_SURFACE_LOST_KHR");
+}
+
+/* A present that leaves the window's Vulkan surface lost (the error SDL leaves when it makes the swapchain again on the
+ * surface Android took away) makes the GPU renderer again, its users told, with its filter and vsync; after three made
+ * again in a row that lose it still, the usual renderer, the shader filters off for the run.  SDL's offscreen video with
+ * Vulkan where the system has it (lavapipe); skipped where no GPU renderer can be made for its window. */
+static void surface_lost(void)
+{
+    CHECK(oracles_sdl_surface_lost("vkGetPhysicalDeviceSurfaceCapabilitiesKHR VK_ERROR_SURFACE_LOST_KHR"));
+    CHECK(!oracles_sdl_surface_lost("Failed to recreate Vulkan surface!") && !oracles_sdl_surface_lost("") && !oracles_sdl_surface_lost(NULL));
+    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) { printf("surface lost: no offscreen video, skipped\n"); return; }
+    SDL_Window *window = SDL_CreateWindow("surface lost", 640, 480, 0);
+    oracles_sdl_filter_start("crt");
+    SDL_Renderer *renderer = window ? oracles_sdl_gpu_renderer(window, 1) : NULL;
+    if (!renderer) printf("surface lost: no GPU renderer for a window here (%s), skipped\n", SDL_GetError());
+    else {
+        LostHeard heard = { 0, 0, NULL };
+        oracles_sdl_renderer_listen(lost_heard, &heard);
+        const unsigned recoveries = oracles_sdl_renderer_recoveries();
+        SDL_RenderClear(renderer);
+        /* An error left before the present, a lost surface among them, is not the present's: kept as it was. */
+        SDL_SetError("vkGetPhysicalDeviceSurfaceCapabilitiesKHR VK_ERROR_SURFACE_LOST_KHR");
+        CHECK(oracles_sdl_renderer_present(renderer) == renderer && oracles_sdl_renderer_recoveries() == recoveries && !heard.gone);
+        CHECK(oracles_sdl_surface_lost(SDL_GetError()));
+        oracles_sdl_renderer_present_with(lost_present);
+        renderer = oracles_sdl_renderer_present(renderer);
+        CHECK(renderer && oracles_sdl_renderer_recoveries() == recoveries + 1 && heard.gone == 1 && heard.made == 1 && heard.renderer == renderer);
+        int vsync = 0;
+        CHECK(renderer && !strcmp(SDL_GetRendererName(renderer), SDL_GPU_RENDERER) && SDL_GetRenderVSync(renderer, &vsync) && vsync == 1);
+        CHECK(!strcmp(oracles_sdl_filter_name(), "crt") && oracles_sdl_filter_open(renderer) && oracles_sdl_filters_runnable());
+        CHECK(!oracles_sdl_surface_lost(SDL_GetError()));
+        for (int i = 0; i < 3 && renderer; i++) renderer = oracles_sdl_renderer_present(renderer);
+        CHECK(renderer && oracles_sdl_renderer_recoveries() == recoveries + 4 && heard.gone == 4 && heard.made == 4);
+        CHECK(renderer && strcmp(SDL_GetRendererName(renderer), SDL_GPU_RENDERER) && !oracles_sdl_filters_runnable());
+        CHECK(renderer && !oracles_sdl_filter_open(renderer));
+        /* The usual renderer's presents leave nothing to make again. */
+        CHECK(renderer && oracles_sdl_renderer_present(renderer) == renderer && oracles_sdl_renderer_recoveries() == recoveries + 4);
+        oracles_sdl_renderer_present_with(NULL);
+        oracles_sdl_renderer_unlisten(&heard);
+    }
+    oracles_sdl_filter_start("off");
+    if (renderer) {
+        oracles_sdl_filter_forget(renderer);
+        SDL_DestroyRenderer(renderer);
+    }
+    oracles_sdl_gpu_device_release();
+    if (renderer) CHECK(oracles_sdl_filters_runnable());   /* the refusal gone with the device: asked again */
+    if (window) SDL_DestroyWindow(window);
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
 /* The previews of Display › Picture's Filter take the filter drawn: Smooth sampled bilinearly, the others at the nearest
  * texel; the pause's game image through the shader for a shader filter alone, never for Off or Smooth. */
 static int inset_filtered;
@@ -779,6 +849,8 @@ int main(void)
     filter_from_pause(1);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_Quit();
+    surface_lost();
     SDL_Quit();
     filters_refused();
     SDL_Quit();

@@ -27,6 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 static int failures;
 
@@ -1324,6 +1328,22 @@ static void copies(const char *base)
     snprintf(expected, sizeof expected, "%s/Oracle.gbc.partial", folder);
     SDL_PathInfo info;
     CHECK(!SDL_GetPathInfo(expected, &info));
+#ifndef _WIN32
+    /* A folder the application cannot write into nor look through (another owner's, on Android): the copy fails with
+     * the reason of the write, not that of the partial file's removal, which fails too. */
+    char locked[1300];
+    snprintf(locked, sizeof locked, "%s/locked", folder);
+    CHECK(SDL_CreateDirectory(locked));
+    if (geteuid() != 0 && chmod(locked, 0444) == 0) {
+        SDL_ClearError();
+        CHECK(!oracles_dialog_store_copy(locked, "Oracle.gbc", "ages", 4, path, sizeof path, &fresh) && fresh == 0);
+        const char *reason = SDL_GetError();
+        CHECK(reason[0] && !strstr(reason, "remove") && strstr(reason, "Permission denied"));
+        if (strstr(reason, "remove")) fprintf(stderr, "copy refused for: %s\n", reason);
+        chmod(locked, 0755);
+    }
+    SDL_RemovePath(locked);
+#endif
 }
 
 /* Under Smooth, Link's layer drawn apart and sampled bilinearly: its texels the layer leaves transparent, whatever colour

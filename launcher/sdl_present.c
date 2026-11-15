@@ -643,8 +643,9 @@ int sb_sdl_present_frame(void *opaque, const oracles_host_video_frame *frame)
     backend->presenting = NULL;
     if (backend->overlay && !backend->overlay(backend->overlay_opaque, backend->renderer)) backend->overlay = NULL;
     const uint64_t present_started_ns = sb_sdl_monotonic_ns(backend);
-    SDL_RenderPresent(backend->renderer);
-    oracles_sdl_filter_check(backend->filter, 1);
+    const unsigned recoveries = oracles_sdl_renderer_recoveries();
+    if (!oracles_sdl_renderer_present(backend->renderer)) return 0;   /* backend->renderer told the one made again, if any */
+    if (oracles_sdl_renderer_recoveries() == recoveries) oracles_sdl_filter_check(backend->filter, 1);
     backend->last_present_ns = sb_sdl_monotonic_ns(backend);
     backend->last_present_ns_spent = backend->last_present_ns - present_started_ns;
     const uint64_t steps[3] = { draw_started_ns - upload_started_ns, present_started_ns - draw_started_ns, backend->last_present_ns_spent };

@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <errno.h>
+#include <unistd.h>
+#endif
 
 #ifdef __ANDROID__
 #include <jni.h>
@@ -338,7 +342,21 @@ int oracles_dialog_store_copy(const char *folder, const char *name, const void *
         }
         /* Written beside it then renamed: a copy cut short (a full storage) leaves no half file under the name. */
         snprintf(partial, sizeof partial, "%s.partial", candidate);
-        if (!SDL_SaveFile(partial, data, size) || !SDL_RenamePath(partial, candidate)) { SDL_RemovePath(partial); return 0; }
+        if (!SDL_SaveFile(partial, data, size) || !SDL_RenamePath(partial, candidate)) {
+            /* The reason the copy failed, which removing the partial file would write over; and the folder's own
+             * refusal, which Android's SDL_SaveFile does not say (a path it cannot open there is looked for among the
+             * application's assets, whose error it leaves). */
+            char reason[512];
+            snprintf(reason, sizeof reason, "%s", SDL_GetError());
+#ifndef _WIN32
+            if (access(folder, W_OK | X_OK) != 0) {
+                const size_t length = strlen(reason);
+                snprintf(reason + length, sizeof reason - length, " (%s: %s)", folder, strerror(errno));
+            }
+#endif
+            SDL_RemovePath(partial);
+            return SDL_SetError("%s", reason), 0;
+        }
         snprintf(path, capacity, "%s", candidate);
         *fresh = 1;
         return 1;

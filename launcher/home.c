@@ -731,7 +731,8 @@ static int render(home_app *app, double now)
     const int watched = app->watch_until_ms > 0.0;
     if (watched) fprintf(stderr, "oracles: home screen: presenting frame %u after the game\n", ++app->watch_presented);
     const double present_started = now_ms();
-    SDL_RenderPresent(app->renderer);
+    const unsigned recoveries = oracles_sdl_renderer_recoveries();
+    if (!oracles_sdl_renderer_present(app->renderer)) return 0;   /* app->renderer told the one made again, if any */
     if (watched) {
         const double took = now_ms() - present_started;
         app->watch_frames++;
@@ -741,6 +742,10 @@ static int render(home_app *app, double now)
     app->presented_ms = now;
     app->dirty = 0;
     if (app->redraws > 0) app->redraws--;
+    if (oracles_sdl_renderer_recoveries() != recoveries) {   /* the frame drawn again on the renderer made again */
+        app->dirty = 1;
+        app->redraws = ANDROID_REDRAWS;
+    }
     app->idle_work = 1;
     return 1;
 }

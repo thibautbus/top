@@ -105,6 +105,12 @@ const char *oracles_sdl_filter_name(void)
 }
 
 static int runnable = -1;   /* oracles_sdl_filters_runnable's */
+static int lost_in_a_row;   /* oracles_sdl_renderer_present's: renderers made again for a lost surface since a present that lost none */
+static int gpu_again;       /* and the GPU renderer to try again, the usual one made instead while the app went away */
+#ifdef __ANDROID__
+static int follow_refused;  /* swapchain_follow's: swapchains refused in a row before any went, the renderer's */
+static int follow_broken;   /* and a swapchain gone with a failure, the window left without one */
+#endif
 
 /* A shader filter chosen, where one can run (a device that could not be made is not asked for again). */
 static int shader_chosen(void)
@@ -176,6 +182,23 @@ static void take_back(const FilterCode *before, SDL_Renderer *renderer)
             oracles_sdl_filter_name(), taken_back_kept ? "again" : "instead");
 }
 
+/* `renderer` destroyed, every texture made on it released by its users, who hear NULL, and the one
+ * oracles_sdl_create_renderer makes for its window, with its vsync (its report then says the present mode it has); its
+ * window and vsync said, for another try. */
+static SDL_Renderer *make_again(SDL_Renderer *renderer, SDL_Window **window, int *vsync)
+{
+    *window = SDL_GetRenderWindow(renderer);
+    *vsync = 0;
+    SDL_GetRenderVSync(renderer, vsync);
+    tell_renderer(NULL);
+    oracles_sdl_filter_forget(renderer);
+    SDL_DestroyRenderer(renderer);
+#ifdef __ANDROID__
+    follow_refused = follow_broken = 0;
+#endif
+    return oracles_sdl_create_renderer(*window, *vsync != 0);
+}
+
 SDL_Renderer *oracles_sdl_renderer_swap(SDL_Renderer *renderer, const char *filter)
 {
     const uint64_t started = SDL_GetTicksNS();
@@ -193,13 +216,9 @@ SDL_Renderer *oracles_sdl_renderer_swap(SDL_Renderer *renderer, const char *filt
                 (double)(SDL_GetTicksNS() - started) / 1e6);
         return renderer;
     }
-    SDL_Window *window = SDL_GetRenderWindow(renderer);
-    int vsync = 0;
-    SDL_GetRenderVSync(renderer, &vsync);
-    tell_renderer(NULL);   /* every texture made on it released */
-    oracles_sdl_filter_forget(renderer);
-    SDL_DestroyRenderer(renderer);
-    renderer = oracles_sdl_create_renderer(window, vsync != 0);   /* made with its vsync: its report says the present mode it has */
+    SDL_Window *window;
+    int vsync;
+    renderer = make_again(renderer, &window, &vsync);
     if (renderer && !drawable(chosen, renderer)) {
         /* The usual renderer instead of the GPU one, which could not be made: it draws the filter before, as a moment
          * ago, the choice taken back. */
@@ -295,6 +314,9 @@ void oracles_sdl_gpu_device_release(void)
 {
     if (kept_device) SDL_DestroyGPUDevice(kept_device);
     kept_device = NULL;
+    /* What the device's renderers learned goes with it: a window made after asks again. */
+    runnable = -1;
+    lost_in_a_row = gpu_again = 0;
 }
 
 int oracles_sdl_window_away(SDL_Window *window)
@@ -397,6 +419,175 @@ SDL_Renderer *oracles_sdl_gpu_renderer(SDL_Window *window, int vsync)
     return renderer;
 }
 
+int oracles_sdl_surface_lost(const char *error) { return error && strstr(error, "VK_ERROR_SURFACE_LOST_KHR") != NULL; }
+
+static unsigned recoveries;   /* oracles_sdl_renderer_recoveries' */
+static bool (SDLCALL *render_present)(SDL_Renderer *renderer) = SDL_RenderPresent;   /* oracles_sdl_renderer_present_with's */
+
+unsigned oracles_sdl_renderer_recoveries(void) { return recoveries; }
+
+void oracles_sdl_renderer_present_with(bool (SDLCALL *present)(SDL_Renderer *renderer)) { render_present = present ? present : SDL_RenderPresent; }
+
+/* The GPU renderer's present mode, as SDL's GPU renderer chooses it (SDL_render_gpu.c, ChoosePresentMode): FIFO under
+ * vsync; without, MAILBOX, else IMMEDIATE, else FIFO all the same, which waits for the display. */
+static SDL_GPUPresentMode gpu_present_mode(SDL_Renderer *renderer, SDL_GPUDevice *device, SDL_Window *window)
+{
+    int vsync = 0;
+    SDL_GetRenderVSync(renderer, &vsync);
+    if (vsync) return SDL_GPU_PRESENTMODE_VSYNC;
+    if (SDL_WindowSupportsGPUPresentMode(device, window, SDL_GPU_PRESENTMODE_MAILBOX)) return SDL_GPU_PRESENTMODE_MAILBOX;
+    if (SDL_WindowSupportsGPUPresentMode(device, window, SDL_GPU_PRESENTMODE_IMMEDIATE)) return SDL_GPU_PRESENTMODE_IMMEDIATE;
+    return SDL_GPU_PRESENTMODE_VSYNC;
+}
+
+/* What a present does after swapchain_follow. */
+enum { FOLLOW_SKIP, FOLLOW_PRESENT, FOLLOW_REMAKE };
+
+#ifdef __ANDROID__
+/* SDL's Vulkan backend takes the window's new pixel size in a window event watch, called on the thread that sends the
+ * event, the activity's on Android, and asks there for a new swapchain; a swapchain being made meanwhile on the app's
+ * thread, at a present, takes the size before and clears that request as it ends (SDL_gpu_vulkan.c,
+ * VULKAN_INTERNAL_OnWindowResize and VULKAN_INTERNAL_CreateSwapchain).  The activity coming back through portrait (from
+ * Android's home screen or its file picker) sends two sizes a moment apart, the second while the swapchain of the first
+ * is made: the swapchain keeps the portrait size under the landscape window, SDL's GPU renderer drawing the landscape
+ * picture into it, its corner stretched over the screen, until the app goes to the background again.  Each size SDL
+ * sends is counted by an event watch, which SDL calls after its window event watches; a present that finds a new count
+ * has the swapchain made again first, on the app's thread, with the parameters it has (SDL_SetGPUSwapchainParameters
+ * makes it again even unchanged): the last size sent is the swapchain's.  The swapchain SDL would make at that present
+ * for the new size is this one, its request cleared.
+ * A swapchain refused before any went (the parameters "not supported", the old surface queried after Android took it
+ * away: SDL, which saw it lost at an acquire, makes it again with the swapchain at the present) is presented as it is
+ * and followed again at the next present; refused again, the renderer is made again, as for a lost surface
+ * (oracles_sdl_renderer_present).  One that cannot be made even once more leaves the window without a swapchain, which
+ * SDL's request, if cleared by the race, would not make again: the present is skipped and the renderer made again,
+ * and while the window is away every present is skipped until a swapchain is made.  Returns FOLLOW_PRESENT,
+ * FOLLOW_SKIP or FOLLOW_REMAKE (SDL's error saying why). */
+static SDL_AtomicInt sizes_sent;
+static int sizes_followed, sizes_watched;
+
+static bool SDLCALL size_sent(void *opaque, SDL_Event *e)
+{
+    (void)opaque;
+    if (e->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) SDL_AddAtomicInt(&sizes_sent, 1);
+    return true;
+}
+
+static int swapchain_refused(const char *error)
+{
+    return strstr(error, "Swapchain composition not supported!") || strstr(error, "Present mode not supported!")
+        || strstr(error, "Cannot set swapchain parameters on unclaimed window!");
+}
+
+static int swapchain_follow(SDL_Renderer *renderer)
+{
+    if (!sizes_watched) {
+        sizes_watched = SDL_AddEventWatch(size_sent, NULL);
+        sizes_followed = SDL_GetAtomicInt(&sizes_sent);
+        return FOLLOW_PRESENT;
+    }
+    const int sent = SDL_GetAtomicInt(&sizes_sent);
+    if (sent == sizes_followed) return FOLLOW_PRESENT;
+    SDL_Window *window = SDL_GetRenderWindow(renderer);
+    SDL_GPUDevice *device = is_gpu(renderer) ? SDL_GetGPURendererDevice(renderer) : NULL;
+    if (!window || !device) {
+        sizes_followed = sent;
+        return FOLLOW_PRESENT;
+    }
+    /* Followed once the window has its surface back; without a swapchain meanwhile, nothing is presented. */
+    if (oracles_sdl_window_away(window)) return follow_broken ? FOLLOW_SKIP : FOLLOW_PRESENT;
+    const uint64_t started = SDL_GetTicksNS();
+    const SDL_Colorspace colorspace = (SDL_Colorspace)SDL_GetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_OUTPUT_COLORSPACE_NUMBER, SDL_COLORSPACE_SRGB);
+    const SDL_GPUSwapchainComposition composition = colorspace == SDL_COLORSPACE_SRGB_LINEAR ? SDL_GPU_SWAPCHAINCOMPOSITION_HDR_EXTENDED_LINEAR
+        : colorspace == SDL_COLORSPACE_HDR10 ? SDL_GPU_SWAPCHAINCOMPOSITION_HDR10_ST2084 : SDL_GPU_SWAPCHAINCOMPOSITION_SDR;
+    int w = 0, h = 0;
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+    int made = SDL_SetGPUSwapchainParameters(device, window, composition, gpu_present_mode(renderer, device, window));
+    const int gone = !made && strstr(SDL_GetError(), "vkCreateSwapchainKHR") != NULL;   /* the old swapchain with it */
+    if (gone) {
+        /* The swapchain it replaced went with the failure: once more without it, which a window that the old one still
+         * held (VK_ERROR_NATIVE_WINDOW_IN_USE_KHR, the window's surface made again by Android) takes. */
+        fprintf(stderr, "oracles: the GPU renderer's swapchain not made again (%s): once more\n", SDL_GetError());
+        SDL_ClearError();
+        made = SDL_SetGPUSwapchainParameters(device, window, composition, gpu_present_mode(renderer, device, window));
+    }
+    const int refused = !made && !gone && !follow_broken && swapchain_refused(SDL_GetError());
+    fprintf(stderr, "oracles: the window's size changed (%dx%d pixels): the GPU renderer's swapchain %s%s%s, %.2f ms\n", w, h,
+            made ? "made again" : "not made again: ", made ? "" : SDL_GetError(),
+            refused && follow_refused == 0 ? ", presented as it is and followed again at the next present" : "",
+            (double)(SDL_GetTicksNS() - started) / 1e6);
+    if (made) {
+        sizes_followed = sent;
+        follow_refused = follow_broken = 0;
+        return FOLLOW_PRESENT;
+    }
+    if (refused && follow_refused++ == 0) {
+        SDL_ClearError();
+        return FOLLOW_PRESENT;
+    }
+    if (!refused) follow_broken = 1;
+    return FOLLOW_REMAKE;
+}
+#endif
+
+/* SDL's GPU renderer keeps the Vulkan surface it made for the window until it goes.  Android destroys the window's
+ * surface when the app goes to the background and makes another when it comes back: a present then finds the old one
+ * lost, which SDL makes again when the swapchain's image is asked for (SDL_gpu_vulkan.c, VULKAN_INTERNAL_AcquireSwapchainTexture),
+ * but not when the window changed size meanwhile (the activity turned to portrait for Android's file picker, and back):
+ * the swapchain is made again first, on the lost surface, which fails at every present after, the window black for
+ * good.  A present that leaves that error makes the renderer again, with the filter and vsync it had; after three made
+ * again in a row that lose it still, the GPU renderer is given up for the run, as one that cannot be made
+ * (oracles_sdl_filters_refused): the usual renderer, the shader filters greyed.  The app gone to the background
+ * between the two, the usual renderer made instead says nothing of the device: the GPU one is tried again at the next
+ * present the window has its surface back for.
+ * SDL's error is read for this present alone, cleared before it, and the error before it set again when it leaves none
+ * (oracles_sdl_filter_check reads what the draws before it left). */
+SDL_Renderer *oracles_sdl_renderer_present(SDL_Renderer *renderer)
+{
+    if (!renderer) return NULL;
+    char before[256];
+    snprintf(before, sizeof before, "%s", SDL_GetError());
+    SDL_ClearError();
+#ifdef __ANDROID__
+    const int follow = swapchain_follow(renderer);
+#else
+    const int follow = FOLLOW_PRESENT;
+#endif
+    if (follow == FOLLOW_PRESENT) render_present(renderer);
+    const int followed = follow != FOLLOW_REMAKE;
+    const int lost = is_gpu(renderer) && (!followed || oracles_sdl_surface_lost(SDL_GetError()));
+    const int again = gpu_again && !is_gpu(renderer) && oracles_sdl_gpu_wanted();
+    if (!lost && !again) {
+        if (!SDL_GetError()[0] && before[0]) SDL_SetError("%s", before);
+        lost_in_a_row = 0;
+        gpu_again = gpu_again && oracles_sdl_gpu_wanted();
+        return renderer;
+    }
+    SDL_Window *window = SDL_GetRenderWindow(renderer);
+    if (!window || oracles_sdl_window_away(window)) return renderer;   /* made again once the window has its surface back */
+    const uint64_t started = SDL_GetTicksNS();
+    char why[200];
+    if (!followed) snprintf(why, sizeof why, "the swapchain was not made again for the window's new size (%s)", SDL_GetError());
+    else if (lost) snprintf(why, sizeof why, "the window's surface was lost (%s)", SDL_GetError());
+    else snprintf(why, sizeof why, "the usual renderer was made while the app went away");
+    if (lost && ++lost_in_a_row > 3) {
+        fprintf(stderr, "oracles: the window's surface lost again after %d GPU renderers made again: the usual renderer instead\n", lost_in_a_row - 1);
+        oracles_sdl_filters_refused();
+    }
+    int vsync;
+    renderer = make_again(renderer, &window, &vsync);
+    if (renderer && vsync) SDL_SetRenderVSync(renderer, vsync);
+    if (renderer) tell_renderer(renderer);
+    recoveries++;
+    gpu_again = renderer && !is_gpu(renderer) && oracles_sdl_gpu_wanted() && oracles_sdl_window_away(window);
+    if (renderer) SDL_ClearError();   /* else SDL's reason, for the renderer's users */
+    char name[96];
+    oracles_sdl_renderer_describe(renderer, name, sizeof name);
+    fprintf(stderr, "oracles: %s: renderer %s made again, the filter %s %s%s, %.2f ms\n", why, name, oracles_sdl_filter_name(),
+            drawable(chosen, renderer) ? "kept" : "not drawn", gpu_again ? ", the GPU renderer tried again at the window's return" : "",
+            (double)(SDL_GetTicksNS() - started) / 1e6);
+    return renderer;
+}
+
 /* ORACLES_SDL_LOG: SDL's own messages on the standard error with ours (Windows sends them to the debugger only), the
  * GPU's at every priority; with SDL_RENDER_GPU_DEBUG=1, the GPU backend's errors are written too. */
 static void SDLCALL log_line(void *opaque, int category, SDL_LogPriority priority, const char *message)
@@ -413,18 +604,17 @@ void oracles_sdl_log_start(void)
     SDL_SetLogPriority(SDL_LOG_CATEGORY_RENDER, SDL_LOG_PRIORITY_VERBOSE);
 }
 
-/* The GPU renderer's present mode, as SDL's GPU renderer chooses it: FIFO under vsync; without, MAILBOX, else
- * IMMEDIATE, else FIFO all the same, which waits for the display. */
 static const char *present_mode(SDL_Renderer *renderer, SDL_GPUDevice *device)
 {
     SDL_Window *window = SDL_GetRenderWindow(renderer);
     int vsync = 0;
     SDL_GetRenderVSync(renderer, &vsync);
     if (!window) return "offscreen";
-    if (vsync) return "fifo";
-    if (SDL_WindowSupportsGPUPresentMode(device, window, SDL_GPU_PRESENTMODE_MAILBOX)) return "mailbox";
-    if (SDL_WindowSupportsGPUPresentMode(device, window, SDL_GPU_PRESENTMODE_IMMEDIATE)) return "immediate";
-    return "fifo, the window having neither mailbox nor immediate";
+    switch (gpu_present_mode(renderer, device, window)) {
+        case SDL_GPU_PRESENTMODE_MAILBOX: return "mailbox";
+        case SDL_GPU_PRESENTMODE_IMMEDIATE: return "immediate";
+        default: return vsync ? "fifo" : "fifo, the window having neither mailbox nor immediate";
+    }
 }
 
 void oracles_sdl_renderer_describe(SDL_Renderer *renderer, char *out, size_t capacity)
