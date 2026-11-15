@@ -1,6 +1,6 @@
 A faithful, moddable port of Oracle of Ages and Oracle of Seasons for Windows, macOS, Linux and Android: the original picture, or a widescreen view with the rooms around Link, at three distances, Near, Medium and Far, in the shape of your screen, 16:9 or 4:3, with picture filters if you want them; item hotkeys and other gameplay options, languages, RetroAchievements, Lua mods and fan games from their BPS patch; on Windows, and on Linux with the `.tar.gz`, a portable mode to play from a USB stick. Your own ROM runs untouched in an emulator core, and Display › Quality sets the view and the core for your device in one choice, from Low to Max.
 
-The game needs your own ROM of Oracle of Ages or Oracle of Seasons (US), and a fan game its BPS patch (Oracles Combined, the two European ROMs as well); none is included.
+The game needs your own ROM of Oracle of Ages or Oracle of Seasons (US); a language its edition (the European ROM, the Japanese ROM, or Kaxus's Polish ROM or patch); and a fan game its BPS patch (Oracles Combined, the two European ROMs as well); none is included.
 
 ## Installing
 

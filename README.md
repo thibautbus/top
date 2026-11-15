@@ -4,7 +4,7 @@
 
 **Play Oracle of Ages and Oracle of Seasons in widescreen, on Windows, macOS, Linux and Android.**
 
-Your own ROM, untouched · Item hotkeys · European languages · RetroAchievements · Lua mods · Fan games
+Your own ROM, untouched · Item hotkeys · Languages · RetroAchievements · Lua mods · Fan games
 
 [![Latest release](https://img.shields.io/github/v/release/thibautbus/top)](https://github.com/thibautbus/top/releases) [![Downloads](https://img.shields.io/github/downloads/thibautbus/top/total)](https://github.com/thibautbus/top/releases) [![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg)](#contributors-)
 
@@ -22,7 +22,7 @@ The Oracles Project runs your own ROM of Oracle of Ages or Oracle of Seasons, un
 - **Easier to play**: item hotkeys (four keys that use or equip an item without the menu), swimming with a button held rather than tapped, continuous transitions (Link keeps walking as the screen scrolls), and cheats if you want them (no damage, ammo and rupees that never run out).
 - **Easier to read**: a compact text whose letters take their own width, a wider text box, a larger text for small screens, and instant text.
 - **[Filters](docs/PLAYING.md#display--picture)**: Scanlines, CRT, LCD (the grid of a Game Boy screen), Smooth, xBR, HQ2x or OmniScale over the game's picture, with a preview as you choose.
-- **Languages**: French, German, Italian, Spanish and the European English, taken from your own European ROM.
+- **[Languages](docs/PLAYING.md#languages)**: French, German, Italian, Spanish and the European English, taken from your own European ROM; Japanese, from your own Japanese ROM; and Polish, Kaxus's fan translation, from your Polish ROM or his patch.
 - **[RetroAchievements](docs/PLAYING.md#retroachievements)**, if you want them: log in with your account for achievements on Ages and Seasons' original ROMs, in casual mode, savestates included.
 - **Saves**: import a save from another emulator or from the European game; on Android, export a copy to play it elsewhere.
 - **[Portable mode](docs/PLAYING.md#portable-mode)**: on Windows, and on Linux with the `.tar.gz`, the settings and mods stay in the game folder, to play from a USB stick or keep several copies side by side.
@@ -48,7 +48,7 @@ The project is also listed on:
 - [pcport.org](https://pcport.org/en/game/the-legend-of-zelda-oracle-of-ages-oracle-of-seasons-pc-port)
 - [playported.com](https://playported.com/ports/879-the-legend-of-zelda-oracle-of-ages/)
 - [quiverlauncher.com](https://quiverlauncher.com/apps/the-legend-of-zelda-oracle-of-seasons-oracle-of-ages-the-oracles-project)
-  > *"Beautiful in-app menus allow for both base games to be played, as well as multiple custom romhacks and mod management. The full screen world is a really nice touch and works great during movement. Its everything I could have wanted as a 7yo kid."* (a player's report)
+  > *"Beautiful in-app menus allow for both base games to be played, as well as multiple [fan games] and mod management. The full screen world is a really nice touch and works great during movement. Its everything I could have wanted as a 7yo kid."* (a player's report)
 - [recomp.center](https://recomp.center/projeto/github-repository-1391290392)
 - [recomp.fyi](https://recomp.fyi/game/the-legend-of-zelda-oracle-of-ages-seasons-gbc)
 - [recomplauncher.com](https://recomplauncher.com/game/top)
@@ -68,7 +68,7 @@ The [latest release](https://github.com/thibautbus/top/releases/latest) has a fi
 
 ## What you need
 
-Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognizes by its SHA-1. The European ROM is needed only for the languages; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on (Oracles Combined, the two European ROMs). A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
+Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, which the port recognizes by its SHA-1. The other editions are needed only for the languages: the European ROM, the Japanese ROM, or, for Polish, Kaxus's Polish ROM or patch; a fan game needs its BPS patch, from its authors, as they distribute it, and the US ROM it is built on (Oracles Combined, the two European ROMs). A `.zip` holding the ROM or the patch works too; 7z and RAR archives do not. Any other ROM of an Oracle plays in Faithful only.
 
 | File you provide | Expected SHA-1 |
 |---|---|
@@ -76,10 +76,14 @@ Your own ROM of Oracle of Ages or Oracle of Seasons, from the US cartridge, whic
 | Oracle of Seasons (US) | `ba1268290fb2b1b70505d2d7b5825fc8a4816a4b` |
 | Oracle of Ages (EU), for the languages | `9f2dff3c46406839f839a8d535353dfc1e3e8670` |
 | Oracle of Seasons (EU), for the languages | `360b9408e569ba826212eac1ebea1b09573cb48c` |
+| Oracle of Ages (JP), for Japanese | `596aa066ccee9fae71643576f7526baa22d26d6d` |
+| Oracle of Seasons (JP), for Japanese | `08bf49d7e225c695f64d38131cb720decb84b663` |
+| Kaxus's Polish translation 1.0 patch (`.bps`), on Ages (US), or the patched ROM | `5173a7aa608597ae7d5ac054d610914d0a292c0d` |
+| Kaxus's Polish translation 1.0 patch (`.bps`), on Seasons (US), or the patched ROM | `b8cac23dd9e7129eafb66cffebd06e718f81213d` |
 | Gifts of Kinomi 1.1.2 patch (`.bps`), on Ages (US) | `bb0837fd2c62a8b3ea05da22ed6049ab57cfa1e2` |
 | Moonrise Regalia 1.0.6 patch (`.bps`), on Ages (US) | `fcef50de31ce3e57d3e23cd846c0749e42098e08` |
+| Oracles Combined 1.5 patch (`.bps`, one per language), on both Ages (EU) and Seasons (EU) | in [Oracles Combined](docs/PLAYING.md#oracles-combined) |
 | Temple of Seasons 1.073 patch (`.bps`), on Seasons (US) | `0646e0a8fd6830198e453fdfeeea4a0a7c01cdf4` |
-| Oracles Combined 1.5 patch (`.bps`, one per language), on Ages (EU) and Seasons (EU) joined | in [Oracles Combined](docs/PLAYING.md#oracles-combined) |
 
 ## Getting started
 
@@ -94,7 +98,7 @@ In the game, the arrows move Link, X is A, Z is B, Enter is Start and Backspace 
 
 ## FAQ
 
-**Which ROM do I need?** Your own dump of the US cartridge of Oracle of Ages or Oracle of Seasons, which the port checks by its SHA-1 ([What you need](#what-you-need)); a `.zip` holding it works too, 7z and RAR do not. The European ROM is needed only for the languages, and is chosen on the game's **Cartridge** page beside the US one. Any other ROM of an Oracle plays in Faithful only.
+**Which ROM do I need?** Your own dump of the US cartridge of Oracle of Ages or Oracle of Seasons, which the port checks by its SHA-1 ([What you need](#what-you-need)); a `.zip` holding it works too, 7z and RAR do not. A language other than English (US) needs its edition besides the US ROM: the European ROM for English (EU), French, German, Italian and Spanish, the Japanese ROM for Japanese, Kaxus's Polish ROM or patch for Polish, each chosen in the game's **Cartridge › Editions**. Any other ROM of an Oracle plays in Faithful only.
 
 **Which device can run it?** On a computer, **Display › Quality** starts on Max, the farthest view on the accurate core; on Android, on High or Medium, by the device's processor and memory. On any system, after a game that ran slowly, the home screen suggests a lighter quality. On a Steam Deck, run the Linux AppImage, added to Steam as a non-Steam game so that the Deck's controls reach the port.
 
@@ -134,7 +138,13 @@ This repository was developed with AI assistance. Every change, whoever writes i
 - [oracles-disasm](https://github.com/Stewmath/oracles-disasm), the disassembly of both games by Stewmath and its contributors: the addresses and symbol names the host reads and hooks are generated from its symbol files.
 - [SameBoy](https://sameboy.github.io/) by Lior Halphon and its contributors: the emulator core the game runs in, unmodified, the accurate one.
 - [mGBA](https://mgba.io/) by Vicki Pfau and its contributors: the lighter core the game can run in, for small devices.
-- The fan games the port recognizes, and their authors: Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro; Moonrise Regalia, by PontiusStone; Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro; Oracles Combined, by soaresden, continuing Crossworld, by vinheim3.
+- The fan games the port recognizes, and their authors:
+  - Gifts of Kinomi, by ZerotoKoops, Stewmath, Gamma and Ralfaro
+  - Moonrise Regalia, by PontiusStone
+  - Oracles Combined, by soaresden, continuing Crossworld, by vinheim3
+  - Temple of Seasons, by Jay (like the bird, not the letter) and Ralfaro
+- The fan translations the port recognizes, and their authors:
+  - Polish, of Ages and Seasons, by Kaxus
 
 ## License
 
@@ -147,7 +157,7 @@ The port is under the MIT license ([`LICENSE`](LICENSE)). It vendors or embeds, 
 - [SDL 3](https://libsdl.org/) (zlib), built from the release pinned in `config/sdl3.json`;
 - [stb_truetype](third_party/stb/) (MIT or public domain) and [NanoSVG](third_party/nanosvg/) (zlib), the launcher's text and motifs;
 - [rcheevos](third_party/rcheevos/) (MIT), for RetroAchievements;
-- the fonts [Marcellus](third_party/fonts/marcellus/), [Alegreya Sans](third_party/fonts/alegreya-sans/) and [JetBrains Mono](third_party/fonts/jetbrains-mono/) (SIL Open Font License);
+- the fonts [Marcellus](third_party/fonts/marcellus/), [Alegreya Sans](third_party/fonts/alegreya-sans/), [JetBrains Mono](third_party/fonts/jetbrains-mono/) and a subset of [Noto Sans CJK](third_party/fonts/noto-sans-cjk/) (SIL Open Font License);
 - the Gradle wrapper of the Android build (Apache 2.0).
 
 Oracle of Ages and Oracle of Seasons are Nintendo's; this project is not affiliated with Nintendo. The fan games are their authors'.

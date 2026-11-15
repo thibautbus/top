@@ -23,6 +23,14 @@ typedef struct OraclesEnhancedCheck OraclesEnhancedCheck;
  * host frame. */
 OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGuest *guest,
                                                    const uint8_t *rom, size_t rom_size, const char *dir, unsigned ghost_budget);
+/* The guest went to the other half of an image of two games: what the check remembers of the frames before forgotten. */
+void oracles_enhanced_check_half_switched(OraclesEnhancedCheck *check, const uint8_t *rom, size_t rom_size);
+/* A frame the game spends between two halves, which the check's frame's end does not see: its surface, as composed,
+ * recorded or compared with --enhanced-surfaces-out and -against as the others, with the floating panels as the
+ * presenter lays them over it; its hash taken as the check's frame's end takes it (oracles_enhanced_check_last_hash). */
+uint64_t oracles_enhanced_check_held_frame(OraclesEnhancedCheck *check, const uint32_t *surface, uint32_t frame);
+/* The hash of the surface last composed by the check's frame's end. */
+uint64_t oracles_enhanced_check_last_hash(const OraclesEnhancedCheck *check);
 /* At `frame`, the core's state and the view's host state are saved; 120
  * frames later both are loaded back. Outside a scroll, neighbours are
  * compared with the saved topology. If the save was during a scroll, the
@@ -30,14 +38,6 @@ OraclesEnhancedCheck *oracles_enhanced_check_start(OraclesCore *core, OraclesGue
  * on the destination identity captured at F. In both cases the post-load
  * wait is 300 frames (the route diverges after the load, so the run hash is
  * not the plain one). */
-/* The guest went to the other half of an image of two games: what the check remembers of the frames before forgotten. */
-void oracles_enhanced_check_half_switched(OraclesEnhancedCheck *check, const uint8_t *rom, size_t rom_size);
-/* The hash of the surface last composed by the check's frame's end. */
-/* A frame the game spends between two halves, which the check's frame's end does not see: its surface, as composed,
- * recorded or compared with --enhanced-surfaces-out and -against as the others, with the floating panels as the
- * presenter lays them over it; its hash taken as the check's frame's end takes it (oracles_enhanced_check_last_hash). */
-uint64_t oracles_enhanced_check_held_frame(OraclesEnhancedCheck *check, const uint32_t *surface, uint32_t frame);
-uint64_t oracles_enhanced_check_last_hash(const OraclesEnhancedCheck *check);
 void oracles_enhanced_check_reload_at(OraclesEnhancedCheck *check, uint32_t frame);
 void oracles_enhanced_check_hotbar_forget_at(OraclesEnhancedCheck *check, uint32_t frame);
 /* The state loaded at the frame it was saved, not 120 frames later: the game stays on the route, frame for frame as

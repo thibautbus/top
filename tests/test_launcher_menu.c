@@ -2,7 +2,7 @@
  * controllers): the left stick's click, Guide, or the button or trigger menu_pad= names ask for the pause menu, never
  * the game, and are Back on the home screen and in the pause, where they give up a capture; the device an event comes
  * from, which the key hints follow, kept from the home screen to the pause and back; the toast over the first game
- * started with a controller, shown once it was drawn. */
+ * started with a controller, shown once it was drawn; the game's image under the darkening on every page of the pause. */
 #include "backends.h"
 #include "filter_preview.h"
 #include "home_input.h"
@@ -758,6 +758,73 @@ static void filter_previews(SDL_Renderer *renderer)
     oracles_ui_draw_destroy(draw);
 }
 
+/* The game's image under every page of the pause, as under its menu: all the session draws of it (HUD Floating's
+ * panels in the window's corners included) under the darkening, a page's text over it.  The image white, then black,
+ * over the whole drawing, drawn once a paint, its top left corner read where no page writes: lighter for the white
+ * image, darkened, in 16:9 no less on every page than on the menu, in 4:3 more by the pages' further darkening. */
+static int image_level, image_calls;
+
+static int flat_image(void *opaque, SDL_Renderer *renderer, const SDL_FRect *image)
+{
+    (void)opaque;
+    image_calls++;
+    SDL_SetRenderDrawColor(renderer, (Uint8)image_level, (Uint8)image_level, (Uint8)image_level, 255);
+    return SDL_RenderFillRect(renderer, image);
+}
+
+static int corner_under_pause(OraclesUiDraw *draw, SDL_Renderer *renderer, SDL_Texture *frame, OraclesHomeNav *nav, int screen, int picture_page, int w, int h,
+                              int level)
+{
+    nav->screen = screen;
+    nav->picture_page = picture_page;
+    nav->row = 0;
+    OraclesPauseSession session;
+    memset(&session, 0, sizeof session);
+    session.game_image = flat_image;
+    OraclesUiHome view;
+    oracles_ui_home_start(&view, nav);
+    image_level = level;
+    image_calls = 0;
+    oracles_pause_paint(draw, renderer, frame, w / 2, h / 2, 0, w, h, &view, nav, 0.0, &session);
+    CHECK(image_calls == 1);
+    const SDL_Rect corner = { 4, 4, 1, 1 };
+    SDL_Surface *read = SDL_RenderReadPixels(renderer, &corner);
+    Uint8 r = 0, g = 0, b = 0, a = 0;
+    if (!read || !SDL_ReadSurfacePixel(read, 0, 0, &r, &g, &b, &a)) CHECK(0);
+    SDL_DestroySurface(read);
+    return r;
+}
+
+static void pages_over_the_image(SDL_Renderer *renderer)
+{
+    OraclesUiDraw *draw = oracles_ui_draw_create(renderer);
+    SDL_Texture *frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 1, 1);
+    if (!draw || !frame) { CHECK(0); return; }
+    OraclesHomeNav nav;
+    oracles_home_init(&nav);
+    nav.games[0].usable = 1;
+    nav.games[0].rom = ORACLES_ROM_ORIGINAL;
+    nav.display.profile = nav.playing = ORACLES_PROFILE_ENHANCED;
+    nav.display.hud = ORACLES_DISPLAY_HUD_FLOATING;
+    nav.in_game = 1;
+    const int pages[4][2] = { { ORACLES_SCREEN_DISPLAY, 0 }, { ORACLES_SCREEN_DISPLAY, 1 }, { ORACLES_SCREEN_CONTROLS, 0 }, { ORACLES_SCREEN_CHEATS, 0 } };
+    for (int layout = 0; layout < 2; layout++) {
+        nav.layout = layout ? ORACLES_UI_LAYOUT_4_3 : ORACLES_UI_LAYOUT_16_9;
+        const int w = layout ? 960 : 1280, h = 720;
+        const int menu = corner_under_pause(draw, renderer, frame, &nav, ORACLES_SCREEN_PAUSE, 0, w, h, 255);
+        CHECK(menu > 16 && menu < 200);
+        CHECK(menu > corner_under_pause(draw, renderer, frame, &nav, ORACLES_SCREEN_PAUSE, 0, w, h, 0));
+        for (int p = 0; p < 4; p++) {
+            const int page = corner_under_pause(draw, renderer, frame, &nav, pages[p][0], pages[p][1], w, h, 255);
+            CHECK(page > corner_under_pause(draw, renderer, frame, &nav, pages[p][0], pages[p][1], w, h, 0));
+            if (layout) CHECK(page < menu);
+            else CHECK(page <= menu);
+        }
+    }
+    SDL_DestroyTexture(frame);
+    oracles_ui_draw_destroy(draw);
+}
+
 /* Display in 4:3 at 640x480 with HUD on Floating, taller than its room: at the top and scrolled to the end, the pointer
  * finds a row only where it is drawn, in its room; under the room (the hints), no row; the wheel's and the drag's scroll
  * kept within the page's ends. */
@@ -845,6 +912,7 @@ int main(void)
     device_kept(renderer);
     reminder(renderer);
     filter_previews(renderer);
+    pages_over_the_image(renderer);
     filter_from_pause(0);
     filter_from_pause(1);
     SDL_DestroyRenderer(renderer);

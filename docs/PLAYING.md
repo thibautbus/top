@@ -28,7 +28,7 @@ The manual of The Oracles Project: what each page of the launcher does, and how 
 - Any other ROM of an Oracle plays too, in Faithful only: without the wide view and without the gameplay options.
 - For Oracles Combined, both games in one, its release's BPS patch in your language and the two European ROMs ([Oracles Combined](#oracles-combined)).
 - A `.zip` that holds the ROM works as well as the ROM itself. 7z and RAR archives are not read.
-- For the languages, the European ROM of the same game ([Languages](#languages)).
+- For the languages, the European ROM of the same game; for Japanese its Japanese ROM; for Polish the ROM of Kaxus's fan translation or his patch ([Languages](#languages)).
 - For a fan game, its BPS patch in the version listed under [Fan games](#fan-games), and the ROM of the Oracle it is built on.
 
 ## Getting started
@@ -62,12 +62,22 @@ The home screen's bottom left has a **Settings** button, beside the version (**v
 | --- | --- | --- |
 | **ROM** (a fan game: **Base ROM**) | **Choose ROM…** | The game's ROM, a `.zip` holding it too, or a file dropped on the window. Its status: an original ROM plays every profile, an unrecognized one Faithful only, a refused one says why. |
 | **Patch** (fan games) | **Choose patch…** | The fan game's BPS patch, or a `.zip` holding it. |
-| **European ROM** (Ages, Seasons) | **Choose…**, then **Change…** and **Remove** | Optional: the European ROM of the same game, which the languages come from. |
-| **Language** (Ages, Seasons) | English (US), English (EU), and French, German, Italian and Spanish, each named in its own language | The text the game plays in. English (US) is the cartridge's; the others need the European ROM. |
 | **Save** | **Open folder** and **Import save…**; on Android **Export save…** and **Import save…** | The game's save and its date ([Saves](#saves)). |
+| **Editions** (Ages, Seasons) | opens **Cartridge › Editions** | Other editions of the game, and fan translations, which the languages come from; beside it, those recognized ("European, Japanese", or "None"). |
+| **Language** (Ages, Seasons) | English (US), English (EU), French, German, Italian, Spanish, Japanese and Polish, each named in its own language | The text the game plays in. English (US) is the cartridge's; the others need their edition ([Languages](#languages)). |
 | **Play** | | Starts the game. |
 
-**Choose ROM…** opens the system's file dialog: on Linux the desktop's, or zenity's where it is installed. Without one, the launcher asks you to drop the file on the window. Dropping a file works everywhere: on a game's Cartridge page it is that game's ROM, or the patch on a fan game's page, and on the home screen the launcher recognizes the game and files the ROM under it. A Japanese ROM, a Polish ROM or Kaxus's patch, dropped anywhere, goes to its game's **Cartridge › Editions**, never in place of its ROM.
+**Choose ROM…** opens the system's file dialog: on Linux the desktop's, or zenity's where it is installed. Without one, the launcher asks you to drop the file on the window. Dropping a file works everywhere: on a game's Cartridge page it is that game's ROM, or the patch on a fan game's page, and on the home screen the launcher recognizes the game and files the ROM under it. A Japanese ROM, a Polish ROM or Kaxus's patch, dropped anywhere or chosen with **Choose ROM…**, goes to its game's **Cartridge › Editions**, never in place of its ROM, and the toast says when the US ROM it plays with is still to choose; a European ROM goes to its own game too.
+
+**Cartridge › Editions** has a row for each source of a language, each with **Choose…**, then **Change…** and **Remove**, and its status:
+
+| Row | What it takes |
+| --- | --- |
+| **European ROM** | The European ROM of the same game: English (EU), French, German, Italian and Spanish. |
+| **Japanese ROM** | The Japanese ROM of the same game: Japanese, 日本語. |
+| **Polish ROM or patch** | Kaxus's Polish fan translation: the ROM his patch makes, or his `.bps` patch, or the `.zip` he distributes it in, which the port applies to your US ROM. |
+
+A file that is not the game's says so ("Not the Japanese ROM of Oracle of Ages"); removing a source, or choosing another file, sets a language it gave back to English (US). **Back** returns to Cartridge, on Editions. The fan games have no Editions row.
 
 A ROM, a European ROM or a patch may come as a `.zip`. The zip must hold one ROM (a `.gbc` or `.gb` file) or one patch (a `.bps` file); its other files, such as a readme, are left aside. A zip of several ROMs, an encrypted zip, or a 7z or RAR archive is refused, and the page says why. The save of a zipped ROM goes beside the zip, under its name.
 
@@ -83,7 +93,8 @@ The launcher remembers each game's ROM. A refused ROM shows its reason and is no
 | **Quality** | Low, Medium, High, Max; Custom when set by hand | the device's | Sets **View**, **Core** and **Neighbor workers** in one choice: Low is Near on Fast, Medium is Medium on Fast, High is Far on Fast, Max is Far on Accurate with two workers. | Enhanced | grayed |
 | **Window** | 2x, 3x, 4x, Fullscreen | Fullscreen | The window's size, a whole multiple of the game's picture so that pixels stay sharp. Grayed where the screen holds one size only, and on Android, which plays fullscreen. | both | at once; smaller windows from the home screen only |
 | **View** | Near, Medium, Far | by Quality | How much of the world the wide view shows; farther asks more of the device. | Enhanced | grayed |
-| **HUD** | Original, Full width, Wide layout | Full width | The status bar: as the game draws it between two dark bands, its color across the whole width, or laid out with the hearts on the left and the items on the right. | Enhanced | at once |
+| **HUD** | Original, Full width, Wide layout, Floating | Full width | The status bar: as the game draws it between two dark bands, its color across the whole width, laid out with the hearts on the left and the items on the right, or no bar, its parts floating over the world ([HUD](#hud)). | Enhanced | at once |
+| **Panels** | Bar color, Neutral | Bar color | With Floating only: the panels in the bar's own color with an edge, or a light gray. | Enhanced | at once |
 | **Text** | › | | Opens [Display › Text](#display--text). | | |
 | **Picture** | › | | Opens [Display › Picture](#display--picture). | | |
 | **Advanced** | › | | Opens [Display › Advanced](#display--advanced). | | |
@@ -128,15 +139,15 @@ With a **Screen margin**, the size is chosen for the part of the screen the marg
 
 ### HUD
 
-**HUD** draws the game's status bar in one of three ways, in Enhanced:
+**HUD** draws the game's status bar in one of four ways, in Enhanced (named Original, Full, Wide and Floating on a wide screen):
 
 - **Original**: as the game draws it, 160 pixels wide, between two dark bands;
 - **Full width**, the default: across the whole view, the bands beside it taking the bar's own color as the game changes it;
 - **Wide layout**: across the whole view, the hearts and the money at the left, the items of B and A at the right, and the item hotkeys' slots just before B. The hearts take one row where the view is wide enough (Medium and Far), the game's two rows in Near, and in Medium on a 4:3 screen while the hotkeys' hotbar shows. In Near on a 4:3 screen the slots do not fit and are not drawn; the hotkeys work all the same.
 
-The bar never covers the world, and the game's menus and cutscenes keep it centered. A change applies at once, from the pause too.
-- **Floating**: no bar. The world fills the screen, and the hearts, the rupees and the items float over it in rounded, see-through panels drawn from the game's own pixels: the hearts at the top left, the rupees at the top right, B and A at the bottom left, or the item hotkeys' tiles with them when the hotkeys are on: a diamond like a controller's buttons when a controller was connected as the game started (a handheld's own controls count) or your last item key was on one, or three rows of two keys of the keyboard (Q W, A S, then B and A, with the default keys) when your last item key was on the keyboard or no controller was connected at the start. **Panels**, under HUD while Floating is chosen, colors them: **Bar color**, the bar's own color with an edge, or **Neutral**, a light gray. The panels keep clear of the touch controls on Android, and the Display › Text preview shows them over the whole world.
 - **Floating**: no bar. The world fills the screen, and the hearts, the rupees and the items float over it in rounded, see-through panels drawn from the game's own pixels: the hearts at the top left, the rupees at the top right, B and A at the bottom left, or the item hotkeys' tiles with them when the hotkeys are on: a diamond like a controller's buttons when a controller was connected as the game started (a handheld's own controls count) or your last item key was on one, or three rows of two keys of the keyboard (Q W, A S, then B and A, with the default keys) when your last item key was on the keyboard or no controller was connected at the start. **Panels**, under HUD while Floating is chosen, colors them: **Bar color**, the bar's own color with an edge, or **Neutral**, a light gray. In the Near view every panel, the hotkeys' tiles included, is drawn at half the game's scale, crisp under any filter, so that they all fit; on a screen too small to show Near at twice its size, B and A stand there alone. With Android's touch controls shown, B and A stand alone under the hearts and the rupees left of the pause button, clear of the controls. The season's or the era's sign the game shows at the top left on entering an area (Seasons' season, Ages' present or past) stands in front of the panels, as it stands below the bar in the game. The Display › Text preview shows the panels over the whole world, with B and A alone.
+
+Except with Floating, the bar never covers the world, and the game's menus and cutscenes keep it centered. A change applies at once, from the pause too, Panels' as well.
 
 ### The camera
 
@@ -171,7 +182,7 @@ Each option is detailed in [`REFERENCE.md`](REFERENCE.md#the-compact-text): the 
 | **Menus & scenes** | View, Large | Large on Android, View elsewhere | Large: the game's menus, map, cutscenes and file screen alone, at their own largest scale, easier to read on a small screen. View: at the view's scale. | Enhanced | at once |
 | **Unvisited rooms** | Shown, Dungeons, Hidden | Dungeons | Dungeons: in a dungeon, only the room Link is in shows, as in the original game; outside, every room around him. Hidden: the same in dungeons, and outside the rooms he has never entered stay dark, as on the game's map. Shown: every room around him. | Enhanced | when the game resumes |
 
-**Fill** applies in fullscreen only, which Android always is; in a window, the game keeps its whole steps. While **Filter** has the focus, a preview shows the choice: from the home screen, the last picture of the last game you played (before any game, a sample picture), from the pause, your game as it resumes. The filter touches the game's picture only, never the launcher's menus or the larger text box of **Text size**. Smooth works everywhere; the other filters need a graphics chip that runs them (Vulkan, or Metal on a Mac): where it cannot, they are grayed, "Not available on this device.". They also need room to draw within each pixel of the game: under twice the game's size (three times for CRT and LCD) they are grayed, "Needs a larger picture: try a nearer view or Faithful.". A filter you chose stays chosen when the picture becomes too small for it, as when you switch to a farther view: the game is drawn without it until the picture is large enough again. With the Smooth camera, Link still glides under every filter. **Screen margin** is for a screen whose edges hide part of the picture ([Troubleshooting](#troubleshooting)). **Far size** shows only on a screen where Fitted and Fixed differ, its note giving both sizes.
+**Fill** applies in fullscreen only, which Android always is; in a window, the game keeps its whole steps. While **Filter** has the focus, a preview shows the choice: from the home screen, the last picture of the last game you played (before any game, a sample picture), from the pause, your game as it resumes. The filter touches the game's picture only, never the launcher's menus or the larger text box of **Text size**. Smooth works everywhere; the other filters need a graphics chip that runs them (Vulkan, on Android too, or Metal on a Mac): where it cannot, they are grayed, "Not available on this device.". They also need room to draw within each pixel of the game: under twice the game's size (three times for CRT and LCD) they are grayed, "Needs a larger picture: try a nearer view or Faithful.". A filter you chose stays chosen when the picture becomes too small for it, as when you switch to a farther view: the game is drawn without it until the picture is large enough again. With the Smooth camera, Link still glides under every filter. **Screen margin** is for a screen whose edges hide part of the picture ([Troubleshooting](#troubleshooting)). **Far size** shows only on a screen where Fitted and Fixed differ, its note giving both sizes.
 
 ### Unvisited rooms
 
@@ -267,7 +278,7 @@ With **Controls › Item hotkeys** on, a slot's key is one more item button: its
 
 Taking an item into a slot, and equipping one in that other mode, plays the game's own equip sound, as the inventory does. Using an item through its key makes no such sound.
 
-In Enhanced, a hotbar beside the status bar shows the four slots: each item's icon, from the start of play, its key and the button it is on. In Medium and Far each slot looks like the game's own B and A, the key's letter then the item between brackets, drawn where B and A draw it with its count or level as they show it (bombs and seeds counted, a sword's "L-3") ("LB" shows a big L with a small B under it, which the button's badge replaces while the item is on B or A); in Near it is more compact. An empty slot has dotted brackets or frame, an item Link does not have a faded icon; a slot blinks while it waits, and turns red when the game refuses. The hotbar comes and goes with the status bar, and never shows on the game's own screen that F3 switches to. In Near on a 4:3 screen there is no room for it, but the keys work all the same, and **Controls › Hotkeys** shows the slots' items.
+In Enhanced, a hotbar beside the status bar shows the four slots: each item's icon, from the start of play, its key and the button it is on. In Medium and Far each slot looks like the game's own B and A, the key's letter then the item between brackets, drawn where B and A draw it with its count or level as they show it (bombs and seeds counted, a sword's "L-3") ("LB" shows a big L with a small B under it, which the button's badge replaces while the item is on B or A); in Near it is more compact. An empty slot has dotted brackets or frame, an item Link does not have a faded icon; a slot blinks while it waits, and turns red when the game refuses. The hotbar comes and goes with the status bar, and never shows on the game's own screen that F3 switches to. In Near on a 4:3 screen there is no room for it, but the keys work all the same, and **Controls › Hotkeys** shows the slots' items. With **HUD** on Floating there is no bar: the slots float as tiles beside B and A, as [HUD](#hud) says.
 
 The keys hold for every game, and each game keeps its own slots, Oracles Combined one set for both its games. Loading a savestate cancels an exchange under way, and the hotkeys go on working after it. Item hotkeys play in Faithful and Enhanced, in Ages and Seasons on their original ROMs and in [Oracles Combined](#oracles-combined); the other fan games do not have them yet. From the pause, a change applies when the game resumes.
 
@@ -356,14 +367,23 @@ Portable mode does not copy them: each folder has its own account, so log in aga
 
 ## Languages
 
-Ages and Seasons play in French, German, Italian or Spanish, or in the European edition's English, from your own European ROM of the same game. Choose that ROM in **Cartridge › European ROM**, then the language in **Cartridge › Language**. The home screen names the language beside Cartridge.
 Ages and Seasons play in French, German, Italian or Spanish, or in the European edition's English, from your own European ROM of the same game; in Japanese from your Japanese ROM; and in Polish, Kaxus's fan translation, from your Polish ROM or his patch. Choose the source in **Cartridge › Editions**, then the language in **Cartridge › Language**. Every language shows, grayed until its source is there: left and right, or a click, stop on a grayed one and say what it needs ("Needs your European ROM: Cartridge › Editions.", "Needs your Japanese ROM: Cartridge › Editions."), without choosing it. A language chosen whose source is gone plays in English, its toast saying so, and comes back with the source. The home screen names the language beside Cartridge.
-**Japanese** is the Japanese edition's own text, in its own font, in Faithful and Enhanced. The Goron fortune teller of Ages, added by the US edition, speaks our own Japanese (unofficial). The compact text is not available in Japanese: **Display › Text › Text** stays on Classic, Compact grayed, and comes back to your choice in the other languages; the wide text box shows the game's own lines. The title screen and its Japanese logo, the file select and its screens, the save menu, the game over screen, the secrets' screens and the dungeons' names are the official Japanese edition's too (Nintendo, Capcom, Flagship). The name entry is the Japanese edition's, for Link's name and the child's: kana in hiragana, or in katakana with **Select** or the **カナ** and **かな** buttons below the grid, the small kana, ー and the space; ゛ and ゜ go on the character under the cursor, or on the one before it. A name typed in Latin letters in another language shows in capitals, the Japanese font having no lower-case Latin letters, and the save keeps it as typed; a name typed all in lower case shows as hiragana, since nothing tells it from a kana name. A name typed in kana shows badly if the game goes back to English or another European language, whose fonts have no kana. Secrets are the Japanese edition's: written in kana and digits, typed on a kana grid, and the same as the Japanese edition's, which accepts them. To exchange secrets between Ages and Seasons, play both games in the same language: a secret given in Japanese is refused by a game in English, and the other way round.
+
+**Japanese** is the Japanese edition's own text, in its own font, in Faithful and Enhanced. The Goron fortune teller of Ages, added by the US edition, speaks our own Japanese (unofficial). The compact text is not available in Japanese: **Display › Text › Text** stays on Classic, Compact grayed, and comes back to your choice in the other languages; the wide text box shows the game's own lines. The title screen and its Japanese logo, the file select and its screens, the save menu, the game over screen, the secrets' screens, the dungeons' names, and the symbols of the present and the past, or of the seasons, in the inventory and as Link enters an era or a season, are the official Japanese edition's too (Nintendo, Capcom, Flagship). The name entry is the Japanese edition's, for Link's name and the child's: kana in hiragana, or in katakana with **Select** or the **カナ** and **かな** buttons below the grid, the small kana, ー and the space; ゛ and ゜ go on the character under the cursor, or on the one before it. A name typed in Latin letters in another language shows in capitals, the Japanese font having no lower-case Latin letters, and the save keeps it as typed; a name typed all in lower case shows as hiragana, since nothing tells it from a kana name. A name typed in kana shows badly if the game goes back to English or another European language, whose fonts have no kana. Secrets are the Japanese edition's: written in kana and digits, typed on a kana grid, and the same as the Japanese edition's, which accepts them; a secret given in Japanese is refused by a game in English, and the other way round.
+
 **Polish** is Kaxus's fan translation, credited under the language while it is chosen ("Polish fan translation by Kaxus, from your Polish ROM or patch."). It plays in Faithful and Enhanced, with the compact text and the wide box too. The title screen, with Kaxus's banner, the file select and its screens, the save menu and the dungeons' names come from his translation too; the screens it leaves in English, such as the game over screen, stay so. The port ships neither his patch nor its ROM: you give them, and the texts are taken from them on your device.
 
 The texts are taken from your European ROM once, into a pack on your device: nothing of the European game is shipped. Every text is translated, and so are the screens that carry text, such as the file screens, the save menu and the game over screen, as the European game draws them; the title screen and the credits stay as the US game has them. Where the official translation is wrong, the port corrects it, and a few lines of Ages in French are the port's own. **English (EU)** is the European edition's own revision of the English text.
 
-A savestate taken in a language loads only in it. The fan games play in English from the home screen for now: they share many texts with their Oracle, but their own dialogues are not translated yet, so they have no Language row. The details are in [`REFERENCE.md`](REFERENCE.md#languages-in-detail).
+To exchange secrets between Ages and Seasons, play both games in the same language. A savestate taken in a language loads only in it. The fan games play neither in Japanese nor in Polish, and in English from the home screen for now: they share many texts with their Oracle, but their own dialogues are not translated yet, so they have no Language row. The details are in [`REFERENCE.md`](REFERENCE.md#languages-in-detail).
+
+The port recognizes the Japanese ROMs, Kaxus's patch and the Polish ROM it makes by their SHA-1:
+
+| File | Ages | Seasons |
+| --- | --- | --- |
+| Japanese ROM | `596aa066ccee9fae71643576f7526baa22d26d6d` | `08bf49d7e225c695f64d38131cb720decb84b663` |
+| Kaxus's Polish translation 1.0 patch (`.bps`), on the US ROM | `5173a7aa608597ae7d5ac054d610914d0a292c0d` | `b8cac23dd9e7129eafb66cffebd06e718f81213d` |
+| The Polish ROM it makes | `58da91d033bec3a11670dcfb07ac2d7c1b357aa6` | `0255e2c5d4b8eb2ec192d6dbe4d0cd5bc10b5e56` |
 
 ## Mods
 
@@ -398,10 +418,10 @@ To try the two examples, [`mods/claw-game`](../mods/claw-game/) and [`mods/fortu
 
 The Fan games entry lists four games, each with its state:
 
-- Gifts of Kinomi 1.1.2, built on Oracle of Ages;
-- Moonrise Regalia 1.0.6, built on Oracle of Ages;
-- Oracles Combined 1.5, both Oracles in one, built on their European ROMs ([below](#oracles-combined));
-- Temple of Seasons 1.073, built on Oracle of Seasons.
+- Gifts of Kinomi 1.1.2, by ZerotoKoops, Stewmath, Gamma and Ralfaro, built on Oracle of Ages;
+- Moonrise Regalia 1.0.6, by PontiusStone, built on Oracle of Ages;
+- Oracles Combined 1.5, by soaresden, both Oracles in one, built on their European ROMs ([below](#oracles-combined));
+- Temple of Seasons 1.073, by Jay (like the bird, not the letter) and Ralfaro, built on Oracle of Seasons.
 
 A fan game comes as a BPS patch: you keep the original ROM it is built on, and the patch. Picked, a fan game has the menu of a game, and Escape or B goes back to the list.
 

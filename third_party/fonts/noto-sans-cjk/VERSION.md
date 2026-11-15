@@ -11,7 +11,8 @@ made with fontTools 4.55.0:
 
 `OFL.txt` is the repository's `LICENSE` with the font's copyright line put on top, as google/fonts ships the Noto CJK
 fonts' licence ("Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'."; the font's own name
-table says the same). The subset keeps the font's name, Noto Sans CJK JP, which is not a reserved name.
+table says "Copyright 2014-2021 Adobe (http://www.adobe.com/). Noto is a trademark of Google Inc.", without the reserved
+name). The subset keeps the font's name, Noto Sans CJK JP, which does not hold the reserved name 'Source'.
 Licence: SIL Open Font License 1.1.
 
 The launcher's fallback for the characters its three faces do not have: a glyph missing from the face a text is drawn

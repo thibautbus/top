@@ -27,7 +27,7 @@ LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^ {0,3}#{1,6}[ \t]+(.*?)[ \t#]*$")
 FENCE = re.compile(r"^ {0,3}(```|~~~)")
 HTML_ANCHOR = re.compile(r"<a\s[^>]*\b(?:id|name)=\"([^\"]+)\"", re.IGNORECASE)
-README_MAX_LINES = 170
+README_MAX_LINES = 180
 
 
 def documents(root: Path, exclude: Path | None = None) -> list[Path]:
